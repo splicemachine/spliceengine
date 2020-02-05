@@ -100,7 +100,7 @@ public class AuthenticationIT {
     //DB-4618
     @Test
     public void invalidDbname() throws SQLException {
-        String url = "jdbc:splice://localhost:1527/anotherdb;user=user;password=passwd";
+        String url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/anotherdb;user=user;password=passwd";
         try {
             DriverManager.getConnection(url, new Properties());
             fail("Expected authentication failure");
@@ -112,7 +112,7 @@ public class AuthenticationIT {
 
     @Test
     public void impersonation() throws SQLException {
-        String url = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;impersonate=dgf";
+        String url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=splice;password=admin;impersonate=dgf";
         try (Connection c = DriverManager.getConnection(url, new Properties())) {
             try (Statement s = c.createStatement()) {
                 try (ResultSet rs = s.executeQuery("values USER")) {
@@ -122,7 +122,7 @@ public class AuthenticationIT {
             }
 
         }
-        url = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;impersonate=jy";
+        url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=splice;password=admin;impersonate=jy";
         try (Connection c = DriverManager.getConnection(url, new Properties())) {
             try (Statement s = c.createStatement()) {
                 try (ResultSet rs = s.executeQuery("values USER")) {
@@ -132,7 +132,7 @@ public class AuthenticationIT {
             }
 
         }
-        url = "jdbc:splice://localhost:1527/splicedb;user=dgf;password=dgf;impersonate=splice";
+        url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=dgf;password=dgf;impersonate=splice";
         try (Connection c = DriverManager.getConnection(url, new Properties())) {
             try (Statement s = c.createStatement()) {
                 try (ResultSet rs = s.executeQuery("values USER")) {
@@ -145,7 +145,7 @@ public class AuthenticationIT {
 
     @Test(expected = Exception.class)
     public void failedImpersonation() throws SQLException {
-        String url = "jdbc:splice://localhost:1527/splicedb;user=dgf;password=dgf;impersonate=jy";
+        String url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=dgf;password=dgf;impersonate=jy";
         try (Connection c = DriverManager.getConnection(url, new Properties())) {
             fail("Expected error");
         }
@@ -153,7 +153,7 @@ public class AuthenticationIT {
 
     @Test(expected = Exception.class)
     public void userWithNoImpersonation() throws SQLException {
-        String url = "jdbc:splice://localhost:1527/splicedb;user=jy;password=jy;impersonate=dgf";
+        String url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=jy;password=jy;impersonate=dgf";
         try (Connection c = DriverManager.getConnection(url, new Properties())) {
             fail("Expected error");
         }
@@ -161,7 +161,7 @@ public class AuthenticationIT {
 
     @Test
     public void testUserMapping() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;user=jy;password=jy";
+        String url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=jy;password=jy";
         try (Connection c = DriverManager.getConnection(url, new Properties())) {
             try (Statement s = c.createStatement()) {
                 try (ResultSet rs = s.executeQuery("values USER")) {
@@ -183,7 +183,7 @@ public class AuthenticationIT {
 
     @Test
     public void testNoGroupUser() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;user=tom;password=tom";
+        String url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=tom;password=tom";
         try (Connection c = DriverManager.getConnection(url, new Properties())) {
             try (Statement s = c.createStatement()) {
                 try (ResultSet rs = s.executeQuery("values USER")) {
@@ -230,7 +230,7 @@ public class AuthenticationIT {
 
     @Test
     public void testNoGroupUserSparkPath() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;user=tom;password=tom;useSpark=true";
+        String url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=tom;password=tom;useSpark=true";
         try (Connection c = DriverManager.getConnection(url, new Properties())) {
             try (Statement s = c.createStatement()) {
                 try (ResultSet rs = s.executeQuery("values USER")) {
@@ -277,7 +277,7 @@ public class AuthenticationIT {
 
     @Test
     public void testUserMappingInteractionWithImpersonation() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;impersonate=dgf";
+        String url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=splice;password=admin;impersonate=dgf";
         try (Connection c = DriverManager.getConnection(url, new Properties())) {
             try (Statement s = c.createStatement()) {
                 try (ResultSet rs = s.executeQuery("values USER")) {
@@ -337,7 +337,7 @@ public class AuthenticationIT {
 
     @Test
     public void testUserMappingInteractionWithImpersonationSparkPath() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;impersonate=dgf;useSpark=true";
+        String url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=splice;password=admin;impersonate=dgf;useSpark=true";
         try (Connection c = DriverManager.getConnection(url, new Properties())) {
             try (Statement s = c.createStatement()) {
                 try (ResultSet rs = s.executeQuery("values USER")) {

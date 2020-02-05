@@ -96,8 +96,8 @@ public class Trigger_When_Clause_IT extends SpliceUnitTest {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"});
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;useSpark=true"});
+        params.add(new Object[]{"jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=splice;password=admin"});
+        params.add(new Object[]{"jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=splice;password=admin;useSpark=true"});
         return params;
     }
 

@@ -19,6 +19,7 @@ import java.sql.*;
 import java.util.Collection;
 import java.util.Properties;
 
+import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
@@ -88,8 +89,8 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"});
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;useSpark=true"});
+        params.add(new Object[]{"jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=splice;password=admin"});
+        params.add(new Object[]{"jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=splice;password=admin;useSpark=true"});
         return params;
     }
 

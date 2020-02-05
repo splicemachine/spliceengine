@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -62,8 +63,8 @@ public class CheckConstraintIT extends SpliceUnitTest {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
+        params.add(new Object[]{"jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;create=true;user=splice;password=admin"});
+        params.add(new Object[]{"jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;create=true;user=splice;password=admin;useSpark=true"});
         return params;
     }
 

@@ -202,7 +202,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @Test
     public void testSparkConnection() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
+        String url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;create=true;user=splice;password=admin;useSpark=true";
         Connection connection = DriverManager.getConnection(url, new Properties());
         connection.setSchema(CLASS_NAME.toUpperCase());
         Statement s = connection.createStatement();
@@ -214,7 +214,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @Test
     public void testControlConnection() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=false";
+        String url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;create=true;user=splice;password=admin;useSpark=false";
         Connection connection = DriverManager.getConnection(url, new Properties());
         connection.setSchema(CLASS_NAME.toUpperCase());
         Statement s = connection.createStatement();
@@ -225,7 +225,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @Test
     public void testControlQuery() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin";
+        String url = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=splice;password=admin";
         Connection connection = DriverManager.getConnection(url, new Properties());
         connection.setSchema(CLASS_NAME.toUpperCase());
         Statement s = connection.createStatement();
@@ -441,7 +441,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
                 "BroadcastJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin"};
 
         for (int i=0; i<selectivity.length; i++) {
-            String url = format("jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;defaultSelectivityFactor=%.8f", selectivity[i]);
+            String url = format("jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;create=true;user=splice;password=admin;defaultSelectivityFactor=%.8f", selectivity[i]);
             Connection connection = DriverManager.getConnection(url, new Properties());
             connection.setSchema(CLASS_NAME.toUpperCase());
             Statement s = connection.createStatement();

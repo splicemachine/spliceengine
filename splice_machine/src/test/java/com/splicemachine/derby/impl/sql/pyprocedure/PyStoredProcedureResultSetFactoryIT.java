@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.pyprocedure;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -15,7 +16,7 @@ import java.sql.*;
 import java.util.LinkedList;
 import java.util.Queue;
 
-@Category(SerialTest.class) //serial because it loads a jar
+@Category({SerialTest.class, LocalOnlyTest.class}) //serial because it loads a jar
 public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = PyStoredProcedureResultSetFactoryIT.class.getSimpleName().toUpperCase();

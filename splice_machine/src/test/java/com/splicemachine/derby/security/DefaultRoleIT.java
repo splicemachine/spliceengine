@@ -17,6 +17,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -40,7 +41,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Created by yxia on 3/8/18.
  */
-@Category(HBaseTest.class)
+@Category({HBaseTest.class, LocalOnlyTest.class})
 public class DefaultRoleIT {
     private static final String SCHEMA1 = "TEST1";
     private static final String SCHEMA2 = "TEST2";

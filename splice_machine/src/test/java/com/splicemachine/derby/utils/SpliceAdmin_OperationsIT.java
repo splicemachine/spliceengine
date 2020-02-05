@@ -18,6 +18,7 @@ package com.splicemachine.derby.utils;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
 import org.junit.*;
@@ -36,7 +37,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
 
-@Category(SerialTest.class)
+@Category({SerialTest.class, LocalOnlyTest.class})
 public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
     private static final Logger LOG = Logger.getLogger(SpliceAdmin_OperationsIT.class);
     public static final String CLASS_NAME = SpliceAdmin_OperationsIT.class.getSimpleName().toUpperCase();

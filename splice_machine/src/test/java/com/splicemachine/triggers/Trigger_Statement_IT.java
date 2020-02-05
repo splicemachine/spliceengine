@@ -15,6 +15,7 @@
 package com.splicemachine.triggers;
 
 import com.splicemachine.db.client.am.ResultSet;
+import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
@@ -60,7 +61,7 @@ public class Trigger_Statement_IT {
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
         //params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;useSpark=true"});
-        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"});
+        params.add(new Object[]{"jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;user=splice;password=admin"});
         return params;
     }
 

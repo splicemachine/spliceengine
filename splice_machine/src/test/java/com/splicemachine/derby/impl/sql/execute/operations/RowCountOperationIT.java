@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.test.SerialTest;
 import org.junit.experimental.categories.Category;
 import org.junit.After;
@@ -69,8 +70,8 @@ public class RowCountOperationIT {
     private TestConnection conn;
     private String connectionString;
 
-    private static final String CONTROL = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=false";
-    private static final String SPARK = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
+    private static final String CONTROL = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;create=true;user=splice;password=admin;useSpark=false";
+    private static final String SPARK = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;create=true;user=splice;password=admin;useSpark=true";
 
 
     @Parameterized.Parameters

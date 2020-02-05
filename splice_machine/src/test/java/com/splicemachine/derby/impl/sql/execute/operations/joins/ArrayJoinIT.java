@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.iapi.types.SQLReal;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -84,8 +85,8 @@ public class ArrayJoinIT extends SpliceUnitTest {
             "(ia int array, va varchar(40) array,ra real array,fa float array, da decimal array, i int, v varchar(20))");
     private TestConnection conn;
 
-    private static String CONTROL = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=false";
-    private static String SPARK = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
+    private static String CONTROL = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;create=true;user=splice;password=admin;useSpark=false";
+    private static String SPARK = "jdbc:splice://" + SpliceNetConnection.DB_INSTANCE + "/splicedb;create=true;user=splice;password=admin;useSpark=true";
 
     private static String NLJ = "NESTEDLOOP\n";
     private static String MSJ = "SORTMERGE\n";

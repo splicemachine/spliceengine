@@ -18,6 +18,7 @@ import com.splicemachine.customer.Price;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -39,7 +40,7 @@ import static org.junit.Assert.assertThat;
  *
  * Created by jyuan on 11/3/15.
  */
-@Category(SerialTest.class) //serial because it loads a jar
+@Category({SerialTest.class, LocalOnlyTest.class}) //serial because it loads a jar
 public class SpliceUDTIT extends SpliceUnitTest {
     public static final String CLASS_NAME = SpliceUDTIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
