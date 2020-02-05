@@ -24,11 +24,15 @@ public interface DataResult extends Iterable<DataCell>{
 
     DataCell commitTimestamp();
 
-    DataCell tombstone();
+    DataCell tombstoneOrAntiTombstone();
 
     DataCell userData();
 
     DataCell fkCounter();
+
+    DataCell firstOccurrenceToken();
+
+    DataCell firstWriteToken();
 
     int size();
 
