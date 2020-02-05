@@ -154,12 +154,8 @@ public class ExplainOperation extends SpliceBaseOperation {
         Iterator<String> explainStringIter;
         Collection<QueryTreeNode> opPlanMap = m.get(sql);
         if (opPlanMap != null) {
-            DataSetProcessorType type = activation.getLanguageConnectionContext().getDataSetProcessorType();
-            type = type.combine(PlanPrinter.queryHintedForcedType(opPlanMap));
-
-            boolean useSpark = type.isSpark() || type.isDefaultControl() && PlanPrinter.shouldUseSpark(opPlanMap, false);
-
-            explainStringIter = PlanPrinter.planToIterator(opPlanMap, useSpark);
+            DataSetProcessorType type = activation.datasetProcessorType();
+            explainStringIter = PlanPrinter.planToIterator(opPlanMap, type);
         } else
             explainStringIter = Iterators.emptyIterator();
         while (explainStringIter.hasNext()) {
