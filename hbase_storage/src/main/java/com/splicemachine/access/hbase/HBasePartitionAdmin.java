@@ -195,6 +195,14 @@ public class HBasePartitionAdmin implements PartitionAdmin{
                     }
                     return;
                 }
+                else if (errMsg.contains("is not OPEN")) {
+                    try {
+                        timeKeeper.sleep(100, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException ie) {
+                        throw new InterruptedIOException();
+                    }
+                    SpliceLogUtils.warn(LOG, "Encounter an error: %s ", errMsg);
+                }
                 else
                     throw e;
             }
