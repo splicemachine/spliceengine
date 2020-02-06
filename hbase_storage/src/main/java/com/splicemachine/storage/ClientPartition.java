@@ -247,7 +247,8 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                     IOException ioe = exceptionFactory.processRemoteException(e);
                     if (ioe instanceof HNotServingRegion ||
                         ioe instanceof HWrongRegion ||
-                        ioe instanceof HRegionTooBusy) {
+                        ioe instanceof HRegionTooBusy ||
+                        e instanceof NullPointerException) {
                         if (LOG.isDebugEnabled()) {
                             SpliceLogUtils.debug(LOG,
                                 "Can not fetch compaction state for table %s but we will keep trying: %s.",
