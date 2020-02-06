@@ -91,7 +91,7 @@ public class UnionNode extends SetOperatorNode{
                      Object tableProperties) throws StandardException{
         super.init(leftResult,rightResult,all,tableProperties);
 
-		/* Is this a UNION ALL for a table constructor? */
+        /* Is this a UNION ALL for a table constructor? */
         this.tableConstructor=(Boolean)tableConstructor;
 
         this.isRecursive = false;
@@ -147,19 +147,19 @@ public class UnionNode extends SetOperatorNode{
 
         ResultSetNode rsn;
 
-		/*
-		** Should only set types of ? parameters to types of result columns
-		** if it's a table constructor.
-		*/
+        /*
+        ** Should only set types of ? parameters to types of result columns
+        ** if it's a table constructor.
+        */
         if(tableConstructor()){
-			/* By looping through the union nodes, we avoid recursion */
+            /* By looping through the union nodes, we avoid recursion */
             for(rsn=this;rsn instanceof UnionNode;){
                 UnionNode union=(UnionNode)rsn;
 
-				/*
-				** Assume that table constructors are left-deep trees of UnionNodes
-				** with RowResultSet nodes on the right.
-				*/
+                /*
+                ** Assume that table constructors are left-deep trees of UnionNodes
+                ** with RowResultSet nodes on the right.
+                */
                 if(SanityManager.DEBUG)
                     SanityManager.ASSERT(
                             union.rightResultSet instanceof RowResultSetNode,
@@ -171,7 +171,7 @@ public class UnionNode extends SetOperatorNode{
                 rsn=union.leftResultSet;
             }
 
-			/* The last node on the left should be a result set node */
+            /* The last node on the left should be a result set node */
             if(SanityManager.DEBUG)
                 SanityManager.ASSERT(rsn instanceof RowResultSetNode,
                         "A "+rsn.getClass().getName()+
@@ -210,29 +210,29 @@ public class UnionNode extends SetOperatorNode{
         }
     }
 
-	/*
-	 *  Optimizable interface
-	 */
+    /*
+     *  Optimizable interface
+     */
 
     @Override
     public CostEstimate optimizeIt(Optimizer optimizer,
                                    OptimizablePredicateList predList,
                                    CostEstimate outerCost,
                                    RowOrdering rowOrdering) throws StandardException{
-		/*
-		** RESOLVE: Most types of Optimizables only implement estimateCost(),
-		** and leave it up to optimizeIt() in FromTable to figure out the
-		** total cost of the join.  For unions, though, we want to figure out
-		** the best plan for the sources knowing how many outer rows there are -
-		** it could affect their strategies significantly.  So we implement
-		** optimizeIt() here, which overrides the optimizeIt() in FromTable.
-		** This assumes that the join strategy for which this union node is
-		** the inner table is a nested loop join, which will not be a valid
-		** assumption when we implement other strategies like materialization
-		** (hash join can work only on base tables).
-		*/
+        /*
+        ** RESOLVE: Most types of Optimizables only implement estimateCost(),
+        ** and leave it up to optimizeIt() in FromTable to figure out the
+        ** total cost of the join.  For unions, though, we want to figure out
+        ** the best plan for the sources knowing how many outer rows there are -
+        ** it could affect their strategies significantly.  So we implement
+        ** optimizeIt() here, which overrides the optimizeIt() in FromTable.
+        ** This assumes that the join strategy for which this union node is
+        ** the inner table is a nested loop join, which will not be a valid
+        ** assumption when we implement other strategies like materialization
+        ** (hash join can work only on base tables).
+        */
 
-		/* optimize() both resultSets */
+        /* optimize() both resultSets */
 
         // If we have predicates from an outer block, we want to try
         // to push them down to this node's children.  However, we can't
@@ -316,9 +316,9 @@ public class UnionNode extends SetOperatorNode{
         costEstimate.setRemoteCostPerPartition(costEstimate.remoteCost(), costEstimate.partitionCount());
 
 
-		/*
-		** Get the cost of this result set in the context of the whole plan.
-		*/
+        /*
+        ** Get the cost of this result set in the context of the whole plan.
+        */
 //        getCurrentAccessPath().getJoinStrategy().estimateCost(this, predList, null, outerCost, optimizer, costEstimate);
 
         optimizer.considerCost(this,predList,costEstimate,outerCost);
@@ -381,7 +381,7 @@ public class UnionNode extends SetOperatorNode{
         Optimizable retOptimizable;
         retOptimizable=super.modifyAccessPath(outerTables);
 
-		/* We only want call addNewNodes() once */
+        /* We only want call addNewNodes() once */
         if(addNewNodesCalled){
             return retOptimizable;
         }
@@ -393,7 +393,7 @@ public class UnionNode extends SetOperatorNode{
         ResultSetNode retRSN;
         retRSN=super.modifyAccessPaths();
 
-		/* We only want call addNewNodes() once */
+        /* We only want call addNewNodes() once */
         if(addNewNodesCalled){
             return retRSN;
         }
@@ -411,37 +411,37 @@ public class UnionNode extends SetOperatorNode{
     private ResultSetNode addNewNodes() throws StandardException{
         ResultSetNode treeTop=this;
 
-		/* Only call addNewNodes() once */
+        /* Only call addNewNodes() once */
         if(addNewNodesCalled){
             return this;
         }
 
         addNewNodesCalled=true;
 
-		/* RESOLVE - We'd like to generate any necessary NormalizeResultSets
-		 * above our children here, in the tree.  However, doing so causes
-		 * the following query to fail because the where clause goes against
-		 * the NRS instead of the Union:
-		 *		SELECT TABLE_TYPE
-		 *		FROM SYS.SYSTABLES, 
-		 *			(VALUES ('T','TABLE') ,
-		 *				('S','SYSTEM TABLE') , ('V', 'VIEW')) T(TTABBREV,TABLE_TYPE) 
-		 *		WHERE TTABBREV=TABLETYPE;
-		 * Thus, we are forced to skip over generating the nodes in the tree
-		 * and directly generate the execution time code in generate() instead.
-		 * This solves the problem for some unknown reason.
-		 */
+        /* RESOLVE - We'd like to generate any necessary NormalizeResultSets
+         * above our children here, in the tree.  However, doing so causes
+         * the following query to fail because the where clause goes against
+         * the NRS instead of the Union:
+         *        SELECT TABLE_TYPE
+         *        FROM SYS.SYSTABLES,
+         *            (VALUES ('T','TABLE') ,
+         *                ('S','SYSTEM TABLE') , ('V', 'VIEW')) T(TTABBREV,TABLE_TYPE)
+         *        WHERE TTABBREV=TABLETYPE;
+         * Thus, we are forced to skip over generating the nodes in the tree
+         * and directly generate the execution time code in generate() instead.
+         * This solves the problem for some unknown reason.
+         */
 
-		/* Simple solution (for now) to eliminating duplicates - 
-		 * generate a distinct above the union.
-		 */
+        /* Simple solution (for now) to eliminating duplicates -
+         * generate a distinct above the union.
+         */
         if(!all){
-			/* We need to generate a NormalizeResultSetNode above us if the column
-			 * types and lengths don't match.  (We need to do it here, since they
-			 * will end up agreeing in the PRN, which will be the immediate
-			 * child of the DistinctNode, which means that the NormalizeResultSet
-			 * won't get generated above the PRN.)
-			 */
+            /* We need to generate a NormalizeResultSetNode above us if the column
+             * types and lengths don't match.  (We need to do it here, since they
+             * will end up agreeing in the PRN, which will be the immediate
+             * child of the DistinctNode, which means that the NormalizeResultSet
+             * won't get generated above the PRN.)
+             */
             if(!columnTypesAndLengthsMatch()){
                 treeTop= (ResultSetNode)getNodeFactory().getNode(C_NodeTypes.NORMALIZE_RESULT_SET_NODE,
                         treeTop,
@@ -456,21 +456,21 @@ public class UnionNode extends SetOperatorNode{
                     Boolean.FALSE,
                     tableProperties,
                     getContextManager());
-			/* HACK - propagate our table number up to the new DistinctNode
-			 * so that arbitrary hash join will work correctly.  (Otherwise it
-			 * could have a problem dividing up the predicate list at the end
-			 * of modifyAccessPath() because the new child of the PRN above
-			 * us would have a tableNumber of -1 instead of our tableNumber.)
-			 */
+            /* HACK - propagate our table number up to the new DistinctNode
+             * so that arbitrary hash join will work correctly.  (Otherwise it
+             * could have a problem dividing up the predicate list at the end
+             * of modifyAccessPath() because the new child of the PRN above
+             * us would have a tableNumber of -1 instead of our tableNumber.)
+             */
             ((FromTable)treeTop).setTableNumber(tableNumber);
             treeTop.setReferencedTableMap((JBitSet) referencedTableMap.clone());
             ((DistinctNode)treeTop).estimateCost(null, null, null, optimizer, null);
             all=true;
         }
 
-		/* Generate the OrderByNode if a sort is still required for
-		 * the order by.
-		 */
+        /* Generate the OrderByNode if a sort is still required for
+         * the order by.
+         */
         if(orderByList!=null){
             treeTop=(ResultSetNode)getNodeFactory().getNode(C_NodeTypes.ORDER_BY_NODE,
                     treeTop,
@@ -520,36 +520,44 @@ public class UnionNode extends SetOperatorNode{
      */
     @Override
     public void bindExpressions(FromList fromListParam) throws StandardException{
+        assert leftResultSet.getResultColumns().size() == rightResultSet.getResultColumns().size();
+        for (int i = 0; i < leftResultSet.getResultColumns().size(); ++i) {
+            ResultColumn left = leftResultSet.getResultColumns().elementAt(i);
+            ResultColumn right = rightResultSet.getResultColumns().elementAt(i);
+            if (right.getName() == null) {
+                right.setName(left.getName());
+            }
+        }
         super.bindExpressions(fromListParam);
 
-		/*
-		** Each ? parameter in a table constructor that is not in an insert
-		** statement takes its type from the first non-? in its column
-		** of the table constructor.  It's an error to have a column that
-		** has all ?s.  Do this only for the top of the table constructor
-		** list - we don't want to do this for every level of union node
-		** in the table constructor.  Also, don't do this for an INSERT -
-		** the types of the ? parameters come from the columns being inserted
-		** into in that case.
-		*/
+        /*
+        ** Each ? parameter in a table constructor that is not in an insert
+        ** statement takes its type from the first non-? in its column
+        ** of the table constructor.  It's an error to have a column that
+        ** has all ?s.  Do this only for the top of the table constructor
+        ** list - we don't want to do this for every level of union node
+        ** in the table constructor.  Also, don't do this for an INSERT -
+        ** the types of the ? parameters come from the columns being inserted
+        ** into in that case.
+        */
         if(topTableConstructor && (!insertSource)){
-			/*
-			** Step through all the rows in the table constructor to
-			** get the type of the first non-? in each column.
-			*/
+            /*
+            ** Step through all the rows in the table constructor to
+            ** get the type of the first non-? in each column.
+            */
             DataTypeDescriptor[] types= new DataTypeDescriptor[leftResultSet.getResultColumns().size()];
 
             ResultSetNode rsn;
             int numTypes=0;
 
-			/* By looping through the union nodes, we avoid recursion */
+            /* By looping through the union nodes, we avoid recursion */
             for(rsn=this;rsn instanceof SetOperatorNode;){
                 SetOperatorNode setOperator=(SetOperatorNode)rsn;
 
-				/*
-				** Assume that table constructors are left-deep trees of
-				** SetOperatorNodes with RowResultSet nodes on the right.
-				*/
+                /*
+                ** Assume that table constructors are left-deep trees of
+                ** SetOperatorNodes with RowResultSet nodes on the right.
+                */
                 if(SanityManager.DEBUG)
                     SanityManager.ASSERT(
                             setOperator.rightResultSet instanceof RowResultSetNode,
@@ -563,21 +571,21 @@ public class UnionNode extends SetOperatorNode{
                 rsn=setOperator.leftResultSet;
             }
 
-			/* The last node on the left should be a result set node */
+            /* The last node on the left should be a result set node */
             assert rsn instanceof RowResultSetNode;
 
             numTypes+=getParamColumnTypes(types,(RowResultSetNode)rsn);
 
-			/* Are there any columns that are all ? parameters? */
+            /* Are there any columns that are all ? parameters? */
             if(numTypes<types.length){
                 throw StandardException.newException(SQLState.LANG_TABLE_CONSTRUCTOR_ALL_PARAM_COLUMN);
             }
 
-			/*
-			** Loop through the nodes again. This time, look for parameter
-			** nodes, and give them the type from the type array we just
-			** constructed.
-			*/
+            /*
+            ** Loop through the nodes again. This time, look for parameter
+            ** nodes, and give them the type from the type array we just
+            ** constructed.
+            */
             for(rsn=this;rsn instanceof SetOperatorNode;){
                 SetOperatorNode setOperator=(SetOperatorNode)rsn;
                 RowResultSetNode rrsn=(RowResultSetNode)setOperator.rightResultSet;
@@ -593,17 +601,17 @@ public class UnionNode extends SetOperatorNode{
 
     @Override
     public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException{
-		/*  By the time we get here we should be a union all.
-		 *  (We created a DistinctNode above us, if needed,
-		 *  to eliminate the duplicates earlier.)
-		 */
+        /*  By the time we get here we should be a union all.
+         *  (We created a DistinctNode above us, if needed,
+         *  to eliminate the duplicates earlier.)
+         */
         if(SanityManager.DEBUG){
             SanityManager.ASSERT(all, "all expected to be true");
         }
 
-		/* Get the next ResultSet #, so that we can number this ResultSetNode, its
-		 * ResultColumnList and ResultSet.
-		 */
+        /* Get the next ResultSet #, so that we can number this ResultSetNode, its
+         * ResultColumnList and ResultSet.
+         */
         assignResultSetNumber();
 
         // Get our final cost estimate based on the child estimates.
@@ -622,10 +630,10 @@ public class UnionNode extends SetOperatorNode{
         acb.pushGetResultSetFactoryExpression(mb); // instance for getUnionResultSet
 
 
-		/* Generate the left and right ResultSets */
+        /* Generate the left and right ResultSets */
         leftResultSet.generate(acb,mb);
 
-		/* Do we need a NormalizeResultSet above the left ResultSet? */
+        /* Do we need a NormalizeResultSet above the left ResultSet? */
         if(!resultColumns.isExactTypeAndLengthMatch(leftResultSet.getResultColumns())){
             acb.pushGetResultSetFactoryExpression(mb);
             mb.swap();
@@ -634,7 +642,7 @@ public class UnionNode extends SetOperatorNode{
 
         rightResultSet.generate(acb,mb);
 
-		/* Do we need a NormalizeResultSet above the right ResultSet? */
+        /* Do we need a NormalizeResultSet above the right ResultSet? */
         if(!resultColumns.isExactTypeAndLengthMatch(rightResultSet.getResultColumns())){
             acb.pushGetResultSetFactoryExpression(mb);
             mb.swap();
@@ -642,15 +650,15 @@ public class UnionNode extends SetOperatorNode{
             );
         }
 
-		/* Generate the UnionResultSet:
-		 *	arg1: leftExpression - Expression for leftResultSet
-		 *	arg2: rightExpression - Expression for rightResultSet
-		 *  arg3: Activation
-		 *  arg4: resultSetNumber
-		 *  arg5: estimated row count
-		 *  arg6: estimated cost
-		 *  arg7: close method
-		 */
+        /* Generate the UnionResultSet:
+         *    arg1: leftExpression - Expression for leftResultSet
+         *    arg2: rightExpression - Expression for rightResultSet
+         *  arg3: Activation
+         *  arg4: resultSetNumber
+         *  arg5: estimated row count
+         *  arg6: estimated cost
+         *  arg7: close method
+         */
 
         mb.push(resultSetNumber);
         mb.push(costEstimate.rowCount());

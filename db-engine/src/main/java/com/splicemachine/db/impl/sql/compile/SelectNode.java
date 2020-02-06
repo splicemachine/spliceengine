@@ -165,8 +165,8 @@ public class SelectNode extends ResultSetNode{
                      Object windowDefinitionList)
             throws StandardException{
         /* RESOLVE - remove aggregateList from constructor.
-		 * Consider adding selectAggregates and whereAggregates
-		 */
+         * Consider adding selectAggregates and whereAggregates
+         */
         resultColumns=(ResultColumnList)selectList;
         if(resultColumns!=null)
             resultColumns.markInitialSize();
@@ -422,7 +422,7 @@ public class SelectNode extends ResultSetNode{
                 getNodeFactory().doJoinOrderOptimization(),
                 getContextManager());
 
-		/* Set the nesting level in the fromList */
+        /* Set the nesting level in the fromList */
         if(fromListParam.isEmpty()){
             nestingLevel=0;
         }else{
@@ -430,9 +430,9 @@ public class SelectNode extends ResultSetNode{
         }
         fromList.setLevel(nestingLevel);
 
-		/* Splice a clone of our FromList on to the beginning of fromListParam, before binding
-		 * the tables, for correlated column resolution in VTIs.
-		 */
+        /* Splice a clone of our FromList on to the beginning of fromListParam, before binding
+         * the tables, for correlated column resolution in VTIs.
+         */
         for(int index=0;index<fromListSize;index++){
             fromListParam.insertElementAt(fromList.elementAt(index),0);
         }
@@ -440,7 +440,7 @@ public class SelectNode extends ResultSetNode{
         // Now bind our from list
         fromList.bindTables(dataDictionary,fromListParam);
 
-		/* Restore fromListParam */
+        /* Restore fromListParam */
         for(int index=0;index<fromListSize;index++){
             fromListParam.removeElementAt(0);
         }
@@ -464,12 +464,12 @@ public class SelectNode extends ResultSetNode{
         assert fromList!=null: "FromList is unexepctedly null!";
         assert resultColumns!=null: "ResultColumns is unexpectedly null!";
 
-		/* NOTE - a lot of this code would be common to bindTargetExpression(),
-		 * so we use a private boolean to share the code instead of duplicating
-		 * it.  bindTargetExpression() is responsible for toggling the boolean.
-		 */
+        /* NOTE - a lot of this code would be common to bindTargetExpression(),
+         * so we use a private boolean to share the code instead of duplicating
+         * it.  bindTargetExpression() is responsible for toggling the boolean.
+         */
         if(!bindTargetListOnly){
-			/* Bind the expressions in FromSubquerys, JoinNodes, etc. */
+            /* Bind the expressions in FromSubquerys, JoinNodes, etc. */
             fromList.bindExpressions(fromListParam);
         }
 
@@ -478,9 +478,9 @@ public class SelectNode extends ResultSetNode{
                 getContextManager());
         selectAggregates=new ArrayList<>();
 
-		/* Splice our FromList on to the beginning of fromListParam, before binding
-		 * the expressions, for correlated column resolution.
-		 */
+        /* Splice our FromList on to the beginning of fromListParam, before binding
+         * the expressions, for correlated column resolution.
+         */
         for(int index=0;index<fromListSize;index++){
             fromListParam.insertElementAt(fromList.elementAt(index),index);
         }
@@ -499,9 +499,9 @@ public class SelectNode extends ResultSetNode{
 
         resultColumns.bindExpressions(fromListParam, selectSubquerys, selectAggregates);
 
-		/* We're done if we're only binding the target list.
-		 * (After we restore the fromList, of course.)
-		 */
+        /* We're done if we're only binding the target list.
+         * (After we restore the fromList, of course.)
+         */
         if(bindTargetListOnly){
             for(int index=0;index<fromListSize;index++){
                 fromListParam.removeElementAt(0);
@@ -560,21 +560,21 @@ public class SelectNode extends ResultSetNode{
             whereClause=whereClause.bindExpression(fromListParam, whereSubquerys, whereAggregates);
             cc.setReliability(previousReliability);
 
-			/* RESOLVE - Temporarily disable aggregates in the HAVING clause.
-			** (We may remove them in the parser anyway.)
-			** RESOLVE - Disable aggregates in the WHERE clause.  Someday
-			** Aggregates will be allowed iff they are in a subquery
-			** of the having clause and they correlate to an outer
-			** query block.  For now, aggregates are not supported
-			** in the WHERE clause at all.
-			** Note: a similar check is made in JoinNode.
-			*/
+            /* RESOLVE - Temporarily disable aggregates in the HAVING clause.
+            ** (We may remove them in the parser anyway.)
+            ** RESOLVE - Disable aggregates in the WHERE clause.  Someday
+            ** Aggregates will be allowed iff they are in a subquery
+            ** of the having clause and they correlate to an outer
+            ** query block.  For now, aggregates are not supported
+            ** in the WHERE clause at all.
+            ** Note: a similar check is made in JoinNode.
+            */
             if(!whereAggregates.isEmpty()){
                 throw StandardException.newException(SQLState.LANG_NO_AGGREGATES_IN_WHERE_CLAUSE);
             }
 
-			/* If whereClause is a parameter, (where ?/where -?/where +?), then we should catch it and throw exception
-			 */
+            /* If whereClause is a parameter, (where ?/where -?/where +?), then we should catch it and throw exception
+             */
             if(whereClause.isParameterNode())
                 throw StandardException.newException(SQLState.LANG_NON_BOOLEAN_WHERE_CLAUSE,"PARAMETER");
 
@@ -597,7 +597,7 @@ public class SelectNode extends ResultSetNode{
             cc.setReliability(previousReliability);
         }
 
-		/* Restore fromList */
+        /* Restore fromList */
         for(int index=0;index<fromListSize;index++){
             fromListParam.removeElementAt(0);
         }// those items
@@ -611,17 +611,17 @@ public class SelectNode extends ResultSetNode{
                             ", expected to be restored to "+fromListSize);
         }
 
-		/* If query is grouped, bind the group by list. */
+        /* If query is grouped, bind the group by list. */
         if(groupByList!=null){
             List<AggregateNode> gbAggregateVector=new LinkedList<>();
 
             groupByList.bindAndPullGroupByColumns(this, gbAggregateVector);
 
-			/*
-			** There should be no aggregates in the Group By list.
-			** We don't expect any, but just to be on the safe side
-			** we will check under sanity.
-			*/
+            /*
+            ** There should be no aggregates in the Group By list.
+            ** We don't expect any, but just to be on the safe side
+            ** we will check under sanity.
+            */
             assert gbAggregateVector.isEmpty() : "Unexpected Aggregate vector generated by Group By clause";
 
             checkNoWindowFunctions(groupByList,"GROUP BY");
@@ -632,15 +632,15 @@ public class SelectNode extends ResultSetNode{
             windowDefinitionList.bind(this);
         }
 
-		/* If ungrouped query with aggregates in SELECT list, verify
-		 * that all result columns are valid aggregate expressions -
-		 * no column references outside of an aggregate.
-		 * If grouped query with aggregates in SELECT list, verify that all
-		 * result columns are either grouping expressions or valid
-		 * grouped aggregate expressions - the only column references
-		 * allowed outside of an aggregate are columns in expressions in
-		 * the group by list.
-		 */
+        /* If ungrouped query with aggregates in SELECT list, verify
+         * that all result columns are valid aggregate expressions -
+         * no column references outside of an aggregate.
+         * If grouped query with aggregates in SELECT list, verify that all
+         * result columns are either grouping expressions or valid
+         * grouped aggregate expressions - the only column references
+         * allowed outside of an aggregate are columns in expressions in
+         * the group by list.
+         */
         if((groupByList!=null || !selectAggregates.isEmpty())){
             VerifyAggregateExpressionsVisitor visitor= new VerifyAggregateExpressionsVisitor(groupByList);
             resultColumns.accept(visitor);
@@ -660,7 +660,7 @@ public class SelectNode extends ResultSetNode{
      */
     @Override
     public void bindExpressionsWithTables(FromList fromListParam) throws StandardException{
-		/* We have tables, so simply call bindExpressions() */
+        /* We have tables, so simply call bindExpressions() */
         bindExpressions(fromListParam);
     }
 
@@ -677,10 +677,10 @@ public class SelectNode extends ResultSetNode{
     public void bindTargetExpressions(FromList fromListParam, boolean checkFromSubquery)
             throws StandardException{
         if (checkFromSubquery) {
-		/*
-		 * With a FromSubquery in the FromList we cannot bind target expressions
-		 * at this level (DERBY-3321)
-		 */
+        /*
+         * With a FromSubquery in the FromList we cannot bind target expressions
+         * at this level (DERBY-3321)
+         */
             CollectNodesVisitor cnv = new CollectNodesVisitor(FromSubquery.class, FromSubquery.class);
             fromList.accept(cnv);
             bindTargetListOnly = cnv.getList().isEmpty();
@@ -701,12 +701,12 @@ public class SelectNode extends ResultSetNode{
      */
     @Override
     public void bindResultColumns(FromList fromListParam) throws StandardException{
-		/* We first bind the resultColumns for any FromTable which
-		 * needs its own binding, such as JoinNodes.
-		 * We pass through the fromListParam without adding our fromList
-		 * to it, since the elements in our fromList can only be correlated
-		 * with outer query blocks.
-		 */
+        /* We first bind the resultColumns for any FromTable which
+         * needs its own binding, such as JoinNodes.
+         * We pass through the fromListParam without adding our fromList
+         * to it, since the elements in our fromList can only be correlated
+         * with outer query blocks.
+         */
         fromList.bindResultColumns(fromListParam);
         super.bindResultColumns(fromListParam);
 
@@ -720,7 +720,7 @@ public class SelectNode extends ResultSetNode{
             }
         }
 
-		/* Only 1012 elements allowed in select list */
+        /* Only 1012 elements allowed in select list */
         if(resultColumns.size()>Limits.DB2_MAX_ELEMENTS_IN_SELECT_LIST){
             throw StandardException.newException(SQLState.LANG_TOO_MANY_ELEMENTS);
         }
@@ -763,12 +763,12 @@ public class SelectNode extends ResultSetNode{
                                   ResultColumnList targetColumnList,
                                   DMLStatementNode statement,
                                   FromList fromListParam) throws StandardException{
-		/* We first bind the resultColumns for any FromTable which
-		 * needs its own binding, such as JoinNodes.
-		 * We pass through the fromListParam without adding our fromList
-		 * to it, since the elements in our fromList can only be correlated
-		 * with outer query blocks.
-		 */
+        /* We first bind the resultColumns for any FromTable which
+         * needs its own binding, such as JoinNodes.
+         * We pass through the fromListParam without adding our fromList
+         * to it, since the elements in our fromList can only be correlated
+         * with outer query blocks.
+         */
         fromList.bindResultColumns(fromListParam);
         super.bindResultColumns(targetTableDescriptor,targetVTI,targetColumnList,statement,fromListParam);
     }
@@ -853,11 +853,11 @@ public class SelectNode extends ResultSetNode{
     public ResultSetNode preprocess(int numTables,GroupByList gbl,FromList fl) throws StandardException{
         ResultSetNode newTop=this;
 
-		/* Put the expression trees in conjunctive normal form.
-		 * NOTE - This needs to occur before we preprocess the subqueries
-		 * because the subquery transformations assume that any subquery operator
-		 * negation has already occurred.
-		 */
+        /* Put the expression trees in conjunctive normal form.
+         * NOTE - This needs to occur before we preprocess the subqueries
+         * because the subquery transformations assume that any subquery operator
+         * negation has already occurred.
+         */
         whereClause=normExpressions(whereClause);
         // DERBY-3257. We need to normalize the having clause as well, because
         // preProcess expects CNF.
@@ -884,30 +884,30 @@ public class SelectNode extends ResultSetNode{
             fromList.bindResultColumns(afromList);
         }
 
-		/* Preprocess the fromList.  For each FromTable, if it is a FromSubquery
-		 * then we will preprocess it, replacing the FromSubquery with a
-		 * ProjectRestrictNode. If it is a FromBaseTable, then we will generate
-		 * the ProjectRestrictNode above it.
-		 */
+        /* Preprocess the fromList.  For each FromTable, if it is a FromSubquery
+         * then we will preprocess it, replacing the FromSubquery with a
+         * ProjectRestrictNode. If it is a FromBaseTable, then we will generate
+         * the ProjectRestrictNode above it.
+         */
         fromList.preprocess(numTables,groupByList,whereClause);
 
-		/* selectSubquerys is always allocated at bind() time */
+        /* selectSubquerys is always allocated at bind() time */
         assert selectSubquerys!=null: "selectSubquerys is expected to be non-null";
 
-		/* Preprocess the RCL after the from list so that
-		 * we can flatten/optimize any subqueries in the
-		 * select list.
-		 */
+        /* Preprocess the RCL after the from list so that
+         * we can flatten/optimize any subqueries in the
+         * select list.
+         */
         resultColumns.preprocess(numTables, fromList,whereSubquerys, wherePredicates);
 
-		/* Preprocess the expressions.  (This is necessary for subqueries.
-		 * This is also where we do tranformations such as for LIKE.)
-		 *
-		 * NOTE: We do this after preprocessing the fromList so that, for
-		 * quantified subqueries, the join expression with the outer
-		 * expression will be pushable (to be pushable, the ColumnReference
-		 * has to point to a VirtualColumnNode, and not to a BaseColumnNode).
-		 */
+        /* Preprocess the expressions.  (This is necessary for subqueries.
+         * This is also where we do tranformations such as for LIKE.)
+         *
+         * NOTE: We do this after preprocessing the fromList so that, for
+         * quantified subqueries, the join expression with the outer
+         * expression will be pushable (to be pushable, the ColumnReference
+         * has to point to a VirtualColumnNode, and not to a BaseColumnNode).
+         */
         if(whereClause!=null){
             // DERBY-3301
             // Mark subqueries that are part of the where clause as such so
@@ -919,10 +919,10 @@ public class SelectNode extends ResultSetNode{
             whereClause.preprocess(numTables, fromList,whereSubquerys, wherePredicates);
         }
 
-		/* Preprocess the group by list too. We need to compare
-		 * expressions in the group by list with the select list and we
-		 * can't rewrite one and not the other.
-		 */
+        /* Preprocess the group by list too. We need to compare
+         * expressions in the group by list with the select list and we
+         * can't rewrite one and not the other.
+         */
         if(groupByList!=null){
             groupByList.preprocess(numTables,fromList,whereSubquerys,wherePredicates);
         }
@@ -943,15 +943,15 @@ public class SelectNode extends ResultSetNode{
             havingClause=havingClause.preprocess(numTables,fromList,havingSubquerys,wherePredicates);
         }
 
-		/* Pull apart the expression trees */
+        /* Pull apart the expression trees */
         if(whereClause!=null){
             wherePredicates.pullExpressions(numTables,whereClause);
             whereClause=null;
         }
 
-		/* RESOLVE - Where should we worry about expression pull up for
-		 * expensive predicates?
-		 */
+        /* RESOLVE - Where should we worry about expression pull up for
+         * expensive predicates?
+         */
 
         // Flatten any flattenable FromSubquerys or JoinNodes
         fromList.flattenFromTables(resultColumns, wherePredicates, whereSubquerys, groupByList, havingClause, numTables);
@@ -967,11 +967,11 @@ public class SelectNode extends ResultSetNode{
                 // columns are ones that have equality comparisons with
                 // constant expressions (e.g. x = 3)
                 orderByList.removeConstantColumns(wherePredicates);
-				/*
-				** It's possible for the order by list to shrink to nothing
-				** as a result of removing constant columns.  If this happens,
-				** get rid of the list entirely.
-				*/
+                /*
+                ** It's possible for the order by list to shrink to nothing
+                ** as a result of removing constant columns.  If this happens,
+                ** get rid of the list entirely.
+                */
                 if(orderByList.isEmpty()){
                     orderByList=null;
                     resultColumns.removeOrderByColumns();
@@ -988,11 +988,11 @@ public class SelectNode extends ResultSetNode{
          */
         fromList.setDependencyMapForSSQ(numTables);
 
-		/* A valid group by without any aggregates or a having clause
-		 * is equivalent to a distinct without the group by.  We do the transformation
-		 * in order to simplify the group by code.
-		 * The conversion cannot be done if it is a rollup
-		 */
+        /* A valid group by without any aggregates or a having clause
+         * is equivalent to a distinct without the group by.  We do the transformation
+         * in order to simplify the group by code.
+         * The conversion cannot be done if it is a rollup
+         */
         if(groupByList!=null && !groupByList.isRollup() && havingClause==null && !hasAggregatesInSelectList() && whereAggregates.isEmpty()){
             isDistinct=true;
             groupByList=null;
@@ -1006,27 +1006,27 @@ public class SelectNode extends ResultSetNode{
             }
         }
 
-		/* Consider distinct elimination based on a uniqueness condition.
-		 * In order to do this:
-		 *	o  All top level ColumnReferences in the select list are
-		 *	   from the same base table.  (select t1.c1, t2.c2 + t3.c3 is
-		 *	   okay - t1 is the table of interest.)
-		 *  o  If the from list is a single table then the columns in the
-		 *	   select list plus the columns in the where clause that are
-		 *	   in = comparisons with constants or parameters must be a
-		 *	   superset of any unique index.
-		 *  o  If the from list has multiple tables then at least 1 table
-		 *	   meet the following - the set of columns in = comparisons
-		 *	   with constants or parameters is a superset of any unique
-		 *	   index on the table.  All of the other tables must meet
-		 *	   the following - the set of columns in = comparisons with
-		 *	   constants, parameters or join columns is a superset of
-		 *	   any unique index on the table.  If the table from which
-		 *	   the columns in the select list are coming from is in this
-		 *     later group then the rule for it is to also include
-		 *     the columns in the select list in the set of columns that
-		 *     needs to be a superset of the unique index.  Whew!
-		 */
+        /* Consider distinct elimination based on a uniqueness condition.
+         * In order to do this:
+         *    o  All top level ColumnReferences in the select list are
+         *       from the same base table.  (select t1.c1, t2.c2 + t3.c3 is
+         *       okay - t1 is the table of interest.)
+         *  o  If the from list is a single table then the columns in the
+         *       select list plus the columns in the where clause that are
+         *       in = comparisons with constants or parameters must be a
+         *       superset of any unique index.
+         *  o  If the from list has multiple tables then at least 1 table
+         *       meet the following - the set of columns in = comparisons
+         *       with constants or parameters is a superset of any unique
+         *       index on the table.  All of the other tables must meet
+         *       the following - the set of columns in = comparisons with
+         *       constants, parameters or join columns is a superset of
+         *       any unique index on the table.  If the table from which
+         *       the columns in the select list are coming from is in this
+         *     later group then the rule for it is to also include
+         *     the columns in the select list in the set of columns that
+         *     needs to be a superset of the unique index.  Whew!
+         */
         if(isDistinct && groupByList==null){
             int distinctTable=resultColumns.allTopCRsFromSameTable();
 
@@ -1036,67 +1036,67 @@ public class SelectNode extends ResultSetNode{
                 }
             }
 
-			/* If we were unable to eliminate the distinct and we have
-			 * an order by then we can consider eliminating the sort for the
-			 * order by.  All of the columns in the order by list must
-			 * be ascending in order to do this.  There are 2 cases:
-			 *	o	The order by list is an in order prefix of the columns
-			 *		in the select list.  In this case the output of the
-			 *		sort from the distinct will be in the right order
-			 *		so we simply eliminate the order by list.
-			 *	o	The order by list is a subset of the columns in the
-			 *		the select list.  In this case we need to reorder the
-			 *		columns in the select list so that the ordering columns
-			 *		are an in order prefix of the select list and put a PRN
-			 *		above the select so that the shape of the result set
-			 *		is as expected.
-			 */
+            /* If we were unable to eliminate the distinct and we have
+             * an order by then we can consider eliminating the sort for the
+             * order by.  All of the columns in the order by list must
+             * be ascending in order to do this.  There are 2 cases:
+             *    o    The order by list is an in order prefix of the columns
+             *        in the select list.  In this case the output of the
+             *        sort from the distinct will be in the right order
+             *        so we simply eliminate the order by list.
+             *    o    The order by list is a subset of the columns in the
+             *        the select list.  In this case we need to reorder the
+             *        columns in the select list so that the ordering columns
+             *        are an in order prefix of the select list and put a PRN
+             *        above the select so that the shape of the result set
+             *        is as expected.
+             */
 
 //            if(isDistinct && orderByList!=null && orderByList.allAscending()){
-				/* Order by list currently restricted to columns in select
-				 * list, so we will always eliminate the order by here.
-				 */
-//				if (orderByList.isInOrderPrefix(resultColumns))
-//				{
-//					orderByList = null;
-//				}
-//				else
-//				{
-				/* Order by list is not an in order prefix of the select list
-				 * so we must reorder the columns in the the select list to
-				 * match the order by list and generate the PRN above us to
-				 * preserve the expected order.
-				 */
+                /* Order by list currently restricted to columns in select
+                 * list, so we will always eliminate the order by here.
+                 */
+//                if (orderByList.isInOrderPrefix(resultColumns))
+//                {
+//                    orderByList = null;
+//                }
+//                else
+//                {
+                /* Order by list is not an in order prefix of the select list
+                 * so we must reorder the columns in the the select list to
+                 * match the order by list and generate the PRN above us to
+                 * preserve the expected order.
+                 */
 //                newTop=genProjectRestrictForReordering();
 //                orderByList.resetToSourceRCs();
 //                resultColumns=orderByList.reorderRCL(resultColumns);
 //                newTop.getResultColumns().removeOrderByColumns();
 //                orderByList=null;
-//				}
+//                }
 //                orderByAndDistinctMerged=true;
 //            }
         }
 
-		/*
-		 * Push predicates that are pushable.
-		 *
-		 * NOTE: We pass the wherePredicates down to the new PRNs here,
-		 * so they can pull any clauses and possibily push them down further.
-		 * NOTE: We wait until all of the FromTables have been preprocessed
-		 * until we attempt to push down predicates, because we cannot push down
-		 * a predicate if the immediate source of any of its column references
-		 * is not a ColumnReference or a VirtualColumnNode.
-		 */
+        /*
+         * Push predicates that are pushable.
+         *
+         * NOTE: We pass the wherePredicates down to the new PRNs here,
+         * so they can pull any clauses and possibily push them down further.
+         * NOTE: We wait until all of the FromTables have been preprocessed
+         * until we attempt to push down predicates, because we cannot push down
+         * a predicate if the immediate source of any of its column references
+         * is not a ColumnReference or a VirtualColumnNode.
+         */
         fromList.pushPredicates(wherePredicates);
 
-		/* Set up the referenced table map */
+        /* Set up the referenced table map */
         referencedTableMap=new JBitSet(numTables);
         int flSize=fromList.size();
         for(int index=0;index<flSize;index++){
             referencedTableMap.or(((FromTable)fromList.elementAt(index)).getReferencedTableMap());
         }
 
-		/* Copy the referenced table map to the new tree top, if necessary */
+        /* Copy the referenced table map to the new tree top, if necessary */
         if(newTop!=this){
             newTop.setReferencedTableMap((JBitSet)referencedTableMap.clone());
         }
@@ -1163,28 +1163,28 @@ public class SelectNode extends ResultSetNode{
             return false;
         }
 
-		/* Don't flatten (at least for now) if selectNode's SELECT list contains a subquery */
+        /* Don't flatten (at least for now) if selectNode's SELECT list contains a subquery */
         if((selectSubquerys!=null) && (!selectSubquerys.isEmpty())){
             return false;
         }
 
-		/* Don't flatten if selectNode contains a group by or having clause */
+        /* Don't flatten if selectNode contains a group by or having clause */
         if((groupByList!=null) || (havingClause!=null)){
             return false;
         }
 
-		/* Don't flatten if select list contains something that isn't cloneable.
-		 */
+        /* Don't flatten if select list contains something that isn't cloneable.
+         */
         if(!resultColumns.isCloneable()){
             return false;
         }
 
-		/* Don't flatten if selectNode contains an aggregate */
+        /* Don't flatten if selectNode contains an aggregate */
         if((selectAggregates!=null) && (!selectAggregates.isEmpty())){
             return false;
         }
 
-		/* Don't flatten if selectNode now has an order by */
+        /* Don't flatten if selectNode now has an order by */
         if((orderByList!=null) && (!orderByList.isEmpty())){
             return false;
         }
@@ -1209,12 +1209,12 @@ public class SelectNode extends ResultSetNode{
 
         prnRSN=(ResultSetNode)getNodeFactory().getNode(
                 C_NodeTypes.PROJECT_RESTRICT_NODE,
-                fromList.elementAt(0),	/* Child ResultSet */
-                resultColumns,		/* Projection */
-                whereClause,			/* Restriction */
+                fromList.elementAt(0),    /* Child ResultSet */
+                resultColumns,        /* Projection */
+                whereClause,            /* Restriction */
                 wherePredicates,/* Restriction as PredicateList */
                 selectSubquerys,/* Subquerys in Projection */
-                whereSubquerys,	/* Subquerys in Restriction */
+                whereSubquerys,    /* Subquerys in Restriction */
                 null,
                 getContextManager());
 
@@ -1232,13 +1232,13 @@ public class SelectNode extends ResultSetNode{
         }
 
         /*
-		** If we have aggregates OR a select list we want
-		** to generate a GroupByNode.  In the case of a
-		** scalar aggregate we have no grouping columns.
-		**
-		** JRESOLVE: what about correlated aggregates from another
-		** block.
-		*/
+        ** If we have aggregates OR a select list we want
+        ** to generate a GroupByNode.  In the case of a
+        ** scalar aggregate we have no grouping columns.
+        **
+        ** JRESOLVE: what about correlated aggregates from another
+        ** block.
+        */
         if(((selectAggregates!=null) && (!selectAggregates.isEmpty())) || (groupByList!=null)){
 
             List<AggregateNode> aggs=selectAggregates;
@@ -1291,28 +1291,28 @@ public class SelectNode extends ResultSetNode{
             // RCL.
             resultColumns.verifyAllOrderable();
 
-			/* See if we can push duplicate elimination into the store
-			 * via a hash scan.  This is possible iff:
-			 *	o  A single table query
-			 *	o  We haven't merged the order by and distinct sorts.
-			 *	   (Results do not have to be in a particular order.)
-			 *	o  All entries in the select's RCL are ColumnReferences.
-			 *	o  No predicates (This is because we currently do not
-			 *	   differentiate between columns referenced in the select
-			 *	   list and columns referenced in other clauses.  In other
-			 *	   words, the store will do duplicate elimination based on
-			 *	   all referenced columns.)
-			 *	   RESOLVE - We can change this to be all referenced columns
-			 *	   have to be in the select list.  In that case, we need to
-			 *	   refine which predicates are allowed.  Basically, all predicates
-			 *	   must have been pushed down to the index/table scan.(If we make
-			 *	   this change, then we need to verify that non of the columns in
-			 *	   the predicates are correlated columns.)
-			 *	o  NOTE: The implementation of isPossibleDistinctScan() will return
-			 *	   false if there is an IndexRowToBaseRow above the
-			 *	   FromBaseTable.  This is because all of a table's columns must come
-			 *	   from the same conglomerate in order to get consistent data.
-			 */
+            /* See if we can push duplicate elimination into the store
+             * via a hash scan.  This is possible iff:
+             *    o  A single table query
+             *    o  We haven't merged the order by and distinct sorts.
+             *       (Results do not have to be in a particular order.)
+             *    o  All entries in the select's RCL are ColumnReferences.
+             *    o  No predicates (This is because we currently do not
+             *       differentiate between columns referenced in the select
+             *       list and columns referenced in other clauses.  In other
+             *       words, the store will do duplicate elimination based on
+             *       all referenced columns.)
+             *       RESOLVE - We can change this to be all referenced columns
+             *       have to be in the select list.  In that case, we need to
+             *       refine which predicates are allowed.  Basically, all predicates
+             *       must have been pushed down to the index/table scan.(If we make
+             *       this change, then we need to verify that non of the columns in
+             *       the predicates are correlated columns.)
+             *    o  NOTE: The implementation of isPossibleDistinctScan() will return
+             *       false if there is an IndexRowToBaseRow above the
+             *       FromBaseTable.  This is because all of a table's columns must come
+             *       from the same conglomerate in order to get consistent data.
+             */
             boolean distinctScanPossible=false;
             if(origFromListSize==1 && !orderByAndDistinctMerged){
                 boolean simpleColumns=true;
@@ -1333,9 +1333,9 @@ public class SelectNode extends ResultSetNode{
             }
 
             if(!distinctScanPossible){
-				/* We can't do a distinct scan. Determine if we can filter out
-				 * duplicates without a sorter.
-				 */
+                /* We can't do a distinct scan. Determine if we can filter out
+                 * duplicates without a sorter.
+                 */
                 boolean inSortedOrder=isOrderedResult(resultColumns,prnRSN,!(orderByAndDistinctMerged));
                 prnRSN=(ResultSetNode)getNodeFactory().getNode(
                         C_NodeTypes.DISTINCT_NODE,
@@ -1350,9 +1350,9 @@ public class SelectNode extends ResultSetNode{
             }
         }
 
-		/* Generate the OrderByNode if a sort is still required for
-		 * the order by.
-		 */
+        /* Generate the OrderByNode if a sort is still required for
+         * the order by.
+         */
 
         if(orderByList!=null){
             // Need to remove sort reduction if you are aggregating (hash)
@@ -1459,16 +1459,16 @@ public class SelectNode extends ResultSetNode{
             eliminateSort=true;
         }
 
-		/* If we were able to eliminate the sort during optimization then
-		 * we must tell the underlying tree.  At minimum, this means no
-		 * group fetch on an index under an IndexRowToBaseRow since that
-		 * that could lead to incorrect results.  (Bug 2347.)
-		 */
+        /* If we were able to eliminate the sort during optimization then
+         * we must tell the underlying tree.  At minimum, this means no
+         * group fetch on an index under an IndexRowToBaseRow since that
+         * that could lead to incorrect results.  (Bug 2347.)
+         */
         if(eliminateSort){
             prnRSN.adjustForSortElimination(orderByList);
         }
 
-		/* Set the cost of this node in the generated node */
+        /* Set the cost of this node in the generated node */
 //        if(prnRSN.costEstimate==null)
 //            prnRSN.costEstimate=costEstimate.cloneMe();
 
@@ -1503,22 +1503,22 @@ public class SelectNode extends ResultSetNode{
                                   double outerRows) throws StandardException{
         Optimizer optimizer;
 
-		/* Optimize any subquerys before optimizing the underlying result set */
+        /* Optimize any subquerys before optimizing the underlying result set */
 
-		/* selectSubquerys is always allocated at bind() time */
+        /* selectSubquerys is always allocated at bind() time */
         assert selectSubquerys != null: "selectSubquerys is expected to be non-null";
 
-		/* If this select node is the child of an outer node that is
-		 * being optimized, we can get here multiple times (once for
-		 * every permutation that is done for the outer node).  With
-		 * DERBY-805, we can add optimizable predicates to the WHERE
-		 * list as part of this method; thus, before proceeding we
-		 * need go through and remove any opt predicates that we added
-		 * to our WHERE list the last time we were here; if we don't
-		 * do that, we'll end up with the same predicates in our
-		 * WHERE list multiple times, which can lead to incorrect
-		 * optimization.
-		 */
+        /* If this select node is the child of an outer node that is
+         * being optimized, we can get here multiple times (once for
+         * every permutation that is done for the outer node).  With
+         * DERBY-805, we can add optimizable predicates to the WHERE
+         * list as part of this method; thus, before proceeding we
+         * need go through and remove any opt predicates that we added
+         * to our WHERE list the last time we were here; if we don't
+         * do that, we'll end up with the same predicates in our
+         * WHERE list multiple times, which can lead to incorrect
+         * optimization.
+         */
         if(wherePredicates!=null){
             // Iterate backwards because we might be deleting entries.
             for(int i=wherePredicates.size()-1;i>=0;i--){
@@ -1527,31 +1527,31 @@ public class SelectNode extends ResultSetNode{
             }
         }
 
-		/* With DERBY-805 we take any optimizable predicates that
-		 * were pushed into this node and we add them to the list of
-		 * predicates that we pass to the optimizer, thus allowing
-		 * the optimizer to use them when choosing an access path
-		 * for this SELECT node.  We do that by adding the predicates
-		 * to our WHERE list, since the WHERE predicate list is what
-		 * we pass to the optimizer for this select node (see below).
-		 * We have to pass the WHERE list directly (as opposed to
-		 * passing a copy) because the optimizer is only created one
-		 * time; it then uses the list we pass it for the rest of the
-		 * optimization phase and finally for "modifyAccessPaths()".
-		 * Since the optimizer can update/modify the list based on the
-		 * WHERE predicates (such as by adding internal predicates or
-		 * by modifying the actual predicates themselves), we need
-		 * those changes to be applied to the WHERE list directly for
-		 * subsequent processing (esp. for modification of the access
-		 * path).  Note that by adding outer opt predicates directly
-		 * to the WHERE list, we're changing the semantics of this
-		 * SELECT node.  This is only temporary, though--once the
-		 * optimizer is done with all of its work, any predicates
-		 * that were pushed here will have been pushed even further
-		 * down and thus will have been removed from the WHERE list
-		 * (if it's not possible to push them further down, then they
-		 * shouldn't have made it this far to begin with).
-		 */
+        /* With DERBY-805 we take any optimizable predicates that
+         * were pushed into this node and we add them to the list of
+         * predicates that we pass to the optimizer, thus allowing
+         * the optimizer to use them when choosing an access path
+         * for this SELECT node.  We do that by adding the predicates
+         * to our WHERE list, since the WHERE predicate list is what
+         * we pass to the optimizer for this select node (see below).
+         * We have to pass the WHERE list directly (as opposed to
+         * passing a copy) because the optimizer is only created one
+         * time; it then uses the list we pass it for the rest of the
+         * optimization phase and finally for "modifyAccessPaths()".
+         * Since the optimizer can update/modify the list based on the
+         * WHERE predicates (such as by adding internal predicates or
+         * by modifying the actual predicates themselves), we need
+         * those changes to be applied to the WHERE list directly for
+         * subsequent processing (esp. for modification of the access
+         * path).  Note that by adding outer opt predicates directly
+         * to the WHERE list, we're changing the semantics of this
+         * SELECT node.  This is only temporary, though--once the
+         * optimizer is done with all of its work, any predicates
+         * that were pushed here will have been pushed even further
+         * down and thus will have been removed from the WHERE list
+         * (if it's not possible to push them further down, then they
+         * shouldn't have made it this far to begin with).
+         */
         if(predicateList!=null){
             if(wherePredicates==null){
                 wherePredicates=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
@@ -1601,7 +1601,7 @@ public class SelectNode extends ResultSetNode{
                 }
             }
         }
-		/* Get a new optimizer */
+        /* Get a new optimizer */
         optimizer=getOptimizer(fromList, wherePredicates, dataDictionary, orderByList);
         optimizer.setOuterRows(outerRows);
 
@@ -1610,7 +1610,7 @@ public class SelectNode extends ResultSetNode{
              havingAggregates !=null  && !havingAggregates.isEmpty()) && hasNoGroupBy())
             optimizer.setSingleRow(true);
 
-		/* Optimize this SelectNode */
+        /* Optimize this SelectNode */
         while(optimizer.nextJoinOrder()){
             while(optimizer.getNextDecoratedPermutation()){
                 optimizer.costPermutation();
@@ -1628,12 +1628,12 @@ public class SelectNode extends ResultSetNode{
          */
         optimizer.verifyBestPlanFound();
 
-		/* When we're done optimizing, any scoped predicates that
-		 * we pushed down the tree should now be sitting again
-		 * in our wherePredicates list.  Put those back in the
-		 * the list from which we received them, to allow them
-		 * to be "pulled" back up to where they came from.
-		 */
+        /* When we're done optimizing, any scoped predicates that
+         * we pushed down the tree should now be sitting again
+         * in our wherePredicates list.  Put those back in the
+         * the list from which we received them, to allow them
+         * to be "pulled" back up to where they came from.
+         */
         if(wherePredicates!=null){
             Predicate pred;
             for(int i=wherePredicates.size()-1;i>=0;i--){
@@ -1647,7 +1647,7 @@ public class SelectNode extends ResultSetNode{
             }
         }
 
-		/* Get the cost */
+        /* Get the cost */
         costEstimate=optimizer.getOptimizedCost();
 
         costEstimate.setSingleRow(optimizer.isSingleRow());
@@ -1703,11 +1703,11 @@ public class SelectNode extends ResultSetNode{
         ResultSetNode leftResultSet;
         ResultSetNode rightResultSet;
 
-		/*
-		** Modify the access path for each Optimizable, as necessary
-		**
-		** This should be the same optimizer we got above.
-		*/
+        /*
+        ** Modify the access path for each Optimizable, as necessary
+        **
+        ** This should be the same optimizer we got above.
+        */
         optimizer.modifyAccessPaths();
 
         // Load the costEstimate for the final "best" join order.
@@ -1747,29 +1747,29 @@ public class SelectNode extends ResultSetNode{
             havingSubquerys.modifyAccessPaths();
         }
 
-		/* Build a temp copy of the current FromList for sort elimination, etc. */
+        /* Build a temp copy of the current FromList for sort elimination, etc. */
         preJoinFL.removeAllElements();
         preJoinFL.nondestructiveAppend(fromList);
 
-		/* Now we build a JoinNode tree from the bottom up until there is only
-		 * a single entry in the fromList and that entry points to the top of
-		 * the JoinNode tree.
-		 *
-		 * While there is still more than 1 entry in the list, create a JoinNode
-		 * which points to the 1st 2 entries in the list.  This JoinNode becomes
-		 * the new 1st entry in the list and the 2nd entry is deleted.  The
-		 * old 1st and 2nd entries will get shallow copies of their
-		 * ResultColumnLists.  The JoinNode's ResultColumnList will be the
-		 * concatenation of the originals from the old 1st and 2nd entries.
-		 * The virtualColumnIds will be updated to reflect there new positions
-		 * and each ResultColumn.expression will be replaced with a new
-		 * VirtualColumnNode.
-		 */
+        /* Now we build a JoinNode tree from the bottom up until there is only
+         * a single entry in the fromList and that entry points to the top of
+         * the JoinNode tree.
+         *
+         * While there is still more than 1 entry in the list, create a JoinNode
+         * which points to the 1st 2 entries in the list.  This JoinNode becomes
+         * the new 1st entry in the list and the 2nd entry is deleted.  The
+         * old 1st and 2nd entries will get shallow copies of their
+         * ResultColumnLists.  The JoinNode's ResultColumnList will be the
+         * concatenation of the originals from the old 1st and 2nd entries.
+         * The virtualColumnIds will be updated to reflect there new positions
+         * and each ResultColumn.expression will be replaced with a new
+         * VirtualColumnNode.
+         */
         while(fromList.size()>1){
-			/* Get left's ResultColumnList, assign shallow copy back to it
-			 * and create new VirtualColumnNodes for the original's
-			 * ResultColumn.expressions.
-			 */
+            /* Get left's ResultColumnList, assign shallow copy back to it
+             * and create new VirtualColumnNodes for the original's
+             * ResultColumn.expressions.
+             */
             leftResultSet=(ResultSetNode)fromList.elementAt(0);
 
             getBaseTableNode(leftResultSet); //gets the left base table node. HAS SIDE-EFFECTS, do not remove
@@ -1783,11 +1783,11 @@ public class SelectNode extends ResultSetNode{
                 rc.setFromLeftChild(true);
             }
 
-			/* Get right's ResultColumnList, assign shallow copy back to it,
-			 * create new VirtualColumnNodes for the original's
-			 * ResultColumn.expressions and increment the virtualColumnIds.
-			 * (Right gets appended to left, so only right's ids need updating.)
-			 */
+            /* Get right's ResultColumnList, assign shallow copy back to it,
+             * create new VirtualColumnNodes for the original's
+             * ResultColumn.expressions and increment the virtualColumnIds.
+             * (Right gets appended to left, so only right's ids need updating.)
+             */
             rightResultSet=(ResultSetNode)fromList.elementAt(1);
 
             getBaseTableNode(rightResultSet); //gets the right base table node. HAS SIDE-EFFECTS, do not remove
@@ -1815,14 +1815,14 @@ public class SelectNode extends ResultSetNode{
 //                }
 //            }
 
-			/* Concatenate the 2 ResultColumnLists */
+            /* Concatenate the 2 ResultColumnLists */
             leftRCList.nondestructiveAppend(rightRCList);
 
-			/* Now we're finally ready to generate the JoinNode and have it
-			 * replace the 1st 2 entries in the FromList.
-			 */
-			JoinNode joinNode;
-			if (rightResultSet.getFromSSQ() || rightResultSet instanceof FromTable && ((FromTable)rightResultSet).getOJLevel() > 0) {
+            /* Now we're finally ready to generate the JoinNode and have it
+             * replace the 1st 2 entries in the FromList.
+             */
+            JoinNode joinNode;
+            if (rightResultSet.getFromSSQ() || rightResultSet instanceof FromTable && ((FromTable)rightResultSet).getOJLevel() > 0) {
                 rightRCList.setNullability(true);
                 joinNode = (JoinNode)getNodeFactory().getNode(
                         C_NodeTypes.HALF_OUTER_JOIN_NODE,
@@ -1851,12 +1851,12 @@ public class SelectNode extends ResultSetNode{
 
             ResultSetNode newPRNode = joinNode.genProjectRestrict();
 
-			// apply post outer join conditions
+            // apply post outer join conditions
             if (((FromTable)rightResultSet).getOJLevel() > 0) {
-			    PredicateList postJoinPredicates = ((FromTable)rightResultSet).getPostJoinPredicates();
-			    if (postJoinPredicates != null) {
-			        for (int i=0; i<postJoinPredicates.size(); i++) {
-			            Predicate pred = postJoinPredicates.elementAt(i);
+                PredicateList postJoinPredicates = ((FromTable)rightResultSet).getPostJoinPredicates();
+                if (postJoinPredicates != null) {
+                    for (int i=0; i<postJoinPredicates.size(); i++) {
+                        Predicate pred = postJoinPredicates.elementAt(i);
                         RemapCRsVisitor rcrv=new RemapCRsVisitor(true);
                         pred.getAndNode().accept(rcrv);
                         newPRNode.addNewPredicate(pred);
@@ -1927,7 +1927,7 @@ public class SelectNode extends ResultSetNode{
      */
     @Override
     public int updateTargetLockMode(){
-		/* Do row locking if there is a restriction */
+        /* Do row locking if there is a restriction */
         return fromList.updateTargetLockMode();
     }
 
@@ -2096,15 +2096,15 @@ public class SelectNode extends ResultSetNode{
         }
 
 
- 		/* Get the TableDescriptor and verify that it is not for a
- 		 * view or a system table.
- 		 * NOTE: We need to use the base table name for the table.
- 		 *		 Simplest way to get it is from a FromBaseTable.  We
- 		 *		 know that targetTable is a FromBaseTable because of check
- 		 *		 just above us.
-		 * NOTE: We also need to use the base table's schema name; otherwise
-		 *		we will think it is the default schema Beetle 4417
- 		 */
+         /* Get the TableDescriptor and verify that it is not for a
+          * view or a system table.
+          * NOTE: We need to use the base table name for the table.
+          *         Simplest way to get it is from a FromBaseTable.  We
+          *         know that targetTable is a FromBaseTable because of check
+          *         just above us.
+         * NOTE: We also need to use the base table's schema name; otherwise
+         *        we will think it is the default schema Beetle 4417
+          */
         targetTableDescriptor=getTableDescriptor(targetTable.getBaseTableName(),
                 getSchemaDescriptor(((FromBaseTable)targetTable).getTableNameField().getSchemaName()));
         assert targetTableDescriptor!=null;
@@ -2172,13 +2172,13 @@ public class SelectNode extends ResultSetNode{
      */
     @Override
     void decrementLevel(int decrement){
-		/* Decrement the level in the tables */
+        /* Decrement the level in the tables */
         fromList.decrementLevel(decrement);
         selectSubquerys.decrementLevel(decrement);
         whereSubquerys.decrementLevel(decrement);
-		/* Decrement the level in any CRs in predicates
-		 * that are interesting to transitive closure.
-		 */
+        /* Decrement the level in any CRs in predicates
+         * that are interesting to transitive closure.
+         */
         wherePredicates.decrementLevel(fromList,decrement);
     }
 
@@ -2205,15 +2205,15 @@ public class SelectNode extends ResultSetNode{
         ColumnReference additionalCR=null;
         ResultColumn rc=getResultColumns().elementAt(0);
 
-		/* Figure out if we have an additional ColumnReference
-		 * in an equality comparison.
-		 */
+        /* Figure out if we have an additional ColumnReference
+         * in an equality comparison.
+         */
         if(additionalEQ && rc.getExpression() instanceof ColumnReference){
             additionalCR=(ColumnReference)rc.getExpression();
 
-			/* ColumnReference only interesting if it is
-			 * not correlated.
-			 */
+            /* ColumnReference only interesting if it is
+             * not correlated.
+             */
             if(additionalCR.getCorrelated()){
                 additionalCR=null;
             }
@@ -2321,12 +2321,12 @@ public class SelectNode extends ResultSetNode{
      * @throws StandardException Thrown on error
      */
     public static ValueNode normExpressions(ValueNode boolClause) throws StandardException{
-		/* For each expression tree:
-		 *	o Eliminate NOTs (eliminateNots())
-		 *	o Ensure that there is an AndNode on top of every
-		 *	  top level expression. (putAndsOnTop())
-		 *	o Finish the job (changeToCNF())
-		 */
+        /* For each expression tree:
+         *    o Eliminate NOTs (eliminateNots())
+         *    o Ensure that there is an AndNode on top of every
+         *      top level expression. (putAndsOnTop())
+         *    o Finish the job (changeToCNF())
+         */
         if(boolClause!=null){
             boolClause=boolClause.eliminateNots(false);
             if(SanityManager.DEBUG){
@@ -2374,9 +2374,9 @@ public class SelectNode extends ResultSetNode{
                                     boolean permuteOrdering) throws StandardException{
         int rclSize=resultColumns.size();
 
-		/* Not ordered if RCL contains anything other than a ColumnReference
-		 * or a ConstantNode.
-		 */
+        /* Not ordered if RCL contains anything other than a ColumnReference
+         * or a ConstantNode.
+         */
         int numCRs=0;
         for(int index=0;index<rclSize;index++){
             ResultColumn rc=resultColumns.elementAt(index);
@@ -2613,14 +2613,14 @@ public class SelectNode extends ResultSetNode{
         // Add ProjectRestrictNode ontop with unsat condition
         ProjectRestrictNode newPRN = (ProjectRestrictNode) nf.getNode(
                 C_NodeTypes.PROJECT_RESTRICT_NODE,
-                rowResultSetNode,		/* Child ResultSet */
-                prRCL,	/* Projection */
-                null,			/* Restriction */
-                predList,			/* Restriction as PredicateList */
-                null,			/* Subquerys in Projection */
-                null,			/* Subquerys in Restriction */
+                rowResultSetNode,        /* Child ResultSet */
+                prRCL,    /* Projection */
+                null,            /* Restriction */
+                predList,            /* Restriction as PredicateList */
+                null,            /* Subquerys in Projection */
+                null,            /* Subquerys in Restriction */
                 null,          /* table properties */
-                getContextManager()	 );
+                getContextManager()     );
 
         newPRN.setLevel(rowResultSetNode.getLevel());
         // set referenced tableMap for the PRN
