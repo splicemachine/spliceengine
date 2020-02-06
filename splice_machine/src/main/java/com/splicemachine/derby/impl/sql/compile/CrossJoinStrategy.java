@@ -203,10 +203,9 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         boolean isOneRow = false;
         boolean isHinted = currentAccessPath.isHintedJoinStrategy();
         if (innerTable instanceof FromBaseTable) {
-            DataSetProcessorType dspt = ((FromBaseTable) innerTable).getDataSetProcessorTypeForAccessPath(currentAccessPath);
-            dspt.combine(((FromBaseTable) innerTable).getCompilerContext().getDataSetProcessorType());
-            isSpark = dspt.isSpark();
-            isForcedControl = (dspt.isHinted() || dspt.isForced()) && !dspt.isSpark();
+            DataSetProcessorType dspt = (((FromBaseTable) innerTable).getCompilerContext().getDataSetProcessorType());
+            isSpark = optimizer.isForSpark();
+            isForcedControl = (dspt.isHinted() || dspt.isForced()) && !optimizer.isForSpark();
             isOneRow = ((FromBaseTable) innerTable).isOneRowResultSet();
         }
         // Only use cross join when it is inner join
