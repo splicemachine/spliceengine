@@ -1228,6 +1228,23 @@ public class Subquery_Table_IT extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    public void testSubqueryWithoutCorrelationName() throws Exception {
+       String sqlText = "select SUM(SUMMARY) from (\n" +
+               " SELECT COUNT(*) AS SUMMARY FROM t1 WHERE k=0\n" +
+               " UNION ALL\n" +
+               " SELECT COUNT(*) AS SUMMARY FROM t2 WHERE k=0\n" +
+               " UNION ALL\n" +
+               " SELECT COUNT(*) AS SUMMARY FROM t3 WHERE i=0\n" +
+               " )";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected = "1 |\n" +
+                    "----\n" +
+                    " 3 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
     private static void assertUnorderedResult(ResultSet rs, String expectedResult) throws Exception {
         assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }

@@ -10775,7 +10775,7 @@ FromTable tableFactor() throws StandardException :
                     getToken(2).kind == VALUES
                 )
             } )
-    derivedTable = derivedTable() [ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
+    derivedTable = derivedTable() [[ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)]
         [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
         [ optionalTableClauses = optionalTableProperties() ]
     {
