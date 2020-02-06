@@ -935,5 +935,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(TriggerRowHolderImpl.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TriggerDescriptor.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TriggerDescriptorV2.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StringAggregator.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StringBuilder.class);
     }
 }

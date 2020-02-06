@@ -56,6 +56,7 @@ import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.impl.sql.compile.CountAggregateDefinition;
 import com.splicemachine.db.impl.sql.compile.MaxMinAggregateDefinition;
 import com.splicemachine.db.impl.sql.compile.SumAvgAggregateDefinition;
+import com.splicemachine.db.impl.sql.compile.StringAggregateDefinition;
 
 import com.splicemachine.db.impl.sql.compile.AggregateNode;
 import com.splicemachine.db.impl.sql.compile.BinaryOperatorNode;
@@ -1276,6 +1277,7 @@ public class SQLParser
             break;
 
           case COUNT:
+          case STRING_AGG:
             // COUNT is not a reserved word
             // This may eclipse use of COUNT as a function or a procedure that is probably what we want
               if (getToken(2).kind == LEFT_PAREN)
@@ -1303,6 +1305,7 @@ public class SQLParser
           case MIN:
           case SUM:
           case COUNT:
+          case STRING_AGG:
             // This is a built-in aggregate
             return true;
 
@@ -1792,6 +1795,10 @@ public class SQLParser
             retval = "COUNT";
             break;
 
+          case STRING_AGG:
+            retval = "STRING_AGG";
+            break;
+
           default:
               if (SanityManager.DEBUG)
             {
@@ -1826,6 +1833,10 @@ public class SQLParser
 
           case COUNT:
             retval = CountAggregateDefinition.class;
+            break;
+
+          case STRING_AGG:
+            retval = StringAggregateDefinition.class;
             break;
 
           default:
@@ -3204,6 +3215,7 @@ TOKEN [IGNORE_CASE] :
 |   <SQRT: "sqrt">
 |       <STABILITY: "stability">
 |    <STATISTICS: "statistics">
+|    <STRING_AGG: "string_agg">
 |   <STYLE: "style">
 |    <TRIGGER: "trigger">
 |    <TRUNCATE_END: "truncate_end">
@@ -6114,9 +6126,9 @@ ResultSetNode
 querySpecification(ValueNode[] topNOut) throws StandardException :
 {
     ResultColumnList    selectList;
-    SelectNode            selectNode;
+    ResultSetNode       selectNode;
     ValueNode           tmpTopN = null;
-    boolean    isDistinct = false;
+    boolean             isDistinct = false;
 }
 {
     <SELECT> [ isDistinct = setQuantifier() ] [ tmpTopN = topNClause() ]
@@ -6130,7 +6142,13 @@ querySpecification(ValueNode[] topNOut) throws StandardException :
         }
         if (tmpTopN != null)
             topNOut[0] = tmpTopN;
-        if (isDistinct) selectNode.makeDistinct();
+        if (isDistinct) {
+            if (!(selectNode instanceof SelectNode)) {
+                throw StandardException.newException(
+                        SQLState.LANG_SYNTAX_ERROR, "Illegal SELECT DISTINCT without FROM");
+            }
+            ((SelectNode)selectNode).makeDistinct();
+        }
         return selectNode;
     }
 }
@@ -10472,7 +10490,7 @@ existsExpression() throws StandardException :
 /*
  * <A NAME="tableExpression">tableExpression</A>
  */
-SelectNode
+ResultSetNode
 tableExpression(ResultColumnList selectList) throws StandardException :
 {
     SelectNode    selectNode;
@@ -10490,7 +10508,21 @@ tableExpression(ResultColumnList selectList) throws StandardException :
     [ havingClause = havingClause() ]
     [ windows = windowClause() ]
     {
-
+        if (fromList == null) {
+            if (havingClause != null ||
+                groupByList != null ||
+                havingClause != null ||
+                windows != null ||
+                selectList.containsAllResultColumn()
+            ) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "Illegal SELECT without FROM");
+            }
+            return (RowResultSetNode)nodeFactory.getNode(
+                                C_NodeTypes.ROW_RESULT_SET_NODE,
+                                selectList,
+                                null,
+                                getContextManager());
+        }
         // fix for HAVING without GROUP BY, makes sure we get one
         // aggregate operator by adding a count(*), this fixes beetle 5853, 5890
         if (havingClause != null && groupByList == null) {
@@ -10548,6 +10580,10 @@ fromClause() throws StandardException :
                 fromList.setBeginOffset( beginToken.beginOffset);
                 fromList.setEndOffset( endToken.endOffset);
         return fromList;
+    }
+|
+    {
+        return null;
     }
 }
 
@@ -11548,6 +11584,7 @@ aggregateExpression(String aggName, Class aggClass) throws StandardException :
 {
     boolean        distinct = false;
     ValueNode    value;
+    ValueNode param = null;
 }
 {
     [ distinct = setQuantifier() ] value = additiveExpression(null, 0)
@@ -11558,6 +11595,35 @@ aggregateExpression(String aggName, Class aggClass) throws StandardException :
                                 aggClass,
                                 distinct ? Boolean.TRUE : Boolean.FALSE,
                                 aggName,
+                                getContextManager());
+    }
+}
+
+ValueNode
+stringAggregateExpression(String aggName, Class aggClass) throws StandardException :
+{
+    boolean     distinct = false;
+    ValueNode   value;
+    ValueNode   param = null;
+    OrderByList orderCols = null;
+}
+{
+    [ distinct = setQuantifier() ] value = additiveExpression(null, 0)
+    <COMMA> param = stringLiteral()
+    [ orderCols = orderByClause(null) ]
+    {
+        if (orderCols != null) {
+            throw StandardException.newException(
+                    SQLState.LANG_SYNTAX_ERROR, "ORDER BY clause not yet supported");
+        }
+        return (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.STRING_AGGREGATE_NODE,
+                                value,
+                                aggClass,
+                                distinct ? Boolean.TRUE : Boolean.FALSE,
+                                aggName,
+                                param,
+                                orderCols,
                                 getContextManager());
     }
 }
@@ -11578,6 +11644,14 @@ generalAggregate() throws StandardException :
     {
         return aggExpr;
     }
+    |
+    aggToken = <STRING_AGG>
+    <LEFT_PAREN>
+        aggExpr = stringAggregateExpression(aggName(aggToken), aggClass(aggToken))
+    <RIGHT_PAREN>
+    {
+        return aggExpr;
+    }
 }
 
 /*
@@ -11585,9 +11659,10 @@ generalAggregate() throws StandardException :
 ** defined aggregates, except we know what to map to
 ** without looking up the class name.
 **
-** NOTE: COUNT is omitted here because the COUNT aggregate is
-** factored into a different rule, to distinguish between
-** COUNT(*) and COUNT(<expression>).
+** NOTE: COUNT and STRING_AGG are omitted here because they are
+** factored into different rules, to distinguish between
+** COUNT(*) and COUNT(<expression>) and to handle STRING_AGG
+** second parameter and ORDER BY clause.
 */
 Token
 builtInAggregateType() throws StandardException :
@@ -17653,6 +17728,7 @@ nonReservedKeyword()  :
     |    tok = <START>
     |    tok = <STATEMENT>
     |    tok = <STATISTICS>
+    |    tok = <STRING_AGG>
     |    tok = <SYNONYM>
     |    tok = <STYLE>
     |    tok = <T>
