@@ -520,6 +520,14 @@ public class UnionNode extends SetOperatorNode{
      */
     @Override
     public void bindExpressions(FromList fromListParam) throws StandardException{
+        assert leftResultSet.getResultColumns().size() == rightResultSet.getResultColumns().size();
+        for (int i = 0; i < leftResultSet.getResultColumns().size(); ++i) {
+            ResultColumn left = leftResultSet.getResultColumns().elementAt(i);
+            ResultColumn right = rightResultSet.getResultColumns().elementAt(i);
+            if (right.getName() == null) {
+                right.setName(left.getName());
+            }
+        }
         super.bindExpressions(fromListParam);
 
         /*
