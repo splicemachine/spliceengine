@@ -738,7 +738,7 @@
         <profile>
             <id>it</id>
             <modules>
-                <module>external_it</module>
+                <module>remote_it</module>
             </modules>
         </profile>
         <profile>
