@@ -2166,8 +2166,6 @@ public class FromBaseTable extends FromTable {
         /* Get the hash key columns and wrap them in a formattable */
         int[] hashKeyColumns;
 
-        acb.setDataSetProcessorType(getCompilerContext().getDataSetProcessorType());
-
         hashKeyColumns=new int[resultColumns.size()];
         if(referencedCols==null){
             for(int index=0;index<hashKeyColumns.length;index++){
@@ -2249,8 +2247,6 @@ public class FromBaseTable extends FromTable {
         if(referencedCols!=null){
             colRefItem=acb.addItem(referencedCols);
         }
-
-        acb.setDataSetProcessorType(getCompilerContext().getDataSetProcessorType());
 
         //
         int indexColItem=-1;

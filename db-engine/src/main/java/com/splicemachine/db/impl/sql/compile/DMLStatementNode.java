@@ -196,11 +196,12 @@ public abstract class DMLStatementNode extends StatementNode {
         if (type.isForced()) {
             return (!type.isSpark());
         }
-        resultSet.getFromList().verifyProperties(getDataDictionary());
         CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
         resultSet.accept(cnv);
         for (Object obj : cnv.getList()) {
-            type = type.combine(((FromTable) obj).getDataSetProcessorType());
+            FromTable ft = (FromTable) obj;
+            ft.verifyProperties(getDataDictionary());
+            type = type.combine(ft.getDataSetProcessorType());
         }
         getCompilerContext().setDataSetProcessorType(type);
         return !type.isSpark();
