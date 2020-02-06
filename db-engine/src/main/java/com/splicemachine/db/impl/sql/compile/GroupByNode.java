@@ -48,6 +48,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfoList;
@@ -1255,6 +1256,8 @@ public class GroupByNode extends SingleChildResultSetNode{
             aggRCL=(ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,getContextManager());
             aggRCL.addElement(aggResultRC);
 
+            DataValueDescriptor parameter = aggregate instanceof StringAggregateNode ?
+                    ((StringAggregateNode)aggregate).getParameter() : null;
 			/*
 			** Note that the column ids in the row are 0 based
 			** so we have to subtract 1.
@@ -1266,7 +1269,8 @@ public class GroupByNode extends SingleChildResultSetNode{
                     aggResultVColId-1,            // the aggregate result column
                     aggregatorVColId-1,        // the aggregator column
                     aggregate.isDistinct(),
-                    lf.getResultDescription(aggRCL.makeResultDescriptors(),"SELECT")
+                    lf.getResultDescription(aggRCL.makeResultDescriptors(),"SELECT"),
+                    parameter
             ));
         }
     }
