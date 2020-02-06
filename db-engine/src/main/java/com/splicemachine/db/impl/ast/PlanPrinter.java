@@ -92,9 +92,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             Map<String, Collection<QueryTreeNode>> m=planMap.get();
             m.put(query,orderedNodes);
             if (LOG.isDebugEnabled()){
-                DataSetProcessorType currentType = rsn.getLanguageConnectionContext().getDataSetProcessorType();
-                currentType = currentType.combine(rsn.getCompilerContext().getDataSetProcessorType());
-                currentType = currentType.combine(determineSpark(orderedNodes));
+                DataSetProcessorType currentType = rsn.getCompilerContext().getDataSetProcessorType();
 
                 Iterator<String> nodes = planToIterator(orderedNodes, currentType);
                 StringBuilder sb = new StringBuilder();
@@ -106,18 +104,6 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         }
         explain = false;
         return node;
-    }
-
-    public static DataSetProcessorType determineSpark(Collection<QueryTreeNode> opPlanMap) throws StandardException {
-        DataSetProcessorType type = DataSetProcessorType.DEFAULT_CONTROL;
-        for (QueryTreeNode node : opPlanMap) {
-            if (node instanceof FromBaseTable) {
-                FromBaseTable fbt = (FromBaseTable)node;
-                fbt.determineSpark();
-                type = type.combine(fbt.getDataSetProcessorType());
-            }
-        }
-        return type;
     }
 
     public static Map without(Map m, Object... keys){
