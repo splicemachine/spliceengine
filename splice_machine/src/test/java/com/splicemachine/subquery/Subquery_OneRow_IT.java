@@ -14,6 +14,7 @@
 
 package com.splicemachine.subquery;
 
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
@@ -34,6 +35,9 @@ import static com.splicemachine.subquery.SubqueryITUtil.ZERO_SUBQUERY_NODES;
 public class Subquery_OneRow_IT extends SpliceUnitTest {
 
     private static final String SCHEMA = Subquery_OneRow_IT.class.getSimpleName();
+
+    @ClassRule
+    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher();
