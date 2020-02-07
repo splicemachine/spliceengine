@@ -99,21 +99,21 @@ public abstract class TableOperatorNode extends FromTable{
 
         if(leftResultSet instanceof FromTable){
             if(leftOptimizer!=null){
-				/* We know leftOptimizer's list of Optimizables consists of
-				 * exactly one Optimizable, and we know that the Optimizable
-				 * is actually leftResultSet (see optimizeSource() of this
-				 * class). That said, the following call to modifyAccessPaths()
-				 * will effectively replace leftResultSet as it exists in
-				 * leftOptimizer's list with a "modified" node that *may* be
-				 * different from the original leftResultSet--for example, it
-				 * could be a new DISTINCT node whose child is the original
-				 * leftResultSet.  So after we've modified the node's access
-				 * path(s) we have to explicitly set this.leftResulSet to
-				 * point to the modified node. Otherwise leftResultSet would
-				 * continue to point to the node as it existed *before* it was
-				 * modified, and that could lead to incorrect behavior for
-				 * certain queries.  DERBY-1852.
-				 */
+                /* We know leftOptimizer's list of Optimizables consists of
+                 * exactly one Optimizable, and we know that the Optimizable
+                 * is actually leftResultSet (see optimizeSource() of this
+                 * class). That said, the following call to modifyAccessPaths()
+                 * will effectively replace leftResultSet as it exists in
+                 * leftOptimizer's list with a "modified" node that *may* be
+                 * different from the original leftResultSet--for example, it
+                 * could be a new DISTINCT node whose child is the original
+                 * leftResultSet.  So after we've modified the node's access
+                 * path(s) we have to explicitly set this.leftResulSet to
+                 * point to the modified node. Otherwise leftResultSet would
+                 * continue to point to the node as it existed *before* it was
+                 * modified, and that could lead to incorrect behavior for
+                 * certain queries.  DERBY-1852.
+                 */
                 leftOptimizer.modifyAccessPaths();
                 leftResultSet=(ResultSetNode)leftOptimizer.getOptimizableList().getOptimizable(0);
             }else{
@@ -126,11 +126,11 @@ public abstract class TableOperatorNode extends FromTable{
 
         if(rightResultSet instanceof FromTable){
             if(rightOptimizer!=null){
-				/* For the same reasons outlined above we need to make sure
-				 * we set rightResultSet to point to the *modified* right result
-				 * set node, which sits at position "0" in rightOptimizer's
-				 * list.
-				 */
+                /* For the same reasons outlined above we need to make sure
+                 * we set rightResultSet to point to the *modified* right result
+                 * set node, which sits at position "0" in rightOptimizer's
+                 * list.
+                 */
                 rightOptimizer.modifyAccessPaths();
                 rightResultSet=(ResultSetNode)rightOptimizer.getOptimizableList().getOptimizable(0);
             }else{
@@ -314,7 +314,7 @@ public abstract class TableOperatorNode extends FromTable{
         if (!bindRightOnly)
             leftResultSet=leftResultSet.bindNonVTITables(dataDictionary,fromListParam);
         rightResultSet=rightResultSet.bindNonVTITables(dataDictionary,fromListParam);
-		/* Assign the tableNumber */
+        /* Assign the tableNumber */
         if(tableNumber==-1)  // allow re-bind, in which case use old number
             tableNumber=getCompilerContext().getNextTableNumber();
 
@@ -353,15 +353,15 @@ public abstract class TableOperatorNode extends FromTable{
      */
     @Override
     public void bindExpressions(FromList fromListParam) throws StandardException{
-		bindExpressions(fromListParam, false);
+        bindExpressions(fromListParam, false);
     }
 
     public void bindExpressions(FromList fromListParam, boolean bindRightOnly) throws StandardException{
-		/*
-		** Parameters not allowed in select list of either side of union,
-		** except when the union is for a table constructor.
-		*/
-		if (!bindRightOnly) {
+        /*
+        ** Parameters not allowed in select list of either side of union,
+        ** except when the union is for a table constructor.
+        */
+        if (!bindRightOnly) {
             if (!(this instanceof UnionNode) || !((UnionNode) this).tableConstructor()) {
                 leftResultSet.rejectParameters();
                 rightResultSet.rejectParameters();
@@ -395,10 +395,10 @@ public abstract class TableOperatorNode extends FromTable{
      */
     @Override
     public void bindExpressionsWithTables(FromList fromListParam) throws StandardException{
-		/*
-		** Parameters not allowed in select list of either side of a set operator,
-		** except when the set operator is for a table constructor.
-		*/
+        /*
+        ** Parameters not allowed in select list of either side of a set operator,
+        ** except when the set operator is for a table constructor.
+        */
         if(!(this instanceof UnionNode) || !((UnionNode)this).tableConstructor()){
             leftResultSet.rejectParameters();
             rightResultSet.rejectParameters();
@@ -426,6 +426,15 @@ public abstract class TableOperatorNode extends FromTable{
         if (!bindRightOnly)
             leftResultSet.bindResultColumns(fromListParam);
         rightResultSet.bindResultColumns(fromListParam);
+
+        if (this instanceof UnionNode) {
+            assert leftResultSet.getResultColumns().size() == rightResultSet.getResultColumns().size();
+            for (int i = 0; i < leftResultSet.getResultColumns().size(); ++i) {
+                ResultColumn left = leftResultSet.getResultColumns().elementAt(i);
+                ResultColumn right = rightResultSet.getResultColumns().elementAt(i);
+                right.setName(left.getName());
+            }
+        }
     }
 
     /**
@@ -484,9 +493,9 @@ public abstract class TableOperatorNode extends FromTable{
     protected FromTable getFromTableByName(String name,String schemaName,boolean exactMatch) throws StandardException{
         FromTable result=leftResultSet.getFromTableByName(name,schemaName,exactMatch);
 
-		/* We search both sides for a TableOperatorNode (join nodes)
-		 * but only the left side for a UnionNode.
-		 */
+        /* We search both sides for a TableOperatorNode (join nodes)
+         * but only the left side for a UnionNode.
+         */
         if(result==null){
             result=rightResultSet.getFromTableByName(name,schemaName,exactMatch);
         }
@@ -518,37 +527,37 @@ public abstract class TableOperatorNode extends FromTable{
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
         leftResultSet=leftResultSet.preprocess(numTables,gbl,fromList);
-		/* If leftResultSet is a FromSubquery, then we must explicitly extract
-		 * out the subquery (flatten it).  (SelectNodes have their own
-		 * method of flattening them.
-		 */
+        /* If leftResultSet is a FromSubquery, then we must explicitly extract
+         * out the subquery (flatten it).  (SelectNodes have their own
+         * method of flattening them.
+         */
         if(leftResultSet instanceof FromSubquery){
             leftResultSet=((FromSubquery)leftResultSet).extractSubquery(numTables);
         }
         rightResultSet=rightResultSet.preprocess(numTables,gbl,fromList);
-		/* If rightResultSet is a FromSubquery, then we must explicitly extract
-		 * out the subquery (flatten it).  (SelectNodes have their own
-		 * method of flattening them.
-		 */
+        /* If rightResultSet is a FromSubquery, then we must explicitly extract
+         * out the subquery (flatten it).  (SelectNodes have their own
+         * method of flattening them.
+         */
         if(rightResultSet instanceof FromSubquery){
             rightResultSet=((FromSubquery)rightResultSet).extractSubquery(numTables);
         }
 
-		/* Build the referenced table map (left || right) */
+        /* Build the referenced table map (left || right) */
         referencedTableMap=(JBitSet)leftResultSet.getReferencedTableMap().clone();
         referencedTableMap.or(rightResultSet.getReferencedTableMap());
         referencedTableMap.set(tableNumber);
 
-		/* Only generate a PRN if this node is not a flattenable join node. */
+        /* Only generate a PRN if this node is not a flattenable join node. */
         if(isFlattenableJoinNode()){
             return this;
         }else{
-			/* Project out any unreferenced RCs before we generate the PRN.
-			 * NOTE: We have to do this at the end of preprocess since it has to 
-			 * be from the bottom up.  We can't do it until the join expression is 
-			 * bound, since the join expression may contain column references that
-			 * are not referenced anywhere else above us.
-			 */
+            /* Project out any unreferenced RCs before we generate the PRN.
+             * NOTE: We have to do this at the end of preprocess since it has to
+             * be from the bottom up.  We can't do it until the join expression is
+             * bound, since the join expression may contain column references that
+             * are not referenced anywhere else above us.
+             */
             return genProjectRestrict();
         }
     }
@@ -580,7 +589,7 @@ public abstract class TableOperatorNode extends FromTable{
     public ResultSetNode optimize(DataDictionary dataDictionary,
                                   PredicateList predicateList,
                                   double outerRows) throws StandardException{
-		/* Get an optimizer, so we can get a cost structure */
+        /* Get an optimizer, so we can get a cost structure */
         Optimizer optimizer= getOptimizer(
                 (FromList)getNodeFactory().getNode(
                         C_NodeTypes.FROM_LIST,
@@ -593,7 +602,7 @@ public abstract class TableOperatorNode extends FromTable{
 
         costEstimate=optimizer.newCostEstimate();
 
-		/* RESOLVE: This is just a stub for now */
+        /* RESOLVE: This is just a stub for now */
         leftResultSet=leftResultSet.optimize(
                 dataDictionary,
                 predicateList,
@@ -603,7 +612,7 @@ public abstract class TableOperatorNode extends FromTable{
                 predicateList,
                 outerRows);
 
-		/* The cost is the sum of the two child costs */
+        /* The cost is the sum of the two child costs */
         costEstimate.setCost(leftResultSet.getCostEstimate().getEstimatedCost(),
                 leftResultSet.getCostEstimate().rowCount(),
                 leftResultSet.getCostEstimate().singleScanRowCount()+
@@ -616,27 +625,27 @@ public abstract class TableOperatorNode extends FromTable{
 
     @Override
     public ResultSetNode modifyAccessPaths() throws StandardException{
-		/* Beetle 4454 - union all with another union all would modify access
-		 * paths twice causing NullPointerException, make sure we don't
-		 * do this again, if we have already done it in modifyAccessPaths(outertables)
-		 */
+        /* Beetle 4454 - union all with another union all would modify access
+         * paths twice causing NullPointerException, make sure we don't
+         * do this again, if we have already done it in modifyAccessPaths(outertables)
+         */
         if(!leftModifyAccessPathsDone){
             if(leftOptimizer!=null){
-				/* We know leftOptimizer's list of Optimizables consists of
-				 * exactly one Optimizable, and we know that the Optimizable
-				 * is actually leftResultSet (see optimizeSource() of this
-				 * class). That said, the following call to modifyAccessPaths()
-				 * will effectively replace leftResultSet as it exists in
-				 * leftOptimizer's list with a "modified" node that *may* be
-				 * different from the original leftResultSet--for example, it
-				 * could be a new DISTINCT node whose child is the original
-				 * leftResultSet.  So after we've modified the node's access
-				 * path(s) we have to explicitly set this.leftResulSet to
-				 * point to the modified node. Otherwise leftResultSet would
-				 * continue to point to the node as it existed *before* it was
-				 * modified, and that could lead to incorrect behavior for
-				 * certain queries.  DERBY-1852.
-				 */
+                /* We know leftOptimizer's list of Optimizables consists of
+                 * exactly one Optimizable, and we know that the Optimizable
+                 * is actually leftResultSet (see optimizeSource() of this
+                 * class). That said, the following call to modifyAccessPaths()
+                 * will effectively replace leftResultSet as it exists in
+                 * leftOptimizer's list with a "modified" node that *may* be
+                 * different from the original leftResultSet--for example, it
+                 * could be a new DISTINCT node whose child is the original
+                 * leftResultSet.  So after we've modified the node's access
+                 * path(s) we have to explicitly set this.leftResulSet to
+                 * point to the modified node. Otherwise leftResultSet would
+                 * continue to point to the node as it existed *before* it was
+                 * modified, and that could lead to incorrect behavior for
+                 * certain queries.  DERBY-1852.
+                 */
                 leftOptimizer.modifyAccessPaths();
                 leftResultSet=(ResultSetNode)leftOptimizer.getOptimizableList().getOptimizable(0);
             }else{
@@ -655,11 +664,11 @@ public abstract class TableOperatorNode extends FromTable{
         }
         if(!rightModifyAccessPathsDone){
             if(rightOptimizer!=null){
-				/* For the same reasons outlined above we need to make sure
-				 * we set rightResultSet to point to the *modified* right result
-				 * set node, which sits at position "0" in rightOptimizer's
-				 * list.
-				 */
+                /* For the same reasons outlined above we need to make sure
+                 * we set rightResultSet to point to the *modified* right result
+                 * set node, which sits at position "0" in rightOptimizer's
+                 * list.
+                 */
                 rightOptimizer.modifyAccessPaths();
                 rightResultSet=(ResultSetNode)rightOptimizer.getOptimizableList().getOptimizable(0);
             }else{
@@ -716,7 +725,7 @@ public abstract class TableOperatorNode extends FromTable{
                     sourceResultSet,
                     getContextManager());
 
-			/* If there is no predicate list, create an empty one */
+            /* If there is no predicate list, create an empty one */
             if(predList==null)
                 predList=(PredicateList)getNodeFactory().getNode(
                         C_NodeTypes.PREDICATE_LIST,
@@ -740,17 +749,17 @@ public abstract class TableOperatorNode extends FromTable{
                 if(SanityManager.DEBUG)
                     SanityManager.THROWASSERT("Result set being optimized is neither left nor right");
             }
-			
-			/*
-			** Set the estimated number of outer rows from the outer part of
-			** the plan.
-			*/
+
+            /*
+            ** Set the estimated number of outer rows from the outer part of
+            ** the plan.
+            */
 
             // Encapsulate this transfer logic.
             if (outerCost != null)
                 optimizer.transferOuterCost(outerCost);
 
-			/* Optimize the underlying result set */
+            /* Optimize the underlying result set */
             while(optimizer.nextJoinOrder()){
                 while(optimizer.getNextDecoratedPermutation()){
                     optimizer.costPermutation();
