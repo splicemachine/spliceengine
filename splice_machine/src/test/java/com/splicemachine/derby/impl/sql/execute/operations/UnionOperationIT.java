@@ -459,7 +459,7 @@ public class UnionOperationIT {
                 "union all values ('from_values')) dt {limit 1}";
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
-                "NAME     |\n" +
+                "1      |\n" +
                         "-------------\n" +
                         "from_values |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
