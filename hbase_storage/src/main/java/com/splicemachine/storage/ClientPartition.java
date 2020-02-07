@@ -232,6 +232,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
             else
                 admin.compact(tableName);
             CompactionState compactionState=null;
+            int retriesForNPE = 0;
             do{
                 try{
                     clock.sleep(500l,TimeUnit.MILLISECONDS);
@@ -246,6 +247,16 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                         SpliceLogUtils.debug(LOG,
                                 "Failed to fetch compaction state with NPE for table %s but we will keep trying: %s.",
                                 tableName.getQualifierAsString(), e);
+                    }
+
+                    retriesForNPE ++;
+                    if (retriesForNPE >= 100) {
+                        if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.debug(LOG,
+                                    "Failed to fetch compaction state with NPE for table %s for >=100 times, give up!",
+                                    tableName.getQualifierAsString());
+                        }
+                        throw e;
                     }
                 } catch(Exception e){
                     // Catch and ignore the typical region errors while checking compaction state.
