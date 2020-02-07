@@ -241,14 +241,19 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
 
                 try {
                     compactionState = admin.getCompactionState(tableName);
-                }catch(Exception e){
+                } catch (NullPointerException e) {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG,
+                                "Failed to fetch compaction state with NPE for table %s but we will keep trying: %s.",
+                                tableName.getQualifierAsString(), e);
+                    }
+                } catch(Exception e){
                     // Catch and ignore the typical region errors while checking compaction state.
                     // Otherwise the client compaction request will fail which we don't want.
                     IOException ioe = exceptionFactory.processRemoteException(e);
                     if (ioe instanceof HNotServingRegion ||
                         ioe instanceof HWrongRegion ||
-                        ioe instanceof HRegionTooBusy ||
-                        e instanceof NullPointerException) {
+                        ioe instanceof HRegionTooBusy) {
                         if (LOG.isDebugEnabled()) {
                             SpliceLogUtils.debug(LOG,
                                 "Can not fetch compaction state for table %s but we will keep trying: %s.",
