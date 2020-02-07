@@ -56,6 +56,7 @@ import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.impl.sql.compile.CountAggregateDefinition;
 import com.splicemachine.db.impl.sql.compile.MaxMinAggregateDefinition;
 import com.splicemachine.db.impl.sql.compile.SumAvgAggregateDefinition;
+import com.splicemachine.db.impl.sql.compile.StringAggregateDefinition;
 
 import com.splicemachine.db.impl.sql.compile.AggregateNode;
 import com.splicemachine.db.impl.sql.compile.BinaryOperatorNode;
@@ -1197,7 +1198,9 @@ public class SQLParser
             tokKind == CURRENT_TIME ||
             tokKind == CURRENT_TIMESTAMP ||
             tokKind == NOW ||
-            tokKind == CURRENT && (isDATETIME(getToken(2).kind)) )
+            tokKind == CURRENT && (isDATETIME(getToken(2).kind)) ||
+            tokKind == CURRENT && getToken(2).kind == SERVER ||
+            tokKind == CURRENT_SERVER)
         {
             return false;
         }
@@ -1275,6 +1278,7 @@ public class SQLParser
             break;
 
           case COUNT:
+          case STRING_AGG:
             // COUNT is not a reserved word
             // This may eclipse use of COUNT as a function or a procedure that is probably what we want
               if (getToken(2).kind == LEFT_PAREN)
@@ -1302,6 +1306,7 @@ public class SQLParser
           case MIN:
           case SUM:
           case COUNT:
+          case STRING_AGG:
             // This is a built-in aggregate
             return true;
 
@@ -1401,13 +1406,14 @@ public class SQLParser
           case CURRENT_DATE:
           case CURRENT_TIME:
           case CURRENT_TIMESTAMP:
+          case CURRENT_SERVER:
           case NOW:
               retval = true;
             break;
 
           case CURRENT:
-            if (isDATETIME(getToken(2).kind))
-                  retval = true;
+            if (isDATETIME(getToken(2).kind) || getToken(2).kind == SERVER)
+                retval = true;
             break;
 
           case CAST:
@@ -1790,6 +1796,10 @@ public class SQLParser
             retval = "COUNT";
             break;
 
+          case STRING_AGG:
+            retval = "STRING_AGG";
+            break;
+
           default:
               if (SanityManager.DEBUG)
             {
@@ -1824,6 +1834,10 @@ public class SQLParser
 
           case COUNT:
             retval = CountAggregateDefinition.class;
+            break;
+
+          case STRING_AGG:
+            retval = StringAggregateDefinition.class;
             break;
 
           default:
@@ -2746,6 +2760,7 @@ TOKEN [IGNORE_CASE] :
 |    <CROSS: "cross">
 |    <CURRENT: "current">
 |    <CURRENT_DATE: "current_date">
+|    <CURRENT_SERVER: "current_server">
 |    <CURRENT_TIME: "current_time">
 |    <CURRENT_TIMESTAMP: "current_timestamp">
 |    <CURRENT_USER: "current_user">
@@ -2871,8 +2886,9 @@ TOKEN [IGNORE_CASE] :
 |    <SCROLL: "scroll">
 |    <SECOND: "second">
 |    <SELECT: "select">
+|    <SERVER: "server">
 |    <SESSION_USER: "session_user">
-|   <SESSION_PROPERTY: "session_property">
+|    <SESSION_PROPERTY: "session_property">
 |    <SET: "set">
 |    <SMALLINT: "smallint">
 |    <SOME: "some">
@@ -3204,6 +3220,7 @@ TOKEN [IGNORE_CASE] :
 |   <SQRT: "sqrt">
 |       <STABILITY: "stability">
 |    <STATISTICS: "statistics">
+|    <STRING_AGG: "string_agg">
 |   <STYLE: "style">
 |    <TRIGGER: "trigger">
 |    <TRUNCATE_END: "truncate_end">
@@ -6143,9 +6160,9 @@ ResultSetNode
 querySpecification(ValueNode[] topNOut) throws StandardException :
 {
     ResultColumnList    selectList;
-    SelectNode            selectNode;
+    ResultSetNode       selectNode;
     ValueNode           tmpTopN = null;
-    boolean    isDistinct = false;
+    boolean             isDistinct = false;
 }
 {
     <SELECT> [ isDistinct = setQuantifier() ] [ tmpTopN = topNClause() ]
@@ -6159,7 +6176,13 @@ querySpecification(ValueNode[] topNOut) throws StandardException :
         }
         if (tmpTopN != null)
             topNOut[0] = tmpTopN;
-        if (isDistinct) selectNode.makeDistinct();
+        if (isDistinct) {
+            if (!(selectNode instanceof SelectNode)) {
+                throw StandardException.newException(
+                        SQLState.LANG_SYNTAX_ERROR, "Illegal SELECT DISTINCT without FROM");
+            }
+            ((SelectNode)selectNode).makeDistinct();
+        }
         return selectNode;
     }
 }
@@ -8097,6 +8120,11 @@ miscBuiltins() throws StandardException :
      * and static method calls.
      */
     value = miscBuiltinsCore( false /* not JDBC escape */)
+    {
+        return value;
+    }
+|
+    value = currentServerFunction()
     {
         return value;
     }
@@ -10496,7 +10524,7 @@ existsExpression() throws StandardException :
 /*
  * <A NAME="tableExpression">tableExpression</A>
  */
-SelectNode
+ResultSetNode
 tableExpression(ResultColumnList selectList) throws StandardException :
 {
     SelectNode    selectNode;
@@ -10514,7 +10542,21 @@ tableExpression(ResultColumnList selectList) throws StandardException :
     [ havingClause = havingClause() ]
     [ windows = windowClause() ]
     {
-
+        if (fromList == null) {
+            if (havingClause != null ||
+                groupByList != null ||
+                havingClause != null ||
+                windows != null ||
+                selectList.containsAllResultColumn()
+            ) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "Illegal SELECT without FROM");
+            }
+            return (RowResultSetNode)nodeFactory.getNode(
+                                C_NodeTypes.ROW_RESULT_SET_NODE,
+                                selectList,
+                                null,
+                                getContextManager());
+        }
         // fix for HAVING without GROUP BY, makes sure we get one
         // aggregate operator by adding a count(*), this fixes beetle 5853, 5890
         if (havingClause != null && groupByList == null) {
@@ -10572,6 +10614,10 @@ fromClause() throws StandardException :
                 fromList.setBeginOffset( beginToken.beginOffset);
                 fromList.setEndOffset( endToken.endOffset);
         return fromList;
+    }
+|
+    {
+        return null;
     }
 }
 
@@ -11238,6 +11284,29 @@ datetimeValueFunction() throws StandardException :
     }
 }
 
+
+/*
+ * <A NAME="currentServerFunction">currentServerFunction</A>
+ */
+ValueNode
+currentServerFunction() throws StandardException :
+{
+}
+{
+    LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == SERVER)}) <CURRENT> <SERVER>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.CURRENT_SERVER_NODE,
+                                getContextManager());
+    }
+    | <CURRENT_SERVER>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.CURRENT_SERVER_NODE,
+                                getContextManager());
+    }
+}
+
    /*
    ** Note that set function and aggregate are used
    ** interchangeably in the parser.  The tree has
@@ -11549,6 +11618,7 @@ aggregateExpression(String aggName, Class aggClass) throws StandardException :
 {
     boolean        distinct = false;
     ValueNode    value;
+    ValueNode param = null;
 }
 {
     [ distinct = setQuantifier() ] value = additiveExpression(null, 0)
@@ -11559,6 +11629,35 @@ aggregateExpression(String aggName, Class aggClass) throws StandardException :
                                 aggClass,
                                 distinct ? Boolean.TRUE : Boolean.FALSE,
                                 aggName,
+                                getContextManager());
+    }
+}
+
+ValueNode
+stringAggregateExpression(String aggName, Class aggClass) throws StandardException :
+{
+    boolean     distinct = false;
+    ValueNode   value;
+    ValueNode   param = null;
+    OrderByList orderCols = null;
+}
+{
+    [ distinct = setQuantifier() ] value = additiveExpression(null, 0)
+    <COMMA> param = stringLiteral()
+    [ orderCols = orderByClause(null) ]
+    {
+        if (orderCols != null) {
+            throw StandardException.newException(
+                    SQLState.LANG_SYNTAX_ERROR, "ORDER BY clause not yet supported");
+        }
+        return (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.STRING_AGGREGATE_NODE,
+                                value,
+                                aggClass,
+                                distinct ? Boolean.TRUE : Boolean.FALSE,
+                                aggName,
+                                param,
+                                orderCols,
                                 getContextManager());
     }
 }
@@ -11579,6 +11678,14 @@ generalAggregate() throws StandardException :
     {
         return aggExpr;
     }
+    |
+    aggToken = <STRING_AGG>
+    <LEFT_PAREN>
+        aggExpr = stringAggregateExpression(aggName(aggToken), aggClass(aggToken))
+    <RIGHT_PAREN>
+    {
+        return aggExpr;
+    }
 }
 
 /*
@@ -11586,9 +11693,10 @@ generalAggregate() throws StandardException :
 ** defined aggregates, except we know what to map to
 ** without looking up the class name.
 **
-** NOTE: COUNT is omitted here because the COUNT aggregate is
-** factored into a different rule, to distinguish between
-** COUNT(*) and COUNT(<expression>).
+** NOTE: COUNT and STRING_AGG are omitted here because they are
+** factored into different rules, to distinguish between
+** COUNT(*) and COUNT(<expression>) and to handle STRING_AGG
+** second parameter and ORDER BY clause.
 */
 Token
 builtInAggregateType() throws StandardException :
@@ -13842,6 +13950,12 @@ defaultOption(Token beginToken, long[] autoIncrementInfo,
                             );
         return value;
     }
+|
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                    C_NodeTypes.EMPTY_DEFAULT_CONSTANT_NODE,
+                                    getContextManager());
+    }
 }
 
 /*
@@ -13867,6 +13981,11 @@ DB2DefaultOption(String columnName) throws StandardException :
         return (ValueNode) nodeFactory.getNode(
                         C_NodeTypes.CURRENT_SCHEMA_NODE,
                         getContextManager());
+    }
+|
+    value = castSpecification()
+    {
+        return value;
     }
 |
     /* Revert DB2 restriction: DERBY-3013. Accept standard SQL CURRENT_USER,
@@ -13914,6 +14033,11 @@ DB2DefaultOption(String columnName) throws StandardException :
             columnName);
     }
 |
+    value = currentServerFunction()
+    {
+        return value;
+    }
+|
     value = datetimeValueFunction()
     {
         return value;
@@ -13924,7 +14048,6 @@ DB2DefaultOption(String columnName) throws StandardException :
     {
         return value;
     }
-
 }
 
 /*
@@ -17220,6 +17343,7 @@ reservedKeyword() :
 |    tok = <CROSS>
 |    tok = <CURRENT>
 |    tok = <CURRENT_DATE>
+|    tok = <CURRENT_SERVER>
 |    tok = <CURRENT_TIME>
 |    tok = <CURRENT_TIMESTAMP>
 |    tok = <CURRENT_USER>
@@ -17253,7 +17377,7 @@ reservedKeyword() :
 |    tok = <FETCH>
 |    tok = <FIRST>
 |    tok = <FLOAT>
-|   tok = <FOLLOWING>
+|    tok = <FOLLOWING>
 |    tok = <FOR>
 |    tok = <FOREIGN>
 |    tok = <FOUND>
@@ -17276,7 +17400,7 @@ reservedKeyword() :
 |    tok = <INDICATOR>
 |    tok = <INITIALLY>
 |    tok = <INNER>
-|   tok = <INOUT>
+|    tok = <INOUT>
 |    tok = <INPUT>
 |    tok = <INSENSITIVE>
 |    tok = <INSERT>
@@ -17376,7 +17500,7 @@ reservedKeyword() :
 |    tok = <TRANSLATE>
 |    tok = <TRANSLATION>
 |    tok = <TRUE>
-|   tok = <UNBOUNDED>
+|    tok = <UNBOUNDED>
 |    tok = <UNION>
 |    tok = <UNIQUE>
 |    tok = <UNKNOWN>
@@ -17481,9 +17605,9 @@ nonReservedKeyword()  :
     |    tok = <DAY>
     |    tok = <DAYOFYEAR>
     |    tok = <DEFRAGMENT>
-        |    tok = <DIRTY>
+    |    tok = <DIRTY>
     |    tok = <DYNAMIC>
-    |   tok = <DATABASE>
+    |    tok = <DATABASE>
     |    tok = <DB2SQL>
     |    tok = <DENSERANK>
     |    tok = <DERBY>
@@ -17493,16 +17617,16 @@ nonReservedKeyword()  :
     |    tok = <EACH>
     |    tok = <EMPTY>
     |    tok = <EXCLUDE>
-    |   tok = <ESTIMATE>
+    |    tok = <ESTIMATE>
     |    tok = <EXCLUSIVE>
     |    tok = <EXTRACT>
     |    tok = <FIRSTVALUE>
     |    tok = <FN>
     |    tok = <FORTRAN>
-    |   tok = <FRACTION>
+    |    tok = <FRACTION>
     |    tok = <GENERATED>
-    |   tok = <GROUPING>
-    |   tok = <HFILE>
+    |    tok = <GROUPING>
+    |    tok = <HFILE>
     |    tok = <IDENTITY_VAL_LOCAL>
     |    tok = <IGNORE>
     |    tok = <INCREMENT>
@@ -17511,14 +17635,14 @@ nonReservedKeyword()  :
     |    tok = <INPLACE>
 // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <INTERVAL>
-    |   tok = <JAVA>
-    |   tok = <KEYS>
-    |   tok = <L>
+    |    tok = <JAVA>
+    |    tok = <KEYS>
+    |    tok = <L>
     |    tok = <LAG>
     |    tok = <LANGUAGE>
     |    tok = <LARGE>
     |    tok = <LASTVALUE>
-    |   tok = <LCASE>
+    |    tok = <LCASE>
     |    tok = <LEAD>
     |    tok = <LENGTH>
     |    tok = <LEVEL>
@@ -17621,6 +17745,7 @@ nonReservedKeyword()  :
     |    tok = <SEQUENCE>
     |    tok = <SEQUENTIAL>
     |    tok = <SERIALIZABLE>
+    |    tok = <SERVER>
     |    tok = <SETS>
     |    tok = <SHARE>
     |    tok = <SIGNAL>
@@ -17641,6 +17766,7 @@ nonReservedKeyword()  :
     |    tok = <START>
     |    tok = <STATEMENT>
     |    tok = <STATISTICS>
+    |    tok = <STRING_AGG>
     |    tok = <SYNONYM>
     |    tok = <STYLE>
     |    tok = <T>

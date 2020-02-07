@@ -46,15 +46,17 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     private TxnView txn;
     private final OperationContext opCtx;
     private final boolean skipIndex;
+    protected String tableVersion;
 
     private RecordingCallBuffer<KVPair> writeBuffer;
 
-    public DirectPipelineWriter(long destConglomerate, TxnView txn, byte[] token, OperationContext opCtx, boolean skipIndex){
+    public DirectPipelineWriter(long destConglomerate, TxnView txn, byte[] token, OperationContext opCtx, boolean skipIndex, String tableVersion){
         this.destConglomerate=destConglomerate;
         this.txn=txn;
         this.token=token;
         this.opCtx=opCtx;
         this.skipIndex=skipIndex;
+        this.tableVersion = tableVersion;
     }
 
     @Override

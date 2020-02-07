@@ -69,6 +69,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     int partitionRefItem;
     protected int[] partitionColumnMap;
     protected ExecRow defaultRow;
+    public static final int SCAN_CACHE_SIZE = 1000;
 
     public ScanOperation(){
         super();
@@ -230,7 +231,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
 //        else if (this.getEstimatedRowCount()<100) {
 //            s = s.cacheRows(100).batchCells(-1);
 //        } else {
-            s.cacheRows(1000).batchCells(-1);
+            s.cacheRows(SCAN_CACHE_SIZE).batchCells(-1);
 //        }
         deSiify(s);
         return s;

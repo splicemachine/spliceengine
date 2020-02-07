@@ -539,6 +539,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                         .specificArgs(aggregator.getFunctionSpecificArgs())
                         .resultColumn(aggregator.getResultColumnId())
                         .resultDataType(resultDataType)
+                        .functionSpecificArgs(aggregator.getFunctionSpecificArgs())
                         .toColumn();
 
                 // Now we replace the result column by the spark specification.

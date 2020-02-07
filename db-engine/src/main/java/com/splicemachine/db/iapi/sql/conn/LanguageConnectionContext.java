@@ -1440,4 +1440,6 @@ public interface LanguageConnectionContext extends Context {
 
 	void setClientSupportsDecimal38(boolean newVal);
 
+	String getUserName();
+
 }

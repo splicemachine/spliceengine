@@ -171,7 +171,7 @@ public interface C_NodeTypes
 	int SELECT_NODE = 129;
 	int CREATE_VIEW_NODE = 130;
 	int CONSTRAINT_DEFINITION_NODE = 131;
-	// 132 available;
+	int CURRENT_SERVER_NODE = 132;
 	int NEW_INVOCATION_NODE = 133;
 	int CREATE_SCHEMA_NODE = 134;
 	int FROM_BASE_TABLE = 135;
@@ -280,9 +280,12 @@ int CREATE_INDEX_NODE = 146;
 	int SIGNAL_NODE = 269;
 	int SET_NODE = 270;
 	int FULL_OUTER_JOIN_NODE = 271;
+	int EMPTY_DEFAULT_CONSTANT_NODE = 272;
+
+    int STRING_AGGREGATE_NODE = 273;
 
 	// Final value in set, keep up to date!
-	int FINAL_VALUE = FULL_OUTER_JOIN_NODE;
+	int FINAL_VALUE = STRING_AGGREGATE_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

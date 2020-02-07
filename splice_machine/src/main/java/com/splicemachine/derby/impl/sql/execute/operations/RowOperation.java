@@ -56,6 +56,7 @@ public class RowOperation extends SpliceBaseOperation{
     private ExecRow rowDefinition;
     private String rowMethodName; //name of the row method for
     protected static final String NAME=RowOperation.class.getSimpleName().replaceAll("Operation","");
+    private boolean skipClone = false;
 
     /**
      *
@@ -140,6 +141,15 @@ public class RowOperation extends SpliceBaseOperation{
         if(rowMethod==null && rowMethodName!=null){
             this.rowMethod=new SpliceMethod<>(rowMethodName,activation);
         }
+
+        if (activation != null) {
+            DMLWriteOperation op;
+            if (activation.getResultSet() instanceof DMLWriteOperation) {
+                op = (DMLWriteOperation) activation.getResultSet();
+                if (op.hasGenerationClause() && op.hasStatementTriggerWithReferencingClause())
+                    skipClone = true;
+            }
+        }
     }
 
     /**
@@ -158,6 +168,7 @@ public class RowOperation extends SpliceBaseOperation{
         next=in.readBoolean();
         if(in.readBoolean())
             rowMethodName=in.readUTF();
+        skipClone = in.readBoolean();
     }
 
     /**
@@ -177,11 +188,12 @@ public class RowOperation extends SpliceBaseOperation{
         if(rowMethodName!=null){
             out.writeUTF(rowMethodName);
         }
+        out.writeBoolean(skipClone);
     }
 
     /**
      *
-     * Retrive the row for the operation.
+     * Retrieve the row for the operation.
      *
      * @return
      * @throws StandardException
@@ -198,7 +210,14 @@ public class RowOperation extends SpliceBaseOperation{
                 cachedRow=currentRow;
             }
         }
-        return currentRow.getClone();
+        // Don't return a clone of the current row, if we need to
+        // modify it to fill in the generated columns later.
+        // Future accesses to the row need the full row with
+        // generated values filled in.
+        if (skipClone)
+            return currentRow;
+        else
+            return currentRow.getClone();
     }
 
     /**

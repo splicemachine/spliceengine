@@ -116,19 +116,7 @@ public class SpliceDatabase extends BasicDatabase{
         super.boot(create,startParams);
     }
 
-    @Override
-    public LanguageConnectionContext setupConnection(ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
-                                                     String rdbIntTkn,
-                                                     CompilerContext.DataSetProcessorType dspt,
-                                                     boolean skipStats,
-                                                     double defaultSelectivityFactor,
-                                                     String ipAddress,
-                                                     String defaultSchema,
-                                                     Properties sessionProperties)
-            throws StandardException{
-
-        final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuserlist,
-                drdaID, dbname, rdbIntTkn, dspt, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+    private void setupASTVisitors(LanguageConnectionContext lctx) {
 
         // If you add a visitor, be careful of ordering.
 
@@ -148,7 +136,37 @@ public class SpliceDatabase extends BasicDatabase{
         List<Class<? extends ISpliceVisitor>> afterParseClasses=Collections.emptyList();
         lctx.setASTVisitor(new SpliceASTWalker(afterParseClasses, afterBindVisitors, afterOptVisitors));
 
+    }
+
+    @Override
+    public LanguageConnectionContext setupConnection(ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
+                                                     String rdbIntTkn,
+                                                     CompilerContext.DataSetProcessorType dspt,
+                                                     boolean skipStats,
+                                                     double defaultSelectivityFactor,
+                                                     String ipAddress,
+                                                     String defaultSchema,
+                                                     Properties sessionProperties)
+            throws StandardException{
+
+        final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuserlist,
+                drdaID, dbname, rdbIntTkn, dspt, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+
+        setupASTVisitors(lctx);
         return lctx;
+    }
+
+    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
+                                                                       String rdbIntTkn,
+                                                                       CompilerContext.DataSetProcessorType type,
+                                                                       boolean skipStats,
+                                                                       double defaultSelectivityFactor,
+                                                                       String ipAddress) throws StandardException {
+        return
+            generateLanguageConnectionContext(txn, cm, user, groupuserlist, drdaID, dbname,
+                                              rdbIntTkn, type, skipStats, defaultSelectivityFactor,
+                                              ipAddress, null);
+
     }
 
     /**
@@ -161,8 +179,9 @@ public class SpliceDatabase extends BasicDatabase{
                                                                        CompilerContext.DataSetProcessorType type,
                                                                        boolean skipStats,
                                                                        double defaultSelectivityFactor,
-                                                                       String ipAddress) throws StandardException{
-        TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
+                                                                       String ipAddress,
+                                                                       TransactionController reuseTC) throws StandardException{
+        TransactionController tc = reuseTC == null ? ((SpliceAccessManager)af).marshallTransaction(cm,txn) : reuseTC;
         cm.setLocaleFinder(this);
         pushDbContext(cm);
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
@@ -173,6 +192,7 @@ public class SpliceDatabase extends BasicDatabase{
         ExecutionFactory ef=lcf.getExecutionFactory();
         ef.newExecutionContext(cm);
         lctx.initialize();
+        setupASTVisitors(lctx);
         return lctx;
     }
 

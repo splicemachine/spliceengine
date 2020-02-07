@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV2;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
@@ -41,11 +42,14 @@ import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.db.shared.common.udt.UDTBase;
+import com.splicemachine.derby.catalog.TriggerNewTransitionRows;
+import com.splicemachine.derby.catalog.TriggerOldTransitionRows;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
 import com.splicemachine.derby.ddl.TentativeAddConstraintDesc;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
+import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
@@ -960,5 +964,11 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(BroadcastFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,326);
         instance.register(MergeSortFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,327);
         instance.register(FakeColumnStatisticsImpl.class,EXTERNALIZABLE_SERIALIZER,328);
+        instance.register(TriggerNewTransitionRows.class,EXTERNALIZABLE_SERIALIZER,329);
+        instance.register(TriggerOldTransitionRows.class,EXTERNALIZABLE_SERIALIZER,330);
+        instance.register(TriggerRowHolderImpl.class,EXTERNALIZABLE_SERIALIZER,331);
+        instance.register(TriggerDescriptorV2.class,EXTERNALIZABLE_SERIALIZER,332);
+        instance.register(StringAggregator.class,EXTERNALIZABLE_SERIALIZER,333);
+        instance.register(StringBuilder.class,334);
     }
 }
