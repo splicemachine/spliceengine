@@ -377,7 +377,7 @@ public class UnionOperationIT {
     }
 
     @Test
-    public void testUnionAliasInFirstSubqueryOnly() throws Exception {
+    public void testUnionAllAliasInFirstSubqueryOnly() throws Exception {
         try(Statement s = conn.createStatement()){
             try(ResultSet rs = s.executeQuery("SELECT SUM(SUMMARY) AS S\n" +
                     "  FROM (\n" +
@@ -392,9 +392,64 @@ public class UnionOperationIT {
                                 " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
             }
         }
-
     }
 
+    @Test
+    public void testUnionAliasInFirstSubqueryOnly() throws Exception {
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs = s.executeQuery("SELECT SUM(SUMMARY) AS S\n" +
+                    "  FROM (\n" +
+                    "      SELECT COUNT(*) AS SUMMARY FROM ST_MARS WHERE empId=3\n" +
+                    "      UNION\n" +
+                    "      SELECT COUNT(*) FROM ST_EARTH WHERE empId=4\n" +
+                    "      UNION\n" +
+                    "      SELECT COUNT(*) FROM ST_MARS WHERE empId=5\n" +
+                    "  ) T")) {
+                Assert.assertEquals("S |\n" +
+                        "----\n" +
+                        " 1 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
+
+    @Test
+    public void testUnionConflictingAliasInSecondUnion() throws Exception {
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs = s.executeQuery("SELECT SUM(SUMMARY) AS S\n" +
+                    "  FROM (\n" +
+                    "      SELECT COUNT(*) AS SUMMARY FROM ST_MARS WHERE empId=3\n" +
+                    "      UNION ALL\n" +
+                    "      SELECT COUNT(*) AS NOT_SUMMARY FROM ST_EARTH WHERE empId=4\n" +
+                    "      UNION ALL\n" +
+                    "      SELECT COUNT(*) FROM ST_MARS WHERE empId=5\n" +
+                    "  ) T")) {
+                Assert.assertEquals("S |\n" +
+                        "----\n" +
+                        " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
+
+    @Test
+    public void testUnionUsingAliasInWhereClause() throws Exception {
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs = s.executeQuery("SELECT *\n" +
+                    "  FROM (\n" +
+                    "      SELECT COUNT(*) AS SUMMARY FROM ST_MARS WHERE empId=3\n" +
+                    "      UNION ALL\n" +
+                    "      SELECT COUNT(*) AS NOT_SUMMARY FROM ST_EARTH WHERE empId=4\n" +
+                    "      UNION ALL\n" +
+                    "      SELECT COUNT(*) FROM ST_MARS WHERE empId=5\n" +
+                    "  ) T\n" +
+                    "  WHERE SUMMARY = 1")) {
+                Assert.assertEquals("1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 1 |\n" +
+                        " 1 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
 
     @Category(HBaseTest.class)
     @Test
@@ -404,7 +459,7 @@ public class UnionOperationIT {
                 "union all values ('from_values')) dt {limit 1}";
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
-                "NAME     |\n" +
+                "1      |\n" +
                         "-------------\n" +
                         "from_values |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
