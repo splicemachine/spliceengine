@@ -102,6 +102,8 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                     {SYSCOLUMNS_COLUMNDEFAULTID}
             };
 
+    public static final String      DEFAULT_COLUMN = "DEFAULT";
+
     /////////////////////////////////////////////////////////////////////////////
     //
     //	STATE
@@ -509,6 +511,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         colList.add(new Object[]{"TYPENAME", Types.VARCHAR, false, 128});
         colList.add(new Object[]{"LONGLENGTH", Types.INTEGER, false, null});
         colList.add(new Object[]{"KEYSEQ", Types.SMALLINT, true, null});
+        colList.add(new Object[]{"DEFAULT", Types.CLOB, true, 65536});
 
 
         Collection<ColumnDescriptor> columnDescriptors = Lists.newArrayListWithCapacity(50);
@@ -578,7 +581,8 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "     when COL.COLUMNTYPE='DECIMAL' then COL.COLUMNDATATYPE.getPrecision()\n" +
             "     else COL.COLUMNDATATYPE.getMaximumWidth() end as LONGLENGTH,\n" +
             "case when CON.keydesc is not null and CON.keydesc.getKeyColumnPosition(COL.columnnumber) > 0 then CON.keydesc.getKeyColumnPosition(COL.columnnumber)\n" +
-            "     end as KEYSEQ\n" +
+            "     end as KEYSEQ,\n" +
+            "     COL.COLUMNDEFAULT as \"DEFAULT\"\n" +
             "from \n" +
             "(select c.columnname,\n" +
             "        t.tablename,\n" +
@@ -586,6 +590,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "        c.columnnumber,\n" +
             "        c.columndatatype,\n" +
             "        cast (c.columndatatype.getTypeName() as varchar(128)) as columntype,\n" +
+            "        cast(cast (c.columndefault as long varchar) as clob(65536)) as columndefault,\n" +
             "        t.tableid\n" +
             "from sys.syscolumns c,\n" +
             "     sys.systables t,\n" +
