@@ -426,6 +426,15 @@ public abstract class TableOperatorNode extends FromTable{
         if (!bindRightOnly)
             leftResultSet.bindResultColumns(fromListParam);
         rightResultSet.bindResultColumns(fromListParam);
+
+        if (this instanceof UnionNode) {
+            assert leftResultSet.getResultColumns().size() == rightResultSet.getResultColumns().size();
+            for (int i = 0; i < leftResultSet.getResultColumns().size(); ++i) {
+                ResultColumn left = leftResultSet.getResultColumns().elementAt(i);
+                ResultColumn right = rightResultSet.getResultColumns().elementAt(i);
+                right.setName(left.getName());
+            }
+        }
     }
 
     /**
