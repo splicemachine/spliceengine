@@ -28,7 +28,8 @@ import java.io.IOException;
 
 public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		private static Logger LOG = Logger.getLogger(NestedLoopLeftOuterJoinOperation.class);
-        	protected SpliceMethod<ExecRow> emptyRowFun;
+		protected SpliceMethod<ExecRow> emptyRowFun;
+		protected ExecRow emptyRow;
 		public int emptyRightRowsReturned = 0;
 		public NestedLoopLeftOuterJoinOperation() {
 				super();
@@ -74,4 +75,11 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				return "LeftOuter"+super.prettyPrint(indentLevel);
 		}
 
+		@Override
+		public ExecRow getEmptyRow() throws StandardException {
+			if (emptyRow == null){
+				emptyRow = emptyRowFun.invoke();
+			}
+			return emptyRow;
+		}
 }
