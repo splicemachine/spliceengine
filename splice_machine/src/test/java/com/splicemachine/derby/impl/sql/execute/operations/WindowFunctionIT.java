@@ -5383,4 +5383,58 @@ public class WindowFunctionIT extends SpliceUnitTest {
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
+
+    @Test
+    public void testMaxWindowFunctionWithNulls() throws Exception {
+        String sqlText =
+                String.format("select years, month, max(amount) over (partition by years order by month rows between unbounded preceding and current row) X\n" +
+                        "from %s --splice-properties useSpark=%s\n" +
+                        "where years=2005 and emp_id=21 order by years, month", this.getTableReference(ALL_SALES), useSpark);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "YEARS | MONTH |    X    |\n" +
+                        "--------------------------\n" +
+                        " 2005  |   1   |26034.84 |\n" +
+                        " 2005  |   2   |26034.84 |\n" +
+                        " 2005  |   3   |26034.84 |\n" +
+                        " 2005  |   4   |26034.84 |\n" +
+                        " 2005  |   5   |26034.84 |\n" +
+                        " 2005  |   6   |26034.84 |\n" +
+                        " 2005  |   7   |62654.82 |\n" +
+                        " 2005  |   8   |62654.82 |\n" +
+                        " 2005  |   9   |62654.82 |\n" +
+                        " 2005  |  10   |62654.82 |\n" +
+                        " 2005  |  11   |62654.82 |\n" +
+                        " 2005  |  12   |62654.82 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testMinWindowFunctionWithNulls() throws Exception {
+        String sqlText =
+                String.format("select years, month, min(amount) over (partition by years order by month rows between unbounded preceding and current row) X\n" +
+                        "from %s --splice-properties useSpark=%s\n" +
+                        "where years=2005 and emp_id=21 order by years, month", this.getTableReference(ALL_SALES), useSpark);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "YEARS | MONTH |    X    |\n" +
+                        "--------------------------\n" +
+                        " 2005  |   1   |26034.84 |\n" +
+                        " 2005  |   2   |12644.65 |\n" +
+                        " 2005  |   3   |12644.65 |\n" +
+                        " 2005  |   4   |12644.65 |\n" +
+                        " 2005  |   5   |12644.65 |\n" +
+                        " 2005  |   6   |12644.65 |\n" +
+                        " 2005  |   7   |12644.65 |\n" +
+                        " 2005  |   8   |12644.65 |\n" +
+                        " 2005  |   9   |12644.65 |\n" +
+                        " 2005  |  10   |12644.65 |\n" +
+                        " 2005  |  11   |12644.65 |\n" +
+                        " 2005  |  12   |10032.64 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 }
