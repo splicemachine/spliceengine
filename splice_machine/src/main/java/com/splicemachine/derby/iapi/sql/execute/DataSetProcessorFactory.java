@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.iapi.sql.execute;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
@@ -72,5 +73,5 @@ public interface DataSetProcessorFactory{
 
     RemoteQueryClient getRemoteQueryClient(SpliceBaseOperation operation);
 
-    ControlExecutionLimiter getControlExecutionLimiter(Activation activation);
+    ControlExecutionLimiter getControlExecutionLimiter(Activation activation) throws StandardException;
 }

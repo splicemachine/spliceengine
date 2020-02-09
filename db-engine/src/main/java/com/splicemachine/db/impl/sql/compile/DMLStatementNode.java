@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -166,9 +167,61 @@ public abstract class DMLStatementNode extends StatementNode {
         // prune tree based on unsat condition
         accept(new TreePruningVisitor());
 
-        resultSet = resultSet.optimize(getDataDictionary(), null, 1.0d);
+
+
+        // We should try to cost control first, and fallback to spark if necessary
+        DataSetProcessorType connectionType = getLanguageConnectionContext().getDataSetProcessorType();
+        getCompilerContext().setDataSetProcessorType(connectionType);
+
+        if (shouldRunControl(resultSet)) {
+            resultSet = resultSet.optimize(getDataDictionary(), null, 1.0d, false);
+        }
+
+        if (shouldRunSpark(resultSet)) {
+            CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
+            resultSet.accept(cnv);
+            for (Object obj : cnv.getList()) {
+                FromTable ft = (FromTable) obj;
+                ft.resetAccessPaths();
+            }
+            resultSet = resultSet.optimize(getDataDictionary(), null, 1.0d, true);
+        }
+
         resultSet = resultSet.modifyAccessPaths();
 
+    }
+
+    private boolean shouldRunControl(ResultSetNode resultSet) throws StandardException {
+        DataSetProcessorType type = getCompilerContext().getDataSetProcessorType();
+        if (type.isForced()) {
+            return (!type.isSpark());
+        }
+        CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
+        resultSet.accept(cnv);
+        for (Object obj : cnv.getList()) {
+            FromTable ft = (FromTable) obj;
+            ft.verifyProperties(getDataDictionary());
+            type = type.combine(ft.getDataSetProcessorType());
+        }
+        getCompilerContext().setDataSetProcessorType(type);
+        return !type.isSpark();
+    }
+
+    private boolean shouldRunSpark(ResultSetNode resultSet) throws StandardException {
+        DataSetProcessorType type = getCompilerContext().getDataSetProcessorType();
+        if (!type.isSpark() && (type.isHinted() || type.isForced())) {
+            return false;
+        }
+        CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
+        resultSet.accept(cnv);
+        for (Object obj : cnv.getList()) {
+            if (obj instanceof FromBaseTable) {
+                ((FromBaseTable) obj).determineSpark();
+            }
+            type = type.combine(((FromTable) obj).getDataSetProcessorType());
+        }
+        getCompilerContext().setDataSetProcessorType(type);
+        return type.isSpark();
     }
 
     /**
