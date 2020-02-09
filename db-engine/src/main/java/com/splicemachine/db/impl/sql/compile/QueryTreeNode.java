@@ -2016,5 +2016,4 @@ public abstract class QueryTreeNode implements Node, Visitable{
         accept(visitor);
         return visitor.getNodes();
     }
-
 }

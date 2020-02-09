@@ -42,190 +42,190 @@ import com.splicemachine.db.iapi.error.StandardException;
  */
 
 public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
-	/**
-	 * Add a subquery to the list.
-	 *
-	 * @param subqueryNode	A SubqueryNode to add to the list
-	 *
-	 */
+    /**
+     * Add a subquery to the list.
+     *
+     * @param subqueryNode    A SubqueryNode to add to the list
+     *
+     */
 
-	public void addSubqueryNode(SubqueryNode subqueryNode) throws StandardException {
-		addElement(subqueryNode);
-	}
+    public void addSubqueryNode(SubqueryNode subqueryNode) throws StandardException {
+        addElement(subqueryNode);
+    }
 
-	/**
-	 * Preprocess a SubqueryList.  For now, we just preprocess each SubqueryNode
-	 * in the list.
-	 *
-	 * @param	numTables			Number of tables in the DML Statement
-	 * @param	outerFromList		FromList from outer query block
-	 * @param	outerSubqueryList	SubqueryList from outer query block
-	 * @param	outerPredicateList	PredicateList from outer query block
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void preprocess(int numTables,
+    /**
+     * Preprocess a SubqueryList.  For now, we just preprocess each SubqueryNode
+     * in the list.
+     *
+     * @param    numTables            Number of tables in the DML Statement
+     * @param    outerFromList        FromList from outer query block
+     * @param    outerSubqueryList    SubqueryList from outer query block
+     * @param    outerPredicateList    PredicateList from outer query block
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void preprocess(int numTables,
                            FromList outerFromList,
                            SubqueryList outerSubqueryList,
                            PredicateList outerPredicateList)  throws StandardException {
-		SubqueryNode subqueryNode;
+        SubqueryNode subqueryNode;
 
-		int size = size();
-		for (int index = 0; index < size; index++) {
-			subqueryNode = elementAt(index);
-			subqueryNode.preprocess(numTables, outerFromList,
-									outerSubqueryList,
-									outerPredicateList);
-		}
-	}
+        int size = size();
+        for (int index = 0; index < size; index++) {
+            subqueryNode = elementAt(index);
+            subqueryNode.preprocess(numTables, outerFromList,
+                                    outerSubqueryList,
+                                    outerPredicateList);
+        }
+    }
 
-	/**
-	 * Optimize the subqueries in this list.  
-	 *
-	 * @param dataDictionary	The data dictionary to use for optimization
-	 * @param outerRows			The optimizer's estimate of the number of
-	 *							times this subquery will be executed.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void optimize(DataDictionary dataDictionary, double outerRows) throws StandardException {
-		int size = size();
-		for (int index = 0; index < size; index++) {
-			SubqueryNode	subqueryNode;
-			subqueryNode = elementAt(index);
-			subqueryNode.optimize(dataDictionary, outerRows);
-		}
-	}
+    /**
+     * Optimize the subqueries in this list.
+     *
+     * @param dataDictionary    The data dictionary to use for optimization
+     * @param outerRows            The optimizer's estimate of the number of
+     *                            times this subquery will be executed.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void optimize(DataDictionary dataDictionary, double outerRows, Boolean forSpark) throws StandardException {
+        int size = size();
+        for (int index = 0; index < size; index++) {
+            SubqueryNode    subqueryNode;
+            subqueryNode = elementAt(index);
+            subqueryNode.optimize(dataDictionary, outerRows, forSpark);
+        }
+    }
 
-	/**
-	 * Modify the access paths for all subqueries in this list.
-	 *
-	 * @see ResultSetNode#modifyAccessPaths
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void modifyAccessPaths() throws StandardException {
-		int size = size();
-		for (int index = 0; index < size; index++) {
-			SubqueryNode	subqueryNode;
-			subqueryNode = elementAt(index);
-			subqueryNode.modifyAccessPaths();
-		}
-	}
+    /**
+     * Modify the access paths for all subqueries in this list.
+     *
+     * @see ResultSetNode#modifyAccessPaths
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void modifyAccessPaths() throws StandardException {
+        int size = size();
+        for (int index = 0; index < size; index++) {
+            SubqueryNode    subqueryNode;
+            subqueryNode = elementAt(index);
+            subqueryNode.modifyAccessPaths();
+        }
+    }
 
-	/**
-	 * Search to see if a query references the specifed table name.
-	 *
-	 * @param name		Table name (String) to search for.
-	 * @param baseTable	Whether or not name is for a base table
-	 *
-	 * @return	true if found, else false
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public boolean referencesTarget(String name, boolean baseTable) throws StandardException {
-		int size = size();
-		for (int index = 0; index < size; index++) {
-			SubqueryNode	subqueryNode;
+    /**
+     * Search to see if a query references the specifed table name.
+     *
+     * @param name        Table name (String) to search for.
+     * @param baseTable    Whether or not name is for a base table
+     *
+     * @return    true if found, else false
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public boolean referencesTarget(String name, boolean baseTable) throws StandardException {
+        int size = size();
+        for (int index = 0; index < size; index++) {
+            SubqueryNode    subqueryNode;
 
-			subqueryNode = elementAt(index);
-			if (subqueryNode.isMaterializable()) {
-				continue;
-			}
+            subqueryNode = elementAt(index);
+            if (subqueryNode.isMaterializable()) {
+                continue;
+            }
 
-			if (subqueryNode.getResultSet().referencesTarget(name, baseTable)) {
-				return true;
-			}
-		}
+            if (subqueryNode.getResultSet().referencesTarget(name, baseTable)) {
+                return true;
+            }
+        }
 
-		return false;
-	}
+        return false;
+    }
 
-	/**
-	 * Return true if the node references SESSION schema tables (temporary or permanent)
-	 *
-	 * @return	true if references SESSION schema tables, else false
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Return true if the node references SESSION schema tables (temporary or permanent)
+     *
+     * @return    true if references SESSION schema tables, else false
+     *
+     * @exception StandardException        Thrown on error
+     */
     @Override
-	public boolean referencesSessionSchema() throws StandardException {
-		int size = size();
-		for (int index = 0; index < size; index++) {
-			SubqueryNode	subqueryNode;
+    public boolean referencesSessionSchema() throws StandardException {
+        int size = size();
+        for (int index = 0; index < size; index++) {
+            SubqueryNode    subqueryNode;
 
-			subqueryNode = elementAt(index);
+            subqueryNode = elementAt(index);
 
-			if (subqueryNode.getResultSet().referencesSessionSchema()) {
-				return true;
-			}
-		}
+            if (subqueryNode.getResultSet().referencesSessionSchema()) {
+                return true;
+            }
+        }
 
-		return false;
-	}
+        return false;
+    }
 
-	/**
-	 * Set the point of attachment in all subqueries in this list.
-	 *
-	 * @param pointOfAttachment		The point of attachment
-	 *
-	 * @exception StandardException			Thrown on error
-	 */
-	public void setPointOfAttachment(int pointOfAttachment) throws StandardException {
-		int size = size();
+    /**
+     * Set the point of attachment in all subqueries in this list.
+     *
+     * @param pointOfAttachment        The point of attachment
+     *
+     * @exception StandardException            Thrown on error
+     */
+    public void setPointOfAttachment(int pointOfAttachment) throws StandardException {
+        int size = size();
 
-		for (int index = 0; index < size; index++) {
-			SubqueryNode	subqueryNode;
+        for (int index = 0; index < size; index++) {
+            SubqueryNode    subqueryNode;
 
-			subqueryNode = elementAt(index);
-			subqueryNode.setPointOfAttachment(pointOfAttachment);
-		}
-	}
+            subqueryNode = elementAt(index);
+            subqueryNode.setPointOfAttachment(pointOfAttachment);
+        }
+    }
 
-	/**
-	 * Decrement (query block) level (0-based) for 
-	 * all of the tables in this subquery list.
-	 * This is useful when flattening a subquery.
-	 *
-	 * @param decrement	The amount to decrement by.
-	 */
-	void decrementLevel(int decrement) {
-		int size = size();
+    /**
+     * Decrement (query block) level (0-based) for
+     * all of the tables in this subquery list.
+     * This is useful when flattening a subquery.
+     *
+     * @param decrement    The amount to decrement by.
+     */
+    void decrementLevel(int decrement) {
+        int size = size();
 
-		for (int index = 0; index < size; index++) {
-			elementAt(index).getResultSet().decrementLevel(decrement);
-		}
-	}
+        for (int index = 0; index < size; index++) {
+            elementAt(index).getResultSet().decrementLevel(decrement);
+        }
+    }
 
-	/**
+    /**
      * Mark all of the subqueries in this 
      * list as being part of a having clause,
      * so we can avoid flattenning later.
-	 * 
-	 */
-	public void markHavingSubqueries() {
-	    int size = size();
-	    
-	    for (int index = 0; index < size; index++) {
-	        SubqueryNode    subqueryNode;
+     *
+     */
+    public void markHavingSubqueries() {
+        int size = size();
 
-	        subqueryNode = elementAt(index);
-	        subqueryNode.setHavingSubquery(true);
-	    }
-	}
+        for (int index = 0; index < size; index++) {
+            SubqueryNode    subqueryNode;
 
-	/**
-	 * Mark all of the subqueries in this list as being part of a where clause
-	 * so we can avoid flattening later if needed.
-	 */
-	public void markWhereSubqueries() {
-		int size = size();
-		for (int index = 0; index < size; index++) {
-			SubqueryNode    subqueryNode;
+            subqueryNode = elementAt(index);
+            subqueryNode.setHavingSubquery(true);
+        }
+    }
 
-			subqueryNode = elementAt(index);
-			subqueryNode.setWhereSubquery(true);
-		}
-	}
+    /**
+     * Mark all of the subqueries in this list as being part of a where clause
+     * so we can avoid flattening later if needed.
+     */
+    public void markWhereSubqueries() {
+        int size = size();
+        for (int index = 0; index < size; index++) {
+            SubqueryNode    subqueryNode;
+
+            subqueryNode = elementAt(index);
+            subqueryNode.setWhereSubquery(true);
+        }
+    }
 }
 

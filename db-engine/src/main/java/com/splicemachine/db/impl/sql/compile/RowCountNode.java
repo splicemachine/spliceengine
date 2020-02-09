@@ -92,20 +92,23 @@ public final class RowCountNode extends SingleChildResultSetNode{
      * @param predicates     The PredicateList to optimize.  This should
      *                       be a join predicate.
      * @param outerRows      The number of outer joining rows
+     * @param forSpark
      * @throws StandardException Thrown on error
      * @return ResultSetNode    The top of the optimized subtree
      */
     @Override
     public ResultSetNode optimize(DataDictionary dataDictionary,
                                   PredicateList predicates,
-                                  double outerRows) throws StandardException{
-		/* We need to implement this method since a NRSN can appear above a
-		 * SelectNode in a query tree.
-		 */
+                                  double outerRows,
+                                  boolean forSpark) throws StandardException{
+        /* We need to implement this method since a NRSN can appear above a
+         * SelectNode in a query tree.
+         */
         childResult=childResult.optimize(
                 dataDictionary,
                 predicates,
-                outerRows);
+                outerRows,
+                forSpark);
 
         Optimizer optimizer=
                 getOptimizer(
@@ -116,6 +119,7 @@ public final class RowCountNode extends SingleChildResultSetNode{
                         predicates,
                         dataDictionary,
                         null);
+        optimizer.setForSpark(forSpark);
         costEstimate=optimizer.newCostEstimate();
         fixCost();
         return this;
@@ -133,12 +137,12 @@ public final class RowCountNode extends SingleChildResultSetNode{
      */
     @Override
     public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
-		/*
-		** The cost estimate will be set here if either optimize() or
-		** optimizeIt() was called on this node.  It's also possible
-		** that optimization was done directly on the child node,
-		** in which case the cost estimate will be null here.
-		*/
+        /*
+        ** The cost estimate will be set here if either optimize() or
+        ** optimizeIt() was called on this node.  It's also possible
+        ** that optimization was done directly on the child node,
+        ** in which case the cost estimate will be null here.
+        */
         if(costEstimate==null) {
             costEstimate = childResult.getFinalCostEstimate(true).cloneMe();
             fixCost();

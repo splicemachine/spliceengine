@@ -29,7 +29,7 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
 import com.splicemachine.db.iapi.services.property.PropertySetCallback;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -141,7 +141,7 @@ public class SpliceDatabase extends BasicDatabase{
     @Override
     public LanguageConnectionContext setupConnection(ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
                                                      String rdbIntTkn,
-                                                     CompilerContext.DataSetProcessorType dspt,
+                                                     DataSetProcessorType dspt,
                                                      boolean skipStats,
                                                      double defaultSelectivityFactor,
                                                      String ipAddress,
@@ -158,7 +158,7 @@ public class SpliceDatabase extends BasicDatabase{
 
     public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
                                                                        String rdbIntTkn,
-                                                                       CompilerContext.DataSetProcessorType type,
+                                                                       DataSetProcessorType type,
                                                                        boolean skipStats,
                                                                        double defaultSelectivityFactor,
                                                                        String ipAddress) throws StandardException {
@@ -176,7 +176,7 @@ public class SpliceDatabase extends BasicDatabase{
      */
     public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
                                                                        String rdbIntTkn,
-                                                                       CompilerContext.DataSetProcessorType type,
+                                                                       DataSetProcessorType type,
                                                                        boolean skipStats,
                                                                        double defaultSelectivityFactor,
                                                                        String ipAddress,
