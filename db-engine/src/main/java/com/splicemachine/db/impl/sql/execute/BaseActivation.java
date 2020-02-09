@@ -48,7 +48,7 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.*;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
@@ -503,8 +503,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		return numSubqueries;
 	}
 
-    public CompilerContext.DataSetProcessorType datasetProcessorType() {
-        return CompilerContext.DataSetProcessorType.values()[datasetProcessorType];
+    public DataSetProcessorType datasetProcessorType() {
+        return DataSetProcessorType.values()[datasetProcessorType];
     }
 
 	public void setDatasetProcessorType(int datasetProcessorType) {

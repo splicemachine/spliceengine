@@ -35,7 +35,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 
 import com.splicemachine.db.iapi.sql.PreparedStatement;
@@ -200,12 +200,12 @@ public interface ExecPreparedStatement
 	/**
 	 * @return dataset processor type if overriden, otherwise null
 	 */
-	CompilerContext.DataSetProcessorType datasetProcessorType();
+	DataSetProcessorType datasetProcessorType();
 
 	/**
 	 * @return override datasetprocessortype
 	 */
-	void setDatasetProcessorType(CompilerContext.DataSetProcessorType type);
+	void setDatasetProcessorType(DataSetProcessorType type);
 
 }
 

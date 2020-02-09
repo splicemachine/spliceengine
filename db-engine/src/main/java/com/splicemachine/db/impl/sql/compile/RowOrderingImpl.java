@@ -346,4 +346,15 @@ public class RowOrderingImpl implements RowOrdering{
         dest.unorderedOptimizables.addAll(unorderedOptimizables);
         return;
     }
+
+    @Override
+    public void removeAllOptimizables() {
+        for(int i=ordering.size()-1;i>=0;i--){
+            ordering.remove(i);
+        }
+        for(int i=unorderedOptimizables.size()-1;i>=0;i--){
+            unorderedOptimizables.remove(i);
+        }
+    }
+
 }
