@@ -496,36 +496,38 @@ public class SQLParser
      * @exception StandardException        Thrown on error
      */
 
-    ValueNode multOp(ValueNode leftOperand,
-                            ValueNode rightOperand,
-                            int multiplicativeOperator)
-                    throws StandardException
+    QueryTreeNode multOp(ValueNode leftOperand,
+                     QueryTreeNode rightOperand,
+                     int multiplicativeOperator)
+                    throws StandardException, ParseException
     {
         if (leftOperand == null)
         {
+            assertValueOrValueNodeList(rightOperand);
             return rightOperand;
         }
 
+        throwIfNotValueNode(rightOperand);
         switch (multiplicativeOperator)
         {
           case BinaryOperatorNode.TIMES:
             return (ValueNode) nodeFactory.getNode(
                                     C_NodeTypes.BINARY_TIMES_OPERATOR_NODE,
                                     leftOperand,
-                                    rightOperand,
+                                    (ValueNode)rightOperand,
                                     getContextManager());
 
           case BinaryOperatorNode.DIVIDE:
             return (ValueNode) nodeFactory.getNode(
                                     C_NodeTypes.BINARY_DIVIDE_OPERATOR_NODE,
                                     leftOperand,
-                                    rightOperand,
+                                    (ValueNode)rightOperand,
                                     getContextManager());
           case BinaryOperatorNode.CONCATENATE:
             return (ValueNode) nodeFactory.getNode(
                                     C_NodeTypes.CONCATENATION_OPERATOR_NODE,
                                     leftOperand,
-                                    rightOperand,
+                                    (ValueNode)rightOperand,
                                     getContextManager());
 
           default:
@@ -4503,11 +4505,11 @@ callStatement() throws StandardException :
 StatementNode
 bareCallStatement() throws StandardException :
 {
-    ParameterNode        returnParam;
+    ParameterNode   returnParam;
 
-    ValueNode            value;
+    QueryTreeNode   value;
 
-    ResultSetNode        resultSetNode;
+    ResultSetNode   resultSetNode;
 }
 {
     <CALL> value = primaryExpression()
@@ -4569,7 +4571,7 @@ bareCallStatement() throws StandardException :
                         getContextManager());
 
         // set the 0th param to be a RETURN param
-        returnParam.setReturnOutputParam(value);
+        returnParam.setReturnOutputParam((ValueNode)value);
 
         setUpAndLinkParameters();
 
@@ -4580,9 +4582,9 @@ bareCallStatement() throws StandardException :
 /*
  * <A NAME="primaryExpression">primaryExpression</A>
  */
-ValueNode primaryExpression() throws StandardException :
+QueryTreeNode primaryExpression() throws StandardException :
 {
-    ValueNode            value = null;
+    QueryTreeNode value = null;
 }
 {
     LOOKAHEAD
@@ -4593,11 +4595,13 @@ ValueNode primaryExpression() throws StandardException :
     )
     value = routineInvocation()
     {
+        assertValueOrValueNodeList(value);
         return value;
     }
 |
     value = primaryExpressionXX()
     {
+        assertValueOrValueNodeList(value);
         return value;
     }
 }
@@ -6446,11 +6450,12 @@ booleanPrimary() throws StandardException :
 ValueNode
 predicate() throws StandardException :
 {
-    ValueNode    value;
+    QueryTreeNode value;
 }
 {
     (
-        value = additiveExpression(null, 0) |
+        value = additiveExpressionValueOrValueNodeList(null, 0)
+    |
         value = existsExpression()
     )
     (
@@ -6461,7 +6466,8 @@ predicate() throws StandardException :
         value = remainingPredicate(value)
     )*
     {
-        return value;
+        throwIfNotValueNode(value);
+        return (ValueNode)value;
     }
 /*
 ** RESOLVE: overlapsExpression commented out for the time being to avoid
@@ -6481,8 +6487,8 @@ predicate() throws StandardException :
 /*
  * <A NAME="remainingPredicates">remainingPredicates</A>
  */
-ValueNode
-remainingPredicate(ValueNode value) throws StandardException :
+QueryTreeNode
+remainingPredicate(QueryTreeNode value) throws StandardException :
 {
     Token tok = null;
 }
@@ -6511,15 +6517,15 @@ remainingPredicate(ValueNode value) throws StandardException :
  * <A NAME="remainingNonNegatablePredicate">remainingNonNegatablePredicate</A>
  */
 ValueNode
-remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
+remainingNonNegatablePredicate(QueryTreeNode leftOperand) throws StandardException :
 {
-    int            operator;
-    String        javaClassName;
-    Token         tok = null;
-    ValueNode    tree = null;
-    ValueNode    likePattern;
-    ValueNode    betweenLeft;
-    ValueNode    betweenRight;
+    int         operator;
+    String      javaClassName;
+    Token       tok = null;
+    ValueNode   tree = null;
+    ValueNode   likePattern;
+    ValueNode   betweenLeft;
+    ValueNode   betweenRight;
     Properties  properties = null;
 }
 {
@@ -6529,10 +6535,13 @@ remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
         // class which starts with these words (e.g., ALL::)
         LOOKAHEAD({(getToken(1).kind == ALL || getToken(1).kind == ANY ||
             getToken(1).kind == SOME) && getToken(2).kind == LEFT_PAREN})
+        {
+            throwIfNotValueNode(leftOperand);
+        }
         (
             operator = quantifier(operator)
             <LEFT_PAREN>
-            leftOperand = tableSubquery(operator, leftOperand)
+            leftOperand = tableSubquery(operator, (ValueNode)leftOperand)
             <RIGHT_PAREN> [ properties = propertyList(true)<CHECK_PROPERTIES>]
             {
                 if (leftOperand instanceof SubqueryNode)
@@ -6541,11 +6550,12 @@ remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
         )
         |
         (
-            leftOperand = additiveExpression(leftOperand, operator)
+            leftOperand = additiveExpressionValueOrValueNodeList(leftOperand, operator)
         )
     )
     {
-        return leftOperand;
+        throwIfNotValueNode(leftOperand);
+        return (ValueNode)leftOperand;
     }
 }
 
@@ -6553,16 +6563,17 @@ remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
  * <A NAME="remainingNegatablePredicate">remainingNegatablePredicate</A>
  */
 ValueNode
-remainingNegatablePredicate(ValueNode leftOperand) throws StandardException :
+remainingNegatablePredicate(QueryTreeNode leftOperand) throws StandardException :
 {
     ValueNode    tree = null;
     ValueNode    likePattern;
     ValueNode    betweenLeft;
     ValueNode    betweenRight;
     ValueNode    escapeValue = null;
+    throwIfNotValueNode(leftOperand);
 }
 {
-    <IN> tree = inPredicateValue(leftOperand)
+    <IN> tree = inPredicateValue((ValueNode)leftOperand)
     {
         return tree;
     }
@@ -6656,17 +6667,37 @@ compOp() throws StandardException :
 ValueNode
 additiveExpression(ValueNode farLeftOperand, int compOp) throws StandardException :
 {
-    ValueNode    leftOperand;
-    int            operator;
-    int            nodeType;
+    QueryTreeNode value;
+}
+{
+    value = additiveExpressionValueOrValueNodeList(farLeftOperand, compOp)
+    {
+        throwIfNotValueNode(value);
+        return (ValueNode)value;
+    }
+}
+
+/*
+ * <A NAME="additiveExpressionValueOrValueNodeList">additiveExpressionValueOrValueNodeList</A>
+ */
+QueryTreeNode
+additiveExpressionValueOrValueNodeList(QueryTreeNode farLeftOperand, int compOp) throws StandardException :
+{
+    QueryTreeNode   leftOperand;
+    int             operator;
+    int             nodeType;
+    ValueNode       value;
 }
 {
     leftOperand = multiplicativeExpression(null, 0)
             (operator = additiveOperator()
                 leftOperand = multiplicativeExpression(leftOperand, operator) )*
     {
-        if (farLeftOperand == null)
+        assertValueOrValueNodeList(leftOperand);
+        if (farLeftOperand == null) {
             return leftOperand;
+        }
+        assertValueOrValueNodeList(farLeftOperand);
 
         switch (compOp)
         {
@@ -6701,11 +6732,44 @@ additiveExpression(ValueNode farLeftOperand, int compOp) throws StandardExceptio
             break;
         }
 
-        return (ValueNode) nodeFactory.getNode(
+        if (leftOperand instanceof ValueNode) {
+            if (farLeftOperand instanceof ValueNodeList) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                    "Cannot compare tuple with non tuple");
+            }
+            return (ValueNode) nodeFactory.getNode(
+                                nodeType,
+                                farLeftOperand,
+                                leftOperand,
+                                getContextManager());
+        } else {
+            if (farLeftOperand instanceof ValueNode) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                    "Cannot compare tuple with non tuple");
+            }
+            if (((ValueNodeList)leftOperand).size() != ((ValueNodeList)farLeftOperand).size()) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                    "Cannot compare tuples of different sizes");
+            }
+            value = (ValueNode) nodeFactory.getNode(
                             nodeType,
-                            farLeftOperand,
-                            leftOperand,
+                            ((ValueNodeList)farLeftOperand).elementAt(0),
+                            ((ValueNodeList)leftOperand).elementAt(0),
                             getContextManager());
+            for (int i = 1; i < ((ValueNodeList)leftOperand).size(); ++i) {
+                value = (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.AND_NODE,
+                                value,
+                                (ValueNode) nodeFactory.getNode(
+                                    nodeType,
+                                    ((ValueNodeList)farLeftOperand).elementAt(i),
+                                    ((ValueNodeList)leftOperand).elementAt(i),
+                                    getContextManager()),
+                                getContextManager());
+            }
+            return value;
+
+        }
     }
 }
 
@@ -6731,19 +6795,24 @@ additiveOperator() throws StandardException :
 /*
  * <A NAME="multiplicativeExpression">multiplicativeExpression</A>
  */
-ValueNode
-multiplicativeExpression(ValueNode farLeftOperand, int additiveOperator) throws StandardException :
+QueryTreeNode
+multiplicativeExpression(QueryTreeNode farLeftOperand, int additiveOperator) throws StandardException :
 {
-    ValueNode    leftOperand;
-    int            multOp;
+    QueryTreeNode   leftOperand;
+    int             multOp;
+    throwIfNotValueNode(farLeftOperand);
 }
 {
     leftOperand = unaryExpression(null, 0)
                 (multOp = multiplicativeOperator()
                  leftOperand = unaryExpression(leftOperand, multOp) )*
     {
-        if (farLeftOperand == null)
+        if (farLeftOperand == null) {
+            assertValueOrValueNodeList(leftOperand);
             return leftOperand;
+        }
+
+        throwIfNotValueNode(leftOperand);
 
         switch (additiveOperator)
         {
@@ -6802,13 +6871,14 @@ multiplicativeOperator() throws StandardException :
 /*
  * <A NAME="unaryExpression">unaryExpression</A>
  */
-ValueNode
-unaryExpression(ValueNode farLeftOperand, int multiplicativeOperator) throws StandardException :
+QueryTreeNode
+unaryExpression(QueryTreeNode farLeftOperand, int multiplicativeOperator) throws StandardException :
 {
-    ValueNode    value;
-    String        sign = null;
-    int            tokKind1;
-    int            tokKind2;
+    QueryTreeNode   value;
+    String          sign = null;
+    int             tokKind1;
+    int             tokKind2;
+    throwIfNotValueNode(farLeftOperand);
 }
 {
     [
@@ -6830,6 +6900,7 @@ unaryExpression(ValueNode farLeftOperand, int multiplicativeOperator) throws Sta
     {
         if ("-".equals(sign))
         {
+            throwIfNotValueNode(value);
             value = (ValueNode) nodeFactory.getNode(
                                         C_NodeTypes.UNARY_MINUS_OPERATOR_NODE,
                                         value,
@@ -6837,6 +6908,7 @@ unaryExpression(ValueNode farLeftOperand, int multiplicativeOperator) throws Sta
         }
         else if ("+".equals(sign))
         {
+            throwIfNotValueNode(value);
             value = (ValueNode) nodeFactory.getNode(
                                         C_NodeTypes.UNARY_PLUS_OPERATOR_NODE,
                                         value,
@@ -6852,7 +6924,7 @@ unaryExpression(ValueNode farLeftOperand, int multiplicativeOperator) throws Sta
             }
         }
 
-        return multOp(farLeftOperand, value, multiplicativeOperator);
+        return multOp((ValueNode)farLeftOperand, value, multiplicativeOperator);
     }
 }
 
@@ -6880,26 +6952,28 @@ sign() :
 /*
  * <A NAME="primaryExpressionXX">primaryExpressionXX</A>
  */
-ValueNode
+QueryTreeNode
 primaryExpressionXX() throws StandardException :
 {
-    ValueNode    value;
+    QueryTreeNode value;
 }
 {
     value = primary()
       ( value = nonStaticMethodCallOrFieldAccess(value)) *
     {
+        assertValueOrValueNodeList(value);
         return value;
     }
 }
 
 ValueNode
-nonStaticMethodCallOrFieldAccess(ValueNode receiver) throws StandardException :
+nonStaticMethodCallOrFieldAccess(QueryTreeNode receiver) throws StandardException :
 {
     ValueNode value;
+    throwIfNotValueNode(receiver);
 }
 {
-    value = nonStaticMethodInvocation(receiver)
+    value = nonStaticMethodInvocation((ValueNode)receiver)
     {
         return value;
     }
@@ -7054,11 +7128,11 @@ methodParameter(Vector parameterList) throws StandardException :
 /*
  * <A NAME="primary">primary</A>
  */
-ValueNode
+QueryTreeNode
 primary() throws StandardException :
 {
-    String        javaClassName;
-    ValueNode    value;
+    String          javaClassName;
+    QueryTreeNode   value;
 }
 {
 
@@ -7066,11 +7140,13 @@ primary() throws StandardException :
     LOOKAHEAD( { javaClassFollows(0) } )
     value = staticClassReference()
     {
+        assertValueOrValueNodeList(value);
         return value;
     }
 |
     value = valueExpressionPrimary()
     {
+        assertValueOrValueNodeList(value);
         return value;
     }
 }
@@ -7859,12 +7935,12 @@ ansiStrip() throws StandardException  :
 /*
  * <A NAME="valueExpressionPrimary">valueExpressionPrimary</A>
  */
-ValueNode
+QueryTreeNode
 valueExpressionPrimary() throws StandardException :
 {
-    ValueNode    value;
-    int            tokKind;
-    Properties  properties = null;
+    QueryTreeNode   value;
+    int             tokKind;
+    Properties      properties = null;
 }
 {
     /* This LOOKAHEAD is required to distinguish
@@ -7962,8 +8038,8 @@ valueExpressionPrimary() throws StandardException :
         ** valueExpression() here is a MINUS operator if the intervalQualifier
         ** is supplied.
         */
-
         value = valueExpression()
+        (<COMMA> value = valueTupleElement(value))*
     )
     <RIGHT_PAREN> [ properties = propertyList(true)<CHECK_PROPERTIES>]
     {
@@ -7981,6 +8057,37 @@ valueExpressionPrimary() throws StandardException :
     value = nextValueExpression()
     {
         return value;
+    }
+}
+
+/*
+ * <A NAME="valueTupleElement">tupleValueElement</A>
+ */
+ValueNodeList
+valueTupleElement(QueryTreeNode tupleOrFirstValue) throws StandardException:
+{
+    ValueNodeList valueNodeList;
+    QueryTreeNode newValue;
+}
+{
+    {
+        if (tupleOrFirstValue instanceof ValueNode) {
+            valueNodeList = (ValueNodeList) nodeFactory.getNode(
+                                    C_NodeTypes.VALUE_NODE_LIST,
+                                    getContextManager());
+            valueNodeList.addValueNode((ValueNode) tupleOrFirstValue);
+        } else {
+            assert tupleOrFirstValue instanceof ValueNodeList;
+            valueNodeList = (ValueNodeList) tupleOrFirstValue;
+        }
+        newValue = valueExpression();
+        if (newValue instanceof ValueNode) {
+            valueNodeList.addValueNode((ValueNode)newValue);
+        } else {
+            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                "Nested tuple not supported");
+        }
+        return valueNodeList;
     }
 }
 
@@ -14905,19 +15012,21 @@ setClauseValueList(ValueNodeList assignedColumnsList, ValueNodeList newValuesLis
 ValueNode
 columnRefOrUDF() throws StandardException :
 {
-    ValueNode     valueNode;
+    QueryTreeNode valueNode;
 }
 {
     //Look ahead required here to tell a java class from a identifier
     LOOKAHEAD( { javaClassFollows(0) } )
     valueNode = primaryExpressionXX()
     {
-        return valueNode;
+        throwIfNotValueNode(valueNode);
+        return (ValueNode)valueNode;
     }
 |
     valueNode = columnReference()
     {
-        return valueNode;
+        throwIfNotValueNode(valueNode);
+        return (ValueNode)valueNode;
     }
 }
 
@@ -17796,5 +17905,31 @@ optimizeForRowsClause() throws StandardException :
             throw StandardException.newException(SQLState.LANG_INVALID_INTEGER_LITERAL, optimizeForRows);
         else
             return optimizeForRows;
+    }
+}
+
+/*
+ * <A NAME="assertValueOrValueNodeList">assertValueOrValueNodeList</A>
+ */
+void assertValueOrValueNodeList(QueryTreeNode qtn) throws StandardException :
+{
+}
+{
+    {
+        assert qtn == null || qtn instanceof ValueNode || qtn instanceof ValueNodeList;
+    }
+}
+
+/*
+ * <A NAME="throwIfNotValueNode">throwIfNotValueNode</A>
+ */
+void throwIfNotValueNode(QueryTreeNode qtn) throws StandardException :
+{
+}
+{
+    {
+        if (qtn != null && !(qtn instanceof ValueNode)) {
+            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "Illegal tuple");
+        }
     }
 }
