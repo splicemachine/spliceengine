@@ -116,7 +116,19 @@ public class SpliceDatabase extends BasicDatabase{
         super.boot(create,startParams);
     }
 
-    private void setupASTVisitors(LanguageConnectionContext lctx) {
+    @Override
+    public LanguageConnectionContext setupConnection(ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
+                                                     String rdbIntTkn,
+                                                     DataSetProcessorType dspt,
+                                                     boolean skipStats,
+                                                     double defaultSelectivityFactor,
+                                                     String ipAddress,
+                                                     String defaultSchema,
+                                                     Properties sessionProperties)
+            throws StandardException{
+
+        final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuserlist,
+                drdaID, dbname, rdbIntTkn, dspt, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
 
         String role = SIDriver.driver().lifecycleManager().getReplicationRole();
         lctx.setReplicationRole(role);
@@ -138,37 +150,7 @@ public class SpliceDatabase extends BasicDatabase{
         List<Class<? extends ISpliceVisitor>> afterParseClasses=Collections.emptyList();
         lctx.setASTVisitor(new SpliceASTWalker(afterParseClasses, afterBindVisitors, afterOptVisitors));
 
-    }
-
-    @Override
-    public LanguageConnectionContext setupConnection(ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
-                                                     String rdbIntTkn,
-                                                     DataSetProcessorType dspt,
-                                                     boolean skipStats,
-                                                     double defaultSelectivityFactor,
-                                                     String ipAddress,
-                                                     String defaultSchema,
-                                                     Properties sessionProperties)
-            throws StandardException{
-
-        final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuserlist,
-                drdaID, dbname, rdbIntTkn, dspt, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
-
-        setupASTVisitors(lctx);
         return lctx;
-    }
-
-    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
-                                                                       String rdbIntTkn,
-                                                                       DataSetProcessorType type,
-                                                                       boolean skipStats,
-                                                                       double defaultSelectivityFactor,
-                                                                       String ipAddress) throws StandardException {
-        return
-            generateLanguageConnectionContext(txn, cm, user, groupuserlist, drdaID, dbname,
-                                              rdbIntTkn, type, skipStats, defaultSelectivityFactor,
-                                              ipAddress, null);
-
     }
 
     /**
@@ -181,9 +163,8 @@ public class SpliceDatabase extends BasicDatabase{
                                                                        DataSetProcessorType type,
                                                                        boolean skipStats,
                                                                        double defaultSelectivityFactor,
-                                                                       String ipAddress,
-                                                                       TransactionController reuseTC) throws StandardException{
-        TransactionController tc = reuseTC == null ? ((SpliceAccessManager)af).marshallTransaction(cm,txn) : reuseTC;
+                                                                       String ipAddress) throws StandardException{
+        TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
         cm.setLocaleFinder(this);
         pushDbContext(cm);
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
@@ -196,7 +177,6 @@ public class SpliceDatabase extends BasicDatabase{
         lctx.initialize();
         String role = SIDriver.driver().lifecycleManager().getReplicationRole();
         lctx.setReplicationRole(role);
-        setupASTVisitors(lctx);
         return lctx;
     }
 

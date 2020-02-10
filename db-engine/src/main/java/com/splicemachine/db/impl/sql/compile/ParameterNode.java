@@ -426,66 +426,66 @@ public class ParameterNode extends ValueNode
 								   Vector	parameterList)
 		throws StandardException
 	{
-		assert numberOfParameters >= 0;
+		if (numberOfParameters > 0)
+		{
+			MethodBuilder	constructor = acb.getConstructor();
 
-                MethodBuilder	constructor = acb.getConstructor();
+			/*
+			** Check the first parameter to see if it is a return
+			** parameter.
+			*/
+			boolean hasReturnParam = ((ParameterNode)parameterList.get(0)).isReturnOutputParam();
 
-                /*
-                ** Check the first parameter to see if it is a return
-                ** parameter.
-                */
-                boolean hasReturnParam = numberOfParameters > 0 && ((ParameterNode)parameterList.get(0)).isReturnOutputParam();
+			/*
+			** Generate the following:
+			**
+			** pvs =
+			**		getLanguageConnectionContext()
+			**			.getLanguageFactory()
+			**					.getParameterValueSet(numberOfParameters);
+			**
+			** pvs is a ParameterValueSet that lives in the superclass of
+			** the activation being generated.
+			*/
 
-                /*
-                ** Generate the following:
-                **
-                ** pvs =
-                **		getLanguageConnectionContext()
-                **			.getLanguageFactory()
-                **					.getParameterValueSet(numberOfParameters);
-                **
-                ** pvs is a ParameterValueSet that lives in the superclass of
-                ** the activation being generated.
-                */
+			constructor.pushThis(); // for the put field down below
 
-                constructor.pushThis(); // for the put field down below
+			/* Generate the call to getContext */
+			//?X constructor.pushThis();
+			//?Xconstructor.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Activation, "getLanguageConnectionContext",
+			//?X					ClassName.LanguageConnectionContext, 0);
+			/*
+			** Call getLanguageFactory()
+			*/
+			//?Xconstructor.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getLanguageFactory",
+			//?X					ClassName.LanguageFactory, 0);
 
-                /* Generate the call to getContext */
-                //?X constructor.pushThis();
-                //?Xconstructor.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Activation, "getLanguageConnectionContext",
-                //?X					ClassName.LanguageConnectionContext, 0);
-                /*
-                ** Call getLanguageFactory()
-                */
-                //?Xconstructor.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getLanguageFactory",
-                //?X					ClassName.LanguageFactory, 0);
+			/*
+			** Call getParameterValueSet(<number of parameters>, <hasReturnParam>)
+			*/
 
-                /*
-                ** Call getParameterValueSet(<number of parameters>, <hasReturnParam>)
-                */
+			constructor.push(numberOfParameters); // first arg
+			constructor.push(hasReturnParam); // second arg
 
-                constructor.push(numberOfParameters); // first arg
-                constructor.push(hasReturnParam); // second arg
+			constructor.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation,
+									"setParameterValueSet", "void", 2);
 
-                constructor.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation,
-                                                                "setParameterValueSet", "void", 2);
+			//?Xconstructor.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getParameterValueSet",
+			//?X					ClassName.ParameterValueSet, 2);
 
-                //?Xconstructor.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getParameterValueSet",
-                //?X					ClassName.ParameterValueSet, 2);
+			/* Assign the return from getParameterValueSet() to the field */
+			//?Xconstructor.putField(ClassName.BaseActivation, "pvs", ClassName.ParameterValueSet);
+			//?Xconstructor.endStatement();
 
-                /* Assign the return from getParameterValueSet() to the field */
-                //?Xconstructor.putField(ClassName.BaseActivation, "pvs", ClassName.ParameterValueSet);
-                //?Xconstructor.endStatement();
+			/*
+			** Add a call to the execute() method to check
+			** for missing parameters
+			*/
+			MethodBuilder	executeMethod = acb.getExecuteMethod();
 
-                /*
-                ** Add a call to the execute() method to check
-                ** for missing parameters
-                */
-                MethodBuilder	executeMethod = acb.getExecuteMethod();
-
-                executeMethod.pushThis();
-                executeMethod.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "throwIfMissingParms", "void", 0);
-
+			executeMethod.pushThis();
+			executeMethod.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "throwIfMissingParms", "void", 0);
+		}
 	}
 
 	/**

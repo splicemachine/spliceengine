@@ -97,8 +97,7 @@ public abstract class GenericTriggerExecutor {
      */
     abstract void fireTrigger(TriggerEvent event,
                               CursorResultSet rs,
-                              int[] colsReadFromTable,
-                              boolean deferCleanup) throws StandardException;
+                              int[] colsReadFromTable) throws StandardException;
 
     private SPSDescriptor getWhenClause() throws StandardException {
         if (!whenClauseRetrieved) {

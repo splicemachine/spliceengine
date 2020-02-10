@@ -31,31 +31,34 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
-import com.splicemachine.db.catalog.Dependable;
-import com.splicemachine.db.catalog.DependableFinder;
-import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.Formatable;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.sql.depend.Dependent;
+import com.splicemachine.db.iapi.sql.depend.Provider;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.catalog.UUID;
+
+import java.sql.Timestamp;
+
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
+import com.splicemachine.db.catalog.DependableFinder;
+import com.splicemachine.db.catalog.Dependable;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.services.context.ContextService;
+
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.depend.Dependent;
-import com.splicemachine.db.iapi.sql.depend.Provider;
-import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.TriggerEvent;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
-import java.io.IOException;
-import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.sql.Timestamp;
+import java.io.ObjectInput;
+import java.io.IOException;
 
 /**
  * A trigger.
@@ -94,7 +97,6 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     private UUID triggerSchemaId;
     private UUID triggerTableId;
     private String whenClauseText;
-    protected int numBaseTableColumns;
 
 
     /**
@@ -172,7 +174,6 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         this.triggerSchemaId = sd.getUUID();
         this.triggerTableId = td.getUUID();
         this.whenClauseText = whenClauseText;
-        this.numBaseTableColumns = td.getNumberOfColumns();
     }
     
     /**
@@ -380,19 +381,6 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         return sps;
     }
 
-    public int getNumBaseTableColumns() {
-        if (numBaseTableColumns != 0)
-            return numBaseTableColumns;
-        else {
-            try {
-                return getTableDescriptor().getNumberOfColumns();
-            }
-            catch (StandardException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
     /**
      * Get the trigger when clause sps UUID
      */
@@ -530,13 +518,6 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      */
     public boolean getReferencingNew() {
         return referencingNew;
-    }
-
-    /**
-     * Get whether or not the trigger has a REFERENCING clause.
-     */
-    public boolean hasReferencingClause() {
-        return getReferencingNew() || getReferencingOld();
     }
 
     /**
@@ -783,6 +764,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         oldReferencingName = (String) in.readObject();
         newReferencingName = (String) in.readObject();
         whenClauseText = (String) in.readObject();
+
     }
 
     @Override

@@ -1891,9 +1891,6 @@ public class SelectNode extends ResultSetNode{
      */
     @Override
     public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
-        if (optimizer == null)
-            return new CostEstimateImpl();
-
         return optimizer.getFinalCost();
     }
 

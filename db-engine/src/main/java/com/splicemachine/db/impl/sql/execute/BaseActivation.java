@@ -213,8 +213,6 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	// constructors
 	//
 
-    private boolean isSubStatement = false;
-
     public boolean ignoreSequence() {
         return ignoreSequence;
     }
@@ -1077,8 +1075,6 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	}
 
 	protected final void setParameterValueSet(int paramCount, boolean hasReturnParam) {
-		if (paramCount <= 0)
-		    pvs = null;
 
 		pvs = lcc.getLanguageFactory().newParameterValueSet(
 			lcc.getLanguageConnectionFactory().getClassFactory().getClassInspector(),
@@ -1760,13 +1756,4 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	public Pair<PreparedStatement, Iterator<ParameterValueSet>> getBatch() {
 		return Pair.newPair(ps, params);
 	}
-
-	@Override
-	public boolean isSubStatement() { return isSubStatement; }
-
-	@Override
-        public void setSubStatement(boolean newValue) {
-	    isSubStatement = newValue;
-	}
-
 }
