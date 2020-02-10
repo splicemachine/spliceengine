@@ -15,28 +15,26 @@
 package com.splicemachine.derby.stream;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
+import com.splicemachine.derby.utils.StatisticsOperation;
+import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Optional;
+import org.spark_project.guava.collect.Maps;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
-import com.splicemachine.derby.utils.StatisticsOperation;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
-import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Optional;
-import org.spark_project.guava.collect.Maps;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Externalizable;
@@ -44,7 +42,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.reflect.Field;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -118,26 +115,6 @@ public class ActivationHolder implements Externalizable {
         this.groupUsers = activation.getLanguageConnectionContext().getCurrentGroupUser(activation);
     }
 
-    public void newTxnResource() throws StandardException{
-        try {
-            SpliceTransactionResourceImpl txnResource = impl.get();
-            boolean needToSet = txnResource == null;
-            if (needToSet)
-                txnResource = new SpliceTransactionResourceImpl();
-            else
-                txnResource.close();
-            LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
-            txnResource.marshallTransaction(txn,
-                                            lcc.getDataDictionary().getDataDictionaryCache().getPropertyCache(),
-                                            lcc.getTransactionExecute(), lcc.getUserName(), lcc.getInstanceNumber());
-            if (needToSet)
-                impl.set(txnResource);
-        }
-        catch (SQLException e) {
-            throw Exceptions.parseException(e);
-        }
-    }
-
     private TxnView getTransaction(Activation activation) {
         try {
             TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
@@ -194,11 +171,6 @@ public class ActivationHolder implements Externalizable {
         out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getPropertyCache());
     }
 
-    public LanguageConnectionContext getLCC() {
-        SpliceTransactionResourceImpl txnResource = impl.get();
-        return txnResource.getLcc();
-    }
-
     private void init(TxnView txn, boolean reinit){
         try {
             SpliceTransactionResourceImpl txnResource = impl.get();
@@ -210,8 +182,6 @@ public class ActivationHolder implements Externalizable {
             txnResource = new SpliceTransactionResourceImpl();
             txnResource.marshallTransaction(txn, propertyCache);
             impl.set(txnResource);
-            if (soi == null)
-                soi = SpliceObserverInstructions.create(this);
             activation = soi.getActivation(this, txnResource.getLcc());
             activation.getLanguageConnectionContext().setCurrentUser(activation, currentUser);
             activation.getLanguageConnectionContext().setCurrentGroupUser(activation, groupUsers);
