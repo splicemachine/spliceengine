@@ -38,7 +38,6 @@ import java.util.Properties;
 import java.util.Vector;
 
 import static com.splicemachine.db.iapi.types.TypeId.VARCHAR_NAME;
-import static com.splicemachine.db.shared.common.reference.SQLState.LANG_UNSUPPORTED_TRIGGER_STMT;
 
 /**
  * Created by msirek on Nov. 18, 2019.
@@ -97,18 +96,8 @@ public class SignalNode extends MiscellaneousStatementNode {
         getContextManager());
 
 
-        if (errorText != null) {
-            SubqueryList dummySubqueryList=
-                (SubqueryList)getNodeFactory().getNode(
-                        C_NodeTypes.SUBQUERY_LIST,
-                        getContextManager());
-            List<AggregateNode> tmp = new ArrayList<>();
-            errorText = errorText.bindExpression(fromList, dummySubqueryList, tmp);
-            if (!dummySubqueryList.isEmpty())
-                throw StandardException.newException(LANG_UNSUPPORTED_TRIGGER_STMT, "Subquery", "SIGNAL");
-            if (!tmp.isEmpty())
-                throw StandardException.newException(LANG_UNSUPPORTED_TRIGGER_STMT, "Aggregate", "SIGNAL");
-        }
+        if (errorText != null)
+            errorText = errorText.bindExpression(fromList, null,  null);
         getCompilerContext().popCurrentPrivType();
     }
 

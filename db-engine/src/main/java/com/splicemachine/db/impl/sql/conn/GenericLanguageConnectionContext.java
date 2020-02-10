@@ -3886,8 +3886,4 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void setClientSupportsDecimal38(boolean newVal) {
         clientSupportsDecimal38 = newVal;
     }
-
-    public String getUserName() {
-        return userName;
-    }
 }

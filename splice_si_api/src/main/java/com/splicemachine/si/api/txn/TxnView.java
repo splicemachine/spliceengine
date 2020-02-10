@@ -191,39 +191,6 @@ public interface TxnView extends Externalizable {
      */
     boolean descendsFrom(TxnView potentialParent);
 
-    /**
-     * Determines if there is an active writeable or rolled back transaction in this path
-     * between this transaction and some ancestor transaction, not including this or
-     * the ancestor transaction.
-     *
-     * @param ancestor a transaction which we've already determined to be an ancestor
-     *                 of our transaction.
-     * @param checkForRollbackOnly if true, test only for rolled back transactions.
-     * @return true if there is an active writable transaction or rolled back transaction
-     *         in the lineage drawn from the ancestor transaction to our transaction.
-     *         If checkForRollbackOnly is true, only test for a rolled back transaction.
-     *
-     * @notes  The scenario we are trying to catch is when our transaction is committed,
-     *         and we want to determine if our writes are visible to an ancestor transaction.
-     *         If we have an active writable transaction in the path from us to the ancestor,
-     *         which may be committed or rolled back in the future, we don't want the rows
-     *         to be visible until that transaction is committed, e.g.
-     *  ____________________________________________
-     * / ancestor txn, ReadOnlyTxn, txnId 1, Active \
-     * \--------------------------------------------/
-     *                      |
-     *  __________________________________________
-     * / parent txn, WritableTxn, txnId 2, Active \ *   This txn is not committed, so rows written by
-     * \------------------------------------------/     txnId 3 should not yet be visible to txnId 1.
-     *                      |
-     *  ___________________________________________
-     * / this txn, WritableTxn, txnId 3, Committed \
-     * \-------------------------------------------/
-     *
-     * @throws  java.lang.NullPointerException if {@code ancestor==null}.
-     */
-    boolean hasActiveWriteableOrRolledBackTransactionInLineage(TxnView ancestor, boolean checkForRollbackOnly);
-
     TaskId getTaskId();
     
 }

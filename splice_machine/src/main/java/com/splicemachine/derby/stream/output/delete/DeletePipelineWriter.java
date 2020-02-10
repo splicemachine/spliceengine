@@ -40,12 +40,11 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     private static final FixedDataHash EMPTY_VALUES_ENCODER = new FixedDataHash(new byte[]{});
     protected static final KVPair.Type dataType = KVPair.Type.DELETE;
     protected PairEncoder encoder;
-
     public int rowsDeleted = 0;
     protected DeleteOperation deleteOperation;
 
-    public DeletePipelineWriter(TxnView txn,byte[] token,long heapConglom,long tempConglomID, String tableVersion, ExecRow execRowDefinition, OperationContext operationContext) throws StandardException {
-        super(txn, token, heapConglom, tempConglomID, tableVersion, execRowDefinition, operationContext);
+    public DeletePipelineWriter(TxnView txn,byte[] token,long heapConglom,OperationContext operationContext) throws StandardException {
+        super(txn, token, heapConglom,operationContext);
         if (operationContext != null) {
             deleteOperation = (DeleteOperation)operationContext.getOperation();
         }
@@ -64,9 +63,6 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             writeBuffer=writeCoordinator.writeBuffer(destinationTable,txn,null, PipelineUtils.noOpFlushHook, writeConfiguration, Metrics.noOpMetricFactory());
             encoder=new PairEncoder(getKeyEncoder(),getRowHash(),dataType);
             flushCallback=triggerHandler==null?null:TriggerHandler.flushCallback(writeBuffer);
-
-        if (triggerHandler != null && triggerHandler.hasStatementTriggerWithReferencingClause())
-            triggerRowsEncoder=new PairEncoder(getTriggerKeyEncoder(),getTriggerRowHash(),KVPair.Type.INSERT);
         }catch(IOException ioe){
            throw Exceptions.parseException(ioe);
         }
@@ -104,10 +100,6 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             KVPair encode = encoder.encode(execRow);
             rowsDeleted++;
             writeBuffer.add(encode);
-            if (triggerRowsEncoder != null) {
-                KVPair encodeTriggerRow = triggerRowsEncoder.encode(execRow);
-                addRowToTriggeringResultSet(execRow, encodeTriggerRow);
-            }
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
         } catch (Exception e) {
             throw Exceptions.parseException(e);

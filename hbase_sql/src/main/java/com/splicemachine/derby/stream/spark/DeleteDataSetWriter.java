@@ -54,9 +54,6 @@ public class DeleteDataSetWriter<K,V> implements DataSetWriter{
     public DataSet<ExecRow> write() throws StandardException{
         rdd.saveAsNewAPIHadoopDataset(conf);
         if (operationContext.getOperation() != null) {
-            DMLWriteOperation writeOp = (DMLWriteOperation)operationContext.getOperation();
-            if (writeOp != null)
-                writeOp.finalizeNestedTransaction();
             operationContext.getOperation().fireAfterStatementTriggers();
         }
         if (updateCounts != null) {

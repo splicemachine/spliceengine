@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -34,7 +33,6 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -111,11 +109,8 @@ public class UpdateOperation extends DMLWriteOperation{
                     getActivation(),
                     getBeforeEvent(getClass()),
                     getAfterEvent(getClass()),
-                    getHeapList(),
-                    getExecRowDefinition(),
-                    getTableVersion()
+                    getHeapList()
             );
-            this.triggerHandler.setIsSpark(isSpark);
         }
     }
 
@@ -204,18 +199,13 @@ public class UpdateOperation extends DMLWriteOperation{
         DataSet set = pair.getFirst();
         int[] expectedUpdateCounts = pair.getSecond();
         OperationContext operationContext=dsp.createOperationContext(this);
-        TxnView txn=getTransactionForWrite(dsp);
+        TxnView txn=getCurrentTransaction();
         ExecRow execRow=getExecRowDefinition();
         int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
         operationContext.pushScope();
         try{
-            // initTriggerRowHolders can't be called in the TriggerHandler constructor
-            // because it has to be called after getCurrentTransaction() elevates the
-            // transaction to writable.
-            if (triggerHandler != null)
-                triggerHandler.initTriggerRowHolders(isOlapServer(), txn, SpliceClient.token, 0);
-
             DataSetWriter writer=set.updateData(operationContext)
+                    .execRowDefinition(execRow)
                     .execRowTypeFormatIds(execRowTypeFormatIds)
                     .pkCols(pkCols==null?new int[0]:pkCols)
                     .pkColumns(pkColumns)
@@ -225,19 +215,11 @@ public class UpdateOperation extends DMLWriteOperation{
                     .tableVersion(tableVersion)
                     .updateCounts(expectedUpdateCounts)
                     .destConglomerate(heapConglom)
-                    .tempConglomerateID(getTriggerConglomID())
                     .operationContext(operationContext)
                     .txn(txn)
-                    .execRowDefinition(execRow)
                     .build();
             return writer.write();
-        }
-        catch (Exception e) {
-            exceptionHit = true;
-            throw Exceptions.parseException(e);
-        }
-        finally{
-            finalizeNestedTransaction();
+        }finally{
             operationContext.popScope();
         }
     }
