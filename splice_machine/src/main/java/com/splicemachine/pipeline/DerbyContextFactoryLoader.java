@@ -113,7 +113,6 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
 
     @Override
     public void load(TxnView txn) throws IOException, InterruptedException{
-        ContextManager currentCm=ContextService.getFactory().getCurrentContextManager();
         SpliceTransactionResourceImpl transactionResource;
         try{
             transactionResource=new SpliceTransactionResourceImpl();
@@ -143,15 +142,11 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                 if(prepared)
                     transactionResource.close();
             }
-        }catch(SQLException e){
-            SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing"+
-                    "off so that other writes can try again",e);
+        }catch(SQLException e) {
+            SpliceLogUtils.error(LOG, "Unable to acquire a database connection, aborting write, but backing" +
+                    "off so that other writes can try again", e);
             throw new IndexNotSetUpException(e);
-        }finally{
-            if(currentCm!=null)
-                ContextService.getFactory().setCurrentContextManager(currentCm);
         }
-
     }
 
     @Override
