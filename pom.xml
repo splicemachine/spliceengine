@@ -23,11 +23,11 @@
     <repositories>
         <repository>
             <id>splicemachine-public</id>
-            <url>http://repository.splicemachine.com/nexus/content/groups/public</url>
+            <url>https://repository.splicemachine.com/nexus/content/groups/public</url>
         </repository>
         <repository>
             <id>splicemachine</id>
-            <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
+            <url>https://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </repository>
         <repository>
             <id>cloudera</id>
@@ -35,15 +35,15 @@
         </repository>
         <repository>
             <id>mapr</id>
-            <url>http://repository.mapr.com/maven/</url>
+            <url>https://repository.mapr.com/maven/</url>
         </repository>
         <repository>
             <id>hortonworks-releases</id>
-            <url>http://repo.hortonworks.com/content/repositories/releases/</url>
+            <url>https://repo.hortonworks.com/content/repositories/releases/</url>
         </repository>
         <repository>
             <id>hortonworks-hadoop</id>
-            <url>http://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
+            <url>https://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
         </repository>
          <repository>
             <id>jitpack.io</id>
@@ -53,15 +53,15 @@
     <pluginRepositories>
         <pluginRepository>
             <id>splicemachine-public</id>
-            <url>http://repository.splicemachine.com/nexus/content/groups/public</url> 
+            <url>https://repository.splicemachine.com/nexus/content/groups/public</url> 
         </pluginRepository>
         <pluginRepository>
             <id>splicemachine</id>
-            <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
+            <url>https://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </pluginRepository>
         <pluginRepository>
             <id>apache.snapshots</id>
-            <url>http://repository.apache.org/snapshots/</url>
+            <url>https://repository.apache.org/snapshots/</url>
         </pluginRepository>
     </pluginRepositories>
     <properties>
@@ -681,13 +681,13 @@
                <repository>
                    <id>splicemachine</id>
                    <name>Splice Machine Releases</name>
-                   <url>http://nexus.splicemachine.com/nexus/content/repositories/releases</url>
+                   <url>https://nexus.splicemachine.com/nexus/content/repositories/releases</url>
                    <uniqueVersion>false</uniqueVersion>
                </repository>
                <snapshotRepository>
                    <id>splicemachine</id>
                    <name>Splice Machine Snapshots</name>
-                   <url>http://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
+                   <url>https://nexus.splicemachine.com/nexus/content/repositories/snapshots</url>
                    <uniqueVersion>false</uniqueVersion>
                </snapshotRepository>
                <site>
@@ -702,13 +702,13 @@
                <repository>
                    <id>splicemachine</id>
                    <name>Splice Machine Releases</name>
-                   <url>http://repository.splicemachine.com/nexus/content/repositories/releases</url>
+                   <url>https://repository.splicemachine.com/nexus/content/repositories/releases</url>
                    <uniqueVersion>false</uniqueVersion>
                </repository>
                <snapshotRepository>
                    <id>splicemachine</id>
                    <name>Splice Machine Snapshots</name>
-                   <url>http://repository.splicemachine.com/nexus/content/repositories/snapshots</url>
+                   <url>https://repository.splicemachine.com/nexus/content/repositories/snapshots</url>
                    <uniqueVersion>false</uniqueVersion>
                </snapshotRepository>
                <site>
