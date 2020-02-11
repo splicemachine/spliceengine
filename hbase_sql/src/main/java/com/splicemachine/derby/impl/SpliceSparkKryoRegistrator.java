@@ -925,5 +925,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(BroadcastFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeSortFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(FakeColumnStatisticsImpl.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StringAggregator.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StringBuilder.class);
     }
 }
