@@ -18,10 +18,6 @@ import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.*;
 
 import com.splicemachine.access.HConfiguration;
@@ -45,6 +41,7 @@ import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.SICompactionState;
+import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -198,7 +195,13 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getConfiguration().getActiveTransactionCacheSize(), context, driver.getRejectingExecutorService());
             SConfiguration conf = driver.getConfiguration();
-            SICompactionScanner siScanner = new SICompactionScanner(state,scanner, false, conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+            PurgeConfig purgeConfig;
+            if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
+                purgeConfig = PurgeConfig.purgeDuringFlushConfig();
+            } else {
+                purgeConfig = PurgeConfig.noPurgeConfig();
+            }
+            SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
         }else {
@@ -216,7 +219,18 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                         driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
-                SICompactionScanner siScanner = new SICompactionScanner(state,scanner, false, conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+                PurgeConfig purgeConfig;
+                if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
+                    if (request.isMajor())
+                        purgeConfig = PurgeConfig.purgeDuringMajorCompactionConfig();
+                    else
+                        purgeConfig = PurgeConfig.purgeDuringMinorCompactionConfig();
+                } else {
+                    purgeConfig = PurgeConfig.noPurgeConfig();
+                }
+                SICompactionScanner siScanner = new SICompactionScanner(
+                        state, scanner, purgeConfig,
+                        conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
             }else{

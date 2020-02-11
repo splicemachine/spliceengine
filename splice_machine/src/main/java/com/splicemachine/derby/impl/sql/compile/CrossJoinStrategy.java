@@ -43,7 +43,7 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
     /**
      * @see JoinStrategy#joinResultSetMethodName
      */
-	@Override
+    @Override
     public String joinResultSetMethodName() {
         return "getCrossJoinResultSet";
     }
@@ -51,9 +51,9 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
     /**
      * @see JoinStrategy#halfOuterJoinResultSetMethodName
      */
-	@Override
+    @Override
     public String halfOuterJoinResultSetMethodName() {
-	    throw new UnsupportedOperationException("Cross join doesn't support half outer join");
+        throw new UnsupportedOperationException("Cross join doesn't support half outer join");
     }
 
     @Override
@@ -142,9 +142,9 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
     }
 
     /** @see JoinStrategy#multiplyBaseCostByOuterRows */
-	public boolean multiplyBaseCostByOuterRows() {
-		return true;
-	}
+    public boolean multiplyBaseCostByOuterRows() {
+        return true;
+    }
 
     @Override
     public OptimizablePredicateList getBasePredicates(OptimizablePredicateList predList, OptimizablePredicateList basePredicates, Optimizable innerTable) throws StandardException {
@@ -178,8 +178,8 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         }
     }
 
-	@Override
-	public boolean feasible(Optimizable innerTable,
+    @Override
+    public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
                             CostEstimate outerCost,
@@ -191,10 +191,10 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
             return false;
         }
 
-	// Cross join can't handle IndexLookups on the inner table currently because
+    // Cross join can't handle IndexLookups on the inner table currently because
         // the join predicates get mapped to the IndexScan instead of the CrossJoin.
         // Broadcast join has a similar restriction.
-	if (JoinStrategyUtil.isNonCoveringIndex(innerTable))
+    if (JoinStrategyUtil.isNonCoveringIndex(innerTable))
             return false;
 
         AccessPath currentAccessPath = innerTable.getCurrentAccessPath();
@@ -203,9 +203,9 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         boolean isOneRow = false;
         boolean isHinted = currentAccessPath.isHintedJoinStrategy();
         if (innerTable instanceof FromBaseTable) {
-            CompilerContext.DataSetProcessorType dspt = ((FromBaseTable) innerTable).getdataSetProcessorTypeForAccessPath(currentAccessPath);
-            isSpark = ((FromBaseTable)innerTable).isSpark(dspt);
-            isForcedControl = dspt.name().equals("FORCED_CONTROL");
+            DataSetProcessorType dspt = (((FromBaseTable) innerTable).getCompilerContext().getDataSetProcessorType());
+            isSpark = optimizer.isForSpark();
+            isForcedControl = (dspt.isHinted() || dspt.isForced()) && !optimizer.isForSpark();
             isOneRow = ((FromBaseTable) innerTable).isOneRowResultSet();
         }
         // Only use cross join when it is inner join

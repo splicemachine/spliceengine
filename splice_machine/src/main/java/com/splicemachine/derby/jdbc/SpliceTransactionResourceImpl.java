@@ -22,7 +22,7 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
@@ -98,7 +98,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
             if (propertyCache != null) {
                 database.getDataDictionary().getDataDictionaryCache().setPropertyCache(propertyCache);
             }
-            lcc=database.generateLanguageConnectionContext(txn, cm, username,grouplist,drdaID, dbname, rdbIntTkn, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL,false, -1, ipAddress);
+            lcc=database.generateLanguageConnectionContext(txn, cm, username,grouplist,drdaID, dbname, rdbIntTkn, DataSetProcessorType.DEFAULT_CONTROL,false, -1, ipAddress);
 
             return true;
         } catch (Throwable t) {
