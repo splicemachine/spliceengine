@@ -31,9 +31,9 @@
 
 package com.splicemachine.db.impl.ast;
 
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -92,24 +92,9 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             Map<String, Collection<QueryTreeNode>> m=planMap.get();
             m.put(query,orderedNodes);
             if (LOG.isDebugEnabled()){
-                CompilerContext.DataSetProcessorType currentType = rsn.getLanguageConnectionContext().getDataSetProcessorType();
-                boolean useSpark = (currentType == CompilerContext.DataSetProcessorType.SPARK);
-                if (currentType == CompilerContext.DataSetProcessorType.FORCED_SPARK)
-                    useSpark = true;
-                else if (currentType == CompilerContext.DataSetProcessorType.FORCED_CONTROL)
-                    useSpark = false;
-                else {
-                    // query may have provided hint on useSpark=true/false
-                    CompilerContext.DataSetProcessorType  queryForcedType = queryHintedForcedType(orderedNodes);
-                    if (queryForcedType != null) {
-                        if (queryForcedType == CompilerContext.DataSetProcessorType.FORCED_SPARK)
-                            useSpark = true;
-                        else if (queryForcedType == CompilerContext.DataSetProcessorType.FORCED_CONTROL)
-                            useSpark = false;
-                    }
-                    else if (!useSpark)
-                        useSpark = PlanPrinter.shouldUseSpark(orderedNodes, true);
-                }
+                DataSetProcessorType currentType = rsn.getLanguageConnectionContext().getDataSetProcessorType();
+                currentType = currentType.combine(queryHintedForcedType(orderedNodes));
+                boolean useSpark = currentType.isSpark() || currentType.isDefaultControl() && PlanPrinter.shouldUseSpark(orderedNodes, true);
 
                 Iterator<String> nodes = planToIterator(orderedNodes, useSpark);
                 StringBuilder sb = new StringBuilder();
@@ -124,35 +109,29 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     }
 
     public static boolean shouldUseSpark(Collection<QueryTreeNode> opPlanMap, boolean needDetermineSpark) {
-        boolean useSpark = false;
         for (QueryTreeNode node : opPlanMap) {
             if (node instanceof FromBaseTable) {
-                // in case we are calling this function before the code generation phase, detemineSpark() hasn't been called,
-                // and the dataSetProcessorType in the FromBaseTable node may not be properly set yet, so we need to call this
-                // function before using dataSetProcessorType
-                if (needDetermineSpark)
-                    ((FromBaseTable) node).determineSpark();
-                CompilerContext.DataSetProcessorType dataSetProcessorType
-                        = ((FromBaseTable) node).getDataSetProcessorType();
-                if (dataSetProcessorType == CompilerContext.DataSetProcessorType.FORCED_SPARK ||
-                        dataSetProcessorType == CompilerContext.DataSetProcessorType.SPARK) {
-                    useSpark = true;
-                    break;
+                if (needDetermineSpark) {
+                    FromBaseTable fbt = (FromBaseTable)node;
+                    fbt.determineSpark();
+                    if (fbt.getDataSetProcessorType().isSpark()) {
+                        return true;
+                    }
+                } else if (node.getCompilerContext().getDataSetProcessorType().isSpark()) {
+                    return true;
                 }
             }
         }
-
-        return useSpark;
+        return false;
     }
 
-    public static CompilerContext.DataSetProcessorType  queryHintedForcedType(Collection<QueryTreeNode> opPlanMap) {
+    public static DataSetProcessorType queryHintedForcedType(Collection<QueryTreeNode> opPlanMap) {
         for (QueryTreeNode node : opPlanMap) {
             if (node instanceof FromBaseTable) {
-                CompilerContext.DataSetProcessorType hintType = ((FromBaseTable) node).getDataSetProcessorType();
-                if (hintType  == CompilerContext.DataSetProcessorType.FORCED_SPARK)
-                    return CompilerContext.DataSetProcessorType.FORCED_SPARK;
-                else if (hintType == CompilerContext.DataSetProcessorType.FORCED_CONTROL)
-                    return CompilerContext.DataSetProcessorType.FORCED_CONTROL;
+                DataSetProcessorType type = node.getCompilerContext().getDataSetProcessorType();
+                if (!type.isDefaultControl()) {
+                    return type;
+                }
             }
         }
         return null;

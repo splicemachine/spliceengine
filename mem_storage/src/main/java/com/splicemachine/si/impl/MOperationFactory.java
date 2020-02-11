@@ -82,18 +82,28 @@ public class MOperationFactory implements OperationFactory{
     public DataCell newCell(byte[] key,byte[] family,byte[] qualifier,long timestamp,byte[] value){
         CellType c;
         ByteComparator byteComparator=ByteComparisons.comparator();
-        if(byteComparator.equals(SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,qualifier)){
+        if(byteComparator.equals(SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES, qualifier)) {
            c = CellType.COMMIT_TIMESTAMP;
-        }else if(byteComparator.equals(SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,qualifier)){
-            if(byteComparator.equals(SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,value))
-                c =CellType.ANTI_TOMBSTONE;
-            else c =CellType.TOMBSTONE;
-        }else if(byteComparator.equals(SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,qualifier))
+        } else if(byteComparator.equals(SIConstants.TOMBSTONE_COLUMN_BYTES, qualifier)) {
+            if(byteComparator.equals(SIConstants.ANTI_TOMBSTONE_VALUE_BYTES, value)) {
+                c = CellType.ANTI_TOMBSTONE;
+            } else {
+                c = CellType.TOMBSTONE;
+            }
+        } else if(byteComparator.equals(SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES, qualifier)) {
+            if(byteComparator.equals(SIConstants.DELETE_RIGHT_AFTER_FIRST_WRITE_VALUE_BYTES, value)) {
+                c = CellType.DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN;
+            } else {
+                c = CellType.FIRST_WRITE_TOKEN;
+            }
+        } else if(byteComparator.equals(SIConstants.FK_COUNTER_COLUMN_BYTES, qualifier)) {
             c = CellType.FOREIGN_KEY_COUNTER;
-        else if(byteComparator.equals(SIConstants.PACKED_COLUMN_BYTES,qualifier))
+        } else if(byteComparator.equals(SIConstants.PACKED_COLUMN_BYTES, qualifier)) {
             c = CellType.USER_DATA;
-        else c = CellType.OTHER;
-        return new MCell(key,family,qualifier,timestamp,value,c);
+        } else {
+            c = CellType.OTHER;
+        }
+        return new MCell(key, family, qualifier, timestamp, value, c);
     }
 
     @Override

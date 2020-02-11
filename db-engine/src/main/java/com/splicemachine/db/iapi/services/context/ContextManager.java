@@ -605,19 +605,13 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 
      * @see ContextService#setCurrentContextManager(ContextManager)
      * @see ContextService#resetCurrentContextManager(ContextManager)
-     * @see #activeCount
      */
 	volatile Thread	activeThread;
     
     /**
      * Count of the number of setCurrentContextManager calls
      * by a single thread, for nesting situations with a single
-     * active Contextmanager. If nesting is occurring with multiple
-     * different ContextManagers then this value is set to -1
-     * and nesting is represented by entries in a stack in the
-     * ThreadLocal variable, threadContextList.
-     * 
-     * @see ContextService#threadContextList
+     * active ContextManager.
      */
 	int		activeCount;
 }

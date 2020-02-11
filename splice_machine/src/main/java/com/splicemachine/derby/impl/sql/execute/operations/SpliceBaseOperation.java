@@ -23,7 +23,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
@@ -53,9 +53,6 @@ import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
@@ -176,8 +173,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         // No difference. We can change that later if needed.
         // Right now this is only used by Spark UI, so don't change it
         // unless you want to change that UI.
-        CompilerContext.DataSetProcessorType type = this.activation.getLanguageConnectionContext().getDataSetProcessorType();
-        if (type == CompilerContext.DataSetProcessorType.SPARK || type == CompilerContext.DataSetProcessorType.FORCED_SPARK)
+        DataSetProcessorType type = this.activation.getLanguageConnectionContext().getDataSetProcessorType();
+        if (type.isSpark())
             explainPlan=(plan==null?"":plan.replace("n=","RS=").replace("->","").trim());
     }
 
@@ -442,7 +439,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected void resubmitDistributed(ResubmitDistributedException e) throws StandardException {
         LOG.warn("The query consumed too many resources running in control mode, resubmitting in Spark");
         close();
-        activation.getPreparedStatement().setDatasetProcessorType(CompilerContext.DataSetProcessorType.FORCED_SPARK);
+        activation.getPreparedStatement().setDatasetProcessorType(DataSetProcessorType.FORCED_SPARK);
         openDistributed();
     }
 
