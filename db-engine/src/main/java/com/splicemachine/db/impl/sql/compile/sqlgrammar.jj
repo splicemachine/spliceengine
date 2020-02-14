@@ -2937,6 +2937,7 @@ TOKEN [IGNORE_CASE] :
 |    <WORK: "work">
 |    <WRITE: "write">
 |    <YEAR: "year">
+|    <YEARS: "years">
 }
 
 /*
@@ -2976,6 +2977,7 @@ TOKEN [IGNORE_CASE] :
 |    <DATE: "date">
 |    <DATEFORMAT: "dateFormat">
 |    <DAY: "day">
+|    <DAYS: "days">
 |    <DAYOFYEAR: "dayofyear">
 |    <DEFINER: "definer">
 |    <DETERMINISTIC: "deterministic">
@@ -3005,14 +3007,15 @@ TOKEN [IGNORE_CASE] :
 |    <LOCKS: "locks">
 |    <LOCKSIZE: "locksize">
 |    <LOGGED: "logged">
-|   <LOGICAL: "logical">
+|    <LOGICAL: "logical">
 |    <MAXVALUE: "maxvalue">
-|   <MESSAGE_TEXT: "message_text">
+|    <MESSAGE_TEXT: "message_text">
 |    <MINVALUE: "minvalue">
-|   <MOD: "mod">
+|    <MOD: "mod">
 |    <MODIFIES: "modifies">
 |    <MODIFY: "modify">
 |    <MONTH: "month">
+|    <MONTHS: "months">
 |    <MONTHNAME: "monthname">
 |    <_MORE: "more">
 |    <MUMPS: "mumps">
@@ -6836,14 +6839,19 @@ multiplicativeExpression(QueryTreeNode farLeftOperand, int additiveOperator) thr
         switch (additiveOperator)
         {
           case BinaryOperatorNode.PLUS:
+            if (leftOperand instanceof TimeSpanNode) {
+                return convertAddTimeIntervalToFunction((ValueNode)farLeftOperand, (TimeSpanNode) leftOperand, false);
+            }
             return (ValueNode) nodeFactory.getNode(
                                     C_NodeTypes.BINARY_PLUS_OPERATOR_NODE,
                                     farLeftOperand,
                                     leftOperand,
                                     getContextManager()
                                     );
-
           case BinaryOperatorNode.MINUS:
+            if (leftOperand instanceof TimeSpanNode) {
+                return convertAddTimeIntervalToFunction((ValueNode)farLeftOperand, (TimeSpanNode) leftOperand, true);
+            }
             return (ValueNode) nodeFactory.getNode(
                                     C_NodeTypes.BINARY_MINUS_OPERATOR_NODE,
                                     farLeftOperand,
@@ -6857,6 +6865,58 @@ multiplicativeExpression(QueryTreeNode farLeftOperand, int additiveOperator) thr
                     "Unexpected operator value of " + additiveOperator);
             return null;
         }
+    }
+}
+
+/*
+ * <A NAME="convertAddTimeIntervalToFunction">convertAddTimeIntervalToFunction</A>
+ */
+ValueNode
+convertAddTimeIntervalToFunction(ValueNode base, TimeSpanNode timeSpanNode, boolean negate) throws StandardException :
+{
+    Vector parameterList = new Vector();
+    String function = null;
+}
+{
+    {
+        switch (timeSpanNode.getUnit()) {
+            case DateTimeDataValue.DAY_INTERVAL:
+                function = "ADD_DAYS";
+                break;
+            case DateTimeDataValue.MONTH_INTERVAL:
+                function = "ADD_MONTHS";
+                break;
+            case DateTimeDataValue.YEAR_INTERVAL:
+                function = "ADD_YEARS";
+                break;
+            default:
+                assert false: "Illegal time span unit";
+        }
+        MethodCallNode methodNode = (MethodCallNode) nodeFactory.getNode(
+                                C_NodeTypes.STATIC_METHOD_CALL_NODE,
+                                (TableName) nodeFactory.getNode(
+                                            C_NodeTypes.TABLE_NAME,
+                                            null,
+                                            function,
+                                            getContextManager()
+                                            ),
+                                null,
+                                getContextManager()
+                                );
+        parameterList.addElement(base);
+        ValueNode value = timeSpanNode.getValue();
+        if (negate) {
+            value = (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.UNARY_MINUS_OPERATOR_NODE,
+                                value,
+                                getContextManager());
+        }
+        parameterList.addElement(value);
+        methodNode.addParms(parameterList);
+        return (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+                                methodNode,
+                                getContextManager());
     }
 }
 
@@ -7164,11 +7224,40 @@ primary() throws StandardException :
     }
 |
     value = valueExpressionPrimary()
+    value = getTimeSpan(value)
     {
         assertValueOrValueNodeList(value);
         return value;
     }
 }
+
+/*
+ * <A NAME="getTimeSpan">getTimeSpan</A>
+ */
+QueryTreeNode
+getTimeSpan(QueryTreeNode value) throws StandardException :
+{
+    int timeUnit;
+}
+{
+    LOOKAHEAD ( { getToken(1).kind == YEAR || getToken(1).kind == YEARS ||
+                  getToken(1).kind == MONTH || getToken(1).kind == MONTHS ||
+                  getToken(1).kind == DAY || getToken(1).kind == DAYS } )
+    timeUnit = dateTimeIntervalUnit()
+    {
+        throwIfNotValueNode(value);
+        return (ValueNode) nodeFactory.getNode(
+                                        C_NodeTypes.TIME_SPAN_NODE,
+                                        (ValueNode)value,
+                                        timeUnit,
+                                        getContextManager());
+    }
+|
+    {
+        return value;
+    }
+}
+
 
 /*
  * <A NAME="staticClassReference">staticClassReference</A>
@@ -7654,6 +7743,30 @@ datetimeField() :
     <SECOND>
     {
         return DateTimeDataValue.SECOND_FIELD;
+    }
+}
+
+/*
+ * <A NAME="dateTimeIntervalUnit">dateTimeIntervalUnit</A>
+ */
+int dateTimeIntervalUnit() :
+{
+    int field;
+}
+{
+    (<YEAR>|<YEARS>)
+    {
+        return DateTimeDataValue.YEAR_INTERVAL;
+    }
+|
+    (<MONTH>|<MONTHS>)
+    {
+        return DateTimeDataValue.MONTH_INTERVAL;
+    }
+|
+    (<DAY>|<DAYS>)
+    {
+        return DateTimeDataValue.DAY_INTERVAL;
     }
 }
 
@@ -17593,6 +17706,7 @@ reservedKeyword() :
 |    tok = <WORK>
 |    tok = <WRITE>
 |    tok = <YEAR>
+|    tok = <YEARS>
     /* Additional JSQL reserved keywords -- non-SQL92 reserved Keywords */
 | tok = <ANALYZE>
 |    tok = <BOOLEAN>
@@ -17674,6 +17788,7 @@ nonReservedKeyword()  :
     |    tok = <DATE>
     |   tok = <DATEFORMAT>
     |    tok = <DAY>
+    |    tok = <DAYS>
     |    tok = <DAYOFYEAR>
     |    tok = <DEFRAGMENT>
     |    tok = <DIRTY>
@@ -17750,6 +17865,7 @@ nonReservedKeyword()  :
 // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <MODULE>
     |    tok = <MONTH>
+    |    tok = <MONTHS>
     |    tok = <MONTHNAME>
     |    tok = <_MORE>
     |    tok = <MUMPS>
