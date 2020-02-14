@@ -1529,6 +1529,15 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     //
                     // Date functions
                     //
+                    Procedure.newBuilder().name("ADD_YEARS")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+                            .integer("NUMOFYEARS")
+                            .build(),
                     Procedure.newBuilder().name("ADD_MONTHS")
                             .numOutputParams(0)
                             .numResultSets(0)
@@ -1537,6 +1546,15 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
                             .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
                             .integer("NUMOFMONTHS")
+                            .build(),
+                    Procedure.newBuilder().name("ADD_DAYS")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+                            .integer("NUMOFDAYS")
                             .build(),
                     Procedure.newBuilder().name("LAST_DAY")
                             .numOutputParams(0)

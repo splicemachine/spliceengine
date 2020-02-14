@@ -51,6 +51,18 @@ public class SpliceDateFunctions {
         return new Date(dt.plusMonths(numOfMonths).getMillis());
     }
 
+    public static Date ADD_DAYS(Date source, int numOfDays) {
+        if (source == null) return null;
+        DateTime dt = new DateTime(source);
+        return new Date(dt.plusDays(numOfDays).getMillis());
+    }
+
+    public static Date ADD_YEARS(Date source, int numOfYears) {
+        if (source == null) return null;
+        DateTime dt = new DateTime(source);
+        return new Date(dt.plusYears(numOfYears).getMillis());
+    }
+
     /**
      * Implements the TO_TIMESTAMP(source) function.
      */

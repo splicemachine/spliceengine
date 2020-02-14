@@ -891,6 +891,11 @@ Guide.
             </msg>
 
             <msg>
+                <name>2202F</name>
+                <text>Invalid time span operation.</text>
+            </msg>
+
+            <msg>
                 <name>2201W</name>
                 <text>Row count for FIRST/NEXT/TOP must be >= 1 and row count for LIMIT must be >= 0.</text>
             </msg>
