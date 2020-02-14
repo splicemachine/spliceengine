@@ -969,6 +969,8 @@ public class OperatorToString {
                         if (methodName.equals("MONTH_BETWEEN") ||
                             methodName.equals("REGEXP_LIKE")   ||
                             methodName.equals("ADD_MONTHS")    ||
+                            methodName.equals("ADD_YEARS")     ||
+                            methodName.equals("ADD_DAYS")      ||
                             methodName.equals("ROUND"))
                             throwNotImplementedError();
                         else if (methodName.equals("toDegrees"))
