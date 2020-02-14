@@ -17648,7 +17648,6 @@ reservedKeyword() :
 |    tok = <WORK>
 |    tok = <WRITE>
 |    tok = <YEAR>
-|    tok = <YEARS>
     /* Additional JSQL reserved keywords -- non-SQL92 reserved Keywords */
 | tok = <ANALYZE>
 |    tok = <BOOLEAN>
@@ -17924,6 +17923,7 @@ nonReservedKeyword()  :
     |    tok = <WEEKDAYNAME>
     |    tok = <WHEN>
     |    tok = <WHITESPACE>
+    |    tok = <YEARS>
     )
     {
         // Remember whether last token was a delimited identifier
