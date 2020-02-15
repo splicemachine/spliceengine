@@ -99,6 +99,8 @@ public class SQLExceptionFactory40 extends SQLExceptionFactory {
                     errCode);
         } else if (sqlState.equals(SQLState.LANG_STATEMENT_CANCELLED_OR_TIMED_OUT.substring(0, 5))) {
             ex = new SQLTimeoutException(message, sqlState, errCode);
+        } else if (sqlState.equals(SQLState.LANG_CANCELLATION_EXCEPTION)) {
+            ex = new SQLTimeoutException(message, sqlState, errCode);
         } else {
             ex = new SQLException(message, sqlState, errCode); 
         }
