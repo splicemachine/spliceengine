@@ -41,16 +41,13 @@ public class UnionOperationIT {
     private static final String CLASS_NAME = UnionOperationIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 
-    private static final Comparator<int[]> intArrayComparator= new Comparator<int[]>(){
-        @Override
-        public int compare(int[] o1,int[] o2){
-            int compare;
-            for(int i=0;i<Math.min(o1.length,o2.length);i++){
-                compare = Integer.compare(o1[i],o2[i]);
-                if(compare!=0) return compare;
-            }
-            return 0;
+    private static final Comparator<int[]> intArrayComparator= (o1, o2) -> {
+        int compare;
+        for(int i=0;i<Math.min(o1.length,o2.length);i++){
+            compare = Integer.compare(o1[i],o2[i]);
+            if(compare!=0) return compare;
         }
+        return 0;
     };
 
     @ClassRule
@@ -379,6 +376,80 @@ public class UnionOperationIT {
         }
     }
 
+    @Test
+    public void testUnionAllAliasInFirstSubqueryOnly() throws Exception {
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs = s.executeQuery("SELECT SUM(SUMMARY) AS S\n" +
+                    "  FROM (\n" +
+                    "      SELECT COUNT(*) AS SUMMARY FROM ST_MARS WHERE empId=3\n" +
+                    "      UNION ALL\n" +
+                    "      SELECT COUNT(*) FROM ST_EARTH WHERE empId=4\n" +
+                    "      UNION ALL\n" +
+                    "      SELECT COUNT(*) FROM ST_MARS WHERE empId=5\n" +
+                    "  ) T")) {
+                Assert.assertEquals("S |\n" +
+                                "----\n" +
+                                " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
+
+    @Test
+    public void testUnionAliasInFirstSubqueryOnly() throws Exception {
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs = s.executeQuery("SELECT SUM(SUMMARY) AS S\n" +
+                    "  FROM (\n" +
+                    "      SELECT COUNT(*) AS SUMMARY FROM ST_MARS WHERE empId=3\n" +
+                    "      UNION\n" +
+                    "      SELECT COUNT(*) FROM ST_EARTH WHERE empId=4\n" +
+                    "      UNION\n" +
+                    "      SELECT COUNT(*) FROM ST_MARS WHERE empId=5\n" +
+                    "  ) T")) {
+                Assert.assertEquals("S |\n" +
+                        "----\n" +
+                        " 1 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
+
+    @Test
+    public void testUnionConflictingAliasInSecondUnion() throws Exception {
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs = s.executeQuery("SELECT SUM(SUMMARY) AS S\n" +
+                    "  FROM (\n" +
+                    "      SELECT COUNT(*) AS SUMMARY FROM ST_MARS WHERE empId=3\n" +
+                    "      UNION ALL\n" +
+                    "      SELECT COUNT(*) AS NOT_SUMMARY FROM ST_EARTH WHERE empId=4\n" +
+                    "      UNION ALL\n" +
+                    "      SELECT COUNT(*) FROM ST_MARS WHERE empId=5\n" +
+                    "  ) T")) {
+                Assert.assertEquals("S |\n" +
+                        "----\n" +
+                        " 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
+
+    @Test
+    public void testUnionUsingAliasInWhereClause() throws Exception {
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs = s.executeQuery("SELECT *\n" +
+                    "  FROM (\n" +
+                    "      SELECT COUNT(*) AS SUMMARY FROM ST_MARS WHERE empId=3\n" +
+                    "      UNION ALL\n" +
+                    "      SELECT COUNT(*) AS NOT_SUMMARY FROM ST_EARTH WHERE empId=4\n" +
+                    "      UNION ALL\n" +
+                    "      SELECT COUNT(*) FROM ST_MARS WHERE empId=5\n" +
+                    "  ) T\n" +
+                    "  WHERE SUMMARY = 1")) {
+                Assert.assertEquals("1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 1 |\n" +
+                        " 1 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
 
     @Category(HBaseTest.class)
     @Test
