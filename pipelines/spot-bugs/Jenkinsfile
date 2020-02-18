@@ -68,7 +68,7 @@ node('agent') {
           def errors = sh "./pipelines/spot-bugs/runSpotbugs.sh $platforms $branch"
           if ( errors > 0 ){
             currentBuild.result = "FAILED"
-          }
+            }
           }
       }
     } catch (any) {
