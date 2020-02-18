@@ -64,8 +64,8 @@ node('agent') {
                         platforms = "cdh5.14.0"
                         branch = "master"
             }
-            
-          sh "./pipelines/spot-bugs/runSpotbugs.sh $platforms $branch"
+
+          def errors = sh "./pipelines/spot-bugs/runSpotbugs.sh $platforms $branch"
           }
       }
     } catch (any) {
