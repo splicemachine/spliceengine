@@ -31,7 +31,7 @@ node('agent') {
             extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
             submoduleCfg: [], 
             userRemoteConfigs: [[credentialsId: '39ceb99f-365d-462f-a37b-c41f4fe1fcfa', url: 'git@github.com:splicemachine/spliceengine.git']]
-        ])
+        ])  
       }
 
     stage('Build') {
