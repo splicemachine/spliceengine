@@ -1,6 +1,3 @@
-def platforms = ""
-def branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
-
 // Launch the docker container
 node('agent') {
 
@@ -14,13 +11,15 @@ node('agent') {
       }
 
     stage('Build') {
-      if ( $branch == ".7" ) {
+      def platforms = ""
+      def branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
+      if ( "$branch" == ".7" ) {
                     platforms = "cdh5.14.0"
                     branch = "branch-2.7"
-                } else if ( $branch == ".8" ) {
+                } else if ( "$branch" == ".8" ) {
                     platforms = "cdh5.14.0"
                     branch = "branch-2.8"
-                } else if ( $branch == ".0" ) {
+                } else if ( "$branch" == ".0" ) {
                     platforms = "cdh6.3.0"
                     branch = "branch-3.0"
                 } else {
