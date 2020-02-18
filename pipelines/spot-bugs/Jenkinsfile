@@ -1,0 +1,62 @@
+def platforms = ""
+def branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
+
+// Launch the docker container
+node('agent') {
+
+    try {
+
+    notifyBuild('STARTED')
+
+    stage('Checkout') {
+      // Checkout code from repository
+      checkout scm
+      }
+
+    stage('Build') {
+      if ( $branch == .7) {
+                    platforms = "cdh5.14.0"
+                    branch = "branch-2.7"
+                } else if ( $branch == .8 ) {
+                    platforms = "cdh5.14.0"
+                    branch = "branch-2.8"
+                } else if ( $branch == .0 ) {
+                    platforms = "cdh6.3.0"
+                    branch = "branch-3.0"
+                } else {
+                    platforms = "cdh5.14.0"
+                    branch = "master"
+      }
+      sh "./pipelines/spot-bugs/runSpotbugs.sh $platforms $branch"
+      }
+    } catch (any) {
+        // if there was an exception thrown, the build failed
+        currentBuild.result = "FAILED"
+        throw any
+
+    } finally {
+        // success or failure, always send notifications
+        notifyBuild(currentBuild.result)
+    }
+}
+
+def notifyBuild(String buildStatus = 'STARTED') {
+    // Build status of null means successful.
+    buildStatus =  buildStatus ?: 'SUCCESSFUL'
+    // Override default values based on build status.
+    if (buildStatus == 'STARTED' || buildStatus == 'INPUT') {
+        color = 'YELLOW'
+        colorCode = '#FFFF00'
+    } else if (buildStatus == 'CREATING' || buildStatus == 'DESTROYING'){
+        color = 'BLUE'
+        colorCode = '#0000FF'
+    } else if (buildStatus == 'SUCCESSFUL') {
+        color = 'GREEN'
+        colorCode = '#00FF00'
+    } else if (buildStatus == 'FAILED'){
+        color = 'RED'
+        colorCode = '#FF0000'
+    } else {
+        echo "End of pipeline"
+    }
+}
