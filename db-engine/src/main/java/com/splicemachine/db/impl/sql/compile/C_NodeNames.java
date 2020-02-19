@@ -364,6 +364,8 @@ public interface C_NodeNames
 
     String EMPTY_DEFAULT_CONSTANT_NODE = "com.splicemachine.db.impl.sql.compile.EmptyDefaultConstantNode";
 
+    String VALUE_TUPLE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ValueTupleNode";
+
     // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
     // THEM TO tools/jar/DBMSnodes.properties
 

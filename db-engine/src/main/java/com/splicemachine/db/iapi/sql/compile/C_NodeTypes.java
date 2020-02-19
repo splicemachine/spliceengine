@@ -184,8 +184,8 @@ public interface C_NodeTypes
     int UNION_NODE = 142;
     int CREATE_TRIGGER_NODE = 143;
     int HALF_OUTER_JOIN_NODE = 144;
-// UNUSED    static final int CREATE_SPS_NODE = 145;
-int CREATE_INDEX_NODE = 146;
+    // UNUSED    static final int CREATE_SPS_NODE = 145;
+    int CREATE_INDEX_NODE = 146;
     int CURSOR_NODE = 147;
     int HASH_TABLE_NODE = 148;
     int INDEX_TO_BASE_ROW_NODE = 149;
@@ -206,8 +206,8 @@ int CREATE_INDEX_NODE = 146;
     int ABSOLUTE_OPERATOR_NODE = 188;
     int SQRT_OPERATOR_NODE = 189;
     int LOCATE_FUNCTION_NODE = 190;
-  //for rename table/column/index
-  int RENAME_NODE = 191;
+    //for rename table/column/index
+    int RENAME_NODE = 191;
 
     int COALESCE_FUNCTION_NODE = 192;
 
@@ -282,7 +282,8 @@ int CREATE_INDEX_NODE = 146;
     int FULL_OUTER_JOIN_NODE = 271;
     int EMPTY_DEFAULT_CONSTANT_NODE = 272;
     int STRING_AGGREGATE_NODE = 273;
-    int TIME_SPAN_NODE = 274;
+    int VALUE_TUPLE_NODE = 274;
+    int TIME_SPAN_NODE = 275;
 
     // Final value in set, keep up to date!
     int FINAL_VALUE = TIME_SPAN_NODE;
