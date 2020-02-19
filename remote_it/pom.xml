@@ -14,7 +14,7 @@
   -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>external_it</artifactId>
+    <artifactId>remote_it</artifactId>
     <name>Splice Machine - Remote ITs</name>
     <description>Running integration tests against a remote JDBC connection</description>
     <parent>
@@ -24,6 +24,9 @@
     </parent>
     <properties>
         <skipTests>${maven.skip.tests}</skipTests>
+        <!-- These are needed for hbase_sql -->
+        <envClassifier>cdh6.3.0</envClassifier>
+        <spark.version>2.4.0-cdh6.3.0</spark.version>
     </properties>
     <dependencies>
         <dependency>
@@ -40,6 +43,29 @@
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>hbase_sql</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}-tests</classifier>
+            <type>test-jar</type>
+            <scope>test</scope>
+            <exclusions>
+                <!-- Exclusions are due to MNG-1388 -->
+                <exclusion>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_pipeline</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>scala_util</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>commons-dbutils</groupId>
@@ -84,13 +110,14 @@
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
+                                <dependency>com.splicemachine:hbase_sql</dependency>
                             </dependenciesToScan>
                             <includes>
                                 <include>**/*IT.java</include>
                             </includes>
                             <excludes>
                                 <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
-                                <!-- Failing in remote mode -->
+                                <!-- splice_machine ITs failing in remote mode -->
                                 <exclude>**/IndexIT.java</exclude>
                                 <exclude>**/InListMultiprobeIT.java</exclude>
                                 <exclude>**/CheckConstraintIT.java</exclude>
@@ -110,6 +137,11 @@
                                 <exclude>**/Trigger_Statement_IT.java</exclude>
                                 <exclude>**/Trigger_When_Clause_IT.java</exclude>
                                 <exclude>**/UpdateFromSubqueryIT.java</exclude>
+                                <!-- hbase_sql ITs failing in remote mode -->
+                                <exclude>com/splicemachine/hbase/**</exclude>
+                                <exclude>com/splicemachine/mrio/**</exclude>
+                                <exclude>**/CallableTransactionIT.java</exclude>
+                                <exclude>**/VacuumIT.java</exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
                             <systemPropertyVariables>
@@ -133,13 +165,14 @@
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
+                                <dependency>com.splicemachine:hbase_sql</dependency>
                             </dependenciesToScan>
                             <includes>
                                 <include>**/*IT.java</include>
                             </includes>
                             <excludes>
-                                <!-- Skip all unit tests -->
-                                <exclude>**/*Test.java</exclude>
+                                <!-- Skip all unit tests >
+                                <exclude>**/*Test.java</exclude -->
                                 <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
                                 <!-- Failing in remote mode -->
                                 <exclude>**/AlterTableConstantOperationIT.java</exclude>
@@ -190,6 +223,17 @@
                                 <exclude>**/UpportIT.java</exclude>
                                 <exclude>**/VTIOperationIT.java</exclude>
                                 <exclude>**/WorkdayTinyIT.java</exclude>
+                                <!-- hbase_sql ITs failing in remote mode -->
+                                <exclude>com/splicemachine/hbase/**</exclude>
+                                <exclude>com/splicemachine/mrio/**</exclude>
+                                <exclude>**/AddColumnWithDefaultBulkLoadIT.java</exclude>
+                                <exclude>**/ClusterDDLTestIT.java</exclude>
+                                <exclude>**/ExternalTableIT.java</exclude>
+                                <exclude>**/ExternalTablePartitionIT.java</exclude>
+                                <exclude>**/TempTableHBaseIT.java</exclude>
+                                <exclude>**/TransactionResolutionIT.java</exclude>
+                                <!-- Serial IT failing to compile -->
+                                <exclude>**/VacuumIT.java</exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
                             <systemPropertyVariables>
