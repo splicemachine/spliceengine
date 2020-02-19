@@ -49,6 +49,7 @@ public class SimpleDateArithmeticIT {
     private static final String QUALIFIED_TABLE_NAME = schemaWatcher.schemaName + ".date_add_test";
     private static final String QUALIFIED_TABLE_NAME2 = schemaWatcher.schemaName + ".old_date_test";
     private static final String QUALIFIED_TIME_TABLE_NAME = schemaWatcher.schemaName + ".time_test";
+    private static final String QUALIFIED_TABLE_NAME3 = schemaWatcher.schemaName + "null_value_test";
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -71,6 +72,14 @@ public class SimpleDateArithmeticIT {
         .withRows(rows(row(1, null), row(2, null), row(3, null),
                        row(4, null), row(5, null), row(6, null)))
         .create();
+
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+                .withCreate(String.format("create table %s (c1 int, c2 date, c3 date, c4 timestamp, c5 timestamp)", QUALIFIED_TABLE_NAME3))
+                .withInsert(String.format("insert into %s values(?,?,?,?,?)", QUALIFIED_TABLE_NAME3))
+                .withRows(rows(
+                        row(1, new SimpleDateFormat("yyyy-MM-dd").parse("2020-02-20"), null, Timestamp.valueOf("2020-02-20 22:22:22"), null)))
+                .create();
+
         spliceClassWatcher.commit();
 
         String dataDir = SpliceUnitTest.getResourceDirectory() + "date.csv";
@@ -149,14 +158,14 @@ public class SimpleDateArithmeticIT {
     @Test
     public void testMinusDateColumn() throws Exception {
         String sqlText =
-            String.format("select d + 1 from  %s", QUALIFIED_TABLE_NAME);
+            String.format("select d - 1 from  %s", QUALIFIED_TABLE_NAME);
 
         ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
 
         String expected =
             "1     |\n" +
                 "------------\n" +
-                "1988-12-27 |";
+                "1988-12-25 |";
         Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -733,6 +742,81 @@ public class SimpleDateArithmeticIT {
         }
     }
 
+    @Test
+    public void testDateMinusDateNullValues() throws Exception {
+        String sqlText = String.format("select c3 - c2 from %s",QUALIFIED_TABLE_NAME3);
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+            String expected =
+                    "1  |\n" +
+                    "------\n" +
+                    "NULL |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText = String.format("select c2 - c3 from %s",QUALIFIED_TABLE_NAME3);
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText = String.format("select c3 - c3 from %s",QUALIFIED_TABLE_NAME3);
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        rs.close();
+    }
+
+    @Test
+    public void testTimestampMinusTimestampNullValues() throws Exception {
+        String sqlText = String.format("select c5 - c4 from %s",QUALIFIED_TABLE_NAME3);
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+            String expected =
+                    "1  |\n" +
+                    "------\n" +
+                    "NULL |";
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText = String.format("select c4 - c5 from %s",QUALIFIED_TABLE_NAME3);
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText = String.format("select c5 - c5 from %s",QUALIFIED_TABLE_NAME3);
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        rs.close();
+    }
+
+    @Test
+    public void testDateMinusTimestampNullValues() throws Exception {
+        String sqlText = String.format("select c5 - c2 from %s",QUALIFIED_TABLE_NAME3);
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+            String expected =
+                    "1  |\n" +
+                    "------\n" +
+                    "NULL |";;
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText = String.format("select c2 - c5 from %s",QUALIFIED_TABLE_NAME3);
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText = String.format("select c4 - c3 from %s",QUALIFIED_TABLE_NAME3);
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText = String.format("select c3 - c4 from %s",QUALIFIED_TABLE_NAME3);
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText = String.format("select c5 - c3 from %s",QUALIFIED_TABLE_NAME3);
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText = String.format("select c3 - c5 from %s",QUALIFIED_TABLE_NAME3);
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        rs.close();
+    }
+
 
     //=========================================================================================================
     // Time column
@@ -763,6 +847,4 @@ public class SimpleDateArithmeticIT {
         Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
-
 }
-
