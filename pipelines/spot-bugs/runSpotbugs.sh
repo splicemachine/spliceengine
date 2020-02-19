@@ -1,7 +1,7 @@
 #!/bin/bash
 #This script runs spotbugs and display errors related to files modified by this PR
 #Sample usage:
-# ./runSpotbugs cdh5.14.0 master
+# ./pipelines/spot-bugs/runSpotbugs.sh cdh5.14.0 master
 
 display_usage() {
    echo -e "\nUsage:\n./runSpotbugs <platform> <base_branch>\n"
@@ -38,6 +38,6 @@ echo "$count specific errors to fix before this PR can be merged:"
 echo "$errors"
 echo "#######################################################"
 echo ""
-echo "To reproduce locally, run ./build-tools/runSpotbugs.sh $platform $branch"
+echo "To reproduce locally, run ./pipelines/spot-bugs/runSpotbugs.sh $platform $branch"
 
 exit $count
