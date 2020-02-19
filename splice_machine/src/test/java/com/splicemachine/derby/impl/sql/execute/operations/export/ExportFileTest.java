@@ -111,7 +111,8 @@ public class ExportFileTest {
             assertFalse(exportFile.createDirectory());
         }
         catch (Exception e) {
-             Assert.assertTrue(e.getMessage(), e.getMessage().contains("IOException '/noPermissionToCreateFolderInRoot' when accessing directory"));
+             Assert.assertTrue(e.getMessage(), e.getMessage().contains("IOException '/noPermissionToCreateFolderInRoot' when accessing directory")
+                     || e.getMessage().contains("IOException '/noPermissionToCreateFolderInRoot: Read-only file system' when accessing directory"));
         }
         assertFalse(new File(testDir).exists());
         assertFalse(new File(testDir).isDirectory());
