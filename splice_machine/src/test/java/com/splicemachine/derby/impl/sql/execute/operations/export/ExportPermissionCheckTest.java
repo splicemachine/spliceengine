@@ -18,6 +18,7 @@ import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.impl.TestingFileSystem;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -49,12 +50,15 @@ public class ExportPermissionCheckTest {
     @Ignore
     @Test
     public void verify_failCase() throws IOException, StandardException {
-        expectedException.expect(StandardException.class);
-        expectedException.expectMessage("IOException '/ExportPermissionCheckTest' when accessing directory");
-
         ExportParams exportParams = ExportParams.withDirectory("/ExportPermissionCheckTest");
         ExportPermissionCheck permissionCheck = new ExportPermissionCheck(exportParams,dfs);
-        permissionCheck.verify();
+        try {
+            permissionCheck.verify();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains("IOException '/ExportPermissionCheckTest' when accessing directory")
+                    || e.getMessage().contains("IOException '/ExportPermissionCheckTest: Read-only file system' when accessing directory"));
+
+        }
     }
 
 }
