@@ -8,7 +8,7 @@ void prop2env(propFile, envFile) {
 }
 
 // Launch the docker container
-node('agent') {
+node('splice-standalone') {
 
     try {
 
