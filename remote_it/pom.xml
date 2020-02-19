@@ -91,6 +91,78 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <profiles>
+        <profile>
+            <id>ee</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>enterprise_it</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_backup</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}-tests</classifier>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>com.splicemachine</groupId>
+                            <artifactId>hbase_sql</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.splicemachine</groupId>
+                            <artifactId>hbase_storage</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.hbase</groupId>
+                            <artifactId>hbase-server</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_ee</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}-tests</classifier>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>com.splicemachine</groupId>
+                            <artifactId>splice_replication</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.splicemachine</groupId>
+                            <artifactId>splice_backup</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.splicemachine</groupId>
+                            <artifactId>hbase_storage</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <dependenciesToScan combine.children="append">
+                                <dependency>com.splicemachine:splice_backup</dependency>
+                                <dependency>com.splicemachine:enterprise_it</dependency>
+                                <dependency>com.splicemachine:splice_ee</dependency>
+                            </dependenciesToScan>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <build>
         <plugins>
             <plugin>
@@ -234,6 +306,8 @@
                                 <exclude>**/TransactionResolutionIT.java</exclude>
                                 <!-- Serial IT failing to compile -->
                                 <exclude>**/VacuumIT.java</exclude>
+                                <!-- EE ITs failing in remote mode -->
+                                <exclude>com/splicemachine/backup/**</exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
                             <systemPropertyVariables>
