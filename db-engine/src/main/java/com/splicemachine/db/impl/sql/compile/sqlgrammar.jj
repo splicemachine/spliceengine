@@ -6770,6 +6770,15 @@ additiveExpressionValueOrValueNodeList(QueryTreeNode farLeftOperand, int compOp)
                 throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
                     "Cannot compare tuples of different sizes");
             }
+            switch (compOp)
+            {
+                case BinaryOperatorNode.LE:
+                case BinaryOperatorNode.LT:
+                case BinaryOperatorNode.GT:
+                case BinaryOperatorNode.GE:
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                    "Tuple lexicographical comparison not supported");
+            }
             value = (ValueNode) nodeFactory.getNode(
                             nodeType,
                             ((ValueNodeList)farLeftOperand).elementAt(0),
