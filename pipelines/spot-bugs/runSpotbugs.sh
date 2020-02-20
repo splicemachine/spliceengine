@@ -20,7 +20,7 @@ out_file=$(mktemp)
 errors=
 
 echo "Running spotbugs..."
-time mvn spotbugs:check -Pcore,$platform,mem,ee --fail-never | tee out_file
+time mvn -e spotbugs:check -Pcore,$platform,mem,ee --fail-never | tee out_file
 for file in $(git diff $(git merge-base $branch HEAD) --name-only); do
     if new_errors="$(grep "$(basename $file)" out_file)"
     then
