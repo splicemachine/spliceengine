@@ -456,15 +456,15 @@ public class SparkExplainIT extends SpliceUnitTest {
         String sqlText = format("sparkexplain select SUM(a1) from t1 inner join t2 --splice-properties joinStrategy=MERGE, useSpark=%s\n on c1=c2", useSpark);
 
         testQueryContains(sqlText, "MergeJoin", methodWatcher, true);
-        sqlText = format("sparkexplain select SUM(a1) from t1, t2 --splice-properties joinStrategy=NESTEDLOOP, useSpark=%s\n ", useSpark);
+        sqlText = format("sparkexplain select SUM(a1) from --splice-properties joinOrder=fixed\n t1, t2 --splice-properties joinStrategy=NESTEDLOOP, useSpark=%s\n ", useSpark);
         testQueryContains(sqlText, "NestedLoopJoin", methodWatcher, true);
-        sqlText = format("sparkexplain select SUM(a1) from t1, t2 --splice-properties joinStrategy=CROSS, useSpark=%s\n ", useSpark);
+        sqlText = format("sparkexplain select SUM(a1) from --splice-properties joinOrder=fixed\n t1, t2 --splice-properties joinStrategy=CROSS, useSpark=%s\n ", useSpark);
         testQueryContains(sqlText, Arrays.asList("CrossJoin", "NestedLoopJoin", "CARTESIANPRODUCT"), methodWatcher, true);
-        sqlText = format("sparkexplain select SUM(a1) from t1, t2 --splice-properties joinStrategy=BROADCAST, useSpark=%s\n WHERE a1=a2", useSpark);
+        sqlText = format("sparkexplain select SUM(a1) from --splice-properties joinOrder=fixed\n t1, t2 --splice-properties joinStrategy=BROADCAST, useSpark=%s\n WHERE a1=a2", useSpark);
         testQueryContains(sqlText, "BroadCast", methodWatcher, true);
-        sqlText = format("sparkexplain select SUM(a1) from t1, t2 --splice-properties joinStrategy=SORTMERGE, useSpark=%s\n WHERE a1=a2", useSpark);
+        sqlText = format("sparkexplain select SUM(a1) from --splice-properties joinOrder=fixed\n t1, t2 --splice-properties joinStrategy=SORTMERGE, useSpark=%s\n WHERE a1=a2", useSpark);
         testQueryContains(sqlText, Arrays.asList("SortMerge", "MergeSort"), methodWatcher, true);
-        sqlText = format("sparkexplain select SUM(a1) from t1, t2 --splice-properties joinStrategy=MERGE, useSpark=%s\n WHERE c1=c2", useSpark);
+        sqlText = format("sparkexplain select SUM(a1) from --splice-properties joinOrder=fixed\n t1, t2 --splice-properties joinStrategy=MERGE, useSpark=%s\n WHERE c1=c2", useSpark);
         testQueryContains(sqlText, "MergeJoin", methodWatcher, true);
     }
 

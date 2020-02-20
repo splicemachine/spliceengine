@@ -123,8 +123,13 @@ public class ExplainOperation extends SpliceBaseOperation {
     @Override
     public void openCore() throws StandardException {
         getPlanInformation();
-        // We always run explain on control
-        openCore(EngineDriver.driver().processorFactory().localProcessor(activation, this));
+        if (sparkExplainKind == ExplainNode.SparkExplainKind.NONE) {
+            // We always run explain on control
+            openCore(EngineDriver.driver().processorFactory().localProcessor(activation, this));
+        } else {
+            // Spark explain should be run in Spark
+            super.openCore();
+        }
     }
 
     @Override

@@ -175,8 +175,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         // No difference. We can change that later if needed.
         // Right now this is only used by Spark UI, so don't change it
         // unless you want to change that UI.
-        DataSetProcessorType type = this.activation.getLanguageConnectionContext().getDataSetProcessorType();
-        if (type.isSpark())
+        if (this.activation.datasetProcessorType().isSpark())
             explainPlan=(plan==null?"":plan.replace("n=","RS=").replace("->","").trim());
     }
 

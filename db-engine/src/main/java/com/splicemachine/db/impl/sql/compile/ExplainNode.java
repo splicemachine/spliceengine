@@ -115,13 +115,13 @@ public class ExplainNode extends DMLStatementNode {
     public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
         acb.pushGetResultSetFactoryExpression(mb);
         // parameter
+        mb.setSparkExplain(sparkExplainKind != SparkExplainKind.NONE);
         node.generate(acb, mb);
         acb.pushThisAsActivation(mb);
         int resultSetNumber = getCompilerContext().getNextResultSetNumber();
         mb.push(resultSetNumber);
         mb.push(sparkExplainKind.toString());
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null, "getExplainResultSet", ClassName.NoPutResultSet, 4);
-        mb.setSparkExplain(false);
     }
 
     @Override

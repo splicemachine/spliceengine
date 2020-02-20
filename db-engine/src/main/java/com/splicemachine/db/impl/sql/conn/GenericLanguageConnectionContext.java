@@ -3705,11 +3705,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return this.type;
     }
 
-    @Override
-    public void setDataSetProcessorType(CompilerContext.DataSetProcessorType type) {
-        this.type = type;
-    }
-
     public void materialize() throws StandardException {}
 
     protected Map<String,TableDescriptor> withDescriptors;
