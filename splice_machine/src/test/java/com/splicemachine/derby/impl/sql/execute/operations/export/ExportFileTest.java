@@ -18,7 +18,6 @@ import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.impl.TestingFileSystem;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
-import com.splicemachine.si.testenv.SITestDataEnv;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.*;
@@ -29,9 +28,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 
+import static org.hamcrest.Matchers.stringContainsInOrder;
 import static org.junit.Assert.*;
 
 @Category(ArchitectureIndependent.class)
@@ -112,8 +111,8 @@ public class ExportFileTest {
             assertFalse(exportFile.createDirectory());
         }
         catch (Exception e) {
-             Assert.assertTrue(e.getMessage(), e.getMessage().contains("IOException '/noPermissionToCreateFolderInRoot' when accessing directory")
-                     || e.getMessage().contains("IOException '/noPermissionToCreateFolderInRoot: Read-only file system' when accessing directory"));
+             assertThat(e.getMessage(),
+                     stringContainsInOrder("IOException '/noPermissionToCreateFolderInRoot","' when accessing directory"));
         }
         assertFalse(new File(testDir).exists());
         assertFalse(new File(testDir).isDirectory());
