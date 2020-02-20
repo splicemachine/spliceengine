@@ -409,11 +409,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (defaultSelectivityFactor > 0)
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, new Double(defaultSelectivityFactor).toString());
         if (connectionProperties != null) {
-            String olapQueue = connectionProperties.getProperty("olapQueue");
+            String olapQueue = connectionProperties.getProperty(Property.CONNECTION_OLAP_QUEUE);
             if (olapQueue != null) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE, olapQueue);
             }
-            String snapshot = connectionProperties.getProperty("snapshot");
+            String snapshot = connectionProperties.getProperty(Property.CONNECTION_SNAPSHOT);
             if (snapshot != null) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP, snapshot);
             }

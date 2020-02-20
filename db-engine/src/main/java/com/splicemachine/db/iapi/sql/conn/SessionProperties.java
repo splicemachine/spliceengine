@@ -119,7 +119,9 @@ public interface SessionProperties {
                 long timestamp;
                 try {
                     timestamp = Long.parseLong(valString);
-                } catch (Exception parseIntE) {
+                    if (timestamp <= 0)
+                        throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive long");
+                } catch (NumberFormatException parseIntE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive long");
                 }
                 break;

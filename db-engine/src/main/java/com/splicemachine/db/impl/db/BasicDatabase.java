@@ -280,7 +280,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 													 Properties sessionProperties)
 		throws StandardException {
 
-		String snapshot = sessionProperties.getProperty("snapshot");
+		String snapshot = sessionProperties.getProperty(Property.CONNECTION_SNAPSHOT);
 		TransactionController tc = null;
 		if (snapshot != null) {
 			long id = Long.parseLong(snapshot);

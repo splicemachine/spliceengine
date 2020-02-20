@@ -170,8 +170,8 @@ public final class TransactionResourceImpl
 		drdaID = info.getProperty(Attribute.DRDAID_ATTR, null);
 		rdbIntTkn = info.getProperty(Attribute.RDBINTTKN_ATTR, null);
 		ipAddress = info.getProperty(Property.IP_ADDRESS, null);
-		defaultSchema = info.getProperty("schema", null);
-        String useSparkString = info.getProperty("useSpark",null);
+		defaultSchema = info.getProperty(Property.CONNECTION_SCHEMA, null);
+        String useSparkString = info.getProperty(Property.CONNECTION_USE_SPARK,null);
         if (useSparkString != null) {
             try {
                 useSpark = Boolean.parseBoolean(StringUtil.SQLToUpperCase(useSparkString))?CompilerContext.DataSetProcessorType.FORCED_SPARK:CompilerContext.DataSetProcessorType.FORCED_CONTROL;
@@ -181,7 +181,7 @@ public final class TransactionResourceImpl
         } else
             useSpark = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
 
-        String skipStatsString = info.getProperty("skipStats", null);
+        String skipStatsString = info.getProperty(Property.CONNECTION_SKIP_STATS, null);
         if (skipStatsString != null) {
 			try {
 				skipStats = Boolean.parseBoolean(StringUtil.SQLToUpperCase(skipStatsString));
@@ -191,7 +191,7 @@ public final class TransactionResourceImpl
 		} else
 			skipStats = false;
 
-        String selectivityFactorString = info.getProperty("defaultSelectivityFactor", null);
+        String selectivityFactorString = info.getProperty(Property.CONNECTION_DEFAULT_SELECTIVITY_FACTOR, null);
         if (selectivityFactorString != null) {
 			try {
 				skipStats = true;
