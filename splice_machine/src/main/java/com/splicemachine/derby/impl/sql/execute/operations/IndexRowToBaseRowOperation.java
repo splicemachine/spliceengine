@@ -316,9 +316,14 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         }
         OperationContext context = dsp.createOperationContext(this);
         readerBuilder.transaction(context.getTxn());
-        return source.getDataSet(dsp)
-            .mapPartitions(new IndexToBaseRowFlatMapFunction(context,readerBuilder), false, true, "Fetch Base Rows")
+        dsp.incrementOpDepth();
+        DataSet sourceDS = source.getDataSet(dsp);
+        DataSet ds =
+            sourceDS.mapPartitions(new IndexToBaseRowFlatMapFunction(context,readerBuilder), false, true, "Fetch Base Rows")
             .filter(new IndexToBaseRowFilterPredicateFunction(context), true, true, "Apply Filter");
+        dsp.decrementOpDepth();
+        handleSparkExplain(ds, sourceDS, dsp);
+        return ds;
     }
 
     private FormatableBitSet getMainTableAccessedKeyColumns() throws StandardException {
