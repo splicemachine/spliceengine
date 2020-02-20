@@ -92,11 +92,9 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             Map<String, Collection<QueryTreeNode>> m=planMap.get();
             m.put(query,orderedNodes);
             if (LOG.isDebugEnabled()){
-                DataSetProcessorType currentType = rsn.getLanguageConnectionContext().getDataSetProcessorType();
-                currentType = currentType.combine(queryHintedForcedType(orderedNodes));
-                boolean useSpark = currentType.isSpark() || currentType.isDefaultControl() && PlanPrinter.shouldUseSpark(orderedNodes, true);
+                DataSetProcessorType currentType = rsn.getCompilerContext().getDataSetProcessorType();
 
-                Iterator<String> nodes = planToIterator(orderedNodes, useSpark);
+                Iterator<String> nodes = planToIterator(orderedNodes, currentType);
                 StringBuilder sb = new StringBuilder();
                 while (nodes.hasNext())
                     sb.append(nodes.next()).append("\n");
@@ -106,35 +104,6 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         }
         explain = false;
         return node;
-    }
-
-    public static boolean shouldUseSpark(Collection<QueryTreeNode> opPlanMap, boolean needDetermineSpark) {
-        for (QueryTreeNode node : opPlanMap) {
-            if (node instanceof FromBaseTable) {
-                if (needDetermineSpark) {
-                    FromBaseTable fbt = (FromBaseTable)node;
-                    fbt.determineSpark();
-                    if (fbt.getDataSetProcessorType().isSpark()) {
-                        return true;
-                    }
-                } else if (node.getCompilerContext().getDataSetProcessorType().isSpark()) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    public static DataSetProcessorType queryHintedForcedType(Collection<QueryTreeNode> opPlanMap) {
-        for (QueryTreeNode node : opPlanMap) {
-            if (node instanceof FromBaseTable) {
-                DataSetProcessorType type = node.getCompilerContext().getDataSetProcessorType();
-                if (!type.isDefaultControl()) {
-                    return type;
-                }
-            }
-        }
-        return null;
     }
 
     public static Map without(Map m, Object... keys){
@@ -401,7 +370,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         }
     }
 
-    public static Iterator<String> planToIterator(final Collection<QueryTreeNode> orderedNodes, final boolean useSpark) throws StandardException {
+    public static Iterator<String> planToIterator(final Collection<QueryTreeNode> orderedNodes, final DataSetProcessorType type) throws StandardException {
         return Iterators.transform(orderedNodes.iterator(), new Function<QueryTreeNode, String>() {
             int i = 0;
 
@@ -411,7 +380,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                     if ((queryTreeNode instanceof UnionNode) && ((UnionNode) queryTreeNode).getIsRecursive()) {
                         ((UnionNode) queryTreeNode).setStepNumInExplain(orderedNodes.size() - i);
                     }
-                    return queryTreeNode.printExplainInformation(orderedNodes.size(), i, useSpark, true);
+                    return queryTreeNode.printExplainInformation(orderedNodes.size(), i, type, true);
                 } catch (StandardException se) {
                     throw new RuntimeException(se);
                 } finally {
