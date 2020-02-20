@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
+import org.apache.log4j.Logger;
 
 /**
  *
@@ -64,6 +65,8 @@ import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 
 public class ContextManager
 {
+	private static final Logger LOG = Logger.getLogger(ContextManager.class);
+
 	/**
 	 * The CtxStack implement a stack on top of an ArrayList (to avoid
 	 * the inherent overhead associated with java.util.Stack which is
@@ -73,8 +76,6 @@ public class ContextManager
 	private static final class CtxStack {
 		/** Internal list with all the elements of the stack. */
 		private final List<Context> stack_ = new ArrayList<>();
-		/** Read-only view of the internal list. */
-		private final List<Context> view_ = Collections.unmodifiableList(stack_);
 
 		// Keeping a reference to the top element on the stack
 		// optimizes the frequent accesses to this element. The
@@ -103,10 +104,15 @@ public class ContextManager
 			return top_; 
 		}
 		boolean isEmpty() { return stack_.isEmpty(); }
-		List<Context> getUnmodifiableList() {
-			return view_;
-		}
 	}
+
+	/**
+	 * Parent context manager used in parallel operations
+	 * Each forked task creates its own ContextManager pointing to the parent
+	 * assuming it remains unchanged until all forked tasks are joined.
+	 * Only getContext() delegates to parent.
+	 */
+	private ContextManager parent;
 
 	/**
 	 * HashMap that holds the Context objects. The Contexts are stored
@@ -159,11 +165,17 @@ public class ContextManager
 		checkInterrupt();
 		
 		final CtxStack idStack = ctxTable.get(contextId);
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( idStack == null ||
-								  idStack.isEmpty() ||
+		if (SanityManager.DEBUG) {
+			SanityManager.ASSERT(idStack == null || idStack.isEmpty() ||
 					Objects.equals(idStack.top().getIdName(), contextId));
-		return (idStack==null?null:idStack.top());
+		}
+		if (idStack != null) {
+			return idStack.top();
+		}
+		if (parent != null) {
+			return parent.getContext(contextId);
+		}
+		return null;
 	}
 
 	/**
@@ -234,14 +246,23 @@ public class ContextManager
 	 * being traversed.
 	 * @param contextId the type of Context stack to return.
 	 * @return an unmodifiable "view" of the ArrayList backing the stack
-	 * @see org.apache.derby.impl.sql.conn.GenericLanguageConnectionContext#resetSavepoints()
 	 * @see com.splicemachine.db.iapi.sql.conn.StatementContext#resetSavePoint()
 	 */
 	public final List<Context> getContextStack(String contextId) {
-		final CtxStack cs = ctxTable.get(contextId);
-		return (cs==null?Collections.EMPTY_LIST:cs.getUnmodifiableList());
+		List<Context> contexts= new ArrayList<>();
+		for (ContextManager cm = this; cm != null; cm = cm.parent) {
+			cm.accumulate(contexts, contextId);
+		}
+		return Collections.unmodifiableList(contexts);
 	}
-    
+
+	void accumulate(List<Context> contexts, String contextId) {
+		CtxStack cs = ctxTable.get(contextId);
+		if (cs != null) {
+			contexts.addAll(cs.stack_);
+		}
+	}
+
     /**
      * clean up error and print it to db.log. Extended diagnosis including
      * thread dump to db.log and javaDump if available, will print if the
@@ -556,13 +577,13 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 	/**
 	 * Constructs a new instance. No CtxStacks are inserted into the
 	 * hashMap as they will be allocated on demand.
-	 * @param csf the ContextService owning this ContextManager
+	 * @param parent parent context manager
 	 * @param stream error stream for reporting errors
 	 */
-	ContextManager(ContextService csf, HeaderPrintWriter stream)
+	ContextManager(ContextManager parent, HeaderPrintWriter stream)
 	{
+		this.parent = parent;
 		errorStream = stream;
-		owningCsf = csf;
 		logSeverityLevel = 0;
 		extDiagSeverityLevel = 40000;
 /*		XXX - TODO John Leach: Need to make this configurable.  Quick hack to stop hitting file system.
@@ -573,8 +594,6 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
                 ExceptionSeverity.SESSION_SEVERITY);
                 */
 	}
-
-	final ContextService owningCsf;
 
 	private int		logSeverityLevel;
     // DERBY-4856 track extendedDiagSeverityLevel variable

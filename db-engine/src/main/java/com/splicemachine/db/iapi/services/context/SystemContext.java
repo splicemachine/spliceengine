@@ -70,7 +70,7 @@ final class SystemContext extends ContextImpl
 		if (!doShutdown) {
 			//ContextManager cm = getContextManager();
 			// need to remove me from the list of all contexts.
-			getContextManager().owningCsf.removeContext(getContextManager());
+			ContextService.getService().removeContextManager(getContextManager());
 			return;
 		}
 
