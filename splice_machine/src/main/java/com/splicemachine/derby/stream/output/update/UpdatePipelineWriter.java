@@ -62,23 +62,25 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected FormatableBitSet heapList;
     protected boolean modifiedPrimaryKeys=false;
     protected int[] finalPkColumns;
-
+    protected String tableVersion;
+    protected ExecRow execRowDefinition;
     protected PairEncoder encoder;
-
     protected ExecRow currentRow;
     public int rowsUpdated=0;
     protected UpdateOperation updateOperation;
 
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
-    public UpdatePipelineWriter(long heapConglom,long tempConglomID,int[] formatIds,int[] columnOrdering,
+    public UpdatePipelineWriter(long heapConglom,int[] formatIds,int[] columnOrdering,
                                 int[] pkCols,FormatableBitSet pkColumns,String tableVersion,TxnView txn,byte[] token,
                                 ExecRow execRowDefinition,FormatableBitSet heapList,OperationContext operationContext) throws StandardException{
-        super(txn, token, heapConglom, tempConglomID, tableVersion, execRowDefinition, operationContext);
+        super(txn, token, heapConglom,operationContext);
         assert pkCols!=null && columnOrdering!=null:"Primary Key Information is null";
         this.formatIds=formatIds;
         this.columnOrdering=columnOrdering;
         this.pkCols=pkCols;
         this.pkColumns=pkColumns;
+        this.tableVersion=tableVersion;
+        this.execRowDefinition=execRowDefinition;
         this.heapList=heapList;
         if (operationContext != null) {
             updateOperation = (UpdateOperation)operationContext.getOperation();
@@ -133,8 +135,6 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
         writeBuffer=transformWriteBuffer(bufferToTransform);
         encoder=new PairEncoder(getKeyEncoder(),getRowHash(),dataType);
         flushCallback=triggerHandler==null?null:TriggerHandler.flushCallback(writeBuffer);
-        if (triggerHandler != null && triggerHandler.hasStatementTriggerWithReferencingClause())
-            triggerRowsEncoder=new PairEncoder(getTriggerKeyEncoder(),getTriggerRowHash(),KVPair.Type.INSERT);
     }
 
     public KeyEncoder getKeyEncoder() throws StandardException{
@@ -223,10 +223,6 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             KVPair encode=encoder.encode(execRow);
             assert encode.getRowKey()!=null && encode.getRowKey().length>0:"Tried to buffer incorrect row key";
             writeBuffer.add(encode);
-            if (triggerRowsEncoder != null) {
-                KVPair encodeTriggerRow = triggerRowsEncoder.encode(execRow);
-                addRowToTriggeringResultSet(execRow, encodeTriggerRow);
-            }
             TriggerHandler.fireAfterRowTriggers(triggerHandler,execRow,flushCallback);
         }catch(Exception e){
             throw Exceptions.parseException(e);

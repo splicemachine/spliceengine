@@ -26,21 +26,15 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.vti.Restriction;
-import com.splicemachine.derby.catalog.TriggerNewTransitionRows;
-import com.splicemachine.derby.catalog.TriggerOldTransitionRows;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
-import com.splicemachine.derby.stream.function.TriggerRowsMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
 
@@ -217,9 +211,7 @@ public class VTIOperation extends SpliceBaseOperation {
         this.activation = context.getActivation();
         this.row = (rowMethodName==null)? null: new SpliceMethod<ExecRow>(rowMethodName,activation);
         this.constructor = (constructorMethodName==null)? null: new SpliceMethod<DatasetProvider>(constructorMethodName,activation);
-        // If we already deserialized a complete userVTI, don't build a fresh empty one.
-        if (this.userVTI == null)
-            this.userVTI = constructor==null?null:constructor.invoke();
+        this.userVTI = constructor==null?null:constructor.invoke();
 
         this.resultDescription = (ResultDescription)activation.getPreparedStatement().getSavedObject(resultDescriptionItemNumber);
         resultColumnTypes = fetchResultTypes(resultDescription);
@@ -238,10 +230,6 @@ public class VTIOperation extends SpliceBaseOperation {
         constructorMethodName = in.readUTF();
         resultDescriptionItemNumber = in.readInt();
         convertTimestamps = in.readBoolean();
-
-        if (in.readBoolean()) {
-            this.userVTI = (DatasetProvider)in.readObject();
-        }
     }
 
     @Override
@@ -252,12 +240,6 @@ public class VTIOperation extends SpliceBaseOperation {
         out.writeUTF(constructorMethodName);
         out.writeInt(resultDescriptionItemNumber);
         out.writeBoolean(convertTimestamps);
-
-        boolean hasTriggerRows = this.userVTI instanceof TriggerNewTransitionRows;
-        out.writeBoolean(hasTriggerRows);
-        if (hasTriggerRows) {
-            out.writeObject(this.userVTI);
-        }
     }
 
 
@@ -305,22 +287,14 @@ public class VTIOperation extends SpliceBaseOperation {
         return "VTIOperation";
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
-        OperationContext operationContext = dsp.createOperationContext(this);      
         dsp.prependSpliceExplainString(this.explainPlan);
 
-        if (this.userVTI instanceof TriggerNewTransitionRows) {
-            TriggerNewTransitionRows triggerTransitionRows = (TriggerNewTransitionRows) this.userVTI;
-            triggerTransitionRows.finishDeserialization(activation);
-        }
-
-        DataSet<ExecRow> sourceSet = getDataSetProvider().getDataSet(this, dsp,getAllocatedRow());
-        return sourceSet;
+        return getDataSetProvider().getDataSet(this, dsp,getAllocatedRow());
     }
 
     @Override

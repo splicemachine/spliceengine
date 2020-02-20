@@ -43,9 +43,8 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.*;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Provider;
@@ -159,7 +158,7 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
 
     private boolean hasXPlainTableOrProcedure;
 
-    private CompilerContext.DataSetProcessorType datasetProcessorType;
+    private DataSetProcessorType datasetProcessorType;
     //
     // constructors
     //
@@ -276,7 +275,6 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
                                          boolean rollbackParentContext,
                                          long timeoutMillis) throws StandardException {
         parent.getLanguageConnectionContext().setupSubStatementSessionContext(parent);
-        activation.setSubStatement(true);
         return executeStmt(activation, rollbackParentContext, timeoutMillis);
     }
 
@@ -365,11 +363,8 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
                 resultSet.open();
             } catch (StandardException se) {
                 /* Can't handle recompiling SPS action recompile here */
-                if (!se.getMessageId().equals(SQLState.LANG_STATEMENT_NEEDS_RECOMPILE) || spsAction) {
-                    if (se instanceof ResubmitDistributedException)
-                        statementContext.cleanupOnError(se);
+                if (!se.getMessageId().equals(SQLState.LANG_STATEMENT_NEEDS_RECOMPILE) || spsAction)
                     throw se;
-                }
                 statementContext.cleanupOnError(se);
                 continue;
 
@@ -1126,11 +1121,11 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
     }
 
 
-    public CompilerContext.DataSetProcessorType datasetProcessorType() {
+    public DataSetProcessorType datasetProcessorType() {
         return datasetProcessorType;
     }
 
-    public void setDatasetProcessorType(CompilerContext.DataSetProcessorType datasetProcessorType) {
+    public void setDatasetProcessorType(DataSetProcessorType datasetProcessorType) {
         this.datasetProcessorType = datasetProcessorType;
     }
 }

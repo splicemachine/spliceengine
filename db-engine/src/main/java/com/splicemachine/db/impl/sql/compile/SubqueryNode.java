@@ -213,11 +213,11 @@ public class SubqueryNode extends ValueNode{
         this.fetchFirst=(ValueNode)fetchFirst;
         this.hasJDBClimitClause= hasJDBClimitClause != null && (Boolean) hasJDBClimitClause;
 
-		/* Subqueries are presumed not to be under a top level AndNode by
-		 * default.  This is because expression normalization only recurses
-		 * under Ands and Ors, not under comparison operators, method calls,
-		 * built-in functions, etc.
-		 */
+        /* Subqueries are presumed not to be under a top level AndNode by
+         * default.  This is because expression normalization only recurses
+         * under Ands and Ors, not under comparison operators, method calls,
+         * built-in functions, etc.
+         */
         underTopAndNode=false;
         this.leftOperand=(ValueNode)leftOperand;
     }
@@ -365,9 +365,9 @@ public class SubqueryNode extends ValueNode{
      * @throws StandardException Thrown on error
      */
     public void setPointOfAttachment(int pointOfAttachment) throws StandardException{
-		/* Materialized subqueries always keep their point of
-		 * attachment as -1.
-		 */
+        /* Materialized subqueries always keep their point of
+         * attachment as -1.
+         */
         if(!isMaterializable()){
                 this.pointOfAttachment=pointOfAttachment;
         }
@@ -382,9 +382,9 @@ public class SubqueryNode extends ValueNode{
      */
     @Override
     public ValueNode remapColumnReferencesToExpressions() throws StandardException{
-		/* We need to remap both the SELECT and Predicate lists
-		 * since there may be correlated columns in either of them.
-		 */
+        /* We need to remap both the SELECT and Predicate lists
+         * since there may be correlated columns in either of them.
+         */
         if(resultSet instanceof SelectNode){
             ResultColumnList selectRCL=resultSet.getResultColumns();
             SelectNode select=(SelectNode)resultSet;
@@ -432,58 +432,58 @@ public class SubqueryNode extends ValueNode{
             throw StandardException.newException(SQLState.LANG_NON_SINGLE_COLUMN_SUBQUERY);
         }
 
-		/* Verify the usage of "*" in the select list:
-		 *	o  Only valid in EXISTS subqueries
-		 *	o  If the AllResultColumn is qualified, then we have to verify
-		 *	   that the qualification is a valid exposed name.
-		 *	   NOTE: The exposed name can come from an outer query block.
-		 */
+        /* Verify the usage of "*" in the select list:
+         *    o  Only valid in EXISTS subqueries
+         *    o  If the AllResultColumn is qualified, then we have to verify
+         *       that the qualification is a valid exposed name.
+         *       NOTE: The exposed name can come from an outer query block.
+         */
         resultSet.verifySelectStarSubquery(fromList,subqueryType);
 
-		/* For an EXISTS subquery:
-		 *	o  If the SELECT list is a "*", then we convert it to a true.
-		 *	   (We need to do the conversion since we don't want the "*" to
-		 *	   get expanded.)
-		 *  o  We then must bind the expression under the SELECT list to
-		 *	   verify that it is a valid expression.  (We must do this as a
-		 *	   separate step because we need to validate the expression and
-		 *	   we need to handle EXISTS (select * ... union all select 1 ...)
-		 *	   without getting a type compatability error.)
-		 *	o  Finally, we convert the expression to a SELECT true.
-		 */
+        /* For an EXISTS subquery:
+         *    o  If the SELECT list is a "*", then we convert it to a true.
+         *       (We need to do the conversion since we don't want the "*" to
+         *       get expanded.)
+         *  o  We then must bind the expression under the SELECT list to
+         *       verify that it is a valid expression.  (We must do this as a
+         *       separate step because we need to validate the expression and
+         *       we need to handle EXISTS (select * ... union all select 1 ...)
+         *       without getting a type compatability error.)
+         *    o  Finally, we convert the expression to a SELECT true.
+         */
         if(subqueryType==EXISTS_SUBQUERY){
-			/* Transform the * into true (EXISTS). */
+            /* Transform the * into true (EXISTS). */
             resultSet=resultSet.setResultToBooleanTrueNode(true);
         }
 
-		/* We need to bind the tables before we can bind the target list
-		 * (for exists subqueries).  However, we need to wait until after
-		 * any *'s have been replaced, so that they don't get expanded.
-		 */
+        /* We need to bind the tables before we can bind the target list
+         * (for exists subqueries).  However, we need to wait until after
+         * any *'s have been replaced, so that they don't get expanded.
+         */
         CompilerContext cc=getCompilerContext();
-		/* DERBY-4191
-		 * We should make sure that we require select privileges
-		 * on the tables in the underlying subquery and not the
-		 * parent sql's privilege. eg
-		 * update t1 set c1=(select c2 from t2)
-		 * For the query above, when working with the subquery, we should
-		 * require select privilege on t2.c2 rather than update privilege.
-		 * Prior to fix for DERBY-4191, we were collecting update privilege
-		 * requirement for t2.c2 rather than select privilege
-		 */
+        /* DERBY-4191
+         * We should make sure that we require select privileges
+         * on the tables in the underlying subquery and not the
+         * parent sql's privilege. eg
+         * update t1 set c1=(select c2 from t2)
+         * For the query above, when working with the subquery, we should
+         * require select privilege on t2.c2 rather than update privilege.
+         * Prior to fix for DERBY-4191, we were collecting update privilege
+         * requirement for t2.c2 rather than select privilege
+         */
         cc.pushCurrentPrivType(Authorizer.SELECT_PRIV);
 
         resultSet=resultSet.bindNonVTITables(getDataDictionary(),fromList);
         resultSet=resultSet.bindVTITables(fromList);
 
-		/* Set the subquery # for this SubqueryNode */
+        /* Set the subquery # for this SubqueryNode */
         if(subqueryNumber==-1)
             subqueryNumber=cc.getNextSubqueryNumber();
 
-		/* reject ? parameters in the select list of subqueries */
+        /* reject ? parameters in the select list of subqueries */
         resultSet.rejectParameters();
 
-		/* bind the left operand, if there is one */
+        /* bind the left operand, if there is one */
         if(leftOperand!=null){
             leftOperand=leftOperand.bindExpression(fromList,subqueryList,aggregateVector);
         }
@@ -492,29 +492,29 @@ public class SubqueryNode extends ValueNode{
             orderByList.pullUpOrderByColumns(resultSet);
         }
 
-		/* bind the expressions in the underlying subquery */
+        /* bind the expressions in the underlying subquery */
         resultSet.bindExpressions(fromList);
 
         if(subqueryType==EXISTS_SUBQUERY){
-			/* Bind the expression in the SELECT list */
-			/* there is no need to bind the expression again below as we've called bindExpressions
+            /* Bind the expression in the SELECT list */
+            /* there is no need to bind the expression again below as we've called bindExpressions
                right above, and any undefined column reference in the select clause should have been reported.
                so comment out this line
              */
             // resultSet.bindTargetExpressions(fromList, true);
 
-			/*
-			 * reject any untyped nulls in the EXISTS subquery before
-			 * SELECT TRUE transformation.
-			 */
+            /*
+             * reject any untyped nulls in the EXISTS subquery before
+             * SELECT TRUE transformation.
+             */
             resultSet.bindUntypedNullsToResultColumns(null);
 
-			/* Transform the ResultColumn into true.
-			 * NOTE: This may be a 2nd instance of the same transformation for
-			 * an EXISTS (select * ...), since we had to transform the
-			 * AllResultColumn above, but we have to also handle
-			 * EXISTS (select r from s ...)
-			 */
+            /* Transform the ResultColumn into true.
+             * NOTE: This may be a 2nd instance of the same transformation for
+             * an EXISTS (select * ...), since we had to transform the
+             * AllResultColumn above, but we have to also handle
+             * EXISTS (select r from s ...)
+             */
             resultSet=resultSet.setResultToBooleanTrueNode(false);
         }
 
@@ -526,18 +526,18 @@ public class SubqueryNode extends ValueNode{
 
         bindOffsetFetch(offset,fetchFirst);
 
-		/* reject any untyped nulls in the subquery */
+        /* reject any untyped nulls in the subquery */
         resultSet.bindUntypedNullsToResultColumns(null);
 
-		/* We need to reset resultColumns since the underlying resultSet may
-		 * be a UNION (and UnionNode.bindResultColumns() regens a new RCL).
-		 */
+        /* We need to reset resultColumns since the underlying resultSet may
+         * be a UNION (and UnionNode.bindResultColumns() regens a new RCL).
+         */
         resultColumns=resultSet.getResultColumns();
 
-		/*
-		 * A ? parameter to the left of this subquery gets type of the
-		 * subquery's sole column.
-		 */
+        /*
+         * A ? parameter to the left of this subquery gets type of the
+         * subquery's sole column.
+         */
         if(leftOperand!=null && leftOperand.requiresTypeFromContext()){
             leftOperand.setType(
                     resultColumns.elementAt(0).getTypeServices());
@@ -546,7 +546,7 @@ public class SubqueryNode extends ValueNode{
         // Set the DataTypeServices
         setDataTypeServices(resultColumns);
 
-		/* Add this subquery to the subquery list */
+        /* Add this subquery to the subquery list */
         subqueryList.addSubqueryNode(this);
 
         cc.popCurrentPrivType();
@@ -572,9 +572,9 @@ public class SubqueryNode extends ValueNode{
                                 SubqueryList outerSubqueryList,
                                 PredicateList outerPredicateList) throws StandardException{
         boolean doNotFlatten = false;
-		/* Only preprocess this node once.  We may get called multiple times
-		 * due to tree transformations.
-		 */
+        /* Only preprocess this node once.  We may get called multiple times
+         * due to tree transformations.
+         */
         if(preprocessed){
             return this;
         }
@@ -595,9 +595,9 @@ public class SubqueryNode extends ValueNode{
         if(resultSet instanceof SelectNode){
             if(((SelectNode)resultSet).hasDistinct()){
                 ((SelectNode)resultSet).clearDistinct();
-				/* We need to remember to check for single unique value
-				 * at execution time for expression subqueries.
-				 */
+                /* We need to remember to check for single unique value
+                 * at execution time for expression subqueries.
+                 */
                 if(subqueryType==EXPRESSION_SUBQUERY){
                     distinctExpression=true;
                 }
@@ -608,17 +608,17 @@ public class SubqueryNode extends ValueNode{
             doNotFlatten = true;
 
 
-		/* Lame transformation - For IN/ANY subqueries, if
-		 * result set is guaranteed to return at most 1 row
-		 * and it is not correlated
-		 * then convert the subquery into the matching expression
-		 * subquery type.  For example:
-		 *	c1 in (select min(c1) from t2)
-		 * becomes:
-		 *	c1 = (select min(c1) from t2)
-		 * (This actually showed up in an app that a potential customer
-		 * was porting from SQL Server.)
-		 */
+        /* Lame transformation - For IN/ANY subqueries, if
+         * result set is guaranteed to return at most 1 row
+         * and it is not correlated
+         * then convert the subquery into the matching expression
+         * subquery type.  For example:
+         *    c1 in (select min(c1) from t2)
+         * becomes:
+         *    c1 = (select min(c1) from t2)
+         * (This actually showed up in an app that a potential customer
+         * was porting from SQL Server.)
+         */
         if(!doNotFlatten && (isIN() || isANY() || isExpression()) && resultSet.returnsAtMostOneRow()){
             if(!hasCorrelatedCRs()){
                 if (!isExpression())
@@ -652,21 +652,21 @@ public class SubqueryNode extends ValueNode{
             return topNode;
         }
 
-		/* NOTE: Flattening occurs before the pushing of
-		 * the predicate, since the pushing will add a node
-		 * above the SubqueryNode.
-		 */
+        /* NOTE: Flattening occurs before the pushing of
+         * the predicate, since the pushing will add a node
+         * above the SubqueryNode.
+         */
 
-		/* Values subquery is flattenable if:
-		 *  o It is not under an OR.
+        /* Values subquery is flattenable if:
+         *  o It is not under an OR.
          *  o It is not a subquery in a having clause (DERBY-3257)
-		 *  o It is an expression subquery on the right side
-		 *	  of a BinaryComparisonOperatorNode.
-		 *  o Either a) it does not appear within a WHERE clause, or
-		 *           b) it appears within a WHERE clause but does not itself
-		 *              contain a WHERE clause with other subqueries in it.
-		 *          (DERBY-3301)
-		 */
+         *  o It is an expression subquery on the right side
+         *      of a BinaryComparisonOperatorNode.
+         *  o Either a) it does not appear within a WHERE clause, or
+         *           b) it appears within a WHERE clause but does not itself
+         *              contain a WHERE clause with other subqueries in it.
+         *          (DERBY-3301)
+         */
         flattenable= !doNotFlatten &&
                 (resultSet instanceof RowResultSetNode) &&
                 underTopAndNode && !havingSubquery &&
@@ -677,11 +677,11 @@ public class SubqueryNode extends ValueNode{
                 parentComparisonOperator!=null;
 
         if(flattenable){
-			/* If we got this far and we are an expression subquery
-			 * then we want to set leftOperand to be the left side
-			 * of the comparison in case we pull the comparison into
-			 * the flattened subquery.
-			 */
+            /* If we got this far and we are an expression subquery
+             * then we want to set leftOperand to be the left side
+             * of the comparison in case we pull the comparison into
+             * the flattened subquery.
+             */
             leftOperand=parentComparisonOperator.getLeftOperand();
             // Flatten the subquery
             RowResultSetNode rrsn=(RowResultSetNode)resultSet;
@@ -690,52 +690,52 @@ public class SubqueryNode extends ValueNode{
             // Remove ourselves from the outer subquery list
             outerSubqueryList.removeElement(this);
 
-			/* We only need to add the table from the subquery into
-			 * the outer from list if the subquery itself contains
-			 * another subquery.  Otherwise, it just becomes a constant.
-			 */
-            if(!rrsn.subquerys.isEmpty()){
+            /* We only need to add the table from the subquery into
+             * the outer from list if the subquery itself contains
+             * another subquery.  Otherwise, it just becomes a constant.
+             */
+            if(!rrsn.subqueries.isEmpty()){
                 fl.addElement(rrsn);
                 outerFromList.destructiveAppend(fl);
             }
 
-			/* Append the subquery's subquery list to the
-			 * outer subquery list.
-			 */
-            outerSubqueryList.destructiveAppend(rrsn.subquerys);
+            /* Append the subquery's subquery list to the
+             * outer subquery list.
+             */
+            outerSubqueryList.destructiveAppend(rrsn.subqueries);
 
-			/* return the new join condition
-			 * If we are flattening an EXISTS then there is no new join
-			 * condition since there is no leftOperand.  Simply return
-			 * TRUE.
-			 *
-			 * NOTE: The outer where clause, etc. has already been normalized,
-			 * so we simply return the BinaryComparisonOperatorNode above
-			 * the new join condition.
-			 */
+            /* return the new join condition
+             * If we are flattening an EXISTS then there is no new join
+             * condition since there is no leftOperand.  Simply return
+             * TRUE.
+             *
+             * NOTE: The outer where clause, etc. has already been normalized,
+             * so we simply return the BinaryComparisonOperatorNode above
+             * the new join condition.
+             */
             return getNewJoinCondition(leftOperand,getRightOperand());
         }
 
-		/* Select subquery is flattenable if:
-		 *  o It is not under an OR.
-		 *  o The subquery type is IN, ANY or EXISTS or
-		 *    an expression subquery on the right side
-		 *	  of a BinaryComparisonOperatorNode.
-		 *  o There are no aggregates in the select list
-		 *  o There is no group by clause or having clause.
-		 *  o There is a uniqueness condition that ensures
-		 *	  that the flattening of the subquery will not
-		 *	  introduce duplicates into the result set.
+        /* Select subquery is flattenable if:
+         *  o It is not under an OR.
+         *  o The subquery type is IN, ANY or EXISTS or
+         *    an expression subquery on the right side
+         *      of a BinaryComparisonOperatorNode.
+         *  o There are no aggregates in the select list
+         *  o There is no group by clause or having clause.
+         *  o There is a uniqueness condition that ensures
+         *      that the flattening of the subquery will not
+         *      introduce duplicates into the result set.
          *  o The subquery is not part of a having clause (DERBY-3257)
-		 *  o There are no windows defined on it
-		 *
-		 *	OR,
-		 *  o The subquery is NOT EXISTS, NOT IN, ALL (beetle 5173).
-		 *  o Either a) it does not appear within a WHERE clause, or
-		 *           b) it appears within a WHERE clause but does not itself
-		 *              contain a WHERE clause with other subqueries in it.
-		 *          (DERBY-3301)
-		 */
+         *  o There are no windows defined on it
+         *
+         *    OR,
+         *  o The subquery is NOT EXISTS, NOT IN, ALL (beetle 5173).
+         *  o Either a) it does not appear within a WHERE clause, or
+         *           b) it appears within a WHERE clause but does not itself
+         *              contain a WHERE clause with other subqueries in it.
+         *          (DERBY-3301)
+         */
         boolean flattenableNotExists=(isNOT_EXISTS() || canAllBeFlattened());
 
         flattenable= !doNotFlatten &&
@@ -772,10 +772,10 @@ public class SubqueryNode extends ValueNode{
                 if (!doNotFlatten) {
                     ValueNode origLeftOperand = leftOperand;
 
-				/* Check for uniqueness condition. */
-				/* Is the column being returned by the subquery
-				 * a candidate for an = condition?
-				 */
+                /* Check for uniqueness condition. */
+                /* Is the column being returned by the subquery
+                 * a candidate for an = condition?
+                 */
                     boolean additionalEQ = (subqueryType == IN_SUBQUERY) || (subqueryType == EQ_ANY_SUBQUERY);
 
 
@@ -783,37 +783,37 @@ public class SubqueryNode extends ValueNode{
                             ((leftOperand instanceof ConstantNode) ||
                                     (leftOperand instanceof ColumnReference) ||
                                     (leftOperand.requiresTypeFromContext()));
-				/* If we got this far and we are an expression subquery
-				 * then we want to set leftOperand to be the left side
-				 * of the comparison in case we pull the comparison into
-				 * the flattened subquery.
-				 */
+                /* If we got this far and we are an expression subquery
+                 * then we want to set leftOperand to be the left side
+                 * of the comparison in case we pull the comparison into
+                 * the flattened subquery.
+                 */
                     if (parentComparisonOperator != null) {
                         leftOperand = parentComparisonOperator.getLeftOperand();
                     }
-				/* Never flatten to normal join for NOT EXISTS.
-				 */
+                /* Never flatten to normal join for NOT EXISTS.
+                 */
 
                     if (!hasSubquery && !hasAggregation && (!flattenableNotExists) && select.uniqueSubquery(additionalEQ)) {
                         // Flatten the subquery
                         return flattenToNormalJoin(outerFromList, outerSubqueryList, outerPredicateList);
                     }
-				/* We can flatten into an EXISTS join if all of the above
-				 * conditions except for a uniqueness condition are true
-				 * and:
-				 *	o Subquery only has a single entry in its from list
-				 *	  and that entry is a FromBaseTable
-				 *	o All predicates in the subquery's where clause are
-				 *	  pushable.
-				 *  o The leftOperand, if non-null, is pushable.
-				 * If the subquery meets these conditions then we will flatten
-				 * the FBT into an EXISTS FBT, pushd the subquery's
-				 * predicates down to the PRN above the EBT and
-				 * mark the predicates to say that they cannot be pulled
-				 * above the PRN. (The only way that we can guarantee correctness
-				 * is if the predicates do not get pulled up.  If they get pulled
-				 * up then the single next logic for an EXISTS join does not work
-				 * because that row may get disqualified at a higher level.)
+                /* We can flatten into an EXISTS join if all of the above
+                 * conditions except for a uniqueness condition are true
+                 * and:
+                 *    o Subquery only has a single entry in its from list
+                 *      and that entry is a FromBaseTable
+                 *    o All predicates in the subquery's where clause are
+                 *      pushable.
+                 *  o The leftOperand, if non-null, is pushable.
+                 * If the subquery meets these conditions then we will flatten
+                 * the FBT into an EXISTS FBT, pushd the subquery's
+                 * predicates down to the PRN above the EBT and
+                 * mark the predicates to say that they cannot be pulled
+                 * above the PRN. (The only way that we can guarantee correctness
+                 * is if the predicates do not get pulled up.  If they get pulled
+                 * up then the single next logic for an EXISTS join does not work
+                 * because that row may get disqualified at a higher level.)
                  * DERBY-4001: Extra conditions to allow flattening to a NOT
                  * EXISTS join (in a NOT EXISTS join it does matter on which
                  * side of the join predicates/restrictions are applied):
@@ -823,7 +823,7 @@ public class SubqueryNode extends ValueNode{
                  *  o The right operand (in ALL and NOT IN) must reference the
                  *    FBT, otherwise the generated join condition may be used
                  *    to restrict the left side of the join.
-				 */
+                 */
                     else if ((isIN() || isANY() || isEXISTS() || flattenableNotExists) &&
                             ((leftOperand == null) || leftOperand.categorize(new JBitSet(numTables), false)) &&
                             select.getWherePredicates().allPushable()) {
@@ -865,44 +865,44 @@ public class SubqueryNode extends ValueNode{
 
         resultSet.pushOffsetFetchFirst(offset,fetchFirst,hasJDBClimitClause);
 
-		/* We transform the leftOperand and the select list for quantified
-		 * predicates that have a leftOperand into a new predicate and push it
-		 * down to the subquery after we preprocess the subquery's resultSet.
-		 * We must do this after preprocessing the underlying subquery so that
-		 * we know where to attach the new predicate.
-		 * NOTE - If we pushed the predicate before preprocessing the underlying
-		 * subquery, then the point of attachment would depend on the form of
-		 * that subquery.  (Where clause?  Having clause?)
-		 */
+        /* We transform the leftOperand and the select list for quantified
+         * predicates that have a leftOperand into a new predicate and push it
+         * down to the subquery after we preprocess the subquery's resultSet.
+         * We must do this after preprocessing the underlying subquery so that
+         * we know where to attach the new predicate.
+         * NOTE - If we pushed the predicate before preprocessing the underlying
+         * subquery, then the point of attachment would depend on the form of
+         * that subquery.  (Where clause?  Having clause?)
+         */
         if(leftOperand!=null){
             topNode=pushNewPredicate(numTables);
             pushedNewPredicate=true;
         }
-		/* Since NOT EXISTS subquery is not flattened, now is good time to create
-		 * an IS NULL node on top.  Other cases are taken care of in pushNewPredicate.
-		 */
+        /* Since NOT EXISTS subquery is not flattened, now is good time to create
+         * an IS NULL node on top.  Other cases are taken care of in pushNewPredicate.
+         */
         else if(subqueryType==NOT_EXISTS_SUBQUERY){
             topNode=genIsNullTree();
             subqueryType=EXISTS_SUBQUERY;
         }
 
-		/*
-		** Do inVariant and correlated checks now.  We
-		** aren't going to use the results here, but they
-		** have been stashed away by isInvariant() and hasCorrelatedCRs()
-		*/
+        /*
+        ** Do inVariant and correlated checks now.  We
+        ** aren't going to use the results here, but they
+        ** have been stashed away by isInvariant() and hasCorrelatedCRs()
+        */
         isInvariant();
         hasCorrelatedCRs();
 
-		/* If parentComparisonOperator is non-null then we are an
-		 * expression subquery that was considered to be a candidate
-		 * for flattening, but we didn't get flattened.  In that case
-		 * we are the rightOperand of the parent.  We need to update
-		 * the parent's rightOperand with the new topNode and return
-		 * the parent because the parent is letting us decide whether
-		 * or not to replace the entire comparison, which we can do
-		 * if we flatten.  Otherwise we simply return the new top node.
-		 */
+        /* If parentComparisonOperator is non-null then we are an
+         * expression subquery that was considered to be a candidate
+         * for flattening, but we didn't get flattened.  In that case
+         * we are the rightOperand of the parent.  We need to update
+         * the parent's rightOperand with the new topNode and return
+         * the parent because the parent is letting us decide whether
+         * or not to replace the entire comparison, which we can do
+         * if we flatten.  Otherwise we simply return the new top node.
+         */
         if(parentComparisonOperator!=null){
             parentComparisonOperator.setRightOperand(topNode);
             return parentComparisonOperator;
@@ -962,11 +962,11 @@ public class SubqueryNode extends ValueNode{
         ResultSetNode realSubquery=resultSet;
         ResultColumnList oldRCL=null;
 
-		/* If we have pushed the new join predicate on top, we want to disregard it
-		 * to see if anything under the predicate is correlated.  If nothing correlated
-		 * under the new join predicate, we could then materialize the subquery.
-		 * See beetle 4373.
-		 */
+        /* If we have pushed the new join predicate on top, we want to disregard it
+         * to see if anything under the predicate is correlated.  If nothing correlated
+         * under the new join predicate, we could then materialize the subquery.
+         * See beetle 4373.
+         */
         if(pushedNewPredicate){
             if(SanityManager.DEBUG){
                 SanityManager.ASSERT(resultSet instanceof ProjectRestrictNode,
@@ -976,8 +976,8 @@ public class SubqueryNode extends ValueNode{
             realSubquery=((ProjectRestrictNode)resultSet).getChildResult();
             oldRCL=realSubquery.getResultColumns();
 
-			/* Only first column matters.
-			 */
+            /* Only first column matters.
+             */
             if(oldRCL.size()>1){
                 ResultColumnList newRCL=new ResultColumnList();
                 newRCL.addResultColumn(oldRCL.getResultColumn(1));
@@ -1027,13 +1027,13 @@ public class SubqueryNode extends ValueNode{
      */
     @Override
     public ValueNode changeToCNF(boolean underTopAndNode) throws StandardException{
-		/* Remember whether or not we are immediately under a top leve
-		 * AndNode.  This is important for subquery flattening.
-		 * (We can only flatten subqueries under a top level AndNode.)
-		 */
+        /* Remember whether or not we are immediately under a top leve
+         * AndNode.  This is important for subquery flattening.
+         * (We can only flatten subqueries under a top level AndNode.)
+         */
         this.underTopAndNode=underTopAndNode;
 
-		/* Halt recursion here, as each query block is preprocessed separately */
+        /* Halt recursion here, as each query block is preprocessed separately */
         return this;
     }
 
@@ -1060,25 +1060,25 @@ public class SubqueryNode extends ValueNode{
      */
     @Override
     public boolean categorize(JBitSet referencedTabs,boolean simplePredsOnly) throws StandardException{
-		/* We stop here when only considering simple predicates
-		 *  as we don't consider method calls when looking
-		 * for null invariant predicates.
-		 */
+        /* We stop here when only considering simple predicates
+         *  as we don't consider method calls when looking
+         * for null invariant predicates.
+         */
         if(simplePredsOnly){
             return false;
         }
 
-		/* RESOLVE - We need to or in a bit map when there are correlation columns */
+        /* RESOLVE - We need to or in a bit map when there are correlation columns */
 
-		/* We categorize a query block at a time, so stop the recursion here */
+        /* We categorize a query block at a time, so stop the recursion here */
 
-		/* Predicates with subqueries are not pushable for now */
+        /* Predicates with subqueries are not pushable for now */
 
-		/*
-		** If we can materialize the subquery, then it is
-		** both invariant and non-correlated.  And so it
-		** is pushable.
-		*/
+        /*
+        ** If we can materialize the subquery, then it is
+        ** both invariant and non-correlated.  And so it
+        ** is pushable.
+        */
         return isMaterializable();
 
     }
@@ -1092,14 +1092,14 @@ public class SubqueryNode extends ValueNode{
      * @throws StandardException Thrown on error
      */
 
-    public void optimize(DataDictionary dataDictionary,double outerRows)
+    public void optimize(DataDictionary dataDictionary, double outerRows, Boolean forSpark)
             throws StandardException{
-		/* RESOLVE - is there anything else that we need to do for this
-		 * node.
-		 */
+        /* RESOLVE - is there anything else that we need to do for this
+         * node.
+         */
 
-		/* Optimize the underlying result set */
-        resultSet=resultSet.optimize(dataDictionary, null, outerRows);
+        /* Optimize the underlying result set */
+        resultSet=resultSet.optimize(dataDictionary, null, outerRows, forSpark);
     }
 
     /**
@@ -1126,10 +1126,10 @@ public class SubqueryNode extends ValueNode{
 
         ///////////////////////////////////////////////////////////////////////////
         //
-        //	Subqueries should not appear in Filter expressions. We should get here
-        //	only if we're compiling a query. That means that our class builder
-        //	is an activation builder. If we ever allow subqueries in filters, we'll
-        //	have to revisit this code.
+        //    Subqueries should not appear in Filter expressions. We should get here
+        //    only if we're compiling a query. That means that our class builder
+        //    is an activation builder. If we ever allow subqueries in filters, we'll
+        //    have to revisit this code.
         //
         ///////////////////////////////////////////////////////////////////////////
 
@@ -1139,9 +1139,9 @@ public class SubqueryNode extends ValueNode{
         }
 
         ActivationClassBuilder acb=(ActivationClassBuilder)expressionBuilder;
-		/* Reuse generated code, where possible */
+        /* Reuse generated code, where possible */
 
-		/* Generate the appropriate (Any or Once) ResultSet */
+        /* Generate the appropriate (Any or Once) ResultSet */
         if(subqueryType==EXPRESSION_SUBQUERY){
             resultSetString="getOnceResultSet";
         }else{
@@ -1151,17 +1151,17 @@ public class SubqueryNode extends ValueNode{
         // Get cost estimate for underlying subquery
         CostEstimate costEstimate=resultSet.getFinalCostEstimate(false);
 
-		/* Generate a new method.  It's only used within the other
-		 * exprFuns, so it could be private. but since we don't
-		 * generate the right bytecodes to invoke private methods,
-		 * we just make it protected.  This generated class won't
-		 * have any subclasses, certainly! (nat 12/97)
-		 */
+        /* Generate a new method.  It's only used within the other
+         * exprFuns, so it could be private. but since we don't
+         * generate the right bytecodes to invoke private methods,
+         * we just make it protected.  This generated class won't
+         * have any subclasses, certainly! (nat 12/97)
+         */
         String subqueryTypeString=
                 getTypeCompiler().interfaceName();
         MethodBuilder mb=acb.newGeneratedFun(subqueryTypeString,Modifier.PROTECTED);
 
-		/* Declare the field to hold the suquery's ResultSet tree */
+        /* Declare the field to hold the suquery's ResultSet tree */
         LocalField rsFieldLF=acb.newFieldDeclaration(Modifier.PRIVATE,ClassName.NoPutResultSet);
 
         ResultSetNode subNode=null;
@@ -1172,14 +1172,14 @@ public class SubqueryNode extends ValueNode{
                 if(resultSetNumber==-1){
                     resultSetNumber=cc.getNextResultSetNumber();
                 }
-				/* We try to materialize the subquery if it can fit in the memory.  We
-				 * evaluate the subquery first.  If the result set fits in the memory,
-				 * we replace the resultset with in-memory cache of row result sets.
-				 * We do this trick by replacing the child result with a new node --
-				 * MaterializeSubqueryNode, which refers to the field that holds the
-				 * possibly materialized subquery.  This may have big performance
+                /* We try to materialize the subquery if it can fit in the memory.  We
+                 * evaluate the subquery first.  If the result set fits in the memory,
+                 * we replace the resultset with in-memory cache of row result sets.
+                 * We do this trick by replacing the child result with a new node --
+                 * MaterializeSubqueryNode, which refers to the field that holds the
+                 * possibly materialized subquery.  This may have big performance
              * improvement.  See beetle 4373.
-				 */
+                 */
                 if(SanityManager.DEBUG){
                     SanityManager.ASSERT(resultSet instanceof ProjectRestrictNode,
                             "resultSet expected to be a ProjectRestrictNode!");
@@ -1218,43 +1218,43 @@ public class SubqueryNode extends ValueNode{
         // start of args
         int nargs;
 
-		/* Inside here is where subquery could already have been materialized. 4373
-		 */
+        /* Inside here is where subquery could already have been materialized. 4373
+         */
         resultSet.generate(acb,mb);
 
-		/* Get the next ResultSet #, so that we can number the subquery's
-		 * empty row ResultColumnList and Once/Any ResultSet.
-		 */
+        /* Get the next ResultSet #, so that we can number the subquery's
+         * empty row ResultColumnList and Once/Any ResultSet.
+         */
         int subqResultSetNumber=cc.getNextResultSetNumber();
 
-		/* We will be reusing the RCL from the subquery's ResultSet for the
-		 * empty row function.  We need to reset the resultSetNumber in the
-		 * RCL, before we generate that function.  Now that we've called
-		 * generate() on the subquery's ResultSet, we can reset that
-		 * resultSetNumber.
-		 */
+        /* We will be reusing the RCL from the subquery's ResultSet for the
+         * empty row function.  We need to reset the resultSetNumber in the
+         * RCL, before we generate that function.  Now that we've called
+         * generate() on the subquery's ResultSet, we can reset that
+         * resultSetNumber.
+         */
         resultSet.getResultColumns().setResultSetNumber(subqResultSetNumber);
 
-		/* Generate code for empty row */
+        /* Generate code for empty row */
         resultSet.getResultColumns().generateNulls(acb,mb);
 
-		/*
-		 *	arg1: suqueryExpress - Expression for subquery's
-		 *		  ResultSet
-		 *  arg2: Activation
-		 *  arg3: Method to generate Row with null(s) if subquery
-		 *		  Result Set is empty
-		 */
+        /*
+         *    arg1: suqueryExpress - Expression for subquery's
+         *          ResultSet
+         *  arg2: Activation
+         *  arg3: Method to generate Row with null(s) if subquery
+         *          Result Set is empty
+         */
         if(subqueryType==EXPRESSION_SUBQUERY){
             int cardinalityCheck;
 
-			/* No need to do sort if subquery began life as a distinct expression subquery.
-			 * (We simply check for a single unique value at execution time.)
-			 * No need for cardinality check if we know that underlying
-			 * ResultSet can contain at most 1 row.
-			 * RESOLVE - Not necessary if we know we
-			 * are getting a single row because of a unique index.
-			 */
+            /* No need to do sort if subquery began life as a distinct expression subquery.
+             * (We simply check for a single unique value at execution time.)
+             * No need for cardinality check if we know that underlying
+             * ResultSet can contain at most 1 row.
+             * RESOLVE - Not necessary if we know we
+             * are getting a single row because of a unique index.
+             */
             if(distinctExpression){
                 cardinalityCheck=OnceResultSet.UNIQUE_CARDINALITY_CHECK;
             }else if(resultSet.returnsAtMostOneRow()){
@@ -1263,12 +1263,12 @@ public class SubqueryNode extends ValueNode{
                 cardinalityCheck=OnceResultSet.DO_CARDINALITY_CHECK;
             }
 
-			/*  arg4: int - whether or not cardinality check is required
-			 *				DO_CARDINALITY_CHECK - required
-			 *				NO_CARDINALITY_CHECK - not required
-			 *				UNIQUE_CARDINALITY_CHECK - verify single
-			 *											unique value
-			 */
+            /*  arg4: int - whether or not cardinality check is required
+             *                DO_CARDINALITY_CHECK - required
+             *                NO_CARDINALITY_CHECK - not required
+             *                UNIQUE_CARDINALITY_CHECK - verify single
+             *                                            unique value
+             */
             mb.push(cardinalityCheck);
             nargs=8;
 
@@ -1284,46 +1284,46 @@ public class SubqueryNode extends ValueNode{
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,resultSetString,ClassName.NoPutResultSet,nargs);
 
-		/* Fill in the body of the method
-		 * generates the following.
-		 * (NOTE: the close() method only generated for
-		 * materialized subqueries.  All other subqueries
-		 * closed by top result set in the query.):
-		 *
-		 *	NoPutResultSet	rsFieldX;
-		 *	{
-		 *		<Datatype interface> col;
-		 *		ExecRow r;
-		 *		rsFieldX = (rsFieldX == null) ? outerRSCall() : rsFieldX; // <== NONmaterialized specific
-		 *		rsFieldX.openCore();
-		 *		r = rsFieldX.getNextRowCore();
-		 *		col = (<Datatype interface>) r.getColumn(1);
-		 *		return col;
-		 *	}
-		 *
-		 * MATERIALIZED:
-		 *	NoPutResultSet	rsFieldX;
-		 *	{
-		 *		<Datatype interface> col;
-		 *		ExecRow r;
-		 *		rsFieldX = outerRSCall();
-		 *		rsFieldX.openCore();
-		 *		r = rsFieldX.getNextRowCore();
-		 *		col = (<Datatype interface>) r.getColumn(1);
-		 *		rsFieldX.close();								// <== materialized specific
-		 *		return col;
-		 *	}
-		 * and adds it to exprFun
-		 */
+        /* Fill in the body of the method
+         * generates the following.
+         * (NOTE: the close() method only generated for
+         * materialized subqueries.  All other subqueries
+         * closed by top result set in the query.):
+         *
+         *    NoPutResultSet    rsFieldX;
+         *    {
+         *        <Datatype interface> col;
+         *        ExecRow r;
+         *        rsFieldX = (rsFieldX == null) ? outerRSCall() : rsFieldX; // <== NONmaterialized specific
+         *        rsFieldX.openCore();
+         *        r = rsFieldX.getNextRowCore();
+         *        col = (<Datatype interface>) r.getColumn(1);
+         *        return col;
+         *    }
+         *
+         * MATERIALIZED:
+         *    NoPutResultSet    rsFieldX;
+         *    {
+         *        <Datatype interface> col;
+         *        ExecRow r;
+         *        rsFieldX = outerRSCall();
+         *        rsFieldX.openCore();
+         *        r = rsFieldX.getNextRowCore();
+         *        col = (<Datatype interface>) r.getColumn(1);
+         *        rsFieldX.close();                                // <== materialized specific
+         *        return col;
+         *    }
+         * and adds it to exprFun
+         */
 
-		/* Generate the declarations */ // PUSHCOMPILE
+        /* Generate the declarations */ // PUSHCOMPILE
         //VariableDeclaration colVar = mb.addVariableDeclaration(subqueryTypeString);
         //VariableDeclaration rVar   = mb.addVariableDeclaration(ClassName.ExecRow);
         LocalField colVar=acb.newFieldDeclaration(Modifier.PRIVATE,subqueryTypeString);
 
         if(!isMaterializable()){
-			/* put it back
-			 */
+            /* put it back
+             */
             if(pushedNewPredicate && (!hasCorrelatedCRs()))
                 ((ProjectRestrictNode)resultSet).setChildResult(subNode);
 
@@ -1335,17 +1335,17 @@ public class SubqueryNode extends ValueNode{
 
         mb.setField(rsFieldLF);
 
-		/* rs.openCore() */
+        /* rs.openCore() */
         mb.getField(rsFieldLF);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"openCore","void",0);
 
-		/* r = rs.next() */
+        /* r = rs.next() */
         mb.getField(rsFieldLF);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getNextRowCore",ClassName.ExecRow,0);
         //mb.putVariable(rVar);
         //mb.endStatement();
 
-		/* col = (<Datatype interface>) r.getColumn(1) */
+        /* col = (<Datatype interface>) r.getColumn(1) */
         //mb.getVariable(rVar);
         mb.push(1); // both the Row interface and columnId are 1-based
         mb.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.Row,"getColumn",ClassName.DataValueDescriptor,1);
@@ -1354,15 +1354,15 @@ public class SubqueryNode extends ValueNode{
         //mb.putVariable(colVar);
         //mb.endStatement();
 
-		/* Only generate the close() method for materialized
-		 * subqueries.  All others will be closed when the
-		 * close() method is called on the top ResultSet.
-		 */
+        /* Only generate the close() method for materialized
+         * subqueries.  All others will be closed when the
+         * close() method is called on the top ResultSet.
+         */
       /* Splice addition: add close() for *all* subqueries. This seems correct in general,
        * & Splice was having trouble closing subqueries from the top RS.
        */
 //        if(true){
-			/* rs.close() */
+            /* rs.close() */
             mb.getField(rsFieldLF);
             mb.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.ResultSet,"close","void",0);
 //        }else{
@@ -1381,21 +1381,21 @@ public class SubqueryNode extends ValueNode{
 //            closeMB.completeConditional();
 //        }
 
-		/* return col */
+        /* return col */
         mb.getField(colVar);
         mb.methodReturn();
         mb.complete();
 
-		/*
-		** If we have an expression subquery, then we
-		** can materialize it if it has no correlated
-		** column references and is invariant.
-		*/
+        /*
+        ** If we have an expression subquery, then we
+        ** can materialize it if it has no correlated
+        ** column references and is invariant.
+        */
         if(isMaterializable()){
             LocalField lf=generateMaterialization(acb,mb,subqueryTypeString);
             mbex.getField(lf);
         }else{
-			/* Generate the call to the new method */
+            /* Generate the call to the new method */
             mbex.pushThis();
             mbex.callMethod(VMOpcode.INVOKEVIRTUAL,null,mb.getName(),subqueryTypeString,0);
         }
@@ -1410,7 +1410,7 @@ public class SubqueryNode extends ValueNode{
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
 
-		/* shortcut if we've already done it*/
+        /* shortcut if we've already done it*/
         if((v instanceof HasCorrelatedCRsVisitor) && doneCorrelationCheck){
             ((HasCorrelatedCRsVisitor)v).setHasCorrelatedCRs(foundCorrelation);
             return;
@@ -1475,29 +1475,29 @@ public class SubqueryNode extends ValueNode{
         if(isWhereSubquery() && (isEXISTS() || isANY() || isIN())){
             if(resultSet instanceof SelectNode){
                 SelectNode sn=(SelectNode)resultSet;
-				/*
-				 * Flattening happens in lower QueryTree nodes first and then
-				 * removes nodes from the whereSubquerys list or whereClause.
-				 * Hence we check the original WHERE clause for subqueries in
-				 * SelectNode.init(), and simply check here.
-				 */
+                /*
+                 * Flattening happens in lower QueryTree nodes first and then
+                 * removes nodes from the whereSubquerys list or whereClause.
+                 * Hence we check the original WHERE clause for subqueries in
+                 * SelectNode.init(), and simply check here.
+                 */
                 if(sn.originalWhereClauseHadSubqueries){
-					/*
-					 * This is a WHERE EXISTS | ANY |IN subquery with a subquery
-					 * in its own WHERE clause (or now in whereSubquerys).
-					 */
+                    /*
+                     * This is a WHERE EXISTS | ANY |IN subquery with a subquery
+                     * in its own WHERE clause (or now in whereSubquerys).
+                     */
                     return true;
                 }
             }
-			/*
-			 * This is a WHERE EXISTS | ANY | IN subquery, but does not contain
-			 * a subquery in its WHERE subquerylist or clause
-			 */
+            /*
+             * This is a WHERE EXISTS | ANY | IN subquery, but does not contain
+             * a subquery in its WHERE subquerylist or clause
+             */
             return false;
         }else{
-			/*
-			 * This isn't a WHERE EXISTS | ANY | IN subquery
-			 */
+            /*
+             * This isn't a WHERE EXISTS | ANY | IN subquery
+             */
             return false;
         }
     }
@@ -1559,11 +1559,11 @@ public class SubqueryNode extends ValueNode{
     /**
      * Return the variant type for the underlying expression.
      * The variant type can be:
-     * VARIANT				- variant within a scan
+     * VARIANT                - variant within a scan
      * (method calls and non-static field access)
-     * SCAN_INVARIANT		- invariant within a scan
+     * SCAN_INVARIANT        - invariant within a scan
      * (column references from outer tables)
-     * QUERY_INVARIANT		- invariant within the life of a query
+     * QUERY_INVARIANT        - invariant within the life of a query
      * (constant expressions)
      *
      * @throws StandardException Thrown on error
@@ -1571,13 +1571,13 @@ public class SubqueryNode extends ValueNode{
      */
     @Override
     protected int getOrderableVariantType() throws StandardException{
-		/* 
-		 * If the subquery is variant, than return
-		 * VARIANT.  Otherwise, if we have an expression
-		 * subquery and no correlated CRs we are going
-		 * to materialize it, so it is QUERY_INVARIANT.
-	  	 * Otherwise, SCAN_INVARIANT.
-		 */
+        /*
+         * If the subquery is variant, than return
+         * VARIANT.  Otherwise, if we have an expression
+         * subquery and no correlated CRs we are going
+         * to materialize it, so it is QUERY_INVARIANT.
+           * Otherwise, SCAN_INVARIANT.
+         */
         if(isInvariant()){
             if(!hasCorrelatedCRs() &&
                     (subqueryType==EXPRESSION_SUBQUERY)){
@@ -1635,12 +1635,12 @@ public class SubqueryNode extends ValueNode{
         ValueNode result=this;
 
         if(underNotNode){
-			/* Negate the subqueryType. For expression subqueries
-			 * we simply return subquery = false
-			 */
-			/* RESOLVE - This code needs to get cleaned up once there are
-			 * more subquery types.  (Consider using arrays.)
-			 */
+            /* Negate the subqueryType. For expression subqueries
+             * we simply return subquery = false
+             */
+            /* RESOLVE - This code needs to get cleaned up once there are
+             * more subquery types.  (Consider using arrays.)
+             */
             switch(subqueryType){
                 case EXPRESSION_SUBQUERY:
                     result=genEqualsFalseTree();
@@ -1650,7 +1650,7 @@ public class SubqueryNode extends ValueNode{
                     subqueryType=NOT_EXISTS_SUBQUERY;
                     break;
 
-				/* ANY subqueries */
+                /* ANY subqueries */
                 case IN_SUBQUERY:
                 case EQ_ANY_SUBQUERY:
                     subqueryType=NOT_IN_SUBQUERY;
@@ -1676,9 +1676,9 @@ public class SubqueryNode extends ValueNode{
                     subqueryType=GE_ALL_SUBQUERY;
                     break;
 
-				/* ALL subqueries - no need for NOT NOT_IN_SUBQUERY, since
-				 * NOT IN only comes into existence here.
-				 */
+                /* ALL subqueries - no need for NOT NOT_IN_SUBQUERY, since
+                 * NOT IN only comes into existence here.
+                 */
                 case EQ_ALL_SUBQUERY:
                     subqueryType=NE_ANY_SUBQUERY;
                     break;
@@ -1710,7 +1710,7 @@ public class SubqueryNode extends ValueNode{
             }
         }
 
-		/* Halt recursion here, as each query block is preprocessed separately */
+        /* Halt recursion here, as each query block is preprocessed separately */
         return result;
     }
 
@@ -1723,10 +1723,10 @@ public class SubqueryNode extends ValueNode{
         boolean retval=(subqueryType==EXPRESSION_SUBQUERY) &&
                 !hasCorrelatedCRs() &&
                 isInvariant();
-		/* If we can materialize the subquery, then we set
-		 * the level of all of the tables to 0 so that we can
-		 * consider bulk fetch for them.
-		 */
+        /* If we can materialize the subquery, then we set
+         * the level of all of the tables to 0 so that we can
+         * consider bulk fetch for them.
+         */
         if(retval){
             if(resultSet instanceof SelectNode){
                 SelectNode select=(SelectNode)resultSet;
@@ -1885,37 +1885,37 @@ public class SubqueryNode extends ValueNode{
         // Remove ourselves from the outer subquery list
         outerSubqueryList.removeElement(this);
 
-		/* Decrease the nesting level for all
-		 * tables in the subquey tree.
-		 */
+        /* Decrease the nesting level for all
+         * tables in the subquey tree.
+         */
         select.decrementLevel(1);
 
-		/* Add the table(s) from the subquery into the outer from list */
+        /* Add the table(s) from the subquery into the outer from list */
         outerFromList.destructiveAppend(fl);
 
-		/* Append the subquery's predicate list to the
-		 * outer predicate list.
-		 */
+        /* Append the subquery's predicate list to the
+         * outer predicate list.
+         */
         outerPredicateList.destructiveAppend(select.getWherePredicates());
 
-		/* Append the subquery's subquery list to the
-		 * outer subquery list.
-		 * NOTE: We must propagate any subqueries from both the
-		 * SELECT list and WHERE clause of the subquery that's
-		 * getting flattened.
-		 */
+        /* Append the subquery's subquery list to the
+         * outer subquery list.
+         * NOTE: We must propagate any subqueries from both the
+         * SELECT list and WHERE clause of the subquery that's
+         * getting flattened.
+         */
         outerSubqueryList.destructiveAppend(select.getWhereSubquerys());
         outerSubqueryList.destructiveAppend(select.getSelectSubquerys());
 
-		/* return the new join condition
-		 * If we are flattening an EXISTS then there is no new join
-		 * condition since there is no leftOperand.  Simply return
-		 * TRUE.
-		 *
-		 * NOTE: The outer where clause, etc. has already been normalized,
-		 * so we simply return the BinaryComparisonOperatorNode above
-		 * the new join condition.
-		 */
+        /* return the new join condition
+         * If we are flattening an EXISTS then there is no new join
+         * condition since there is no leftOperand.  Simply return
+         * TRUE.
+         *
+         * NOTE: The outer where clause, etc. has already been normalized,
+         * so we simply return the BinaryComparisonOperatorNode above
+         * the new join condition.
+         */
         if(leftOperand==null){
             return (ValueNode)getNodeFactory().getNode(
                     C_NodeTypes.BOOLEAN_CONSTANT_NODE,
@@ -1923,10 +1923,10 @@ public class SubqueryNode extends ValueNode{
                     getContextManager());
         }else{
             ValueNode rightOperand=getRightOperand();
-			/* If the right operand is a CR, then we need to decrement
-			 * its source level as part of flattening so that
-			 * transitive closure will work correctly.
-			 */
+            /* If the right operand is a CR, then we need to decrement
+             * its source level as part of flattening so that
+             * transitive closure will work correctly.
+             */
             if(rightOperand instanceof ColumnReference){
                 ColumnReference cr=(ColumnReference)rightOperand;
                 int tableNumber=cr.getTableNumber();
@@ -1991,20 +1991,20 @@ public class SubqueryNode extends ValueNode{
             pred.pushable = false;
         }
 
-		/* NOTE: Because we are currently only flattening single table subqueries
-		 * whose predicates are all pushable, we simply follow the rest of the
-		 * flattening algorithm for unique subqueries.  Should we decide to
-		 * loosen these restrictions then we need to do more work such as:
-		 *
-		 * Mark all of the predicates from the subquery as non-pullable. They must
-		 * not be pulled so that we can guarantee correctness.  Otherwise, we could
-		 * add or subtract rows from the result set.
-		 *
-		 * Remap all of the non-correlated CRs in the predicate list so that they
-		 * point to the correct source.  (We've chopped a level out of the RCL/VCN
-		 * chain.)  We then transfer those predicates to the PRN in the subquery's
-		 * from list.
-		 */
+        /* NOTE: Because we are currently only flattening single table subqueries
+         * whose predicates are all pushable, we simply follow the rest of the
+         * flattening algorithm for unique subqueries.  Should we decide to
+         * loosen these restrictions then we need to do more work such as:
+         *
+         * Mark all of the predicates from the subquery as non-pullable. They must
+         * not be pulled so that we can guarantee correctness.  Otherwise, we could
+         * add or subtract rows from the result set.
+         *
+         * Remap all of the non-correlated CRs in the predicate list so that they
+         * point to the correct source.  (We've chopped a level out of the RCL/VCN
+         * chain.)  We then transfer those predicates to the PRN in the subquery's
+         * from list.
+         */
 
         return flattenToNormalJoin(outerFromList,
                 outerSubqueryList,outerPredicateList);
@@ -2067,21 +2067,21 @@ public class SubqueryNode extends ValueNode{
         UnaryComparisonOperatorNode ucoNode=null;
         ValueNode rightOperand;
 
-		/* We have to ensure that the resultSet immediately under us has
-		 * a PredicateList, otherwise we can't push the predicate down.
-		 */
+        /* We have to ensure that the resultSet immediately under us has
+         * a PredicateList, otherwise we can't push the predicate down.
+         */
         resultSet=resultSet.ensurePredicateList(numTables);
 
-		/* RESOLVE - once we understand how correlated columns will work,
-		 * we probably want to mark leftOperand as a correlated column
-		 */
+        /* RESOLVE - once we understand how correlated columns will work,
+         * we probably want to mark leftOperand as a correlated column
+         */
         resultColumns=resultSet.getResultColumns();
 
-		/*
-		** Create a new PR node.  Put it over the original subquery.  resulSet
-		** is now the new PR.  We give the chance that things under the PR node
-		** can be materialized.  See beetle 4373.
-		*/
+        /*
+        ** Create a new PR node.  Put it over the original subquery.  resulSet
+        ** is now the new PR.  We give the chance that things under the PR node
+        ** can be materialized.  See beetle 4373.
+        */
         ResultColumnList newRCL=resultColumns.copyListAndObjects();
         newRCL.genVirtualColumnNodes(resultSet,resultColumns);
         resultSet=(ResultSetNode)getNodeFactory().getNode(
@@ -2103,21 +2103,21 @@ public class SubqueryNode extends ValueNode{
 
         ValueNode andLeft=bcoNode;
 
-		/* For NOT IN or ALL, and if either side of the comparison is nullable, and the
-		 * subquery can not be flattened (because of that), we need to add IS NULL node
-		 * on top of the nullables, such that the behavior is (beetle 5173):
-		 *
-		 *    (1) If we have nulls in right operand, no row is returned.
-		 *    (2) If subquery result is empty before applying join predicate, every
-		 *		  left row (including NULLs) is returned.
-		 *	  (3) Otherwise, return {all left row} - {NULLs}
-		 */
+        /* For NOT IN or ALL, and if either side of the comparison is nullable, and the
+         * subquery can not be flattened (because of that), we need to add IS NULL node
+         * on top of the nullables, such that the behavior is (beetle 5173):
+         *
+         *    (1) If we have nulls in right operand, no row is returned.
+         *    (2) If subquery result is empty before applying join predicate, every
+         *          left row (including NULLs) is returned.
+         *      (3) Otherwise, return {all left row} - {NULLs}
+         */
         if(isNOT_IN() || isALL()){
             boolean leftNullable=leftOperand.getTypeServices().isNullable();
             boolean rightNullable=rightOperand.getTypeServices().isNullable();
             if(leftNullable || rightNullable){
-				/* Create a normalized structure.
-				 */
+                /* Create a normalized structure.
+                 */
                 BooleanConstantNode falseNode=(BooleanConstantNode)getNodeFactory().getNode(
                         C_NodeTypes.BOOLEAN_CONSTANT_NODE,
                         Boolean.FALSE,
@@ -2163,18 +2163,18 @@ public class SubqueryNode extends ValueNode{
             }
         }
 
-		/* Place an AndNode above the <BinaryComparisonOperator> */
+        /* Place an AndNode above the <BinaryComparisonOperator> */
         andNode=(AndNode)getNodeFactory().getNode(
                 C_NodeTypes.AND_NODE,
                 andLeft,
                 getTrueNode(),
                 getContextManager());
 
-		/* Build the referenced table map for the new predicate */
+        /* Build the referenced table map for the new predicate */
         tableMap=new JBitSet(numTables);
         andNode.postBindFixup();
 
-		/* Put the AndNode under a Predicate */
+        /* Put the AndNode under a Predicate */
         predicate=(Predicate)getNodeFactory().getNode(
                 C_NodeTypes.PREDICATE,
                 andNode,
@@ -2182,15 +2182,15 @@ public class SubqueryNode extends ValueNode{
                 getContextManager());
         predicate.categorize();
 
-		/* Push the new Predicate to the subquery's list */
+        /* Push the new Predicate to the subquery's list */
         resultSet=resultSet.addNewPredicate(predicate);
 
-		/* Clean up the leftOperand and subquery ResultColumn */
+        /* Clean up the leftOperand and subquery ResultColumn */
         leftOperand=null;
         firstRC.setType(getTypeServices());
         firstRC.setExpression(getTrueNode());
 
-		/* Add the IS [NOT] NULL above the SubqueryNode */
+        /* Add the IS [NOT] NULL above the SubqueryNode */
         switch(subqueryType){
             case IN_SUBQUERY:
             case EQ_ANY_SUBQUERY:
@@ -2237,12 +2237,12 @@ public class SubqueryNode extends ValueNode{
                                                              ValueNode rightOperand) throws StandardException{
         BinaryComparisonOperatorNode bcoNode;
 
-		/* NOTE: If we are an expression subquery that's getting
-		 * flattened then our subqueryType is EXPRESSION_SUBQUERY.
-		 * However, we can get the comparison type from the
-		 * parentComparisonOperator.  In that case we dovetail on
-		 * the ANY subquery types.
-		 */
+        /* NOTE: If we are an expression subquery that's getting
+         * flattened then our subqueryType is EXPRESSION_SUBQUERY.
+         * However, we can get the comparison type from the
+         * parentComparisonOperator.  In that case we dovetail on
+         * the ANY subquery types.
+         */
         int operatorType=subqueryType;
         if(subqueryType==EXPRESSION_SUBQUERY){
             if(SanityManager.DEBUG){
@@ -2274,7 +2274,7 @@ public class SubqueryNode extends ValueNode{
 
         int nodeType=0;
 
-		/* Build the <BinaryComparisonOperator> */
+        /* Build the <BinaryComparisonOperator> */
         switch(operatorType){
             case IN_SUBQUERY:
             case EQ_ANY_SUBQUERY:
@@ -2334,8 +2334,8 @@ public class SubqueryNode extends ValueNode{
     **
     ** execute()
     ** {
-    **	fieldX = <subqueryExpression>
-    **	...
+    **    fieldX = <subqueryExpression>
+    **    ...
     ** }
     **
     ** So we wind up evaluating the subquery when we start
@@ -2361,7 +2361,7 @@ public class SubqueryNode extends ValueNode{
         // declare field
         LocalField field=acb.newFieldDeclaration(Modifier.PRIVATE, type);
 
-		/* Generate the call to the new method */
+        /* Generate the call to the new method */
         mb.pushThis();
         mb.push(true);
         mb.putField(ClassName.BaseActivation, "materialized", "boolean");
@@ -2506,7 +2506,7 @@ public class SubqueryNode extends ValueNode{
         setDataTypeServices(resultSet.getResultColumns());
 
         parentComparisonOperator=(BinaryComparisonOperatorNode)bcon;
-  		/* Set type info for the operator node */
+          /* Set type info for the operator node */
         parentComparisonOperator.bindComparisonOperator();
         leftOperand=null;
     }
@@ -2515,14 +2515,14 @@ public class SubqueryNode extends ValueNode{
             throws StandardException{
         DataTypeDescriptor dts;
 
-		/* Set the result type for this subquery (must be nullable).
-		 * Quantified predicates will return boolean.
-		 * However, the return type of the subquery's result list will
-		 * probably not be boolean at this point, because we do not
-		 * transform the subquery (other than EXISTS) into
-		 * (select true/false ...) until preprocess().  So, we force
-		 * the return type to boolean.
-		 */
+        /* Set the result type for this subquery (must be nullable).
+         * Quantified predicates will return boolean.
+         * However, the return type of the subquery's result list will
+         * probably not be boolean at this point, because we do not
+         * transform the subquery (other than EXISTS) into
+         * (select true/false ...) until preprocess().  So, we force
+         * the return type to boolean.
+         */
         if(subqueryType==EXPRESSION_SUBQUERY){
             dts=resultColumns.elementAt(0).getTypeServices();
         }else{
@@ -2591,7 +2591,7 @@ public class SubqueryNode extends ValueNode{
             }
         }
 
-		// Create a new PR node.  Put it over the original subquery.
+        // Create a new PR node.  Put it over the original subquery.
         ResultColumnList newRCL=resultColumns.copyListAndObjects();
         newRCL.genVirtualColumnNodes(resultSet,resultColumns);
         ResultSetNode newPRN = (ResultSetNode)getNodeFactory().getNode(

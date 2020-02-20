@@ -145,8 +145,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
                  // allow full outer join without equality join condition
                  outerCost.getJoinType() == JoinNode.FULLOUTERJOIN||
                  // allow left or inner join with non-equality broadcast join only if using spark
-                 (innerTable instanceof FromBaseTable &&
-                        ((FromBaseTable)innerTable).isSpark(((FromBaseTable)innerTable).getdataSetProcessorTypeForAccessPath(currentAccessPath))));
+                 (innerTable instanceof FromBaseTable && optimizer.isForSpark()));
 
         if (costIt) {
             double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);

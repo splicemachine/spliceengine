@@ -35,21 +35,19 @@ import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.load.ImportUtils;
-import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.server.ClusterHealth;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
@@ -63,7 +61,10 @@ import org.apache.spark.api.java.JavaRDD;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 
 /**
@@ -101,7 +102,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     protected boolean skipSampling;
     protected String indexName;
     protected double sampleFraction;
-
     @Override
     public String getName(){
         return NAME;
@@ -385,7 +385,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             dsp.prependSpliceExplainString(this.explainPlan);
             return set;
         }
-        TxnView txn=getTransactionForWrite(dsp);
+        TxnView txn=getCurrentTransaction();
 
         ClusterHealth.ClusterHealthWatcher healthWatcher = null;
         if (skipWAL) {
@@ -393,11 +393,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         }
 
         try{
-            // initTriggerRowHolders can't be called in the TriggerHandler constructor
-            // because it has to be called after getCurrentTransaction() elevates the
-            // transaction to writable.
-            if (triggerHandler != null)
-                triggerHandler.initTriggerRowHolders(isOlapServer(), txn, SpliceClient.token, 0);
             if(statusDirectory!=null)
                 dsp.setSchedulerPool("import");
             if (storedAs!=null) {
@@ -431,6 +426,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
 
             DataSetWriter writer = writerBuilder
                     .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
+                    .execRowDefinition(getExecRowDefinition())
                     .execRowTypeFormatIds(execRowTypeFormatIds)
                     .sequences(spliceSequences)
                     .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
@@ -439,24 +435,16 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     .tableVersion(tableVersion)
                     .updateCounts(expectedUpdateCounts)
                     .destConglomerate(heapConglom)
-                    .tempConglomerateID(getTriggerConglomID())
                     .operationContext(operationContext)
                     .txn(txn)
                     .token(SpliceClient.token)
-                    .execRowDefinition(getExecRowDefinition())
                     .build();
             return writer.write();
 
-        }
-        catch (Exception e) {
-            exceptionHit = true;
-            throw Exceptions.parseException(e);
-        }
-        finally{
+        }finally{
             if (skipWAL) {
                 flushAndCheckErrors(healthWatcher);
             }
-            finalizeNestedTransaction();
             operationContext.popScope();
         }
     }

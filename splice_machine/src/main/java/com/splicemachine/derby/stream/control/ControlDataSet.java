@@ -309,7 +309,7 @@ public class ControlDataSet<V> implements DataSet<V> {
             ExecutorCompletionService<Iterator<V>> completionService = new ExecutorCompletionService<>(es);
             NonOrderPreservingFutureIterator<V> futureIterator = new NonOrderPreservingFutureIterator<>(completionService, dataSetList.size());
             for (DataSet<V> aSet: dataSetList) {
-                completionService.submit(new NonLazy(((DataSet<V>)aSet).toLocalIterator()));
+                completionService.submit(new NonLazy(((ControlDataSet<V>)aSet).iterator));
             }
             return new ControlDataSet<>(futureIterator);
         } catch (Exception e) {
@@ -729,7 +729,7 @@ public class ControlDataSet<V> implements DataSet<V> {
             @Override
             public DataSetWriter build() throws StandardException{
                 assert txn!=null:"Txn is null";
-                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom, tempConglomID, tableVersion, execRowDefinition, operationContext);
+                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom,operationContext);
                 dpw.setRollforward(true);
                 return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext, updateCounts);
             }
@@ -750,7 +750,6 @@ public class ControlDataSet<V> implements DataSet<V> {
                         autoIncrementRowLocationArray,
                         spliceSequences,
                         heapConglom,
-                        tempConglomID,
                         txn,
                         token, operationContext,
                         isUpsert);
@@ -768,7 +767,7 @@ public class ControlDataSet<V> implements DataSet<V> {
             @Override
             public DataSetWriter build() throws StandardException{
                 assert txn!=null: "Txn is null";
-                UpdatePipelineWriter upw =new UpdatePipelineWriter(heapConglom, tempConglomID,
+                UpdatePipelineWriter upw =new UpdatePipelineWriter(heapConglom,
                         formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
                         txn,token,execRowDefinition,heapList,operationContext);
 

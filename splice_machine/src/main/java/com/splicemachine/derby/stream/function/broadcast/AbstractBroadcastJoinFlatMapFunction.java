@@ -16,14 +16,9 @@ package com.splicemachine.derby.stream.function.broadcast;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.JoinTable;
@@ -50,8 +45,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushTriggerExecutionContextFromActivation;
-
 /**
  * Created by dgomezferro on 11/4/15.
  */
@@ -61,8 +54,6 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
     private Future<JoinTable> joinTable ;
     private boolean init = false;
     protected boolean rightAsLeft;
-    protected ContextManager cm;
-    protected boolean newContextManager, lccPushed;
 
     public AbstractBroadcastJoinFlatMapFunction() {
     }
@@ -97,7 +88,6 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
                 if (!result) {
                     table.close();
                     joinTable = null; // delete reference for gc
-                    cleanupLCCInContext();
                 }
                 return result;
             }
@@ -111,56 +101,11 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
 
     protected abstract Iterable<Out> call(Iterator<In> locatedRows, JoinTable joinTable);
 
-    protected void cleanupLCCInContext() {
-        if (cm != null) {
-            if (lccPushed)
-                cm.popContext();
-            if (newContextManager)
-                ContextService.getFactory().resetCurrentContextManager(cm);
-            cm = null;
-        }
-        newContextManager = false;
-        lccPushed = false;
-    }
-
-    private boolean needsLCCInContext() {
-        if (operationContext != null) {
-            Activation activation = operationContext.getActivation();
-            if (activation != null) {
-                LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-                if (lcc != null) {
-                    TriggerExecutionContext tec = lcc.getTriggerExecutionContext();
-                    if (tec != null)
-                        return tec.currentTriggerHasReferencingClause();
-                }
-            }
-        }
-        return false;
-    }
-
-    // Push the LanguageConnectionContext to the current Context Manager
-    // if we're executing a trigger with a referencing clause.
-    private void initCurrentLCC() throws StandardException {
-        if (!needsLCCInContext())
-            return;
-        cm = ContextService.getFactory().getCurrentContextManager();
-        if (cm == null) {
-            newContextManager = true;
-            cm = ContextService.getFactory().newContextManager();
-            ContextService.getFactory().setCurrentContextManager(cm);
-        }
-        if (cm != null) {
-            if (operationContext != null)
-                lccPushed = pushTriggerExecutionContextFromActivation(operationContext.getActivation(), cm);
-        }
-    }
-
-    private synchronized void init() throws Exception {
+    private synchronized void init() {
         if (init)
             return;
         init = true;
         joinTable = SIDriver.driver().getExecutorService().submit(() -> {
-            initCurrentLCC();
             operation = getOperation();
             ControlExecutionLimiter limiter = operation.getActivation().getLanguageConnectionContext().getControlExecutionLimiter();
             SpliceOperation rightOperation, leftOperation;

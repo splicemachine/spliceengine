@@ -15,7 +15,6 @@
 package com.splicemachine.derby.stream.output.direct;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
@@ -36,13 +35,10 @@ import java.io.ObjectOutput;
  */
 public abstract class DirectTableWriterBuilder implements Externalizable,DataSetWriterBuilder{
     protected long destConglomerate;
-    protected long tempConglomID;
     protected TxnView txn;
     protected OperationContext opCtx;
     protected boolean skipIndex;
     protected byte[] token;
-    protected String tableVersion;
-    protected ExecRow execRowDefinition;
 
     @Override
     public DataSetWriterBuilder destConglomerate(long heapConglom){
@@ -51,27 +47,8 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     }
 
     @Override
-    public DataSetWriterBuilder tempConglomerateID(long conglomID){
-        this.tempConglomID = conglomID;
-        return this;
-    }
-
-    @Override
     public DataSetWriterBuilder txn(TxnView txn){
         this.txn = txn;
-        return this;
-    }
-
-    @Override
-    public DataSetWriterBuilder tableVersion(String tableVersion) {
-        this.tableVersion = tableVersion;
-        return this;
-    }
-
-    @Override
-    public DataSetWriterBuilder execRowDefinition(ExecRow execRowDefinition) {
-        assert execRowDefinition != null :"ExecRowDefinition Cannot Be null!";
-        this.execRowDefinition = execRowDefinition;
         return this;
     }
 
@@ -104,7 +81,7 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
 
     @Override
     public TableWriter buildTableWriter() throws StandardException{
-        return new DirectPipelineWriter(destConglomerate,txn,token,opCtx,skipIndex, tableVersion);
+        return new DirectPipelineWriter(destConglomerate,txn,token,opCtx,skipIndex);
     }
 
     @Override
@@ -112,11 +89,7 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
         out.writeLong(destConglomerate);
         out.writeObject(opCtx);
         out.writeBoolean(skipIndex);
-        out.writeBoolean(tableVersion != null);
-        if (tableVersion != null)
-            out.writeUTF(tableVersion);
         SIDriver.driver().getOperationFactory().writeTxn(txn,out);
-        out.writeObject(execRowDefinition);
     }
 
     @Override
@@ -124,10 +97,7 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
         destConglomerate = in.readLong();
         opCtx = (OperationContext)in.readObject();
         skipIndex = in.readBoolean();
-        if (in.readBoolean())
-            tableVersion = in.readUTF();
         txn = SIDriver.driver().getOperationFactory().readTxn(in);
-        execRowDefinition = (ExecRow) in.readObject();
     }
 
     public String base64Encode(){

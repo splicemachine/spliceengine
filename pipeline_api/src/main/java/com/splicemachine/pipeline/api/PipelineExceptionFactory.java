@@ -44,6 +44,4 @@ public interface PipelineExceptionFactory extends ExceptionFactory{
     Exception processErrorResult(WriteResult value);
 
     IOException fromErrorString(String s);
-
-    boolean isHBase();
 }

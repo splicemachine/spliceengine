@@ -50,8 +50,9 @@ public class MaxMinAggregator extends SpliceGenericWindowFunction {
         DataValueDescriptor result = chunk.getResult();
         if (result == null || result.isNull()) {
             chunk.setResult(dvd[0]);
-        }
-        else if(isMax && dvd[0].compare(result) > 0) {
+        } else if (dvd[0] == null || dvd[0].isNull()) {
+            return;
+        } else if(isMax && dvd[0].compare(result) > 0) {
             chunk.setResult(dvd[0]);
         }
         else if (!isMax && dvd[0].compare(result) < 0) {

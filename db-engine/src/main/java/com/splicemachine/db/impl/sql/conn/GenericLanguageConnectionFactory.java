@@ -151,7 +151,7 @@ public class GenericLanguageConnectionFactory
 		String drdaID,
 		String dbname,
         String rdbIntTkn,
-        CompilerContext.DataSetProcessorType type,
+        DataSetProcessorType type,
 		boolean skipStats,
 		double defaultSelectvityFactor,
 		String ipAddresss,

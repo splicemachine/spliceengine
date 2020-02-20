@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -46,9 +47,9 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -66,7 +67,7 @@ import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEven
 /**
  * @author Scott Fines
  */
-public abstract class DMLWriteOperation extends SpliceBaseOperation {
+public abstract class DMLWriteOperation extends SpliceBaseOperation{
     private static final long serialVersionUID=2l;
     private static final Logger LOG=Logger.getLogger(DMLWriteOperation.class);
     protected SpliceOperation source;
@@ -81,10 +82,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     private SpliceMethod<ExecRow> checkGM;
     private String checkGMFunMethodName;
     protected String tableVersion;
-    protected DataSet<ExecRow> sourceSet;
-    protected boolean isSpark;
-    protected Txn nestedTxn = null;
-    protected boolean exceptionHit = false;
+
 
     public DMLWriteOperation(){
         super();
@@ -118,109 +116,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
     }
 
-    public boolean hasGenerationClause() {
-        return generationClausesFunMethodName != null || checkGMFunMethodName != null;
-    }
-
-    public long getTriggerConglomID() {
-        if (triggerHandler != null) {
-            return triggerHandler.getTriggerConglomID();
-        }
-        return 0;
-    }
-
-    // If executing on control, the nested transaction is
-    // allocated in ControlDataSetWriter, otherwise it
-    // is allocated here.  If we don't get a nested transaction,
-    // any data written to tables that needs to be accessed by
-    // AFTER statement triggers won't be visible.  Spark begins the
-    // nested transaction for the write operation separate from the
-    // read operation, so the read in the trigger looks like it is a child transaction
-    // directly under the upper-level statement's transaction instead of under the
-    // transaction of the trigger substatement.  For example:
-    //
-    //    create table t1 (a int, b int);
-    //    create table t2 (a int, b int);
-    //    create table t3 (a int, b int);
-    //    CREATE TRIGGER mytrig
-    //       AFTER INSERT
-    //       ON t2
-    //       REFERENCING NEW_TABLE AS NEW
-    //       FOR EACH STATEMENT
-    //    -- triggered statement
-    //    insert into t3 select * from t2;
-    //
-    //    insert into t2 select * from t1;
-    //
-    // The write into t2 occurs in a child transaction of a parent transaction
-    // that is also the parent of the read from t2 in the triggered statement, making
-    // the write to t2 invisible to the read (see AbstractTxnView::canSee).
-    // By making a global child transaction for each write operation we can
-    // ensure that the read and the write don't share the same
-    // parent transaction.
-    protected TxnView getTransactionForWrite(DataSetProcessor dsp) throws StandardException{
-        if (nestedTxn != null)
-            return nestedTxn;
-        TxnView txn = null;
-        TxnView parent = getCurrentTransaction();
-
-        try {
-            if (dsp.getType() == DataSetProcessor.Type.SPARK || isOlapServer())
-            {
-                nestedTxn =
-                    SIDriver.driver().lifecycleManager().beginChildTransaction(
-                            parent,
-                            parent.getIsolationLevel(),
-                            parent.isAdditive(),
-                            Bytes.toBytes(Long.toString(heapConglom)),
-                            false);
-
-                txn = nestedTxn;
-            }
-            else
-                txn = parent;
-        }
-        catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-        return txn;
-    }
-
-     public void finalizeNestedTransaction() throws StandardException {
-        try {
-             if (nestedTxn != null) {
-                 if (exceptionHit)
-                     nestedTxn.rollback();
-                 else {
-                     nestedTxn.commit();
-                 }
-             }
-         }
-         catch (Exception e) {
-            try {
-                if (nestedTxn != null &&
-                    nestedTxn.getState() != Txn.State.COMMITTED &&
-                    nestedTxn.getState() != Txn.State.ROLLEDBACK)
-                    nestedTxn.rollback();
-                exceptionHit = true;
-            }
-            catch (IOException ioE) {
-                throw Exceptions.parseException(ioE);
-            }
-            throw Exceptions.parseException(e);
-         }
-     }
-
-    public DataSet<ExecRow> getSourceSet() {
-        return sourceSet;
-    }
-
-    public void setSourceSet(DataSet<ExecRow> sourceSet) {
-        this.sourceSet = sourceSet;
-    }
-
-    public String getTableVersion() { return tableVersion; }
-
     @Override
     public void readExternal(ObjectInput in) throws IOException,
             ClassNotFoundException{
@@ -231,7 +126,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         checkGMFunMethodName=readNullableString(in);
         heapConglom=in.readLong();
         tableVersion=in.readUTF();
-        isSpark = in.readBoolean();
     }
 
     @Override
@@ -243,7 +137,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         writeNullableString(checkGMFunMethodName,out);
         out.writeLong(heapConglom);
         out.writeUTF(tableVersion);
-        out.writeBoolean(isOlapServer());
     }
 
     @Override
@@ -252,25 +145,20 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         super.init(context);
         source.init(context);
         writeInfo.initialize(context);
-        if (isOlapServer())
-            isSpark = true;
 
         WriteCursorConstantOperation constantAction=(WriteCursorConstantOperation)writeInfo.getConstantAction();
 
         TriggerInfo triggerInfo=constantAction.getTriggerInfo();
 
-        if(triggerInfo!=null && !(this instanceof UpdateOperation)){
+        if(triggerInfo!=null){
             this.triggerHandler=new TriggerHandler(
                     triggerInfo,
                     writeInfo,
                     getActivation(),
                     getBeforeEvent(getClass()),
                     getAfterEvent(getClass()),
-                    null,
-                    getExecRowDefinition(),
-                    getTableVersion()
+                    null
             );
-            this.triggerHandler.setIsSpark(isSpark);
         }
     }
 
@@ -366,9 +254,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     }
 
     public void fireAfterStatementTriggers() throws StandardException{
-        if(triggerHandler!=null) {
+        if(triggerHandler!=null)
             triggerHandler.fireAfterStatementTriggers();
-        }
     }
 
     public void fireBeforeRowTriggers() throws StandardException{
@@ -430,12 +317,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
             // If we have triggers, wrap the next operations into another transaction to prevent the next transaction from ignoring
             // our writes, see SPLICE-1625
-            TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
-            Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
-            BaseSpliceTransaction rawTxn = (BaseSpliceTransaction) rawStoreXact;
+            TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
+            Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
+            BaseSpliceTransaction rawTxn=(BaseSpliceTransaction)rawStoreXact;
             if (rawTxn instanceof SpliceTransaction) {
                 rawTxn.setSavePoint("triggers", null);
-                ((SpliceTransaction) rawTxn).elevate(getDestinationTable());
+                ((SpliceTransaction)rawTxn).elevate(getDestinationTable());
             }
         }
         super.close();
@@ -497,16 +384,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                 set=set.shufflePartitions();
             dsp.decrementOpDepth();
         }
-        setSourceSet(set);
         return Pair.newPair(set, expectedUpdatecounts);
     }
 
-    public boolean hasTriggers() { return triggerHandler != null; }
-
-    public boolean hasStatementTriggerWithReferencingClause() {
-        if (triggerHandler != null)
-            return triggerHandler.hasStatementTriggerWithReferencingClause();
-        else
-            return false;
-    }
 }

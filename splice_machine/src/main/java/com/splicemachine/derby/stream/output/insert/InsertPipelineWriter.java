@@ -26,7 +26,6 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.PermissiveInsertWriteConfiguration;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
-import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.config.RollforwardWriteConfiguration;
 import com.splicemachine.pipeline.config.UnsafeWriteConfiguration;
 import com.splicemachine.derby.utils.marshall.*;
@@ -50,7 +49,8 @@ import java.util.Iterator;
  */
 public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected int[] pkCols;
-
+    protected String tableVersion;
+    protected ExecRow execRowDefinition;
     protected RowLocation[] autoIncrementRowLocationArray;
     protected KVPair.Type dataType;
     protected SpliceSequence[] spliceSequences;
@@ -66,13 +66,14 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
                                 RowLocation[] autoIncrementRowLocationArray,
                                 SpliceSequence[] spliceSequences,
                                 long heapConglom,
-                                long tempConglomID,
                                 TxnView txn,
                                 byte[] token, OperationContext operationContext,
                                 boolean isUpsert) {
-        super(txn,token,heapConglom,tempConglomID,tableVersion, execRowDefinition, operationContext);
+        super(txn,token,heapConglom,operationContext);
         assert txn !=null:"txn not supplied";
         this.pkCols = pkCols;
+        this.tableVersion = tableVersion;
+        this.execRowDefinition = execRowDefinition;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
         this.spliceSequences = spliceSequences;
         this.destinationTable = Bytes.toBytes(Long.toString(heapConglom));
@@ -104,12 +105,10 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
 
             writeConfiguration.setRecordingContext(operationContext);
             this.table =SIDriver.driver().getTableFactory().getTable(Long.toString(heapConglom));
-
             writeBuffer = writeCoordinator.writeBuffer(table,txn,token,writeConfiguration);
             if (insertOperation != null)
                 insertOperation.tableWriter = this;
             flushCallback = triggerHandler == null ? null : TriggerHandler.flushCallback(writeBuffer);
-
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -122,7 +121,6 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
             beforeRow(execRow);
             KVPair encode = encoder.encode(execRow);
             writeBuffer.add(encode);
-            addRowToTriggeringResultSet(execRow, encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
         } catch (Exception e) {
             if (operationContext!=null && operationContext.isPermissive()) {

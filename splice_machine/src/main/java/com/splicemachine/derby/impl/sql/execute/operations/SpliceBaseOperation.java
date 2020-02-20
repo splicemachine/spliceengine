@@ -23,7 +23,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
@@ -42,10 +42,8 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
-import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
@@ -177,8 +175,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         // No difference. We can change that later if needed.
         // Right now this is only used by Spark UI, so don't change it
         // unless you want to change that UI.
-        CompilerContext.DataSetProcessorType type = this.activation.getLanguageConnectionContext().getDataSetProcessorType();
-        if (type == CompilerContext.DataSetProcessorType.SPARK || type == CompilerContext.DataSetProcessorType.FORCED_SPARK)
+        DataSetProcessorType type = this.activation.getLanguageConnectionContext().getDataSetProcessorType();
+        if (type.isSpark())
             explainPlan=(plan==null?"":plan.replace("n=","RS=").replace("->","").trim());
     }
 
@@ -411,7 +409,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     public void openCore(DataSetProcessor dsp) throws StandardException{
         try {
-            this.execRowIterator = Collections.emptyIterator();
             if (LOG.isTraceEnabled())
                 LOG.trace(String.format("openCore %s", this));
             reset();
@@ -442,14 +439,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     protected void resubmitDistributed(ResubmitDistributedException e) throws StandardException {
-        // Rethrow the exception if we're not the top-level statement because we need
-        // to roll back results at each level, and submitting a partial operation tree
-        // causes incorrect execution of nested triggers (and likely other nested statements as well).
-        if (activation.isSubStatement())
-            throw e;
         LOG.warn("The query consumed too many resources running in control mode, resubmitting in Spark");
         close();
-        activation.getPreparedStatement().setDatasetProcessorType(CompilerContext.DataSetProcessorType.FORCED_SPARK);
+        activation.getPreparedStatement().setDatasetProcessorType(DataSetProcessorType.FORCED_SPARK);
         openDistributed();
     }
 
@@ -467,8 +459,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         // otherwise deal with it normally
     }
 
-    @Override
-    public boolean isOlapServer() {
+    protected boolean isOlapServer() {
         return Thread.currentThread().currentThread().getName().startsWith("olap-worker");
     }
 

@@ -405,6 +405,4 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
                             DataSet<ExecRow> leftDataSet,
                             DataSet<ExecRow> rightDataSet,
                             DataSetProcessor dsp);
-
-    boolean isOlapServer();
 }

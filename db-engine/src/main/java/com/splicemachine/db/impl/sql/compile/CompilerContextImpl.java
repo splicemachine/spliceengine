@@ -40,10 +40,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
-import com.splicemachine.db.iapi.sql.compile.Parser;
-import com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
@@ -70,71 +67,71 @@ import java.util.*;
  *
  */
 public class CompilerContextImpl extends ContextImpl
-	implements CompilerContext {
+    implements CompilerContext {
 
-	//
-	// Context interface       
-	//
+    //
+    // Context interface
+    //
 
-	/**
-		@exception StandardException thrown by makeInvalid() call
-	 */
-	public void cleanupOnError(Throwable error) throws StandardException {
+    /**
+        @exception StandardException thrown by makeInvalid() call
+     */
+    public void cleanupOnError(Throwable error) throws StandardException {
 
-		setInUse(false);
-		resetContext();
+        setInUse(false);
+        resetContext();
 
-		if (error instanceof StandardException) {
+        if (error instanceof StandardException) {
 
-			StandardException se = (StandardException) error;
-			// if something went wrong with the compile,
-			// we need to mark the statement invalid.
-			// REVISIT: do we want instead to remove it,
-			// so the cache doesn't get full of garbage input
-			// that won't even parse?
+            StandardException se = (StandardException) error;
+            // if something went wrong with the compile,
+            // we need to mark the statement invalid.
+            // REVISIT: do we want instead to remove it,
+            // so the cache doesn't get full of garbage input
+            // that won't even parse?
             
             int severity = se.getSeverity();
 
-			if (severity < ExceptionSeverity.SYSTEM_SEVERITY) 
-			{
-				if (currentDependent != null)
-				{
-					currentDependent.makeInvalid(DependencyManager.COMPILE_FAILED,
-												 lcc);
-				}
-				closeStoreCostControllers();
-				closeSortCostControllers();
-			}
-			// anything system or worse, or non-DB errors,
-			// will cause the whole system to shut down.
+            if (severity < ExceptionSeverity.SYSTEM_SEVERITY)
+            {
+                if (currentDependent != null)
+                {
+                    currentDependent.makeInvalid(DependencyManager.COMPILE_FAILED,
+                                                 lcc);
+                }
+                closeStoreCostControllers();
+                closeSortCostControllers();
+            }
+            // anything system or worse, or non-DB errors,
+            // will cause the whole system to shut down.
             
             if (severity >= ExceptionSeverity.SESSION_SEVERITY)
                 popMe();
-		}
+        }
 
-	}
+    }
 
-	/**
-	  *	Reset compiler context (as for instance, when we recycle a context for
-	  *	use by another compilation.
-	  */
-	public	void	resetContext()
-	{
-		nextColumnNumber = 1;
-		nextTableNumber = 0;
-		nextSubqueryNumber = 0;
-		resetNextResultSetNumber();
-		nextEquivalenceClass = -1;
-		compilationSchema = null;
-		parameterList = null;
-		parameterDescriptors = null;
-		scanIsolationLevel = ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL;
-		warnings = null;
-		savedObjects = null;
-		reliability = CompilerContext.SQL_LEGAL;
-		returnParameterFlag = false;
-		initRequiredPriv();
-		defaultSchemaStack = null;
+    /**
+      *    Reset compiler context (as for instance, when we recycle a context for
+      *    use by another compilation.
+      */
+    public void resetContext()
+    {
+        nextColumnNumber = 1;
+        nextTableNumber = 0;
+        nextSubqueryNumber = 0;
+        resetNextResultSetNumber();
+        nextEquivalenceClass = -1;
+        compilationSchema = null;
+        parameterList = null;
+        parameterDescriptors = null;
+        scanIsolationLevel = ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL;
+        warnings = null;
+        savedObjects = null;
+        reliability = CompilerContext.SQL_LEGAL;
+        returnParameterFlag = false;
+        initRequiredPriv();
+        defaultSchemaStack = null;
         referencedSequences = null;
         dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
         skipStatsTableList.clear();
@@ -143,37 +140,37 @@ public class CompilerContextImpl extends ContextImpl
         maxMulticolumnProbeValues = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
         nextOJLevel = 1;
         outerJoinFlatteningDisabled = false;
-	}
+    }
 
-	//
-	// CompilerContext interface
-	//
-	// we might want these to refuse to return
-	// anything if they are in-use -- would require
-	// the interface provide a 'done' call, and
-	// we would mark them in-use whenever a get happened.
-	public Parser getParser() {
-		return parser;
-	}
+    //
+    // CompilerContext interface
+    //
+    // we might want these to refuse to return
+    // anything if they are in-use -- would require
+    // the interface provide a 'done' call, and
+    // we would mark them in-use whenever a get happened.
+    public Parser getParser() {
+        return parser;
+    }
 
-	/**
-	  *	Get the NodeFactory for this context
-	  *
-	  *	@return	The NodeFactory for this context.
-	  */
-	public	NodeFactory	getNodeFactory()
-	{	return lcf.getNodeFactory(); }
+    /**
+      *    Get the NodeFactory for this context
+      *
+      *    @return    The NodeFactory for this context.
+      */
+    public    NodeFactory    getNodeFactory()
+    {    return lcf.getNodeFactory(); }
 
 
-	public int getNextColumnNumber()
-	{
-		return nextColumnNumber++;
-	}
+    public int getNextColumnNumber()
+    {
+        return nextColumnNumber++;
+    }
 
-	public int getNextTableNumber()
-	{
-		return nextTableNumber++;
-	}
+    public int getNextTableNumber()
+    {
+        return nextTableNumber++;
+    }
 
     /**
      *
@@ -181,1018 +178,1016 @@ public class CompilerContextImpl extends ContextImpl
      *
      * @return
      */
-	public int getNumTables()
-	{
-		return nextTableNumber;
-	}
+    public int getNumTables()
+    {
+        return nextTableNumber;
+    }
     /**
      *
      * Utilized as a placeholder by the subquery unrolling logic.
      *
      * @return
      */
-	public void setNumTables(int num){
-		nextTableNumber = num;
-	}
+    public void setNumTables(int num){
+        nextTableNumber = num;
+    }
 
-	public int getMaximalPossibleTableCount() {
-		return maximalPossibleTableCount;
-	}
+    public int getMaximalPossibleTableCount() {
+        return maximalPossibleTableCount;
+    }
 
-	public void setMaximalPossibleTableCount(int num) {
-		maximalPossibleTableCount = num;
-	}
+    public void setMaximalPossibleTableCount(int num) {
+        maximalPossibleTableCount = num;
+    }
 
-	public boolean getSelectivityEstimationIncludingSkewedDefault() {
-		return selectivityEstimationIncludingSkewedDefault;
-	}
+    public boolean getSelectivityEstimationIncludingSkewedDefault() {
+        return selectivityEstimationIncludingSkewedDefault;
+    }
 
-	public void setSelectivityEstimationIncludingSkewedDefault(boolean onOff) {
-		selectivityEstimationIncludingSkewedDefault = onOff;
-	}
+    public void setSelectivityEstimationIncludingSkewedDefault(boolean onOff) {
+        selectivityEstimationIncludingSkewedDefault = onOff;
+    }
 
-	public boolean isProjectionPruningEnabled() {
-		return projectionPruningEnabled;
-	}
+    public boolean isProjectionPruningEnabled() {
+        return projectionPruningEnabled;
+    }
 
-	public void setProjectionPruningEnabled(boolean onOff) {
-		projectionPruningEnabled = onOff;
-	}
-	
-	public int getMaxMulticolumnProbeValues() {
-		return maxMulticolumnProbeValues;
-	}
-	
-	public void setMaxMulticolumnProbeValues(int newValue) {
-		maxMulticolumnProbeValues = newValue;
-	}
-	
-	public void setMulticolumnInlistProbeOnSparkEnabled(boolean newValue) {
-		multicolumnInlistProbeOnSparkEnabled = newValue;
-	}
-	
-	public void setConvertMultiColumnDNFPredicatesToInList(boolean newValue) {
-		convertMultiColumnDNFPredicatesToInList = newValue;
-	}
-	
-	public boolean getConvertMultiColumnDNFPredicatesToInList() {
-		return convertMultiColumnDNFPredicatesToInList;
-	}
-	
-	public boolean getMulticolumnInlistProbeOnSparkEnabled() { return multicolumnInlistProbeOnSparkEnabled; }
+    public void setProjectionPruningEnabled(boolean onOff) {
+        projectionPruningEnabled = onOff;
+    }
 
-	public void setDisablePredicateSimplification(boolean newValue) {
-		disablePredicateSimplification = newValue;
-	}
+    public int getMaxMulticolumnProbeValues() {
+        return maxMulticolumnProbeValues;
+    }
 
-	public boolean getDisablePredicateSimplification() {
-		return disablePredicateSimplification;
-	}
+    public void setMaxMulticolumnProbeValues(int newValue) {
+        maxMulticolumnProbeValues = newValue;
+    }
 
-	public void setSparkVersion(SparkVersion newValue) {
-		sparkVersionInitialized = true;
-		sparkVersion = newValue;
-	}
+    public void setMulticolumnInlistProbeOnSparkEnabled(boolean newValue) {
+        multicolumnInlistProbeOnSparkEnabled = newValue;
+    }
 
-	public SparkVersion getSparkVersion() {
-		return sparkVersion;
-	}
+    public void setConvertMultiColumnDNFPredicatesToInList(boolean newValue) {
+        convertMultiColumnDNFPredicatesToInList = newValue;
+    }
 
-	public boolean isSparkVersionInitialized() {
-		return sparkVersionInitialized;
-	}
+    public boolean getConvertMultiColumnDNFPredicatesToInList() {
+        return convertMultiColumnDNFPredicatesToInList;
+    }
+
+    public boolean getMulticolumnInlistProbeOnSparkEnabled() { return multicolumnInlistProbeOnSparkEnabled; }
+
+    public void setDisablePredicateSimplification(boolean newValue) {
+        disablePredicateSimplification = newValue;
+    }
+
+    public boolean getDisablePredicateSimplification() {
+        return disablePredicateSimplification;
+    }
+
+    public void setSparkVersion(SparkVersion newValue) {
+        sparkVersionInitialized = true;
+        sparkVersion = newValue;
+    }
+
+    public SparkVersion getSparkVersion() {
+        return sparkVersion;
+    }
+
+    public boolean isSparkVersionInitialized() {
+        return sparkVersionInitialized;
+    }
 
         public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue) {
-		nativeSparkAggregationMode = newValue;
-	}
+        nativeSparkAggregationMode = newValue;
+    }
 
-	public CompilerContext.NativeSparkModeType getNativeSparkAggregationMode() {
-		return nativeSparkAggregationMode;
-	}
+    public CompilerContext.NativeSparkModeType getNativeSparkAggregationMode() {
+        return nativeSparkAggregationMode;
+    }
 
-	public void setAllowOverflowSensitiveNativeSparkExpressions(boolean newValue) {
-		allowOverflowSensitiveNativeSparkExpressions = newValue;
-	}
+    public void setAllowOverflowSensitiveNativeSparkExpressions(boolean newValue) {
+        allowOverflowSensitiveNativeSparkExpressions = newValue;
+    }
 
-	public boolean getAllowOverflowSensitiveNativeSparkExpressions() {
-		return allowOverflowSensitiveNativeSparkExpressions;
-	}
+    public boolean getAllowOverflowSensitiveNativeSparkExpressions() {
+        return allowOverflowSensitiveNativeSparkExpressions;
+    }
 
-	public void setCurrentTimestampPrecision(int newValue) {
-		currentTimestampPrecision = newValue;
-	}
+    public void setCurrentTimestampPrecision(int newValue) {
+        currentTimestampPrecision = newValue;
+    }
 
-	public int getCurrentTimestampPrecision() {
-		return currentTimestampPrecision;
-	}
+    public int getCurrentTimestampPrecision() {
+        return currentTimestampPrecision;
+    }
 
-	public boolean isOuterJoinFlatteningDisabled() {
-		return outerJoinFlatteningDisabled;
-	}
+    public boolean isOuterJoinFlatteningDisabled() {
+        return outerJoinFlatteningDisabled;
+    }
 
-	public void setOuterJoinFlatteningDisabled(boolean onOff) {
-		outerJoinFlatteningDisabled = onOff;
-	}
+    public void setOuterJoinFlatteningDisabled(boolean onOff) {
+        outerJoinFlatteningDisabled = onOff;
+    }
 
-	/**
-	 * Get the current next subquery number from this CompilerContext.
-	 *
-	 * @return int	The next subquery number for the current statement.
-	 *
-	 */
+    /**
+     * Get the current next subquery number from this CompilerContext.
+     *
+     * @return int    The next subquery number for the current statement.
+     *
+     */
 
-	public int getNextSubqueryNumber()
-	{
-		return nextSubqueryNumber++;
-	}
+    public int getNextSubqueryNumber()
+    {
+        return nextSubqueryNumber++;
+    }
 
-	/**
-	 * Get the number of subquerys in the current statement from this CompilerContext.
-	 *
-	 * @return int	The number of subquerys in the current statement.
-	 *
-	 */
+    /**
+     * Get the number of subquerys in the current statement from this CompilerContext.
+     *
+     * @return int    The number of subquerys in the current statement.
+     *
+     */
 
-	public int getNumSubquerys()
-	{
-		return nextSubqueryNumber;
-	}
+    public int getNumSubquerys()
+    {
+        return nextSubqueryNumber;
+    }
 
-	public int getNextResultSetNumber()
-	{
-		return nextResultSetNumber++;
-	}
+    public int getNextResultSetNumber()
+    {
+        return nextResultSetNumber++;
+    }
 
-	public void resetNextResultSetNumber()
-	{
-		nextResultSetNumber = 0;
-	}
+    public void resetNextResultSetNumber()
+    {
+        nextResultSetNumber = 0;
+    }
 
-	public int getNumResultSets()
-	{
-		return nextResultSetNumber;
-	}
+    public int getNumResultSets()
+    {
+        return nextResultSetNumber;
+    }
 
-	public String getUniqueClassName()
-	{
-		// REMIND: should get a new UUID if we roll over...
-		if (SanityManager.DEBUG)
-		{
-    		SanityManager.ASSERT(nextClassName <= Long.MAX_VALUE);
-    	}
-		return classPrefix + Long.toHexString(nextClassName++);
-	}
+    public String getUniqueClassName()
+    {
+        // REMIND: should get a new UUID if we roll over...
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(nextClassName <= Long.MAX_VALUE);
+        }
+        return classPrefix + Long.toHexString(nextClassName++);
+    }
 
-	/**
-	 * Get the next equivalence class for equijoin clauses.
-	 *
-	 * @return The next equivalence class for equijoin clauses.
-	 */
-	public int getNextEquivalenceClass()
-	{
-		return ++nextEquivalenceClass;
-	}
+    /**
+     * Get the next equivalence class for equijoin clauses.
+     *
+     * @return The next equivalence class for equijoin clauses.
+     */
+    public int getNextEquivalenceClass()
+    {
+        return ++nextEquivalenceClass;
+    }
 
-	public ClassFactory getClassFactory()
-	{
-		return lcf.getClassFactory();
-	}
+    public ClassFactory getClassFactory()
+    {
+        return lcf.getClassFactory();
+    }
 
-	public JavaFactory getJavaFactory()
-	{
-		return lcf.getJavaFactory();
-	}
+    public JavaFactory getJavaFactory()
+    {
+        return lcf.getJavaFactory();
+    }
 
-	public void setCurrentDependent(Dependent d) {
-		currentDependent = d;
-	}
+    public void setCurrentDependent(Dependent d) {
+        currentDependent = d;
+    }
 
-		public Dependent getCurrentDependent(){
-				return currentDependent;
-		}
+        public Dependent getCurrentDependent(){
+                return currentDependent;
+        }
 
-	/**
-	 * Get the current auxiliary provider list from this CompilerContext.
-	 *
-	 * @return	The current AuxiliaryProviderList.
-	 *
-	 */
+    /**
+     * Get the current auxiliary provider list from this CompilerContext.
+     *
+     * @return    The current AuxiliaryProviderList.
+     *
+     */
 
-	public ProviderList getCurrentAuxiliaryProviderList()
-	{
-		return currentAPL;
-	}
+    public ProviderList getCurrentAuxiliaryProviderList()
+    {
+        return currentAPL;
+    }
 
-	/**
-	 * Set the current auxiliary provider list for this CompilerContext.
-	 *
-	 * @param apl	The new current AuxiliaryProviderList.
-	 */
+    /**
+     * Set the current auxiliary provider list for this CompilerContext.
+     *
+     * @param apl    The new current AuxiliaryProviderList.
+     */
 
-	public void setCurrentAuxiliaryProviderList(ProviderList apl)
-	{
-		currentAPL = apl;
-	}
+    public void setCurrentAuxiliaryProviderList(ProviderList apl)
+    {
+        currentAPL = apl;
+    }
 
-	public void createDependency(Provider p) throws StandardException {
-		if (SanityManager.DEBUG)
-		SanityManager.ASSERT(currentDependent != null,
-				"no current dependent for compilation");
+    public void createDependency(Provider p) throws StandardException {
+        if (SanityManager.DEBUG)
+        SanityManager.ASSERT(currentDependent != null,
+                "no current dependent for compilation");
 
-		if (dm == null)
-			dm = lcc.getDataDictionary().getDependencyManager();
-		dm.addDependency(currentDependent, p, getContextManager());
-		addProviderToAuxiliaryList(p);
-	}
+        if (dm == null)
+            dm = lcc.getDataDictionary().getDependencyManager();
+        dm.addDependency(currentDependent, p, getContextManager());
+        addProviderToAuxiliaryList(p);
+    }
 
-	/**
-	 * Add a dependency between two objects.
-	 *
-	 * @param d	The Dependent object.
-	 * @param p	The Provider of the dependency.
-	 * @exception StandardException thrown on failure.
-	 *
-	 */
-	public	void createDependency(Dependent d, Provider p) throws StandardException
-	{
-		if (dm == null)
-			dm = lcc.getDataDictionary().getDependencyManager();
+    /**
+     * Add a dependency between two objects.
+     *
+     * @param d    The Dependent object.
+     * @param p    The Provider of the dependency.
+     * @exception StandardException thrown on failure.
+     *
+     */
+    public    void createDependency(Dependent d, Provider p) throws StandardException
+    {
+        if (dm == null)
+            dm = lcc.getDataDictionary().getDependencyManager();
 
-		dm.addDependency(d, p, getContextManager());
-		addProviderToAuxiliaryList(p);
-	}
+        dm.addDependency(d, p, getContextManager());
+        addProviderToAuxiliaryList(p);
+    }
 
-	/**
-	 * Add a Provider to the current AuxiliaryProviderList, if one exists.
-	 *
-	 * @param p		The Provider to add.
-	 */
-	private void addProviderToAuxiliaryList(Provider p)
-	{
-		if (currentAPL != null)
-		{
-			currentAPL.addProvider(p);
-		}
-	}
+    /**
+     * Add a Provider to the current AuxiliaryProviderList, if one exists.
+     *
+     * @param p        The Provider to add.
+     */
+    private void addProviderToAuxiliaryList(Provider p)
+    {
+        if (currentAPL != null)
+        {
+            currentAPL.addProvider(p);
+        }
+    }
 
-	public int addSavedObject(Object obj) {
-		if (savedObjects == null) savedObjects = new Vector();
+    public int addSavedObject(Object obj) {
+        if (savedObjects == null) savedObjects = new Vector();
 
-		savedObjects.add(obj);
-		return savedObjects.size()-1;
-	}
+        savedObjects.add(obj);
+        return savedObjects.size()-1;
+    }
 
-	public Object[] getSavedObjects() {
-		if (savedObjects == null) return null;
+    public Object[] getSavedObjects() {
+        if (savedObjects == null) return null;
 
-		Object[] retVal = new Object[savedObjects.size()];
-		savedObjects.copyInto(retVal);
-		savedObjects = null; // erase to start over
-		return retVal;
-	}
+        Object[] retVal = new Object[savedObjects.size()];
+        savedObjects.copyInto(retVal);
+        savedObjects = null; // erase to start over
+        return retVal;
+    }
 
-	/** @see CompilerContext#setSavedObjects */
-	public void setSavedObjects(Object[] objs) 
-	{
-		if (objs == null)
-		{
-			return;
-		}
+    /** @see CompilerContext#setSavedObjects */
+    public void setSavedObjects(Object[] objs)
+    {
+        if (objs == null)
+        {
+            return;
+        }
 
         for (Object obj : objs) {
             addSavedObject(obj);
         }
-	}
+    }
 
-	/** @see CompilerContext#setCursorInfo */
-	public void setCursorInfo(Object cursorInfo)
-	{
-		this.cursorInfo = cursorInfo;
-	}
-
-	/** @see CompilerContext#getCursorInfo */
-	public Object getCursorInfo()
-	{
-		return cursorInfo;
-	}
-
-	
-	/** @see CompilerContext#firstOnStack */
-	public void firstOnStack()
-	{
-		firstOnStack = true;
-	}
-
-	/** @see CompilerContext#isFirstOnStack */
-	public boolean isFirstOnStack()
-	{
-		return firstOnStack;
-	}
-
-	/**
-	 * Set the in use state for the compiler context.
-	 *
-	 * @param inUse	 The new inUse state for the compiler context.
-	 */
-	public void setInUse(boolean inUse)
-	{
-		this.inUse = inUse;
-
-		/*
-		** Close the StoreCostControllers associated with this CompilerContext
-		** when the context is no longer in use.
-		*/
-		if ( ! inUse)
-		{
-			closeStoreCostControllers();
-			closeSortCostControllers();
-		}
-	}
-
-	/**
-	 * Return the in use state for the compiler context.
-	 *
-	 * @return boolean	The in use state for the compiler context.
-	 */
-	public boolean getInUse()
-	{
-		return inUse;
-	}
-
-	/**
-	 * Sets which kind of query fragments are NOT allowed. Basically,
-	 * these are fragments which return unstable results. CHECK CONSTRAINTS
-	 * and CREATE PUBLICATION want to forbid certain kinds of fragments.
-	 *
-	 * @param reliability	bitmask of types of query fragments to be forbidden
-	 *						see the reliability bitmasks in CompilerContext.java
-	 *
-	 */
-	public void	setReliability(int reliability) { this.reliability = reliability; }
-
-	/**
-	 * Return the reliability requirements of this clause. See setReliability()
-	 * for a definition of clause reliability.
-	 *
-	 * @return a bitmask of which types of query fragments are to be forbidden
-	 */
-	public int getReliability() { return reliability; }
-
-	/**
-	 * @see CompilerContext#getStoreCostController
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	@Override
-	public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd, boolean skipStats, long defaultRowCount) throws StandardException {
-      	long conglomerateNumber = cd.getConglomerateNumber();
-		/*
-		** Try to find the given conglomerate number in the array of
-		** conglom ids.
-		*/
-		Pair<Long, Boolean> pairedKey = Pair.newPair(conglomerateNumber, skipStats);
-		StoreCostController scc = storeCostControllers.get(pairedKey);
-		if (scc != null)
-			return scc;
-
-		/*
-		** Not found, so get a StoreCostController from the store.
-		*/
-		StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount);
-
-		/* Put it in the array */
-		storeCostControllers.put(pairedKey, retval);
-
-		return retval;
-	}
-
-	/**
-	 *
-	 */
-	private void closeStoreCostControllers()
-	{
-		for (Map.Entry<Pair<Long, Boolean>, StoreCostController> entry: storeCostControllers.entrySet()) {
-			StoreCostController scc = entry.getValue();
-			try {
-				scc.close();
-			} catch (StandardException ignored) {
-			}
-		}
-
-		storeCostControllers.clear();
-		skipStatsTableList.clear();
-	}
-
-	/**
-	 * @see CompilerContext#getSortCostController
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public SortCostController getSortCostController() throws StandardException
-	{
-		/*
-		** Re-use a single SortCostController for each compilation
-		*/
-		if (sortCostController == null)
-		{
-			/*
-			** Get a StoreCostController from the store.
-			*/
-
-			sortCostController = lcc.getTransactionCompile().openSortCostController(null);
-		}
-
-		return sortCostController;
-	}
-
-	/**
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	private void closeSortCostControllers()
-	{
-		if (sortCostController != null)
-		{
-			sortCostController.close();
-			sortCostController = null;	
-		}
-	}
-
-	/**
-	 * Get the compilation schema descriptor for this compilation context.
-	   Will be null if no default schema lookups have occured. Ie.
-	   the statement is independent of the current schema.
-	 * 
-	 * @return the compilation schema descirptor
-	 */
-	public SchemaDescriptor getCompilationSchema()
-	{
-		return compilationSchema;
-	}
-
-	/**
-	 * Set the compilation schema descriptor for this compilation context.
-	 *
-	 * @param newDefault	the compilation schema
-	 * 
-	 * @return the previous compilation schema descirptor
-	 */
-	public SchemaDescriptor setCompilationSchema(SchemaDescriptor newDefault)
-	{
-		SchemaDescriptor tmpSchema = compilationSchema;
-		compilationSchema = newDefault;
-		return tmpSchema;
-	}
-
-	/**
-	 * @see CompilerContext#pushCompilationSchema
-	 */
-	public void pushCompilationSchema(SchemaDescriptor sd)
-	{
-		if (defaultSchemaStack == null) {
-			defaultSchemaStack = new ArrayList(2);
-		}
-
-		defaultSchemaStack.add(defaultSchemaStack.size(),
-							   getCompilationSchema());
-		setCompilationSchema(sd);
-	}
-
-	/**
-	 * @see CompilerContext#popCompilationSchema
-	 */
-	public void popCompilationSchema()
-	{
-		SchemaDescriptor sd =
-			(SchemaDescriptor)defaultSchemaStack.remove(
-				defaultSchemaStack.size() - 1);
-		setCompilationSchema(sd);
-	}
-
-	/**
-	 * @see CompilerContext#setParameterList
-	 */
-	public void setParameterList(Vector parameterList)
-	{
-		this.parameterList = parameterList;
-
-		/* Don't create param descriptors array if there are no params */
-		int numberOfParameters = (parameterList == null) ? 0 : parameterList.size();
-
-		if (numberOfParameters > 0)
-		{
-			parameterDescriptors = new DataTypeDescriptor[numberOfParameters];
-		}
-	}
-
-	/**
-	 * @see CompilerContext#getParameterList
-	 */
-	public Vector getParameterList()
-	{
-		return parameterList;
-	}
-
-	/**
-	 * @see CompilerContext#setReturnParameterFlag
-	 */
-	public void setReturnParameterFlag()
-	{
-		returnParameterFlag = true;
-	}
-
-	/**
-	 * @see CompilerContext#getReturnParameterFlag
-	 */
-	public boolean getReturnParameterFlag()
-	{
-		return returnParameterFlag;
-	}
-
-	/**
-	 * @see CompilerContext#getParameterTypes
-	 */
-	public DataTypeDescriptor[] getParameterTypes()
-	{
-		return parameterDescriptors;
-	}
-
-	/**
-	 * @see CompilerContext#setScanIsolationLevel
-	 */
-	public void setScanIsolationLevel(int isolationLevel)
-	{
-		scanIsolationLevel = isolationLevel;
-	}
-
-	/**
-	 * @see CompilerContext#getScanIsolationLevel
-	 */
-	public int getScanIsolationLevel()
-	{
-		return scanIsolationLevel;
-	}
-
-	/**
-	 * @see CompilerContext#getTypeCompilerFactory
-	 */
-	public TypeCompilerFactory getTypeCompilerFactory()
-	{
-		return typeCompilerFactory;
-	}
-
-
-	/**
-		Add a compile time warning.
-	*/
-	public void addWarning(SQLWarning warning) {
-		if (warnings == null)
-			warnings = warning;
-		else
-			warnings.setNextWarning(warning);
-	}
-
-	/**
-		Get the chain of compile time warnings.
-	*/
-	public SQLWarning getWarnings() {
-		return warnings;
-	}
-
-	/////////////////////////////////////////////////////////////////////////////////////
-	//
-	// class interface
-	//
-	// this constructor is called with the parser
-	// to be saved when the context
-	// is created (when the first statement comes in, likely).
-	//
-	/////////////////////////////////////////////////////////////////////////////////////
-
-	public CompilerContextImpl(ContextManager cm,
-			LanguageConnectionContext lcc,
-		TypeCompilerFactory typeCompilerFactory )
-	{
-		super(cm, CompilerContext.CONTEXT_ID);
-
-		this.lcc = lcc;
-		lcf = lcc.getLanguageConnectionFactory();
-		this.parser = lcf.newParser(this);
-		this.typeCompilerFactory = typeCompilerFactory;
-
-		// the prefix for classes in this connection
-		classPrefix = "ac"+lcf.getUUIDFactory().createUUID().toString().replace('-','x');
-
-		initRequiredPriv();
-	}
-
-	private void initRequiredPriv()
-	{
-		currPrivType = Authorizer.NULL_PRIV;
-		privTypeStack.clear();
-		requiredColumnPrivileges = null;
-		requiredTablePrivileges = null;
-		requiredSchemaPrivileges = null;
-		requiredRoutinePrivileges = null;
-		requiredUsagePrivileges = null;
-		requiredRolePrivileges = null;
-		LanguageConnectionContext lcc = (LanguageConnectionContext)
-		getContextManager().getContext(LanguageConnectionContext.CONTEXT_ID);
-		if(lcc != null && lcc.usesSqlAuthorization())
-		{
-			requiredColumnPrivileges = new HashMap();
-			requiredTablePrivileges = new HashMap();
-			requiredSchemaPrivileges = new HashMap();
-			requiredRoutinePrivileges = new HashMap();
-			requiredUsagePrivileges = new HashMap();
-			requiredRolePrivileges = new HashMap();
-		}
-	} // end of initRequiredPriv
-
-	/**
-	 * Sets the current privilege type context. Column and table nodes do not know
-	 * how they are being used. Higher level nodes in the query tree do not know what
-	 * is being referenced.
-	 * Keeping the context allows the two to come together.
-	 *
-	 * @param privType One of the privilege types in com.splicemachine.db.iapi.sql.conn.Authorizer.
-	 */
-	public void pushCurrentPrivType( int privType)
-	{
-		privTypeStack.push( ReuseFactory.getInteger( currPrivType));
-		currPrivType = privType;
-	}
-
-	public void popCurrentPrivType( )
-	{
-		currPrivType = (Integer) privTypeStack.pop();
-	}
-
-	/**
-	 * Add a column privilege to the list of used column privileges.
-	 *
-	 * @param column The column whose privileges we're interested in.
-	 */
-	public void addRequiredColumnPriv( ColumnDescriptor column)
-	{
-		if( requiredColumnPrivileges == null // Using old style authorization
-			|| currPrivType == Authorizer.NULL_PRIV
-			|| currPrivType == Authorizer.DELETE_PRIV // Table privilege only
-			|| currPrivType == Authorizer.INSERT_PRIV // Table privilege only
-			|| currPrivType == Authorizer.TRIGGER_PRIV // Table privilege only
-			|| currPrivType == Authorizer.EXECUTE_PRIV
-			|| column == null)
-			return;
-		/*
-		* Note that to look up the privileges for this column,
-		* we need to know what table the column is in. However,
-		* not all ColumnDescriptor objects are associated with
-		* a table object. Sometimes a ColumnDescriptor
-		* describes a column but doesn't specify the table. An
-		* example of this occurs in the set-clause of the
-		* UPDATE statement in SQL, where we may have a
-		* ColumnDescriptor which describes the expression that
-		* is being used in the UPDATE statement to provide the
-		* new value that will be computed by the UPDATE. In such a
-		* case, there is no column privilege to be added, so we
-		* just take an early return. DERBY-1583 has more details.
-		*/
-		TableDescriptor td = column.getTableDescriptor();
-		if (td == null)
-			return;
-
-		if (td.getTableType() ==
-				TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE || td.getTableType() == TableDescriptor.WITH_TYPE) {
-			return; // no priv needed, it is per session anyway
-		}
-
-		UUID tableUUID = td.getUUID();
-		UUID schemaUUID = td.getSchemaDescriptor().getUUID();
-
-		//DERBY-4191
-		if( currPrivType == Authorizer.MIN_SELECT_PRIV){
-			//If we are here for MIN_SELECT_PRIV requirement, then first
-			//check if there is already a SELECT privilege requirement on any 
-			//of the columns in the table. If yes, then we do not need to add 
-			//MIN_SELECT_PRIV requirement for the table because that 
-			//requirement is already getting satisfied with the already
-			//existing SELECT privilege requirement
-			StatementTablePermission key = new StatementTablePermission(
-					schemaUUID, tableUUID, Authorizer.SELECT_PRIV);
-			StatementColumnPermission tableColumnPrivileges
-			  = (StatementColumnPermission) requiredColumnPrivileges.get( key);
-			if( tableColumnPrivileges != null)
-				return;
-		}
-		if( currPrivType == Authorizer.SELECT_PRIV){
-			//If we are here for SELECT_PRIV requirement, then first check
-			//if there is already any MIN_SELECT_PRIV privilege required
-			//on this table. If yes, then that requirement will be fulfilled
-			//by the SELECT_PRIV requirement we are adding now. Because of
-			//that, remove the MIN_SELECT_PRIV privilege requirement
-			StatementTablePermission key = new StatementTablePermission(
-					schemaUUID, tableUUID, Authorizer.MIN_SELECT_PRIV);
-			StatementColumnPermission tableColumnPrivileges
-			  = (StatementColumnPermission) requiredColumnPrivileges.get( key);
-			if( tableColumnPrivileges != null)
-				requiredColumnPrivileges.remove(key);
-		}
-		
-		StatementTablePermission key = new StatementTablePermission( schemaUUID, tableUUID, currPrivType);
-		StatementColumnPermission tableColumnPrivileges
-		  = (StatementColumnPermission) requiredColumnPrivileges.get( key);
-		if( tableColumnPrivileges == null)
-		{
-			addRequiredAccessSchemaPriv(schemaUUID);
-			tableColumnPrivileges = new StatementColumnPermission( schemaUUID,
-																   tableUUID,
-																   currPrivType,
-																   new FormatableBitSet( td.getMaxColumnID()));
-			requiredColumnPrivileges.put(key, tableColumnPrivileges);
-		}
-		tableColumnPrivileges.getColumns().set(column.getPosition() - 1);
-	} // end of addRequiredColumnPriv
-
-	/**
-	 * Add a table or view privilege to the list of used table privileges.
-	 *
-	 * @see CompilerContext#addRequiredRoutinePriv
-	 */
-	public void addRequiredTablePriv( TableDescriptor table)
-	{
-		if( requiredTablePrivileges == null || table == null)
-			return;
-
-		if (table.getTableType() ==
-				TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
-			return; // no priv needed, it is per session anyway
-		}
-
-		if( currPrivType == Authorizer.SELECT_PRIV){
-			//DERBY-4191
-			//Check if there is any MIN_SELECT_PRIV select privilege required
-			//on this table. If yes, then that requirement will be fulfilled
-			//by the SELECT_PRIV requirement we are adding now. Because of
-			//that, remove the MIN_SELECT_PRIV privilege requirement
-			UUID tableUUID 	= table.getUUID();
-			UUID schemaUUID = table.getSchemaDescriptor().getUUID();
-
-			StatementTablePermission key = new StatementTablePermission(
-					schemaUUID, tableUUID, Authorizer.MIN_SELECT_PRIV);
-			StatementColumnPermission tableColumnPrivileges
-			  = (StatementColumnPermission) requiredColumnPrivileges.get( key);
-			if( tableColumnPrivileges != null)
-				requiredColumnPrivileges.remove(key);
-		}
-		UUID tableUUID 	= table.getUUID();
-		UUID schemaUUID = table.getSchemaDescriptor().getUUID();
-
-		addRequiredAccessSchemaPriv(schemaUUID);
-		StatementTablePermission key = new StatementTablePermission(  schemaUUID, tableUUID, currPrivType);
-		requiredTablePrivileges.put(key, key);
-	}
-
-	/**
-	 * Add a routine execute privilege to the list of used routine privileges.
-	 *
-	 * @see CompilerContext#addRequiredRoutinePriv
-	 */
-	public void addRequiredRoutinePriv( AliasDescriptor routine)
-	{
-		// routine == null for built in routines
-		if( requiredRoutinePrivileges == null || routine == null)
-			return;
-
-		// Ignore SYSFUN routines for permission scheme
-		if (routine.getSchemaUUID().toString().equals(SchemaDescriptor.SYSFUN_SCHEMA_UUID))
-			return;
-
- 		if (requiredRoutinePrivileges.get(routine.getUUID()) == null)
- 			requiredRoutinePrivileges.put(routine.getUUID(), ReuseFactory.getInteger(1));
-	}
-
-	/**
-	 * @see CompilerContext#addRequiredUsagePriv
-	 */
-	public void addRequiredUsagePriv( PrivilegedSQLObject usableObject )
+    /** @see CompilerContext#setCursorInfo */
+    public void setCursorInfo(Object cursorInfo)
     {
-		if( requiredUsagePrivileges == null || usableObject == null) { return; }
+        this.cursorInfo = cursorInfo;
+    }
+
+    /** @see CompilerContext#getCursorInfo */
+    public Object getCursorInfo()
+    {
+        return cursorInfo;
+    }
+
+
+    /** @see CompilerContext#firstOnStack */
+    public void firstOnStack()
+    {
+        firstOnStack = true;
+    }
+
+    /** @see CompilerContext#isFirstOnStack */
+    public boolean isFirstOnStack()
+    {
+        return firstOnStack;
+    }
+
+    /**
+     * Set the in use state for the compiler context.
+     *
+     * @param inUse     The new inUse state for the compiler context.
+     */
+    public void setInUse(boolean inUse)
+    {
+        this.inUse = inUse;
+
+        /*
+        ** Close the StoreCostControllers associated with this CompilerContext
+        ** when the context is no longer in use.
+        */
+        if ( ! inUse)
+        {
+            closeStoreCostControllers();
+            closeSortCostControllers();
+        }
+    }
+
+    /**
+     * Return the in use state for the compiler context.
+     *
+     * @return boolean    The in use state for the compiler context.
+     */
+    public boolean getInUse()
+    {
+        return inUse;
+    }
+
+    /**
+     * Sets which kind of query fragments are NOT allowed. Basically,
+     * these are fragments which return unstable results. CHECK CONSTRAINTS
+     * and CREATE PUBLICATION want to forbid certain kinds of fragments.
+     *
+     * @param reliability    bitmask of types of query fragments to be forbidden
+     *                        see the reliability bitmasks in CompilerContext.java
+     *
+     */
+    public void    setReliability(int reliability) { this.reliability = reliability; }
+
+    /**
+     * Return the reliability requirements of this clause. See setReliability()
+     * for a definition of clause reliability.
+     *
+     * @return a bitmask of which types of query fragments are to be forbidden
+     */
+    public int getReliability() { return reliability; }
+
+    /**
+     * @see CompilerContext#getStoreCostController
+     *
+     * @exception StandardException        Thrown on error
+     */
+    @Override
+    public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd, boolean skipStats, long defaultRowCount) throws StandardException {
+          long conglomerateNumber = cd.getConglomerateNumber();
+        /*
+        ** Try to find the given conglomerate number in the array of
+        ** conglom ids.
+        */
+        Pair<Long, Boolean> pairedKey = Pair.newPair(conglomerateNumber, skipStats);
+        StoreCostController scc = storeCostControllers.get(pairedKey);
+        if (scc != null)
+            return scc;
+
+        /*
+        ** Not found, so get a StoreCostController from the store.
+        */
+        StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount);
+
+        /* Put it in the array */
+        storeCostControllers.put(pairedKey, retval);
+
+        return retval;
+    }
+
+    /**
+     *
+     */
+    private void closeStoreCostControllers()
+    {
+        for (Map.Entry<Pair<Long, Boolean>, StoreCostController> entry: storeCostControllers.entrySet()) {
+            StoreCostController scc = entry.getValue();
+            try {
+                scc.close();
+            } catch (StandardException ignored) {
+            }
+        }
+
+        storeCostControllers.clear();
+        skipStatsTableList.clear();
+    }
+
+    /**
+     * @see CompilerContext#getSortCostController
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public SortCostController getSortCostController() throws StandardException
+    {
+        /*
+        ** Re-use a single SortCostController for each compilation
+        */
+        if (sortCostController == null)
+        {
+            /*
+            ** Get a StoreCostController from the store.
+            */
+
+            sortCostController = lcc.getTransactionCompile().openSortCostController(null);
+        }
+
+        return sortCostController;
+    }
+
+    /**
+     *
+     * @exception StandardException        Thrown on error
+     */
+    private void closeSortCostControllers()
+    {
+        if (sortCostController != null)
+        {
+            sortCostController.close();
+            sortCostController = null;
+        }
+    }
+
+    /**
+     * Get the compilation schema descriptor for this compilation context.
+       Will be null if no default schema lookups have occured. Ie.
+       the statement is independent of the current schema.
+     *
+     * @return the compilation schema descirptor
+     */
+    public SchemaDescriptor getCompilationSchema()
+    {
+        return compilationSchema;
+    }
+
+    /**
+     * Set the compilation schema descriptor for this compilation context.
+     *
+     * @param newDefault    the compilation schema
+     *
+     * @return the previous compilation schema descirptor
+     */
+    public SchemaDescriptor setCompilationSchema(SchemaDescriptor newDefault)
+    {
+        SchemaDescriptor tmpSchema = compilationSchema;
+        compilationSchema = newDefault;
+        return tmpSchema;
+    }
+
+    /**
+     * @see CompilerContext#pushCompilationSchema
+     */
+    public void pushCompilationSchema(SchemaDescriptor sd)
+    {
+        if (defaultSchemaStack == null) {
+            defaultSchemaStack = new ArrayList(2);
+        }
+
+        defaultSchemaStack.add(defaultSchemaStack.size(),
+                               getCompilationSchema());
+        setCompilationSchema(sd);
+    }
+
+    /**
+     * @see CompilerContext#popCompilationSchema
+     */
+    public void popCompilationSchema()
+    {
+        SchemaDescriptor sd =
+            (SchemaDescriptor)defaultSchemaStack.remove(
+                defaultSchemaStack.size() - 1);
+        setCompilationSchema(sd);
+    }
+
+    /**
+     * @see CompilerContext#setParameterList
+     */
+    public void setParameterList(Vector parameterList)
+    {
+        this.parameterList = parameterList;
+
+        /* Don't create param descriptors array if there are no params */
+        int numberOfParameters = (parameterList == null) ? 0 : parameterList.size();
+
+        if (numberOfParameters > 0)
+        {
+            parameterDescriptors = new DataTypeDescriptor[numberOfParameters];
+        }
+    }
+
+    /**
+     * @see CompilerContext#getParameterList
+     */
+    public Vector getParameterList()
+    {
+        return parameterList;
+    }
+
+    /**
+     * @see CompilerContext#setReturnParameterFlag
+     */
+    public void setReturnParameterFlag()
+    {
+        returnParameterFlag = true;
+    }
+
+    /**
+     * @see CompilerContext#getReturnParameterFlag
+     */
+    public boolean getReturnParameterFlag()
+    {
+        return returnParameterFlag;
+    }
+
+    /**
+     * @see CompilerContext#getParameterTypes
+     */
+    public DataTypeDescriptor[] getParameterTypes()
+    {
+        return parameterDescriptors;
+    }
+
+    /**
+     * @see CompilerContext#setScanIsolationLevel
+     */
+    public void setScanIsolationLevel(int isolationLevel)
+    {
+        scanIsolationLevel = isolationLevel;
+    }
+
+    /**
+     * @see CompilerContext#getScanIsolationLevel
+     */
+    public int getScanIsolationLevel()
+    {
+        return scanIsolationLevel;
+    }
+
+    /**
+     * @see CompilerContext#getTypeCompilerFactory
+     */
+    public TypeCompilerFactory getTypeCompilerFactory()
+    {
+        return typeCompilerFactory;
+    }
+
+
+    /**
+        Add a compile time warning.
+    */
+    public void addWarning(SQLWarning warning) {
+        if (warnings == null)
+            warnings = warning;
+        else
+            warnings.setNextWarning(warning);
+    }
+
+    /**
+        Get the chain of compile time warnings.
+    */
+    public SQLWarning getWarnings() {
+        return warnings;
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////
+    //
+    // class interface
+    //
+    // this constructor is called with the parser
+    // to be saved when the context
+    // is created (when the first statement comes in, likely).
+    //
+    /////////////////////////////////////////////////////////////////////////////////////
+
+    public CompilerContextImpl(ContextManager cm,
+            LanguageConnectionContext lcc,
+        TypeCompilerFactory typeCompilerFactory )
+    {
+        super(cm, CompilerContext.CONTEXT_ID);
+
+        this.lcc = lcc;
+        lcf = lcc.getLanguageConnectionFactory();
+        this.parser = lcf.newParser(this);
+        this.typeCompilerFactory = typeCompilerFactory;
+
+        // the prefix for classes in this connection
+        classPrefix = "ac"+lcf.getUUIDFactory().createUUID().toString().replace('-','x');
+
+        initRequiredPriv();
+    }
+
+    private void initRequiredPriv()
+    {
+        currPrivType = Authorizer.NULL_PRIV;
+        privTypeStack.clear();
+        requiredColumnPrivileges = null;
+        requiredTablePrivileges = null;
+        requiredSchemaPrivileges = null;
+        requiredRoutinePrivileges = null;
+        requiredUsagePrivileges = null;
+        requiredRolePrivileges = null;
+        LanguageConnectionContext lcc = (LanguageConnectionContext)
+        getContextManager().getContext(LanguageConnectionContext.CONTEXT_ID);
+        if(lcc != null && lcc.usesSqlAuthorization())
+        {
+            requiredColumnPrivileges = new HashMap();
+            requiredTablePrivileges = new HashMap();
+            requiredSchemaPrivileges = new HashMap();
+            requiredRoutinePrivileges = new HashMap();
+            requiredUsagePrivileges = new HashMap();
+            requiredRolePrivileges = new HashMap();
+        }
+    } // end of initRequiredPriv
+
+    /**
+     * Sets the current privilege type context. Column and table nodes do not know
+     * how they are being used. Higher level nodes in the query tree do not know what
+     * is being referenced.
+     * Keeping the context allows the two to come together.
+     *
+     * @param privType One of the privilege types in com.splicemachine.db.iapi.sql.conn.Authorizer.
+     */
+    public void pushCurrentPrivType( int privType)
+    {
+        privTypeStack.push( ReuseFactory.getInteger( currPrivType));
+        currPrivType = privType;
+    }
+
+    public void popCurrentPrivType( )
+    {
+        currPrivType = (Integer) privTypeStack.pop();
+    }
+
+    /**
+     * Add a column privilege to the list of used column privileges.
+     *
+     * @param column The column whose privileges we're interested in.
+     */
+    public void addRequiredColumnPriv( ColumnDescriptor column)
+    {
+        if( requiredColumnPrivileges == null // Using old style authorization
+            || currPrivType == Authorizer.NULL_PRIV
+            || currPrivType == Authorizer.DELETE_PRIV // Table privilege only
+            || currPrivType == Authorizer.INSERT_PRIV // Table privilege only
+            || currPrivType == Authorizer.TRIGGER_PRIV // Table privilege only
+            || currPrivType == Authorizer.EXECUTE_PRIV
+            || column == null)
+            return;
+        /*
+        * Note that to look up the privileges for this column,
+        * we need to know what table the column is in. However,
+        * not all ColumnDescriptor objects are associated with
+        * a table object. Sometimes a ColumnDescriptor
+        * describes a column but doesn't specify the table. An
+        * example of this occurs in the set-clause of the
+        * UPDATE statement in SQL, where we may have a
+        * ColumnDescriptor which describes the expression that
+        * is being used in the UPDATE statement to provide the
+        * new value that will be computed by the UPDATE. In such a
+        * case, there is no column privilege to be added, so we
+        * just take an early return. DERBY-1583 has more details.
+        */
+        TableDescriptor td = column.getTableDescriptor();
+        if (td == null)
+            return;
+
+        if (td.getTableType() ==
+                TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE || td.getTableType() == TableDescriptor.WITH_TYPE) {
+            return; // no priv needed, it is per session anyway
+        }
+
+        UUID tableUUID = td.getUUID();
+        UUID schemaUUID = td.getSchemaDescriptor().getUUID();
+
+        //DERBY-4191
+        if( currPrivType == Authorizer.MIN_SELECT_PRIV){
+            //If we are here for MIN_SELECT_PRIV requirement, then first
+            //check if there is already a SELECT privilege requirement on any
+            //of the columns in the table. If yes, then we do not need to add
+            //MIN_SELECT_PRIV requirement for the table because that
+            //requirement is already getting satisfied with the already
+            //existing SELECT privilege requirement
+            StatementTablePermission key = new StatementTablePermission(
+                    schemaUUID, tableUUID, Authorizer.SELECT_PRIV);
+            StatementColumnPermission tableColumnPrivileges
+              = (StatementColumnPermission) requiredColumnPrivileges.get( key);
+            if( tableColumnPrivileges != null)
+                return;
+        }
+        if( currPrivType == Authorizer.SELECT_PRIV){
+            //If we are here for SELECT_PRIV requirement, then first check
+            //if there is already any MIN_SELECT_PRIV privilege required
+            //on this table. If yes, then that requirement will be fulfilled
+            //by the SELECT_PRIV requirement we are adding now. Because of
+            //that, remove the MIN_SELECT_PRIV privilege requirement
+            StatementTablePermission key = new StatementTablePermission(
+                    schemaUUID, tableUUID, Authorizer.MIN_SELECT_PRIV);
+            StatementColumnPermission tableColumnPrivileges
+              = (StatementColumnPermission) requiredColumnPrivileges.get( key);
+            if( tableColumnPrivileges != null)
+                requiredColumnPrivileges.remove(key);
+        }
+
+        StatementTablePermission key = new StatementTablePermission( schemaUUID, tableUUID, currPrivType);
+        StatementColumnPermission tableColumnPrivileges
+          = (StatementColumnPermission) requiredColumnPrivileges.get( key);
+        if( tableColumnPrivileges == null)
+        {
+            addRequiredAccessSchemaPriv(schemaUUID);
+            tableColumnPrivileges = new StatementColumnPermission( schemaUUID,
+                                                                   tableUUID,
+                                                                   currPrivType,
+                                                                   new FormatableBitSet( td.getMaxColumnID()));
+            requiredColumnPrivileges.put(key, tableColumnPrivileges);
+        }
+        tableColumnPrivileges.getColumns().set(column.getPosition() - 1);
+    } // end of addRequiredColumnPriv
+
+    /**
+     * Add a table or view privilege to the list of used table privileges.
+     *
+     * @see CompilerContext#addRequiredRoutinePriv
+     */
+    public void addRequiredTablePriv( TableDescriptor table)
+    {
+        if( requiredTablePrivileges == null || table == null)
+            return;
+
+        if (table.getTableType() ==
+                TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
+            return; // no priv needed, it is per session anyway
+        }
+
+        if( currPrivType == Authorizer.SELECT_PRIV){
+            //DERBY-4191
+            //Check if there is any MIN_SELECT_PRIV select privilege required
+            //on this table. If yes, then that requirement will be fulfilled
+            //by the SELECT_PRIV requirement we are adding now. Because of
+            //that, remove the MIN_SELECT_PRIV privilege requirement
+            UUID tableUUID     = table.getUUID();
+            UUID schemaUUID = table.getSchemaDescriptor().getUUID();
+
+            StatementTablePermission key = new StatementTablePermission(
+                    schemaUUID, tableUUID, Authorizer.MIN_SELECT_PRIV);
+            StatementColumnPermission tableColumnPrivileges
+              = (StatementColumnPermission) requiredColumnPrivileges.get( key);
+            if( tableColumnPrivileges != null)
+                requiredColumnPrivileges.remove(key);
+        }
+        UUID tableUUID     = table.getUUID();
+        UUID schemaUUID = table.getSchemaDescriptor().getUUID();
+
+        addRequiredAccessSchemaPriv(schemaUUID);
+        StatementTablePermission key = new StatementTablePermission(  schemaUUID, tableUUID, currPrivType);
+        requiredTablePrivileges.put(key, key);
+    }
+
+    /**
+     * Add a routine execute privilege to the list of used routine privileges.
+     *
+     * @see CompilerContext#addRequiredRoutinePriv
+     */
+    public void addRequiredRoutinePriv( AliasDescriptor routine)
+    {
+        // routine == null for built in routines
+        if( requiredRoutinePrivileges == null || routine == null)
+            return;
+
+        // Ignore SYSFUN routines for permission scheme
+        if (routine.getSchemaUUID().toString().equals(SchemaDescriptor.SYSFUN_SCHEMA_UUID))
+            return;
+
+         if (requiredRoutinePrivileges.get(routine.getUUID()) == null)
+             requiredRoutinePrivileges.put(routine.getUUID(), ReuseFactory.getInteger(1));
+    }
+
+    /**
+     * @see CompilerContext#addRequiredUsagePriv
+     */
+    public void addRequiredUsagePriv( PrivilegedSQLObject usableObject )
+    {
+        if( requiredUsagePrivileges == null || usableObject == null) { return; }
 
         UUID objectID = usableObject.getUUID();
         String objectType = usableObject.getObjectTypeName();
 
- 		if (requiredUsagePrivileges.get( objectID ) == null)
+         if (requiredUsagePrivileges.get( objectID ) == null)
         { requiredUsagePrivileges.put( objectID, objectType ); }
     }
     
-	/**
-	 * Add a required schema privilege to the list privileges.
-	 *
-	 * @see CompilerContext#addRequiredSchemaPriv
-	 */
-	public void addRequiredSchemaPriv(String schemaName, String aid, int privType)
-	{
-		if( requiredSchemaPrivileges == null || schemaName == null)
-			return;
+    /**
+     * Add a required schema privilege to the list privileges.
+     *
+     * @see CompilerContext#addRequiredSchemaPriv
+     */
+    public void addRequiredSchemaPriv(String schemaName, String aid, int privType)
+    {
+        if( requiredSchemaPrivileges == null || schemaName == null)
+            return;
 
-		StatementSchemaPermission key = new 
-				StatementSchemaPermission(schemaName, aid, privType);
+        StatementSchemaPermission key = new
+                StatementSchemaPermission(schemaName, aid, privType);
 
-		requiredSchemaPrivileges.put(key, key);
-	}
+        requiredSchemaPrivileges.put(key, key);
+    }
 
-	public void addRequiredAccessSchemaPriv(UUID uuid) {
-		if( requiredSchemaPrivileges == null || uuid == null)
-			return;
+    public void addRequiredAccessSchemaPriv(UUID uuid) {
+        if( requiredSchemaPrivileges == null || uuid == null)
+            return;
 
-		// if schema access restriction is not enabled, no need to add access permission check
-		if (!lcc.getDataDictionary().isMetadataAccessRestrictionEnabled())
-			return;
+        // if schema access restriction is not enabled, no need to add access permission check
+        if (!lcc.getDataDictionary().isMetadataAccessRestrictionEnabled())
+            return;
 
-		StatementSchemaPermission accessPrivileges = new StatementSchemaPermission(uuid, Authorizer.ACCESS_PRIV);
-		requiredSchemaPrivileges.put(accessPrivileges, accessPrivileges);
-	}
+        StatementSchemaPermission accessPrivileges = new StatementSchemaPermission(uuid, Authorizer.ACCESS_PRIV);
+        requiredSchemaPrivileges.put(accessPrivileges, accessPrivileges);
+    }
 
-	/**
-	 * Add a required role privilege to the list privileges.
-	 *
-	 * @see CompilerContext#addRequiredRolePriv
-	 */
-	public void addRequiredRolePriv(String roleName, int privType)
-	{
-		if( requiredRolePrivileges == null)
-			return;
+    /**
+     * Add a required role privilege to the list privileges.
+     *
+     * @see CompilerContext#addRequiredRolePriv
+     */
+    public void addRequiredRolePriv(String roleName, int privType)
+    {
+        if( requiredRolePrivileges == null)
+            return;
 
-		StatementRolePermission key = new
-			StatementRolePermission(roleName, privType);
+        StatementRolePermission key = new
+            StatementRolePermission(roleName, privType);
 
-		requiredRolePrivileges.put(key, key);
-	}
+        requiredRolePrivileges.put(key, key);
+    }
 
 
-	/**
-	 * @return The list of required privileges.
-	 */
-	public List getRequiredPermissionsList()
-	{
-		int size = 0;
-		if( requiredRoutinePrivileges != null)
+    /**
+     * @return The list of required privileges.
+     */
+    public List getRequiredPermissionsList()
+    {
+        int size = 0;
+        if( requiredRoutinePrivileges != null)
         { size += requiredRoutinePrivileges.size(); }
-		if( requiredUsagePrivileges != null)
+        if( requiredUsagePrivileges != null)
         { size += requiredUsagePrivileges.size(); }
-		if( requiredTablePrivileges != null)
+        if( requiredTablePrivileges != null)
         { size += requiredTablePrivileges.size(); }
-		if( requiredSchemaPrivileges != null)
+        if( requiredSchemaPrivileges != null)
         { size += requiredSchemaPrivileges.size(); }
-		if( requiredColumnPrivileges != null)
+        if( requiredColumnPrivileges != null)
         { size += requiredColumnPrivileges.size(); }
-		if( requiredRolePrivileges != null)
+        if( requiredRolePrivileges != null)
         { size += requiredRolePrivileges.size(); }
-		
-		ArrayList list = new ArrayList( size);
-		ArrayList accessList = new ArrayList();
-		if( requiredRoutinePrivileges != null)
-		{
+
+        ArrayList list = new ArrayList( size);
+        ArrayList accessList = new ArrayList();
+        if( requiredRoutinePrivileges != null)
+        {
             for (Object o : requiredRoutinePrivileges.keySet()) {
                 UUID routineUUID = (UUID) o;
 
                 list.add(new StatementRoutinePermission(routineUUID));
             }
-		}
-		if( requiredUsagePrivileges != null)
-		{
+        }
+        if( requiredUsagePrivileges != null)
+        {
             for (Object o : requiredUsagePrivileges.keySet()) {
                 UUID objectID = (UUID) o;
 
                 list.add(new StatementGenericPermission(objectID, (String) requiredUsagePrivileges.get(objectID), PermDescriptor.USAGE_PRIV));
             }
-		}
-		if( requiredTablePrivileges != null)
-		{
-			list.addAll(requiredTablePrivileges.values());
-		}
-		if( requiredSchemaPrivileges != null)
-		{
-			for (Object o: requiredSchemaPrivileges.keySet()) {
-				StatementSchemaPermission sp = (StatementSchemaPermission) o;
-				if (((StatementSchemaPermission) o).getPrivType() == Authorizer.ACCESS_PRIV)
-					accessList.add(requiredSchemaPrivileges.get(sp));
-				else
-					list.add(requiredSchemaPrivileges.get(sp));
-			}
-		}
-		if( requiredColumnPrivileges != null)
-		{
-			list.addAll(requiredColumnPrivileges.values());
-		}
-		if( requiredRolePrivileges != null)
-		{
-			list.addAll(requiredRolePrivileges.values());
-		}
+        }
+        if( requiredTablePrivileges != null)
+        {
+            list.addAll(requiredTablePrivileges.values());
+        }
+        if( requiredSchemaPrivileges != null)
+        {
+            for (Object o: requiredSchemaPrivileges.keySet()) {
+                StatementSchemaPermission sp = (StatementSchemaPermission) o;
+                if (((StatementSchemaPermission) o).getPrivType() == Authorizer.ACCESS_PRIV)
+                    accessList.add(requiredSchemaPrivileges.get(sp));
+                else
+                    list.add(requiredSchemaPrivileges.get(sp));
+            }
+        }
+        if( requiredColumnPrivileges != null)
+        {
+            list.addAll(requiredColumnPrivileges.values());
+        }
+        if( requiredRolePrivileges != null)
+        {
+            list.addAll(requiredRolePrivileges.values());
+        }
 
-		// insert all the access check to the beginning of the list
-		list.addAll(0, accessList);
+        // insert all the access check to the beginning of the list
+        list.addAll(0, accessList);
 
-		return list;
-	} // end of getRequiredPermissionsList
+        return list;
+    } // end of getRequiredPermissionsList
 
-	public void addReferencedSequence( SequenceDescriptor sd )
+    public void addReferencedSequence( SequenceDescriptor sd )
     {
         if ( referencedSequences == null ) { referencedSequences = new HashMap(); }
 
         referencedSequences.put( sd.getUUID(), sd );
     }
 
-	/**
-	 * Report whether the given sequence has been referenced already.
-	 */
+    /**
+     * Report whether the given sequence has been referenced already.
+     */
     public boolean isReferenced( SequenceDescriptor sd ) {
         return referencedSequences != null && referencedSequences.containsKey(sd.getUUID());
 
     }
 
     public int getNextOJLevel() {
-    	return nextOJLevel ++;
-	}
+        return nextOJLevel ++;
+    }
 
-	/*
-	** Context state must be reset in restContext()
-	*/
+    /*
+    ** Context state must be reset in restContext()
+    */
 
-	private final Parser 		parser;
-	private final LanguageConnectionContext lcc;
-	private final LanguageConnectionFactory lcf;
-	private TypeCompilerFactory	typeCompilerFactory;
-	private Dependent			currentDependent;
-	private DependencyManager	dm;
-	private boolean				firstOnStack;
-	private boolean				inUse;
-	private int					reliability = CompilerContext.SQL_LEGAL;
-	private	int					nextColumnNumber = 1;
-	private int					nextTableNumber;
-	private int					nextSubqueryNumber;
-	private int					nextResultSetNumber;
-	private int					scanIsolationLevel;
-	private int					nextEquivalenceClass = -1;
-	private long				nextClassName;
-	private Vector				savedObjects;
-	private String				classPrefix;
-	private SchemaDescriptor	compilationSchema;
-	/* this is the number of tables taking into consideration the where Subqueries */
-	private int                 maximalPossibleTableCount;
-	private boolean             selectivityEstimationIncludingSkewedDefault = false;
-	private boolean             projectionPruningEnabled;
-	private int                 maxMulticolumnProbeValues = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
-	private boolean             multicolumnInlistProbeOnSparkEnabled = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
-	private boolean             convertMultiColumnDNFPredicatesToInList= DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
-	private boolean             disablePredicateSimplification = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
-	private SparkVersion        sparkVersion = DEFAULT_SPLICE_SPARK_VERSION;
-	private boolean sparkVersionInitialized = false;
-	private CompilerContext.NativeSparkModeType nativeSparkAggregationMode = DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
-	private boolean allowOverflowSensitiveNativeSparkExpressions = DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
-	private int currentTimestampPrecision = DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
-	// Used to track the flattened half outer joins.
-	private int                 nextOJLevel = 1;
-	private boolean             outerJoinFlatteningDisabled;
-	/**
-	 * Saved execution time default schema, if we need to change it
-	 * temporarily.
-	 */
-	private ArrayList        	defaultSchemaStack;
+    private final Parser         parser;
+    private final LanguageConnectionContext lcc;
+    private final LanguageConnectionFactory lcf;
+    private TypeCompilerFactory    typeCompilerFactory;
+    private Dependent            currentDependent;
+    private DependencyManager    dm;
+    private boolean                firstOnStack;
+    private boolean                inUse;
+    private int                    reliability = CompilerContext.SQL_LEGAL;
+    private    int                    nextColumnNumber = 1;
+    private int                    nextTableNumber;
+    private int                    nextSubqueryNumber;
+    private int                    nextResultSetNumber;
+    private int                    scanIsolationLevel;
+    private int                    nextEquivalenceClass = -1;
+    private long                nextClassName;
+    private Vector                savedObjects;
+    private String                classPrefix;
+    private SchemaDescriptor    compilationSchema;
+    /* this is the number of tables taking into consideration the where Subqueries */
+    private int                 maximalPossibleTableCount;
+    private boolean             selectivityEstimationIncludingSkewedDefault = false;
+    private boolean             projectionPruningEnabled;
+    private int                 maxMulticolumnProbeValues = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
+    private boolean             multicolumnInlistProbeOnSparkEnabled = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
+    private boolean             convertMultiColumnDNFPredicatesToInList= DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
+    private boolean             disablePredicateSimplification = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
+    private SparkVersion        sparkVersion = DEFAULT_SPLICE_SPARK_VERSION;
+    private boolean sparkVersionInitialized = false;
+    private CompilerContext.NativeSparkModeType nativeSparkAggregationMode = DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
+    private boolean allowOverflowSensitiveNativeSparkExpressions = DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
+    private int currentTimestampPrecision = DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
+    // Used to track the flattened half outer joins.
+    private int                 nextOJLevel = 1;
+    private boolean             outerJoinFlatteningDisabled;
+    /**
+     * Saved execution time default schema, if we need to change it
+     * temporarily.
+     */
+    private ArrayList            defaultSchemaStack;
 
-	private ProviderList		currentAPL;
-	private boolean returnParameterFlag;
+    private ProviderList        currentAPL;
+    private boolean returnParameterFlag;
 
-	private HashMap<Pair<Long, Boolean>, StoreCostController> storeCostControllers = new HashMap<>();
-	private Vector<Integer> skipStatsTableList = new Vector<>();
+    private HashMap<Pair<Long, Boolean>, StoreCostController> storeCostControllers = new HashMap<>();
+    private Vector<Integer> skipStatsTableList = new Vector<>();
 
-	private SortCostController	sortCostController;
+    private SortCostController    sortCostController;
 
-	private Vector parameterList;
+    private Vector parameterList;
 
-	/* Type descriptors for the ? parameters */
-	private DataTypeDescriptor[]	parameterDescriptors;
+    /* Type descriptors for the ? parameters */
+    private DataTypeDescriptor[]    parameterDescriptors;
 
-	private Object				cursorInfo;
+    private Object                cursorInfo;
 
-	private SQLWarning warnings;
+    private SQLWarning warnings;
 
-	private Stack privTypeStack = new Stack();
-	private int currPrivType = Authorizer.NULL_PRIV;
-	private HashMap requiredColumnPrivileges;
-	private HashMap requiredTablePrivileges;
-	private HashMap requiredSchemaPrivileges;
-	private HashMap requiredRoutinePrivileges;
-	private HashMap requiredUsagePrivileges;
-	private HashMap requiredRolePrivileges;
+    private Stack privTypeStack = new Stack();
+    private int currPrivType = Authorizer.NULL_PRIV;
+    private HashMap requiredColumnPrivileges;
+    private HashMap requiredTablePrivileges;
+    private HashMap requiredSchemaPrivileges;
+    private HashMap requiredRoutinePrivileges;
+    private HashMap requiredUsagePrivileges;
+    private HashMap requiredRolePrivileges;
     private HashMap referencedSequences;
     private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
 
     @Override
-    public void setDataSetProcessorType(DataSetProcessorType type, boolean setDSPTypeinLCC) {
-        dataSetProcessorType = type;
-        if (setDSPTypeinLCC)
-           lcc.setDataSetProcessorType(type);
+    public void setDataSetProcessorType(DataSetProcessorType type) throws StandardException {
+        dataSetProcessorType = dataSetProcessorType.combine(type);
     }
 
     @Override
@@ -1202,11 +1197,11 @@ public class CompilerContextImpl extends ContextImpl
 
     @Override
     public boolean skipStats(int tableNumber) {
-    	return skipStatsTableList.contains(tableNumber);
-	}
+        return skipStatsTableList.contains(tableNumber);
+    }
 
-	@Override
-	public Vector<Integer> getSkipStatsTableList() {
-    	return skipStatsTableList;
-	}
+    @Override
+    public Vector<Integer> getSkipStatsTableList() {
+        return skipStatsTableList;
+    }
 } // end of class CompilerContextImpl

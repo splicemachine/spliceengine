@@ -402,4 +402,7 @@ public interface Optimizer{
 
     public void setSingleRow(boolean singleRowInRelation);
 
+    public void setForSpark(boolean forSpark);
+
+    public boolean isForSpark();
 }
