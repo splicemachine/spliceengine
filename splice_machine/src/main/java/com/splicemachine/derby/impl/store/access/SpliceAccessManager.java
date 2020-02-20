@@ -179,15 +179,15 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
      *
      * @exception  StandardException  Standard exception policy.
      **/
-	/* package */ void conglomCacheUpdateEntry(
+    /* package */ void conglomCacheUpdateEntry(
             long            conglomid,
             Conglomerate    new_conglom)
             throws StandardException {
-            if (database!=null && database.getDataDictionary() != null) {
-                database.getDataDictionary().getDataDictionaryCache().conglomerateDescriptorCacheRemove(conglomid);
-                database.getDataDictionary().getDataDictionaryCache().conglomerateCacheRemove(conglomid);
-                database.getDataDictionary().getDataDictionaryCache().conglomerateCacheAdd(conglomid, new_conglom);
-            }
+        if (database!=null && database.getDataDictionary() != null) {
+            database.getDataDictionary().getDataDictionaryCache().conglomerateDescriptorCacheRemove(conglomid);
+            database.getDataDictionary().getDataDictionaryCache().conglomerateCacheRemove(conglomid);
+            database.getDataDictionary().getDataDictionaryCache().conglomerateCacheAdd(conglomid, new_conglom);
+        }
     }
 
     /**
@@ -334,9 +334,9 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
          * is created by a call to this method. In this case we are creating a read only transaction at a predefined point
          */
         if (LOG.isDebugEnabled())
-            LOG.debug("in SpliceAccessManager - getAndNameTransaction, transName=" + transName);
+            LOG.debug("in SpliceAccessManager - getReadOnlyTransaction, transName=" + transName);
         if (cm == null)
-            return null;  // XXX (nat) should throw exception
+            throw new NullPointerException("ContextManager cannot be null");
 
         /*
          * See if there's already a transaction context. If there is, then we just work with the one
@@ -349,7 +349,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
             return rtc.getTransactionManager(); //we already have a transaction from the context
 
         if (LOG.isDebugEnabled())
-            LOG.debug("in SpliceAccessManager - getAndNameTransaction, SpliceTransactionManagerContext is null");
+            LOG.debug("in SpliceAccessManager - getReadOnlyTransaction, SpliceTransactionManagerContext is null");
         /*
          * We need to create a new transaction controller. Maybe we already have a transaction, but
          * if not, then we need to create one.
@@ -369,20 +369,20 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     }
 
     public TransactionController getAndNameTransaction( ContextManager cm, String transName) throws StandardException {
-				/*
-				 * This call represents the top-level transactional access point. E.g., the top-level user transaction
-				 * is created by a call to this method. Thereafter, the transaction created here should be passed around
-				 * through the LanguageConnectionContext, Tasks, etc. without accidentally creating a new one.
-				 */
+        /*
+         * This call represents the top-level transactional access point. E.g., the top-level user transaction
+         * is created by a call to this method. Thereafter, the transaction created here should be passed around
+         * through the LanguageConnectionContext, Tasks, etc. without accidentally creating a new one.
+         */
         if (LOG.isDebugEnabled())
             LOG.debug("in SpliceAccessManager - getAndNameTransaction, transName="+transName);
         if (cm == null)
             return null;  // XXX (nat) should throw exception
 
-				/*
-				 * See if there's already a transaction context. If there is, then we just work with the one
-				 * already created. Otherwise, we have to make a new one
-				 */
+        /*
+         * See if there's already a transaction context. If there is, then we just work with the one
+         * already created. Otherwise, we have to make a new one
+         */
         SpliceTransactionManagerContext rtc = (SpliceTransactionManagerContext)
                 cm.getContext(AccessFactoryGlobals.RAMXACT_CONTEXT_ID);
 
@@ -391,13 +391,13 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 
         if (LOG.isDebugEnabled())
             LOG.debug("in SpliceAccessManager - getAndNameTransaction, SpliceTransactionManagerContext is null");
-				/*
-				 * We need to create a new transaction controller. Maybe we already have a transaction, but
-				 * if not, then we need to create one.
-				 *
-				 * Note that this puts the raw store transaction context above the access context, which is
-				 * required for error handling assumptions to be correct.
-				 */
+        /*
+         * We need to create a new transaction controller. Maybe we already have a transaction, but
+         * if not, then we need to create one.
+         *
+         * Note that this puts the raw store transaction context above the access context, which is
+         * required for error handling assumptions to be correct.
+         */
         Transaction rawtran = rawstore.findUserTransaction(cm, transName);
         SpliceTransactionManager rt = new SpliceTransactionManager(this, rawtran, null);
 
@@ -633,13 +633,13 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         rawstore = new HBaseStore();
         rawstore.boot(true, serviceProperties);
 
-				// Note: we also boot this module here since we may start Derby
-				// system from store access layer, as some of the unit test case,
-				// not from JDBC layer.(See
-				// /protocol/Database/Storage/Access/Interface/T_AccessFactory.java)
-				// If this module has already been booted by the JDBC layer, this will
-				// have no effect at all.
-				Monitor.bootServiceModule(create, this, com.splicemachine.db.iapi.reference.Module.PropertyFactory, startParams);
+        // Note: we also boot this module here since we may start Derby
+        // system from store access layer, as some of the unit test case,
+        // not from JDBC layer.(See
+        // /protocol/Database/Storage/Access/Interface/T_AccessFactory.java)
+        // If this module has already been booted by the JDBC layer, this will
+        // have no effect at all.
+        Monitor.bootServiceModule(create, this, com.splicemachine.db.iapi.reference.Module.PropertyFactory, startParams);
 
 
         // Read in the conglomerate directory from the conglom conglom
@@ -667,8 +667,8 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 
         //tc.commit();
 
-				// set up the property validation
-				pf = (PropertyFactory) Monitor.findServiceModule(this, com.splicemachine.db.iapi.reference.Module.PropertyFactory);
+        // set up the property validation
+        pf = (PropertyFactory) Monitor.findServiceModule(this, com.splicemachine.db.iapi.reference.Module.PropertyFactory);
 
         if(create)
             ((SpliceTransaction)tc.getRawTransaction()).elevate(Bytes.toBytes("boot"));
@@ -707,7 +707,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     public void stop() {
     }
 
-	/* Methods of the PropertySetCallback interface */
+    /* Methods of the PropertySetCallback interface */
 
     // This interface is implemented to ensure the user cannot change the
     // encryption provider or algorithm.
@@ -735,9 +735,9 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 
     // ///////////////////////////////////////////////////////////////
 
-	/*
-	 ** CacheableFactory interface
-	 */
+    /*
+     ** CacheableFactory interface
+     */
 
     public Cacheable newCacheable(CacheManager cm) {
         return new CacheableConglomerate();
