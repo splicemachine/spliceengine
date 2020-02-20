@@ -169,13 +169,18 @@ public class UnionOperation extends SpliceBaseOperation {
 			operationContext.popScope();
 			return result;
 		} else {
+		        dsp.incrementOpDepth();
+		        dsp.finalizeTempOperationStrings();
 			DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
+			dsp.finalizeTempOperationStrings();
 			DataSet<ExecRow> right = rightResultSet.getDataSet(dsp);
+		        dsp.decrementOpDepth();
 			operationContext.pushScope();
 			result = left
 					.union(right, operationContext)
 					.map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext), true);
 			operationContext.popScope();
+		        handleSparkExplain(result, left, right, dsp);
 		}
 		return result;
     }

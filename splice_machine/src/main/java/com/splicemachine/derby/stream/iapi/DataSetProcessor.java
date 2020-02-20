@@ -15,11 +15,12 @@
 package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import org.apache.spark.sql.types.StructField;
@@ -27,6 +28,7 @@ import org.apache.spark.sql.types.StructType;
 
 import java.io.InputStream;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Higher level constructs for getting datasets and manipulating the processing mechanisms.
@@ -265,4 +267,21 @@ public interface DataSetProcessor {
     Boolean isCached(long conglomerateId) throws StandardException;
 
     TableChecker getTableChecker(String schemaName, String tableName, DataSet tableDataSet, KeyHashDecoder decoder, ExecRow key);
+
+    // Operations related to spark explain ->
+    boolean isSparkExplain();
+    ExplainNode.SparkExplainKind getSparkExplainKind();
+    void setSparkExplain(ExplainNode.SparkExplainKind newValue);
+    void prependSpliceExplainString(String explainString);
+    void appendSpliceExplainString(String explainString);
+    void prependSparkExplainStrings(List<String> stringsToAdd, boolean firstOperationSource, boolean lastOperationSource);
+    void popSpliceOperation();
+    void finalizeTempOperationStrings();
+    List<String> getNativeSparkExplain();
+    int getOpDepth();
+    void incrementOpDepth();
+    void decrementOpDepth();
+    void resetOpDepth();
+    // <- End operations related to spark explain.
+
 }

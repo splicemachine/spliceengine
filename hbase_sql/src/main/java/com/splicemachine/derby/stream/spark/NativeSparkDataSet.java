@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.compile.SparkExpressionNode;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -1515,4 +1516,44 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             context.popScope();
         }
     }
+
+    @Override
+    public boolean isNativeSpark() {
+        return true;
+    }
+
+    @Override
+    public List<String> buildNativeSparkExplain(ExplainNode.SparkExplainKind sparkExplainKind) {
+        if (dataset != null) {
+            String [] arrOfStr = null;
+            switch (sparkExplainKind) {
+                case LOGICAL:
+                    arrOfStr =
+                    dataset.queryExecution().logical().toString().split("\n");
+                    break;
+                case OPTIMIZED:
+                    arrOfStr =
+                    dataset.queryExecution().optimizedPlan().toString().split("\n");
+                    break;
+                case ANALYZED:
+                    arrOfStr =
+                    dataset.queryExecution().analyzed().toString().split("\n");
+                    break;
+                default:
+                    arrOfStr =
+                    dataset.queryExecution().executedPlan().toString().split("\n");
+                    break;
+            }
+
+            // Remove trailing whitespaces.
+            for (int i = 0; i < arrOfStr.length; i++) {
+                arrOfStr[i] = arrOfStr[i].replaceFirst("\\s++$", "");
+            }
+            return Arrays.asList(arrOfStr);
+        }
+        List<String> warnMsg = new ArrayList<>();
+        warnMsg.add("Spark EXPLAIN not available.\n");
+        return warnMsg;
+    }
+
 }

@@ -94,8 +94,12 @@ public class DeleteOperation extends DMLWriteOperation {
         DataSet set = pair.getFirst();
         int[] expectedUpdateCounts = pair.getSecond();
         OperationContext operationContext = dsp.createOperationContext(this);
+        operationContext.pushScope();
+        if (dsp.isSparkExplain()) {
+            dsp.prependSpliceExplainString(this.explainPlan);
+            return set;
+        }
         TxnView txn = getCurrentTransaction();
-		operationContext.pushScope();
         DataSetWriterBuilder dataSetWriterBuilder = null;
         try {
             if (bulkDeleteDirectory != null) {
