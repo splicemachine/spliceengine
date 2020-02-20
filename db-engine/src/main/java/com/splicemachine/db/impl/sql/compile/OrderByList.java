@@ -107,11 +107,11 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      */
     public void bindOrderByColumns(ResultSetNode target) throws StandardException{
 
-		/* Remember the target for use in optimization */
+        /* Remember the target for use in optimization */
 
         int size=size();
 
-		/* Only 1012 columns allowed in ORDER BY clause */
+        /* Only 1012 columns allowed in ORDER BY clause */
         if(size>Limits.DB2_MAX_ELEMENTS_IN_ORDER_BY){
             throw StandardException.newException(SQLState.LANG_TOO_MANY_ELEMENTS);
         }
@@ -120,10 +120,10 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
             OrderByColumn obc=(OrderByColumn)elementAt(index);
             obc.bindOrderByColumn(target,this);
 
-			/*
+            /*
             ** Always sort if we are ordering on an expression, and not
-			** just a column.
-			*/
+            ** just a column.
+            */
             if(!(obc.getResultColumn().getExpression() instanceof ColumnReference)){
                 alwaysSort=true;
             }
@@ -138,7 +138,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      */
     public void pullUpOrderByColumns(ResultSetNode target) throws StandardException{
 
-		/* Remember the target for use in optimization */
+        /* Remember the target for use in optimization */
 
         int size=size();
         for(int index=0;index<size;index++){
@@ -162,24 +162,24 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
                          ResultSetNode child,
                          CostEstimate sortEstimate) throws StandardException{
         /*
-		** If sorting is not required, don't generate a sort result set -
-		** just return the child result set.
-		*/
+        ** If sorting is not required, don't generate a sort result set -
+        ** just return the child result set.
+        */
         if(!sortNeeded){
             child.generate(acb,mb);
             return;
         }
 
-		/* Get the next ResultSet#, so we can number this ResultSetNode, its
-		 * ResultColumnList and ResultSet.
-		 *
-		 * REMIND: to do this properly (if order bys can live throughout
-		 * the tree) there ought to be an OrderByNode that holds its own
-		 * ResultColumnList that is a lsit of virtual column nodes pointing
-		 * to the source's result columns.  But since we know it is outermost,
-		 * we just gloss over that and get ourselves a resultSetNumber
-		 * directly.
-		 */
+        /* Get the next ResultSet#, so we can number this ResultSetNode, its
+         * ResultColumnList and ResultSet.
+         *
+         * REMIND: to do this properly (if order bys can live throughout
+         * the tree) there ought to be an OrderByNode that holds its own
+         * ResultColumnList that is a lsit of virtual column nodes pointing
+         * to the source's result columns.  But since we know it is outermost,
+         * we just gloss over that and get ourselves a resultSetNumber
+         * directly.
+         */
         CompilerContext cc=getCompilerContext();
 
 
@@ -187,20 +187,20 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
         int orderItem=acb.addItem(acb.getColumnOrdering(this));
 
 
-		/* Generate the SortResultSet:
-		 *	arg1: childExpress - Expression for childResultSet
-		 *  arg2: distinct - always false, we have a separate node
-		 *				for distincts
-		 *  arg3: isInSortedOrder - is the source result set in sorted order
-		 *  arg4: orderItem - entry in saved objects for the ordering
-		 *  arg5: rowAllocator - method to construct rows for fetching
-		 *			from the sort
-		 *  arg6: row size
-		 *  arg7: resultSetNumber
-		 *  arg8: estimated row count
-		 *  arg9: estimated cost
+        /* Generate the SortResultSet:
+         *    arg1: childExpress - Expression for childResultSet
+         *  arg2: distinct - always false, we have a separate node
+         *                for distincts
+         *  arg3: isInSortedOrder - is the source result set in sorted order
+         *  arg4: orderItem - entry in saved objects for the ordering
+         *  arg5: rowAllocator - method to construct rows for fetching
+         *            from the sort
+         *  arg6: row size
+         *  arg7: resultSetNumber
+         *  arg8: estimated row count
+         *  arg9: estimated cost
          *  arg10: explain plan
-		 */
+         */
 
         acb.pushGetResultSetFactoryExpression(mb);
 
@@ -239,18 +239,18 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
     public int sortRequired(RowOrdering rowOrdering,
                             JBitSet tableMap,
                             OptimizableList optimizableList) throws StandardException{
-		/*
-		** Currently, all indexes are ordered ascending, so a descending
-		** ORDER BY always requires a sort.
-		*/
+        /*
+        ** Currently, all indexes are ordered ascending, so a descending
+        ** ORDER BY always requires a sort.
+        */
         if(alwaysSort){
             return RequiredRowOrdering.SORT_REQUIRED;
         }
 
-		/*
-		** Step through the columns in this list, and ask the
-		** row ordering whether it is ordered on each column.
-		*/
+        /*
+        ** Step through the columns in this list, and ask the
+        ** row ordering whether it is ordered on each column.
+        */
         int position=0;
         int size=size();
         for(int loc=0;loc<size;loc++) {
@@ -266,10 +266,10 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 
             // ResultColumn rc = obc.getResultColumn();
 
-			/*
-			** This presumes that the OrderByColumn refers directly to
-			** the base column, i.e. there is no intervening VirtualColumnNode.
-			*/
+            /*
+            ** This presumes that the OrderByColumn refers directly to
+            ** the base column, i.e. there is no intervening VirtualColumnNode.
+            */
             // ValueNode expr = obc.getNonRedundantExpression();
             ValueNode expr = obc.getResultColumn().getExpression();
 
@@ -279,18 +279,18 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 
             ColumnReference cr = (ColumnReference) expr;
 
-			/*
-			** Check whether the table referred to is in the table map (if any).
-			** If it isn't, we may have an ordering that does not require
-			** sorting for the tables in a partial join order.  Look for
-			** columns beyond this column to see whether a referenced table
-			** is found - if so, sorting is required (for example, in a
-			** case like ORDER BY S.A, T.B, S.C, sorting is required).
-			*/
+            /*
+            ** Check whether the table referred to is in the table map (if any).
+            ** If it isn't, we may have an ordering that does not require
+            ** sorting for the tables in a partial join order.  Look for
+            ** columns beyond this column to see whether a referenced table
+            ** is found - if so, sorting is required (for example, in a
+            ** case like ORDER BY S.A, T.B, S.C, sorting is required).
+            */
             int tableNumber = cr.getTableNumber();
             if (tableMap != null) {
                 if (!tableMap.get(tableNumber)) {
-					/* Table not in partial join order */
+                    /* Table not in partial join order */
                     for (int remainingPosition = loc + 1;
                          remainingPosition < size();
                          remainingPosition++) {
@@ -310,9 +310,9 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
                     return RequiredRowOrdering.NOTHING_REQUIRED;
                 }
             }
-			/*
-			 * Does the order by columns match the sort order of the joins?  Big savings possible my friends...
-			 *
+            /*
+             * Does the order by columns match the sort order of the joins?  Big savings possible my friends...
+             *
              */
 
             int newPosition = rowOrdering.orderedOnColumn(obc.isAscending() ? RowOrdering.ASCENDING : RowOrdering.DESCENDING, position, tableNumber, cr.getColumnNumber());
@@ -329,11 +329,11 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
                              RowOrdering rowOrdering,
                              CostEstimate baseCost,
                              CostEstimate sortCost) throws StandardException{
-		/*
-		** Do a bunch of set-up the first time: get the SortCostController,
-		** the template row, the ColumnOrdering array, and the estimated
-		** row size.
-		*/
+        /*
+        ** Do a bunch of set-up the first time: get the SortCostController,
+        ** the template row, the ColumnOrdering array, and the estimated
+        ** row size.
+        */
         if(scc==null){
             if(baseCost.isUninitialized()) return;
             if (optimizer == null) {
@@ -357,7 +357,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
     }
 
     @Override
-    public boolean getSortNeeded(){
+    public boolean isSortNeeded(){
         return sortNeeded;
     }
 
@@ -388,7 +388,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
         return buff.toString();
     }
 
-	/* RequiredRowOrdering interface */
+    /* RequiredRowOrdering interface */
 
     public int getResultSetNumber(){
         return resultSetNumber;
@@ -481,7 +481,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
     ResultColumnList reorderRCL(ResultColumnList resultColumns) throws StandardException{
         ResultColumnList newRCL=(ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,getContextManager());
 
-		/* The new RCL starts with the ordering columns */
+        /* The new RCL starts with the ordering columns */
         int size=size();
         for(int index=0;index<size;index++){
             OrderByColumn obc=(OrderByColumn)elementAt(index);
@@ -489,7 +489,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
             resultColumns.removeElement(obc.getResultColumn());
         }
 
-		/* And ends with the non-ordering columns */
+        /* And ends with the non-ordering columns */
         newRCL.destructiveAppend(resultColumns);
         newRCL.resetVirtualColumnIds();
         newRCL.copyOrderBySelect(resultColumns);
@@ -503,7 +503,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      * predicate list.
      */
     void removeConstantColumns(PredicateList whereClause){
-		/* Walk the list backwards so we can remove elements safely */
+        /* Walk the list backwards so we can remove elements safely */
         for(int loc=size()-1;
             loc>=0;
             loc--){
@@ -522,7 +522,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      * Beetle 5401.
      */
     void removeDupColumns(){
-		/* Walk the list backwards so we can remove elements safely */
+        /* Walk the list backwards so we can remove elements safely */
         for(int loc=size()-1;loc>0;loc--){
             OrderByColumn obc=(OrderByColumn)elementAt(loc);
             int colPosition=obc.getColumnPosition();
@@ -554,9 +554,9 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
     boolean requiresDescending(ColumnReference cRef,int numOptimizables) throws StandardException{
         int size=size();
 
-		/* Start by getting the table number and column position for
-		 * the table to which the ColumnReference points.
-		 */
+        /* Start by getting the table number and column position for
+         * the table to which the ColumnReference points.
+         */
         JBitSet tNum=new JBitSet(numOptimizables);
         BaseTableNumbersVisitor btnVis=new BaseTableNumbersVisitor(tNum);
 
@@ -568,10 +568,10 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
         assert tNum.hasSingleBitSet():"Expected ColumnReference '"+cRef.getColumnName()+"' to reference"+
                 "exactly one table, but tables found were "+tNum;
 
-		/* Walk through the various ORDER BY elements to see if
-		 * any of them point to the same table and column that
-		 * we found above.
-		 */
+        /* Walk through the various ORDER BY elements to see if
+         * any of them point to the same table and column that
+         * we found above.
+         */
         for(int loc=0;loc<size;loc++){
             OrderByColumn obc=getOrderByColumn(loc);
             ResultColumn rcOrderBy=obc.getResultColumn();
@@ -581,13 +581,13 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
             int obTableNumber=tNum.getFirstSetBit();
             int obColPosition=btnVis.getColumnNumber();
 
-			/* ORDER BY target should always have a table number and
-			 * a column position.  It may not necessarily be a base
-			 * table, but there should be some FromTable for which
-			 * we have a ResultColumnList, and the ORDER BY should
-			 * reference one of the columns in that list (otherwise
-			 * we shouldn't have made it this far).
-			 */
+            /* ORDER BY target should always have a table number and
+             * a column position.  It may not necessarily be a base
+             * table, but there should be some FromTable for which
+             * we have a ResultColumnList, and the ORDER BY should
+             * reference one of the columns in that list (otherwise
+             * we shouldn't have made it this far).
+             */
             assert tNum.hasSingleBitSet():"Expected ResultColumn '"+rcOrderBy.getColumnName()+"' to reference"+
                     "exactly one table";
             assert obColPosition>=0:"Failed to find orderBy column number for ORDER BY check on column '"+cRef.getColumnName()+"'.";
@@ -595,25 +595,25 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
             if(crTableNumber!=obTableNumber)
                 continue;
 
-			/* They point to the same base table, so check the
-			 * column positions.
-			 */
+            /* They point to the same base table, so check the
+             * column positions.
+             */
 
             if(crColPosition==obColPosition){
-				/* This ORDER BY element points to the same table
-				 * and column as the received ColumnReference.  So
-				 * return whether or not this ORDER BY element is
-				 * descending.
-				 */
+                /* This ORDER BY element points to the same table
+                 * and column as the received ColumnReference.  So
+                 * return whether or not this ORDER BY element is
+                 * descending.
+                 */
                 return !obc.isAscending();
             }
         }
 
-		/* None of the ORDER BY elements referenced the same table
-		 * and column as the received ColumnReference, so there
-		 * is no descending requirement for the ColumnReference's
-		 * source (at least not from this OrderByList).
-		 */
+        /* None of the ORDER BY elements referenced the same table
+         * and column as the received ColumnReference, so there
+         * is no descending requirement for the ColumnReference's
+         * source (at least not from this OrderByList).
+         */
         return false;
     }
 }

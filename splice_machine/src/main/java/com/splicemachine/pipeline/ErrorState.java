@@ -1084,6 +1084,8 @@ public enum ErrorState{
     LANG_WINDOW_LIMIT_EXCEEDED("42ZC1"),
     LANG_WINDOW_FUNCTION_CONTEXT_ERROR("42ZC2"),
 
+    LANG_INVALID_SPARK_AND_CONTROL("42ZD1"),
+
     //following 3 matches the DB2 sql states
     LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA("428EK"),
     LANG_NOT_ALLOWED_FOR_DECLARED_GLOBAL_TEMP_TABLE("42995"),
@@ -1943,7 +1945,7 @@ public enum ErrorState{
             return StandardException.newException(getSqlState(),rootCause.getMessage());
         }
     },
-    SPLICE_CANCELLATION_EXCEPTION("SE008"){
+    SPLICE_CANCELLATION_EXCEPTION("57014"){
         @Override
         public boolean accepts(Throwable t){
             return super.accepts(t)

@@ -3203,6 +3203,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42ZD1</name>
+                <text>Using both useSpark=true and useSpark=false at the same level ('{0}') is illegal</text>
+                <arg>level</arg>
+            </msg>
+
+            <msg>
                 <name>43001</name>
                 <text>The truncate function was provided a null operand.</text>
             </msg>
@@ -7797,6 +7803,11 @@ MessageId.java.
                 <text>Maximum depth of nested triggers was exceeded.</text>
             </msg>
 
+            <msg>
+                <name>57014</name>
+                <text>Processing was cancelled as requested.</text>
+            </msg>
+
             <!-- Message BIN01 used in SQLBinary.java -->
             <msg>
                 <name>BIN01</name>
@@ -8796,10 +8807,6 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 							<arg>message</arg>
 						</msg>
 
-						<msg>
-							<name>SE008</name>
-							<text>This statement was killed by an administrative action. Please contact your system administrator for more assistance</text>
-						</msg>
 						<msg>
 							<name>SE009</name>
 							<text>Too many bad records in import, please check bad records in directory {0}</text>

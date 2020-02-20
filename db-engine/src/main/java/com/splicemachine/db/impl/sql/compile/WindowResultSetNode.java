@@ -277,11 +277,11 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         addWindowFunctionColumns();
 
 
-		/* We say that the source is never in sorted order if there is a distinct aggregate.
-		 * (Not sure what happens if it is, so just skip it for now.)
-		 * Otherwise, we check to see if the source is in sorted order on any permutation
-		 * of the grouping columns.)
-		 */
+        /* We say that the source is never in sorted order if there is a distinct aggregate.
+         * (Not sure what happens if it is, so just skip it for now.)
+         * Otherwise, we check to see if the source is in sorted order on any permutation
+         * of the grouping columns.)
+         */
         List<OrderedColumn> keyColumns = this.wdn.getKeyColumns();
         ColumnReference[] crs = new ColumnReference[keyColumns.size()];
 
@@ -312,22 +312,22 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      */
     private void addNewWindowProjection() throws StandardException {
         /*
-		** The first thing we do is put ourselves on
-		** top of the SELECT.  The select becomes the
-		** childResult.  So our RCL becomes its RCL (so
-		** nodes above it now point to us).  Map our
-		** RCL to its columns.
-		* This is done so that we can map parent PR columns to reference
-		* our function result columns and to any function result columns below us.
-		*/
+        ** The first thing we do is put ourselves on
+        ** top of the SELECT.  The select becomes the
+        ** childResult.  So our RCL becomes its RCL (so
+        ** nodes above it now point to us).  Map our
+        ** RCL to its columns.
+        * This is done so that we can map parent PR columns to reference
+        * our function result columns and to any function result columns below us.
+        */
 
         ResultColumnList newBottomRCL = childResult.getResultColumns().copyListAndObjects();
         resultColumns = childResult.getResultColumns();
         childResult.setResultColumns(newBottomRCL);
 
-		/*
-		** Get the new PR, put above this window result.
-		*/
+        /*
+        ** Get the new PR, put above this window result.
+        */
         ResultColumnList rclNew = (ResultColumnList) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
                                                                               getContextManager());
         int sz = resultColumns.size();
@@ -355,9 +355,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             getContextManager());
 
 
-		/*
+        /*
         ** Reset the bottom RCL to be empty. We'll rebuild them when adding function columns.
-		*/
+        */
         childResult.setResultColumns((ResultColumnList) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
                                                                                  getContextManager()));
 
@@ -701,10 +701,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                                      null);
             parent.getResultColumns().accept(replaceWindowFunctionVisitor);
 
-			/*
-			** FUNCTION RESULT: Set the windowFunctionNode result to null in the
-			** bottom project restrict.
-			*/
+            /*
+            ** FUNCTION RESULT: Set the windowFunctionNode result to null in the
+            ** bottom project restrict.
+            */
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
                                                                             "##" + windowFunctionNode.getAggregateName() +
                                                                                 "Result",
@@ -716,9 +716,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             newRC.setVirtualColumnId(childRCL.size());
             int fnResultVID = newRC.getVirtualColumnId();
 
-			/*
-			** Set the windowFunctionNode result column to point to this RC.
-			*/
+            /*
+            ** Set the windowFunctionNode result column to point to this RC.
+            */
             ResultColumn tmpRC = createRC_CR_Pair(newRC, newRC.getName(), getNodeFactory(),
                                                   getContextManager(), this.getLevel(), this.getLevel());
             winRCL.addElement(tmpRC);
@@ -727,11 +727,11 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             // Now set this tmpRC as the src of generated reference that we created during WindowFunctionReplacementVisitor
             windowFunctionNode.getGeneratedRef().setSource(tmpRC);
 
-			/*
-			** FUNCTION OPERANDS(s): Create ResultColumns in the bottom project restrict that are the
-			* operands for the function.  Scalar aggregate functions will have only one operand (argument),
-			* of course, but ranking functions, for instance, have all ORDER BY columns as arguments.
-			*/
+            /*
+            ** FUNCTION OPERANDS(s): Create ResultColumns in the bottom project restrict that are the
+            * operands for the function.  Scalar aggregate functions will have only one operand (argument),
+            * of course, but ranking functions, for instance, have all ORDER BY columns as arguments.
+            */
             // Create function references for all input operands
             List<ValueNode> operands = windowFunctionNode.getOperands();
             int[] inputVIDs = new int[operands.size()];
@@ -805,10 +805,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 tmpRC.setVirtualColumnId(winRCL.size());
             }
 
-			/*
-			** FUNCTION: Add a getAggregator method call
-			** to the bottom result column list.
-			*/
+            /*
+            ** FUNCTION: Add a getAggregator method call
+            ** to the bottom result column list.
+            */
             newRC = windowFunctionNode.getNewAggregatorResultColumn(getDataDictionary());
             newRC.markGenerated();
             newRC.bindResultColumnToExpression();
@@ -817,35 +817,35 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             newRC.setVirtualColumnId(childRCL.size());
             int fnVID = newRC.getVirtualColumnId();
 
-			/*
-			** Add a reference to this column in the windowing RCL.
-			*/
+            /*
+            ** Add a reference to this column in the windowing RCL.
+            */
             tmpRC = createRC_CR_Pair(newRC, newRC.getName(), getNodeFactory(),
                                      getContextManager(), this.getLevel(), this.getLevel());
             winRCL.addElement(tmpRC);
             tmpRC.setVirtualColumnId(winRCL.size());
 
             /*
-			** Create an window function result expression
+            ** Create an window function result expression
              */
             ResultColumn fnResultRC = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
                                                                                 "##" + windowFunctionNode.getAggregateName() + "ResultExp",
                                                                                 windowFunctionNode.getNewNullResultExpression(),
                                                                                 getContextManager());
 
-			/*
-			** Piece together a fake one column rcl that we will use
-			** to generate a proper result description for input
-			** to this function if it is a user function.
-			*/
+            /*
+            ** Piece together a fake one column rcl that we will use
+            ** to generate a proper result description for input
+            ** to this function if it is a user function.
+            */
             ResultColumnList udfRCL = (ResultColumnList) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
                                                                                     getContextManager());
             udfRCL.addElement(fnResultRC);
 
             LanguageFactory lf = getLanguageConnectionContext().getLanguageFactory();
-			/*
-			** Note that the column ids here are all are 1-based
-			*/
+            /*
+            ** Note that the column ids here are all are 1-based
+            */
             FormatableArrayHolder partitionCols = createColumnOrdering(wdn.getPartition(), "Partition");
             FormatableArrayHolder orderByCols = createColumnOrdering(wdn.getOrderByList(), "Order By");
             FormatableArrayHolder keyCols = createColumnOrdering(wdn.getKeyColumns(), "Key");
@@ -898,9 +898,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
 
-	/*
-	 *  Optimizable interface
-	 */
+    /*
+     *  Optimizable interface
+     */
 
     /**
      * @throws StandardException Thrown on error
@@ -974,7 +974,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @return boolean    Whether or not the FromSubquery is flattenable.
      */
     public boolean flattenableInFromSubquery(FromList fromList) {
-		/* Can't flatten a WindowResultSetNode */
+        /* Can't flatten a WindowResultSetNode */
         return false;
     }
 
@@ -999,29 +999,33 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @param predicates     The PredicateList to optimize.  This should
      *                       be a join predicate.
      * @param outerRows      The number of outer joining rows
+     * @param forSpark
      * @return ResultSetNode    The top of the optimized subtree
      * @throws StandardException Thrown on error
      */
 
     public ResultSetNode optimize(DataDictionary dataDictionary,
                                   PredicateList predicates,
-                                  double outerRows)
+                                  double outerRows,
+                                  boolean forSpark)
         throws StandardException {
-		/* We need to implement this method since a PRN can appear above a
-		 * SelectNode in a query tree.
-		 */
+        /* We need to implement this method since a PRN can appear above a
+         * SelectNode in a query tree.
+         */
         childResult = childResult.optimize(
-            dataDictionary,
-            predicates,
-            outerRows);
+                dataDictionary,
+                predicates,
+                outerRows,
+                forSpark);
         Optimizer optimizer = getOptimizer(
-            (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager()),
-            predicates,
-            dataDictionary,
-            null);
+                (FromList) getNodeFactory().getNode(
+                        C_NodeTypes.FROM_LIST,
+                        getNodeFactory().doJoinOrderOptimization(),
+                        getContextManager()),
+                predicates,
+                dataDictionary,
+                null);
+        optimizer.setForSpark(forSpark);
 
         // RESOLVE: NEED TO FACTOR IN COST OF SORTING AND FIGURE OUT HOW
         // MANY ROWS HAVE BEEN ELIMINATED.
@@ -1047,18 +1051,18 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      */
     public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
 
-		/* Get the next ResultSet#, so we can number this ResultSetNode, its
-		 * ResultColumnList and ResultSet.
-		 */
+        /* Get the next ResultSet#, so we can number this ResultSetNode, its
+         * ResultColumnList and ResultSet.
+         */
         assignResultSetNumber();
 
         // Get the final cost estimate from the child.
         costEstimate = childResult.getFinalCostEstimate(true);
 
-		/*
-		** We have aggregates, so save the windowInfoList
-		** in the activation and store the number
-		*/
+        /*
+        ** We have aggregates, so save the windowInfoList
+        ** in the activation and store the number
+        */
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(windowInfoList != null, "windowInfoList not set up as expected");
         }
@@ -1067,17 +1071,17 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         acb.pushGetResultSetFactoryExpression(mb);
 
 
-		/* Generate the WindowResultSet:
-		 *	arg1: childExpress - Expression for childResult
-		 *  arg2: isInSortedOrder - true if source result set in sorted order
-		 *  arg3: aggInfoItem - entry in saved objects for the aggregates,
-		 *  arg4: Activation
-		 *  arg5: number of columns in the result
-		 *  arg6: resultSetNumber
-		 *  arg7: row count estimate for cost
-		 *  arg8: estimated cost
+        /* Generate the WindowResultSet:
+         *    arg1: childExpress - Expression for childResult
+         *  arg2: isInSortedOrder - true if source result set in sorted order
+         *  arg3: aggInfoItem - entry in saved objects for the aggregates,
+         *  arg4: Activation
+         *  arg5: number of columns in the result
+         *  arg6: resultSetNumber
+         *  arg7: row count estimate for cost
+         *  arg8: estimated cost
          *  arg9: explain plan (for this node only)
-		 */
+         */
         // Generate the child ResultSet
         childResult.generate(acb, mb);
         mb.push(isInSortedOrder);

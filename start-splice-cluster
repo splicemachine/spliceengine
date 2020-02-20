@@ -146,6 +146,8 @@ fi
 echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = ${CHAOS} in:"
 echo "   ${RUN_DIR}"
 
+export MAVEN_OPTS="$MAVEN_OPTS -Xmx5000m"
+
 if [[ "${BUILD}" == "1" ]]; then
   echo "Building first..."
   pushd "${BASE_DIR}" > /dev/null

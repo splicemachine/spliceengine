@@ -88,6 +88,7 @@ public interface AggregateDefinition {
 		COUNT_FUNCTION("COUNT"),
 		//no need to over complicate with sub type functions, treat count as count star
 		COUNT_STAR_FUNCTION("COUNT(*)"),
+		STRING_AGG("STRING_AGG"),
 		DENSE_RANK_FUNCTION("DENSE_RANK"),
 		RANK_FUNCTION("RANK"),
 		FIRST_VALUE_FUNCTION("FIRST_VALUE"),
