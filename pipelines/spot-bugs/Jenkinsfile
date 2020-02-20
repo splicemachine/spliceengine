@@ -1,12 +1,3 @@
-def BUILD_PROPS = "/opt/splice-build.properties"
-def JDK_PROPS = "/opt/jdk8.properties"
-def BUILD_ENV = "buildEnv"
-def JDK8_ENV = "jdk8Env"
-
-void prop2env(propFile, envFile) {
-    sh "sed -e 's: = :=:;s:\\(=\\)\\(.*\\):\\1\"\\2\":' ${propFile} | tee ${envFile}"
-}
-
 // Launch the docker container
 node('splice-standalone') {
 
@@ -22,7 +13,7 @@ node('splice-standalone') {
             doGenerateSubmoduleConfigurations: false, 
             extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
             submoduleCfg: [], 
-            userRemoteConfigs: [[credentialsId: '39ceb99f-365d-462f-a37b-c41f4fe1fcfa', url: 'git@github.com:splicemachine/spliceengine-ee.git']]
+            userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
         ])
         checkout([  
             $class: 'GitSCM', 
@@ -30,7 +21,7 @@ node('splice-standalone') {
             doGenerateSubmoduleConfigurations: false, 
             extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
             submoduleCfg: [], 
-            userRemoteConfigs: [[credentialsId: '39ceb99f-365d-462f-a37b-c41f4fe1fcfa', url: 'git@github.com:splicemachine/spliceengine.git']]
+            userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
         ])  
       }
 
@@ -38,18 +29,6 @@ node('splice-standalone') {
       dir('spliceengine'){
           def platforms = ""
           def branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
-
-          prop2env(BUILD_PROPS, BUILD_ENV)
-          prop2env(JDK_PROPS, JDK8_ENV)
-          sh '''
-          source buildEnv
-          source jdk8Env
-          export $(cut -d= -f1 buildEnv)
-          export $(cut -d= -f1 jdk8Env)
-          '''
-          env.JAVA_HOME="/opt/java/jdk8"
-          env.PATH="${env.JAVA_HOME}/bin:${env.PATH}"
-          sh 'java -version'
 
           if ( "$branch" == ".7" ) {
                         platforms = "cdh5.14.0"
