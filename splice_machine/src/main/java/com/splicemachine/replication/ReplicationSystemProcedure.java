@@ -71,7 +71,7 @@ public class ReplicationSystemProcedure {
                     "Replication progress", dateTime.toString());
         }
         else {
-            resultSets[0] = ProcedureUtils.generateResult("Error", "Information for available");
+            resultSets[0] = ProcedureUtils.generateResult("Error", "Information not available");
         }
     }
 

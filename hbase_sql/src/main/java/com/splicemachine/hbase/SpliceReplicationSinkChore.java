@@ -275,7 +275,7 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
                         //}
                     }
                     else {
-                        String walName = Bytes.toString(CellUtil.cloneQualifier(cell));
+                        String walName = Bytes.toString(colName);
                         Long position = Bytes.toLong(CellUtil.cloneValue(cell));
                         if (replicationProgress.containsKey(walName)) {
                             long appliedPosition = replicationProgress.get(walName);
