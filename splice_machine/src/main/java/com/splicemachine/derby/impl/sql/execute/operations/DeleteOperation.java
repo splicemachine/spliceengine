@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -22,6 +23,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -94,10 +96,16 @@ public class DeleteOperation extends DMLWriteOperation {
         DataSet set = pair.getFirst();
         int[] expectedUpdateCounts = pair.getSecond();
         OperationContext operationContext = dsp.createOperationContext(this);
-        TxnView txn = getCurrentTransaction();
-		operationContext.pushScope();
+        TxnView txn = getTransactionForWrite(dsp);
+        operationContext.pushScope();
         DataSetWriterBuilder dataSetWriterBuilder = null;
         try {
+            // initTriggerRowHolders can't be called in the TriggerHandler constructor
+            // because it has to be called after getCurrentTransaction() elevates the
+            // transaction to writable.
+            if (triggerHandler != null)
+                triggerHandler.initTriggerRowHolders(isOlapServer(), txn, SpliceClient.token, 0);
+
             if (bulkDeleteDirectory != null) {
                 dataSetWriterBuilder = set
                         .bulkDeleteData(operationContext)
@@ -110,11 +118,20 @@ public class DeleteOperation extends DMLWriteOperation {
             DataSetWriter dataSetWriter = dataSetWriterBuilder
                     .updateCounts(expectedUpdateCounts)
                     .destConglomerate(heapConglom)
+                    .tempConglomerateID(getTriggerConglomID())
                     .operationContext(operationContext)
+                    .tableVersion(tableVersion)
+                    .execRowDefinition(getExecRowDefinition())
                     .txn(txn).build();
             return dataSetWriter.write();
 
-        } finally {
+        }
+        catch (Exception e) {
+            exceptionHit = true;
+            throw Exceptions.parseException(e);
+        }
+        finally {
+            finalizeNestedTransaction();
             operationContext.popScope();
         }
     }

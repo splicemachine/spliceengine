@@ -445,9 +445,6 @@ public abstract class DMLStatementNode extends StatementNode {
         Vector parameterList = getCompilerContext().getParameterList();
         int numberOfParameters = (parameterList == null) ? 0 : parameterList.size();
 
-        if (numberOfParameters <= 0)
-            return;
-
         ParameterNode.generateParameterValueSet
                 (acb, numberOfParameters, parameterList);
     }
