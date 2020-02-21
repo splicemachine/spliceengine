@@ -17,9 +17,6 @@ branch=$2
 
 out_file=$(mktemp)
 
-# Dry run
-mvn -B -e spotbugs:help -Pcore,$platform,mem,ee | tee out_file
-
 spotbugs_errors=
 
 echo "Running spotbugs..."
@@ -31,9 +28,22 @@ for file in $(git diff $(git merge-base $branch HEAD) --name-only); do
         spotbugs_errors+="$new_spotbugs_errors"
     fi
 done
-rm out_file
 
 count=$(grep -c "ERROR" <(echo "$spotbugs_errors"))
+
+# If count is zero, it could be because some spotbugs did not even get to run, so let's make sure that
+# we still reached spotbugs errors
+if [ $count -eq "0" ]
+then
+    if grep -q "[INFO] BUILD FAILURE" out_file
+    then
+        if ! grep "[ERROR] Failed to execute goal com.github.spotbugs.*failed with [0-9]* bugs and [0-9]* errors" out_file
+        then
+            echo "[ERROR]: Some non spotbugs error occurred."
+            exit 1
+        fi
+    fi
+fi
 
 echo ""
 echo "#######################################################"
@@ -42,5 +52,7 @@ echo "$spotbugs_errors"
 echo "#######################################################"
 echo ""
 echo "To reproduce locally, run ./pipelines/spot-bugs/runSpotbugs.sh $platform $branch"
+
+rm out_file
 
 exit $count
