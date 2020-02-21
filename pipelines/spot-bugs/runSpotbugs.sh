@@ -3,8 +3,6 @@
 #Sample usage:
 # ./pipelines/spot-bugs/runSpotbugs.sh cdh5.14.0 master
 
-set -x
-
 display_usage() {
    echo -e "\nUsage:\n./runSpotbugs <platform> <base_branch>\n"
 }
