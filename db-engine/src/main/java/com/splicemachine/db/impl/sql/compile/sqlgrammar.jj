@@ -4522,11 +4522,11 @@ callStatement() throws StandardException :
 StatementNode
 bareCallStatement() throws StandardException :
 {
-    ParameterNode        returnParam;
+    ParameterNode   returnParam;
 
-    ValueNode            value;
+    ValueNode       value;
 
-    ResultSetNode        resultSetNode;
+    ResultSetNode   resultSetNode;
 }
 {
     <CALL> value = primaryExpression()
@@ -4601,7 +4601,7 @@ bareCallStatement() throws StandardException :
  */
 ValueNode primaryExpression() throws StandardException :
 {
-    ValueNode            value = null;
+    ValueNode value = null;
 }
 {
     LOOKAHEAD
@@ -6465,7 +6465,7 @@ booleanPrimary() throws StandardException :
 ValueNode
 predicate() throws StandardException :
 {
-    ValueNode    value;
+    ValueNode value;
 }
 {
     (
@@ -6532,13 +6532,13 @@ remainingPredicate(ValueNode value) throws StandardException :
 ValueNode
 remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
 {
-    int            operator;
-    String        javaClassName;
-    Token         tok = null;
-    ValueNode    tree = null;
-    ValueNode    likePattern;
-    ValueNode    betweenLeft;
-    ValueNode    betweenRight;
+    int         operator;
+    String      javaClassName;
+    Token       tok = null;
+    ValueNode   tree = null;
+    ValueNode   likePattern;
+    ValueNode   betweenLeft;
+    ValueNode   betweenRight;
     Properties  properties = null;
 }
 {
@@ -6720,11 +6720,71 @@ additiveExpression(ValueNode farLeftOperand, int compOp) throws StandardExceptio
             break;
         }
 
-        return (ValueNode) nodeFactory.getNode(
-                            nodeType,
-                            farLeftOperand,
-                            leftOperand,
+        if (leftOperand instanceof ValueTupleNode) {
+            if (!(farLeftOperand instanceof ValueTupleNode)) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                    "Cannot compare tuple with non tuple");
+            }
+            return additiveExpressionTuple(
+                    nodeType,
+                    (ValueTupleNode)farLeftOperand,
+                    (ValueTupleNode)leftOperand);
+        } else {
+            if (farLeftOperand instanceof ValueTupleNode) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                    "Cannot compare tuple with non tuple");
+            }
+            return (ValueNode) nodeFactory.getNode(
+                                nodeType,
+                                farLeftOperand,
+                                leftOperand,
+                                getContextManager());
+        }
+    }
+}
+
+/*
+ * <A NAME="additiveExpressionTuple">additiveExpressionTuple</A>
+ */
+ValueNode
+additiveExpressionTuple(
+        int nodeType,
+        ValueTupleNode leftTuple,
+        ValueTupleNode rightTuple) throws StandardException :
+{
+}
+{
+    {
+        if (leftTuple.size() != rightTuple.size()) {
+            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                "Cannot compare tuples of different sizes");
+        }
+        switch (nodeType)
+        {
+            case C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE:
+            case C_NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE:
+            case C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE:
+            case C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE:
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                    "Tuple lexicographical comparison not supported");
+        }
+        ValueNode value = (ValueNode) nodeFactory.getNode(
+                        nodeType,
+                        leftTuple.get(0),
+                        rightTuple.get(0),
+                        getContextManager());
+        for (int i = 1; i < leftTuple.size(); ++i) {
+            value = (ValueNode) nodeFactory.getNode(
+                            C_NodeTypes.AND_NODE,
+                            value,
+                            (ValueNode) nodeFactory.getNode(
+                                nodeType,
+                                leftTuple.get(i),
+                                rightTuple.get(i),
+                                getContextManager()),
                             getContextManager());
+        }
+        return value;
     }
 }
 
@@ -6753,8 +6813,8 @@ additiveOperator() throws StandardException :
 ValueNode
 multiplicativeExpression(ValueNode farLeftOperand, int additiveOperator) throws StandardException :
 {
-    ValueNode    leftOperand;
-    int            multOp;
+    ValueNode leftOperand;
+    int       multOp;
 }
 {
     leftOperand = unaryExpression(null, 0)
@@ -6824,10 +6884,10 @@ multiplicativeOperator() throws StandardException :
 ValueNode
 unaryExpression(ValueNode farLeftOperand, int multiplicativeOperator) throws StandardException :
 {
-    ValueNode    value;
-    String        sign = null;
-    int            tokKind1;
-    int            tokKind2;
+    ValueNode   value;
+    String      sign = null;
+    int         tokKind1;
+    int         tokKind2;
 }
 {
     [
@@ -6902,7 +6962,7 @@ sign() :
 ValueNode
 primaryExpressionXX() throws StandardException :
 {
-    ValueNode    value;
+    ValueNode value;
 }
 {
     value = primary()
@@ -7076,8 +7136,8 @@ methodParameter(Vector parameterList) throws StandardException :
 ValueNode
 primary() throws StandardException :
 {
-    String        javaClassName;
-    ValueNode    value;
+    String      javaClassName;
+    ValueNode   value;
 }
 {
 
@@ -7881,8 +7941,8 @@ ansiStrip() throws StandardException  :
 ValueNode
 valueExpressionPrimary() throws StandardException :
 {
-    ValueNode    value;
-    int            tokKind;
+    ValueNode   value;
+    int         tokKind;
     Properties  properties = null;
 }
 {
@@ -7981,8 +8041,8 @@ valueExpressionPrimary() throws StandardException :
         ** valueExpression() here is a MINUS operator if the intervalQualifier
         ** is supplied.
         */
-
         value = valueExpression()
+        (<COMMA> value = valueTupleElement(value))*
     )
     <RIGHT_PAREN> [ properties = propertyList(true)<CHECK_PROPERTIES>]
     {
@@ -8000,6 +8060,35 @@ valueExpressionPrimary() throws StandardException :
     value = nextValueExpression()
     {
         return value;
+    }
+}
+
+/*
+ * <A NAME="valueTupleElement">tupleValueElement</A>
+ */
+ValueTupleNode
+valueTupleElement(ValueNode tupleOrFirstValue) throws StandardException:
+{
+    ValueTupleNode  valueTuple;
+    ValueNode       newValue;
+}
+{
+    newValue = valueExpression()
+    {
+        if (tupleOrFirstValue instanceof ValueTupleNode) {
+            valueTuple = (ValueTupleNode) tupleOrFirstValue;
+        } else {
+            valueTuple = (ValueTupleNode) nodeFactory.getNode(
+                                    C_NodeTypes.VALUE_TUPLE_NODE,
+                                    getContextManager());
+            valueTuple.addValueNode((ValueNode) tupleOrFirstValue);
+        }
+        if (newValue instanceof ValueTupleNode) {
+            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                "Nested tuple not supported");
+        }
+        valueTuple.addValueNode(newValue);
+        return valueTuple;
     }
 }
 
@@ -14963,7 +15052,7 @@ setClauseValueList(ValueNodeList assignedColumnsList, ValueNodeList newValuesLis
 ValueNode
 columnRefOrUDF() throws StandardException :
 {
-    ValueNode     valueNode;
+    ValueNode valueNode;
 }
 {
     //Look ahead required here to tell a java class from a identifier
