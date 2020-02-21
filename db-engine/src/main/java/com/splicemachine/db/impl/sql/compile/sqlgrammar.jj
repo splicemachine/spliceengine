@@ -8184,6 +8184,7 @@ valueTupleElement(ValueNode tupleOrFirstValue) throws StandardException:
     ValueNode       newValue;
 }
 {
+    newValue = valueExpression()
     {
         if (tupleOrFirstValue instanceof ValueTupleNode) {
             valueTuple = (ValueTupleNode) tupleOrFirstValue;
@@ -8193,7 +8194,6 @@ valueTupleElement(ValueNode tupleOrFirstValue) throws StandardException:
                                     getContextManager());
             valueTuple.addValueNode((ValueNode) tupleOrFirstValue);
         }
-        newValue = valueExpression();
         if (newValue instanceof ValueTupleNode) {
             throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
                 "Nested tuple not supported");
@@ -10994,7 +10994,7 @@ FromTable tableFactor() throws StandardException :
                     getToken(2).kind == VALUES
                 )
             } )
-    derivedTable = derivedTable() [ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
+    derivedTable = derivedTable() [[ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)]
         [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
         [ optionalTableClauses = optionalTableProperties() ]
     {
