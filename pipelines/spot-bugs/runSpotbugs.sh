@@ -17,25 +17,28 @@ branch=$2
 
 out_file=$(mktemp)
 
-errors=
+# Dry run
+mvn -B -e spotbugs:help -Pcore,$platform,mem,ee | tee out_file
+
+spotbugs_errors=
 
 echo "Running spotbugs..."
 time mvn -B -e --fail-never spotbugs:check -Pcore,$platform,mem,ee | tee out_file
 for file in $(git diff $(git merge-base $branch HEAD) --name-only); do
-    if new_errors="$(grep "$(basename $file)" out_file)"
+    if new_spotbugs_errors="$(grep "$(basename $file)" out_file)"
     then
-        errors+=$'\n'
-        errors+="$new_errors"
+        spotbugs_errors+=$'\n'
+        spotbugs_errors+="$new_spotbugs_errors"
     fi
 done
 rm out_file
 
-count=$(grep -c "ERROR" <(echo "$errors"))
+count=$(grep -c "ERROR" <(echo "$spotbugs_errors"))
 
 echo ""
 echo "#######################################################"
 echo "$count specific errors to fix before this PR can be merged:"
-echo "$errors"
+echo "$spotbugs_errors"
 echo "#######################################################"
 echo ""
 echo "To reproduce locally, run ./pipelines/spot-bugs/runSpotbugs.sh $platform $branch"
