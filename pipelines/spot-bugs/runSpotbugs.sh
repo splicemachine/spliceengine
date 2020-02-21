@@ -37,7 +37,7 @@ count=$(grep -c "ERROR" <(echo "$spotbugs_errors"))
 # we still reached spotbugs errors
 if [ $count -eq "0" ]
 then
-    if grep -q "build failures were ignored" out_file
+    if grep -qi "build failures were ignored" out_file
     then
         if ! grep "Failed to execute goal com.github.spotbugs.*failed with [0-9]* bugs and [0-9]* errors" out_file
         then
