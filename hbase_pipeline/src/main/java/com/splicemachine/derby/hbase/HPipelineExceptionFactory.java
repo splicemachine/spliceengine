@@ -128,6 +128,9 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
     }
 
     @Override
+    public boolean isHBase() { return true; }
+
+    @Override
     public Exception processErrorResult(WriteResult result){
         Code writeErrorCode=result.getCode();
 

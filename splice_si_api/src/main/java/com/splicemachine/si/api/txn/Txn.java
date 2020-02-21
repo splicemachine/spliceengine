@@ -49,6 +49,11 @@ public interface Txn extends TxnView{
         }
 
         @Override
+        public boolean hasActiveWriteableOrRolledBackTransactionInLineage(TxnView ancestor, boolean checkForRollbackOnly) {
+            return false;
+        }
+
+        @Override
         public State getEffectiveState(){
             return State.ACTIVE;
         }

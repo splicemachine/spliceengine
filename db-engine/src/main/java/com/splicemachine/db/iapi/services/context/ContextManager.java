@@ -31,22 +31,17 @@
 
 package com.splicemachine.db.iapi.services.context;
 
-import java.sql.SQLException;
-import java.util.*;
-
+import com.splicemachine.db.iapi.error.*;
 import com.splicemachine.db.iapi.reference.ContextId;
-import com.splicemachine.db.iapi.error.ErrorStringBuilder;
-import com.splicemachine.db.iapi.error.ExceptionSeverity;
-import com.splicemachine.db.iapi.error.ExceptionUtil;
-import com.splicemachine.db.iapi.error.PassThroughException;
-import com.splicemachine.db.iapi.error.ShutdownException;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import org.apache.log4j.Logger;
+
+import java.sql.SQLException;
+import java.util.*;
 
 /**
  *
@@ -83,9 +78,9 @@ public class ContextManager
 		// expensive, but those operations are infrequent.
 		private Context top_ = null;
 
-		void push(Context context) { 
-			stack_.add(context); 
-			top_ = context; 
+		void push(Context context) {
+			stack_.add(context);
+			top_ = context;
 		}
 		void pop() {
             stack_.remove(stack_.size() - 1);
@@ -100,8 +95,8 @@ public class ContextManager
 			if(index>=0)
 				stack_.remove(index);
 		}
-		Context top() { 
-			return top_; 
+		Context top() {
+			return top_;
 		}
 		boolean isEmpty() { return stack_.isEmpty(); }
 	}
@@ -347,7 +342,7 @@ forever: for (;;) {
 				flushErrorString();
 			}
 
-			
+
 			boolean	lastHandler = false;
 
 
@@ -381,9 +376,9 @@ forever: for (;;) {
                     }
 				}
 				catch (StandardException se) {
-	
+
 					if (error instanceof StandardException) {
-	
+
 						if (se.getSeverity() > ((StandardException) error).getSeverity()) {
 							// Ok, error handling raised a more severe error,
 							// restart with the more severe error
