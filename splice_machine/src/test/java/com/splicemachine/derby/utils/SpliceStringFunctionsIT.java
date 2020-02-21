@@ -89,6 +89,9 @@ public class SpliceStringFunctionsIT {
     private static final SpliceTableWatcher tableWatcherI = new SpliceTableWatcher(
             "I", schemaWatcher.schemaName, "(a int, b varchar(10))");
 
+    // Table for long string concatenate testing.
+    private static final SpliceTableWatcher tableWatcherJ = new SpliceTableWatcher(
+            "J", schemaWatcher.schemaName, "(a double)");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
@@ -101,6 +104,7 @@ public class SpliceStringFunctionsIT {
             .around(tableWatcherG)
             .around(tableWatcherH)
             .around(tableWatcherI)
+            .around(tableWatcherJ)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -295,6 +299,11 @@ public class SpliceStringFunctionsIT {
                         ps.execute();
                         ps.setInt(1,2);
                         ps.setString(2,"c");
+                        ps.execute();
+
+                        ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherJ+ " (a) values (?)");
+                        ps.setDouble(1,12.3);
                         ps.execute();
 
                     } catch (Exception e) {
@@ -713,23 +722,23 @@ public class SpliceStringFunctionsIT {
         rs.close();
     }
 
-    @Test
+    @Test(timeout=1000) //Time out after 1 second
     public void testLongConcatenateString() throws Exception {
-        String sqlText = "SELECT COUNT(*) FROM (" + "SELECT CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
-                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
-                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
-                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
-                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
-                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
-                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
-                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
-                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
-                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50)) FROM "
-                + tableWatcherH + ") AS T";
+        String sqlText = "SELECT CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4)) FROM " + tableWatcherJ ;
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         rs.next();
 
-        assertEquals(1 , rs.getInt(1));
+        assertEquals("Wrong result","12.3,12.3,12.3,12.3,12.3,12.3,12.3,12.3,12.3,12.3,12.3", rs.getString(1));
         rs.close();
     }
 
