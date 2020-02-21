@@ -3,6 +3,8 @@
 #Sample usage:
 # ./pipelines/spot-bugs/runSpotbugs.sh cdh5.14.0 master
 
+set -x
+
 display_usage() {
    echo -e "\nUsage:\n./runSpotbugs <platform> <base_branch>\n"
 }
@@ -40,6 +42,7 @@ then
         if ! grep "[ERROR] Failed to execute goal com.github.spotbugs.*failed with [0-9]* bugs and [0-9]* errors" out_file
         then
             echo "[ERROR]: Some non spotbugs error occurred."
+            rm out_file
             exit 1
         fi
     fi
