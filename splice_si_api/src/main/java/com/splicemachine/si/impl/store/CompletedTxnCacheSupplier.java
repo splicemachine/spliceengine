@@ -14,14 +14,15 @@
 
 package com.splicemachine.si.impl.store;
 
-import com.splicemachine.hash.Hash32;
-import com.splicemachine.hash.HashFunctions;
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * TxnSupplier which caches transaction which have "Completed"--i.e. which have entered the COMMITTED or ROLLEDBACK
@@ -33,84 +34,72 @@ import java.io.IOException;
  *         Date: 6/18/14
  */
 public class CompletedTxnCacheSupplier implements TxnSupplier{
-    private TxnView[] cache;
+    private ConcurrentLinkedHashMap<Long, TxnView> cache; // autobox for now
     private final TxnSupplier delegate;
-    private Hash32 hashFunction;
+    private final AtomicLong hits=new AtomicLong();
+    private final AtomicLong requests=new AtomicLong();
 
-    public CompletedTxnCacheSupplier(TxnSupplier delegate, int maxSize, int concurrencyLevel) {
-        cache = new TxnView[Integer.highestOneBit(maxSize)];    // ensure power of 2
-        this.delegate = delegate;
-        hashFunction = HashFunctions.utilHash();
+    public CompletedTxnCacheSupplier(TxnSupplier delegate,int maxSize,int concurrencyLevel){
+        cache=new ConcurrentLinkedHashMap.Builder<Long, TxnView>()
+                .maximumWeightedCapacity(maxSize)
+                .concurrencyLevel(concurrencyLevel)
+                .build();
+        this.delegate=delegate;
     }
 
-    private int idx(long val) {
-        return hashFunction.hash(val) & (cache.length - 1);
-    }
-
-    private int idx2(long val, int idx) {
-        return (int)(val + idx) & (cache.length - 1);
-    }
-
-    private TxnView get(long key) {
-        int idx = idx(key);
-        TxnView txn = cache[idx];   // safe to do without synchronization (JLS 17.7)
-        if (txn != null && txn.getTxnId() == key) return txn;
-        idx = idx2(key, idx);
-        txn = cache[idx];
-        return txn != null && txn.getTxnId() == key ? txn : null;
-    }
-
-    private void put(long key, TxnView txn) {
-        int idx = idx(key);
-        cache[idx] = txn;           // safe to do without synchronization (JLS 17.7)
-        idx = idx2(key, idx);
-        cache[idx] = txn;
+    public int getMaxSize(){
+        return cache.size();
     }
 
     @Override
     public TxnView getTransaction(long txnId) throws IOException{
-        return getTransaction(txnId, false);
+        if(txnId==-1)
+            return Txn.ROOT_TRANSACTION;
+        return getTransaction(txnId,false);
     }
 
     @Override
-    public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
-        if (txnId == -1) {
+    @SuppressFBWarnings("SF_SWITCH_NO_DEFAULT") //intentional
+    public TxnView getTransaction(long txnId,boolean getDestinationTables) throws IOException{
+        if(txnId==-1)
             return Txn.ROOT_TRANSACTION;
+        requests.incrementAndGet();
+        TxnView txn=cache.get(txnId); // autobox until Cliff C merge
+        if(txn!=null){
+            hits.incrementAndGet();
+            return txn;
         }
-        TxnView transaction = get(txnId);
-        if (transaction != null) {
-            return transaction;
-        }
+        //bummer, we aren't in the cache, need to check the delegate
+        TxnView transaction=delegate.getTransaction(txnId,getDestinationTables);
+        if(transaction==null) //noinspection ConstantConditions
+            return transaction; //don't cache read-only transactions;
 
-        // Not in the cache, need to check the delegate
-        transaction = delegate.getTransaction(txnId, getDestinationTables);
-        if (transaction != null) {
-            switch (transaction.getEffectiveState()) {
-                case COMMITTED:
-                case ROLLEDBACK:
-                    put(transaction.getTxnId(), transaction); // Cache for Future Use
-                    break;
-                default:
-                    break;
-            }
+        switch(transaction.getEffectiveState()){
+            case COMMITTED:
+            case ROLLEDBACK:
+                cache.put(transaction.getTxnId(),transaction); // Cache for Future Use
         }
         return transaction;
     }
 
     @Override
-    public boolean transactionCached(long txnId) {
-        return get(txnId) != null;
+    public boolean transactionCached(long txnId){
+        return cache.get(txnId)!=null;
     }
 
     @Override
-    public void cache(TxnView toCache) {
-        if (toCache.getState() == Txn.State.ACTIVE) return; //cannot cache incomplete transactions
-        put(toCache.getTxnId(), toCache);
+    public void cache(TxnView toCache){
+        if(toCache.getState()==Txn.State.ACTIVE) return; //cannot cache incomplete transactions
+        cache.put(toCache.getTxnId(),toCache);
     }
 
     @Override
-    public TxnView getTransactionFromCache(long txnId) {
-        return get(txnId);
+    public TxnView getTransactionFromCache(long txnId){
+        requests.incrementAndGet();
+        TxnView txn=cache.get(txnId);
+        if(txn!=null)
+            hits.incrementAndGet();
+        return txn;
     }
 
     @Override

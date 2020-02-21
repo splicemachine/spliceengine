@@ -34,7 +34,6 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner;
 import org.apache.hadoop.hbase.regionserver.DefaultStoreEngine;
-import org.apache.hadoop.hbase.regionserver.RpcSchedulerFactory;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
 import org.apache.hadoop.hbase.security.access.AccessController;
@@ -215,7 +214,6 @@ class SpliceTestPlatformConfig {
         //
         // Threads, timeouts
         //
-        config.setClass("hbase.region.server.rpc.scheduler.factory.class", SpliceRpcSchedulerFactory.class, RpcSchedulerFactory.class);
         config.setLong("hbase.rpc.timeout", MINUTES.toMillis(5));
         config.setInt("hbase.client.max.perserver.tasks",50);
         config.setInt("hbase.client.ipc.pool.size",10);

@@ -112,14 +112,12 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
             if (!other.subtransactionsAllowed)
                 return false;
             boolean nonRolledbackChild = false;
-            if (!children.isEmpty()) {
-                for (Txn c : other.children) {
-                    if (c.getState() == State.ACTIVE) {
-                        if (nonRolledbackChild) {
-                            return false;
-                        }
-                        nonRolledbackChild = true;
+            for (Txn c : other.children) {
+                if (c.getState() == State.ACTIVE) {
+                    if (nonRolledbackChild) {
+                        return false;
                     }
+                    nonRolledbackChild = true;
                 }
             }
             if (other.parentReference != null) {
@@ -135,11 +133,9 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         if (counter != null && counter.get() >= SIConstants.SUBTRANSANCTION_ID_MASK) {
             return false;
         }
-        if (!children.isEmpty()) {
-            for (Txn c : children) {
-                if (c.getState() == State.ACTIVE) {
-                    return false;
-                }
+        for (Txn c : children) {
+            if (c.getState() == State.ACTIVE) {
+                return false;
             }
         }
         if (parentReference != null)
@@ -158,11 +154,9 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     @Override
     public boolean canSee(TxnView otherTxn) {
         // Protects against reading data written by the "self-insert transaction"
-        if (!children.isEmpty()) {
-            for (Txn c : children) {
-                if (c.getTxnId() == otherTxn.getTxnId() && c.getState() == State.ACTIVE) {
-                    return false;
-                }
+        for (Txn c : children) {
+            if (c.getTxnId() == otherTxn.getTxnId() && c.getState() == State.ACTIVE) {
+                return false;
             }
         }
         return super.canSee(otherTxn);
