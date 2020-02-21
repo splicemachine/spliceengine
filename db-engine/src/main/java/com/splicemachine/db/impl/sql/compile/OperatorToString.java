@@ -444,20 +444,20 @@ public class OperatorToString {
                 if (operand instanceof ConcatenationOperatorNode) {
                     if (vars.buildExpressionTree)
                         throwNotImplementedError();
-                    return format("concat(%s, %s) ", opToString2(leftOperand, vars),
-                                                     opToString2(rightOperand, vars));
+                    return format("concat(%s, %s) ", leftOperandString,
+                                                     rightOperandString);
                 }
                 else if (operand instanceof TruncateOperatorNode) {
                     if (vars.buildExpressionTree)
                         throwNotImplementedError();
                     if (leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID) {
-                        return format("trunc(%s, %s) ", opToString2(leftOperand, vars),
-                                                       opToString2(rightOperand, vars));
+                        return format("trunc(%s, %s) ", leftOperandString,
+                                                        rightOperandString);
                     }
                     else if (vars.sparkVersion.greaterThanOrEqualTo(spark_2_3_0) &&
                                leftOperand.getTypeId().getTypeFormatId() == TIMESTAMP_TYPE_ID) {
-                        return format("date_trunc(%s, %s) ", opToString2(rightOperand, vars),
-                                                            opToString2(leftOperand, vars));
+                        return format("date_trunc(%s, %s) ", leftOperandString,
+                                                             rightOperandString);
                     } else
                         throwNotImplementedError();
                 }
@@ -530,8 +530,7 @@ public class OperatorToString {
                         if (leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID) {
                             if (vars.buildExpressionTree)
                                 throwNotImplementedError();
-                            return format("date_add(%s, %s) ", opToString2(leftOperand, vars),
-                            opToString2(rightOperand, vars));
+                            return format("date_add(%s, %s) ", leftOperandString, rightOperandString );
                         }
                         else if (leftOperand.getTypeId().getTypeFormatId() == TIMESTAMP_TYPE_ID)
                             throwNotImplementedError();
@@ -542,11 +541,9 @@ public class OperatorToString {
                                 throwNotImplementedError();
                             /* use datediff if both operands are of date type */
                             if (rightOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID)
-                                return format("datediff(%s, %s) ", opToString2(leftOperand, vars),
-                                        opToString2(rightOperand, vars));
+                                return format("datediff(%s, %s) ", leftOperandString, rightOperandString);
                             else
-                                return format("date_sub(%s, %s) ", opToString2(leftOperand, vars),
-                            opToString2(rightOperand, vars));
+                                return format("date_sub(%s, %s) ", leftOperandString, rightOperandString);
                         }
                         else if (leftOperand.getTypeId().getTypeFormatId() == TIMESTAMP_TYPE_ID)
                             throwNotImplementedError();

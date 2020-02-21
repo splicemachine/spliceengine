@@ -714,6 +714,27 @@ public class SpliceStringFunctionsIT {
     }
 
     @Test
+    public void testLongConcatenateString() throws Exception {
+        String sqlText = "SELECT COUNT(*) FROM (" + "SELECT CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
+                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
+                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
+                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
+                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
+                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
+                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
+                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
+                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50))||','"
+                + "||CAST(CAST(c AS DECIMAL(9,4)) AS CHAR(50)) FROM "
+                + tableWatcherH + ") AS T";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+
+        assertEquals(1 , rs.getInt(1));
+        rs.close();
+    }
+
+
+    @Test
     public void testSTRING_AGG() throws Exception {
         for (boolean useSpark : new boolean[]{ true, false }) {
             // Simple aggregate
