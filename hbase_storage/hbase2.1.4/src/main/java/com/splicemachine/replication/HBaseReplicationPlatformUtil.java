@@ -25,6 +25,7 @@ public class HBaseReplicationPlatformUtil {
     public static ReplicationPeerConfig createReplicationConfig(String clusterKey,  boolean isSerial) {
         ReplicationPeerConfig config = ReplicationPeerConfig.newBuilder()
                 .setClusterKey(clusterKey)
+                .setReplicationEndpointImpl("com.splicemachine.replication.SpliceInterClusterReplicationEndpoint")
                 .setSerial(isSerial)
                 .build();
         return config;
