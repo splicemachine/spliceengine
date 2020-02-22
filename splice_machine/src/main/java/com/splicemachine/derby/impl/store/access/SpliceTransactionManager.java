@@ -126,13 +126,17 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     protected SpliceTransactionManager(SpliceAccessManager myaccessmanager,
-                                       Transaction theRawTran, SpliceTransactionManager parent_transaction)
-            throws StandardException {
+                                       Transaction theRawTran, SpliceTransactionManager parent_transaction) {
         if (LOG.isTraceEnabled())
             LOG.trace("init");
         init(myaccessmanager, theRawTran, parent_transaction);
     }
 
+    private SpliceTransactionManager(SpliceAccessManager myaccessmanager, Transaction theRawTran,
+                                     SpliceTransactionManager parent_transaction, ContextManager cm) {
+        contextManager = cm;
+        init(myaccessmanager, theRawTran, parent_transaction);
+    }
     /**************************************************************************
      * Private/Protected methods of This class:
      **************************************************************************
@@ -1570,8 +1574,8 @@ public class SpliceTransactionManager implements XATransactionController,
 	    	SpliceLogUtils.debug(LOG, "Before startNestedUserTransaction: parentTxn=%s, readOnly=%b, nestedTxnStack=\n%s", getRawTransaction(), readOnly, getNestedTransactionStackString());
         // Get the context manager.
         ContextService contextService = ContextService.getService();
-        contextManager = contextService.newContextManager(getContextManager());
-        contextService.setCurrentContextManager(contextManager);
+        ContextManager cm = contextService.newContextManager(getContextManager());
+        contextService.setCurrentContextManager(cm);
 
         // Allocate a new transaction no matter what.
 
@@ -1586,18 +1590,18 @@ public class SpliceTransactionManager implements XATransactionController,
 
         Transaction childTxn;
         if(rawtran instanceof SpliceTransaction)
-            childTxn=getChildTransaction(readOnly, contextManager, (SpliceTransaction)rawtran);
+            childTxn=getChildTransaction(readOnly, cm, (SpliceTransaction)rawtran);
         else
-            childTxn = getChildTransactionFromView(readOnly, contextManager, (SpliceTransactionView)rawtran);
+            childTxn = getChildTransactionFromView(readOnly, cm, (SpliceTransactionView)rawtran);
 
         if(!readOnly)
             ((SpliceTransaction)childTxn).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with an actual name
 
-        SpliceTransactionManager rt = new SpliceTransactionManager(accessmanager, childTxn, this);
+        SpliceTransactionManager rt = new SpliceTransactionManager(accessmanager, childTxn, this, cm);
 
         //this actually does some work, so don't remove it
         @SuppressWarnings("UnusedDeclaration") SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(
-                contextManager, AccessFactoryGlobals.RAMXACT_CHILD_CONTEXT_ID, rt, true /* abortAll */);
+                cm, AccessFactoryGlobals.RAMXACT_CHILD_CONTEXT_ID, rt, true /* abortAll */);
 
 	    if (LOG.isDebugEnabled())
 	    	SpliceLogUtils.debug(LOG, "After startNestedUserTransaction: childTxn=%s, nestedTxnStack=\n%s", childTxn, rt.getNestedTransactionStackString());
