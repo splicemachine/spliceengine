@@ -381,6 +381,16 @@ public class SQLChar
         }
     }
 
+    @Override
+    public byte[] getBytes() throws StandardException {
+        if (isNull())
+            return null;
+        String string = getString();
+        if (string != null)
+            return string.getBytes();
+        return null;
+    }
+
     /**
      * Get Short from a SQLChar.
      *
@@ -2493,7 +2503,7 @@ public class SQLChar
      *              0 is returned if searchFrom does not contain this.value.
      * @exception StandardException     Thrown on error
      */
-    public NumberDataValue locate(  StringDataValue searchFrom,
+    public NumberDataValue locate(  ConcatableDataValue searchFrom,
                                     NumberDataValue start,
                                     NumberDataValue result)
                                     throws StandardException
@@ -2514,7 +2524,7 @@ public class SQLChar
             startVal = start.getInt();
         }
 
-        if( searchFrom.isNull() )
+        if( searchFrom.isNull() || this.isNull())
         {
             result.setToNull();
             return result;
