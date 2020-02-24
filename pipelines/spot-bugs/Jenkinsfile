@@ -36,9 +36,10 @@ node('splice-standalone') {
     stage('Setup Maven') {
         wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
             dir('spliceengine'){
-                sh "cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml"
-                sh "sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml"
-                sh "sed  -i "s/REPLACE_PASSWORD/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml"
+                sh '''cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
+                sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
+                sed  -i "s/REPLACE_PASSWORD/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
+                '''
             }
         }
       }
