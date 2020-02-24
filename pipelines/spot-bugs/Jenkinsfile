@@ -1,5 +1,13 @@
+def vault_addr="https://vault.build.splicemachine-dev.io"
+
 // Launch the docker container
 node('splice-standalone') {
+
+    def artifact_values  = [
+        [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
+            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
+            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
+    ]
 
     try {
 
@@ -23,6 +31,16 @@ node('splice-standalone') {
             submoduleCfg: [], 
             userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
         ])  
+      }
+
+    stage('Setup Maven') {
+        wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
+            dir('spliceengine'){
+                sh "cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml"
+                sh "sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml"
+                sh "sed  -i "s/REPLACE_PASSWORD/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml"
+            }
+        }
       }
 
     stage('Build') {
