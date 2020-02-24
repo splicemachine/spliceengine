@@ -17,6 +17,7 @@ package com.splicemachine.derby.utils;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
@@ -79,7 +80,7 @@ public class Scans extends SpliceUtils {
                                  FormatableBitSet scanColumnList,
                                  TxnView txn,
                                  boolean sameStartStopPosition,
-                                 int[] formatIds,
+                                 DataValueDescriptor[] template,
                                  int[] keyDecodingMap,
                                  int[] keyTablePositionMap,
                                  DataValueFactory dataValueFactory,
@@ -105,7 +106,7 @@ public class Scans extends SpliceUtils {
             }
             attachScanKeys(scan, startKeyValue, startSearchOperator,
                     stopKeyValue, stopKeyPrefix, stopSearchOperator,
-                    sortOrder, formatIds, keyTablePositionMap, keyDecodingMap, dataValueFactory, tableVersion, rowIdKey);
+                    sortOrder, template, keyTablePositionMap, keyDecodingMap, dataValueFactory, tableVersion, rowIdKey);
 
             if (!rowIdKey) {
                 buildPredicateFilter(qualifiers, scanColumnList, scan, keyDecodingMap);
@@ -125,14 +126,14 @@ public class Scans extends SpliceUtils {
                                  FormatableBitSet scanColumnList,
                                  TxnView txn,
                                  boolean sameStartStopPosition,
-                                 int[] formatIds,
+                                 DataValueDescriptor[] template,
                                  int[] keyDecodingMap,
                                  int[] keyTablePositionMap,
                                  DataValueFactory dataValueFactory,
                                  String tableVersion,
                                  boolean rowIdKey) throws StandardException {
         return setupScan(startKeyValue, startSearchOperator, stopKeyValue, null, stopSearchOperator, qualifiers,
-                sortOrder, scanColumnList, txn, sameStartStopPosition, formatIds, keyDecodingMap,
+                sortOrder, scanColumnList, txn, sameStartStopPosition, template, keyDecodingMap,
                 keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey);
     }
 
@@ -188,7 +189,7 @@ public class Scans extends SpliceUtils {
                                        DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix,
                                        int stopSearchOperator,
                                        boolean[] sortOrder,
-                                       int[] columnTypes, //the types of the column in the ENTIRE Row
+                                       DataValueDescriptor[] columnDescriptors, //the types of the column in the ENTIRE Row
                                        int[] keyTablePositionMap, //the location in the ENTIRE row of the key columns
                                        int[] keyDecodingMap,
                                        DataValueFactory dataValueFactory,
@@ -211,9 +212,9 @@ public class Scans extends SpliceUtils {
 
                     // we just rely on key table positions
                     if (!isEmpty(keyDecodingMap) && keyDecodingMap[i] >= 0 && !isEmpty(keyTablePositionMap)) {
-                        int targetColFormatId = columnTypes[keyTablePositionMap[keyDecodingMap[i]]];
-                        if (startDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
-                            startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetColFormatId, dataValueFactory);
+                        DataValueDescriptor targetDesc = columnDescriptors[keyTablePositionMap[keyDecodingMap[i]]];
+                        if (!rowIdKey) {
+                            startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetDesc, dataValueFactory);
                         }
                     }
                 }
@@ -232,9 +233,9 @@ public class Scans extends SpliceUtils {
 
                     //  we just rely on key table positions
                     if (!isEmpty(keyDecodingMap) && !isEmpty(keyTablePositionMap)) {
-                        int targetColFormatId = columnTypes[keyTablePositionMap[keyDecodingMap[i]]];
-                        if (stopDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
-                            stop[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetColFormatId, dataValueFactory);
+                        DataValueDescriptor targetDesc = columnDescriptors[keyTablePositionMap[keyDecodingMap[i]]];
+                        if (!rowIdKey) {
+                            stop[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetDesc, dataValueFactory);
                         }
                     }
                 }

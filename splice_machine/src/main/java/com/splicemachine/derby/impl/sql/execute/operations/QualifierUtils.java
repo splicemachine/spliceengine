@@ -16,11 +16,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
+import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
 import java.math.BigDecimal;
 import java.util.GregorianCalendar;
@@ -60,35 +62,47 @@ public class QualifierUtils {
         }else return qualifier; //nothing to do
     }
 
-		/**
-		 *
-		 * Note: This method may truncate values (e.g. scanning an integer column with a double qualifier will truncate
-		 * the double).
-		 *
-		 * @param dvd the data value descriptor given in the qualifier
-		 * @param columnDataType the data type of the actual column
-		 * @param dataValueFactory a factory to generate a DataValueDescriptor with the type of {@code columnDataType},
-		 *                         and the contents of {@code dvd}
-		 * @return a DataValueDescriptor with the type of {@code columnDataType}, and the contents of {@code dvd}
-		 * @throws StandardException if something goes wrong
-		 */
-    public static DataValueDescriptor adjustDataValueDescriptor(DataValueDescriptor dvd, int columnDataType,DataValueFactory dataValueFactory) throws StandardException {
+        /**
+         *
+         * Note: This method may truncate values (e.g. scanning an integer column with a double qualifier will truncate
+         * the double).
+         *
+         * @param sourceDvd the data value descriptor given in the qualifier
+         * @param targetDvd the data value descriptor of the actual column
+         * @param dataValueFactory a factory to generate a DataValueDescriptor with the type of {@code columnDataType},
+         *                         and the contents of {@code dvd}
+         * @return a DataValueDescriptor with the type of {@code columnDataType}, and the contents of {@code dvd}
+         * @throws StandardException if something goes wrong
+         */
+    public static DataValueDescriptor adjustDataValueDescriptor(
+            DataValueDescriptor sourceDvd, DataValueDescriptor targetDvd, DataValueFactory dataValueFactory) throws StandardException {
         assert dataValueFactory != null;
-    	if(isFloatType(columnDataType)){
-            return convertFloatingPoint(dvd,columnDataType,dataValueFactory);
-        }else if(isScalarType(columnDataType)){
-            return convertScalar(dvd,columnDataType,dataValueFactory);
-        }else if(isTimestamp(columnDataType)){
-            return convertTimestamp(dvd,columnDataType,dataValueFactory);
-        }else if(isDate(columnDataType)){
-            return convertDate(dvd,columnDataType,dataValueFactory);
-        }else if(isTime(columnDataType)){
-            return convertTime(dvd,columnDataType,dataValueFactory);
-        }else return dvd; //nothing to do
+        int sourceType = sourceDvd.getTypeFormatId();
+        int targetType = targetDvd.getTypeFormatId();
+
+        if (sourceType == targetType) {
+            if (isChar(sourceType) && ((SQLChar)targetDvd).getSqlCharSize() > ((SQLChar)sourceDvd).getSqlCharSize()) {
+                return convertChar((SQLChar)sourceDvd, ((SQLChar)targetDvd).getSqlCharSize(), dataValueFactory);
+            } else {
+                return sourceDvd;
+            }
+        } else if (isFloatType(targetType)) {
+            return convertFloatingPoint(sourceDvd, targetType, dataValueFactory);
+        } else if (isScalarType(targetType)) {
+            return convertScalar(sourceDvd, targetType, dataValueFactory);
+        } else if (isTimestamp(targetType)) {
+            return convertTimestamp(sourceDvd, targetType, dataValueFactory);
+        } else if (isDate(targetType)) {
+            return convertDate(sourceDvd, targetType, dataValueFactory);
+        } else if (isTime(targetType)) {
+            return convertTime(sourceDvd, targetType, dataValueFactory);
+        } else {
+            return sourceDvd; //nothing to do
+        }
     }
     
     private static Qualifier reTypeQualifier(Qualifier qualifier,DataValueDescriptor correctType) {
-    	if(qualifier instanceof ScanQualifier){
+        if(qualifier instanceof ScanQualifier){
             ((ScanQualifier)qualifier).setQualifier(qualifier.getColumnId(),
                     qualifier.getStoragePosition(),
                     correctType,
@@ -144,7 +158,7 @@ public class QualifierUtils {
 
 
     private static DataValueDescriptor convertScalar(DataValueDescriptor dvd, int columnFormat, DataValueFactory dataValueFactory) throws StandardException {
-    	 /*
+         /*
          * Technically, all Scalar types encode the same way. However, that's an implementation
          * detail which may change in the future (particularly with regards to small data types,
          * like TINYINT which can serialize more compactly while retaining order characteristics).
@@ -154,7 +168,7 @@ public class QualifierUtils {
          * 2. Convert into correct Scalar types to adjust for potential overflow issues (ints bigger
          * than Short.MAX_VALUE, etc).
          */
-    	assert dataValueFactory != null;
+        assert dataValueFactory != null;
         DataValueDescriptor correctType = dataValueFactory.getNull(columnFormat, -1);
         double value;
         int currentTypeFormatId = dvd.getTypeFormatId();
@@ -203,7 +217,7 @@ public class QualifierUtils {
     }
     
     private static Qualifier convertScalar(Qualifier qualifier, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
-    	assert dataValueFactory != null;
+        assert dataValueFactory != null;
         DataValueDescriptor correctType = convertScalar(qualifier.getOrderable(), columnFormat,dataValueFactory);
         if(qualifier instanceof ScanQualifier){
             ((ScanQualifier)qualifier).setQualifier(qualifier.getColumnId(),
@@ -252,6 +266,16 @@ public class QualifierUtils {
                 || columnFormat==StoredFormatIds.SQL_SMALLINT_ID
                 || columnFormat==StoredFormatIds.SQL_INTEGER_ID
                 || columnFormat==StoredFormatIds.SQL_LONGINT_ID);
+    }
+
+    private static boolean isChar(int columnFormat) {
+        return (columnFormat == StoredFormatIds.SQL_CHAR_ID);
+    }
+
+    private static DataValueDescriptor convertChar(SQLChar sourceDvd, int newCharSize, DataValueFactory dataValueFactory) throws StandardException {
+        SQLChar correctedSource = (SQLChar) sourceDvd.cloneValue(true);
+        correctedSource.setWidth(newCharSize, -1, true);
+        return correctedSource;
     }
 
     private static DataValueDescriptor convertFloatingPoint(DataValueDescriptor dvd, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
@@ -303,7 +327,7 @@ public class QualifierUtils {
                     else
                         value = val.doubleValue();
                 }else{
-                	value = val.doubleValue(); // hmm this could be wrong
+                    value = val.doubleValue(); // hmm this could be wrong
                 }
                 correctType.setValue(value);
             }
