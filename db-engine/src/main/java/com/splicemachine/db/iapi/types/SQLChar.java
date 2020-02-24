@@ -1974,6 +1974,7 @@ public class SQLChar
                 }
 
                 setValue(new String(strBuilder));
+                setSqlCharSize(desiredWidth);
             }
         }
         else if (sourceWidth > desiredWidth && desiredWidth > 0)
@@ -2029,6 +2030,9 @@ public class SQLChar
             ** Truncate to the desired width.
             */
             setValue(getString().substring(0, desiredWidth));
+            if (!(this instanceof SQLVarchar)) {
+                setSqlCharSize(desiredWidth);
+            }
         }
     }
 
