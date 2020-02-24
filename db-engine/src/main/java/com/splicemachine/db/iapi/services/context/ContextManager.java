@@ -201,8 +201,8 @@ public class ContextManager
 	}
 
 	/**
-	 * Removes the specified Context object. If
-	 * the specified Context object does not exist, the call will fail.
+	 * Removes the specified Context object. If the specified Context object does not exist
+	 * (already removed), no action is taken.
 	 * @param theContext the Context object to remove.
 	 */
 	void popContext(Context theContext)
@@ -220,8 +220,10 @@ public class ContextManager
         final String contextId = theContext.getIdName();
 		final CtxStack idStack = ctxTable.get(contextId);
 
-		// now remove it from its id's stack.
-		idStack.remove(theContext);
+		if (idStack != null) {
+			// now remove it from its id's stack.
+			idStack.remove(theContext);
+		}
 	}
     
     /**
@@ -345,19 +347,18 @@ forever: for (;;) {
 
 
 			/*
-				Walk down the stack, calling
-				cleanup on each context. We use
-				the vector interface to do this.
+			 *	Walk down the stack, calling cleanup on each context.
+			 *  Be robust against multiple context popping (see GenericLanguageConnectionContext).
 			 */
-cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
-
+			Context[] contexts = holder.toArray(new Context[holder.size()]);
+			for (int index = contexts.length - 1; index >= 0; --index) {
 				try {
 					if (lastHandler)
 					{
 						break;
 					}
 
-					Context ctx = ((Context) holder.get(index));
+					Context ctx = contexts[index];
 					lastHandler = ctx.isLastHandler(errorSeverity);
 
 					ctx.cleanupOnError(error);
