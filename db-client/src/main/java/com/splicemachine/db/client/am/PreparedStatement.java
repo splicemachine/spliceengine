@@ -458,6 +458,7 @@ public class PreparedStatement extends Statement
     }
 
     // also used by DBMD methods
+    //TEST COMMENT
     void setNullX(int parameterIndex, int jdbcType) throws SqlException {
         parameterMetaData_.clientParamtertype_[parameterIndex - 1] = jdbcType;
 
