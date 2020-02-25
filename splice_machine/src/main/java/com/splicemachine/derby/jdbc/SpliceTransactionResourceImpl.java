@@ -112,7 +112,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
     public void close(){
         csf.resetCurrentContextManager(cm);
-        csf.removeContext(cm);
+        csf.removeContextManager(cm);
     }
 
     public LanguageConnectionContext getLcc(){
