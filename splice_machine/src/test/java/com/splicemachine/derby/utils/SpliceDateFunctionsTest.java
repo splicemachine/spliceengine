@@ -74,6 +74,24 @@ public class SpliceDateFunctionsTest {
     }
 
     @Test
+    public void testAddDays() {
+        Calendar c = Calendar.getInstance();
+        Date t = new Date(c.getTime().getTime());
+        c.add(Calendar.DAY_OF_MONTH, 2);
+        Date s = new Date(c.getTime().getTime());
+        assertEquals(SpliceDateFunctions.ADD_DAYS(t, 2), s);
+    }
+
+    @Test
+    public void testAddYears() {
+        Calendar c = Calendar.getInstance();
+        Date t = new Date(c.getTime().getTime());
+        c.add(Calendar.YEAR, 2);
+        Date s = new Date(c.getTime().getTime());
+        assertEquals(SpliceDateFunctions.ADD_YEARS(t, 2), s);
+    }
+
+    @Test
     public void testLastDay() {
         Calendar c = Calendar.getInstance();
         Date t = new Date(c.getTime().getTime());
