@@ -140,7 +140,7 @@ public class SpliceScan implements ScanManager, LazyScan{
             boolean sameStartStop=isSameStartStop(startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator);
             scan=Scans.setupScan(startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator,qualifier,
                     sortOrder,scanColumnList,trans.getActiveStateTxn(),sameStartStop,
-                    ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).template,
+                    currentRow,
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering,
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering,
                     trans.getDataValueFactory(),"1.0",false);

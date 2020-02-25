@@ -54,7 +54,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     private static final Logger LOG=Logger.getLogger(SpliceConglomerate.class);
     protected int conglom_format_id;
     protected int tmpFlag;
-    protected DataValueDescriptor[] template;
     protected int[] format_ids;
     protected int[] collation_ids;
     protected int[] columnOrdering; // Primary Key Information
@@ -80,7 +79,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
             int tmpFlag,
             TxnOperationFactory opFactory,
             PartitionFactory partitionFactory) throws StandardException{
-        this.template = template;
         this.opFactory = opFactory;
         this.partitionFactory = partitionFactory;
         if(properties!=null){
@@ -117,7 +115,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     }
 
     public void boot_create(long containerid,DataValueDescriptor[] template){
-        this.template = template;
         this.containerId = containerid;
         this.format_ids=ConglomerateUtil.createFormatIds(template);
     }
@@ -160,10 +157,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getCollation_ids(){
         return collation_ids;
-    }
-
-    public DataValueDescriptor[] getTemplate() {
-        return template;
     }
 
     public boolean isNull(){

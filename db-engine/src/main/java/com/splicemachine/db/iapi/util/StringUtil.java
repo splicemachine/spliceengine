@@ -121,16 +121,19 @@ public class StringUtil{
      * @return The input with trailing blanks stipped off
      */
     public static String trimTrailing(String str){
+        return trimTrailing(str, 0);
+    } // end of trimTrailing
+
+    public static String trimTrailing(String str, int targetLength) {
         if(str==null)
             return null;
         int len=str.length();
-        for(;len>0;len--){
+        for(;len>targetLength;len--){
             if(!Character.isWhitespace(str.charAt(len-1)))
                 break;
         }
         return str.substring(0,len);
-    } // end of trimTrailing
-
+    }
 
     /**
      * Truncate a String to the given length with no warnings
