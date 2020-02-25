@@ -107,54 +107,10 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
         }
 
         Properties props = new Properties();
-        props.put("bootstrap.servers", host + ":" + 9092);
-        props.put("client.id", "spark-producer");
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, host + ":" + 9092);
+        props.put(ProducerConfig.CLIENT_ID_CONFIG, "spark-producer");
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ExternalizableSerializer.class.getName());
-//        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
-        KafkaProducer<Integer, Externalizable> producer = new KafkaProducer<>(props);
-        int count = 0 ;
-        while (locatedRowIterator.hasNext()) {
-            T lr = locatedRowIterator.next();
-
-            ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName,
-                    partition.intValue(), count++, lr);
-            producer.send(record);
-        }
-
-//        ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName,
-//                partition.intValue(), -1, new ValueRow());
-//        producer.send(record); // termination marker
-
-        producer.close();
-        // TODO Clean up
-        return Arrays.asList("OK").iterator();
-    }
-
-    @Deprecated
-    public Iterator<String> call1(Integer partition, Iterator<T> locatedRowIterator) throws Exception {
-        this.partition = partition;
-        taskContext = TaskContext.get();
-
-        if (taskContext.attemptNumber() > 0) {
-            // TODO handle retries
-
-            int entriesInKafka = 0;
-            // open connection to partition in Kafka
-            // get number of entries there
-
-            // TODO failed task retry
-            for (int i = 0; i < entriesInKafka; ++i) {
-                locatedRowIterator.next();
-            }
-        }
-
-        Properties props = new Properties();
-        props.put("bootstrap.servers", host + ":" + 9092);
-        props.put("client.id", "spark-producer");
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
-//        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ExternalizableSerializer.class.getName());
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
         KafkaProducer<Integer, Externalizable> producer = new KafkaProducer<>(props);
         int count = 0 ;
         while (locatedRowIterator.hasNext()) {

@@ -98,8 +98,6 @@ public class SparkKafkaDataSetWriter<V> implements DataSetWriter{
 
     public static class CountFunction<V> implements org.apache.spark.api.java.function.Function<V, V>{
         private LongAccumulator count = SpliceSpark.getContext().sc().longAccumulator("exported rows");
-
-
         public CountFunction(){
 
         }

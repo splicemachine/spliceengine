@@ -15,16 +15,6 @@
 
 package com.splicemachine.derby.stream.output;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.stream.function.SpliceFunction2;
-
-import java.io.OutputStream;
-import java.util.Iterator;
-
-/**
- * @author Scott Fines
- *         Date: 1/8/16
- */
 public abstract class KafkaDataSetWriterBuilder<V> {
     protected String topicName;
 

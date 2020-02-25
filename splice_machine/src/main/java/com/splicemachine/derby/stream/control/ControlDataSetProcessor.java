@@ -43,7 +43,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.Dataset;
@@ -52,14 +51,6 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.spark_project.guava.base.Charsets;
 import scala.Tuple2;
-import scala.reflect.internal.Trees;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.IntegerSerializer;
-import org.apache.kafka.common.serialization.LongSerializer;
-import org.apache.kafka.common.serialization.StringSerializer;
-//import com.splicemachine.derby.stream.spark.ExternalizableDeserializer;
 
 import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
@@ -414,23 +405,13 @@ public class ControlDataSetProcessor implements DataSetProcessor{
         props.put("auto.commit.interval.ms", "1000");
         props.put("session.timeout.ms", "30000");
         props.put("auto.offset.reset", "latest");
-        props.put("key.deserializer", IntegerSerializer.class.getName());
-//        props.put("value.deserializer", ExternalizableDeserializer.class.getName());
+
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
+//        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
+        //ExternalizableDeserializer was implemented in package com.splicemachine.derby.stream.spark
 
         KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
         consumer.subscribe(Arrays.asList(topicName));
-
-        //Assign patitions to consumer
-//        List<PartitionInfo> partitionInfos = consumer.partitionsFor("topic");
-//        Collection<TopicPartition> partitions = null;
-//        if (partitionInfos != null) {
-//            for (PartitionInfo partition : partitionInfos) {
-//                partitions.add(new TopicPartition(partition.topic(), partition.partition()));
-//            }
-//            consumer.assign(partitions);
-//        }
-
-//        Dataset<ExecRow> dataset = new Dataset<Row>();
 
         try {
             ConsumerRecords<Integer, Externalizable> msgList = consumer.poll(1000);
