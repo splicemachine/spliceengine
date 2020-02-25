@@ -36,15 +36,11 @@ import com.splicemachine.db.iapi.db.Database;
 import com.splicemachine.db.iapi.services.authorization.AuthorizationFactory;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
 
-import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.*;
 
 import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.Statement;
-import com.splicemachine.db.iapi.sql.compile.Parser;
 
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -122,7 +118,7 @@ public interface LanguageConnectionFactory {
 								String drdaID,
 								String dbname,
 								String rdbIntTkn,
-                                CompilerContext.DataSetProcessorType type,
+                                DataSetProcessorType type,
 								boolean skipStats,
 								double defaultSelectivityFactor,
 								String ipAddress,

@@ -57,7 +57,7 @@ import java.util.List;
  */
 
 public class RowResultSetNode extends FromTable {
-    SubqueryList subquerys;
+    SubqueryList subqueries;
     List<AggregateNode> aggregateVector;
     OrderByList     orderByList;
     ValueNode    offset; // OFFSET n ROWS
@@ -113,9 +113,9 @@ public class RowResultSetNode extends FromTable {
         if (SanityManager.DEBUG) {
             super.printSubNodes(depth);
 
-            if (subquerys != null) {
+            if (subqueries != null) {
                 printLabel(depth, "subquerys: ");
-                subquerys.treePrint(depth + 1);
+                subqueries.treePrint(depth + 1);
             }
         }
     }
@@ -187,7 +187,7 @@ public class RowResultSetNode extends FromTable {
     public void bindExpressions(FromList fromListParam) throws StandardException {
         int nestingLevel;
 
-        subquerys = (SubqueryList) getNodeFactory().getNode(C_NodeTypes.SUBQUERY_LIST, getContextManager());
+        subqueries = (SubqueryList) getNodeFactory().getNode(C_NodeTypes.SUBQUERY_LIST, getContextManager());
 
         aggregateVector = new LinkedList<>();
 
@@ -214,7 +214,7 @@ public class RowResultSetNode extends FromTable {
         }
         setLevel(nestingLevel);
         fromListParam.insertElementAt(this, 0);
-        resultColumns.bindExpressions(fromListParam, subquerys,
+        resultColumns.bindExpressions(fromListParam, subqueries,
                                       aggregateVector);
         // Pop ourselves back out of the FROM list
         fromListParam.removeElementAt(0);
@@ -386,8 +386,8 @@ public class RowResultSetNode extends FromTable {
                 assignResultSetNumber();
         resultColumns.preprocess(numTables, localFromList, subqueryList, predicateList);
 
-        if (!subquerys.isEmpty()) {
-            subquerys.preprocess(numTables, localFromList, subqueryList, predicateList);
+        if (!subqueries.isEmpty()) {
+            subqueries.preprocess(numTables, localFromList, subqueryList, predicateList);
         }
 
         /* Allocate a dummy referenced table map */
@@ -476,7 +476,7 @@ public class RowResultSetNode extends FromTable {
      * @return boolean    Whether or not the FromSubquery is flattenable.
      */
     public boolean flattenableInFromSubquery(FromList fromList) {
-        if ((subquerys != null) && (!subquerys.isEmpty())) {
+        if ((subqueries != null) && (!subqueries.isEmpty())) {
             return false;
         }
 
@@ -530,7 +530,7 @@ public class RowResultSetNode extends FromTable {
         // getNextDecoratedPermutation() method.
         updateBestPlanMap(ADD_PLAN,this);
 
-        CostEstimate singleScanCost=estimateCost(predList, null, outerCost, optimizer, rowOrdering);
+        CostEstimate singleScanCost = estimateCost(predList, null, outerCost, optimizer, rowOrdering);
 
         /* Make sure there is a cost estimate to set */
         getCostEstimate(optimizer);
@@ -541,12 +541,13 @@ public class RowResultSetNode extends FromTable {
          * are not optimized any where else.  (Like those
          * in a RowResultSetNode.)
          */
-        optimizeSubqueries(getDataDictionary(),costEstimate.rowCount());
+        optimizeSubqueries(getDataDictionary(),costEstimate.rowCount(), optimizer.isForSpark());
 
         /*
         ** Get the cost of this result set in the context of the whole plan.
         */
-        getCurrentAccessPath().getJoinStrategy().estimateCost(this,predList,null,outerCost,optimizer,getCostEstimate());
+        getCurrentAccessPath().getJoinStrategy().estimateCost(
+                this, predList, null, outerCost, optimizer, getCostEstimate());
 
         optimizer.considerCost(this,predList,getCostEstimate(),outerCost);
 
@@ -561,6 +562,7 @@ public class RowResultSetNode extends FromTable {
      * @param predicateList        The predicate list to optimize against
      * @param outerRows            The number of outer joining rows
      *
+     * @param forSpark
      * @return    ResultSetNode    The top of the optimized tree
      *
      * @exception StandardException        Thrown on error
@@ -568,7 +570,8 @@ public class RowResultSetNode extends FromTable {
     @Override
     public ResultSetNode optimize(DataDictionary dataDictionary,
                                   PredicateList    predicateList,
-                                  double outerRows)  throws StandardException {
+                                  double outerRows,
+                                  boolean forSpark)  throws StandardException {
         /*
         ** Get an optimizer.  The only reason we need one is to get a
         ** CostEstimate object, so we can represent the cost of this node.
@@ -581,9 +584,10 @@ public class RowResultSetNode extends FromTable {
                 predicateList,
                 dataDictionary,
                 null);
+        optimizer.setForSpark(forSpark);
         // TODO JL: RESOLVE: THE COST SHOULD TAKE SUBQUERIES INTO ACCOUNT
         generateCostWhenNull(outerRows);
-        subquerys.optimize(dataDictionary, outerRows);
+        subqueries.optimize(dataDictionary, outerRows, forSpark);
         return this;
     }
 
@@ -609,7 +613,7 @@ public class RowResultSetNode extends FromTable {
     public ResultSetNode modifyAccessPaths() throws StandardException {
         ResultSetNode treeTop = this;
 
-        subquerys.modifyAccessPaths();
+        subqueries.modifyAccessPaths();
 
         /* Generate the OrderByNode if a sort is still required for
          * the order by.
@@ -849,8 +853,8 @@ public class RowResultSetNode extends FromTable {
      * @exception StandardException        Thrown on error
      */
     @Override
-    void optimizeSubqueries(DataDictionary dd, double rowCount) throws StandardException {
-        subquerys.optimize(dd, rowCount);
+    void optimizeSubqueries(DataDictionary dd, double rowCount, Boolean forSpark) throws StandardException {
+        subqueries.optimize(dd, rowCount, forSpark);
     }
 
     @Override
@@ -890,8 +894,8 @@ public class RowResultSetNode extends FromTable {
     /* Set the point of attachment in all subqueries attached
      * to this node.
      */
-        if(subquerys!=null && !subquerys.isEmpty()){
-            subquerys.setPointOfAttachment(resultSetNumber);
+        if(subqueries !=null && !subqueries.isEmpty()){
+            subqueries.setPointOfAttachment(resultSetNumber);
         }
     }
 
@@ -903,12 +907,13 @@ public class RowResultSetNode extends FromTable {
                 attrDelim + getFinalCostEstimate(false).prettyProcessingString(attrDelim) +
                 ")";
     }
+
     @Override
     public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         setDepth(depth);
         tree.add(this);
-        if (subquerys != null && !subquerys.isEmpty()) {
-            for (SubqueryNode node:subquerys) {
+        if (subqueries != null && !subqueries.isEmpty()) {
+            for (SubqueryNode node: subqueries) {
                 node.buildTree(tree,depth+1);
             }
         }

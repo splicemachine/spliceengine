@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
 import java.util.ArrayList;

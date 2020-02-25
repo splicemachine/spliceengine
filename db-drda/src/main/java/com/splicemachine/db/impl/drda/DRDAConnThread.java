@@ -6306,6 +6306,9 @@ class DRDAConnThread extends Thread {
             // return -1, so the real error code will be lost.
             sqlcode = getSqlCode(getExceptionSeverity(e));
         }
+        if (e.getSQLState().equals(SQLState.LANG_CANCELLATION_EXCEPTION)) {
+            sqlcode = -952; // copy DB2 code for query cancellation / timeouts
+        }
 
 		if (rowCount < 0 && updateCount < 0)
 		{

@@ -42,7 +42,7 @@ public class SessionPropertiesImpl implements SessionProperties {
 
     public void setProperty(PROPERTYNAME property, Object value) {
         // the legal values have been checked at SetSessionpropertyNode.init(), so no need to check again
-        String valString = (String)value;
+        String valString = String.valueOf(value);
         if (valString == null || valString.equals("null")) {
             properties[property.getId()] = null;
             return;

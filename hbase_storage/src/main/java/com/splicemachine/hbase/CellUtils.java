@@ -32,79 +32,79 @@ import static com.splicemachine.si.constants.SIConstants.PACKED_COLUMN_BYTES;
  */
 public class CellUtils {
 
-		private CellUtils(){}
+        private CellUtils(){}
 
-		/**
-		 * Matches a column based upon the ASSUMPTION that the family and qualifier are both only a single
-		 * byte each. This lets us avoid doing a bunch of math when we know that the family and qualifier are
-		 * just a single byte.
-		 *
-		 * DO NOT USE THIS IF THE FAMILY OR QUALIFIER ARE NOT of length 1!!!
-		 *
-		 * @param keyValue the keyValue to Check
-		 * @param family the family to check. Must be a single byte
-		 * @param qualifier the qualifier to check. Must be a single byte
-		 * @return true if the cell matches both the family AND the qualifier.
-		 */
-		public static boolean singleMatchingColumn(Cell keyValue, byte[] family, byte[] qualifier) {
-			return singleMatchingFamily(keyValue,family) && singleMatchingQualifier(keyValue,qualifier);
-		}
+        /**
+         * Matches a column based upon the ASSUMPTION that the family and qualifier are both only a single
+         * byte each. This lets us avoid doing a bunch of math when we know that the family and qualifier are
+         * just a single byte.
+         *
+         * DO NOT USE THIS IF THE FAMILY OR QUALIFIER ARE NOT of length 1!!!
+         *
+         * @param keyValue the keyValue to Check
+         * @param family the family to check. Must be a single byte
+         * @param qualifier the qualifier to check. Must be a single byte
+         * @return true if the cell matches both the family AND the qualifier.
+         */
+        public static boolean singleMatchingColumn(Cell keyValue, byte[] family, byte[] qualifier) {
+            return singleMatchingFamily(keyValue,family) && singleMatchingQualifier(keyValue,qualifier);
+        }
 
-		/**
-		 * Determines if the cell belongs to the specified family, in an efficient manner.
-		 *
-		 * Note: This should ONLY be used when the specified family is KNOWN to be a single byte. If it isn't
-		 * a single byte, you'll probably get incorrect answers.
-		 *
-		 * @param keyValue the cell to check
-		 * @param family the family to check. Must be a single byte
-		 * @return true if the cell belongs to the specified family.
-		 */
-		public static boolean singleMatchingFamily(Cell keyValue, byte[] family) {
-				assert family!=null && family.length==1: "The specified family is not of length 1. Use Cellutil.";
-				return keyValue.getFamilyArray()[keyValue.getFamilyOffset()] == family[0];
-		}
+        /**
+         * Determines if the cell belongs to the specified family, in an efficient manner.
+         *
+         * Note: This should ONLY be used when the specified family is KNOWN to be a single byte. If it isn't
+         * a single byte, you'll probably get incorrect answers.
+         *
+         * @param keyValue the cell to check
+         * @param family the family to check. Must be a single byte
+         * @return true if the cell belongs to the specified family.
+         */
+        public static boolean singleMatchingFamily(Cell keyValue, byte[] family) {
+                assert family!=null && family.length==1: "The specified family is not of length 1. Use Cellutil.";
+                return keyValue.getFamilyArray()[keyValue.getFamilyOffset()] == family[0];
+        }
 
-		/**
-		 * Determines if the cell belongs to the specified family, in an efficient manner.
-		 *
-		 * Note: This should ONLY be used when the specified family is KNOWN to be a single byte. If it isn't
-		 * a single byte, you'll probably get incorrect answers.
-		 *
-		 * @param keyValue the cell to check
-		 * @param qualifier the family to check. Must be a single byte
-		 * @return true if the cell belongs to the specified family.
-		 */
-		public static boolean singleMatchingQualifier(Cell keyValue, byte[] qualifier) {
-				assert qualifier!=null: "Qualifiers should not be null";
-				assert qualifier.length==1: "Qualifiers should be of length 1 not " + qualifier.length + " value --" + Bytes.toString(qualifier) + "--";
-				return keyValue.getQualifierArray()[keyValue.getQualifierOffset()] == qualifier[0];
-		}
+        /**
+         * Determines if the cell belongs to the specified family, in an efficient manner.
+         *
+         * Note: This should ONLY be used when the specified family is KNOWN to be a single byte. If it isn't
+         * a single byte, you'll probably get incorrect answers.
+         *
+         * @param keyValue the cell to check
+         * @param qualifier the family to check. Must be a single byte
+         * @return true if the cell belongs to the specified family.
+         */
+        public static boolean singleMatchingQualifier(Cell keyValue, byte[] qualifier) {
+                assert qualifier!=null: "Qualifiers should not be null";
+                assert qualifier.length==1: "Qualifiers should be of length 1 not " + qualifier.length + " value --" + Bytes.toString(qualifier) + "--";
+                return keyValue.getQualifierArray()[keyValue.getQualifierOffset()] == qualifier[0];
+        }
 
-		public static boolean matchingValue(Cell keyValue, byte[] value) {
-				return CellByteBufferArrayUtils.matchingValue(keyValue, value);
-		}
+        public static boolean matchingValue(Cell keyValue, byte[] value) {
+                return CellByteBufferArrayUtils.matchingValue(keyValue, value);
+        }
 
-		public static boolean matchingFamilyKeyValue(Cell keyValue, Cell other) {
-				return CellByteBufferArrayUtils.matchingFamilyKeyValue(keyValue, other);
-		}
-		public static boolean matchingQualifierKeyValue(Cell keyValue, Cell other) {
-				return CellByteBufferArrayUtils.matchingQualifierKeyValue(keyValue, other);
-		}
-		public static boolean matchingRowKeyValue(Cell keyValue, Cell other) {
-				return CellByteBufferArrayUtils.matchingRowKeyValue(keyValue, other);
-		}
+        public static boolean matchingFamilyKeyValue(Cell keyValue, Cell other) {
+                return CellByteBufferArrayUtils.matchingFamilyKeyValue(keyValue, other);
+        }
+        public static boolean matchingQualifierKeyValue(Cell keyValue, Cell other) {
+                return CellByteBufferArrayUtils.matchingQualifierKeyValue(keyValue, other);
+        }
+        public static boolean matchingRowKeyValue(Cell keyValue, Cell other) {
+                return CellByteBufferArrayUtils.matchingRowKeyValue(keyValue, other);
+        }
 
-		public static Cell newKeyValue(Cell keyValue, byte[] value) {
+        public static Cell newKeyValue(Cell keyValue, byte[] value) {
             return new KeyValue(getBuffer(keyValue), keyValue.getRowOffset(), keyValue.getRowLength(),
                                 getBuffer(keyValue), keyValue.getFamilyOffset(), keyValue.getFamilyLength(),
                                 getBuffer(keyValue), keyValue.getQualifierOffset(), keyValue.getQualifierLength(),
                                 keyValue.getTimestamp(), KeyValue.Type.Put, value, 0, value == null ? 0 : value.length);
         }
 
-		public static Cell newKeyValue(byte[] rowKey, byte[] family, byte[] qualifier, Long timestamp, byte[] value) {
-				return new KeyValue(rowKey, family, qualifier, timestamp, value);
-		}
+        public static Cell newKeyValue(byte[] rowKey, byte[] family, byte[] qualifier, Long timestamp, byte[] value) {
+                return new KeyValue(rowKey, family, qualifier, timestamp, value);
+        }
 
 
     public static byte[] getBuffer(Cell keyValue) {
@@ -158,44 +158,50 @@ public class CellUtils {
         return matchKeyValue(kvs, DEFAULT_FAMILY_BYTES, PACKED_COLUMN_BYTES);
     }
 
-	public static boolean matchingColumn(Cell kv, byte[] family, byte[] qualifier) {
-			return CellUtil.matchingFamily(kv, family) && CellUtil.matchingQualifier(kv,qualifier);
-	}
+    public static boolean matchingColumn(Cell kv, byte[] family, byte[] qualifier) {
+            return CellUtil.matchingFamily(kv, family) && CellUtil.matchingQualifier(kv,qualifier);
+    }
 
-	/**
-	 * Returns true if the specified KeyValue is contained by the specified range.
-	 */
-	public static boolean isKeyValueInRange(Cell kv, Pair<byte[], byte[]> range) {
-		byte[] kvBuffer = kv.getRowArray(); // TODO JL SAR
-		int rowKeyOffset = kv.getRowOffset();
-		short rowKeyLength = kv.getRowLength();
-		byte[] start = range.getFirst();
-		byte[] stop = range.getSecond();
-		return (start.length == 0 || Bytes.compareTo(start, 0, start.length, kvBuffer, rowKeyOffset, rowKeyLength) <= 0) &&
-				(stop.length == 0 || Bytes.compareTo(stop, 0, stop.length, kvBuffer, rowKeyOffset, rowKeyLength) >= 0);
-	}
+    /**
+     * Returns true if the specified KeyValue is contained by the specified range.
+     */
+    public static boolean isKeyValueInRange(Cell kv, Pair<byte[], byte[]> range) {
+        byte[] kvBuffer = kv.getRowArray(); // TODO JL SAR
+        int rowKeyOffset = kv.getRowOffset();
+        short rowKeyLength = kv.getRowLength();
+        byte[] start = range.getFirst();
+        byte[] stop = range.getSecond();
+        return (start.length == 0 || Bytes.compareTo(start, 0, start.length, kvBuffer, rowKeyOffset, rowKeyLength) <= 0) &&
+                (stop.length == 0 || Bytes.compareTo(stop, 0, stop.length, kvBuffer, rowKeyOffset, rowKeyLength) >= 0);
+    }
 
-	public static String toHex(byte[] bytes) {
-		if (bytes == null) return "NULL";
-		if (bytes.length == 0) return "";
-		return Bytes.toHex(bytes);
-	}
+    public static String toHex(byte[] bytes) {
+        if (bytes == null) return "NULL";
+        if (bytes.length == 0) return "";
+        return Bytes.toHex(bytes);
+    }
 
-	public static CellType getKeyValueType(Cell keyValue) {
-		if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES)) {
-			return CellType.COMMIT_TIMESTAMP;
-		} else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.PACKED_COLUMN_BYTES)) {
-			return CellType.USER_DATA;
-		} else if (CellUtils.singleMatchingQualifier(keyValue,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES)) {
-			if (CellUtils.matchingValue(keyValue, SIConstants.EMPTY_BYTE_ARRAY)) {
-				return CellType.TOMBSTONE;
-			} else if (CellUtils.matchingValue(keyValue,SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES)) {
-				return CellType.ANTI_TOMBSTONE;
-			}
-		} else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES)) {
-			return CellType.FOREIGN_KEY_COUNTER;
-		}
-		return CellType.OTHER;
-	}
+    public static CellType getKeyValueType(Cell keyValue) {
+        if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES)) {
+            return CellType.COMMIT_TIMESTAMP;
+        } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.PACKED_COLUMN_BYTES)) {
+            return CellType.USER_DATA;
+        } else if (CellUtils.singleMatchingQualifier(keyValue,SIConstants.TOMBSTONE_COLUMN_BYTES)) {
+            if (CellUtils.matchingValue(keyValue, SIConstants.TOMBSTONE_VALUE_BYTES)) {
+                return CellType.TOMBSTONE;
+            } else if (CellUtils.matchingValue(keyValue,SIConstants.ANTI_TOMBSTONE_VALUE_BYTES)) {
+                return CellType.ANTI_TOMBSTONE;
+            }
+        } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES)) {
+            if (CellUtils.matchingValue(keyValue, SIConstants.FIRST_WRITE_VALUE_BYTES)) {
+                return CellType.FIRST_WRITE_TOKEN;
+            } else if (CellUtils.matchingValue(keyValue, SIConstants.DELETE_RIGHT_AFTER_FIRST_WRITE_VALUE_BYTES)) {
+                return CellType.DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN;
+            }
+        } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.FK_COUNTER_COLUMN_BYTES)) {
+            return CellType.FOREIGN_KEY_COUNTER;
+        }
+        return CellType.OTHER;
+    }
 
 }

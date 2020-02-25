@@ -28,10 +28,19 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.hamcrest.CoreMatchers.*;
+
 import java.sql.*;
 
 import static java.lang.String.format;
 import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests associated with the String functions as defined in
@@ -76,6 +85,13 @@ public class SpliceStringFunctionsIT {
     private static final SpliceTableWatcher tableWatcherH = new SpliceTableWatcher(
             "H", schemaWatcher.schemaName, "(a float(7), b real, c double)");
 
+    // Table for STRING_AGG testing.
+    private static final SpliceTableWatcher tableWatcherI = new SpliceTableWatcher(
+            "I", schemaWatcher.schemaName, "(a int, b varchar(10))");
+
+    // Table for long string concatenate testing.
+    private static final SpliceTableWatcher tableWatcherJ = new SpliceTableWatcher(
+            "J", schemaWatcher.schemaName, "(a double)");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
@@ -87,6 +103,8 @@ public class SpliceStringFunctionsIT {
             .around(tableWatcherF)
             .around(tableWatcherG)
             .around(tableWatcherH)
+            .around(tableWatcherI)
+            .around(tableWatcherJ)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -262,6 +280,32 @@ public class SpliceStringFunctionsIT {
                         ps.setDouble(3,1234567890.0123456789);
                         ps.execute();
 
+                        ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherI+ " (a, b) values (?, ?)");
+                        ps.setInt(1,1);
+                        ps.setString(2,"a");
+                        ps.execute();
+                        ps.setInt(1,1);
+                        ps.setString(2,"b");
+                        ps.execute();
+                        ps.setInt(1,2);
+                        ps.setString(2,"c");
+                        ps.execute();
+                        ps.setInt(1,2);
+                        ps.setString(2,"d");
+                        ps.execute();
+                        ps.setInt(1,2);
+                        ps.setString(2,"e");
+                        ps.execute();
+                        ps.setInt(1,2);
+                        ps.setString(2,"c");
+                        ps.execute();
+
+                        ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherJ+ " (a) values (?)");
+                        ps.setDouble(1,12.3);
+                        ps.execute();
+
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -405,7 +449,7 @@ public class SpliceStringFunctionsIT {
             methodWatcher.executeQuery(sqlText);
             Assert.fail("Query is expected to fail with syntax error!");
         } catch (SQLDataException e) {
-            Assert.assertTrue("Unexpected error code: " + e.getSQLState(),  SQLState.LANG_INVALID_FUNCTION_ARGUMENT.startsWith(e.getSQLState()));
+            assertTrue("Unexpected error code: " + e.getSQLState(),  SQLState.LANG_INVALID_FUNCTION_ARGUMENT.startsWith(e.getSQLState()));
         }
     }
 
@@ -676,5 +720,102 @@ public class SpliceStringFunctionsIT {
         }
 
         rs.close();
+    }
+
+    @Test(timeout=1000) //Time out after 1 second
+    public void testLongConcatenateString() throws Exception {
+        String sqlText = "SELECT CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4))||','"
+                + "||CAST(CAST(a AS DECIMAL(3,1)) AS CHAR(4)) FROM " + tableWatcherJ ;
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+
+        assertEquals("Wrong result","12.3,12.3,12.3,12.3,12.3,12.3,12.3,12.3,12.3,12.3,12.3", rs.getString(1));
+        rs.close();
+    }
+
+
+    @Test
+    public void testSTRING_AGG() throws Exception {
+        for (boolean useSpark : new boolean[]{ true, false }) {
+            // Simple aggregate
+            try (ResultSet rs = methodWatcher.executeQuery(String.format("select STRING_AGG(b, ', '), count(*) " +
+                    "from I --splice-properties useSpark=%s", useSpark))) {
+                assertTrue(rs.next());
+                String result = rs.getString(1);
+                assertThat(result, allOf(Stream.of("a", "b", "c", "d", "e").map(s -> containsString(s)).collect(Collectors.toList())));
+                assertEquals(6, result.split(", ").length);
+                int count = rs.getInt(2);
+                assertEquals(6, count);
+                assertFalse(rs.next());
+            }
+
+            // Group by aggregate
+            try (ResultSet rs = methodWatcher.executeQuery(String.format("select a, STRING_AGG(b, '# ') " +
+                    "from I --splice-properties useSpark=%s \n group by a", useSpark))) {
+                for (int i = 0; i < 2; ++i) {
+                    assertTrue(rs.next());
+                    int group = rs.getInt(1);
+                    String result = rs.getString(2);
+                    Stream<String> values = null;
+                    int count = 0;
+                    switch (group) {
+                        case 1:
+                            values = Stream.of("a", "b");
+                            count = 2;
+                            break;
+                        case 2:
+                            values = Stream.of("c", "d", "e");
+                            count = 4;
+                            break;
+                        default:
+                            fail("Unexpected group: " + group);
+                    }
+                    assertThat(result, allOf(values.map(s -> containsString(s)).collect(Collectors.toList())));
+                    assertEquals(count, result.split("# ").length);
+                }
+                assertFalse(rs.next());
+            }
+
+            // Window function aggregate
+            try (ResultSet rs = methodWatcher.executeQuery(String.format(
+                    "select a, string_agg(b, ' - ') over (partition by a order by b asc) as agg " +
+                            "from I --splice-properties useSpark=%s", useSpark))) {
+                String expected =
+                        "A |     AGG      |\n" +
+                        "-------------------\n" +
+                        " 1 |      a       |\n" +
+                        " 1 |    a - b     |\n" +
+                        " 2 |    c - c     |\n" +
+                        " 2 |    c - c     |\n" +
+                        " 2 |  c - c - d   |\n" +
+                        " 2 |c - c - d - e |";
+                String result = TestUtils.FormattedResult.ResultFactory.toString(rs);
+                assertEquals(expected, result);
+            }
+
+            // Simulate order by clause
+            try (ResultSet rs = methodWatcher.executeQuery(String.format(
+                    "select a, agg from (select a, " +
+                            "lead(a) over (partition by a order by b asc) as l, " +
+                            "string_agg(b, ' - ') over (partition by a order by b asc) as agg " +
+                            "from I --splice-properties useSpark=%s \n) b where l is null", useSpark))) {
+                String expected =
+                        "A |     AGG      |\n" +
+                        "-------------------\n" +
+                        " 1 |    a - b     |\n" +
+                        " 2 |c - c - d - e |";
+                String result = TestUtils.FormattedResult.ResultFactory.toString(rs);
+                assertEquals(expected, result);
+            }
+        }
     }
 }

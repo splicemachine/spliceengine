@@ -73,15 +73,17 @@ public class ConflictRollForward {
         bs.set(cell.keyArray(), cell.keyOffset(), cell.keyLength());
         if (txn.getEffectiveState().equals(Txn.State.COMMITTED)) {
             DataPut put = opFactory.newPut(bs);
-            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, cell.version(), Bytes.toBytes(txn.getEffectiveCommitTimestamp()));
+            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES, cell.version(), Bytes.toBytes(txn.getEffectiveCommitTimestamp()));
             put.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
             put.skipWAL();
             mutations.add(put);
         } else {
             DataDelete delete = opFactory.newDelete(bs);
-            delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES, cell.version()); //delete all the columns for our family only
-            delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES, cell.version()); //delete all the columns for our family only
-            delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES, cell.version()); //delete all the columns for our family only
+            delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FK_COUNTER_COLUMN_BYTES, cell.version());
+            delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES, cell.version());
+            delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES, cell.version());
+            delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.TOMBSTONE_COLUMN_BYTES, cell.version());
+            delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES, cell.version());
             delete.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
             delete.skipWAL();
             mutations.add(delete);

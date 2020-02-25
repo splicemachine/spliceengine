@@ -40,7 +40,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
@@ -133,7 +133,7 @@ public final class TransactionResourceImpl
 	private String url;
 	private String drdaID;
 	private String rdbIntTkn;
-    private CompilerContext.DataSetProcessorType useSpark;
+    private DataSetProcessorType useSpark;
     private boolean skipStats;
     private double defaultSelectivityFactor;
 	private String ipAddress;
@@ -174,12 +174,14 @@ public final class TransactionResourceImpl
         String useSparkString = info.getProperty(Property.CONNECTION_USE_SPARK,null);
         if (useSparkString != null) {
             try {
-                useSpark = Boolean.parseBoolean(StringUtil.SQLToUpperCase(useSparkString))?CompilerContext.DataSetProcessorType.FORCED_SPARK:CompilerContext.DataSetProcessorType.FORCED_CONTROL;
+                useSpark = Boolean.parseBoolean(StringUtil.SQLToUpperCase(useSparkString))?
+                        DataSetProcessorType.SESSION_HINTED_SPARK:
+                        DataSetProcessorType.SESSION_HINTED_CONTROL;
             } catch (Exception sparkE) {
                 throw new SQLException(StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,useSparkString));
             }
         } else
-            useSpark = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
+            useSpark = DataSetProcessorType.DEFAULT_CONTROL;
 
         String skipStatsString = info.getProperty(Property.CONNECTION_SKIP_STATS, null);
         if (skipStatsString != null) {

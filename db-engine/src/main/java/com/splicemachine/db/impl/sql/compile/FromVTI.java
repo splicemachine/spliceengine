@@ -65,19 +65,19 @@ import java.util.*;
  */
 public class FromVTI extends FromTable implements VTIEnvironment {
     public static final String DATASET_PROVIDER = "com.splicemachine.derby.vti.iapi.DatasetProvider";
-    JBitSet				correlationMap;
-    JBitSet				dependencyMap;
-    MethodCallNode	methodCall;
-    TableName			exposedName;
+    JBitSet                correlationMap;
+    JBitSet                dependencyMap;
+    MethodCallNode    methodCall;
+    TableName            exposedName;
     SubqueryList subqueryList;
-    boolean				implementsVTICosting;
-    boolean				optimized;
-    boolean				materializable;
-    boolean				isTarget;
-    boolean				isDerbyStyleTableFunction;
-    boolean				isRestrictedTableFunction;
+    boolean                implementsVTICosting;
+    boolean                optimized;
+    boolean                materializable;
+    boolean                isTarget;
+    boolean                isDerbyStyleTableFunction;
+    boolean                isRestrictedTableFunction;
 
-    private	FormatableHashtable	compileTimeConstants;
+    private    FormatableHashtable    compileTimeConstants;
 
     // Number of columns returned by the VTI
     protected int numVTICols;
@@ -105,7 +105,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     double estimatedRowCount = VTICosting.defaultEstimatedRowCount;
     boolean supportsMultipleInstantiations = true;
     boolean vtiCosted;
-    private boolean				implementsPushable;
+    private boolean                implementsPushable;
     private JavaValueNode[] methodParms;
 
     private boolean controlsDeferral;
@@ -117,12 +117,12 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     private TypeDescriptor typeDescriptor;
 
     /**
-     * @param invocation		The constructor or static method for the VTI
-     * @param correlationName	The correlation name
-     * @param derivedRCL		The derived column list
-     * @param tableProperties	Properties list associated with the table
+     * @param invocation        The constructor or static method for the VTI
+     * @param correlationName    The correlation name
+     * @param derivedRCL        The derived column list
+     * @param tableProperties    Properties list associated with the table
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public void init(
             Object invocation,
@@ -159,11 +159,11 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         bestAp.setMissingHashKeyOK(false);
         bestSortAp.setMissingHashKeyOK(false);
 
-		/*
-		 ** Only need to do this for current access path, because the
-		 ** costEstimate will be copied to the best access paths as
-		 ** necessary.
-		 */
+        /*
+         ** Only need to do this for current access path, because the
+         ** costEstimate will be copied to the best access paths as
+         ** necessary.
+         */
         CostEstimate costEstimate=getCostEstimate(optimizer);
         ap.setCostEstimate(costEstimate);
 
@@ -179,13 +179,13 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
 
     /**
-     * @param invocation		The constructor or static method for the VTI
-     * @param correlationName	The correlation name
-     * @param derivedRCL		The derived column list
-     * @param tableProperties	Properties list associated with the table
+     * @param invocation        The constructor or static method for the VTI
+     * @param correlationName    The correlation name
+     * @param derivedRCL        The derived column list
+     * @param tableProperties    Properties list associated with the table
      * @param exposedTableName  The table name (TableName class)
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public void init(
             Object invocation,
@@ -205,10 +205,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 C_NodeTypes.SUBQUERY_LIST,
                 getContextManager());
 
-		/* Cache exposed name for this table.
-		 * The exposed name becomes the qualifier for each column
-		 * in the expanded list.
-		 */
+        /* Cache exposed name for this table.
+         * The exposed name becomes the qualifier for each column
+         * in the expanded list.
+         */
         this.exposedName = (TableName) exposedTableName;
         this.typeDescriptor = (TypeDescriptor) typeDescriptor;
     }
@@ -218,7 +218,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     /**
      * @see Optimizable#estimateCost
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public CostEstimate estimateCost(
             OptimizablePredicateList predList,
@@ -230,10 +230,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     {
         costEstimate = getScratchCostEstimate(optimizer);
 
-		/* Cost the VTI if it implements VTICosting.
-		 * Otherwise we use the defaults.
-		 * NOTE: We only cost the VTI once.
-		 */
+        /* Cost the VTI if it implements VTICosting.
+         * Otherwise we use the defaults.
+         * NOTE: We only cost the VTI once.
+         */
         if (implementsVTICosting) {
             try {
                 VTICosting vtic = getVTICosting();
@@ -273,15 +273,15 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      */
     public boolean legalJoinOrder(JBitSet assignedTableMap)
     {
-		/* In order to tell if this is a legal join order, we
-		 * need to see if the assignedTableMap, ORed with the
-		 * outer tables that we are correlated with, contains
-		 * our dependency map.
-		 */
+        /* In order to tell if this is a legal join order, we
+         * need to see if the assignedTableMap, ORed with the
+         * outer tables that we are correlated with, contains
+         * our dependency map.
+         */
         JBitSet tempBitSet = (JBitSet) assignedTableMap;
         tempBitSet.or(correlationMap);
 
-		/* Have all of our dependencies been satisified? */
+        /* Have all of our dependencies been satisified? */
         if (existsTable || fromSSQ)
             return (assignedTableMap.getFirstSetBit()!= -1) && tempBitSet.contains(dependencyMap);
 
@@ -314,26 +314,26 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      */
     public void adjustForSortElimination()
     {
-		/* It's possible that we have an ORDER BY on the columns for this
-		 * VTI but that the sort was eliminated during preprocessing (see
-		 * esp. SelectNode.preprocess()).  Take as an example the following
-		 * query:
-		 *
-		 *   select distinct * from
-		 *      table(syscs_diag.space_table('T1')) X order by 3
-		 *
-		 * For this query we will merge the ORDER BY and the DISTINCT and
-		 * thereby eliminate the sort for the ORDER BY.  As a result we
-		 * will end up here--but we don't need to do anything special to
-		 * return VTI rows in the correct order, so this method is a no-op.
-		 * DERBY-2805.
-		 */
+        /* It's possible that we have an ORDER BY on the columns for this
+         * VTI but that the sort was eliminated during preprocessing (see
+         * esp. SelectNode.preprocess()).  Take as an example the following
+         * query:
+         *
+         *   select distinct * from
+         *      table(syscs_diag.space_table('T1')) X order by 3
+         *
+         * For this query we will merge the ORDER BY and the DISTINCT and
+         * thereby eliminate the sort for the ORDER BY.  As a result we
+         * will end up here--but we don't need to do anything special to
+         * return VTI rows in the correct order, so this method is a no-op.
+         * DERBY-2805.
+         */
     }
 
     /**
      * @see Optimizable#modifyAccessPath
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException {
         return super.modifyAccessPath(outerTables);
@@ -364,7 +364,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      * Convert this object to a String.  See comments in QueryTreeNode.java
      * for how this should be done for tree printing.
      *
-     * @return	This object as a String
+     * @return    This object as a String
      */
 
     public String toString()
@@ -384,7 +384,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      * Prints the sub-nodes of this object.  See QueryTreeNode.java for
      * how tree printing is supposed to work.
      *
-     * @param depth		The depth of this node in the tree
+     * @param depth        The depth of this node in the tree
      */
 
     public void printSubNodes(int depth)
@@ -432,7 +432,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      * Get the exposed name for this table, which is the name that can
      * be used to refer to it in the rest of the query.
      *
-     * @return	The exposed name for this table.
+     * @return    The exposed name for this table.
      */
 
     public String getExposedName()
@@ -461,12 +461,12 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      * Bind the non VTI tables in this ResultSetNode.  This includes getting their
      * descriptors from the data dictionary and numbering them.
      *
-     * @param dataDictionary	The DataDictionary to use for binding
-     * @param fromListParam		FromList to use/append to.
+     * @param dataDictionary    The DataDictionary to use for binding
+     * @param fromListParam        FromList to use/append to.
      *
-     * @return	ResultSetNode
+     * @return    ResultSetNode
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
 
     public ResultSetNode bindNonVTITables(DataDictionary dataDictionary,
@@ -474,7 +474,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             throws StandardException
     {
 
-		/* Assign the tableNumber.  (All other work done in bindVTITables() */
+        /* Assign the tableNumber.  (All other work done in bindVTITables() */
         if (tableNumber == -1)  // allow re-bind, in which case use old number
             tableNumber = getCompilerContext().getNextTableNumber();
         return this;
@@ -491,29 +491,29 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     /**
      * Bind this VTI that appears in the FROM list.
      *
-     * @param fromListParam		FromList to use/append to.
+     * @param fromListParam        FromList to use/append to.
      *
-     * @return	ResultSetNode		The bound FromVTI.
+     * @return    ResultSetNode        The bound FromVTI.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
 
     public ResultSetNode bindVTITables(FromList fromListParam)
             throws StandardException
     {
-        ResultColumnList	derivedRCL = resultColumns;
+        ResultColumnList    derivedRCL = resultColumns;
 
         LanguageConnectionContext lcc = getLanguageConnectionContext();
 
-		/* NOTE - setting of table number moved to FromList.bindTables()
-		 * in order to avoid an ordering problem with join columns in
-		 * parameters.
-		 */
+        /* NOTE - setting of table number moved to FromList.bindTables()
+         * in order to avoid an ordering problem with join columns in
+         * parameters.
+         */
 
-		/* Bind the constructor or static method - does basic error checking.
-		 * Correlated subqueries are not allowed as parameters to
-		 * a VTI, so pass an empty FromList.
-		 */
+        /* Bind the constructor or static method - does basic error checking.
+         * Correlated subqueries are not allowed as parameters to
+         * a VTI, so pass an empty FromList.
+         */
         Vector aggregateVector = new Vector();
         methodCall.bindExpression(fromListParam,
                 subqueryList,
@@ -528,7 +528,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 (routineInfo !=null) &&
                         routineInfo.getReturnType().isRowMultiSet() &&
                         (routineInfo.getParameterStyle() == RoutineAliasInfo.PS_SPLICE_JDBC_RESULT_SET)
-                )			{
+                )            {
             isDerbyStyleTableFunction = true;
         }
 
@@ -538,11 +538,11 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             implementsVTICosting = implementsDerbyStyleVTICosting( methodCall.getJavaClassName() );
         }
 
-		/* If we have a valid constructor, does class implement the correct interface? 
-		 * If version2 is true, then it must implement PreparedStatement, otherwise
-		 * it can implement either PreparedStatement or ResultSet.  (We check for
-		 * PreparedStatement first.)
-		 */
+        /* If we have a valid constructor, does class implement the correct interface?
+         * If version2 is true, then it must implement PreparedStatement, otherwise
+         * it can implement either PreparedStatement or ResultSet.  (We check for
+         * PreparedStatement first.)
+         */
 
         if ( isConstructor() ) {
             NewInvocationNode   constructor = (NewInvocationNode) methodCall;
@@ -554,13 +554,13 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         }
 
 
-		/* Build the RCL for this VTI.  We instantiate an object in order
-		 * to get the ResultSetMetaData.
-		 * 
-		 * If we have a special trigger vti, then we branch off and get
-		 * its rcl from the trigger table that is waiting for us in
-		 * the compiler context.
-		 */
+        /* Build the RCL for this VTI.  We instantiate an object in order
+         * to get the ResultSetMetaData.
+         *
+         * If we have a special trigger vti, then we branch off and get
+         * its rcl from the trigger table that is waiting for us in
+         * the compiler context.
+         */
         UUID triggerTableId;
         if ((isConstructor()) && ((triggerTableId = getSpecialTriggerVTITableName(lcc, methodCall.getJavaClassName())) != null)  )
         {
@@ -588,8 +588,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 createResultColumns(typeDescriptor);
             }
             numVTICols = resultColumns.size();
-	
-		/* Propagate the name info from the derived column list */
+
+        /* Propagate the name info from the derived column list */
             if (derivedRCL != null) {
                 resultColumns.propagateDCLInfo(derivedRCL, correlationName);
             }
@@ -733,24 +733,24 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      * type is for each expression.
      *
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
 
     public void bindExpressions(FromList fromListParam)
             throws StandardException
     {
-        ResultColumnList	derivedRCL = resultColumns;
+        ResultColumnList    derivedRCL = resultColumns;
 
-		/* Figure out if the VTIs parameters are QUERY_INVARIANT.  If so,
-		 * then the VTI is a candidate for materialization at execution time
-		 * if it is the inner table of a join or in a subquery.
-		 */
+        /* Figure out if the VTIs parameters are QUERY_INVARIANT.  If so,
+         * then the VTI is a candidate for materialization at execution time
+         * if it is the inner table of a join or in a subquery.
+         */
         materializable = methodCall.areParametersQueryInvariant();
 
-		/* NOTE: We need to rebind any ColumnReferences that are parameters and are
-		 * from other VTIs that appear after this one in the FROM list.
-		 * These CRs will have uninitialized column and table numbers.
-		 */
+        /* NOTE: We need to rebind any ColumnReferences that are parameters and are
+         * from other VTIs that appear after this one in the FROM list.
+         * These CRs will have uninitialized column and table numbers.
+         */
         Vector colRefs = getNodesFromParameters(ColumnReference.class);
         List<AggregateNode> aggregateVector = null;
         for (Enumeration e = colRefs.elements(); e.hasMoreElements(); ) {
@@ -771,11 +771,11 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      * Get all of the nodes of the specified class
      * from the parameters to this VTI.
      *
-     * @param nodeClass	The Class of interest.
+     * @param nodeClass    The Class of interest.
      *
      * @return A vector containing all of the nodes of interest.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     Vector getNodesFromParameters(Class nodeClass)
             throws StandardException
@@ -788,15 +788,15 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     /**
      * Expand a "*" into a ResultColumnList with all of the
      * result columns from the subquery.
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public ResultColumnList getAllResultColumns(TableName allTableName)
             throws StandardException
     {
         ResultColumnList rcList = null;
-        ResultColumn	 resultColumn;
-        ValueNode		 valueNode;
-        String			 columnName;
+        ResultColumn     resultColumn;
+        ValueNode         valueNode;
+        String             columnName;
         TableName        toCompare;
 
         if(allTableName != null)
@@ -814,10 +814,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 C_NodeTypes.RESULT_COLUMN_LIST,
                 getContextManager());
 
-		/* Build a new result column list based off of resultColumns.
-		 * NOTE: This method will capture any column renaming due to 
-		 * a derived column list.
-		 */
+        /* Build a new result column list based off of resultColumns.
+         * NOTE: This method will capture any column renaming due to
+         * a derived column list.
+         */
         int rclSize = resultColumns.size();
         for (int index = 0; index < rclSize; index++)
         {
@@ -851,41 +851,41 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      * Try to find a ResultColumn in the table represented by this FromBaseTable
      * that matches the name in the given ColumnReference.
      *
-     * @param columnReference	The columnReference whose name we're looking
-     *				for in the given table.
+     * @param columnReference    The columnReference whose name we're looking
+     *                for in the given table.
      *
-     * @return	A ResultColumn whose expression is the ColumnNode
-     *			that matches the ColumnReference.
-     *		Returns null if there is no match.
+     * @return    A ResultColumn whose expression is the ColumnNode
+     *            that matches the ColumnReference.
+     *        Returns null if there is no match.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
 
     public ResultColumn getMatchingColumn(ColumnReference columnReference) throws StandardException
     {
-		/* We could get called before our RCL is built.  That's okay, we'll
-		 * just say that we don't match. 
-		 */
+        /* We could get called before our RCL is built.  That's okay, we'll
+         * just say that we don't match.
+         */
         if (resultColumns == null)
         {
             return null;
         }
 
-        ResultColumn	resultColumn = null;
-        TableName		columnsTableName;
-        TableName		exposedTableName;
+        ResultColumn    resultColumn = null;
+        TableName        columnsTableName;
+        TableName        exposedTableName;
 
         columnsTableName = columnReference.getTableNameNode();
 
-		/*
-		** If the column did not specify a name, or the specified name
-		** matches the table we're looking at, see whether the column
-		** is in this table.
-		*/
+        /*
+        ** If the column did not specify a name, or the specified name
+        ** matches the table we're looking at, see whether the column
+        ** is in this table.
+        */
         if (columnsTableName == null || columnsTableName.equals(exposedName))
         {
             resultColumn = resultColumns.getResultColumn(columnReference.getColumnName());
-			/* Did we find a match? */
+            /* Did we find a match? */
             if (resultColumn != null)
             {
                 columnReference.setTableNumber(tableNumber);
@@ -899,21 +899,21 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
     /**
      * Preprocess a ResultSetNode - this currently means:
-     *	o  Generating a referenced table map for each ResultSetNode.
+     *    o  Generating a referenced table map for each ResultSetNode.
      *  o  Putting the WHERE and HAVING clauses in conjunctive normal form (CNF).
      *  o  Converting the WHERE and HAVING clauses into PredicateLists and
-     *	   classifying them.
+     *       classifying them.
      *  o  Ensuring that a ProjectRestrictNode is generated on top of every
      *     FromBaseTable and generated in place of every FromSubquery.
      *  o  Pushing single table predicates down to the new ProjectRestrictNodes.
      *
-     * @param numTables			The number of tables in the DML Statement
-     * @param gbl				The group by list, if any
-     * @param fromList			The from list, if any
+     * @param numTables            The number of tables in the DML Statement
+     * @param gbl                The group by list, if any
+     * @param fromList            The from list, if any
      *
      * @return ResultSetNode at top of preprocessed tree.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
 
     public ResultSetNode preprocess(int numTables,
@@ -933,23 +933,23 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 (PredicateList) getNodeFactory().getNode(
                         C_NodeTypes.PREDICATE_LIST,
                         getContextManager()));
-		/* Generate the referenced table map */
+        /* Generate the referenced table map */
         referencedTableMap = new JBitSet(numTables);
         referencedTableMap.set(tableNumber);
 
-		/* Create the dependency map.  This FromVTI depends on any
-		 * tables which are referenced by the method call.  Note,
-		 * though, that such tables should NOT appear in this node's
-		 * referencedTableMap, since that field is really meant to
-		 * hold the table numbers for any FromTables which appear
-		 * AT OR UNDER the subtree whose root is this FromVTI.  That
-		 * said, the tables referenced by methodCall do not appear
-		 * "under" this FromVTI--on the contrary, they must appear
-		 * "above" this FromVTI within the query tree in order to
-		 * be referenced by the methodCall.  So methodCall table
-		 * references do _not_ belong in this.referencedTableMap.
-		 * (DERBY-3288)
-		 */
+        /* Create the dependency map.  This FromVTI depends on any
+         * tables which are referenced by the method call.  Note,
+         * though, that such tables should NOT appear in this node's
+         * referencedTableMap, since that field is really meant to
+         * hold the table numbers for any FromTables which appear
+         * AT OR UNDER the subtree whose root is this FromVTI.  That
+         * said, the tables referenced by methodCall do not appear
+         * "under" this FromVTI--on the contrary, they must appear
+         * "above" this FromVTI within the query tree in order to
+         * be referenced by the methodCall.  So methodCall table
+         * references do _not_ belong in this.referencedTableMap.
+         * (DERBY-3288)
+         */
         dependencyMap = new JBitSet(numTables);
         methodCall.categorize(dependencyMap, false);
 
@@ -979,57 +979,57 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      * columns, then the PRN's ResultColumnList will consist of a single ResultColumn
      * whose expression is 1.
      *
-     * @param numTables			Number of tables in the DML Statement
+     * @param numTables            Number of tables in the DML Statement
      *
      * @return The generated ProjectRestrictNode atop the original FromTable.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
 
     protected ResultSetNode genProjectRestrict(int numTables)
             throws StandardException
     {
-        ResultColumnList	prRCList;
+        ResultColumnList    prRCList;
 
-		/* We get a shallow copy of the ResultColumnList and its 
-		 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
-		 */
+        /* We get a shallow copy of the ResultColumnList and its
+         * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+         */
         prRCList = resultColumns;
         resultColumns = resultColumns.copyListAndObjects();
 
-		/* Replace ResultColumn.expression with new VirtualColumnNodes
-		 * in the ProjectRestrictNode's ResultColumnList.  (VirtualColumnNodes include
-		 * pointers to source ResultSetNode, this, and source ResultColumn.)
-		 * NOTE: We don't want to mark the underlying RCs as referenced, otherwise
-		 * we won't be able to project out any of them.
-		 */
+        /* Replace ResultColumn.expression with new VirtualColumnNodes
+         * in the ProjectRestrictNode's ResultColumnList.  (VirtualColumnNodes include
+         * pointers to source ResultSetNode, this, and source ResultColumn.)
+         * NOTE: We don't want to mark the underlying RCs as referenced, otherwise
+         * we won't be able to project out any of them.
+         */
         prRCList.genVirtualColumnNodes(this, resultColumns, false);
 
-		/* Project out any unreferenced columns.  If there are no referenced 
-		 * columns, generate and bind a single ResultColumn whose expression is 1.
-		 */
+        /* Project out any unreferenced columns.  If there are no referenced
+         * columns, generate and bind a single ResultColumn whose expression is 1.
+         */
         prRCList.doProjection(true);
 
-		/* Finally, we create the new ProjectRestrictNode */
+        /* Finally, we create the new ProjectRestrictNode */
         return (ResultSetNode) getNodeFactory().getNode(
                 C_NodeTypes.PROJECT_RESTRICT_NODE,
                 this,
                 prRCList,
-                null,	/* Restriction */
+                null,    /* Restriction */
                 null,   /* Restriction as PredicateList */
-                null,	/* Project subquery list */
-                null,	/* Restrict subquery list */
+                null,    /* Project subquery list */
+                null,    /* Restrict subquery list */
                 tableProperties,
-                getContextManager()	 );
+                getContextManager()     );
     }
 
     /**
      * Return whether or not to materialize this ResultSet tree.
      *
      * @return Whether or not to materialize this ResultSet tree.
-     *			would return valid results.
+     *            would return valid results.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public boolean performMaterialization(JBitSet outerTables)
             throws StandardException {
@@ -1319,10 +1319,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      * Generation on a FromVTI creates a wrapper around
      * the user's java.sql.ResultSet
      *
-     * @param acb	The ActivationClassBuilder for the class being built
+     * @param acb    The ActivationClassBuilder for the class being built
      * @param mb The MethodBuilder for the execute() method to be built
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public void generate(ActivationClassBuilder acb,
                          MethodBuilder mb)
@@ -1332,18 +1332,18 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         // function
         if ( isRestrictedTableFunction && ( projectedColumnNames == null) ) { computeProjection(); }
         
-		/* NOTE: We need to remap any CRs within the parameters
-		 * so that we get their values from the right source
-		 * row.  For example, if a CR is a join column, we need
-		 * to get the value from the source table and not the
-		 * join row since the join row hasn't been filled in yet.
-		 */
+        /* NOTE: We need to remap any CRs within the parameters
+         * so that we get their values from the right source
+         * row.  For example, if a CR is a join column, we need
+         * to get the value from the source table and not the
+         * join row since the join row hasn't been filled in yet.
+         */
         RemapCRsVisitor rcrv = new RemapCRsVisitor(true);
         methodCall.accept(rcrv);
 
-		/* Get the next ResultSet #, so that we can number this ResultSetNode, its
-		 * ResultColumnList and ResultSet.
-		 */
+        /* Get the next ResultSet #, so that we can number this ResultSetNode, its
+         * ResultColumnList and ResultSet.
+         */
         assignResultSetNumber();
 
         acb.pushGetResultSetFactoryExpression(mb);
@@ -1355,10 +1355,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                                  MethodBuilder mb)
             throws StandardException
     {
-        int				rclSize = resultColumns.size();
-        FormatableBitSet			referencedCols = new FormatableBitSet(rclSize);
-        int				erdNumber = -1;
-        int				numSet = 0;
+        int                rclSize = resultColumns.size();
+        FormatableBitSet            referencedCols = new FormatableBitSet(rclSize);
+        int                erdNumber = -1;
+        int                numSet = 0;
 
         // Get our final cost estimate.
         costEstimate = getFinalCostEstimate(false);
@@ -1456,7 +1456,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
         // this sets up the method and the static field.
         // generates:
-        // 	java.sql.ResultSet userExprFun { }
+        //     java.sql.ResultSet userExprFun { }
         MethodBuilder userExprFun = acb.newGeneratedFun(
                 DATASET_PROVIDER, Modifier.PUBLIC);
         userExprFun.addThrownException("java.lang.Exception");
@@ -1468,16 +1468,16 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
         // methodCall knows it is returning its value;
 
-		/* generates:
-		 *    return <newInvocation.generate(acb)>;
-		 */
+        /* generates:
+         *    return <newInvocation.generate(acb)>;
+         */
         // we are done modifying userExprFun, complete it.
         userExprFun.complete();
 
         // constructor is used in the final result set as an access of the new static
         // field holding a reference to this new method.
         // generates:
-        //	ActivationClass.userExprFun
+        //    ActivationClass.userExprFun
         // which is the static field that "points" to the userExprFun
         // that evaluates the where clause.
         acb.pushMethodReference(mb, userExprFun);
@@ -1487,12 +1487,12 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     /**
      * Search to see if a query references the specifed table name.
      *
-     * @param name		Table name (String) to search for.
-     * @param baseTable	Whether or not name is for a base table
+     * @param name        Table name (String) to search for.
+     * @param baseTable    Whether or not name is for a base table
      *
-     * @return	true if found, else false
+     * @return    true if found, else false
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public boolean referencesTarget(String name, boolean baseTable)
             throws StandardException
@@ -1549,25 +1549,25 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     private ResultColumnList genResultColList(TableDescriptor td)
             throws StandardException
     {
-        ResultColumnList 			rcList = null;
-        ResultColumn	 			resultColumn;
-        ValueNode		 			valueNode;
-        ColumnDescriptor 			colDesc = null;
+        ResultColumnList             rcList = null;
+        ResultColumn                 resultColumn;
+        ValueNode                     valueNode;
+        ColumnDescriptor             colDesc = null;
 
 
         TableName tableName = makeTableName(td.getSchemaName(),
                 td.getName());
 
-		/* Add all of the columns in the table */
+        /* Add all of the columns in the table */
         rcList = (ResultColumnList) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN_LIST,
                 getContextManager());
         ColumnDescriptorList cdl = td.getColumnDescriptorList();
-        int					 cdlSize = cdl.size();
+        int                     cdlSize = cdl.size();
 
         for (int index = 0; index < cdlSize; index++)
         {
-			/* Build a ResultColumn/BaseColumnNode pair for the column */
+            /* Build a ResultColumn/BaseColumnNode pair for the column */
             colDesc = (ColumnDescriptor) cdl.elementAt(index);
 
             valueNode = (ValueNode) getNodeFactory().getNode(
@@ -1582,7 +1582,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                     valueNode,
                     getContextManager());
 
-			/* Build the ResultColumnList to return */
+            /* Build the ResultColumnList to return */
             rcList.addResultColumn(resultColumn);
         }
 

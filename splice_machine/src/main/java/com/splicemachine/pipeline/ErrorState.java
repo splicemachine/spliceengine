@@ -642,6 +642,7 @@ public enum ErrorState{
     LANG_INVALID_ESCAPE_SEQUENCE("22025"),
     LANG_INVALID_TRIM_SET("22027"),
     LANG_STRING_TOO_LONG("22028"),
+    LANG_INVALID_TIME_SPAN_OPERATION("2202F"),
     LANG_ESCAPE_IS_NULL("22501"),
     LANG_INVALID_ROW_COUNT_FIRST("2201W"),
     LANG_INVALID_ROW_COUNT_OFFSET("2201X"),
@@ -1083,6 +1084,8 @@ public enum ErrorState{
     LANG_NO_SUCH_WINDOW("42ZC0"),
     LANG_WINDOW_LIMIT_EXCEEDED("42ZC1"),
     LANG_WINDOW_FUNCTION_CONTEXT_ERROR("42ZC2"),
+
+    LANG_INVALID_SPARK_AND_CONTROL("42ZD1"),
 
     //following 3 matches the DB2 sql states
     LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA("428EK"),
@@ -1943,7 +1946,7 @@ public enum ErrorState{
             return StandardException.newException(getSqlState(),rootCause.getMessage());
         }
     },
-    SPLICE_CANCELLATION_EXCEPTION("SE008"){
+    SPLICE_CANCELLATION_EXCEPTION("57014"){
         @Override
         public boolean accepts(Throwable t){
             return super.accepts(t)

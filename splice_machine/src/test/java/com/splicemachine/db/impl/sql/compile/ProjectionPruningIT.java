@@ -561,13 +561,13 @@ public class ProjectionPruningIT extends SpliceUnitTest {
         /* case 1: DT in set operation  */
         String sqlText = "select b1 from (select * from t1  --splice-properties index=idx_t1\n ) dt union all select b2 from t2";
 
-        String expected = "1  |\n" +
+        String expected = "B1  |\n" +
                 "-----\n" +
                 "aaa |\n" +
                 "bbb |\n" +
                 "ccc |";
 
-        assertPruneResult(sqlText, expected, projectionPruningDisabled.equals("false")?true:false);
+        assertPruneResult(sqlText, expected, projectionPruningDisabled.equals("false"));
 
         /* case 2: set in a subquery */
         sqlText = "select b1 from t1 where a1 in (select a3 from t3 union all values 4,5,6)";
@@ -596,7 +596,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
         /* case 3: set operation with predicate */
         sqlText = "select b1 from (select * from t1) dt where a1>1 union all select b2 from t2";
 
-        expected = "1  |\n" +
+        expected = "B1  |\n" +
                 "-----\n" +
                 "bbb |\n" +
                 "ccc |";
@@ -615,7 +615,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
         /* case 5: order by in set operation */
         sqlText = "select b1 from (select * from t1  --splice-properties index=idx_t1\n ) dt union all select b2 from t2 order by 1";
 
-        expected = "1  |\n" +
+        expected = "B1  |\n" +
                 "-----\n" +
                 "aaa |\n" +
                 "bbb |\n" +
