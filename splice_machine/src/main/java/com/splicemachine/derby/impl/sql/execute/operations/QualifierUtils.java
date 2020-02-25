@@ -16,13 +16,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
-import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
 import java.math.BigDecimal;
 import java.util.GregorianCalendar;
@@ -81,8 +81,16 @@ public class QualifierUtils {
         int targetType = targetDvd.getTypeFormatId();
 
         if (sourceType == targetType) {
-            if (isChar(sourceType) && ((SQLChar)targetDvd).getSqlCharSize() > ((SQLChar)sourceDvd).getSqlCharSize()) {
-                return convertChar((SQLChar)sourceDvd, ((SQLChar)targetDvd).getSqlCharSize(), dataValueFactory);
+            if (isFixedChar(sourceType) && isFixedChar(targetType)) {
+                // for not-null string, the size may not be populated, use getLength() to stay on the safer side
+                int sourceLength = ((SQLChar)sourceDvd).getSqlCharSize();
+                if (sourceLength == -1)
+                    sourceLength = sourceDvd.getLength();
+                int targetLength = ((SQLChar)targetDvd).getSqlCharSize();
+                if (targetLength == -1)
+                    targetLength = targetDvd.getLength();
+
+                return convertChar((SQLChar)sourceDvd, sourceLength, targetLength, dataValueFactory);
             } else {
                 return sourceDvd;
             }
@@ -268,13 +276,21 @@ public class QualifierUtils {
                 || columnFormat==StoredFormatIds.SQL_LONGINT_ID);
     }
 
-    private static boolean isChar(int columnFormat) {
+    private static boolean isFixedChar(int columnFormat) {
         return (columnFormat == StoredFormatIds.SQL_CHAR_ID);
     }
 
-    private static DataValueDescriptor convertChar(SQLChar sourceDvd, int newCharSize, DataValueFactory dataValueFactory) throws StandardException {
+    private static DataValueDescriptor convertChar(SQLChar sourceDvd, int originalCharSize, int newCharSize, DataValueFactory dataValueFactory) throws StandardException {
+        SQLChar correctedSource;
+        if (newCharSize > originalCharSize) {
+            correctedSource = new SQLChar(StringUtil.padRight(sourceDvd.getString(), SQLChar.PAD, newCharSize));
+        } else { // originalCharSize is bigger and needs to trim the extra spaces
+            correctedSource = new SQLChar(StringUtil.trimTrailing(sourceDvd.getString(), newCharSize));
+        }
+        /*
         SQLChar correctedSource = (SQLChar) sourceDvd.cloneValue(true);
         correctedSource.setWidth(newCharSize, -1, true);
+         */
         return correctedSource;
     }
 
