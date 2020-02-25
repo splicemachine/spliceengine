@@ -25,10 +25,15 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -54,13 +59,14 @@ public class SavepointConstantOperationIT {
     protected static SpliceTableWatcher d= new SpliceTableWatcher("D", CLASS_NAME, "(i int primary key)");
     protected static SpliceTableWatcher e= new SpliceTableWatcher("E", CLASS_NAME, "(i int primary key)");
     protected static SpliceTableWatcher f= new SpliceTableWatcher("F", CLASS_NAME, "(i int primary key)");
+    protected static SpliceTableWatcher g= new SpliceTableWatcher("G", CLASS_NAME, "(i int)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(spliceSchemaWatcher)
             .around(b)
             .around(t).around(c).around(d)
-            .around(e).around(f);
+            .around(e).around(f).around(g);
 
     private static TestConnection conn1;
     private static TestConnection conn2;
@@ -126,7 +132,7 @@ public class SavepointConstantOperationIT {
         conn1.execute(String.format("insert into %s (taskid) values (%d)",b,value));
         conn1.releaseSavepoint(savepoint);
         long count = conn1.count(String.format("select * from %s where taskid=%d",b,value));
-        Assert.assertEquals("Incorrect count after savepoint release!",1l,count);
+        assertEquals("Incorrect count after savepoint release!",1l,count);
     }
 
     @Test
@@ -136,11 +142,11 @@ public class SavepointConstantOperationIT {
         conn1.execute(String.format("insert into %s (taskid) values (%d)",b,value));
 
         long count = conn2.count(String.format("select * from %s where taskid=%d",b,value));
-        Assert.assertEquals("Data is visible to another transaction!",0l,count);
+        assertEquals("Data is visible to another transaction!",0l,count);
 
         conn1.releaseSavepoint(savepoint);
         count = conn2.count(String.format("select * from %s where taskid=%d",b,value));
-        Assert.assertEquals("Data was committed during savepoint release!",0l,count);
+        assertEquals("Data was committed during savepoint release!",0l,count);
     }
 
     @Test
@@ -149,11 +155,11 @@ public class SavepointConstantOperationIT {
         int value = 2;
         conn1.execute(String.format("insert into %s (taskid) values (%d)",b,value));
         long count = conn1.count(String.format("select * from %s where taskid=%d",b,value));
-        Assert.assertEquals("Incorrect count after savepoint release!",1l,count);
+        assertEquals("Incorrect count after savepoint release!",1l,count);
 
         conn1.rollback(savepoint);
         count = conn1.count(String.format("select * from %s where taskid=%d",b,value));
-        Assert.assertEquals("Incorrect count after savepoint release!",0l,count);
+        assertEquals("Incorrect count after savepoint release!",0l,count);
     }
 
     @Test
@@ -168,7 +174,7 @@ public class SavepointConstantOperationIT {
         //try releasing the first savepoint without first releasing the second, and make sure that it still works
         conn1.releaseSavepoint(s1);
         long count = conn1.count(String.format("select * from %s where taskid=%d",b,value));
-        Assert.assertEquals("Incorrect count after savepoint release!", 2l, count);
+        assertEquals("Incorrect count after savepoint release!", 2l, count);
     }
 
     @Test
@@ -182,12 +188,12 @@ public class SavepointConstantOperationIT {
 
         //make sure data looks like what we expect
         long count = conn1.count(String.format("select * from %s where taskid=%d",b,value));
-        Assert.assertEquals("Incorrect count after savepoint release!", 2l, count);
+        assertEquals("Incorrect count after savepoint release!", 2l, count);
 
         //rollback s1 and make sure that all data is invisible
         conn1.rollback(s1);
         count = conn1.count(String.format("select * from %s where taskid=%d",b,value));
-        Assert.assertEquals("Incorrect count after savepoint release!", 0l, count);
+        assertEquals("Incorrect count after savepoint release!", 0l, count);
     }
 
     @Test
@@ -202,12 +208,12 @@ public class SavepointConstantOperationIT {
         conn1.releaseSavepoint(s2);
         //make sure data looks like what we expect
         long count = conn1.count(String.format("select * from %s where taskid=%d",b,value));
-        Assert.assertEquals("Incorrect count after savepoint release!", 2l, count);
+        assertEquals("Incorrect count after savepoint release!", 2l, count);
 
         //rollback s1 and make sure that all data is invisible
         conn1.rollback(s1);
         count = conn1.count(String.format("select * from %s where taskid=%d",b,value));
-        Assert.assertEquals("Incorrect count after savepoint release!", 0l, count);
+        assertEquals("Incorrect count after savepoint release!", 0l, count);
     }
 
     @Test
@@ -216,11 +222,11 @@ public class SavepointConstantOperationIT {
         int value = 7;
         conn1.execute(String.format("insert into %s (taskid) values (%d)",b,value));
         long count = conn1.count(String.format("select * from %s where taskid=%d",b,value));
-        Assert.assertEquals("Incorrect count after savepoint release!",1l,count);
+        assertEquals("Incorrect count after savepoint release!",1l,count);
 
         conn1.rollback(savepoint);
         count = conn1.count(String.format("select * from %s where taskid=%d",b,value));
-        Assert.assertEquals("Incorrect count after savepoint release!",0l,count);
+        assertEquals("Incorrect count after savepoint release!",0l,count);
 
         //insert some data again
         conn1.execute(String.format("insert into %s (taskid) values (%d)",b,value));
@@ -228,7 +234,7 @@ public class SavepointConstantOperationIT {
         //now release the savepoint
         conn1.releaseSavepoint(savepoint);
         count = conn1.count(String.format("select * from %s where taskid=%d",b,value));
-        Assert.assertEquals("Incorrect count after savepoint release!",1l,count);
+        assertEquals("Incorrect count after savepoint release!",1l,count);
 
 
     }
@@ -246,7 +252,7 @@ public class SavepointConstantOperationIT {
         }
         conn1.commit();
         long count = conn1.count("select * from c");
-        Assert.assertEquals("Incorrect count after savepoint release!",iterations,count);
+        assertEquals("Incorrect count after savepoint release!",iterations,count);
 
         rs = conn1.query("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
         rs.next();
@@ -271,7 +277,7 @@ public class SavepointConstantOperationIT {
         }
         conn1.commit();
         long count = conn1.count("select * from d");
-        Assert.assertEquals("Incorrect count after savepoint release!",iterations,count);
+        assertEquals("Incorrect count after savepoint release!",iterations,count);
 
         rs = conn1.query("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
         rs.next();
@@ -297,7 +303,7 @@ public class SavepointConstantOperationIT {
         ps.executeBatch();
         conn1.commit();
         long count = conn1.count("select * from e");
-        Assert.assertEquals("Incorrect count after savepoint release!",iterations,count);
+        assertEquals("Incorrect count after savepoint release!",iterations,count);
 
         rs = conn1.query("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
         rs.next();
@@ -317,7 +323,7 @@ public class SavepointConstantOperationIT {
         }
         conn1.rollback(first);
         long count = conn1.count("select * from f");
-        Assert.assertEquals("Incorrect count after savepoint rollback!",0,count);
+        assertEquals("Incorrect count after savepoint rollback!",0,count);
 
         for (int i = 0; i < SIConstants.TRASANCTION_INCREMENT; ++i) {
             Savepoint savepoint = conn1.setSavepoint("test" + i);
@@ -325,6 +331,29 @@ public class SavepointConstantOperationIT {
         }
         conn1.commit();
         count = conn1.count("select * from f");
-        Assert.assertEquals("Incorrect count after savepoint release!",SIConstants.TRASANCTION_INCREMENT,count);
+        assertEquals("Incorrect count after savepoint release!",SIConstants.TRASANCTION_INCREMENT,count);
+    }
+
+    @Test
+    public void testRollbackToSavepointDoesntCloseResultsets() throws SQLException {
+        try (Statement st = conn1.createStatement()) {
+            st.execute("insert into g values 1,2");
+            for (int i = 0; i < 12; ++i) {
+                st.execute("insert into g select * from g");
+            }
+            try (ResultSet rs = st.executeQuery("select * from g")) {
+                int n = 0;
+                Savepoint s = null;
+                while (rs.next()) {
+                    if (n == 0) s = conn1.setSavepoint("p0");
+                    if (n == 10) {
+                        conn1.rollback(s);
+                    }
+                    n++;
+                }
+                conn1.commit();
+                assertEquals(8192, n);
+            }
+        }
     }
 }

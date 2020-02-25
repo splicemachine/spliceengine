@@ -283,9 +283,10 @@ public interface C_NodeTypes
     int EMPTY_DEFAULT_CONSTANT_NODE = 272;
     int STRING_AGGREGATE_NODE = 273;
     int VALUE_TUPLE_NODE = 274;
+    int TIME_SPAN_NODE = 275;
 
     // Final value in set, keep up to date!
-    int FINAL_VALUE = VALUE_TUPLE_NODE;
+    int FINAL_VALUE = TIME_SPAN_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision
