@@ -13,8 +13,6 @@
  */
 package com.splicemachine.orc;
 
-import org.junit.Ignore;
-@Ignore
 public class TestOrcReader
     extends AbstractTestOrcReader
 {

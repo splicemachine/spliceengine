@@ -48,7 +48,7 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
 
     @Override
     public WindowFunction setup(ClassFactory classFactory, String windowFunctionName, DataTypeDescriptor
-        returnDataType, FormatableHashtable functionSpecificArgs) {
+        returnDataType, FormatableHashtable functionSpecificArgs) throws StandardException {
         return this;
     }
 

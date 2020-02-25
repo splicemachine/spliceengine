@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -1369,7 +1370,7 @@ public interface LanguageConnectionContext extends Context {
 
     void resetRecordsImported();
 
-    CompilerContext.DataSetProcessorType getDataSetProcessorType();
+    DataSetProcessorType getDataSetProcessorType();
 
 	/**
 	 *
