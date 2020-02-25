@@ -8185,6 +8185,8 @@ valueTupleElement(ValueNode tupleOrFirstValue) throws StandardException:
     ValueNode       newValue;
 }
 {
+    newValue = valueExpression()
+
     {
         if (tupleOrFirstValue instanceof ValueTupleNode) {
             valueTuple = (ValueTupleNode) tupleOrFirstValue;
@@ -8194,7 +8196,7 @@ valueTupleElement(ValueNode tupleOrFirstValue) throws StandardException:
                                     getContextManager());
             valueTuple.addValueNode((ValueNode) tupleOrFirstValue);
         }
-        newValue = valueExpression();
+
         if (newValue instanceof ValueTupleNode) {
             throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
                 "Nested tuple not supported");
