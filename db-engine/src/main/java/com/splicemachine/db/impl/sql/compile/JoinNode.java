@@ -685,6 +685,30 @@ public class JoinNode extends TableOperatorNode{
 
         newTreeTop=super.preprocess(numTables,gbl,fromList);
 
+        // delay preprocess of the join clause for flattenable inner join nodes
+        // till after the flattening of JoinNode.
+        // this way, we have the opportunity to flatten ON clause subquery for inner joins
+        if (!delayPreprocessingJoinClause()) {
+            preprocessJoinClause(numTables, (FromList) getNodeFactory().getNode(
+                    C_NodeTypes.FROM_LIST,
+                    getNodeFactory().doJoinOrderOptimization(),
+                    getContextManager()),
+                    (SubqueryList) getNodeFactory().getNode(
+                            C_NodeTypes.SUBQUERY_LIST,
+                            getContextManager()),
+                    (PredicateList) getNodeFactory().getNode(
+                            C_NodeTypes.PREDICATE_LIST,
+                            getContextManager()));
+        }
+
+        return newTreeTop;
+    }
+
+
+    protected void preprocessJoinClause(int numTables,
+                                      FromList outerFromList,
+                                      SubqueryList outerSubqueryList,
+                                      PredicateList outerPredicateList) throws StandardException{
         /* Put the expression trees in conjunctive normal form.
          * NOTE - This needs to occur before we preprocess the subqueries
          * because the subquery transformations assume that any subquery operator
@@ -695,37 +719,18 @@ public class JoinNode extends TableOperatorNode{
 
             /* Preprocess any subqueries in the join clause */
             if(subqueryList!=null){
-                /* RESOLVE - In order to flatten a subquery in
-                 * the ON clause of an inner join we'd have to pass
-                 * the various lists from the outer select through to
-                 * ResultSetNode.preprocess() and overload
-                 * normExpressions in HalfOuterJoinNode.  That's not
-                 * worth the effort, so we say that the ON clause
-                 * is not under a top level AND in normExpressions()
-                 * to ensure that subqueries in the ON clause do not
-                 * get flattened.  That allows us to pass empty lists
-                 * to joinClause.preprocess() because we know that no
-                 * flattening will take place. (Bug #1206)
-                 */
                 joinClause.preprocess(
                         numTables,
-                        (FromList)getNodeFactory().getNode(
-                                C_NodeTypes.FROM_LIST,
-                                getNodeFactory().doJoinOrderOptimization(),
-                                getContextManager()),
-                        (SubqueryList)getNodeFactory().getNode(
-                                C_NodeTypes.SUBQUERY_LIST,
-                                getContextManager()),
-                        (PredicateList)getNodeFactory().getNode(
-                                C_NodeTypes.PREDICATE_LIST,
-                                getContextManager()));
+                        outerFromList,
+                        outerSubqueryList,
+                        outerPredicateList);
             }
 
             /* Pull apart the expression trees */
             joinPredicates.pullExpressions(numTables,joinClause);
             joinPredicates.categorize();
             optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION, 0, 0, 0.0,
-                          "JoinNode pulled join expressions.", joinPredicates);
+                    "JoinNode pulled join expressions.", joinPredicates);
 
             if (this instanceof FullOuterJoinNode) {
                 // mark join condition as forFullJoin
@@ -738,10 +743,7 @@ public class JoinNode extends TableOperatorNode{
             }
             joinClause=null;
         }
-
-        return newTreeTop;
     }
-
     /**
      * Put the expression trees in conjunctive normal form
      *
@@ -773,11 +775,11 @@ public class JoinNode extends TableOperatorNode{
                         "joinClause in invalid form: "+joinClause);
             }
         }
-        /* RESOLVE - ON clause is temporarily "not under a top
-         * top level AND" until we figure out how to deal with
-         * subqueries in the ON clause. (Bug 1206)
+        /* For subquery in the ON clause of an inner join that could be flattened,
+           we know it will later be moved to WHERE clause and we know how to flatten it,
+           so use delayPreprocessingJoinClause() to determine if we should pass down true or false.
          */
-        joinClause=joinClause.changeToCNF(false);
+        joinClause=joinClause.changeToCNF(delayPreprocessingJoinClause());
         if(SanityManager.DEBUG){
             if(!((joinClause instanceof AndNode) &&
                     (joinClause.verifyChangeToCNF()))){
@@ -921,6 +923,12 @@ public class JoinNode extends TableOperatorNode{
             havingClause.remapColumnReferencesToExpressions();
         }
 
+        if (delayPreprocessingJoinClause()) {
+            // at this point, we haven't preprocessed the join clause yet,
+            // so joinPredicates at this point is still an empty list.
+            // Preprocess the join clause now and flatten subquery if any
+            preprocessJoinClause(numTables, fromList, subqueryList, joinPredicates);
+        }
 
         if(!joinPredicates.isEmpty()){
             optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
@@ -1050,6 +1058,9 @@ public class JoinNode extends TableOperatorNode{
         return flattenableJoin && (outerJoinLevel == 0);
     }
 
+    public boolean delayPreprocessingJoinClause() {
+        return isFlattenableJoinNode();
+    }
     /**
      * Prints the sub-nodes of this object.  See QueryTreeNode.java for
      * how tree printing is supposed to work.
