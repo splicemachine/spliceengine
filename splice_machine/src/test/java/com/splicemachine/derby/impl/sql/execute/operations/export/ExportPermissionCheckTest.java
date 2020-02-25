@@ -18,6 +18,7 @@ import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.impl.TestingFileSystem;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -28,6 +29,8 @@ import org.junit.rules.TemporaryFolder;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 import static org.junit.Assert.assertEquals;
 
 @Category(ArchitectureIndependent.class)
@@ -47,12 +50,14 @@ public class ExportPermissionCheckTest {
 
     @Test
     public void verify_failCase() throws IOException, StandardException {
-        expectedException.expect(StandardException.class);
-        expectedException.expectMessage("IOException '/ExportPermissionCheckTest' when accessing directory");
-
         ExportParams exportParams = ExportParams.withDirectory("/ExportPermissionCheckTest");
         ExportPermissionCheck permissionCheck = new ExportPermissionCheck(exportParams,dfs);
-        permissionCheck.verify();
+        try {
+            permissionCheck.verify();
+        } catch (Exception e) {
+            assertThat(e.getMessage(),
+                    stringContainsInOrder("IOException '/ExportPermissionCheckTest", "' when accessing directory"));
+        }
     }
 
 }

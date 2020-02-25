@@ -386,4 +386,9 @@ public class FullOuterJoinNode extends JoinNode {
 
         return ij;
     }
+
+    @Override
+    public boolean delayPreprocessingJoinClause() {
+        return false;
+    }
 }
