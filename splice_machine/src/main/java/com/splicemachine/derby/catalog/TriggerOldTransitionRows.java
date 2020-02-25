@@ -25,60 +25,24 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.iapi.sql.execute;
-
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.Activation;
+package com.splicemachine.derby.catalog;
 
 /**
- * This is a class that is used to temporarily
- * (non-persistently) hold rows that are used in
- * language execution.  It will store them in an
- * array, or a temporary conglomerate, depending
- * on the number of rows.  
- * <p>
- * It is used for deferred DML processing.
- *
+ * Provides information about the set of OLD rows accessed
+ * via the REFERENCES clause in a statement trigger.
  */
-public interface TemporaryRowHolder
+
+public class TriggerOldTransitionRows
+                   extends TriggerNewTransitionRows
 {
-	/**
-	 * Insert a row
-	 *
-	 * @param inputRow the row to insert 
-	 *
-	 * @exception StandardException on error
- 	 */
-	void insert(ExecRow inputRow)
-		throws StandardException;
 
-	/**
-	 * Get a result set for scanning what has been inserted
- 	 * so far.
-	 *
-	 * @return a result set to use
-	 */
-	CursorResultSet getResultSet();
+    public TriggerOldTransitionRows()
+    {
+        initializeResultSet();
+    }
 
-	/**
-	 * Clean up
-	 *
-	 * @exception StandardException on error
-	 */
-	void close() throws StandardException;
-
-
-	//returns the conglomerate number it created
-	long getTemporaryConglomId();
-
-	int getLastArraySlot();
-	void decrementLastArraySlot ();
-	int getState();
-	void setState(int state);
-	Activation getActivation();
-	long getConglomerateId();
 }

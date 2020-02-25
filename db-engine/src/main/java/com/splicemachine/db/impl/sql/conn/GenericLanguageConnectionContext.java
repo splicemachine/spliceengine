@@ -3891,4 +3891,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public String getReplicationRole() {
         return replicationRole;
     }
+
+    public String getUserName() {
+        return userName;
+    }
 }
