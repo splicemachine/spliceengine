@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
@@ -383,9 +384,9 @@ public class SpliceDatabase extends BasicDatabase{
                         break;
                     case ENTER_RESTORE_MODE:
                         SIDriver.driver().lifecycleManager().enterRestoreMode();
-                        Collection<LanguageConnectionContext> allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
-                        for(LanguageConnectionContext context : allContexts){
-                            context.enterRestoreMode();
+                        Collection<Context> allContexts = ContextService.getService().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+                        for (Context context : allContexts) {
+                            ((LanguageConnectionContext) context).enterRestoreMode();
                         }
                         break;
                     case NOTIFY_JAR_LOADER:

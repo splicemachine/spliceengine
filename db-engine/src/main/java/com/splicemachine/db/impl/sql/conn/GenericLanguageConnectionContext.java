@@ -2899,13 +2899,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
     }
 
-    /**
-     * @see com.splicemachine.db.iapi.services.context.Context#isLastHandler
-     */
-    public boolean isLastHandler(int severity){
-        return false;
-    }
-
     //
     // class implementation
     //
