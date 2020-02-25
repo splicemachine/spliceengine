@@ -7229,7 +7229,6 @@ getTimeSpan(ValueNode value) throws StandardException :
                   getToken(1).kind == DAY || getToken(1).kind == DAYS } )
     timeUnit = dateTimeIntervalUnit()
     {
-        throwIfNotValueNode(value);
         return (ValueNode) nodeFactory.getNode(
                                         C_NodeTypes.TIME_SPAN_NODE,
                                         value,
