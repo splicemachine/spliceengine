@@ -118,6 +118,7 @@ public class LastIndexKeyOperation extends ScanOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        dsp.prependSpliceExplainString(this.explainPlan);
         operationContext = dsp.createOperationContext(this);
         DataSet<ExecRow> scan = dsp.<LastIndexKeyOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)

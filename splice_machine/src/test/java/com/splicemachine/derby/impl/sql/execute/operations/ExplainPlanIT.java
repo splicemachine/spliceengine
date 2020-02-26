@@ -142,6 +142,47 @@ public class ExplainPlanIT extends SpliceUnitTest  {
             ++count;
         }
         Assert.assertTrue(count>0);
+        rs.close();
+
+        rs  = methodWatcher.executeQuery(
+                String.format("sparkexplain select * from %s", this.getTableReference(TABLE_NAME)));
+
+        count = 0;
+        while (rs.next()) {
+            ++count;
+        }
+        Assert.assertTrue(count>0);
+        rs.close();
+
+        rs  = methodWatcher.executeQuery(
+                String.format("sparkexplain_analyzed select * from %s", this.getTableReference(TABLE_NAME)));
+
+        count = 0;
+        while (rs.next()) {
+            ++count;
+        }
+        Assert.assertTrue(count>0);
+        rs.close();
+
+        rs  = methodWatcher.executeQuery(
+                String.format("sparkexplain_logical select * from %s", this.getTableReference(TABLE_NAME)));
+
+        count = 0;
+        while (rs.next()) {
+            ++count;
+        }
+        Assert.assertTrue(count>0);
+        rs.close();
+
+        rs  = methodWatcher.executeQuery(
+                String.format("sparkexplain_optimized select * from %s", this.getTableReference(TABLE_NAME)));
+
+        count = 0;
+        while (rs.next()) {
+            ++count;
+        }
+        Assert.assertTrue(count>0);
+        rs.close();
     }
 
     @Test
@@ -154,6 +195,18 @@ public class ExplainPlanIT extends SpliceUnitTest  {
             ++count;
         }
         Assert.assertTrue(count>0);
+        rs.close();
+
+        rs  = methodWatcher.executeQuery(
+                String.format("sparkexplain update %s set i = 0 where i = 1", this.getTableReference(TABLE_NAME)));
+
+        count = 0;
+        while (rs.next()) {
+            ++count;
+        }
+        Assert.assertTrue(count>0);
+        rs.close();
+
     }
 
     @Test
@@ -166,6 +219,17 @@ public class ExplainPlanIT extends SpliceUnitTest  {
             ++count;
         }
         Assert.assertTrue(count>0);
+        rs.close();
+
+        rs  = methodWatcher.executeQuery(
+                String.format("sparkexplain delete from %s where i = 1", this.getTableReference(TABLE_NAME)));
+
+        count = 0;
+        while (rs.next()) {
+            ++count;
+        }
+        Assert.assertTrue(count>0);
+        rs.close();
     }
 
     @Test
@@ -184,6 +248,23 @@ public class ExplainPlanIT extends SpliceUnitTest  {
             ++count2;
         }
         Assert.assertTrue(count1 == count2);
+        rs.close();
+
+        rs  = methodWatcher.executeQuery(
+                String.format("-- some comments \n sparkexplain\nupdate %s set i = 0 where i = 1", this.getTableReference(TABLE_NAME)));
+        count1 = 0;
+        while (rs.next()) {
+            ++count1;
+        }
+        rs.close();
+        rs  = methodWatcher.executeQuery(
+                String.format("-- some comments \n sparkexplain\nupdate %s set i = 0 where i = 1", this.getTableReference(TABLE_NAME)));
+        count2 = 0;
+        while (rs.next()) {
+            ++count2;
+        }
+        Assert.assertTrue(count1 == count2);
+        rs.close();
     }
 
     @Test

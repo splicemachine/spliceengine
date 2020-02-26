@@ -361,6 +361,71 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void testQueryContains(String sqlText, String containedString,
+                                     SpliceWatcher methodWatcher,
+                                     boolean caseInsensitive) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(sqlText);
+            String matchString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            if (caseInsensitive) {
+                matchString = matchString.toUpperCase();
+                containedString = containedString.toUpperCase();
+            }
+            if (!matchString.contains(containedString))
+                fail("ResultSet does not contain string: " + containedString);
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
+    }
+
+    protected void testQueryContains(String sqlText, List<String> containedStrings,
+                                     SpliceWatcher methodWatcher,
+                                     boolean caseInsensitive) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(sqlText);
+            String matchString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            if (caseInsensitive)
+                matchString = matchString.toUpperCase();
+
+            for (String containedString:containedStrings) {
+                if (caseInsensitive)
+                    containedString = containedString.toUpperCase();
+                if (matchString.contains(containedString))
+                    return;
+            }
+
+            fail("ResultSet does not contain any of the expected strings.");
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
+    }
+
+    protected void testQueryDoesNotContain(String sqlText, String containedString,
+                                     SpliceWatcher methodWatcher,
+                                     boolean caseInsensitive) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(sqlText);
+            String matchString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            if (caseInsensitive) {
+                matchString = matchString.toUpperCase();
+                containedString = containedString.toUpperCase();
+            }
+            if (matchString.contains(containedString))
+                fail("ResultSet does not contain string: " + containedString);
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
+    }
+
     protected void testQueryUnsorted(String sqlText, String expected, SpliceWatcher methodWatcher) throws Exception {
         ResultSet rs = null;
         try {

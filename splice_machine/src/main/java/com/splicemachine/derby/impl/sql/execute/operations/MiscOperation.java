@@ -114,6 +114,9 @@ public class MiscOperation extends NoRowsOperation{
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        if (dsp.isSparkExplain())
+            return dsp.getEmpty();
+
         setup();
 
         activation.getConstantAction().executeConstantAction(activation);
