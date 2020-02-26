@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
@@ -369,4 +370,8 @@ public interface DataSet<V> extends //Iterable<V>,
     DataSet upgradeToSparkNativeDataSet(OperationContext operationContext) throws StandardException;
 
     DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext);
+
+    List<String> buildNativeSparkExplain(ExplainNode.SparkExplainKind sparkExplainKind);
+
+    boolean isNativeSpark();
 }

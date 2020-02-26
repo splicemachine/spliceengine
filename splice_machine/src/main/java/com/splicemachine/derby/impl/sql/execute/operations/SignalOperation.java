@@ -141,6 +141,9 @@ public class SignalOperation extends NoRowsOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        if (dsp.isSparkExplain())
+            return dsp.getEmpty();
+
         OperationContext<SignalOperation> operationContext =
             dsp.createOperationContext(this);
 

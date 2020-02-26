@@ -292,6 +292,8 @@ public class VTIOperation extends SpliceBaseOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        dsp.prependSpliceExplainString(this.explainPlan);
+
         return getDataSetProvider().getDataSet(this, dsp,getAllocatedRow());
     }
 
