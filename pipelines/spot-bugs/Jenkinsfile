@@ -13,7 +13,7 @@ node('splice-standalone') {
 
     notifyBuild('STARTED')
 
-    stage('Prep') {
+    stage('Build') {
       // Checkout code from repository
       checkout([  
             $class: 'GitSCM', 
@@ -31,9 +31,6 @@ node('splice-standalone') {
             submoduleCfg: [], 
             userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
         ])  
-      }
-
-    stage('Setup Maven') {
         wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
             dir('spliceengine'){
                 def platforms = ""
@@ -63,7 +60,7 @@ node('splice-standalone') {
         }
       }
 
-    stage('Build') {
+    stage('SpotBugs') {
       dir('spliceengine'){
           def platforms = ""
           def branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
