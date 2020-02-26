@@ -13,7 +13,6 @@
  */
 package com.splicemachine.spark2.splicemachine
 
-import java.beans.PropertyVetoException
 import java.security.{PrivilegedExceptionAction, SecureRandom}
 import java.sql.Connection
 
@@ -25,6 +24,8 @@ import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import java.util.Properties
+
+import com.splicemachine.db.impl.jdbc.EmbedConnection
 
 //import com.splicemachine.derby.vti.SpliceDatasetVTI
 //import com.splicemachine.derby.vti.SpliceRDDVTI
@@ -39,8 +40,27 @@ import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 
 import kafka.admin.AdminUtils
-import kafka.admin.RackAwareMode
 import org.I0Itec.zkclient.ZkConnection
+
+import java.security.{PrivilegedExceptionAction, SecureRandom}
+import java.sql.Connection
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.execution.datasources.jdbc._
+import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.{DataFrame, Dataset, Row}
+import java.util.Properties
+
+import com.splicemachine.access.HConfiguration
+import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.permission.FsPermission
+import org.apache.hadoop.io.Text
+import org.apache.hadoop.security.UserGroupInformation
+import org.apache.hadoop.security.token.Token
+import org.apache.log4j.Logger
+import org.apache.spark.api.java.JavaRDD
+import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 
 private object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
@@ -65,7 +85,55 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     this(Map(JDBCOptions.JDBC_URL -> url));
   }
 
+  @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
   JdbcDialects.registerDialect(new SplicemachineDialect2)
+//
+//  private[this] def initConnection() = {
+//    Holder.log.info(f"Creating internal connection")
+//
+//    SpliceSpark.setupSpliceStaticComponents()
+//    val engineDriver = EngineDriver.driver
+//    assert(engineDriver != null, "Not booted yet!")
+//    // Create a static statement context to enable nested connections
+//    val maker = new EmbedConnectionMaker
+//    val dbProperties = new Properties
+//    dbProperties.put("useSpark", "true")
+//    dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true")
+//    maker.createNew(dbProperties)
+//  }
+  /**
+   * Get internal JDBC connection
+   */
+  def getConnection(): Connection = {
+    internalConnection
+  }
+
+//  @transient private[this]val internalConnection : Connection = {
+//    Holder.log.debug("Splice Client in SplicemachineContext "+SpliceClient.isClient())
+//    SpliceClient.connectionString = url
+//    SpliceClient.setClient(HConfiguration.getConfiguration.getAuthenticationTokenEnabled, SpliceClient.Mode.MASTER)
+//
+//    val principal = System.getProperty("spark.yarn.principal")
+//    val keytab = System.getProperty("spark.yarn.keytab")
+//
+//    if (principal != null && keytab != null) {
+//      Holder.log.info(f"Authenticating as ${principal} with keytab ${keytab}")
+//
+//      val ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab)
+//      UserGroupInformation.setLoginUser(ugi)
+//
+//      ugi.doAs(new PrivilegedExceptionAction[Connection] {
+//        override def run(): Connection = {
+//
+//          val connection = initConnection()
+//          connection
+//        }
+//      })
+//    } else {
+//      Holder.log.info(f"Authentication disabled, principal=${principal}; keytab=${keytab}")
+//      initConnection()
+//    }
+//  }
 
   /**
     *
@@ -312,33 +380,20 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       JDBCOptions.JDBC_URL -> url)
     val jdbcOptions = new JDBCOptions(spliceOptions)
     val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val configuration = HConfiguration.getConfiguration
+
     try {
       val id = getRandomName()
 
       // TODO create Kafka topic
       // hbase has read/write permission on the topic
 
-      val zookeeperConnect = "zkserver1:2181,zkserver2:2181"
-      val sessionTimeoutMs = 10 * 1000
-      val connectionTimeoutMs = 8 * 1000
-
-      val zkClient = ZkUtils.createZkClient(
-        zookeeperConnect,
-        sessionTimeoutMs,
-        connectionTimeoutMs)
-
-      val topicConfig = new Properties()
-
-      val zkUtils = new ZkUtils(zkClient, new ZkConnection(zookeeperConnect), false)
-      AdminUtils.createTopic(zkUtils, id, 200, 2, topicConfig)
-      zkClient.close()
-
       val schema = resolveQuery(conn, sql, false)
 
       conn.prepareStatement(s"EXPORT_KAFKA('$id') " + sql).execute()
 
       // TODO consume Kafka stream
-      val df = null
+      val df = SparkUtils.resultSetToDF(internalConnection.createStatement().executeQuery(sql));
 
       df
     } finally {
@@ -399,6 +454,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     executeUpdate(sqlText)
   }
+
 
 //  /**
 //    *

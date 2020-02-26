@@ -1,7 +1,6 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.sql.execute.SpliceGenericResultSetFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportKafkaOperation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -11,7 +10,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
-import org.apache.log4j.Logger;
 import org.apache.spark.TaskContext;
 import org.apache.spark.TaskKilledException;
 
@@ -46,7 +44,6 @@ class ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction extends SpliceFla
 
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
-//        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 1);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         //For Debug
