@@ -83,14 +83,14 @@ public class QualifierUtils {
         if (sourceType == targetType) {
             if (isFixedChar(sourceType) && isFixedChar(targetType)) {
                 // for not-null string, the size may not be populated, use getLength() to stay on the safer side
-                int sourceLength = ((SQLChar)sourceDvd).getSqlCharSize();
+                int sourceLength = ((SQLChar) sourceDvd).getSqlCharSize();
                 if (sourceLength == -1)
                     sourceLength = sourceDvd.getLength();
-                int targetLength = ((SQLChar)targetDvd).getSqlCharSize();
+                int targetLength = ((SQLChar) targetDvd).getSqlCharSize();
                 if (targetLength == -1)
                     targetLength = targetDvd.getLength();
 
-                return convertChar((SQLChar)sourceDvd, sourceLength, targetLength, dataValueFactory);
+                return convertChar((SQLChar) sourceDvd, sourceLength, targetLength);
             } else {
                 return sourceDvd;
             }
@@ -280,17 +280,14 @@ public class QualifierUtils {
         return (columnFormat == StoredFormatIds.SQL_CHAR_ID);
     }
 
-    private static DataValueDescriptor convertChar(SQLChar sourceDvd, int originalCharSize, int newCharSize, DataValueFactory dataValueFactory) throws StandardException {
+
+    private static DataValueDescriptor convertChar(SQLChar source, int sourceCharSize, int targetCharSize) throws StandardException {
         SQLChar correctedSource;
-        if (newCharSize > originalCharSize) {
-            correctedSource = new SQLChar(StringUtil.padRight(sourceDvd.getString(), SQLChar.PAD, newCharSize));
-        } else { // originalCharSize is bigger and needs to trim the extra spaces
-            correctedSource = new SQLChar(StringUtil.trimTrailing(sourceDvd.getString(), newCharSize));
+        if (targetCharSize > sourceCharSize) {
+            correctedSource = new SQLChar(StringUtil.padRight(source.getString(), SQLChar.PAD, targetCharSize));
+        } else { // sourceCharSize is bigger and needs to trim the extra spaces
+            correctedSource = new SQLChar(StringUtil.trimTrailing(source.getString(), targetCharSize));
         }
-        /*
-        SQLChar correctedSource = (SQLChar) sourceDvd.cloneValue(true);
-        correctedSource.setWidth(newCharSize, -1, true);
-         */
         return correctedSource;
     }
 
