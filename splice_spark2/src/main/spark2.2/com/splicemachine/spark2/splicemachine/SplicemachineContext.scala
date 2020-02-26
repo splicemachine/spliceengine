@@ -372,7 +372,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       // TODO create Kafka topic
       // hbase has read/write permission on the topic
 
-      val schema = resolveQuery(conn, sql, false)
+//      val schema = resolveQuery(conn, sql, false)
 
       conn.prepareStatement(s"EXPORT_KAFKA('$id') " + sql).execute()
 
@@ -405,7 +405,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     null
   }
 
-
   def getRandomName(): String = {
     val name = new Array[Byte](32)
     new SecureRandom().nextBytes(name)
@@ -425,7 +424,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     val id = getRandomName()
 
-    //TODO setup kafka topic name
+    // TODO setup kafka topic name
     // hbase has permission to read the data
 
 //    ShuffleUtils.shuffle(dataFrame).rdd.mapPartitions(new KafkaStreamer(id))
@@ -443,19 +442,17 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   /**
    * Export a dataFrame to Kafka
    *
-   * @param location  - Destination directory
+   * @param topic  - Kafka topic directory
    * @param compression - Whether to compress the output or not
-   * @param format - Binary format to be used, currently only 'parquet' is supported
    */
-  def exportKafka(dataFrame: DataFrame, location: String,
-                   compression: Boolean, format: String): Unit = {
-//    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
-    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
-    val sqlText = s"export_binary ( '$location', $compression, '$format') select " + columnList + " from " +
-      s"new com.splicemachine.derby.vti.SpliceDatasetVTI() as SpliceDatasetVTI ($schemaString)"
-//    internalConnection.createStatement().execute(sqlText)
-  }
+//  def exportKafka(dataFrame: DataFrame, topic: String): Unit = {
+////    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+//    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
+//    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
+//    val sqlText = s"export_binary ( '$location', $compression, '$format') select " + columnList + " from " +
+//      s"new com.splicemachine.derby.vti.SpliceDatasetVTI() as SpliceDatasetVTI ($schemaString)"
+////    internalConnection.createStatement().execute(sqlText)
+//  }
 
 //  /**
 //    *
@@ -753,20 +750,20 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
   private[this]val dialect = new SplicemachineDialect2
   private[this]val dialectNoTime = new SplicemachineDialectNoTime2
-  private[this]def resolveQuery(connection: Connection, sql: String, noTime: Boolean): StructType = {
-    try {
-      val rs = connection.prepareStatement(s"select * from ($sql) a where 1=0 ").executeQuery()
-
-      try {
-        if (noTime)
-          JdbcUtils.getSchema(rs, dialectNoTime)
-        else
-          JdbcUtils.getSchema(rs, dialect)
-      } finally {
-        rs.close()
-      }
-    }
-  }
+//  private[this]def resolveQuery(connection: Connection, sql: String, noTime: Boolean): StructType = {
+//    try {
+//      val rs = connection.prepareStatement(s"select * from ($sql) a where 1=0 ").executeQuery()
+//
+//      try {
+//        if (noTime)
+//          JdbcUtils.getSchema(rs, dialectNoTime)
+//        else
+//          JdbcUtils.getSchema(rs, dialect)
+//      } finally {
+//        rs.close()
+//      }
+//    }
+//  }
 //
 //  /**
 //    * Prune all but the specified columns from the specified Catalyst schema.
