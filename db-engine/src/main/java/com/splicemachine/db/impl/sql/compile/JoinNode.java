@@ -2204,7 +2204,7 @@ public class JoinNode extends TableOperatorNode{
         for (int i=0; i< rightHashKeys.length; i++) {
             rightHashKeysToBaseTableMap[i] = -1;
             ResultColumn rs = rightResultSet.getResultColumns().elementAt(rightHashKeys[i]);
-            while ((rs != null) && (rs instanceof ResultColumn)) {
+            while (rs != null) {
                 // we have arrived at a FromBaseTable node, and the hash field maps to a single base table field
                 if (rs.getExpression() instanceof BaseColumnNode) {
                     rightHashKeysToBaseTableMap[i] = colToBaseTableMap[rs.getVirtualColumnId() - 1];
