@@ -31,16 +31,6 @@ import com.splicemachine.db.impl.jdbc.EmbedConnection
 //import com.splicemachine.derby.vti.SpliceRDDVTI
 
 import com.splicemachine.primitives.Bytes
-import com.splicemachine.spark.splicemachine.ShuffleUtils
-import javax.sql.DataSource
-import kafka.utils.ZkUtils
-import org.I0Itec.zkclient.ZkClient
-import org.apache.log4j.Logger
-import org.apache.spark.api.java.JavaRDD
-import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
-
-import kafka.admin.AdminUtils
-import org.I0Itec.zkclient.ZkConnection
 
 import java.security.{PrivilegedExceptionAction, SecureRandom}
 import java.sql.Connection
@@ -101,12 +91,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 //    dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true")
 //    maker.createNew(dbProperties)
 //  }
-  /**
-   * Get internal JDBC connection
-   */
-  def getConnection(): Connection = {
-    internalConnection
-  }
 
 //  @transient private[this]val internalConnection : Connection = {
 //    Holder.log.debug("Splice Client in SplicemachineContext "+SpliceClient.isClient())
@@ -393,8 +377,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       conn.prepareStatement(s"EXPORT_KAFKA('$id') " + sql).execute()
 
       // TODO consume Kafka stream
-      val df = SparkUtils.resultSetToDF(internalConnection.createStatement().executeQuery(sql));
-
+//      val df = SparkUtils.resultSetToDF(internalConnection.createStatement().executeQuery(sql));
+      val df = null
       df
     } finally {
       conn.close()
@@ -455,6 +439,23 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     executeUpdate(sqlText)
   }
 
+
+  /**
+   * Export a dataFrame to Kafka
+   *
+   * @param location  - Destination directory
+   * @param compression - Whether to compress the output or not
+   * @param format - Binary format to be used, currently only 'parquet' is supported
+   */
+  def exportKafka(dataFrame: DataFrame, location: String,
+                   compression: Boolean, format: String): Unit = {
+//    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
+    val sqlText = s"export_binary ( '$location', $compression, '$format') select " + columnList + " from " +
+      s"new com.splicemachine.derby.vti.SpliceDatasetVTI() as SpliceDatasetVTI ($schemaString)"
+//    internalConnection.createStatement().execute(sqlText)
+  }
 
 //  /**
 //    *
