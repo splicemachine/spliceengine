@@ -703,9 +703,9 @@ public class TernaryOperatorNode extends OperatorNode
 		{
 			if( leftOperand.requiresTypeFromContext())
 			{
-				// we cannot tell whether it is StringType or BitType, so set to StringType as default
-				receiver.setType(getVarcharDescriptor());
-	            //Since both receiver and leftOperands are parameters, use the
+				// we cannot tell whether it is StringType or BitType, so set to BitType as default
+				receiver.setType(getVarBitDescriptor());
+				//Since both receiver and leftOperands are parameters, use the
 				//collation of compilation schema for receiver.
 				receiver.setCollationUsingCompilationSchema();
 			}
@@ -730,8 +730,8 @@ public class TernaryOperatorNode extends OperatorNode
 		{
 			if(receiver.requiresTypeFromContext())
 			{
-				// we cannot tell whether it is StringType or BitType, so set to StringType as default
-				leftOperand.setType(getVarcharDescriptor());
+				// we cannot tell whether it is StringType or BitType, so set to BitType as default
+				leftOperand.setType(getVarBitDescriptor());
 			}
 			else
 			{
@@ -781,9 +781,19 @@ public class TernaryOperatorNode extends OperatorNode
 		}
 		// do implicit casting
 		if (firstOperandType.isStringTypeId() && secondOperandType.isBitTypeId()) {
-			receiver = castArgToVarCharBit(receiver);
+			// we do not support cast of Long varchar and CLOB
+			if (firstOperandType.isClobTypeId() || firstOperandType.isLongVarcharTypeId()) {
+				throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE,
+						"LOCATE", "FUNCTION");
+			}
+			receiver = castArgToVarBit(receiver);
 		} else if (firstOperandType.isBitTypeId() && secondOperandType.isStringTypeId()) {
-			leftOperand = castArgToVarCharBit(leftOperand);
+			// we do not support cast of Long varchar and CLOB
+			if (secondOperandType.isClobTypeId() || secondOperandType.isLongVarcharTypeId()) {
+				throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE,
+						"LOCATE", "FUNCTION");
+			}
+			leftOperand = castArgToVarBit(leftOperand);
 		}
 
 		/*
@@ -822,11 +832,11 @@ public class TernaryOperatorNode extends OperatorNode
 		return vn;
 	}
 
-	// cast arg to VarCharbit
-	protected ValueNode castArgToVarCharBit(ValueNode vn) throws StandardException
+	// cast arg to Varbit
+	protected ValueNode castArgToVarBit(ValueNode vn) throws StandardException
 	{
-		if (! vn.getTypeId().isBitTypeId())
-		{
+		if (! vn.getTypeId().isBitTypeId()) {
+
 			DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARBINARY, true,
 					vn.getTypeServices().getMaximumWidth());
 
@@ -840,7 +850,7 @@ public class TernaryOperatorNode extends OperatorNode
 			newNode.setCollationUsingCompilationSchema();
 
 			((CastNode) newNode).bindCastNodeOnly();
-			return newNode;
+			vn = newNode;
 		}
 		return vn;
 	}
@@ -1274,7 +1284,11 @@ public class TernaryOperatorNode extends OperatorNode
 		return new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true);
 	}
 
-    protected boolean isEquivalent(ValueNode o) throws StandardException
+	private DataTypeDescriptor getVarBitDescriptor() {
+		return new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARBINARY), true);
+	}
+
+	protected boolean isEquivalent(ValueNode o) throws StandardException
     {
     	if (isSameNodeType(o))
 	{
