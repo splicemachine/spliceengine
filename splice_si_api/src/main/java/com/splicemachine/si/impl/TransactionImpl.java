@@ -240,11 +240,11 @@ public class TransactionImpl extends BaseTransaction {
             return null;
     }
 
-    public final void setActiveState(boolean nested,boolean additive,TxnView parentTxn){
+    public void setActiveState(boolean nested,boolean additive,TxnView parentTxn){
         setActiveState(nested,additive,parentTxn,null);
     }
 
-    public final void setActiveState(boolean nested,boolean additive,TxnView parentTxn,byte[] table){
+    public void setActiveState(boolean nested,boolean additive,TxnView parentTxn,byte[] table){
         if(state==IDLE){
             try{
                 synchronized(this){

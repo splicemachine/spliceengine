@@ -388,43 +388,6 @@ public class Trigger_Row_IT {
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
-    public void multipleAfterRowReadOnlyTriggers() throws Exception {
-        conn.execute("create table multi_trg(i int)");
-        createTrigger(tb.named("d_1").after().insert().on("multi_trg").row().then("select 1/0 from sys.systables"));
-        createTrigger(tb.named("d_2").after().insert().on("multi_trg").row().then("select 2/0 from sys.systables"));
-        createTrigger(tb.named("d_3").after().insert().on("multi_trg").row().then("select 3/0 from sys.systables"));
-        createTrigger(tb.named("d_4").after().insert().on("multi_trg").row().then("select 4/0 from sys.systables"));
-        createTrigger(tb.named("d_5").after().insert().on("multi_trg").row().then("select 5/0 from sys.systables"));
-
-        try(Statement s = conn.createStatement()){
-            assertQueryFails(s,"insert into multi_trg values(8)","Attempt to divide by zero.");
-        }
-
-        conn.execute("create table multi_trg2(i int)");
-        createTrigger(tb.named("dd_1").after().insert().on("multi_trg2").row().then("select 1/1 from sys.systables"));
-        createTrigger(tb.named("dd_2").after().insert().on("multi_trg2").row().then("select 2/1 from sys.systables"));
-        createTrigger(tb.named("dd_3").after().insert().on("multi_trg2").row().then("select 3/0 from sys.systables"));
-        createTrigger(tb.named("dd_4").after().insert().on("multi_trg2").row().then("select 4/1 from sys.systables"));
-        createTrigger(tb.named("dd_5").after().insert().on("multi_trg2").row().then("select 5/1 from sys.systables"));
-
-        try(Statement s = conn.createStatement()){
-            assertQueryFails(s,"insert into multi_trg2 values(8)","Attempt to divide by zero.");
-        }
-
-        conn.execute("create table multi_trg3(i int)");
-        createTrigger(tb.named("de_1").after().insert().on("multi_trg3").row().then("select 1/1 from sys.systables"));
-        createTrigger(tb.named("de_2").after().insert().on("multi_trg3").row().then("select 2/1 from sys.systables"));
-        createTrigger(tb.named("de_3").after().insert().on("multi_trg3").row().then("select 3/1 from sys.systables"));
-        createTrigger(tb.named("de_4").after().insert().on("multi_trg3").row().then("select 4/1 from sys.systables"));
-        createTrigger(tb.named("de_5").after().insert().on("multi_trg3").row().then("select 5/1 from sys.systables"));
-
-        try(Statement s = conn.createStatement()){
-            s.executeUpdate("insert into multi_trg3 values(8)");
-            s.executeUpdate("insert into multi_trg3 values(3)");
-        }
-    }
-
-    @Test
     public void multipleRowAndStatementTriggersOnOneTable() throws Exception {
         // given - six row triggers on same table.
         createTrigger(tb.named("u_1").after().update().on("T").row().then("INSERT INTO RECORD VALUES('u1')"));

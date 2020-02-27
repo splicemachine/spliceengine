@@ -31,9 +31,9 @@
 
 package com.splicemachine.db.impl.ast;
 
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -92,26 +92,9 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             Map<String, Collection<QueryTreeNode>> m=planMap.get();
             m.put(query,orderedNodes);
             if (LOG.isDebugEnabled()){
-                CompilerContext.DataSetProcessorType currentType = rsn.getLanguageConnectionContext().getDataSetProcessorType();
-                boolean useSpark = (currentType == CompilerContext.DataSetProcessorType.SPARK);
-                if (currentType == CompilerContext.DataSetProcessorType.FORCED_SPARK)
-                    useSpark = true;
-                else if (currentType == CompilerContext.DataSetProcessorType.FORCED_CONTROL)
-                    useSpark = false;
-                else {
-                    // query may have provided hint on useSpark=true/false
-                    CompilerContext.DataSetProcessorType  queryForcedType = queryHintedForcedType(orderedNodes);
-                    if (queryForcedType != null) {
-                        if (queryForcedType == CompilerContext.DataSetProcessorType.FORCED_SPARK)
-                            useSpark = true;
-                        else if (queryForcedType == CompilerContext.DataSetProcessorType.FORCED_CONTROL)
-                            useSpark = false;
-                    }
-                    else if (!useSpark)
-                        useSpark = PlanPrinter.shouldUseSpark(orderedNodes, true);
-                }
+                DataSetProcessorType currentType = rsn.getCompilerContext().getDataSetProcessorType();
 
-                Iterator<String> nodes = planToIterator(orderedNodes, useSpark);
+                Iterator<String> nodes = planToIterator(orderedNodes, currentType);
                 StringBuilder sb = new StringBuilder();
                 while (nodes.hasNext())
                     sb.append(nodes.next()).append("\n");
@@ -121,41 +104,6 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         }
         explain = false;
         return node;
-    }
-
-    public static boolean shouldUseSpark(Collection<QueryTreeNode> opPlanMap, boolean needDetermineSpark) {
-        boolean useSpark = false;
-        for (QueryTreeNode node : opPlanMap) {
-            if (node instanceof FromBaseTable) {
-                // in case we are calling this function before the code generation phase, detemineSpark() hasn't been called,
-                // and the dataSetProcessorType in the FromBaseTable node may not be properly set yet, so we need to call this
-                // function before using dataSetProcessorType
-                if (needDetermineSpark)
-                    ((FromBaseTable) node).determineSpark();
-                CompilerContext.DataSetProcessorType dataSetProcessorType
-                        = ((FromBaseTable) node).getDataSetProcessorType();
-                if (dataSetProcessorType == CompilerContext.DataSetProcessorType.FORCED_SPARK ||
-                        dataSetProcessorType == CompilerContext.DataSetProcessorType.SPARK) {
-                    useSpark = true;
-                    break;
-                }
-            }
-        }
-
-        return useSpark;
-    }
-
-    public static CompilerContext.DataSetProcessorType  queryHintedForcedType(Collection<QueryTreeNode> opPlanMap) {
-        for (QueryTreeNode node : opPlanMap) {
-            if (node instanceof FromBaseTable) {
-                CompilerContext.DataSetProcessorType hintType = ((FromBaseTable) node).getDataSetProcessorType();
-                if (hintType  == CompilerContext.DataSetProcessorType.FORCED_SPARK)
-                    return CompilerContext.DataSetProcessorType.FORCED_SPARK;
-                else if (hintType == CompilerContext.DataSetProcessorType.FORCED_CONTROL)
-                    return CompilerContext.DataSetProcessorType.FORCED_CONTROL;
-            }
-        }
-        return null;
     }
 
     public static Map without(Map m, Object... keys){
@@ -422,7 +370,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         }
     }
 
-    public static Iterator<String> planToIterator(final Collection<QueryTreeNode> orderedNodes, final boolean useSpark) throws StandardException {
+    public static Iterator<String> planToIterator(final Collection<QueryTreeNode> orderedNodes, final DataSetProcessorType type) throws StandardException {
         return Iterators.transform(orderedNodes.iterator(), new Function<QueryTreeNode, String>() {
             int i = 0;
 
@@ -432,7 +380,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                     if ((queryTreeNode instanceof UnionNode) && ((UnionNode) queryTreeNode).getIsRecursive()) {
                         ((UnionNode) queryTreeNode).setStepNumInExplain(orderedNodes.size() - i);
                     }
-                    return queryTreeNode.printExplainInformation(orderedNodes.size(), i, useSpark, true);
+                    return queryTreeNode.printExplainInformation(orderedNodes.size(), i, type, true);
                 } catch (StandardException se) {
                     throw new RuntimeException(se);
                 } finally {

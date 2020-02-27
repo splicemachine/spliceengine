@@ -20,7 +20,6 @@ import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -41,14 +40,12 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 1/12/16
  */
-public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
+public class ControlDataSetWriter<K> implements DataSetWriter{
     private final ControlDataSet<ExecRow> dataSet;
     private final OperationContext operationContext;
     private final AbstractPipelineWriter<ExecRow> pipelineWriter;
     private final int[] updateCounts;
     private static final Logger LOG = Logger.getLogger(ControlDataSetWriter.class);
-    private Txn     txn = null;
-    private TxnView parent = null;
 
     public ControlDataSetWriter(ControlDataSet<ExecRow> dataSet, AbstractPipelineWriter<ExecRow> pipelineWriter, OperationContext opContext, int[] updateCounts){
         this.dataSet=dataSet;
@@ -60,41 +57,22 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
     @Override
     public DataSet<ExecRow> write() throws StandardException{
         SpliceOperation operation=operationContext.getOperation();
-
+        Txn txn = null;
         try{
-            boolean inMemoryTxn = !operation.isOlapServer();
-            parent = getTxn();
+            TxnView parent = getTxn();
             txn = SIDriver.driver().lifecycleManager().beginChildTransaction(
                     parent,
                     parent.getIsolationLevel(),
                     parent.isAdditive(),
                     pipelineWriter.getDestinationTable(),
-                    inMemoryTxn);
+                    true);
             pipelineWriter.setTxn(txn);
             operation.fireBeforeStatementTriggers();
             pipelineWriter.open(operation.getTriggerHandler(),operation);
             pipelineWriter.write(dataSet.toLocalIterator());
-
-            if (txn.getState() != Txn.State.COMMITTED)
-                txn.commit();
-
-            pipelineWriter.firePendingAfterTriggers();
-
-            // Defer closing the pipeline in case we need to rollback.
-            if (operation.getActivation().isSubStatement())
+            txn.commit(); // Commit before closing pipeline so triggers see our writes
+            if(pipelineWriter!=null)
                 pipelineWriter.close();
-            else {
-                operation.registerCloseable(pipelineWriter);
-            }
-
-            // Only fire the statement triggers if above operations did not
-            // cause a rollback (throw an exception).
-            // Previously this was in a 'finally' block, and was executed
-            // even when we did rollback, which is not right.
-            operation.fireAfterStatementTriggers();
-            if (!operation.getActivation().isSubStatement())
-                pipelineWriter.close();
-
             long recordsWritten = operationContext.getRecordsWritten();
             operationContext.getActivation().getLanguageConnectionContext().setRecordsImported(operationContext.getRecordsWritten());
             long badRecords = 0;
@@ -148,7 +126,6 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
                 valueRow = new ValueRow(1);
             }
             valueRow.setColumn(1,new SQLLongint(recordsWritten));
-
             return new ControlDataSet<>(new SingletonIterator(valueRow));
        }catch(Exception e){
             if(txn!=null){
@@ -159,6 +136,9 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
                 }
             }
             throw Exceptions.parseException(e);
+        }
+        finally {
+            operation.fireAfterStatementTriggers();
         }
     }
 
@@ -175,13 +155,5 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
     @Override
     public byte[] getDestinationTable(){
         return pipelineWriter.getDestinationTable();
-    }
-
-    @Override
-    public void close() throws Exception {
-        if (txn != null && txn.getState() != Txn.State.COMMITTED &&
-                           txn.getState() != Txn.State.ROLLEDBACK) {
-            txn.commit();
-        }
     }
 }

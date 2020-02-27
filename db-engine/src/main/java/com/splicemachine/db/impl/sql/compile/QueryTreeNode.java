@@ -1733,13 +1733,13 @@ public abstract class QueryTreeNode implements Node, Visitable{
         tree.add(this);
     }
 
-    public String printExplainInformation(int size, int i, boolean useSpark, boolean fromPlanPrinter) throws StandardException {
+    public String printExplainInformation(int size, int i, DataSetProcessorType type, boolean fromPlanPrinter) throws StandardException {
 
         String s = printExplainInformation(size - i, fromPlanPrinter);
         if (i > 0)
             return s;
         else {
-            String engine = useSpark? ",engine=Spark)" : ",engine=control)";
+            String engine = String.format(",engine=%s (%s))", type.isSpark()?"Spark":"control", type.level());
             s = s.substring(0, s.length()-1) + engine;
         }
         return s;
@@ -2016,5 +2016,4 @@ public abstract class QueryTreeNode implements Node, Visitable{
         accept(visitor);
         return visitor.getNodes();
     }
-
 }

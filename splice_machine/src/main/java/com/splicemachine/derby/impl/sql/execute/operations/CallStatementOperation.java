@@ -152,7 +152,8 @@ public class CallStatementOperation extends NoRowsOperation {
 
 		OperationContext<CallStatementOperation> operationContext = dsp.createOperationContext(this);
 
-        call();
+        if (!dsp.isSparkExplain())
+            call();
 
 //		registerCloseable(new AutoCloseable() {
 //			@Override

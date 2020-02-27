@@ -67,6 +67,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.CreateAliasNode;
 import com.splicemachine.db.impl.sql.compile.CursorNode;
+import com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.FromList;
 import com.splicemachine.db.impl.sql.compile.FromSubquery;
@@ -2935,6 +2936,7 @@ TOKEN [IGNORE_CASE] :
 |    <WORK: "work">
 |    <WRITE: "write">
 |    <YEAR: "year">
+|    <YEARS: "years">
 }
 
 /*
@@ -2974,6 +2976,7 @@ TOKEN [IGNORE_CASE] :
 |    <DATE: "date">
 |    <DATEFORMAT: "dateFormat">
 |    <DAY: "day">
+|    <DAYS: "days">
 |    <DAYOFYEAR: "dayofyear">
 |    <DEFINER: "definer">
 |    <DETERMINISTIC: "deterministic">
@@ -3003,14 +3006,15 @@ TOKEN [IGNORE_CASE] :
 |    <LOCKS: "locks">
 |    <LOCKSIZE: "locksize">
 |    <LOGGED: "logged">
-|   <LOGICAL: "logical">
+|    <LOGICAL: "logical">
 |    <MAXVALUE: "maxvalue">
-|   <MESSAGE_TEXT: "message_text">
+|    <MESSAGE_TEXT: "message_text">
 |    <MINVALUE: "minvalue">
-|   <MOD: "mod">
+|    <MOD: "mod">
 |    <MODIFIES: "modifies">
 |    <MODIFY: "modify">
 |    <MONTH: "month">
+|    <MONTHS: "months">
 |    <MONTHNAME: "monthname">
 |    <_MORE: "more">
 |    <MUMPS: "mumps">
@@ -3107,16 +3111,20 @@ TOKEN [IGNORE_CASE] :
  */
 TOKEN [IGNORE_CASE] :
 {    /* Additional JSQL reserved keywords -- non-SQL92 reserved Keywords */
-  <ANALYZE: "analyze">
+     <ANALYZE: "analyze">
 |    <BOOLEAN: "boolean">
 |    <CALL: "call">
 |    <CURDATE: "curdate">
 |    <CURRENT_ROLE: "current_role">
 |    <CURTIME: "curtime">
-|   <DATABASE: "database">
+|    <DATABASE: "database">
 |    <DENSERANK: "dense_rank">
 |    <GET_CURRENT_CONNECTION: "getCurrentConnection">
 |    <EXPLAIN: "explain">
+|    <SPARKEXPLAIN: "sparkexplain">
+|    <SPARKEXPLAIN_LOGICAL: "sparkexplain_logical">
+|    <SPARKEXPLAIN_OPTIMIZED: "sparkexplain_optimized">
+|    <SPARKEXPLAIN_ANALYZED: "sparkexplain_analyzed">
 |    <EXPORT: "export">
 |    <EXPORT_BINARY: "export_binary">
 |    <FIRSTVALUE: "first_value">
@@ -3134,7 +3142,7 @@ TOKEN [IGNORE_CASE] :
 |    <RTRIM: "rtrim">
 |    <SUBSTR:    "substr">
 |    <XML:    "xml">
-|   <TEXT:    "text">
+|    <TEXT:    "text">
 |    <XMLEXISTS:    "xmlexists">
 |    <XMLPARSE:    "xmlparse">
 |    <XMLQUERY:    "xmlquery">
@@ -4036,6 +4044,35 @@ explainStatement() throws StandardException :
     {
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
+                                   SparkExplainKind.NONE,
+                                   getContextManager());
+    }
+    | <SPARKEXPLAIN> statementNode = preparableSQLDataStatement()
+    {
+        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
+                                   statementNode,
+                                   SparkExplainKind.EXECUTED,
+                                   getContextManager());
+    }
+    | <SPARKEXPLAIN_LOGICAL> statementNode = preparableSQLDataStatement()
+    {
+        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
+                                   statementNode,
+                                   SparkExplainKind.LOGICAL,
+                                   getContextManager());
+    }
+    | <SPARKEXPLAIN_ANALYZED> statementNode = preparableSQLDataStatement()
+    {
+        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
+                                   statementNode,
+                                   SparkExplainKind.ANALYZED,
+                                   getContextManager());
+    }
+    | <SPARKEXPLAIN_OPTIMIZED> statementNode = preparableSQLDataStatement()
+    {
+        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
+                                   statementNode,
+                                   SparkExplainKind.OPTIMIZED,
                                    getContextManager());
     }
 }
@@ -4522,11 +4559,11 @@ callStatement() throws StandardException :
 StatementNode
 bareCallStatement() throws StandardException :
 {
-    ParameterNode        returnParam;
+    ParameterNode   returnParam;
 
-    ValueNode            value;
+    ValueNode       value;
 
-    ResultSetNode        resultSetNode;
+    ResultSetNode   resultSetNode;
 }
 {
     <CALL> value = primaryExpression()
@@ -4601,7 +4638,7 @@ bareCallStatement() throws StandardException :
  */
 ValueNode primaryExpression() throws StandardException :
 {
-    ValueNode            value = null;
+    ValueNode value = null;
 }
 {
     LOOKAHEAD
@@ -6465,7 +6502,7 @@ booleanPrimary() throws StandardException :
 ValueNode
 predicate() throws StandardException :
 {
-    ValueNode    value;
+    ValueNode value;
 }
 {
     (
@@ -6532,13 +6569,13 @@ remainingPredicate(ValueNode value) throws StandardException :
 ValueNode
 remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
 {
-    int            operator;
-    String        javaClassName;
-    Token         tok = null;
-    ValueNode    tree = null;
-    ValueNode    likePattern;
-    ValueNode    betweenLeft;
-    ValueNode    betweenRight;
+    int         operator;
+    String      javaClassName;
+    Token       tok = null;
+    ValueNode   tree = null;
+    ValueNode   likePattern;
+    ValueNode   betweenLeft;
+    ValueNode   betweenRight;
     Properties  properties = null;
 }
 {
@@ -6720,11 +6757,71 @@ additiveExpression(ValueNode farLeftOperand, int compOp) throws StandardExceptio
             break;
         }
 
-        return (ValueNode) nodeFactory.getNode(
-                            nodeType,
-                            farLeftOperand,
-                            leftOperand,
+        if (leftOperand instanceof ValueTupleNode) {
+            if (!(farLeftOperand instanceof ValueTupleNode)) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                    "Cannot compare tuple with non tuple");
+            }
+            return additiveExpressionTuple(
+                    nodeType,
+                    (ValueTupleNode)farLeftOperand,
+                    (ValueTupleNode)leftOperand);
+        } else {
+            if (farLeftOperand instanceof ValueTupleNode) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                    "Cannot compare tuple with non tuple");
+            }
+            return (ValueNode) nodeFactory.getNode(
+                                nodeType,
+                                farLeftOperand,
+                                leftOperand,
+                                getContextManager());
+        }
+    }
+}
+
+/*
+ * <A NAME="additiveExpressionTuple">additiveExpressionTuple</A>
+ */
+ValueNode
+additiveExpressionTuple(
+        int nodeType,
+        ValueTupleNode leftTuple,
+        ValueTupleNode rightTuple) throws StandardException :
+{
+}
+{
+    {
+        if (leftTuple.size() != rightTuple.size()) {
+            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                "Cannot compare tuples of different sizes");
+        }
+        switch (nodeType)
+        {
+            case C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE:
+            case C_NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE:
+            case C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE:
+            case C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE:
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                    "Tuple lexicographical comparison not supported");
+        }
+        ValueNode value = (ValueNode) nodeFactory.getNode(
+                        nodeType,
+                        leftTuple.get(0),
+                        rightTuple.get(0),
+                        getContextManager());
+        for (int i = 1; i < leftTuple.size(); ++i) {
+            value = (ValueNode) nodeFactory.getNode(
+                            C_NodeTypes.AND_NODE,
+                            value,
+                            (ValueNode) nodeFactory.getNode(
+                                nodeType,
+                                leftTuple.get(i),
+                                rightTuple.get(i),
+                                getContextManager()),
                             getContextManager());
+        }
+        return value;
     }
 }
 
@@ -6753,8 +6850,8 @@ additiveOperator() throws StandardException :
 ValueNode
 multiplicativeExpression(ValueNode farLeftOperand, int additiveOperator) throws StandardException :
 {
-    ValueNode    leftOperand;
-    int            multOp;
+    ValueNode leftOperand;
+    int       multOp;
 }
 {
     leftOperand = unaryExpression(null, 0)
@@ -6767,14 +6864,19 @@ multiplicativeExpression(ValueNode farLeftOperand, int additiveOperator) throws 
         switch (additiveOperator)
         {
           case BinaryOperatorNode.PLUS:
+            if (leftOperand instanceof TimeSpanNode) {
+                return convertAddTimeIntervalToFunction(farLeftOperand, (TimeSpanNode) leftOperand, false);
+            }
             return (ValueNode) nodeFactory.getNode(
                                     C_NodeTypes.BINARY_PLUS_OPERATOR_NODE,
                                     farLeftOperand,
                                     leftOperand,
                                     getContextManager()
                                     );
-
           case BinaryOperatorNode.MINUS:
+            if (leftOperand instanceof TimeSpanNode) {
+                return convertAddTimeIntervalToFunction(farLeftOperand, (TimeSpanNode) leftOperand, true);
+            }
             return (ValueNode) nodeFactory.getNode(
                                     C_NodeTypes.BINARY_MINUS_OPERATOR_NODE,
                                     farLeftOperand,
@@ -6788,6 +6890,58 @@ multiplicativeExpression(ValueNode farLeftOperand, int additiveOperator) throws 
                     "Unexpected operator value of " + additiveOperator);
             return null;
         }
+    }
+}
+
+/*
+ * <A NAME="convertAddTimeIntervalToFunction">convertAddTimeIntervalToFunction</A>
+ */
+ValueNode
+convertAddTimeIntervalToFunction(ValueNode base, TimeSpanNode timeSpanNode, boolean negate) throws StandardException :
+{
+    Vector parameterList = new Vector();
+    String function = null;
+}
+{
+    {
+        switch (timeSpanNode.getUnit()) {
+            case DateTimeDataValue.DAY_INTERVAL:
+                function = "ADD_DAYS";
+                break;
+            case DateTimeDataValue.MONTH_INTERVAL:
+                function = "ADD_MONTHS";
+                break;
+            case DateTimeDataValue.YEAR_INTERVAL:
+                function = "ADD_YEARS";
+                break;
+            default:
+                assert false: "Illegal time span unit";
+        }
+        MethodCallNode methodNode = (MethodCallNode) nodeFactory.getNode(
+                                C_NodeTypes.STATIC_METHOD_CALL_NODE,
+                                (TableName) nodeFactory.getNode(
+                                            C_NodeTypes.TABLE_NAME,
+                                            null,
+                                            function,
+                                            getContextManager()
+                                            ),
+                                null,
+                                getContextManager()
+                                );
+        parameterList.addElement(base);
+        ValueNode value = timeSpanNode.getValue();
+        if (negate) {
+            value = (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.UNARY_MINUS_OPERATOR_NODE,
+                                value,
+                                getContextManager());
+        }
+        parameterList.addElement(value);
+        methodNode.addParms(parameterList);
+        return (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+                                methodNode,
+                                getContextManager());
     }
 }
 
@@ -6824,10 +6978,10 @@ multiplicativeOperator() throws StandardException :
 ValueNode
 unaryExpression(ValueNode farLeftOperand, int multiplicativeOperator) throws StandardException :
 {
-    ValueNode    value;
-    String        sign = null;
-    int            tokKind1;
-    int            tokKind2;
+    ValueNode   value;
+    String      sign = null;
+    int         tokKind1;
+    int         tokKind2;
 }
 {
     [
@@ -6902,7 +7056,7 @@ sign() :
 ValueNode
 primaryExpressionXX() throws StandardException :
 {
-    ValueNode    value;
+    ValueNode value;
 }
 {
     value = primary()
@@ -7076,8 +7230,8 @@ methodParameter(Vector parameterList) throws StandardException :
 ValueNode
 primary() throws StandardException :
 {
-    String        javaClassName;
-    ValueNode    value;
+    String      javaClassName;
+    ValueNode   value;
 }
 {
 
@@ -7089,6 +7243,33 @@ primary() throws StandardException :
     }
 |
     value = valueExpressionPrimary()
+    value = getTimeSpan(value)
+    {
+        return value;
+    }
+}
+
+/*
+ * <A NAME="getTimeSpan">getTimeSpan</A>
+ */
+ValueNode
+getTimeSpan(ValueNode value) throws StandardException :
+{
+    int timeUnit;
+}
+{
+    LOOKAHEAD ( { getToken(1).kind == YEAR || getToken(1).kind == YEARS ||
+                  getToken(1).kind == MONTH || getToken(1).kind == MONTHS ||
+                  getToken(1).kind == DAY || getToken(1).kind == DAYS } )
+    timeUnit = dateTimeIntervalUnit()
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                        C_NodeTypes.TIME_SPAN_NODE,
+                                        value,
+                                        timeUnit,
+                                        getContextManager());
+    }
+|
     {
         return value;
     }
@@ -7581,6 +7762,30 @@ datetimeField() :
     }
 }
 
+/*
+ * <A NAME="dateTimeIntervalUnit">dateTimeIntervalUnit</A>
+ */
+int dateTimeIntervalUnit() :
+{
+    int field;
+}
+{
+    (<YEAR>|<YEARS>)
+    {
+        return DateTimeDataValue.YEAR_INTERVAL;
+    }
+|
+    (<MONTH>|<MONTHS>)
+    {
+        return DateTimeDataValue.MONTH_INTERVAL;
+    }
+|
+    (<DAY>|<DAYS>)
+    {
+        return DateTimeDataValue.DAY_INTERVAL;
+    }
+}
+
 
 ValueNode
 characterValueFunction() throws StandardException :
@@ -7881,8 +8086,8 @@ ansiStrip() throws StandardException  :
 ValueNode
 valueExpressionPrimary() throws StandardException :
 {
-    ValueNode    value;
-    int            tokKind;
+    ValueNode   value;
+    int         tokKind;
     Properties  properties = null;
 }
 {
@@ -7981,8 +8186,8 @@ valueExpressionPrimary() throws StandardException :
         ** valueExpression() here is a MINUS operator if the intervalQualifier
         ** is supplied.
         */
-
         value = valueExpression()
+        (<COMMA> value = valueTupleElement(value))*
     )
     <RIGHT_PAREN> [ properties = propertyList(true)<CHECK_PROPERTIES>]
     {
@@ -8000,6 +8205,35 @@ valueExpressionPrimary() throws StandardException :
     value = nextValueExpression()
     {
         return value;
+    }
+}
+
+/*
+ * <A NAME="valueTupleElement">tupleValueElement</A>
+ */
+ValueTupleNode
+valueTupleElement(ValueNode tupleOrFirstValue) throws StandardException:
+{
+    ValueTupleNode  valueTuple;
+    ValueNode       newValue;
+}
+{
+    newValue = valueExpression()
+    {
+        if (tupleOrFirstValue instanceof ValueTupleNode) {
+            valueTuple = (ValueTupleNode) tupleOrFirstValue;
+        } else {
+            valueTuple = (ValueTupleNode) nodeFactory.getNode(
+                                    C_NodeTypes.VALUE_TUPLE_NODE,
+                                    getContextManager());
+            valueTuple.addValueNode((ValueNode) tupleOrFirstValue);
+        }
+        if (newValue instanceof ValueTupleNode) {
+            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                "Nested tuple not supported");
+        }
+        valueTuple.addValueNode(newValue);
+        return valueTuple;
     }
 }
 
@@ -10794,7 +11028,7 @@ FromTable tableFactor() throws StandardException :
                     getToken(2).kind == VALUES
                 )
             } )
-    derivedTable = derivedTable() [ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
+    derivedTable = derivedTable() [[ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)]
         [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
         [ optionalTableClauses = optionalTableProperties() ]
     {
@@ -14963,7 +15197,7 @@ setClauseValueList(ValueNodeList assignedColumnsList, ValueNodeList newValuesLis
 ValueNode
 columnRefOrUDF() throws StandardException :
 {
-    ValueNode     valueNode;
+    ValueNode valueNode;
 }
 {
     //Look ahead required here to tell a java class from a identifier
@@ -17490,6 +17724,10 @@ reservedKeyword() :
 |    tok = <CALL>
 |   tok = <CURRENT_ROLE>
 |    tok = <EXPLAIN>
+|    tok = <SPARKEXPLAIN>
+|    tok = <SPARKEXPLAIN_LOGICAL>
+|    tok = <SPARKEXPLAIN_OPTIMIZED>
+|    tok = <SPARKEXPLAIN_ANALYZED>
 |    tok = <EXPORT>
 |    tok = <LONGINT>
 |    tok = <LTRIM>
@@ -17565,6 +17803,7 @@ nonReservedKeyword()  :
     |    tok = <DATE>
     |   tok = <DATEFORMAT>
     |    tok = <DAY>
+    |    tok = <DAYS>
     |    tok = <DAYOFYEAR>
     |    tok = <DEFRAGMENT>
     |    tok = <DIRTY>
@@ -17641,6 +17880,7 @@ nonReservedKeyword()  :
 // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <MODULE>
     |    tok = <MONTH>
+    |    tok = <MONTHS>
     |    tok = <MONTHNAME>
     |    tok = <_MORE>
     |    tok = <MUMPS>
@@ -17758,6 +17998,7 @@ nonReservedKeyword()  :
     |    tok = <WEEKDAYNAME>
     |    tok = <WHEN>
     |    tok = <WHITESPACE>
+    |    tok = <YEARS>
     )
     {
         // Remember whether last token was a delimited identifier

@@ -191,9 +191,13 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        dsp.incrementOpDepth();
         DataSet set = source.getDataSet(dsp);
+        dsp.decrementOpDepth();
         OperationContext<BatchOnceOperation> operationContext = dsp.createOperationContext(this);
-        return set.mapPartitions(new BatchOnceFunction(operationContext));
+        DataSet<ExecRow> ds = set.mapPartitions(new BatchOnceFunction(operationContext));
+        handleSparkExplain(ds, set, dsp);
+        return ds;
     }
 
     protected int[] generateColumnPositions(int columnItem) {
