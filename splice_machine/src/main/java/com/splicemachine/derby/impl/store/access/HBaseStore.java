@@ -109,6 +109,11 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 				return transactionFactory.findUserTransaction(this, contextManager, transactionName);
 		}
 
+		public Transaction createPastTransaction(ContextManager contextManager, String transactionName, long transactionId) throws StandardException {
+			SpliceLogUtils.trace(LOG, "marshalTransaction with Context Manager %s  and transaction name %s", contextManager, transactionName);
+			return transactionFactory.createPastTransaction(this, contextManager, transactionName, transactionId);
+		}
+
 		/**
 		 * Start a "global transaction". In this case, it delegates to just creating a new top-level transaction.
 		 *
