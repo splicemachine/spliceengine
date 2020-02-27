@@ -904,7 +904,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         DataDictionary dd = getDataDictionary();
 
         String role = lcc.getReplicationRole();
-        if (dd.isReadOnlyUpgrade() || role.compareToIgnoreCase("SLAVE") == 0) ||
+        if (dd.isReadOnlyUpgrade() || role.compareToIgnoreCase("SLAVE") == 0 ||
                 lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP) != null)
             return;
 
