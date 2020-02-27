@@ -35,7 +35,7 @@ import static org.junit.Assert.assertTrue;
 
 public class SplitRegionRowCountOperationIT{
 
-    private static final String SCHEMA = RowCountOperationIT.class.getSimpleName().toUpperCase();
+    private static final String SCHEMA = SplitRegionRowCountOperationIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
 
     private static final int ROW_COUNT = 18;

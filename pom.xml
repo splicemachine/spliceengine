@@ -736,6 +736,12 @@
             </properties>
         </profile>
         <profile>
+            <id>it</id>
+            <modules>
+                <module>remote_it</module>
+            </modules>
+        </profile>
+        <profile>
             <!-- When jacoco is disabled,the jacocoAgent property still needs to exist -->
             <id>noJacoco</id>
             <activation>
