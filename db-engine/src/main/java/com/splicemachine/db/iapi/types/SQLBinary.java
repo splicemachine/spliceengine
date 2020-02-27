@@ -1049,14 +1049,14 @@ abstract class SQLBinary
 		{
 			lengthInt = length.getInt();
 		}
-		else lengthInt = getLength() - startInt + 1;
+		else lengthInt = maxLen - startInt + 1;
 
 		/* DB2 Compatibility: Added these checks to match DB2. We currently enforce these
 		 * limits in both modes. We could do these checks in DB2 mode only, if needed, so
 		 * leaving earlier code for out of range in for now, though will not be exercised
 		 */
-		if ((startInt <= 0 || lengthInt < 0 || startInt > getLength() ||
-				lengthInt > getLength() - startInt + 1))
+		if ((startInt <= 0 || lengthInt < 0 || startInt > maxLen ||
+				lengthInt > maxLen - startInt + 1))
 			throw StandardException.newException(SQLState.LANG_SUBSTR_START_OR_LEN_OUT_OF_RANGE);
 			
 		// Return null if length is non-positive

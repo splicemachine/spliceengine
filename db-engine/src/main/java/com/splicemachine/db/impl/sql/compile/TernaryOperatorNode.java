@@ -866,7 +866,6 @@ public class TernaryOperatorNode extends OperatorNode
 			throws StandardException
 	{
 		TypeId	receiverType;
-		TypeId	resultType = TypeId.getBuiltInTypeId(Types.VARCHAR);
 
 		// handle parameters here
 
@@ -878,7 +877,6 @@ public class TernaryOperatorNode extends OperatorNode
 			** its type is varchar with the implementation-defined maximum length
 			** for a varchar.
 			*/
-
 			receiver.setType(getVarcharDescriptor());
 			//collation of ? operand should be same as the compilation schema
 			//because that is the only context available for us to pick up the
@@ -914,18 +912,11 @@ public class TernaryOperatorNode extends OperatorNode
 		** string value types.
 		*/
 		receiverType = receiver.getTypeId();
-		switch (receiverType.getJDBCTypeId())
-		{
-			case Types.CHAR:
-			case Types.VARCHAR:
-			case Types.LONGVARCHAR:
-			case Types.CLOB:
-				break;
-			default:
-			{
-				throwBadType("SUBSTR", receiverType.getSQLTypeName());
-			}
+		if (!receiverType.isStringTypeId() && !receiverType.isBitTypeId()) {
+			throwBadType("SUBSTR", receiverType.getSQLTypeName());
 		}
+
+		TypeId	resultType;
 		if (receiverType.getTypeFormatId() == StoredFormatIds.CLOB_TYPE_ID) {
 		// special case for CLOBs: if we start with a CLOB, we have to get
 		// a CLOB as a result (as opposed to a VARCHAR), because we can have a
@@ -933,6 +924,12 @@ public class TernaryOperatorNode extends OperatorNode
 		// This is okay because CLOBs, like VARCHARs, allow variable-length
 		// values (which is a must for the substr to actually work).
 			resultType = receiverType;
+		} else if (receiverType.isLongVarbinaryTypeId() || receiverType.isBlobTypeId()) {
+			resultType = receiverType;
+		} else if (receiverType.isBitTypeId()) {
+			resultType = TypeId.getBuiltInTypeId(Types.VARBINARY);
+		} else { // receiverType.isStringTypeId()
+			resultType = TypeId.getBuiltInTypeId(Types.VARCHAR);
 		}
 
 		// Determine the maximum length of the result
@@ -945,7 +942,7 @@ public class TernaryOperatorNode extends OperatorNode
 		}
 
 		/*
-		** The result type of substr is a string type
+		** The result type of substr is a string type or byte type
 		*/
 		setType(new DataTypeDescriptor(
 						resultType,

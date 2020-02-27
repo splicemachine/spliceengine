@@ -18,6 +18,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLSyntaxErrorException;
+import java.util.Arrays;
 import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -78,6 +79,20 @@ public class TernaryFunctionForBitDataIT extends SpliceUnitTest {
                                 "aa", "aa", "aa", "aa", "aa".getBytes(), "aa".getBytes(),"aa".getBytes(),"aa".getBytes())
                             ))
                 .create();
+
+
+        new TableCreator(conn)
+                .withCreate("create table t2(id int, a2 char(10) for bit data, b2 varchar(10) for bit data, c2 int, d2 int)")
+                .withInsert("insert into t2 values (?, ?, ?, ?, ?) ")
+                .withRows(rows(
+                        row(1, "abac bc".getBytes(), "abac bc".getBytes(), 2, 4),
+                        row(2, "abac bc".getBytes(), "abac bc".getBytes(), 2, 6),
+                        row(3, "abac bc".getBytes(), "abac bc".getBytes(), 7, 2),
+                        row(4, "abac bc".getBytes(), "abac bc".getBytes(), null, 4),
+                        row(5, "abac bc".getBytes(), "abac bc".getBytes(), 4, null),
+                        row(6, "aabac c".getBytes(), "aabac c".getBytes(), 3, 4)))
+                .create();
+
         conn.commit();
     }
 
@@ -367,6 +382,59 @@ public class TernaryFunctionForBitDataIT extends SpliceUnitTest {
                     " 7 |-aa-  | 4 |";
 
             Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        } finally {
+            if (rs != null)
+                rs.close();
+        }
+    }
+
+    @Test
+    public void testSubstr1() throws Exception {
+        String sqlText = format("select id, substr(a2, c2, d2), length(substr(a2, c2, d2)) from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        byte[][] expected = {"bac ".getBytes(), "bac bc".getBytes(), "c ".getBytes(), null, null, "bac ".getBytes()};
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        int i=0;
+        while (rs.next()) {
+            int id = rs.getInt(1);
+            byte[] byteArray = rs.getBytes(2);
+            assertTrue("substr for row with id=" + id +" does not match the expected result.", Arrays.equals(expected[id-1], byteArray));
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testSubstr2() throws Exception {
+        String sqlText = format("select id, substr(b2, c2, d2) from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        // the third row does not have the padding space
+        byte[][] expected = {"bac ".getBytes(), "bac bc".getBytes(), "c".getBytes(), null, null, "bac ".getBytes()};
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        int i=0;
+        while (rs.next()) {
+            int id = rs.getInt(1);
+            byte[] byteArray = rs.getBytes(2);
+            assertTrue("substr for row with id=" + id +" does not match the expected result.", Arrays.equals(expected[id-1], byteArray));
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testSubstrParameterizedQuery() throws Exception {
+        ResultSet rs = null;
+        String sqlText = format("select id, substr(?, 4, 4) from t2 --splice-properties useSpark=%s\n where id=1",  useSpark);
+        try {
+            PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
+            ps.setString(1, "cbaabc");
+            rs = ps.executeQuery();
+
+            String[] expected = {"abc"};
+            int i=0;
+            while (rs.next()) {
+                int id = rs.getInt(1);
+                String str = rs.getString(2);
+                assertTrue("substr for row with id=" + id +" does not match the expected result.", str.equals(expected[id-1]));
+            }
         } finally {
             if (rs != null)
                 rs.close();
