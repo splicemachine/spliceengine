@@ -751,6 +751,7 @@ public interface SQLState {
     String LANG_MISSING_LEAD_LAG_DEFAULT                               = "2202C";
 	String LANG_NONULL_DATATYPE                                        = "2202D";
 	String LANG_INVALID_AGGREGATION_DATATYPE                           = "2202E";
+    String LANG_INVALID_TIME_SPAN_OPERATION                            = "2202F";
 	/*
 	** Integrity violations.
 	*/
@@ -816,6 +817,7 @@ public interface SQLState {
 	String LANG_NO_SUCH_RUNNING_OPERATION                              = "4251P";
 	String LANG_DB2_NOT_NULL_COLUMN_INVALID_DEFAULT                    = "42601";
 	String LANG_DB2_INVALID_HEXADECIMAL_CONSTANT                    = "42606";
+    String LANG_DB2_OPERATION_NOT_SUPPORTED_IN_READ_ONLY_MODE       = "51045";
 	String LANG_DB2_STRING_CONSTANT_TOO_LONG                    = "54002";
 	String LANG_DB2_NUMBER_OF_ARGS_INVALID                   = "42605";
 	String LANG_DB2_COALESCE_FUNCTION_ALL_PARAMS                   = "42610";
@@ -1174,6 +1176,8 @@ public interface SQLState {
 
 	String LANG_RESUBMIT_DISTRIBUTED                                    = "42ZD0";
 	
+    String LANG_INVALID_SPARK_AND_CONTROL = "42ZD1";
+
 	//following 3 matches the DB2 sql states
 	String LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA = "428EK";
 	String LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED = "428C2";
@@ -1950,8 +1954,10 @@ public interface SQLState {
     String REPLICATION_SLAVE_SHUTDOWN_OK                           = "XRE42.C";
     String REPLICATION_STOPSLAVE_NOT_INITIATED                     = "XRE43";
 
+	//Inherited DB2 error codes
+    String LANG_CANCELLATION_EXCEPTION                             = "57014";
+
     //general SPlice errors
-    String LANG_CANCELLATION_EXCEPTION                             = "SE008";
     String LANG_INVALID_DAY                                        = "SE022";
     String ERROR_PARSING_EXCEPTION                                 = "SE023";
     String PARAMETER_CANNOT_BE_NULL                                = "SE024";

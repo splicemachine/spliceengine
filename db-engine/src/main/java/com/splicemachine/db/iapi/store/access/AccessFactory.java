@@ -259,4 +259,15 @@ public interface AccessFactory
 	 */
 	void checkpoint() throws StandardException;
 
+	/**
+	 * Get a transaction controller with which to query data within
+	 * the access manager.  Implicitly creates an access context if one
+	 * does not already exist.
+	 *
+	 * @param cm    The context manager for the current context.
+	 *
+	 * @exception StandardException Standard exception policy.
+	 * @see TransactionController
+	 **/
+	TransactionController getReadOnlyTransaction(ContextManager cm, long txnId) throws StandardException;
 }

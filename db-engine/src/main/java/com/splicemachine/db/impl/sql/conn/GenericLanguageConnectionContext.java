@@ -48,10 +48,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.*;
-import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
-import com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.*;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Provider;
@@ -142,7 +139,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     protected int nextSavepointId;
 
     private StringBuffer sb;
-    private CompilerContext.DataSetProcessorType type;
+    private DataSetProcessorType type;
 
     private final String ipAddress;
     private Database db;
@@ -355,7 +352,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             String drdaID,
             String dbname,
             String rdbIntTkn,
-            CompilerContext.DataSetProcessorType type,
+            DataSetProcessorType type,
             boolean skipStats,
             double defaultSelectivityFactor,
             String ipAddress,
@@ -409,11 +406,21 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (defaultSelectivityFactor > 0)
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, new Double(defaultSelectivityFactor).toString());
         if (connectionProperties != null) {
-            String olapQueue = connectionProperties.getProperty("olapQueue");
+            String olapQueue = connectionProperties.getProperty(Property.CONNECTION_OLAP_QUEUE);
             if (olapQueue != null) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE, olapQueue);
             }
+            String snapshot = connectionProperties.getProperty(Property.CONNECTION_SNAPSHOT);
+            if (snapshot != null) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP, snapshot);
+            }
         }
+        if (type.isSessionHinted()) {
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USESPARK, type.isSpark());
+        } else {
+            assert type.isDefaultControl();
+        }
+
 
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
@@ -3698,7 +3705,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public CompilerContext.DataSetProcessorType getDataSetProcessorType() {
+    public DataSetProcessorType getDataSetProcessorType() {
         return this.type;
     }
 
@@ -3882,9 +3889,5 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     public void setClientSupportsDecimal38(boolean newVal) {
         clientSupportsDecimal38 = newVal;
-    }
-
-    public String getUserName() {
-        return userName;
     }
 }

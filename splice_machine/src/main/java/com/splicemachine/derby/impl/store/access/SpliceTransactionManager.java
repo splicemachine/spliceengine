@@ -1556,6 +1556,15 @@ public class SpliceTransactionManager implements XATransactionController,
         // Get the context manager.
         ContextManager cm = getContextManager();
 
+        if(rawtran instanceof PastTransaction) {
+            SpliceTransactionManager rt = new SpliceTransactionManager(accessmanager, ((PastTransaction)rawtran).getClone(), this);
+
+            //this actually does some work, so don't remove it
+            @SuppressWarnings("UnusedDeclaration") SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(
+                    cm, AccessFactoryGlobals.RAMXACT_CHILD_CONTEXT_ID, rt, true /* abortAll */);
+            return rt;
+        }
+
         // Allocate a new transaction no matter what.
 
         // Create a transaction, make a context for it, and push the context.

@@ -30,8 +30,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV2;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.db.iapi.stats.FakeColumnStatisticsImpl;
@@ -45,11 +43,8 @@ import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
-import com.splicemachine.derby.catalog.TriggerNewTransitionRows;
-import com.splicemachine.derby.catalog.TriggerOldTransitionRows;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.kryo.SparkValueRowSerializer;
-import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
@@ -930,10 +925,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(BroadcastFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeSortFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(FakeColumnStatisticsImpl.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(TriggerNewTransitionRows.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(TriggerOldTransitionRows.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(TriggerRowHolderImpl.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(TriggerDescriptor.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(TriggerDescriptorV2.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StringAggregator.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(StringBuilder.class);
     }
 }

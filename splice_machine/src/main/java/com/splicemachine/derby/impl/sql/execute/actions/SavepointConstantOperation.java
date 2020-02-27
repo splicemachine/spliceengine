@@ -89,7 +89,7 @@ public class SavepointConstantOperation extends DDLConstantOperation {
                 lcc.languageSetSavePoint(savepointName, savepointName);
                 break;
             case ROLLBACK:
-                lcc.internalRollbackToSavepoint(savepointName,true, savepointName);
+                lcc.internalRollbackToSavepoint(savepointName,false, savepointName);
                 break;
             case RELEASE:
                 lcc.releaseSavePoint(savepointName, savepointName);

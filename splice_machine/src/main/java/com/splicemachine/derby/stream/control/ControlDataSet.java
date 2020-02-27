@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
@@ -80,13 +81,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
 import java.nio.file.StandardOpenOption;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -314,7 +309,7 @@ public class ControlDataSet<V> implements DataSet<V> {
             ExecutorCompletionService<Iterator<V>> completionService = new ExecutorCompletionService<>(es);
             NonOrderPreservingFutureIterator<V> futureIterator = new NonOrderPreservingFutureIterator<>(completionService, dataSetList.size());
             for (DataSet<V> aSet: dataSetList) {
-                completionService.submit(new NonLazy(((DataSet<V>)aSet).toLocalIterator()));
+                completionService.submit(new NonLazy(((ControlDataSet<V>)aSet).iterator));
             }
             return new ControlDataSet<>(futureIterator);
         } catch (Exception e) {
@@ -734,7 +729,7 @@ public class ControlDataSet<V> implements DataSet<V> {
             @Override
             public DataSetWriter build() throws StandardException{
                 assert txn!=null:"Txn is null";
-                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom, tempConglomID, tableVersion, execRowDefinition, operationContext);
+                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom,operationContext);
                 dpw.setRollforward(true);
                 return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext, updateCounts);
             }
@@ -755,7 +750,6 @@ public class ControlDataSet<V> implements DataSet<V> {
                         autoIncrementRowLocationArray,
                         spliceSequences,
                         heapConglom,
-                        tempConglomID,
                         txn,
                         token, operationContext,
                         isUpsert);
@@ -773,7 +767,7 @@ public class ControlDataSet<V> implements DataSet<V> {
             @Override
             public DataSetWriter build() throws StandardException{
                 assert txn!=null: "Txn is null";
-                UpdatePipelineWriter upw =new UpdatePipelineWriter(heapConglom, tempConglomID,
+                UpdatePipelineWriter upw =new UpdatePipelineWriter(heapConglom,
                         formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
                         txn,token,execRowDefinition,heapList,operationContext);
 
@@ -790,4 +784,15 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext) { return null; }
+
+    @Override
+    public boolean isNativeSpark() {
+        return false;
+    }
+
+    public List<String> buildNativeSparkExplain(ExplainNode.SparkExplainKind sparkExplainKind) {
+        List<String> warnMsg = new ArrayList<>();
+        warnMsg.add("Spark EXPLAIN not available.\n");
+        return warnMsg;
+    }
 }

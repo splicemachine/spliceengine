@@ -1454,7 +1454,7 @@ public class ColumnReference extends ValueNode {
 		StoreCostController storeCostController = null;
 		ColumnDescriptor cd = getSource().getTableColumnDescriptor();
 		// TODO THROW EXCEPTION HERE JL
-		if (cd != null && cd.getTableDescriptor() != null) {
+		if (cd != null) {
 			ConglomerateDescriptor outercCD = cd.getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
 			storeCostController = getCompilerContext().getStoreCostController(cd.getTableDescriptor(), outercCD, getCompilerContext().skipStats(getTableNumber()), 0);
 		}

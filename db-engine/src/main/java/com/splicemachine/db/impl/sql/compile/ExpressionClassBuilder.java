@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.ExpressionClassBuilderInterface;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -163,7 +164,7 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 	abstract	void 	setNumSubqueries()
 		 throws StandardException;
 
-    abstract void setDataSetProcessorType(CompilerContext.DataSetProcessorType type)
+    abstract void setDataSetProcessorType(DataSetProcessorType type)
          throws StandardException;
 
 	///////////////////////////////////////////////////////////////////////

@@ -276,6 +276,8 @@ public interface C_NodeNames
 
     String STATIC_METHOD_CALL_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StaticMethodCallNode";
 
+    String STRING_AGGREGATE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StringAggregateNode";
+
     String SUBQUERY_LIST_NAME = "com.splicemachine.db.impl.sql.compile.SubqueryList";
 
     String SUBQUERY_NODE_NAME = "com.splicemachine.db.impl.sql.compile.SubqueryNode";
@@ -358,7 +360,11 @@ public interface C_NodeNames
 
     String FULL_OUTER_JOIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.FullOuterJoinNode";
 
+    String TIME_SPAN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TimeSpanNode";
+
     String EMPTY_DEFAULT_CONSTANT_NODE = "com.splicemachine.db.impl.sql.compile.EmptyDefaultConstantNode";
+
+    String VALUE_TUPLE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ValueTupleNode";
 
     // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
     // THEM TO tools/jar/DBMSnodes.properties

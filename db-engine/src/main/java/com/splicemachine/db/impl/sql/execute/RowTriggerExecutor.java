@@ -62,7 +62,7 @@ public class RowTriggerExecutor extends GenericTriggerExecutor {
      * @param colsReadFromTable columns required from the trigger table by the triggering sql
      */
     @Override
-    void fireTrigger(TriggerEvent event, CursorResultSet rs, int[] colsReadFromTable, boolean deferCleanup) throws StandardException {
+    void fireTrigger(TriggerEvent event, CursorResultSet rs, int[] colsReadFromTable) throws StandardException {
         tec.setTrigger(triggerd);
         tec.setCurrentTriggerEvent(event);
 
@@ -91,7 +91,7 @@ public class RowTriggerExecutor extends GenericTriggerExecutor {
             }
         } finally {
             clearSPS();
-            tec.clearTrigger(deferCleanup);
+            tec.clearTrigger();
         }
     }
 

@@ -25,24 +25,62 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.derby.catalog;
+package com.splicemachine.db.impl.sql.compile;
+
+import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.sql.compile.AggregateDefinition;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+
+import java.sql.Types;
+
 
 /**
- * Provides information about the set of OLD rows accessed
- * via the REFERENCES clause in a statement trigger.
+ * Defintion for the STRING_AGG() aggregates.
+ *
  */
-
-public class TriggerOldTransitionRows
-                   extends TriggerNewTransitionRows
+public class StringAggregateDefinition
+		implements AggregateDefinition
 {
+    private boolean isWindowFunction;
 
-    public TriggerOldTransitionRows()
-    {
-        initializeResultSet();
+    public final boolean isWindowFunction() {
+        return this.isWindowFunction;
     }
+
+    public void setWindowFunction(boolean isWindowFunction) {
+        this.isWindowFunction = isWindowFunction;
+    }
+
+	/**
+	 * Niladic constructor.  Does nothing.  For ease
+	 * Of use, only.
+	 */
+	public StringAggregateDefinition() { super(); }
+
+	/**
+	 * Determines the result datatype. We can run
+	 * count() on anything, and it always returns a
+	 * INTEGER (java.lang.Integer).
+	 *
+	 * @param inputType the input type, either a user type or a java.lang object
+	 *
+	 * @return the output Class (null if cannot operate on
+	 *	value expression of this type.
+	 */
+	public final DataTypeDescriptor	getAggregator(DataTypeDescriptor inputType,
+				StringBuffer aggregatorClass) 
+	{
+        if (isWindowFunction) {
+            aggregatorClass.append(ClassName.WindowStringAggregator);
+        }
+        else {
+            aggregatorClass.append(ClassName.StringAggregator);
+        }
+		return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true);
+	}
 
 }

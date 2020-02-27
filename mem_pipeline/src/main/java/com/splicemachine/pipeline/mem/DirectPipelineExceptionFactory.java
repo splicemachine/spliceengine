@@ -111,9 +111,6 @@ public class DirectPipelineExceptionFactory extends MExceptionFactory implements
     }
 
     @Override
-    public boolean isHBase() { return false; }
-
-    @Override
     public Exception processErrorResult(WriteResult result){
         Code writeErrorCode = result.getCode();
 
