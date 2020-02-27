@@ -14,20 +14,20 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.stream.function.CloneFunction;
-import org.spark_project.guava.base.Strings;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.stream.function.OffsetFunction;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.stream.function.CloneFunction;
+import com.splicemachine.derby.stream.function.OffsetFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.spark_project.guava.base.Strings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -199,8 +199,17 @@ public class RowCountOperation extends SpliceBaseOperation {
         final long fetchLimit = getFetchLimit();
         long offset = getTotalOffset();
         OperationContext operationContext = dsp.createOperationContext(this);
-        DataSet<ExecRow> sourceSet = source.getDataSet(dsp).map(new CloneFunction<>(operationContext));
-        return sourceSet.zipWithIndex(operationContext).mapPartitions(new OffsetFunction<SpliceOperation, ExecRow>(operationContext, offset, fetchLimit));
+        dsp.incrementOpDepth();
+        DataSet<ExecRow> sourceDS = source.getDataSet(dsp);
+        dsp.decrementOpDepth();
+        DataSet<ExecRow> sourceSet = sourceDS.map(new CloneFunction<>(operationContext));
+        if (dsp.isSparkExplain()) {
+            DataSet<ExecRow> ds = dsp.getEmpty();
+            handleSparkExplain(ds, sourceDS, dsp);
+            return ds;
+        }
+        else
+            return sourceSet.zipWithIndex(operationContext).mapPartitions(new OffsetFunction<SpliceOperation, ExecRow>(operationContext, offset, fetchLimit));
     }
 
     @Override

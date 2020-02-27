@@ -38,9 +38,7 @@ public class GetNLJoinOneRowIterator extends GetNLJoinIterator {
 
     @Override
     public Pair<OperationContext, Iterator<ExecRow>> call() throws Exception {
-        if (!initialized)
-            init();
-        OperationContext ctx = getCtx();
+        OperationContext ctx = operationContext.get();
         JoinOperation op = (JoinOperation) ctx.getOperation();
         op.getLeftOperation().setCurrentRow(this.locatedRow);
         SpliceOperation rightOperation=op.getRightOperation();
@@ -56,8 +54,6 @@ public class GetNLJoinOneRowIterator extends GetNLJoinIterator {
             op.setCurrentRow(lr);
             rightSideNLJIterator = new SingletonIterator(lr);
         }
-        else
-            cleanup();
 
         return new Pair<>(ctx, rightSideNLJIterator);
     }

@@ -133,6 +133,9 @@ public class SetOperation extends NoRowsOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        if (dsp.isSparkExplain())
+            return dsp.getEmpty();
+
         SpliceMethod<DataValueDescriptor[]> getNewDVDsMethod = new SpliceMethod<>(getNewDVDsMethodName, activation);
         DataValueDescriptor [] columnDVDs = new DataValueDescriptor[getColumnDVDsMethodName.length];
         DataValueDescriptor [] replacementValues = getNewDVDsMethod.invoke();

@@ -74,12 +74,8 @@ public class RefDescriptorSerializer implements DescriptorSerializer {
 
 	@Override
 	public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
-                byte [] bytes = Encoding.decodeBytesUnsortd(data,offset,length);
-                if (dvd.getObject() != null)
-		    ((RowLocation)dvd.getObject()).setValue(bytes);
-                else
-                    ((RefDataValue)dvd).setValue(new HBaseRowLocation(bytes));
-
+		// TODO: dvd.getObject() probably returns NULL so instantiate RowLocation like in 'decode' method
+		((RowLocation)dvd.getObject()).setValue(Encoding.decodeBytesUnsortd(data,offset,length));
 	}
 
 	@Override public boolean isScalarType() { return false; }

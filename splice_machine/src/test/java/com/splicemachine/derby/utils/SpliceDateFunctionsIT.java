@@ -41,9 +41,9 @@ public class SpliceDateFunctionsIT {
 
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
-    // Table for ADD_MONTHS testing.
+    // Table for ADD_MONTHS/DAYS/YEARS testing.
     private static final SpliceTableWatcher tableWatcherA = new SpliceTableWatcher(
-    	"A", schemaWatcher.schemaName, "(col1 date, col2 int, col3 date)");
+        "A", schemaWatcher.schemaName, "(col1 date, col2 int, col3 date, col4 varchar(10))");
     //Table for TO_DATE testing
     private static final SpliceTableWatcher tableWatcherB = new SpliceTableWatcher(
         "B", schemaWatcher.schemaName, "(col1 varchar(10), col2 varchar(10), col3 date)");
@@ -85,14 +85,32 @@ public class SpliceDateFunctionsIT {
                     // including expected result (column 'col3'), for less test code in the
                     // test methods
                     classWatcher.prepareStatement(
-                        "insert into " + tableWatcherA + " (col1, col2, col3) values (date('2014-01-15'), 1, date" +
-                            "('2014-02-15'))").execute();
+                        "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-15'), 1, date" +
+                            "('2014-02-15'), 'months')").execute();
                     classWatcher.prepareStatement(
-                        "insert into " + tableWatcherA + " (col1, col2, col3) values (date('2014-01-16'), 0, date" +
-                            "('2014-01-16'))").execute();
+                        "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-16'), 0, date" +
+                            "('2014-01-16'), 'months')").execute();
                     classWatcher.prepareStatement(
-                        "insert into " + tableWatcherA + " (col1, col2, col3) values (date('2014-01-17'), -1, " +
-                            "date('2013-12-17'))").execute();
+                        "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-17'), -1, " +
+                            "date('2013-12-17'), 'months')").execute();
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-15'), 1, date" +
+                                    "('2014-01-16'), 'days')").execute();
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-16'), 0, date" +
+                                    "('2014-01-16'), 'days')").execute();
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-01'), -1, " +
+                                    "date('2013-12-31'), 'days')").execute();
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-15'), 1, date" +
+                                    "('2015-01-15'), 'years')").execute();
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-16'), 0, date" +
+                                    "('2014-01-16'), 'years')").execute();
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-17'), -1, " +
+                                    "date('2013-01-17'), 'years')").execute();
                     classWatcher.prepareStatement(
                         "insert into " + tableWatcherB + " (col1, col2, col3) values ('01/27/2001', 'MM/dd/yyyy'," +
                             " date('2001-01-27'))").execute();
@@ -378,16 +396,64 @@ public class SpliceDateFunctionsIT {
    
     @Test
     public void testAddMonthsFunction() throws Exception {
-        String sqlText = "SELECT ADD_MONTHS(col1, col2), col3 from " + tableWatcherA + " order by col3";
-        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
-
-            String expected =
+        String expected =
                 "1     |   COL3    |\n" +
-                    "------------------------\n" +
-                    "2013-12-17 |2013-12-17 |\n" +
-                    "2014-01-16 |2014-01-16 |\n" +
-                    "2014-02-15 |2014-02-15 |";
-            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                        "------------------------\n" +
+                        "2013-12-17 |2013-12-17 |\n" +
+                        "2014-01-16 |2014-01-16 |\n" +
+                        "2014-02-15 |2014-02-15 |";
+        String[] sqlTexts = {
+                "SELECT ADD_MONTHS(col1, col2), col3 from " + tableWatcherA + " where col4 = 'months' order by col3",
+                "SELECT col1 + col2 MONTH, col3 from " + tableWatcherA + " where col4 = 'months' order by col3",
+                "SELECT col1 + col2 MONTHS, col3 from " + tableWatcherA + " where col4 = 'months' order by col3",
+        };
+        for (String sqlText: sqlTexts) {
+            try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
+        }
+    }
+
+    @Test
+    public void testAddDaysFunction() throws Exception {
+        String expected =
+                "1     |   COL3    |\n" +
+                        "------------------------\n" +
+                        "2013-12-31 |2013-12-31 |\n" +
+                        "2014-01-16 |2014-01-16 |\n" +
+                        "2014-01-16 |2014-01-16 |";
+        String[] sqlTexts = {
+                "SELECT ADD_DAYS(col1, col2), col3 from " + tableWatcherA + " where col4='days' order by col3",
+                "SELECT col1 + col2 DAY, col3 from " + tableWatcherA + " where col4='days' order by col3",
+                "SELECT col1 + col2 DAYS, col3 from " + tableWatcherA + " where col4='days' order by col3",
+        };
+        for (String sqlText: sqlTexts) {
+            try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
+        }
+    }
+
+    @Test
+    public void testAddYearsFunction() throws Exception {
+        String expected =
+                "1     |   COL3    |\n" +
+                        "------------------------\n" +
+                        "2013-01-17 |2013-01-17 |\n" +
+                        "2014-01-16 |2014-01-16 |\n" +
+                        "2015-01-15 |2015-01-15 |";
+        String[] sqlTexts = {
+                "SELECT ADD_YEARS(col1, col2), col3 from " + tableWatcherA + " where col4='years' order by col3",
+                "SELECT col1 + col2 YEAR, col3 from " + tableWatcherA + " where col4='years' order by col3",
+                "SELECT col1 + col2 YEARS, col3 from " + tableWatcherA + " where col4='years' order by col3",
+        };
+        for (String sqlText: sqlTexts) {
+            try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
         }
     }
 

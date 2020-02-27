@@ -610,13 +610,15 @@ public abstract class ResultSetNode extends QueryTreeNode{
      * @param dataDictionary The DataDictionary to use for optimization
      * @param predicates     The PredicateList to apply.
      * @param outerRows      The number of outer joining rows
+     * @param forSpark
      * @throws StandardException Thrown on error
      * @return ResultSetNode    The top of the optimized query tree
      */
 
     public ResultSetNode optimize(DataDictionary dataDictionary,
                                   PredicateList predicates,
-                                  double outerRows) throws StandardException{
+                                  double outerRows,
+                                  boolean forSpark) throws StandardException{
         if(SanityManager.DEBUG)
             SanityManager.ASSERT(false, "optimize() is not expected to be called for "+ this.getClass().toString());
         return null;
@@ -1124,6 +1126,13 @@ public abstract class ResultSetNode extends QueryTreeNode{
 
         optimizer.prepForNextRound();
         return optimizer;
+    }
+
+    /**
+     * Resets the current optimizer
+     */
+    protected void resetOptimizer() {
+        optimizer = null;
     }
 
     /**
@@ -1756,5 +1765,4 @@ public abstract class ResultSetNode extends QueryTreeNode{
     public boolean getContainsSelfReference() {
         return containsSelfReference;
     }
-
 }

@@ -125,6 +125,7 @@ public interface ClassName
 	String MaxMinAggregator = "com.splicemachine.db.impl.sql.execute.MaxMinAggregator";
 	String SumAggregator = "com.splicemachine.db.impl.sql.execute.SumAggregator";
 	String CountAggregator = "com.splicemachine.db.impl.sql.execute.CountAggregator";
+	String StringAggregator = "com.splicemachine.db.impl.sql.execute.StringAggregator";
 	String AvgAggregator = "com.splicemachine.db.impl.sql.execute.AvgAggregator";
 	String UserDefinedAggregator = "com.splicemachine.db.impl.sql.execute.UserDefinedAggregator";
     String RowNumberFunction = "com.splicemachine.db.impl.sql.execute.RowNumberFunction";
@@ -137,13 +138,14 @@ public interface ClassName
     String WindowSumAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.function.SumAggregator";
     String WindowAvgAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.function.AvgAggregator";
     String WindowCountAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.function.CountAggregator";
+    String WindowStringAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.function.StringAggregator";
 
 	String ExecutionFactory = "com.splicemachine.db.iapi.sql.execute.ExecutionFactory";
 	String LanguageFactory ="com.splicemachine.db.iapi.sql.LanguageFactory";
 	String ParameterValueSetFactory ="com.splicemachine.db.iapi.sql.ParameterValueSetFactory";
 
-	String TriggerNewTransitionRows = "com.splicemachine.derby.catalog.TriggerNewTransitionRows";
-	String TriggerOldTransitionRows = "com.splicemachine.derby.catalog.TriggerOldTransitionRows";
+	String TriggerNewTransitionRows = "com.splicemachine.db.catalog.TriggerNewTransitionRows";
+//	String TriggerOldTransitionRows = "com.splicemachine.db.catalog.TriggerOldTransitionRows";
 	String VTICosting = "com.splicemachine.db.vti.VTICosting";
 
 	String Authorizer = "com.splicemachine.db.iapi.sql.conn.Authorizer";
