@@ -41,7 +41,7 @@ public class JoinOperationCharJoinPredicateIT extends SpliceUnitTest {
     private static final String SCHEMA = JoinOperationCharJoinPredicateIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
     private static String[] JOINS = {"NESTEDLOOP", "SORTMERGE", "BROADCAST"};
-    private static String[] USE_SPARK = {"false"}; //, "true"};
+    private static String[] USE_SPARK = {"false", "true"};
     private static boolean[] USE_INDEX = {true, false};
     private static int[] CHAR_SIZES = {3,5};
     private static String[] CHAR_TYPES = {"CHAR"}; //, "VARCHAR"}; // VARBIT?

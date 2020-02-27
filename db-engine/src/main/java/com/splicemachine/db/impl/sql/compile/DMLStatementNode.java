@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.compile.subquery.SubqueryFlattening;
 
 import java.util.Collection;
@@ -184,11 +185,49 @@ public abstract class DMLStatementNode extends StatementNode {
                 FromTable ft = (FromTable) obj;
                 ft.resetAccessPaths();
             }
+            addCastNodesForFixedCharComparisons();
             resultSet = resultSet.optimize(getDataDictionary(), null, 1.0d, true);
         }
 
         resultSet = resultSet.modifyAccessPaths();
 
+    }
+
+    private void addCastNodesForFixedCharComparisons() throws StandardException {
+        CollectNodesVisitor cnv = new CollectNodesVisitor(BinaryRelationalOperatorNode.class);
+        resultSet.accept(cnv);
+        for (Object obj: cnv.getList()) {
+            BinaryRelationalOperatorNode node = (BinaryRelationalOperatorNode) obj;
+            ValueNode left = node.getLeftOperand();
+            ValueNode right = node.getRightOperand();
+            if (left.getTypeId() == right.getTypeId() && left.getTypeId().isFixedStringTypeId()) {
+                int leftSize = left.getSourceResultColumn().getTableColumnDescriptor().getType().getMaximumWidth();
+                int rightSize = right.getSourceResultColumn().getTableColumnDescriptor().getType().getMaximumWidth();
+                if (leftSize < rightSize) {
+                    ValueNode newLeft = (ValueNode)
+                            getNodeFactory().getNode(
+                                    C_NodeTypes.CAST_NODE,
+                                    left,
+                                    new DataTypeDescriptor(
+                                            right.getTypeId(),
+                                            true,right.getTypeServices().getMaximumWidth()),
+                                    getContextManager());
+                    node.setLeftOperand(newLeft);
+                    ((CastNode) node.getLeftOperand()).bindCastNodeOnly();
+                } else if (rightSize < leftSize) {
+                    ValueNode newRight = (ValueNode)
+                            getNodeFactory().getNode(
+                                    C_NodeTypes.CAST_NODE,
+                                    right,
+                                    new DataTypeDescriptor(
+                                            left.getTypeId(),
+                                            true, left.getTypeServices().getMaximumWidth()),
+                                    getContextManager());
+                    node.setRightOperand(newRight);
+                    ((CastNode) node.getRightOperand()).bindCastNodeOnly();
+                }
+            }
+        }
     }
 
     private boolean shouldRunControl(ResultSetNode resultSet) throws StandardException {
