@@ -77,6 +77,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1938), new UpgradeScriptForTriggerWhenClause(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1941), new UpgradeScriptForTableColumnViewInSYSIBM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1948), new UpgradeScriptBase(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1948), new UpgradeScriptForAddDefaultToColumnViewInSYSIBM(sdd,tc));
     }
 
     public void run() throws StandardException{
