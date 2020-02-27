@@ -183,7 +183,8 @@ public interface SConfiguration {
     int getRegionToLoadPerTask();
 
     // SIConfigurations
-    int getActiveTransactionCacheSize();
+    int getActiveTransactionMaxCacheSize();
+    int getActiveTransactionInitialCacheSize();
 
     int getCompletedTxnCacheSize();
 

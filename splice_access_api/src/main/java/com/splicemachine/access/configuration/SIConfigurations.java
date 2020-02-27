@@ -114,8 +114,11 @@ public class SIConfigurations implements ConfigurationDefault {
     public static final String TIMESTAMP_SERVER_BIND_PORT = "splice.timestamp_server.port";
     private static final int DEFAULT_TIMESTAMP_SERVER_BIND_PORT = 60012;
 
-    public static final String ACTIVE_TRANSACTION_CACHE_SIZE="splice.txn.activeCacheSize";
-    private static final int DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE = 1<<12;
+    public static final String ACTIVE_TRANSACTION_MAX_CACHE_SIZE="splice.txn.activeMaxCacheSize";
+    private static final int DEFAULT_ACTIVE_TRANSACTION_MAX_CACHE_SIZE = 1<<12;
+
+    public static final String ACTIVE_TRANSACTION_INITIAL_CACHE_SIZE="splice.txn.activeInitialCacheSize";
+    private static final int DEFAULT_ACTIVE_TRANSACTION_INITIAL_CACHE_SIZE = 1<<7;
 
     // Timeout in milliseconds
     public static final String SPARK_COMPACTION_MAXIMUM_WAIT = "spark.compaction.maximum.wait";
@@ -173,7 +176,8 @@ public class SIConfigurations implements ConfigurationDefault {
 //        builder.readResolverQueueSize  = configurationSource.getInt(READ_RESOLVER_QUEUE_SIZE, DEFAULT_READ_RESOLVER_QUEUE_SIZE);
         builder.timestampClientWaitTime  = configurationSource.getInt(TIMESTAMP_CLIENT_WAIT_TIME, DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME);
         builder.timestampServerBindPort  = configurationSource.getInt(TIMESTAMP_SERVER_BIND_PORT, DEFAULT_TIMESTAMP_SERVER_BIND_PORT);
-        builder.activeTransactionCacheSize  = configurationSource.getInt(ACTIVE_TRANSACTION_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
+        builder.activeTransactionMaxCacheSize = configurationSource.getInt(ACTIVE_TRANSACTION_MAX_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_MAX_CACHE_SIZE);
+        builder.activeTransactionInitialCacheSize = configurationSource.getInt(ACTIVE_TRANSACTION_INITIAL_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_INITIAL_CACHE_SIZE);
 
         builder.transactionTimeout = configurationSource.getLong(TRANSACTION_TIMEOUT, DEFAULT_TRANSACTION_TIMEOUT);
         builder.transactionKeepAliveInterval = configurationSource.getLong(TRANSACTION_KEEP_ALIVE_INTERVAL, DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);
