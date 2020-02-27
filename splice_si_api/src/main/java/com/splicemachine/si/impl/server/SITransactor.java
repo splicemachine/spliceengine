@@ -184,7 +184,7 @@ public class SITransactor implements Transactor{
             constraintState = new SimpleTxnFilter(null, txn, NoOpReadResolver.INSTANCE, txnSupplier);
             supplier = constraintState.getTxnSupplier();
         } else {
-            supplier = new ActiveTxnCacheSupplier(txnSupplier, 100);
+            supplier = new ActiveTxnCacheSupplier(txnSupplier, 100, 4000);
         }
         @SuppressWarnings("unchecked") final LongHashSet[] conflictingChildren=new LongHashSet[mutations.size()];
 

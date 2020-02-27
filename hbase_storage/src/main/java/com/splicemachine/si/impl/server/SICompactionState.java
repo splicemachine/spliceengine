@@ -52,7 +52,7 @@ public class SICompactionState {
     private ConcurrentHashMap<Long, Future<TxnView>> futuresCache;
 
     public SICompactionState(TxnSupplier transactionStore, int activeTransactionCacheSize, CompactionContext context, ExecutorService executorService) {
-        this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize,true);
+        this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize,activeTransactionCacheSize,true);
         this.context = context;
         this.futuresCache = new ConcurrentHashMap<>(1<<19, 0.75f, 64);
         this.executorService = executorService;
