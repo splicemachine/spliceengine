@@ -56,6 +56,7 @@ import com.splicemachine.db.iapi.sql.LanguageFactory;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.FileInfoDescriptor;
@@ -279,7 +280,14 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 													 Properties sessionProperties)
 		throws StandardException {
 
-		TransactionController tc = getConnectionTransaction(cm);
+		String snapshot = sessionProperties.getProperty(Property.CONNECTION_SNAPSHOT);
+		TransactionController tc = null;
+		if (snapshot != null) {
+			long id = Long.parseLong(snapshot);
+			tc = af.getReadOnlyTransaction(cm, id);
+		} else {
+			tc = getConnectionTransaction(cm);
+		}
 
 		cm.setLocaleFinder(this);
 		pushDbContext(cm);
