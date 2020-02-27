@@ -3204,7 +3204,7 @@ Guide.
 
             <msg>
                 <name>42ZD0</name>
-                <text>Surpassed limit of buffered rows in control mode, please resubmit as Spark query</text>
+		<text>Surpassed limit of buffered rows in control mode, please resubmit as Spark query</text>
             </msg>
 
             <msg>
@@ -7757,6 +7757,11 @@ MessageId.java.
                 <text>Java method signature contains incorrect number ({0}) of parameters, expected {1}.</text>
                 <arg>number</arg>
                 <arg>number</arg>
+            </msg>
+
+            <msg>
+                <name>51045</name>
+                <text>The request is not supported for a read-only database.</text>
             </msg>
 
             <msg>

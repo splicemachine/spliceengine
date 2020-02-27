@@ -228,6 +228,21 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
         return trans;
     }
 
+    public SpliceTransaction createPastTransaction(HBaseStore hbaseStore,
+                                                   ContextManager contextMgr,
+                                                   String transName,
+                                                   long transactionId) {
+        SpliceTransaction trans=new PastTransaction(NoLockSpace.INSTANCE,this,dataValueFactory,transName, transactionId);
+        trans.setTransactionName(transName);
+
+        SpliceTransactionContext context=new SpliceTransactionContext(contextMgr, USER_CONTEXT_ID, trans,false,hbaseStore);
+
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"transaction type=%s,%s",context.getIdName(),transName);
+
+        return trans;
+    }
+
     @Override
     public boolean canSupport(Properties properties){
         SpliceLogUtils.debug(LOG,"SpliceTransactionFactory -canSupport");
