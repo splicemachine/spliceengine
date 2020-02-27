@@ -361,7 +361,8 @@ public class TernaryOperatorNode extends OperatorNode
 
 			mb.getField(field); // third arg
 			mb.push(receiver.getTypeServices().getMaximumWidth());
-			nargs = 4;
+			mb.push(getTypeServices().getTypeId().getTypeFormatId() == StoredFormatIds.CHAR_TYPE_ID || getTypeServices().getTypeId().getTypeFormatId() == StoredFormatIds.BIT_TYPE_ID);
+			nargs = 5;
 			receiverType = receiverInterfaceType;
 		}
 		else if (operatorType == LEFT)
@@ -866,7 +867,6 @@ public class TernaryOperatorNode extends OperatorNode
 			throws StandardException
 	{
 		TypeId	receiverType;
-		TypeId	resultType = TypeId.getBuiltInTypeId(Types.VARCHAR);
 
 		// handle parameters here
 
@@ -878,7 +878,6 @@ public class TernaryOperatorNode extends OperatorNode
 			** its type is varchar with the implementation-defined maximum length
 			** for a varchar.
 			*/
-
 			receiver.setType(getVarcharDescriptor());
 			//collation of ? operand should be same as the compilation schema
 			//because that is the only context available for us to pick up the
@@ -914,18 +913,47 @@ public class TernaryOperatorNode extends OperatorNode
 		** string value types.
 		*/
 		receiverType = receiver.getTypeId();
-		switch (receiverType.getJDBCTypeId())
-		{
-			case Types.CHAR:
-			case Types.VARCHAR:
-			case Types.LONGVARCHAR:
-			case Types.CLOB:
-				break;
-			default:
+		if (!receiverType.isStringTypeId() && !receiverType.isBitTypeId()) {
+			throwBadType("SUBSTR", receiverType.getSQLTypeName());
+		}
+
+
+		// Determine the maximum length of the result
+		int maximumWidth = receiver.getTypeServices().getMaximumWidth();
+		boolean isFixedLength = false;
+		int resultLen = maximumWidth;
+
+		TypeId	resultType;
+
+		// receiver is fixed type and either start or length is constant, then result should be fixed type with known length;
+		// or receiver is vartype and length is constant, then result should be fixed type with known length
+		if ((receiverType.getTypeFormatId() == StoredFormatIds.CHAR_TYPE_ID ||
+			receiverType.getTypeFormatId() == StoredFormatIds.BIT_TYPE_ID)) {
+			if (rightOperand != null && rightOperand instanceof ConstantNode)
 			{
-				throwBadType("SUBSTR", receiverType.getSQLTypeName());
+				resultLen = ((ConstantNode)rightOperand).getValue().getInt();
+				isFixedLength = true;
+			} else if (leftOperand != null && leftOperand instanceof ConstantNode) {
+				int startPostion = ((ConstantNode)leftOperand).getValue().getInt();
+				resultLen = maximumWidth - startPostion + 1;
+				isFixedLength = true;
+			}
+		} else if ((receiverType.getTypeFormatId() == StoredFormatIds.VARCHAR_TYPE_ID ||
+				receiverType.getTypeFormatId() == StoredFormatIds.VARBIT_TYPE_ID)) {
+			if (rightOperand != null && rightOperand instanceof ConstantNode)
+			{
+				resultLen = ((ConstantNode)rightOperand).getValue().getInt();
+				isFixedLength = true;
+			}
+		} else {
+			if (rightOperand != null && rightOperand instanceof ConstantNode)
+			{
+				resultLen =((ConstantNode)rightOperand).getValue().getInt();
+				if (resultLen > maximumWidth)
+					resultLen = maximumWidth;
 			}
 		}
+
 		if (receiverType.getTypeFormatId() == StoredFormatIds.CLOB_TYPE_ID) {
 		// special case for CLOBs: if we start with a CLOB, we have to get
 		// a CLOB as a result (as opposed to a VARCHAR), because we can have a
@@ -933,19 +961,16 @@ public class TernaryOperatorNode extends OperatorNode
 		// This is okay because CLOBs, like VARCHARs, allow variable-length
 		// values (which is a must for the substr to actually work).
 			resultType = receiverType;
-		}
-
-		// Determine the maximum length of the result
-		int resultLen = receiver.getTypeServices().getMaximumWidth();
-
-		if (rightOperand != null && rightOperand instanceof ConstantNode)
-		{
-			if (((ConstantNode)rightOperand).getValue().getInt() < resultLen)
-				resultLen = ((ConstantNode)rightOperand).getValue().getInt();
+		} else if (receiverType.isLongVarbinaryTypeId() || receiverType.isBlobTypeId()) {
+			resultType = receiverType;
+		} else if (receiverType.isBitTypeId()) {
+			resultType = TypeId.getBuiltInTypeId(isFixedLength? Types.BINARY : Types.VARBINARY);
+		} else { // receiverType.isStringTypeId()
+			resultType = TypeId.getBuiltInTypeId(isFixedLength? Types.CHAR : Types.VARCHAR);
 		}
 
 		/*
-		** The result type of substr is a string type
+		** The result type of substr is a string type or byte type
 		*/
 		setType(new DataTypeDescriptor(
 						resultType,
