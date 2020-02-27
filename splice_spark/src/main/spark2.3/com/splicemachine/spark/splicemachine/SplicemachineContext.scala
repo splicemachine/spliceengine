@@ -34,11 +34,7 @@ import java.util.Properties
 import com.splicemachine.access.HConfiguration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
-import org.apache.hadoop.hbase.security.token.AuthenticationTokenIdentifier
-import org.apache.hadoop.io.Text
 import org.apache.hadoop.security.UserGroupInformation
-import org.apache.hadoop.security.token.Token
-import org.apache.hadoop.hbase.util.Bytes
 import org.apache.log4j.Logger
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
@@ -368,7 +364,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] def getRandomName(): String = {
     val name = new Array[Byte](32)
     new SecureRandom().nextBytes(name)
-    Bytes.toHex(name)+"-"+System.nanoTime()
+    name.map("%02x".format(_)).mkString + "-" + System.nanoTime()
   }
 
   /**
