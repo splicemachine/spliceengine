@@ -1428,7 +1428,13 @@ public class PreparedStatement extends Statement
                     //      user. Maps Java null to SQL NULL.
                     setNull(parameterIndex, paramType);
                 } else if (x instanceof String) {
-                    setString(parameterIndex, (String) x);
+
+                    if (paramType == java.sql.Types.VARBINARY || paramType == java.sql.Types.BINARY) {
+                        byte[] byteArray = ((String) x).getBytes();
+                        setBytes(parameterIndex, byteArray);
+                    } else {
+                        setString(parameterIndex, (String) x);
+                    }
                 } else if (x instanceof Integer) {
                     setInt(parameterIndex, ((Integer) x).intValue());
                 } else if (x instanceof Double) {
@@ -3200,9 +3206,9 @@ public class PreparedStatement extends Statement
             
             throw new SqlException( logWriter,
                                     new ClientMessageId(SQLState.LANG_DATA_TYPE_GET_MISMATCH) ,
-                                    new Object[]{ 
-                                        Types.getTypeString(valType),
-                                        Types.getTypeString(paramType) 
+                                    new Object[]{
+                                        Types.getTypeString(paramType),
+                                        Types.getTypeString(valType)
                                     },
                                     (Throwable) null);
         }
