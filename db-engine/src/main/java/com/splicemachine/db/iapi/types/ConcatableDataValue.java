@@ -80,7 +80,8 @@ public interface ConcatableDataValue extends DataValueDescriptor, VariableSizeDa
 			NumberDataValue start,
 			NumberDataValue length,
 			ConcatableDataValue result,
-			int maxLen)
+			int maxLen,
+			boolean isFixedLength)
 		throws StandardException;
 
 	/**
