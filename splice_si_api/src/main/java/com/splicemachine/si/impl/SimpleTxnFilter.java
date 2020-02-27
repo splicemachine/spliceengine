@@ -91,7 +91,9 @@ public class SimpleTxnFilter implements TxnFilter{
                            TxnSupplier baseSupplier,
                            boolean ignoreNewerTransactions) {
         assert readResolver!=null;
-        this.transactionStore = new ActiveTxnCacheSupplier(baseSupplier, 100); //TODO -sf- configure
+        int maxSize = SIDriver.driver().getConfiguration().getActiveTransactionMaxCacheSize();
+        int initialSize = SIDriver.driver().getConfiguration().getActiveTransactionInitialCacheSize();
+        this.transactionStore = new ActiveTxnCacheSupplier(baseSupplier, initialSize, maxSize);
         this.myTxn=myTxn;
         this.readResolver=readResolver;
         this.ignoreNewerTransactions = ignoreNewerTransactions;

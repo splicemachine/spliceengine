@@ -55,7 +55,7 @@ public class ActiveTxnCacheTest{
         };
         backStore.recordNewTransaction(txn);
 
-        TxnSupplier store=new ActiveTxnCacheSupplier(backStore,16);
+        TxnSupplier store=new ActiveTxnCacheSupplier(backStore,16,16);
 
 
         //fetch the transaction from the underlying store
@@ -86,7 +86,7 @@ public class ActiveTxnCacheTest{
         backStore.recordNewTransaction(txn);
         txn.rollback();
 
-        TxnSupplier store=new ActiveTxnCacheSupplier(backStore,16);
+        TxnSupplier store=new ActiveTxnCacheSupplier(backStore,16, 16);
 
         //fetch the transaction from the underlying store
         Assert.assertFalse("Cache thinks it already has the item!",store.transactionCached(txn.getTxnId()));
