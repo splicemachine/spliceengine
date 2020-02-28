@@ -193,12 +193,18 @@ public class RowCountOperation extends SpliceBaseOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        OperationContext operationContext = dsp.createOperationContext(this);
         if (bypass) {
-            return source.getDataSet(dsp);
+            long offset = getTotalOffset();
+            long limit = getFetchLimit() + offset;
+            if (limit < (long)Integer.MAX_VALUE) {
+                return source.getDataSet(dsp).localLimit(operationContext, (int)limit);
+            } else {
+                return source.getDataSet(dsp);
+            }
         }
         final long fetchLimit = getFetchLimit();
         long offset = getTotalOffset();
-        OperationContext operationContext = dsp.createOperationContext(this);
         dsp.incrementOpDepth();
         DataSet<ExecRow> sourceDS = source.getDataSet(dsp);
         dsp.decrementOpDepth();

@@ -85,7 +85,9 @@ public class QueryJob implements Callable<Void>{
             dsp.setJobGroup(jobName, sql);
             dataset = root.getDataSet(dsp);
             context = dsp.createOperationContext(root);
+            int inputPartitions = dataset.partitions();
             SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset
+                    .coalesce(inputPartitions > 4000 ? 2200 : 100, true)
                     .map(new CloneFunction<>(context))
                     .map(new IdentityFunction<>(context)); // force materialization into Derby's format
             String clientHost = queryRequest.host;

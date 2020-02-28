@@ -333,6 +333,11 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public DataSet<V> localLimit(OperationContext operationContext, int limit) {
+        return new ControlDataSet<>(Iterators.limit(iterator, limit));
+    }
+
+    @Override
     public <Op extends SpliceOperation> DataSet< V> filter(SplicePredicateFunction<Op, V> f) {
         return new ControlDataSet<>(Iterators.filter(checkCancellation(iterator, f),f));
     }

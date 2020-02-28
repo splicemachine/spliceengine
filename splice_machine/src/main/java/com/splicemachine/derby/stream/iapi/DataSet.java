@@ -225,6 +225,8 @@ public interface DataSet<V> extends //Iterable<V>,
 
     DataSet<V> union(DataSet<V> dataSet, OperationContext operationContext, String name, boolean pushScope, String scopeDetail);
 
+    DataSet<V> localLimit(OperationContext operationContext, int limit);
+
     <Op extends SpliceOperation> DataSet<V> filter(SplicePredicateFunction<Op,V> f);
 
     <Op extends SpliceOperation> DataSet<V> filter(SplicePredicateFunction<Op,V> f, boolean isLast, boolean pushScope, String scopeDetail);

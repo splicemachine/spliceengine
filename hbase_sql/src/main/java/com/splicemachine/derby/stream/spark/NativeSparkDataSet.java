@@ -432,6 +432,11 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public DataSet<V> localLimit(OperationContext operationContext, int limit) {
+        return new NativeSparkDataSet<>(dataset.limit(limit));
+    }
+
+    @Override
     public DataSet<V> union(List<DataSet<V>> dataSetList, OperationContext operationContext) {
         DataSet<V> toReturn = null;
         for (DataSet<V> aSet: dataSetList) {
