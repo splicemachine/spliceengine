@@ -406,7 +406,7 @@
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_spark</dependency>
                             </dependenciesToScan>
-                            <argLine>-Xmx2g -Xms64m</argLine>
+                            <argLine>-Xmx2g -Xms64m -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ ${hbase.rootdir}</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <includes>
                                 <include>com/splicemachine/spark/splicemachine/**/*IT.java</include>
