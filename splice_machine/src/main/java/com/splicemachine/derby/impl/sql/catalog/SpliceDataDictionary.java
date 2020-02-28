@@ -335,6 +335,39 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "The view syscolumns and systables in SYSIBM are created!");
     }
 
+    public void updateColumnViewInSysIBM(TransactionController tc) throws StandardException {
+        tc.elevate("dictionary");
+
+        /**
+         * handle syscolumns in sysibm
+         */
+        // check the existence of syscolumns view in sysibm
+        TableDescriptor td = getTableDescriptor("SYSCOLUMNS", sysIBMSchemaDesc, tc);
+
+        Boolean needUpdate = true;
+        // drop it if it exists
+        if (td != null) {
+            ColumnDescriptor cd = td.getColumnDescriptor(SYSCOLUMNSRowFactory.DEFAULT_COLUMN);
+            if (cd != null)
+                needUpdate = false;
+        }
+
+        if (needUpdate) {
+            if (td != null) {
+                ViewDescriptor vd = getViewDescriptor(td);
+                // drop the view deifnition
+                dropAllColumnDescriptors(td.getUUID(), tc);
+                dropViewDescriptor(vd, tc);
+                dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+            }
+
+            // add new view deifnition
+            createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, "SYSCOLUMNS", 1, sysIBMSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_IN_SYSIBM);
+
+            SpliceLogUtils.info(LOG, "The view syscolumns in SYSIBM has been updated with default column!");
+        }
+    }
+
     public void moveSysStatsViewsToSysVWSchema(TransactionController tc) throws StandardException {
         //drop table descriptor corresponding to the tablestats view
         SchemaDescriptor sd=getSystemSchemaDescriptor();

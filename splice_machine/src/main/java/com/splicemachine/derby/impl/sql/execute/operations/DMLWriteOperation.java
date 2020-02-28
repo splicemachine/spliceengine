@@ -58,11 +58,7 @@ import org.spark_project.guava.base.Strings;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
@@ -351,7 +347,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
         DataSet set;
         OperationContext operationContext=dsp.createOperationContext(this);
         int[] expectedUpdatecounts = null;
-        if (activation.isBatched()) {
+        if (activation.isBatched() && !dsp.isSparkExplain()) {
             /*
              If we are executing batched operations we gather all modified rows into a single dataset by collecting
              one dataset for each original batched statement and then unioning them all together
@@ -382,7 +378,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
 
             set = sets.get(0);
         } else {
-            set=source.getDataSet(dsp).shufflePartitions();
+            dsp.incrementOpDepth();
+            set = source.getDataSet(dsp);
+            if (!dsp.isSparkExplain())
+                set=set.shufflePartitions();
+            dsp.decrementOpDepth();
         }
         return Pair.newPair(set, expectedUpdatecounts);
     }

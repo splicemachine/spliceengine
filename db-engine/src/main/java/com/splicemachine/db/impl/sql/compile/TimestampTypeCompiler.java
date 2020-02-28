@@ -168,7 +168,7 @@ public class TimestampTypeCompiler extends BaseTypeCompiler
                 throw StandardException.newException(SQLState.LANG_DATE_TIME_ADDITION_PROHIBITED,
                                                      TypeId.getBuiltInTypeId(Types.TIMESTAMP).toParsableString(leftType));
             }
-            returnType = DataTypeDescriptor.INTEGER_NOT_NULL;
+            returnType = DataTypeDescriptor.INTEGER;
         }
         return returnType;
     }

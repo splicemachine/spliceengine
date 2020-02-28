@@ -73,6 +73,10 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
                 .withCreate("create table t6 (a6 int not null unique, b6 int not null, c6 int, d6 int not null, primary key(d6), constraint unique_con1 unique(a6,b6))")
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table t7 (a7 int, b7 int default 999, c7 date default '2019-01-01', d7 float, e7 varchar(10) default 'aaa', f7 char(10) default 'AAA', g7 timestamp default current timestamp)")
+                .create();
+
         conn.commit();
     }
 
@@ -158,6 +162,24 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testColumnDefault() throws Exception {
+        String sqlText = format("select name, tbname, tbcreator, '-'||coltype||'-', nulls, codepage, length, scale, colno, typename, longlength, keyseq, \"DEFAULT\" from sysibm.syscolumns where tbname='T7' and TBCREATOR='%s'", CLASS_NAME);
+        String expected = "NAME |TBNAME |   TBCREATOR    |     4     | NULLS |CODEPAGE |LENGTH | SCALE | COLNO |TYPENAME  |LONGLENGTH |KEYSEQ |     DEFAULT      |\n" +
+                "---------------------------------------------------------------------------------------------------------------------------------------\n" +
+                " A7  |  T7   |VIEWSINSYSIBMIT |-INTEGER - |   Y   |    0    |   4   |   0   |   0   | INTEGER  |     4     | NULL  |      NULL        |\n" +
+                " B7  |  T7   |VIEWSINSYSIBMIT |-INTEGER - |   Y   |    0    |   4   |   0   |   1   | INTEGER  |     4     | NULL  |       999        |\n" +
+                " C7  |  T7   |VIEWSINSYSIBMIT |-DATE    - |   Y   |    0    |   4   |   0   |   2   |  DATE    |     4     | NULL  |  '2019-01-01'    |\n" +
+                " D7  |  T7   |VIEWSINSYSIBMIT |-DOUBLE  - |   Y   |    0    |   8   |   0   |   3   | DOUBLE   |     8     | NULL  |      NULL        |\n" +
+                " E7  |  T7   |VIEWSINSYSIBMIT |-VARCHAR - |   Y   |  1208   |  10   |   0   |   4   | VARCHAR  |    10     | NULL  |      'aaa'       |\n" +
+                " F7  |  T7   |VIEWSINSYSIBMIT |-CHAR    - |   Y   |  1208   |  10   |   0   |   5   |CHARACTER |    10     | NULL  |      'AAA'       |\n" +
+                " G7  |  T7   |VIEWSINSYSIBMIT |-TIMESTMP- |   Y   |    0    |  10   |   6   |   6   |TIMESTAMP |    10     | NULL  |current timestamp |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
     public void testAlias() throws Exception {
         methodWatcher.executeUpdate(format("create synonym %s.S5 for t5", CLASS_NAME));
         String sqlText = format("select name, creator, type, colcount, keycolumns, keyunique, codepage from sysibm.systables where CREATOR='%s' and name='S5'", CLASS_NAME);
@@ -194,11 +216,11 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
 
         // check syscolumns content
         String sqlText = format("select * from sysibm.syscolumns where tbname='ORC_PART_2ND' and TBCREATOR='%s'", CLASS_NAME);
-        String expected = "NAME |   TBNAME    |   TBCREATOR    | COLTYPE | NULLS |CODEPAGE |LENGTH | SCALE | COLNO |TYPENAME |LONGLENGTH |KEYSEQ |\n" +
-                "-----------------------------------------------------------------------------------------------------------------------\n" +
-                "COL1 |ORC_PART_2ND |VIEWSINSYSIBMIT | INTEGER |   Y   |    0    |   4   |   0   |   0   | INTEGER |     4     | NULL  |\n" +
-                "COL2 |ORC_PART_2ND |VIEWSINSYSIBMIT | INTEGER |   Y   |    0    |   4   |   0   |   1   | INTEGER |     4     | NULL  |\n" +
-                "COL3 |ORC_PART_2ND |VIEWSINSYSIBMIT | VARCHAR |   Y   |  1208   |  10   |   0   |   2   | VARCHAR |    10     | NULL  |";
+        String expected = "NAME |   TBNAME    |   TBCREATOR    | COLTYPE | NULLS |CODEPAGE |LENGTH | SCALE | COLNO |TYPENAME |LONGLENGTH |KEYSEQ | DEFAULT |\n" +
+                "---------------------------------------------------------------------------------------------------------------------------------\n" +
+                "COL1 |ORC_PART_2ND |VIEWSINSYSIBMIT | INTEGER |   Y   |    0    |   4   |   0   |   0   | INTEGER |     4     | NULL  |  NULL   |\n" +
+                "COL2 |ORC_PART_2ND |VIEWSINSYSIBMIT | INTEGER |   Y   |    0    |   4   |   0   |   1   | INTEGER |     4     | NULL  |  NULL   |\n" +
+                "COL3 |ORC_PART_2ND |VIEWSINSYSIBMIT | VARCHAR |   Y   |  1208   |  10   |   0   |   2   | VARCHAR |    10     | NULL  |  NULL   |";
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));

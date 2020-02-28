@@ -17,7 +17,6 @@ package com.splicemachine.derby.stream.spark;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.RowLocation;

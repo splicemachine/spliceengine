@@ -121,6 +121,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         this.optimizerEstimatedRowCount=in.readDouble();
         this.operationInformation=(OperationInformation)in.readObject();
         isTopResultSet=in.readBoolean();
+        explainPlan = in.readUTF();
     }
 
     @Override
@@ -130,6 +131,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         out.writeDouble(optimizerEstimatedRowCount);
         out.writeObject(operationInformation);
         out.writeBoolean(isTopResultSet);
+        out.writeUTF(explainPlan);
     }
 
     @Override
@@ -173,8 +175,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         // No difference. We can change that later if needed.
         // Right now this is only used by Spark UI, so don't change it
         // unless you want to change that UI.
-        DataSetProcessorType type = this.activation.getLanguageConnectionContext().getDataSetProcessorType();
-        if (type.isSpark())
+        if (this.activation.datasetProcessorType().isSpark())
             explainPlan=(plan==null?"":plan.replace("n=","RS=").replace("->","").trim());
     }
 
@@ -1004,6 +1005,42 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public void setRecursiveUnionReference(NoPutResultSet recursiveUnionReference) {
         for(SpliceOperation op : getSubOperations()){
             op.setRecursiveUnionReference(recursiveUnionReference);
+        }
+    }
+
+    @Override
+    public void handleSparkExplain(DataSet<ExecRow> dataSet, DataSet<ExecRow> sourceDataSet, DataSetProcessor dsp) {
+        if (dsp.isSparkExplain()) {
+            if (!dataSet.isNativeSpark()) {
+                if (sourceDataSet.isNativeSpark())
+                    dsp.prependSparkExplainStrings(sourceDataSet.
+                                                   buildNativeSparkExplain(dsp.getSparkExplainKind()), true, true);
+                dsp.prependSpliceExplainString(this.explainPlan);
+            }
+        }
+    }
+
+    @Override
+    public void handleSparkExplain(DataSet<ExecRow> dataSet,
+                                   DataSet<ExecRow> leftDataSet,
+                                   DataSet<ExecRow> rightDataSet,
+                                   DataSetProcessor dsp) {
+        if (dsp.isSparkExplain()) {
+            if (!dataSet.isNativeSpark()) {
+
+                dsp.finalizeTempOperationStrings();
+                if (leftDataSet.isNativeSpark())
+                    dsp.prependSparkExplainStrings(leftDataSet.
+                                                   buildNativeSparkExplain(dsp.getSparkExplainKind()), true, false);
+                else
+                    dsp.popSpliceOperation();
+                if (rightDataSet.isNativeSpark())
+                    dsp.prependSparkExplainStrings(rightDataSet.
+                                                   buildNativeSparkExplain(dsp.getSparkExplainKind()), false, true);
+                else
+                    dsp.popSpliceOperation();
+                dsp.prependSpliceExplainString(this.explainPlan);
+            }
         }
     }
 }

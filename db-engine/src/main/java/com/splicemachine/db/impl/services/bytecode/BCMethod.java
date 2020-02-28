@@ -88,6 +88,7 @@ class BCMethod implements MethodBuilder {
 	final BCClass		cb;
 	protected final ClassHolder modClass; // the class it is in (modifiable fmt)
 	final String myReturnType;
+	private boolean sparkExplain = false;
 	
 	/**
 	 * The original name of the method, this
@@ -1396,6 +1397,16 @@ class BCMethod implements MethodBuilder {
 
         this.callMethod(op, modClass.getName(), subMethod.getName(),
                 subMethod.myReturnType, parameterCount);
+    }
+
+    @Override
+    public void setSparkExplain(boolean sparkExplain) {
+        this.sparkExplain = sparkExplain;
+    }
+
+    @Override
+    public boolean isSparkExplain() {
+        return sparkExplain;
     }
 }
 
