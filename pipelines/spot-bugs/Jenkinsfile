@@ -27,7 +27,7 @@ node('splice-standalone') {
         try{
             checkout([  
                 $class: 'GitSCM', 
-                branches: [[name: 'refs/remotes/origin/${BRANCH_NAME}']],
+                branches: [[name: 'refs/remotes/origin/${BRANCH_NAME}']], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
                 submoduleCfg: [], 
