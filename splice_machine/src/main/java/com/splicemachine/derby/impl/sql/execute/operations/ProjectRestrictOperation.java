@@ -26,14 +26,15 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.Restriction;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.stream.function.ProjectRestrictMapFunction;
 import com.splicemachine.derby.stream.function.ProjectRestrictPredicateFunction;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -46,6 +47,8 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.List;
+
+import static com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind.NONE;
 
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {
@@ -73,6 +76,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		private String filterPred = null;
 		private String[] expressions = null;
 		private boolean hasGroupingFunction;
+		private String subqueryText;
 
 	    protected static final String NAME = ProjectRestrictOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -119,7 +123,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                                         double optimizerEstimatedCost,
                                         String filterPred,
                                         String[] expressions,
-				        boolean hasGroupingFunction) throws StandardException {
+				        boolean hasGroupingFunction,
+                                        String subqueryText) throws StandardException {
 				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
 				this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
 				this.projectionMethodName = (projection == null) ? null : projection.getMethodName();
@@ -132,6 +137,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				this.filterPred = filterPred;
 				this.expressions = expressions;
 				this.hasGroupingFunction = hasGroupingFunction;
+				this.subqueryText = subqueryText;
 				init();
 		}
 
@@ -169,6 +175,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				    }
 				    hasGroupingFunction = in.readBoolean();
 				}
+				subqueryText = readNullableString(in);
 		}
 
 		@Override
@@ -193,6 +200,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				    }
 				}
 				out.writeBoolean(hasGroupingFunction);
+				writeNullableString(subqueryText, out);
 		}
 
 		@Override
@@ -363,13 +371,38 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		if (alwaysFalse) {
             return dsp.getEmpty();
         }
+        boolean sparkExplainWithSubquery = subqueryText != null && subqueryText.length() != 0;
         OperationContext operationContext = dsp.createOperationContext(this);
+	dsp.incrementOpDepth();
+	ExplainNode.SparkExplainKind sparkExplainKind = NONE;
+	if (sparkExplainWithSubquery) {
+	    sparkExplainKind = dsp.getSparkExplainKind();
+        }
         DataSet<ExecRow> sourceSet = source.getDataSet(dsp);
+        DataSet<ExecRow> originalSourceDataset = sourceSet;
+        if (sparkExplainWithSubquery)
+            dsp.setSparkExplain(sparkExplainKind);
+        dsp.decrementOpDepth();
         try {
             operationContext.pushScope();
             if (restrictionMethodName != null)
                 sourceSet = sourceSet.filter(new ProjectRestrictPredicateFunction<>(operationContext));
-            return sourceSet.map(new ProjectRestrictMapFunction<>(operationContext, expressions));
+            DataSet<ExecRow> projection = sourceSet.map(new ProjectRestrictMapFunction<>(operationContext, expressions));
+
+            handleSparkExplain(projection, originalSourceDataset, dsp);
+            if (sparkExplainWithSubquery) {
+                String lines[] = subqueryText.split("\\r?\\n");
+                int increment = 0;
+                for (String str:lines) {
+                    dsp.appendSpliceExplainString(str);
+                    dsp.incrementOpDepth();
+                    increment++;
+                }
+                for (int i = 0; i < increment; i++)
+                    dsp.decrementOpDepth();
+            }
+
+            return projection;
         } finally {
             operationContext.popScope();
         }

@@ -68,6 +68,10 @@ public class SessionPropertiesImpl implements SessionProperties {
                 int recursiveQueryIterationLimit = Integer.parseInt(valString);
                 properties[RECURSIVEQUERYITERATIONLIMIT.getId()] = recursiveQueryIterationLimit;
                 break;
+            case SNAPSHOT_TIMESTAMP:
+                long timestamp = Long.parseLong(valString);
+                properties[SNAPSHOT_TIMESTAMP.getId()] = timestamp;
+                break;
             default:
                 break;
         }

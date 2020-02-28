@@ -147,21 +147,34 @@ public class MergeJoinOperation extends JoinOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        boolean isSparkExplain = dsp.isSparkExplain();
         OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
+        dsp.incrementOpDepth();
         DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
-        
+        dsp.finalizeTempOperationStrings();
+        DataSet<ExecRow> right = null;
+        if (isSparkExplain) {
+            // Need to call getDataSet to fully print the spark explain.
+            right = rightResultSet.getDataSet(dsp);
+            dsp.decrementOpDepth();
+        }
         operationContext.pushScope();
         try {
             left = left.map(new CountJoinedLeftFunction(operationContext));
+            DataSet<ExecRow> joined = null;
             if (isOuterJoin())
-                return left.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext), true);
+                joined = left.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext), true);
             else {
                 if (notExistsRightSide)
-                    return left.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext), true);
+                    joined = left.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext), true);
                 else {
-                    return left.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext), true);
+                    joined = left.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext), true);
                 }
             }
+            if (isSparkExplain)
+                handleSparkExplain(joined, left, right, dsp);
+
+            return joined;
         } finally {
             operationContext.popScope();
         }

@@ -17,8 +17,12 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.client.SpliceClient;
-import com.splicemachine.db.impl.sql.compile.JoinNode;
-import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.function.broadcast.BroadcastJoinFlatMapFunction;
 import com.splicemachine.derby.stream.function.broadcast.CogroupBroadcastJoinFunction;
@@ -26,14 +30,11 @@ import com.splicemachine.derby.stream.function.broadcast.SubtractByKeyBroadcastJ
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -190,13 +191,6 @@ public class BroadcastJoinOperation extends JoinOperation{
             throw new IllegalStateException("Operation is not open");
 
         OperationContext operationContext = dsp.createOperationContext(this);
-        DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
-
-//        operationContext.pushScope();
-        leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
-                getJoinTypeString(), notExistsRightSide, restriction != null);
 
         SConfiguration configuration= EngineDriver.driver().getConfiguration();
 
@@ -235,9 +229,24 @@ public class BroadcastJoinOperation extends JoinOperation{
            (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
              ((restriction == null || hasSparkJoinPredicate()) || (!isOuterJoin() && !notExistsRightSide && !isOneRowRightSide())) &&
               !containsUnsafeSQLRealComparison());
+
+        dsp.incrementOpDepth();
+        if (usesNativeSparkDataSet)
+            dsp.finalizeTempOperationStrings();
+        DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
+
+//        operationContext.pushScope();
+        leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
+                isOuterJoin() ? "outer" : "inner", notExistsRightSide, restriction != null);
+
+        dsp.finalizeTempOperationStrings();
+
         if (usesNativeSparkDataSet)
         {
             DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
+            dsp.decrementOpDepth();
             if (isOuterJoin())
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
             else if (notExistsRightSide)
@@ -257,6 +266,7 @@ public class BroadcastJoinOperation extends JoinOperation{
                     usesNativeSparkDataSet = false;
                 }
             }
+            handleSparkExplain(result, leftDataSet, rightDataSet, dsp);
         }
         else {
             if (isOuterJoin()) { // Left Outer Join with and without restriction
@@ -287,6 +297,12 @@ public class BroadcastJoinOperation extends JoinOperation{
                             result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
                         }
                     }
+                }
+                if (dsp.isSparkExplain()) {
+                    // Need to call getDataSet to fully print the spark explain.
+                    DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
+                    dsp.decrementOpDepth();
+                    handleSparkExplain(result, leftDataSet, rightDataSet, dsp);
                 }
             }
         }

@@ -1,4 +1,6 @@
 def vault_addr="https://vault.build.splicemachine-dev.io"
+def branch = ""
+def source_branch = ""
 
 // Launch the docker container
 node('splice-standalone') {
@@ -12,12 +14,20 @@ node('splice-standalone') {
     try {
 
     notifyBuild('STARTED')
+    
+    try {
+        source_branch = "${CHANGE_BRANCH}"
+    } catch (Exception e) {
+        source_branch = "${BRANCH_NAME}"
+    }
+
+    echo source_branch
 
     stage('Build') {
       // Checkout code from repository
         checkout([  
             $class: 'GitSCM', 
-            branches: [[name: 'refs/heads/${BRANCH_NAME}']], 
+            branches: [[name: source_branch]], 
             doGenerateSubmoduleConfigurations: false, 
             extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
             submoduleCfg: [], 
@@ -26,7 +36,7 @@ node('splice-standalone') {
         try{
             checkout([  
                 $class: 'GitSCM', 
-                branches: [[name: 'refs/heads/${BRANCH_NAME}']], 
+                branches: [[name: 'refs/remotes/origin/${BRANCH_NAME}']], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
                 submoduleCfg: [], 
@@ -34,7 +44,7 @@ node('splice-standalone') {
             ])
         } catch (Exception e) {
             dir('spliceengine'){
-                def branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
+                branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
 
                 if ( "$branch" == ".7" ) {
                         branch = "branch-2.7"
@@ -49,7 +59,7 @@ node('splice-standalone') {
             }
             checkout([  
                 $class: 'GitSCM', 
-                branches: [[name: 'refs/heads/$branch']], 
+                branches: [[name: 'refs/remotes/origin/'+branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
                 submoduleCfg: [], 
@@ -59,7 +69,7 @@ node('splice-standalone') {
         wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
             dir('spliceengine'){
                 def platforms = ""
-                def branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
+                branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
 
                 if ( "$branch" == ".7" ) {
                             platforms = "cdh5.14.2"
@@ -73,7 +83,7 @@ node('splice-standalone') {
                         } else {
                             platforms = "cdh5.14.2"
                             branch = "master"
-                }
+                        }
                 sh "mvn -B clean install -Pcore -DskipTests"
                 sh '''
                 cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
@@ -88,7 +98,7 @@ node('splice-standalone') {
     stage('SpotBugs') {
       dir('spliceengine'){
           def platforms = ""
-          def branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
+          branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
 
           if ( "$branch" == ".7" ) {
                         platforms = "cdh5.14.2"
