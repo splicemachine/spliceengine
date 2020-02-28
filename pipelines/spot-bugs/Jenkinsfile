@@ -32,7 +32,7 @@ node('splice-standalone') {
                 submoduleCfg: [], 
                 userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
             ])
-        } catch {
+        } catch (Exception e) {
             dir('spliceengine'){
                 def branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
 
