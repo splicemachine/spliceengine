@@ -1,4 +1,5 @@
 def vault_addr="https://vault.build.splicemachine-dev.io"
+def branch = ""
 
 // Launch the docker container
 node('splice-standalone') {
@@ -15,26 +16,52 @@ node('splice-standalone') {
 
     stage('Build') {
       // Checkout code from repository
-      checkout([  
-            $class: 'GitSCM', 
-            branches: [[name: 'refs/heads/master']], 
-            doGenerateSubmoduleConfigurations: false, 
-            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
-            submoduleCfg: [], 
-            userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
-        ])
         checkout([  
             $class: 'GitSCM', 
-            branches: [[name: 'refs/heads/DB-9162']], 
+            branches: [[name: 'refs/heads/${BRANCH_NAME}']], 
             doGenerateSubmoduleConfigurations: false, 
             extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
             submoduleCfg: [], 
             userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
-        ])  
+        ])
+        try{
+            checkout([  
+                $class: 'GitSCM', 
+                branches: [[name: 'refs/remotes/origin/${BRANCH_NAME}']], 
+                doGenerateSubmoduleConfigurations: false, 
+                extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
+                submoduleCfg: [], 
+                userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
+            ])
+        } catch (Exception e) {
+            dir('spliceengine'){
+                branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
+
+                if ( "$branch" == ".7" ) {
+                        branch = "branch-2.7"
+                    } else if ( "$branch" == ".8" ) {
+                        branch = "branch-2.8"
+                    } else if ( "$branch" == ".0" ) {
+                        branch = "branch-3.0"
+                    } else {
+                        branch = "master"
+                    }
+                sh "cd .."
+            }
+            echo branch
+            checkout([  
+                $class: 'GitSCM', 
+                branches: [[name: 'refs/remotes/origin/'+branch]], 
+                doGenerateSubmoduleConfigurations: false, 
+                extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
+                submoduleCfg: [], 
+                userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
+            ])
+        }
         wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
             dir('spliceengine'){
                 def platforms = ""
-                def branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
+                branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
 
                 if ( "$branch" == ".7" ) {
                             platforms = "cdh5.14.2"
@@ -55,7 +82,7 @@ node('splice-standalone') {
                 sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
                 sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
                 '''
-                sh "mvn -B clean install -P$platforms,ee -DskipTests"
+                sh "mvn -B clean install -Pmem,$platforms,ee -DskipTests"
             }
         }
       }
@@ -63,7 +90,7 @@ node('splice-standalone') {
     stage('SpotBugs') {
       dir('spliceengine'){
           def platforms = ""
-          def branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
+          branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
 
           if ( "$branch" == ".7" ) {
                         platforms = "cdh5.14.2"
