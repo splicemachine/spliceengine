@@ -592,7 +592,7 @@ public class BackupSystemProcedures {
                                            ResultSet[] resultSets) throws StandardException, SQLException {
         try{
             LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-            Activation activation = lcc.getLastActivation();
+
             schemaName = EngineUtils.validateSchema(schemaName);
             type = type.trim().toUpperCase();
             if (directory == null || directory.isEmpty()) {
@@ -617,6 +617,7 @@ public class BackupSystemProcedures {
             template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLVarchar()});
             List<ExecRow> rows = Lists.newArrayList();
 
+            Activation activation = lcc.getLastActivation();
             SQLWarning warning = activation.getWarnings();
             if (warning != null) {
                 while (warning != null) {

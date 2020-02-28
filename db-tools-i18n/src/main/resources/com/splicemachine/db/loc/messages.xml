@@ -9068,6 +9068,11 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>table</arg>
            </msg>
            <msg>
+               <name>BR025</name>
+               <text>No table in schema '{0}' is eligible for backup</text>
+               <arg>schema</arg>
+           </msg>
+           <msg>
                <name>EXT01</name>
                <text>row format specification not allowed with 'stored as parquet' </text>
            </msg>
