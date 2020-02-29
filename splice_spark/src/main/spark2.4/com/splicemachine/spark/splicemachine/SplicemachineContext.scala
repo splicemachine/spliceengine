@@ -345,7 +345,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param estimateStatistics
     * @param samplePercent
     */
-  def analyzeTable(tableName: String, estimateStatistics: Boolean = false, samplePercent: Double = 0.10 ): Unit = {
+  def analyzeTable(tableName: String, estimateStatistics: Boolean = false, samplePercent: Double = 10.0 ): Unit = {
     if (!estimateStatistics)
       execute(s"ANALYZE TABLE $tableName")
     else
