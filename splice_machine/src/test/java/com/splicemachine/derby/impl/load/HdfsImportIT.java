@@ -1982,7 +1982,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
-                        "'IRN,GROUP_NUM,GROUP_BEG_DT,SYS_POSTING_DT,GROUP_END_DT,GROUP_TYPE_CD,PROCESSOR_ID',"  +  // insert column list
+                        "'IRN,GROUP_NUM,GROUP_BEG_DT,\"SYS_POSTING_DT\",GROUP_END_DT,\"GROUP_TYPE_CD\",PROCESSOR_ID',"  +  // insert column list
                         "'%s'," +  // file path
                         "'^'," +   // column delimiter
                         "null," +  // character delimiter
@@ -2000,7 +2000,12 @@ public class HdfsImportIT extends SpliceUnitTest {
 
         ps.execute();
 
-
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s", spliceSchemaWatcher.schemaName+".TIRN_ASSIGNMENT"));
+        String expected = "BATCH_DATE | IRN | GROUP_NUM |GROUP_BEG_DT |SYS_POSTING_DT |GROUP_END_DT | GROUP_TYPE_CD |PROCESSOR_ID |\n" +
+                "--------------------------------------------------------------------------------------------------------\n" +
+                "2018-07-07 |  0  | 130075934 |  20050305   |   20050325    |  99999999   |     'SE'      | 'L7M080  '  |";
+        String s = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        Assert.assertEquals(expected, s);
     }
 
     private static void assertContains(List<String> collection, Matcher<String> target) {
