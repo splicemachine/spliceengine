@@ -1164,6 +1164,30 @@ class ij {
             throw e;
         }
     }
+    /**
+       Same as SYSCS_UTIL.SYSCS_GET_VERSION_INFO()
+           and SYSCS_UTIL.SYSCS_GET_VERSION_INFO_LOCAL()
+     */
+    public ijResult showVersionLocal(boolean local) throws SQLException {
+        ResultSet rs = null;
+        String procedurePostfix = local ? "_LOCAL()" : "()";
+        try {
+            haveConnection();
+            Statement stmt = theConnection.createStatement();
+            rs = stmt.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_VERSION_INFO" + procedurePostfix );
+            int[] displayColumns = new int[] { 1,2,3,4,5 };
+            int[] columnWidths = new int[] { 0,0,0,0,0};
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
 	/**
 	   Outputs the names of all fields of given table. Outputs field
 	   names and data type.
@@ -1374,6 +1398,7 @@ TOKEN [IGNORE_CASE] :
 |	<INSENSITIVE: "insensitive">
 |	<INTO: "into">
 |	<LAST: "last">
+|   <LOCAL: "local">
 |	<LOCALIZEDDISPLAY: "localizeddisplay">
 |	<MAXIMUMDISPLAYWIDTH: "maximumdisplaywidth">
 |	<NAME: "name">
@@ -1415,6 +1440,7 @@ TOKEN [IGNORE_CASE] :
 |	<TABLES: "tables">
 |	<USER: "user">
 |	<USING: "using">
+|   <VERSION: "version">
 |	<VIEWS: "views">
 |	<WAIT: "wait">
 |	<WITH: "with">
@@ -2312,22 +2338,26 @@ throws SQLException
 	{
 		return showSchemas();
 	}
-|       <ROLES>
-        {
-            return showRoles();
-        }
-|       <ENABLED_ROLES>
-        {
-            // TODO: remove this when ROLE is supported
-            return new ijUnsupportedCommandResult("SHOW ENABLED_ROLES");
-            return showEnabledRoles();
-        }
-|       <SETTABLE_ROLES>
-        {
-            return showSettableRoles();
-        }
-
-	)
+|   <ROLES>
+    {
+        return showRoles();
+    }
+|   <ENABLED_ROLES>
+    {
+        // TODO: remove this when ROLE is supported
+        return new ijUnsupportedCommandResult("SHOW ENABLED_ROLES");
+        return showEnabledRoles();
+    }
+|   <SETTABLE_ROLES>
+    {
+        return showSettableRoles();
+    }
+|   <VERSION>
+    [ t = <LOCAL> ]
+    {
+        return (t != null) ? showVersionLocal(true) : showVersionLocal(false);
+    }
+    )
 }
 
 /**
@@ -4125,6 +4155,7 @@ keyword() :
 |	tok = <INSENSITIVE>
 |	tok = <INTO>
 |	tok = <LAST>
+|   tok = <LOCAL>
 |	tok = <LOCALIZEDDISPLAY>
 |	tok = <MAXIMUMDISPLAYWIDTH>
 |	tok = <NAME>
@@ -4162,6 +4193,7 @@ keyword() :
 |	tok = <TABLES>
 |	tok = <USER>
 |	tok = <USING>
+|   tok = <VERSION>
 |	tok = <VIEWS>
 |	tok = <WAIT>
 |	tok = <WITH>
