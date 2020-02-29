@@ -23,6 +23,7 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.io.File;
 import java.sql.*;
 import java.util.Properties;
 
@@ -45,6 +46,8 @@ public class SelectivityIT extends SpliceUnitTest {
             .around(spliceSchemaWatcher);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
+
+    private static String BADDIR;
 
     public static void createData(Connection conn, String schemaName) throws Exception {
 
@@ -246,7 +249,7 @@ public class SelectivityIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName, "T1",
                 getResourceDirectory()+"even_distribution_t1.csv",
                 0,
-                getResourceDirectory() + "baddir"));
+                BADDIR));
         ps.execute();
 
         ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
@@ -266,7 +269,7 @@ public class SelectivityIT extends SpliceUnitTest {
                 spliceSchemaWatcher.schemaName, "T1S",
                 getResourceDirectory()+"skewed_distribution_t1s.csv",
                 0,
-                getResourceDirectory() + "baddir"));
+                BADDIR));
         ps.execute();
 
         spliceClassWatcher.executeQuery(format(
@@ -324,6 +327,7 @@ public class SelectivityIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void createDataSet() throws Exception {
+        BADDIR = SpliceUnitTest.createBadLogDirectory(spliceSchemaWatcher.schemaName).getCanonicalPath();
         createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
     }
 
