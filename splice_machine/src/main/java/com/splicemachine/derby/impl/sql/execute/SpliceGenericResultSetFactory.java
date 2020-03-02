@@ -241,6 +241,40 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                       String filterPred,
                                                       String[] expressions,
                                                       boolean hasGroupingFunction) throws StandardException {
+        return getProjectRestrictResultSet(source,
+                                           restriction,
+                                           projection,
+                                           resultSetNumber,
+                                           constantRestriction,
+                                           mapRefItem,
+                                           cloneMapItem,
+                                           reuseResult,
+                                           doesProjection,
+                                           optimizerEstimatedRowCount,
+                                           optimizerEstimatedCost,
+                                           explainPlan,
+                                           filterPred,
+                                           expressions,
+                                           hasGroupingFunction, null);
+    }
+
+    @Override
+    public NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
+                                                      GeneratedMethod restriction,
+                                                      GeneratedMethod projection,
+                                                      int resultSetNumber,
+                                                      GeneratedMethod constantRestriction,
+                                                      int mapRefItem,
+                                                      int cloneMapItem,
+                                                      boolean reuseResult,
+                                                      boolean doesProjection,
+                                                      double optimizerEstimatedRowCount,
+                                                      double optimizerEstimatedCost,
+                                                      String explainPlan,
+                                                      String filterPred,
+                                                      String[] expressions,
+                                                      boolean hasGroupingFunction,
+                                                      String subqueryText) throws StandardException {
         assert source!=null:"passed in source is null";
         SpliceLogUtils.trace(LOG, "getProjectRestrictResultSet");
         try{
@@ -255,7 +289,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     optimizerEstimatedCost,
                     filterPred,
                     expressions,
-                    hasGroupingFunction);
+                    hasGroupingFunction,
+                    subqueryText);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1879,15 +1914,15 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     }
 
     @Override
-    public NoPutResultSet getExplainResultSet(ResultSet source, Activation activation, int resultSetNumber) throws StandardException {
+    public NoPutResultSet getExplainResultSet(ResultSet source, Activation activation, int resultSetNumber, String sparkExplainKind) throws StandardException {
         ConvertedResultSet opSet = (ConvertedResultSet)source;
-        return new ExplainOperation(opSet.getOperation(), activation, resultSetNumber);
+        return new ExplainOperation(opSet.getOperation(), activation, resultSetNumber, sparkExplainKind);
     }
 
     @Override
-    public NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber) throws StandardException {
+    public NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber, String sparkExplainKind) throws StandardException {
         ConvertedResultSet opSet = (ConvertedResultSet)source;
-        return new ExplainOperation(opSet.getOperation(), activation, resultSetNumber);
+        return new ExplainOperation(opSet.getOperation(), activation, resultSetNumber, sparkExplainKind);
     }
 
 
