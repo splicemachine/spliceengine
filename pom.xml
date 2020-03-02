@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>3.0.0.1948-SNAPSHOT</version>
+    <version>3.0.0.1949-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -734,6 +734,12 @@
                 <spark.defaultfs>-Dsplice.spark.hadoop.fs.defaultFS=hdfs://localhost:58878/</spark.defaultfs>
                 <hbase.rootdir>-Dhbase.rootdir=/hbase</hbase.rootdir>
             </properties>
+        </profile>
+        <profile>
+            <id>it</id>
+            <modules>
+                <module>remote_it</module>
+            </modules>
         </profile>
         <profile>
             <!-- When jacoco is disabled,the jacocoAgent property still needs to exist -->

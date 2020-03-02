@@ -332,6 +332,7 @@ public class RowOperation extends SpliceBaseOperation{
 
         ExecRow execRow=new ValueRow(1);
         execRow.setColumn(1,new SQLInteger(123));
+        dsp.prependSpliceExplainString(this.explainPlan);
         return dsp.singleRowDataSet(execRow)
                 .map(new RowOperationFunction(dsp.createOperationContext(this)));
     }

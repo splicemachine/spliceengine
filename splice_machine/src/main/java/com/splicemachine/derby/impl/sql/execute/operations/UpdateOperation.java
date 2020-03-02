@@ -204,10 +204,14 @@ public class UpdateOperation extends DMLWriteOperation{
         DataSet set = pair.getFirst();
         int[] expectedUpdateCounts = pair.getSecond();
         OperationContext operationContext=dsp.createOperationContext(this);
+        operationContext.pushScope();
+        if (dsp.isSparkExplain()) {
+            dsp.prependSpliceExplainString(this.explainPlan);
+            return set;
+        }
         TxnView txn=getTransactionForWrite(dsp);
         ExecRow execRow=getExecRowDefinition();
         int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
-        operationContext.pushScope();
         try{
             // initTriggerRowHolders can't be called in the TriggerHandler constructor
             // because it has to be called after getCurrentTransaction() elevates the

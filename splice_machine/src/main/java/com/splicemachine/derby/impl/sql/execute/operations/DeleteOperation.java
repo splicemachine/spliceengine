@@ -96,8 +96,12 @@ public class DeleteOperation extends DMLWriteOperation {
         DataSet set = pair.getFirst();
         int[] expectedUpdateCounts = pair.getSecond();
         OperationContext operationContext = dsp.createOperationContext(this);
-        TxnView txn = getTransactionForWrite(dsp);
         operationContext.pushScope();
+        if (dsp.isSparkExplain()) {
+            dsp.prependSpliceExplainString(this.explainPlan);
+            return set;
+        }
+        TxnView txn = getTransactionForWrite(dsp);
         DataSetWriterBuilder dataSetWriterBuilder = null;
         try {
             // initTriggerRowHolders can't be called in the TriggerHandler constructor

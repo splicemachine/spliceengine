@@ -201,8 +201,11 @@ public class SortOperation extends SpliceBaseOperation{
             throw new IllegalStateException("Operation is not open");
 
         OperationContext operationContext=dsp.createOperationContext(this);
+        dsp.incrementOpDepth();
         DataSet dataSet=source.getDataSet(dsp)
                 .map(new CloneFunction<>(operationContext));
+        dsp.decrementOpDepth();
+        DataSet sourceDataSet = dataSet;
 
         if (distinct) {
             dataSet = dataSet.distinct(OperationContext.Scope.DISTINCT.displayName(),
@@ -211,7 +214,7 @@ public class SortOperation extends SpliceBaseOperation{
 
 
         DataSet sortedValues = dataSet.orderBy(operationContext, keyColumns,descColumns,nullsOrderedLow);
-
+        handleSparkExplain(sortedValues, sourceDataSet, dsp);
         return sortedValues;
     }
 

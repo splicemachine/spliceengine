@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -929,4 +930,15 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext) { return null; }
+
+    @Override
+    public boolean isNativeSpark() {
+        return false;
+    }
+
+    public List<String> buildNativeSparkExplain(ExplainNode.SparkExplainKind sparkExplainKind) {
+        List<String> warnMsg = new ArrayList<>();
+        warnMsg.add("Spark EXPLAIN not available.\n");
+        return warnMsg;
+    }
 }

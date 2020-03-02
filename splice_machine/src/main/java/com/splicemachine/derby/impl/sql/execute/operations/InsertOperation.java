@@ -374,8 +374,15 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         
         ExecRow execRow=getExecRowDefinition();
         int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
+
+        operationContext.pushScope();
         if(insertMode.equals(InsertNode.InsertMode.UPSERT) && pkCols==null)
             throw ErrorState.UPSERT_NO_PRIMARY_KEYS.newException(""+heapConglom+"");
+
+        if (dsp.isSparkExplain()) {
+            dsp.prependSpliceExplainString(this.explainPlan);
+            return set;
+        }
         TxnView txn=getTransactionForWrite(dsp);
 
         ClusterHealth.ClusterHealthWatcher healthWatcher = null;
@@ -383,7 +390,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             healthWatcher = SIDriver.driver().clusterHealth().registerWatcher();
         }
 
-        operationContext.pushScope();
         try{
             // initTriggerRowHolders can't be called in the TriggerHandler constructor
             // because it has to be called after getCurrentTransaction() elevates the

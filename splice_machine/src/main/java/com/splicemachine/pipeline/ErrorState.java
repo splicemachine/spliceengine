@@ -24,6 +24,7 @@ import com.splicemachine.pipeline.client.WriteFailedException;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
+import com.splicemachine.si.api.data.ReadOnlyModificationException;
 import com.splicemachine.si.api.server.FailedServerException;
 import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
@@ -251,9 +252,9 @@ public enum ErrorState{
     SORT_TYPE_MISMATCH("XSAS3.S"),
     SORT_COULD_NOT_INIT("XSAS6.S"),
 
-    /*
+	/*
     ** RawStore
-    */
+	*/
 
     /*
     ** RawStore - protocol.Interface statement exceptions
@@ -421,9 +422,9 @@ public enum ErrorState{
     BACKUP_FILE_IO_ERROR("XSDFH.S"),
     FILE_NEW_PAGE_DURING_RECOVERY("XSDFI.S"),
 
-    /*
-    ** RawStore - Data.FSLDemo transaction exceptions
-    */
+	/*
+	** RawStore - Data.FSLDemo transaction exceptions
+	*/
 
     /*
     ** RawStore - Data.Filesystem database exceptions
@@ -460,10 +461,10 @@ public enum ErrorState{
     */
     ID_LIST_PARSE_ERROR("XCXC0.S"),
 
-    /*
-    ** InternalUtil - IO Errors
-    **(Range XCXD0-XCXDZ)
-    */
+	/*
+	** InternalUtil - IO Errors
+	**(Range XCXD0-XCXDZ)
+	*/
 
     /*
     ** InternalUtil - LocaleFinder interface
@@ -481,74 +482,74 @@ public enum ErrorState{
 
 
     /*
-    ** Language
-    */
+	** Language
+	*/
 
     /*
     ** Language Statement Exception
     */
     LSE_COMPILATION_PREFIX("42"),
 
-    /*
-    ** Language
-    **
-    ** The entries in this file are sorted into groups.  Add your entry
-    ** to the appropriate group. Language errors are divided into 3 groups:
-    ** A group for standard SQLExceptions.
-    **
-    ** 2200J-00R - For SQL/XML errors(based on SQL/XML[2006]).
-    ** 4250x - access rule violations
-    ** 428?? - adding some DB2 compatible errors
-    ** 42X00-42Zxx for compilation errors
-    ** 46000  for SQLJ errors(for now, leave this range empty)
-    ** 38000  SQL3 ranges
-    ** 39001  SQL3
-    ** X0X00-X0Xxx for implementation-defined execution errors.
-    **
-    ** NOTE: If an error can occur during both compilation and execution, then
-    ** you need 2 different errors.
-    **
-    ** In addition to the above groups, this file also contains SQLStates
-    ** for language transaction severity errors. These are in the range
-    **
-    **    40XC0 - 40XCZ
-    **
-    ** implementation-defined range reserved for class 23 is L01-LZZ
-    **
-    **
-    ** Errors that have standard SQLStates
-    **
-    ** Implementation-defined subclasses must begin with a digit from 5 through 9,
-    ** or a letter from I through Z(capitals only).
-    **
-     */
+	/*
+	** Language
+	**
+	** The entries in this file are sorted into groups.  Add your entry
+	** to the appropriate group. Language errors are divided into 3 groups:
+	** A group for standard SQLExceptions.
+	**
+	** 2200J-00R - For SQL/XML errors(based on SQL/XML[2006]).
+	** 4250x - access rule violations
+	** 428?? - adding some DB2 compatible errors
+	** 42X00-42Zxx for compilation errors
+	** 46000  for SQLJ errors(for now, leave this range empty)
+	** 38000  SQL3 ranges
+	** 39001  SQL3
+	** X0X00-X0Xxx for implementation-defined execution errors.
+	**
+	** NOTE: If an error can occur during both compilation and execution, then
+	** you need 2 different errors.
+	**
+	** In addition to the above groups, this file also contains SQLStates
+	** for language transaction severity errors. These are in the range
+	**
+	**	40XC0 - 40XCZ
+	**
+	** implementation-defined range reserved for class 23 is L01-LZZ
+	**
+	**
+	** Errors that have standard SQLStates
+	**
+	** Implementation-defined subclasses must begin with a digit from 5 through 9,
+	** or a letter from I through Z(capitals only).
+	**
+ 	*/
 
-    /*
-    **
-    ** SQL-J ERRORS -- see jamie for further info
-    **
-    ** DDL
-    **    46001 - invalid URL
-    **    46002 - invalid JAR name
-    **    46003 - invalid class deletion
-    **    46004 - invalid JAR name
-    **     46005 - invalid replacement
-    **     46006 - invalid grantee
-    **     46007 - invalid signature
-    **     46008 - invalid method specification
-    **     46009 - invalid REVOKE
-    **
-    ** Execution
-    **     46102 - invalid jar name in path
-    **     46103 - unresolved class name
-    **     0100E - too many result sets
-    **    39001 - invalid SQLSTATE
-    **    39004 - invalid null value
-    **    38000 - uncaught java exception
-    **    38mmm - user defined error numbers
-    ** to be used in the future
-    ** InvalidNullValue.sqlstate(39004
-    */
+	/*
+	**
+	** SQL-J ERRORS -- see jamie for further info
+	**
+	** DDL
+	**	46001 - invalid URL
+	**	46002 - invalid JAR name
+	**	46003 - invalid class deletion
+	**	46004 - invalid JAR name
+	** 	46005 - invalid replacement
+	** 	46006 - invalid grantee
+	** 	46007 - invalid signature
+	** 	46008 - invalid method specification
+	** 	46009 - invalid REVOKE
+	**
+	** Execution
+	** 	46102 - invalid jar name in path
+	** 	46103 - unresolved class name
+	** 	0100E - too many result sets
+	**	39001 - invalid SQLSTATE
+	**	39004 - invalid null value
+	**	38000 - uncaught java exception
+	**	38mmm - user defined error numbers
+	** to be used in the future
+	** InvalidNullValue.sqlstate(39004
+	*/
 
     // WARNINGS(start with 01)
     LANG_CONSTRAINT_DROPPED("01500"),
@@ -591,6 +592,12 @@ public enum ErrorState{
     LANG_MISSING_PARMS("07000"),
     LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION("21000"),
     LANG_STRING_TRUNCATION("22001"),
+    LANG_OPERATION_NOT_SUPPORTED_IN_READ_ONLY_MODE("51045") {
+        @Override
+        public boolean accepts(Throwable t) {
+            return super.accepts(t) || t instanceof ReadOnlyModificationException;
+        }
+    },
     LANG_CONCAT_STRING_OVERFLOW("54006"),
     /*
      * Throw when an attempted insert it outside the range for the given datatype
@@ -907,8 +914,8 @@ public enum ErrorState{
     LANG_NO_METHOD_MATCHING_ALIAS("42Y16"),
     // LANG_DROP_SYSTEM_TABLE_ATTEMPTED( "42Y17"), -- replaced by 42X62
     LANG_INVALID_CAST("42846"),
-    //    LANG_AMBIGUOUS_GROUPING_COLUMN( "42Y19"), -- unused post 883.
-    //    LANG_UNMATCHED_GROUPING_COLUMN(    //    "42Y20"), -- not used
+    //	LANG_AMBIGUOUS_GROUPING_COLUMN( "42Y19"), -- unused post 883.
+    //	LANG_UNMATCHED_GROUPING_COLUMN(	//	"42Y20"), -- not used
     LANG_USER_AGGREGATE_BAD_TYPE("42Y22"),
     LANG_BAD_J_D_B_C_TYPE_INFO("42Y23"),
     LANG_VIEW_NOT_UPDATEABLE("42Y24"),
@@ -935,11 +942,11 @@ public enum ErrorState{
     LANG_INVALID_FROM_TABLE_PROPERTY("42Y44"),
     LANG_CANNOT_BIND_TRIGGER_V_T_I("42Y45"),
     LANG_INVALID_FORCED_INDEX1("42Y46"),
-    //    LANG_INVALID_FORCED_INDEX2( "42Y47"),
+    //	LANG_INVALID_FORCED_INDEX2( "42Y47"),
     LANG_INVALID_FORCED_INDEX2("42Y48"),
     LANG_DUPLICATE_PROPERTY("42Y49"),
     LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED("42Y50"),
-    //    LANG_INVALID_FORCED_INDEX4( "42Y51"),
+    //	LANG_INVALID_FORCED_INDEX4( "42Y51"),
     LANG_OBJECT_DOES_NOT_EXIST("42Y55"),
     LANG_INVALID_JOIN_STRATEGY("42Y56"),
     LANG_INVALID_NUMBER_FORMAT_FOR_OVERRIDE("42Y58"),
@@ -982,7 +989,7 @@ public enum ErrorState{
     LANG_STREAM("42Z11.U"),
     LANG_STREAM_INVALID_ACCESS("42Z12.U"),
 
-    // LANG_UPDATABLE_VTI_BAD_GETMETADATA                        ( "42Z14"),
+    // LANG_UPDATABLE_VTI_BAD_GETMETADATA						( "42Z14"),
 
     // for alter table modify column ...
     LANG_MODIFY_COLUMN_CHANGE_TYPE("42Z15"),
@@ -1000,7 +1007,7 @@ public enum ErrorState{
     LANG_AI_COUNTER_ERROR("42Z25"),
     LANG_AI_CANNOT_NULL_AI("42Z26"),
     LANG_AI_CANNOT_ADD_AI_TO_NULLABLE("42Z27"),
-    // LANG_BUILT_IN_ALIAS_NAME                        ( "42Z28"),
+    // LANG_BUILT_IN_ALIAS_NAME						( "42Z28"),
     // RUNTIMESTATISTICS
     LANG_TIME_SPENT_THIS("42Z30.U"),
     LANG_TIME_SPENT_THIS_AND_BELOW("42Z31.U"),
@@ -1404,8 +1411,8 @@ public enum ErrorState{
     LANG_STATEMENT_CANCELLED_OR_TIMED_OUT("XCL52.S"),
 
     /*
-    ** Language errors that match DB2
-    */
+	** Language errors that match DB2
+	*/
 
 
     INVALID_SCHEMA_SYS("42939"),
