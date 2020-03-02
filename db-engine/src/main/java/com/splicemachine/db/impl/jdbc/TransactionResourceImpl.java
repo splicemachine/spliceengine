@@ -52,21 +52,21 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
-/** 
- *    An instance of a TransactionResourceImpl is a bundle of things that
- *    connects a connection to the database - it is the transaction "context" in
- *    a generic sense.  It is also the object of synchronization used by the
- *    connection object to make sure only one thread is accessing the underlying
- *    transaction and context.
+/**
+ *	An instance of a TransactionResourceImpl is a bundle of things that
+ *	connects a connection to the database - it is the transaction "context" in
+ *	a generic sense.  It is also the object of synchronization used by the
+ *	connection object to make sure only one thread is accessing the underlying
+ *	transaction and context.
  *
  *  <P>TransactionResourceImpl not only serves as a transaction "context", it
- *    also takes care of: <OL>
- *    <LI>context management: the pushing and popping of the context manager in
- *        and out of the global context service</LI>
- *    <LI>transaction demarcation: all calls to commit/abort/prepare/close a
- *        transaction must route thru the transaction resource.
- *    <LI>error handling</LI>
- *    </OL>
+ *	also takes care of: <OL>
+ *	<LI>context management: the pushing and popping of the context manager in
+ *		and out of the global context service</LI>
+ *	<LI>transaction demarcation: all calls to commit/abort/prepare/close a
+ *		transaction must route thru the transaction resource.
+ *	<LI>error handling</LI>
+ *	</OL>
  *
  *  <P>The only connection that have access to the TransactionResource is the
  *  root connection, all other nested connections (called proxyConnection)
@@ -76,10 +76,10 @@ import java.util.Properties;
  *  A proxyConnection is not detachable and can itself be a XA connection -
  *  although an XATransaction may start nested local (proxy) connections.
  *
- *    <P> this is an example of how all the objects in this package relate to each
- *        other.  In this example, the connection is nested 3 deep.
- *        DetachableConnection.
- *    <P><PRE>
+ *	<P> this is an example of how all the objects in this package relate to each
+ *		other.  In this example, the connection is nested 3 deep.  
+ *		DetachableConnection.  
+ *	<P><PRE>
  *
  *      lcc  cm   database  jdbcDriver
  *       ^    ^    ^         ^ 
@@ -121,8 +121,8 @@ import java.util.Properties;
 public final class TransactionResourceImpl
 {
     /*
-    ** instance variables set up in the constructor.
-    */
+     ** instance variables set up in the constructor.
+     */
     // conn is only present if TR is attached to a connection
     protected ContextManager cm;
     protected ContextService csf;
@@ -151,9 +151,9 @@ public final class TransactionResourceImpl
      * create a brand new connection for a brand new transaction
      */
     TransactionResourceImpl(
-                            InternalDriver driver,
-                            String url,
-                            Properties info) throws SQLException
+            InternalDriver driver,
+            String url,
+            Properties info) throws SQLException
     {
         this.driver = driver;
         this.sessionProperties = info;
@@ -170,8 +170,8 @@ public final class TransactionResourceImpl
         drdaID = info.getProperty(Attribute.DRDAID_ATTR, null);
         rdbIntTkn = info.getProperty(Attribute.RDBINTTKN_ATTR, null);
         ipAddress = info.getProperty(Property.IP_ADDRESS, null);
-        defaultSchema = info.getProperty("schema", null);
-        String useSparkString = info.getProperty("useSpark",null);
+        defaultSchema = info.getProperty(Property.CONNECTION_SCHEMA, null);
+        String useSparkString = info.getProperty(Property.CONNECTION_USE_SPARK,null);
         if (useSparkString != null) {
             try {
                 useSpark = Boolean.parseBoolean(StringUtil.SQLToUpperCase(useSparkString))?
@@ -183,7 +183,7 @@ public final class TransactionResourceImpl
         } else
             useSpark = DataSetProcessorType.DEFAULT_CONTROL;
 
-        String skipStatsString = info.getProperty("skipStats", null);
+        String skipStatsString = info.getProperty(Property.CONNECTION_SKIP_STATS, null);
         if (skipStatsString != null) {
             try {
                 skipStats = Boolean.parseBoolean(StringUtil.SQLToUpperCase(skipStatsString));
@@ -193,7 +193,7 @@ public final class TransactionResourceImpl
         } else
             skipStats = false;
 
-        String selectivityFactorString = info.getProperty("defaultSelectivityFactor", null);
+        String selectivityFactorString = info.getProperty(Property.CONNECTION_DEFAULT_SELECTIVITY_FACTOR, null);
         if (selectivityFactorString != null) {
             try {
                 skipStats = true;
@@ -227,7 +227,7 @@ public final class TransactionResourceImpl
     {
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(database == null,
-                "setting database when it is not null");
+                    "setting database when it is not null");
 
         database = db;
     }
@@ -338,7 +338,7 @@ public final class TransactionResourceImpl
             SanityManager.ASSERT(cm != null, "setting up null context manager stack");
         }
 
-            csf.setCurrentContextManager(cm);
+        csf.setCurrentContextManager(cm);
     }
 
     final void restoreContextStack() {
@@ -364,11 +364,11 @@ public final class TransactionResourceImpl
             if (SanityManager.DEBUG)
                 SanityManager.ASSERT(thrownException != null);
 
-            /*
-                just pass SQL exceptions right back. We assume that JDBC driver
-                code has cleaned up sufficiently. Not passing them through would mean
-                that all cleanupOnError methods would require knowledge of Utils.
-             */
+			/*
+				just pass SQL exceptions right back. We assume that JDBC driver
+				code has cleaned up sufficiently. Not passing them through would mean
+				that all cleanupOnError methods would require knowledge of Utils.
+			 */
             if (thrownException instanceof SQLException) {
 
                 InterruptStatus.restoreIntrFlagIfSeen();
@@ -384,11 +384,11 @@ public final class TransactionResourceImpl
                 if (severity <= ExceptionSeverity.STATEMENT_SEVERITY)
                 {
                     /*
-                    ** If autocommit is on, then do a rollback
-                    ** to release locks if requested.  We did a stmt
-                    ** rollback in the cleanupOnError above, but we still
-                    ** may hold locks from the stmt.
-                    */
+                     ** If autocommit is on, then do a rollback
+                     ** to release locks if requested.  We did a stmt
+                     ** rollback in the cleanupOnError above, but we still
+                     ** may hold locks from the stmt.
+                     */
                     if (autoCommit && rollbackOnAutoCommit)
                     {
                         se.setSeverity(ExceptionSeverity.TRANSACTION_SEVERITY);
@@ -406,7 +406,7 @@ public final class TransactionResourceImpl
                 //only if a session is active, Login errors are a special case where
                 // the database is active but the session is not.
                 boolean sessionActive = (database != null) && database.isActive() &&
-                    !isLoginException(thrownException);
+                        !isLoginException(thrownException);
                 boolean isShutdown = cleanupOnError(thrownException, sessionActive);
                 if (checkForShutdown && isShutdown) {
                     // Change the error message to be a known shutdown.
@@ -426,12 +426,12 @@ public final class TransactionResourceImpl
 
             InterruptStatus.restoreIntrFlagIfSeen();
 
-            /*
-               We'd rather throw the Throwable,
-               but then javac complains...
-               We assume if we are in this degenerate
-               case that it is actually a java exception
-             */
+			/*
+			   We'd rather throw the Throwable,
+			   but then javac complains...
+			   We assume if we are in this degenerate
+			   case that it is actually a java exception
+			 */
             throw wrapInSQLException(t);
             //throw t;
         }
@@ -445,18 +445,18 @@ public final class TransactionResourceImpl
      * SESSION_SEVERITY and database.isActive() is true, but the 
      * session hasn't started yet,so it is not an actual crash and 
      * should not report extended diagnostics.
-     * 
+     *
      * @param thrownException
      * @return true if this is a login failure exception
      */
     private boolean isLoginException(Throwable thrownException) {
-       if (thrownException instanceof StandardException) {
-           ((StandardException) thrownException).getSQLState().equals(SQLState.LOGIN_FAILED);
-           return true;
-       }
-       return false;
+        if (thrownException instanceof StandardException) {
+            ((StandardException) thrownException).getSQLState().equals(SQLState.LOGIN_FAILED);
+            return true;
+        }
+        return false;
     }
-    
+
     /**
      * Wrap a <code>Throwable</code> in an <code>SQLException</code>.
      *
@@ -495,7 +495,7 @@ public final class TransactionResourceImpl
             // chain. Therefore, call wrapInSQLException() recursively to
             // convert the cause chain into a chain of SQLExceptions.
             return Util.seeNextException(se.getMessageId(),
-                        se.getArguments(), wrapInSQLException(se.getCause()));
+                    se.getArguments(), wrapInSQLException(se.getCause()));
         }
 
         // thrownException is a Java exception
@@ -563,7 +563,7 @@ public final class TransactionResourceImpl
     public void setClientSupportsDecimal38(boolean newVal) {
         if (lcc != null)
             lcc.setClientSupportsDecimal38(newVal);
-        }
+    }
     public String getIpAddress() {
         return ipAddress;
     }

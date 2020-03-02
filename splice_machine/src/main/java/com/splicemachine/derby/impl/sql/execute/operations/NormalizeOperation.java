@@ -286,7 +286,10 @@ public class NormalizeOperation extends SpliceBaseOperation{
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        dsp.incrementOpDepth();
         DataSet<ExecRow> sourceSet=source.getDataSet(dsp);
+        dsp.decrementOpDepth();
+        dsp.prependSpliceExplainString(this.explainPlan);
         OperationContext operationContext=dsp.createOperationContext(this);
         operationContext.pushScope();
         try{

@@ -563,5 +563,9 @@ public interface MethodBuilder {
 		statement number is an approximation without too much overhead.
 	*/
 	boolean statementNumHitLimit(int noStatementsAdded);
+
+	void setSparkExplain(boolean sparkExplain);
+
+	boolean isSparkExplain();
 }
 

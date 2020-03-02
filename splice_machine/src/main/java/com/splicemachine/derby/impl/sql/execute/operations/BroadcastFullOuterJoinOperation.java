@@ -139,13 +139,21 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
                 (dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
                         (restriction == null || hasSparkJoinPredicate()) &&
                         !containsUnsafeSQLRealComparison());
+
+        dsp.incrementOpDepth();
+        if (usesNativeSparkDataSet)
+            dsp.finalizeTempOperationStrings();
+
+        DataSet<ExecRow> leftDataSet;
+        DataSet<ExecRow> rightDataSet;
         if (usesNativeSparkDataSet)
         {
             opContextForLeftJoin = null;
             opContextForAntiJoin = null;
-            DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
+            leftDataSet = leftResultSet.getDataSet(dsp);
             leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
-            DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
+            dsp.finalizeTempOperationStrings();
+            rightDataSet = rightResultSet.getDataSet(dsp);
             result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.FULLOUTER,true);
         }
         else {
@@ -156,7 +164,8 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
 
                 // compute left join
                 BroadcastJoinOperation opCloneForLeftJoin = (BroadcastJoinOperation) opContextForLeftJoin.getOperation();
-                DataSet<ExecRow> leftDataSet = opCloneForLeftJoin.getLeftOperation().getDataSet(dsp).map(new CountJoinedLeftFunction(opContextForLeftJoin));
+                leftDataSet = opCloneForLeftJoin.getLeftOperation().getDataSet(dsp).map(new CountJoinedLeftFunction(opContextForLeftJoin));
+                dsp.finalizeTempOperationStrings();
                 result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(opContextForLeftJoin))
                         .flatMap(new LeftOuterJoinRestrictionFlatMapFunction(opContextForLeftJoin));
 
@@ -165,7 +174,7 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
 
                 DataSet<ExecRow> nonMatchingRightSet = opCloneForAntiJoin.getRightResultSet().getDataSet(dsp).mapPartitions(new CogroupBroadcastJoinFunction(opContextForAntiJoin, true))
                         .flatMap(new LeftAntiJoinRestrictionFlatMapFunction(opContextForAntiJoin, true));
-
+                rightDataSet = nonMatchingRightSet;
                 result = result.union(nonMatchingRightSet, operationContext)
                         .map(new SetCurrentLocatedRowFunction(operationContext));
             } catch (Exception e) {
@@ -174,7 +183,8 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
         }
 
         result = result.map(new CountProducedFunction(operationContext), /*isLast=*/false);
-
+        dsp.decrementOpDepth();
+        handleSparkExplain(result, leftDataSet, rightDataSet, dsp);
 
         return result;
     }

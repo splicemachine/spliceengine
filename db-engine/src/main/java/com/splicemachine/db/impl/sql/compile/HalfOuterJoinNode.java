@@ -923,6 +923,11 @@ public class HalfOuterJoinNode extends JoinNode{
             havingClause.remapColumnReferencesToExpressions();
         }
 
+        if (delayPreprocessingJoinClause()) {
+            // at this point, we haven't preprocessed the join clause yet, do it now and
+            // flatten subquery if any
+            preprocessJoinClause(numTables, fromList, subqueryList, joinPredicates);
+        }
 
         if(!joinPredicates.isEmpty()){
             optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
@@ -952,5 +957,10 @@ public class HalfOuterJoinNode extends JoinNode{
             return false;
 
         return flattenableJoin && (outerJoinLevel == 0);
+    }
+
+    @Override
+    public boolean delayPreprocessingJoinClause() {
+        return false;
     }
 }

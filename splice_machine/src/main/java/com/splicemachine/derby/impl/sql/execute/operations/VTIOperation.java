@@ -318,6 +318,8 @@ public class VTIOperation extends SpliceBaseOperation {
             triggerTransitionRows.finishDeserialization(activation);
         }
 
+        dsp.prependSpliceExplainString(this.explainPlan);
+
         DataSet<ExecRow> sourceSet = getDataSetProvider().getDataSet(this, dsp,getAllocatedRow());
         return sourceSet;
 
