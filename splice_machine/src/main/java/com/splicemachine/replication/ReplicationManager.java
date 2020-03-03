@@ -24,7 +24,7 @@ import java.util.List;
  */
 public interface ReplicationManager {
 
-    void addPeer(short peerId, String peerClusterKey, boolean isSerial) throws StandardException;
+    void addPeer(short peerId, String peerClusterKey) throws StandardException;
     void removePeer(short peerId) throws StandardException;
     void enablePeer(String clusterKey, short peerId, String peerClusterKey) throws StandardException;
     void disablePeer(short peerId) throws StandardException;
