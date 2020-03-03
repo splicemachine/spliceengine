@@ -295,7 +295,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * @return the requested SPS
      * @throws StandardException if an error occurs
      */
-    private SPSDescriptor getSPS(LanguageConnectionContext lcc,
+    private SPSDescriptor getSPS(LanguageConnectionContext lcc, // XXX arnaud return list here
                                  boolean isWhenClause)
             throws StandardException
     {
@@ -343,26 +343,23 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             lcc.popCompilerContext(newCC);
             int[] cols;
             cols = dd.examineTriggerNodeAndCols(stmtnode,
-					oldReferencingName,
-					newReferencingName,
-					originalSQL,
-					referencedCols,
-					referencedColsInTriggerAction,
-                                        0,
-					getTableDescriptor(),
-					null,
-                                        false,
-                                        null);
+                    oldReferencingName,
+                    newReferencingName,
+                    referencedCols,
+                    referencedColsInTriggerAction,
+                    getTableDescriptor(),
+                    null,
+                                        false);
 
             String newText = dd.getTriggerActionString(stmtnode,
-					oldReferencingName,
-					newReferencingName,
-                                        originalSQL,
-					referencedCols,
-					referencedColsInTriggerAction,
-					0,
-					getTableDescriptor(),
-					null,
+                    oldReferencingName,
+                    newReferencingName,
+                    originalSQL,
+                    referencedCols,
+                    referencedColsInTriggerAction,
+                    0,
+                    getTableDescriptor(),
+                    null,
                                         false,
                                         null,
                                         cols);

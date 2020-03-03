@@ -455,11 +455,17 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
 
     @Override
     public ConstantAction getCreateTriggerConstantAction(
-            String triggerSchemaName,String triggerName,TriggerEventDML eventMask,
-            boolean isBefore,boolean isRow,boolean isEnabled,
-            TableDescriptor triggerTable,UUID whenSPSId,String whenText,
-            UUID actionSPSId,String actionText,UUID spsCompSchemaId,
-            Timestamp creationTimestamp,int[] referencedCols,
+            String triggerSchemaName,
+            String triggerName,
+            TriggerEventDML eventMask,
+            boolean isBefore,
+            boolean isRow,
+            boolean isEnabled,
+            TableDescriptor triggerTable,
+            String whenText,
+            String actionText,
+            UUID spsCompSchemaId,
+            int[] referencedCols,
             int[] referencedColsInTriggerAction,
             String originalWhenText,
             String originalActionText,
@@ -467,8 +473,8 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
             String oldReferencingName,String newReferencingName){
         SpliceLogUtils.trace(LOG,"getCreateTriggerConstantAction for trigger {%s.%s}",triggerSchemaName,triggerName);
         return new CreateTriggerConstantOperation(triggerSchemaName,triggerName,
-                eventMask,isBefore,isRow,isEnabled,triggerTable,whenSPSId,
-                whenText,actionSPSId,actionText,spsCompSchemaId,creationTimestamp,
+                eventMask,isBefore,isRow,isEnabled,triggerTable,
+                whenText,actionText,spsCompSchemaId,
                 referencedCols,referencedColsInTriggerAction,
                 originalWhenText, originalActionText,
                 referencingOld,referencingNew,oldReferencingName,newReferencingName);

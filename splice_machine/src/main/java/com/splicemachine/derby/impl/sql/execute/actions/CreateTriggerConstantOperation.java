@@ -64,7 +64,6 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
     private final String originalActionText;
     private final String oldReferencingName;
     private final String newReferencingName;
-    private final Timestamp creationTimestamp;
     private final int[] referencedCols;
     private final int[] referencedColsInTriggerAction;
 
@@ -85,15 +84,11 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
      * @param isRow                         is this a row trigger or statement trigger
      * @param isEnabled                     is this trigger enabled or disabled
      * @param triggerTable                  the table upon which this trigger is defined
-     * @param whenSPSId                     the sps id for the when clause (may be null)
      * @param whenText                      the text of the when clause (may be null)
-     * @param actionSPSId                   the spsid for the trigger action (may be null)
      * @param actionText                    the text of the trigger action
      * @param spsCompSchemaId               the compilation schema for the action and when
      *                                      spses.   If null, will be set to the current default
      *                                      schema
-     * @param creationTimestamp             when was this trigger created?  if null, will be
-     *                                      set to the time that executeConstantAction() is invoked
      * @param referencedCols                what columns does this trigger reference (may be null)
      * @param referencedColsInTriggerAction what columns does the trigger
      *                                      action reference through old/new transition variables
@@ -113,12 +108,9 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
             boolean isRow,
             boolean isEnabled,
             TableDescriptor triggerTable,
-            UUID whenSPSId,
             String whenText,
-            UUID actionSPSId,
             String actionText,
             UUID spsCompSchemaId,
-            Timestamp creationTimestamp,
             int[] referencedCols,
             int[] referencedColsInTriggerAction,
             String originalWhenText,
@@ -136,12 +128,11 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         this.isBefore = isBefore;
         this.isRow = isRow;
         this.isEnabled = isEnabled;
-        this.whenSPSId = whenSPSId;
+        this.whenSPSId = null;
         this.whenText = whenText;
-        this.actionSPSId = actionSPSId;
+        this.actionSPSId = null;
         this.actionText = actionText;
         this.spsCompSchemaId = spsCompSchemaId;
-        this.creationTimestamp = creationTimestamp;
         this.referencedCols = referencedCols;
         this.referencedColsInTriggerAction = referencedColsInTriggerAction;
         this.originalActionText = originalActionText;
@@ -301,7 +292,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
                         triggerTable,
                         whenSPSId,
                         actionSPSId,
-                        creationTimestamp == null ? new Timestamp(System.currentTimeMillis()) : creationTimestamp,
+                        new Timestamp(System.currentTimeMillis()),
                         referencedCols,
                         referencedColsInTriggerAction,
                         originalActionText,
