@@ -41,6 +41,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.procedures.ProcedureUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -60,6 +61,20 @@ import java.util.concurrent.Future;
 public class ReplicationSystemProcedure {
 
     private static Logger LOG = Logger.getLogger(ReplicationSystemProcedure.class);
+
+    public static void REPLICATION_ENABLED(String schemaName, String tableName, ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            schemaName = EngineUtils.validateSchema(schemaName);
+            tableName = EngineUtils.validateTable(tableName);
+            TableDescriptor td = SpliceRegionAdmin.getTableDescriptor(schemaName, tableName);
+            long conglomerateId = td.getHeapConglomerateId();
+            PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+            boolean enabled = admin.replicationEnabled(Long.toString(conglomerateId));
+            resultSets[0] = ProcedureUtils.generateResult("Enabled", enabled?"TRUE":"FALSE");
+        } catch (Exception e) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
+        }
+    }
 
     public static void GET_REPLICATED_WAL_POSITION(String wal, ResultSet[] resultSets) throws StandardException, SQLException {
         ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
@@ -135,14 +150,13 @@ public class ReplicationSystemProcedure {
     public static void ADD_PEER(short peerId,
                                 String peerClusterKey,
                                 boolean enabled,
-                                boolean isSerial,
                                 ResultSet[] resultSets) throws StandardException, SQLException {
         try {
             String clusterKey = getClusterKey();
 
             // Add peer first
             ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
-            replicationManager.addPeer(peerId, peerClusterKey, isSerial);
+            replicationManager.addPeer(peerId, peerClusterKey);
 
             String replicationMonitorQuorum = SIDriver.driver().getConfiguration().getReplicationMonitorQuorum();
             if (replicationMonitorQuorum != null) {

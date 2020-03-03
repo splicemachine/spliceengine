@@ -1352,7 +1352,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .smallint("peerId")
                             .varchar("clusterKey", 32672)
                             .arg("enabled", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                            .arg("isSerial", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
                             .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
                             .build();
                     procedures.add(addPeer);
@@ -1491,6 +1490,15 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
                             .build();
                     procedures.add(getWalPosition);
+
+                    Procedure replicationEnabled = Procedure.newBuilder().name("REPLICATION_ENABLED")
+                            .numOutputParams(0)
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(replicationEnabled);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)
