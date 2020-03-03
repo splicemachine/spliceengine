@@ -18,6 +18,7 @@ import com.splicemachine.access.api.GetOldestActiveTransactionTask;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.MoreExecutors;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -42,7 +43,10 @@ public class TransactionsWatcher {
             MoreExecutors.namedSingleThreadScheduledExecutor("hbase-transactions-watcher-%d");
 
     private static final Runnable updater = () -> {
-        long fetchTimestamp = SIDriver.driver().getTimestampSource().nextTimestamp();
+        String role = SIDriver.driver().lifecycleManager().getReplicationRole();
+        boolean isSlave = role.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0;
+        long fetchTimestamp = isSlave ? SIDriver.driver().getTimestampSource().currentTimestamp() :
+                SIDriver.driver().getTimestampSource().nextTimestamp();
         long oldestActiveTransaction = fetchOldestActiveTransaction();
         if (oldestActiveTransaction == Long.MAX_VALUE) {
             lowWatermarkTransaction.set(fetchTimestamp);
