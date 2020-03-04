@@ -33,6 +33,7 @@ import java.io.IOException;
  * Date: 6/18/14
  */
 public class ActiveTxnCacheSupplier implements TxnSupplier {
+    private static final int CACHE_DEFAULT_CONCURRENCY_LEVEL = 4;
     private final Cache<Long,TxnView> cache;
     private final TxnSupplier delegate;
 
@@ -41,7 +42,8 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
     }
 
     public ActiveTxnCacheSupplier(TxnSupplier delegate, int initialSize, int maxSize, boolean threadSafe) {
-        this.cache = CacheBuilder.newBuilder().initialCapacity(initialSize).maximumSize(maxSize).concurrencyLevel(threadSafe ? 32 : 1).build();
+        this.cache = CacheBuilder.newBuilder().initialCapacity(initialSize).maximumSize(maxSize)
+                .concurrencyLevel(threadSafe ? CACHE_DEFAULT_CONCURRENCY_LEVEL : 1).build();
         this.delegate = delegate;
     }
 
