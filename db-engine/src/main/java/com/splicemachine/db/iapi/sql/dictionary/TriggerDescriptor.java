@@ -89,9 +89,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     private boolean referencingNew;
     private TableDescriptor td;
     private UUID actionSPSId;
-    private SPSDescriptor actionSPS;
     private UUID whenSPSId;
-    private SPSDescriptor whenSPS;
     private boolean isEnabled;
     private int[] referencedCols;
     private int[] referencedColsInTriggerAction;
@@ -303,24 +301,21 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     {
         boolean isWhenClause = index == -1;
         DataDictionary dd = getDataDictionary();
-        SPSDescriptor sps = isWhenClause ? whenSPS : actionSPS;
         UUID spsId = isWhenClause ? whenSPSId : actionSPSId;
         String originalSQL = isWhenClause ? whenClauseText : triggerDefinitionList.get(index);
 
-        if (sps == null) {
-            //bug 4821 - do the sysstatement look up in a nested readonly
-            //transaction rather than in the user transaction. Because of
-            //this, the nested compile transaction which is attempting to
-            //compile the trigger will not run into any locking issues with
-            //the user transaction for sysstatements.
+        //bug 4821 - do the sysstatement look up in a nested readonly
+        //transaction rather than in the user transaction. Because of
+        //this, the nested compile transaction which is attempting to
+        //compile the trigger will not run into any locking issues with
+        //the user transaction for sysstatements.
 
-            // KDW -- nested transaction for SPS retrieval not necessary for splice.  I hope.  This would
-            // fail for row trigger that were executing on remote nodes with SpliceTransactionView with which we
-            // cannot begin a new txn.
-            //  lcc.beginNestedTransaction(true);
-            sps = dd.getSPSDescriptor(spsId);
-            // lcc.commitNestedTransaction();
-        }
+        // KDW -- nested transaction for SPS retrieval not necessary for splice.  I hope.  This would
+        // fail for row trigger that were executing on remote nodes with SpliceTransactionView with which we
+        // cannot begin a new txn.
+        //  lcc.beginNestedTransaction(true);
+        SPSDescriptor sps = dd.getSPSDescriptor(spsId); // XXX arnaud
+        // lcc.commitNestedTransaction();
 
         //We need to regenerate the trigger action sql if
         //1)the trigger is found to be invalid,

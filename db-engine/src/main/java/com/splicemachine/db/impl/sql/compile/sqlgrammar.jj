@@ -13673,22 +13673,46 @@ actionStatement(Token[] tokenHolder, HashSet<String> hs) throws StandardExceptio
 }
 
 StatementNode
-triggerActions(Token[] tokenHolder, MutableInt endOffset, HashSet<String> hs) throws StandardException :
+triggerActions(Token[] tokenHolder,
+               HashSet<String> hs,
+               Boolean isBefore,
+               List<String> actionTextList) throws StandardException :
 {
     StatementNode actionNode = null;
     Token endPosition;
+    int endOffset;
 }
 {
+(
     <BEGIN> <ATOMIC> actionNode = actionStatement(tokenHolder, hs)
     endPosition = <SEMICOLON>
     <END>
     {
-        endOffset.setValue(endPosition.beginOffset - 1);
-        return actionNode;
+        endOffset = endPosition.beginOffset - 1;
     }
 |
     actionNode = actionStatement(tokenHolder, hs)
     {
+        endOffset = getToken(0).endOffset;
+    }
+)
+    {
+        // No DML in action node for BEFORE triggers.
+        if (isBefore.booleanValue() && (actionNode instanceof DMLModStatementNode)) {
+                throw StandardException.newException(
+                    SQLState.LANG_UNSUPPORTED_TRIGGER_STMT,
+                    ((StatementNode) actionNode).statementToString(), "BEFORE");
+                    }
+
+        if (actionNode instanceof SetNode && !isBefore)
+            throw StandardException.newException(SQLState.LANG_UNSUPPORTED_TRIGGER_STMT, "SET", "AFTER");
+
+        actionNode.setBeginOffset(tokenHolder[0].beginOffset);
+        actionNode.setEndOffset(endOffset);
+
+        actionTextList.add(StringUtil.slice(
+                statementSQLText, actionNode.getBeginOffset(), actionNode.getEndOffset(), false));
+
         return actionNode;
     }
 }
@@ -13704,21 +13728,17 @@ triggerDefinition() throws StandardException :
     Token               beginToken;
     Token               checkTok = null;
     Token               endToken;
-    int                 actionBegin;
-    int                 actionEnd;
     TriggerEventDML     triggerEvent;
     StatementNode       actionNode;
     StatementListNode   actionNodeList = (StatementListNode) nodeFactory.getNode(C_NodeTypes.STATEMENT_LIST_NODE, getContextManager());
+    List<String>        actionTextList = new ArrayList();
     ValueNode           whenClause = null;
     Token               whenOpen = null;
     Token               whenClose = null;
-    int                 whenOffset = 0;
-    int                 whenEnd = 0;
     ResultColumnList    triggerColumns = (ResultColumnList) nodeFactory.getNode(
                                             C_NodeTypes.RESULT_COLUMN_LIST,
                                             getContextManager());
     Vector                refClause = null;
-    MutableInt            endOffset = new MutableInt(-1);
     HashSet<String>     hs = new HashSet<String>();
 }
 {
@@ -13731,22 +13751,9 @@ triggerDefinition() throws StandardException :
         [ <MODE> <DB2SQL> ]
         [ <WHEN> whenOpen = <LEFT_PAREN> whenClause = valueExpression() whenClose = <RIGHT_PAREN> ]
         //we are not top level statement
-        actionNode = triggerActions(tokenHolder, endOffset, hs)
+        actionNode = triggerActions(tokenHolder, hs, isBefore, actionTextList)
         // the trigger body
     {
-        actionEnd = endOffset.intValue() != -1 ? endOffset.intValue() : getToken(0).endOffset;
-        actionBegin = tokenHolder[0].beginOffset;
-        actionNode.setBeginOffset(actionBegin);
-        actionNode.setEndOffset(actionEnd);
-
-        // No DML in action node for BEFORE triggers.
-        if (isBefore.booleanValue() && (actionNode instanceof DMLModStatementNode)) {
-                throw StandardException.newException(
-                    SQLState.LANG_UNSUPPORTED_TRIGGER_STMT,
-                    ((StatementNode) actionNode).statementToString(), "BEFORE");
-                    }
-
-
         // no params in trigger action
          HasNodeVisitor visitor = new HasNodeVisitor(ParameterNode.class);
         actionNode.accept(visitor);
@@ -13757,28 +13764,20 @@ triggerDefinition() throws StandardException :
         {
             throw StandardException.newException(SQLState.LANG_NO_PARAMS_IN_TRIGGER_ACTION);
         }
-        if (actionNode instanceof SetNode && !isBefore)
-            throw StandardException.newException(SQLState.LANG_UNSUPPORTED_TRIGGER_STMT, "SET", "AFTER");
-
-        String actionText = StringUtil.slice(
-                statementSQLText, actionBegin, actionEnd, false);
 
         String whenText = null;
         if (whenClause != null) {
-            whenOffset = whenOpen.endOffset + 1;
-            whenEnd = whenClose.beginOffset - 1;
-            whenClause.setBeginOffset(whenOffset);
-            whenClause.setEndOffset(whenEnd);
+            whenClause.setBeginOffset(whenOpen.endOffset + 1);
+            whenClause.setEndOffset(whenClose.beginOffset - 1);
             whenText = StringUtil.slice(statementSQLText,
-                                        whenOffset, whenEnd, false);
+                                        whenClause.getBeginOffset(),
+                                        whenClause.getEndOffset(),
+                                        false);
         }
 
         actionNodeList.addStatement(actionNode);
         actionNodeList.setBeginOffset(actionNodeList.get(0).getBeginOffset());
         actionNodeList.setEndOffset(actionNodeList.get(actionNodeList.size() - 1).getEndOffset());
-
-        List<String> actionTextList = new ArrayList();
-        actionTextList.add(actionText);
 
         return (StatementNode) nodeFactory.getNode(
                                 C_NodeTypes.CREATE_TRIGGER_NODE,
@@ -13792,10 +13791,8 @@ triggerDefinition() throws StandardException :
                                 refClause,            // referencing clause
                                 whenClause,  // when clause node
                                 whenText,    // when clause text
-                                ReuseFactory.getInteger(whenOffset),  // when clause begin offset
                                 actionNodeList,
                                 actionTextList,
-                                ReuseFactory.getInteger(actionBegin),
                                 getContextManager());
     }
 }

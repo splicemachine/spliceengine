@@ -72,8 +72,6 @@ public class CreateTriggerNode extends DDLStatementNode {
     private StatementListNode actionNodeList;
     private List<String> actionTextList;
     private List<String> originalActionTextList; // text w/o trim of spaces
-    private int actionOffset;
-    private int whenOffset;
 
     private SchemaDescriptor triggerSchemaDescriptor;
     private SchemaDescriptor compSchemaDescriptor;
@@ -262,10 +260,8 @@ public class CreateTriggerNode extends DDLStatementNode {
      * @param refClause        the referencing clause
      * @param whenClause       the WHEN clause tree
      * @param whenText         the text of the WHEN clause
-     * @param whenOffset       offset of start of WHEN clause
      * @param actionNodeList   the trigger action tree
      * @param actionTextList   the text of the trigger action
-     * @param actionOffset     offset of start of action clause
      */
     @Override
     public void init(
@@ -279,10 +275,8 @@ public class CreateTriggerNode extends DDLStatementNode {
             Object refClause,
             Object whenClause,
             Object whenText,
-            Object whenOffset,
             Object actionNodeList,
-            Object actionTextList,
-            Object actionOffset) throws StandardException {
+            Object actionTextList) throws StandardException {
         initAndCheck(triggerName);
         this.triggerName = (TableName) triggerName;
         this.tableName = (TableName) tableName;
@@ -297,8 +291,6 @@ public class CreateTriggerNode extends DDLStatementNode {
         this.whenText = (whenText == null) ? null : ((String) whenText).trim();
         this.actionNodeList = (StatementListNode) actionNodeList;
         this.originalActionTextList = (List<String>) actionTextList;
-        this.actionOffset = (Integer) actionOffset;
-        this.whenOffset   = (Integer) whenOffset;
 
         assert this.actionNodeList.size() == originalActionTextList.size();
 
@@ -793,7 +785,7 @@ public class CreateTriggerNode extends DDLStatementNode {
                         originalActionTextList.get(i),
                         referencedColInts,
                         referencedColsInTriggerAction,
-                        actionOffset,
+                        actionNodeList.get(i).getBeginOffset(),
                         triggerTableDescriptor,
                         triggerEventMask,
                         true,
@@ -807,7 +799,7 @@ public class CreateTriggerNode extends DDLStatementNode {
                     getDataDictionary().getTriggerActionString(
                             whenClause, oldTableName, newTableName,
                             originalWhenText, referencedColInts,
-                            referencedColsInTriggerAction, whenOffset,
+                            referencedColsInTriggerAction, whenClause.getBeginOffset(),
                             triggerTableDescriptor, triggerEventMask, true,
                             whenClauseTransformations, cols);
             }
