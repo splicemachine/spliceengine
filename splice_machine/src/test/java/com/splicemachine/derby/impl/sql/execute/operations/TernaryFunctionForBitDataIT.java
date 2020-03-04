@@ -163,8 +163,11 @@ public class TernaryFunctionForBitDataIT extends SpliceUnitTest {
                     rs = methodWatcher.executeQuery(sqlText);
                     Assert.assertEquals("\nlocate(" + col2 + "," + col1 + "):" + sqlText + "\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
                     rs.close();
+
+                    Assert.assertFalse("locate(" + col2 + "," + col1 + ") should fail!", (col2.equals("b3") || col2.equals("b4")) && col1.equals("a5"));
+
                 } catch (SQLSyntaxErrorException e) {
-                    // it is expected that long varchar and clob are not compared with bit data type
+                    // it is expected that long varchar and clob can not be compared with bit data type
                     if ((col2.equals("b3") || col2.equals("b4")) && col1.equals("a5"))
                         Assert.assertEquals("locate(" + col2 + "," + col1 + "):" + e.getMessage(), SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, e.getSQLState());
                     else
@@ -208,8 +211,11 @@ public class TernaryFunctionForBitDataIT extends SpliceUnitTest {
                     rs = methodWatcher.executeQuery(sqlText);
                     Assert.assertEquals("\nlocate(" + col2 + "," + col1 + "):" + sqlText + "\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
                     rs.close();
+
+                    Assert.assertFalse("locate(" + col2 + "," + col1 + ") should fail!", (col1.equals("a3") || col1.equals("a4")) && col2.equals("b5"));
+
                 } catch (SQLSyntaxErrorException e) {
-                    // it is expected that long varchar and clob are not compared with bit data type
+                    // it is expected that long varchar and clob can not be compared with bit data type
                     if ((col1.equals("a3") || col1.equals("a4")) && col2.equals("b5"))
                         Assert.assertEquals("locate(" + col2 + "," + col1 + "):" + e.getMessage(), SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, e.getSQLState());
                     else
@@ -255,8 +261,13 @@ public class TernaryFunctionForBitDataIT extends SpliceUnitTest {
                     rs = methodWatcher.executeQuery(sqlText);
                     Assert.assertEquals("\nlocate(" + col2 + "," + col1 + "):" + sqlText + "\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
                     rs.close();
+
+                    Assert.assertFalse("locate(" + col2 + "," + col1 + ") should fail!",
+                  (col1.equals("a3") || col1.equals("a4")) && (col2.equals("b6") || col2.equals("b7") || col2.equals("b8")) ||
+                            (col2.equals("b3") || col2.equals("b4")) && (col1.equals("a6") || col1.equals("a7") || col1.equals("a8")));
+
                 } catch (SQLSyntaxErrorException e) {
-                    // it is expected that long varchar and clob are not compared with bit data type
+                    // it is expected that long varchar and clob can not be compared with bit data type
                     if ((col1.equals("a3") || col1.equals("a4")) && (col2.equals("b6") || col2.equals("b7") || col2.equals("b8")) ||
                         (col2.equals("b3") || col2.equals("b4")) && (col1.equals("a6") || col1.equals("a7") || col1.equals("a8")))
                         Assert.assertEquals("locate(" + col2 + "," + col1 + "):" + e.getMessage(), SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, e.getSQLState());
@@ -269,107 +280,91 @@ public class TernaryFunctionForBitDataIT extends SpliceUnitTest {
 
     @Test
     public void testLocateParameterizedQuery1() throws Exception {
-        ResultSet rs = null;
         String sqlText = format("select id, '-' || a2 || '-', locate(?, a5) from t1 --splice-properties useSpark=%s\n order by id", useSpark);
-        try {
-            PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
+        try (PreparedStatement ps = methodWatcher.prepareStatement(sqlText)) {
             ps.setBytes(1, "ac".getBytes());
-            rs = ps.executeQuery();
+            try (ResultSet rs = ps.executeQuery()) {
 
-            String expected = "ID |    2     |  3  |\n" +
-                    "---------------------\n" +
-                    " 1 |-abac bc- |  3  |\n" +
-                    " 2 |-abac bc- |  3  |\n" +
-                    " 3 |-abac bc- |  3  |\n" +
-                    " 4 |  -ab-    |  0  |\n" +
-                    " 5 |   --     |  0  |\n" +
-                    " 6 |  -ab-    |  0  |\n" +
-                    " 7 |  NULL    |NULL |";
+                String expected = "ID |    2     |  3  |\n" +
+                        "---------------------\n" +
+                        " 1 |-abac bc- |  3  |\n" +
+                        " 2 |-abac bc- |  3  |\n" +
+                        " 3 |-abac bc- |  3  |\n" +
+                        " 4 |  -ab-    |  0  |\n" +
+                        " 5 |   --     |  0  |\n" +
+                        " 6 |  -ab-    |  0  |\n" +
+                        " 7 |  NULL    |NULL |";
 
-            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        } finally {
-            if (rs != null)
-                rs.close();
+                Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
         }
     }
 
     @Test
     public void testLocateParameterizedQuery2() throws Exception {
         /* similar to testLocateParameterizedQuery1, but pass in the parameter as a string instead of bytes */
-        ResultSet rs = null;
         String sqlText = format("select id, '-' || a2 || '-', locate(?, a5) from t1 --splice-properties useSpark=%s\n order by id", useSpark);
-        try {
-            PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
+        try (PreparedStatement ps = methodWatcher.prepareStatement(sqlText)) {
             ps.setObject(1, "ac");
-            rs = ps.executeQuery();
+            try (ResultSet rs = ps.executeQuery()) {
 
-            String expected = "ID |    2     |  3  |\n" +
-                    "---------------------\n" +
-                    " 1 |-abac bc- |  3  |\n" +
-                    " 2 |-abac bc- |  3  |\n" +
-                    " 3 |-abac bc- |  3  |\n" +
-                    " 4 |  -ab-    |  0  |\n" +
-                    " 5 |   --     |  0  |\n" +
-                    " 6 |  -ab-    |  0  |\n" +
-                    " 7 |  NULL    |NULL |";
+                String expected = "ID |    2     |  3  |\n" +
+                        "---------------------\n" +
+                        " 1 |-abac bc- |  3  |\n" +
+                        " 2 |-abac bc- |  3  |\n" +
+                        " 3 |-abac bc- |  3  |\n" +
+                        " 4 |  -ab-    |  0  |\n" +
+                        " 5 |   --     |  0  |\n" +
+                        " 6 |  -ab-    |  0  |\n" +
+                        " 7 |  NULL    |NULL |";
 
-            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        } finally {
-            if (rs != null)
-                rs.close();
+                Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
         }
     }
 
     @Test
     public void testLocateParameterizedQuery3() throws Exception {
-        ResultSet rs = null;
         String sqlText = format("select id, '-' || b2 || '-', locate(b6, ?) from t1 --splice-properties useSpark=%s\n order by id", useSpark);
-        try {
-            PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
+        try (PreparedStatement ps = methodWatcher.prepareStatement(sqlText)) {
             ps.setBytes(1, "abc".getBytes());
-            rs = ps.executeQuery();
+            try (ResultSet rs = ps.executeQuery()) {
 
-            String expected = "ID |  2   |  3  |\n" +
-                    "-----------------\n" +
-                    " 1 |-aaa- |  0  |\n" +
-                    " 2 |-ab-  |  1  |\n" +
-                    " 3 |-bc-  |  2  |\n" +
-                    " 4 |NULL  |NULL |\n" +
-                    " 5 |NULL  |NULL |\n" +
-                    " 6 | --   |  1  |\n" +
-                    " 7 |-aa-  |  0  |";
+                String expected = "ID |  2   |  3  |\n" +
+                        "-----------------\n" +
+                        " 1 |-aaa- |  0  |\n" +
+                        " 2 |-ab-  |  1  |\n" +
+                        " 3 |-bc-  |  2  |\n" +
+                        " 4 |NULL  |NULL |\n" +
+                        " 5 |NULL  |NULL |\n" +
+                        " 6 | --   |  1  |\n" +
+                        " 7 |-aa-  |  0  |";
 
-            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        } finally {
-            if (rs != null)
-                rs.close();
+                Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
         }
     }
 
     @Test
     public void testLocateParameterizedQuery4() throws Exception {
-        ResultSet rs = null;
         String sqlText = format("select id, '-' || b2 || '-', locate(?, ?) from t1 --splice-properties useSpark=%s\n order by id", useSpark);
-        try {
-            PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
+        try (PreparedStatement ps = methodWatcher.prepareStatement(sqlText)) {
             ps.setBytes(1, "abc".getBytes());
             ps.setBytes(2, "cbaabc".getBytes());
-            rs = ps.executeQuery();
+            try (ResultSet rs = ps.executeQuery()) {
 
-            String expected = "ID |  2   | 3 |\n" +
-                    "---------------\n" +
-                    " 1 |-aaa- | 4 |\n" +
-                    " 2 |-ab-  | 4 |\n" +
-                    " 3 |-bc-  | 4 |\n" +
-                    " 4 |NULL  | 4 |\n" +
-                    " 5 |NULL  | 4 |\n" +
-                    " 6 | --   | 4 |\n" +
-                    " 7 |-aa-  | 4 |";
+                String expected = "ID |  2   | 3 |\n" +
+                        "---------------\n" +
+                        " 1 |-aaa- | 4 |\n" +
+                        " 2 |-ab-  | 4 |\n" +
+                        " 3 |-bc-  | 4 |\n" +
+                        " 4 |NULL  | 4 |\n" +
+                        " 5 |NULL  | 4 |\n" +
+                        " 6 | --   | 4 |\n" +
+                        " 7 |-aa-  | 4 |";
 
-            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        } finally {
-            if (rs != null)
-                rs.close();
+                Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
         }
     }
 }
