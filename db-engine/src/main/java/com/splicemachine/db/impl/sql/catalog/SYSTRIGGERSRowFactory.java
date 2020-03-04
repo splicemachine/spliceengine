@@ -63,6 +63,8 @@ import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSTRIGGERS row.
@@ -91,8 +93,9 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
     public static final int SYSTRIGGERS_OLDREFERENCINGNAME = 16;
     public static final int SYSTRIGGERS_NEWREFERENCINGNAME = 17;
     public static final int SYSTRIGGERS_WHENCLAUSETEXT = 18;
+    public static final int SYSTRIGGERS_TRIGGERDEFINITIONLIST = 19;
 
-    public static final int SYSTRIGGERS_COLUMN_COUNT = SYSTRIGGERS_WHENCLAUSETEXT;
+    public static final int SYSTRIGGERS_COLUMN_COUNT = SYSTRIGGERS_TRIGGERDEFINITIONLIST;
 
     public static final int SYSTRIGGERS_INDEX1_ID = 0;
     public static final int SYSTRIGGERS_INDEX2_ID = 1;
@@ -177,7 +180,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
         String time = null;
         String type = null;
         String enabled = null;
-        String triggerDefinition = null;
+        List<String> triggerDefinitionList = null;
         String oldReferencingName = null;
         String newReferencingName = null;
         ReferencedColumns rcd = null;
@@ -205,7 +208,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
 
             actionSPSID = triggerDescriptor.getActionId();
             whenSPSID = triggerDescriptor.getWhenClauseId();
-            triggerDefinition = triggerDescriptor.getTriggerDefinition();
+            triggerDefinitionList = triggerDescriptor.getTriggerDefinitionList();
             referencingOld = triggerDescriptor.getReferencingOld();
             referencingNew = triggerDescriptor.getReferencingNew();
             oldReferencingName = triggerDescriptor.getOldReferencingName();
@@ -255,7 +258,8 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
         row.setColumn(12, new UserType(rcd));
 
         /* 13th column is TRIGGERDEFINITION */
-        row.setColumn(13, dvf.getLongvarcharDataValue(triggerDefinition));
+        row.setColumn(13, dvf.getLongvarcharDataValue(
+                triggerDefinitionList != null && triggerDefinitionList.size() == 1 ? triggerDefinitionList.get(0) : null));
 
         /* 14th column is REFERENCINGOLD */
         row.setColumn(14, new SQLBoolean(referencingOld));
@@ -272,6 +276,12 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
         /* 18th column is WHENCLAUSETEXT */
         if (row.nColumns() >= 18) {
             row.setColumn(18, dvf.getLongvarcharDataValue(whenClauseText));
+        }
+
+        /* 19th column is TRIGGERDEFINITIONLIST */
+        if (row.nColumns() >= 19) {
+            row.setColumn(19, new UserType(
+                    triggerDefinitionList != null && triggerDefinitionList.size() > 1 ? triggerDefinitionList : null));
         }
 
         return row;
@@ -301,7 +311,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
         String name;
         char theChar;
         String uuidStr;
-        String triggerDefinition;
+        List<String> triggerDefinitionList = null;
         String oldReferencingName;
         String newReferencingName;
         UUID uuid;
@@ -395,7 +405,11 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
 
         // 13th column is TRIGGERDEFINITION (longvarhar)
         col = row.getColumn(13);
-        triggerDefinition = col.getString();
+        String triggerDefinition = col.getString();
+        if (triggerDefinition != null) {
+            triggerDefinitionList = new ArrayList<>();
+            triggerDefinitionList.add(triggerDefinition);
+        }
 
         // 14th column is REFERENCINGOLD (boolean)
         col = row.getColumn(14);
@@ -415,9 +429,14 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
 
         // 18th column is WHENCLAUSETEXT (longvarchar)
         String whenClauseText = null;
-        if (row.nColumns() >= 18) {
-            col = row.getColumn(18);
-            whenClauseText = col.getString();
+        col = row.getColumn(18);
+        whenClauseText = col.getString();
+
+        // 19th column is TRIGGERDEFINITIONLIST(user type List<String>)
+        col = row.getColumn(19);
+        if (col.getObject() != null) {
+            assert triggerDefinitionList == null: "TriggerDefinitionList and TriggerDefinition can never both be defined";
+            triggerDefinitionList = (List<String>) col;
         }
         descriptor = new TriggerDescriptor(
                 dd,
@@ -434,7 +453,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
                 createTime,
                 (rcd == null) ?  null : rcd.getReferencedColumnPositions(),
                 (rcd == null) ?  null : rcd.getTriggerActionReferencedColumnPositions(),
-                triggerDefinition,
+                triggerDefinitionList,
                 referencingOld,
                 referencingNew,
                 oldReferencingName,
@@ -475,8 +494,8 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("REFERENCINGNEW", Types.BOOLEAN, true),
                 SystemColumnImpl.getIdentifierColumn("OLDREFERENCINGNAME", true),
                 SystemColumnImpl.getIdentifierColumn("NEWREFERENCINGNAME", true),
-                SystemColumnImpl.getColumn("WHENCLAUSETEXT",
-                                    Types.LONGVARCHAR, true, Integer.MAX_VALUE),
+                SystemColumnImpl.getColumn("WHENCLAUSETEXT", Types.LONGVARCHAR, true, Integer.MAX_VALUE),
+                SystemColumnImpl.getJavaColumn("TRIGGERDEFINITIONLIST", "java.util.List", true)
         };
     }
 
@@ -494,12 +513,4 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
             return true;
         }
     }
-
-    @Override
-    public int getHeapColumnCount() {
-        boolean supportsWhenClause = true;
-        int heapCols = super.getHeapColumnCount();
-        return supportsWhenClause ? heapCols : (heapCols - 1);
-    }
-
 }

@@ -474,9 +474,9 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
         SpliceLogUtils.trace(LOG,"getCreateTriggerConstantAction for trigger {%s.%s}",triggerSchemaName,triggerName);
         return new CreateTriggerConstantOperation(triggerSchemaName,triggerName,
                 eventMask,isBefore,isRow,isEnabled,triggerTable,
-                whenText,actionTextList.get(0),spsCompSchemaId, //XXX arnaud
+                whenText,actionTextList,spsCompSchemaId,
                 referencedCols,referencedColsInTriggerAction,
-                originalWhenText, originalActionTextList.get(0), //XXX arnaud
+                originalWhenText, originalActionTextList,
                 referencingOld,referencingNew,oldReferencingName,newReferencingName);
     }
 

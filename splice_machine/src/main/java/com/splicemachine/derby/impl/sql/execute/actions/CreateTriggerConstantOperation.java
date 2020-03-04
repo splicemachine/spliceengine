@@ -40,6 +40,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 /**
  * This class  describes actions that are ALWAYS performed for a
@@ -59,9 +60,9 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
     private final boolean referencingNew;
     private       UUID   whenSPSId;
     private final String whenText;
-    private final String actionText;
+    private final List<String> actionTextList;
     private final String originalWhenText;
-    private final String originalActionText;
+    private final List<String> originalActionTextList;
     private final String oldReferencingName;
     private final String newReferencingName;
     private final int[] referencedCols;
@@ -85,7 +86,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
      * @param isEnabled                     is this trigger enabled or disabled
      * @param triggerTable                  the table upon which this trigger is defined
      * @param whenText                      the text of the when clause (may be null)
-     * @param actionText                    the text of the trigger action
+     * @param actionTextList                the texts of the trigger actions
      * @param spsCompSchemaId               the compilation schema for the action and when
      *                                      spses.   If null, will be set to the current default
      *                                      schema
@@ -93,7 +94,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
      * @param referencedColsInTriggerAction what columns does the trigger
      *                                      action reference through old/new transition variables
      *                                      (may be null)
-     * @param originalActionText            The original user text of the trigger action
+     * @param originalActionTextList        The original user texts of the trigger actions
      * @param referencingOld                whether or not OLD appears in REFERENCING clause
      * @param referencingNew                whether or not NEW appears in REFERENCING clause
      * @param oldReferencingName            old referencing table name, if any, that appears in REFERENCING clause
@@ -109,12 +110,12 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
             boolean isEnabled,
             TableDescriptor triggerTable,
             String whenText,
-            String actionText,
+            List<String> actionTextList,
             UUID spsCompSchemaId,
             int[] referencedCols,
             int[] referencedColsInTriggerAction,
             String originalWhenText,
-            String originalActionText,
+            List<String> originalActionTextList,
             boolean referencingOld,
             boolean referencingNew,
             String oldReferencingName,
@@ -131,11 +132,11 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         this.whenSPSId = null;
         this.whenText = whenText;
         this.actionSPSId = null;
-        this.actionText = actionText;
+        this.actionTextList = actionTextList;
         this.spsCompSchemaId = spsCompSchemaId;
         this.referencedCols = referencedCols;
         this.referencedColsInTriggerAction = referencedColsInTriggerAction;
-        this.originalActionText = originalActionText;
+        this.originalActionTextList = originalActionTextList;
         this.originalWhenText = originalWhenText;
         this.referencingOld = referencingOld;
         this.referencingNew = referencingNew;
@@ -144,7 +145,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(triggerSchemaName != null, "triggerSchemaName sd is null");
             SanityManager.ASSERT(triggerName != null, "trigger name is null");
-            SanityManager.ASSERT(actionText != null, "actionText is null");
+            SanityManager.ASSERT(!actionTextList.isEmpty(), "actionTextList is empty");
         }
     }
 
@@ -266,7 +267,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         */
         UUID tmpTriggerId = dd.getUUIDFactory().createUUID();
 
-        actionSPSId = (actionSPSId == null) ?
+        actionSPSId = (actionSPSId == null) ? //XXX arnaud
                 dd.getUUIDFactory().createUUID() : actionSPSId;
 
         if (whenSPSId == null && whenText != null) {
@@ -295,7 +296,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
                         new Timestamp(System.currentTimeMillis()),
                         referencedCols,
                         referencedColsInTriggerAction,
-                        originalActionText,
+                        originalActionTextList,
                         referencingOld,
                         referencingNew,
                         oldReferencingName,
@@ -316,14 +317,14 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
             // SQL statement. Turn in into a VALUES statement.
             String whenValuesStmt = "VALUES ( " + whenText + " )";
             whenspsd = createSPS(lcc, ddg, dd, tc, tmpTriggerId, triggerSd,
-                    whenSPSId, spsCompSchemaId, whenValuesStmt, true, triggerTable);
+                    whenSPSId, spsCompSchemaId, whenValuesStmt, -1, triggerTable);
         }
 
         /*
         ** Create the trigger action
         */
         actionspsd = createSPS(lcc, ddg, dd, tc, tmpTriggerId, triggerSd,
-                actionSPSId, spsCompSchemaId, actionText, false, triggerTable);
+                actionSPSId, spsCompSchemaId, actionTextList.get(0), 0, triggerTable); // XXX arnaud
         
         /*
         ** Make underlying spses dependent on the trigger.
@@ -336,7 +337,6 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         //store trigger's dependency on various privileges in the dependency system
         storeViewTriggerDependenciesOnPrivileges(activation, triggerd);
     }
-
 
     /*
     ** Create an sps that is used by the trigger.
@@ -351,11 +351,12 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
             UUID spsId,
             UUID compSchemaId,
             String text,
-            boolean isWhen,
+            int index,
             TableDescriptor triggerTable) throws StandardException {
 
         SpliceLogUtils.trace(LOG, "createSPS with text {%s} on table {%s}", text, triggerTable);
 
+        boolean isWhen = index == -1;
         if (text == null)
             return null;
 
@@ -364,7 +365,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         ** Dont change it arbitrarily -- see sps code.
         */
         String spsName = "TRIGGER" +
-                (isWhen ? "WHEN_" : "ACTN_") +
+                (isWhen ? "WHEN_" : "ACTN_") + //XXX arnaud
                 triggerId + "_" + triggerTable.getUUID().toString();
 
         SPSDescriptor spsd = new SPSDescriptor(dd, spsName,

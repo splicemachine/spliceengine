@@ -59,6 +59,8 @@ import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A trigger.
@@ -78,7 +80,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     private String name;
     private String oldReferencingName;
     private String newReferencingName;
-    private String triggerDefinition;
+    private List<String> triggerDefinitionList;
     private SchemaDescriptor sd;
     private TriggerEventDML triggerDML;
     private boolean isBefore;
@@ -123,7 +125,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * @param referencedCols                what columns does this trigger reference (may be null)
      * @param referencedColsInTriggerAction what columns does the trigger
      *                                      action reference through old/new transition variables (may be null)
-     * @param triggerDefinition             The original user text of the trigger action
+     * @param triggerDefinitionList         The original user texts of the trigger actions
      * @param referencingOld                whether or not OLD appears in REFERENCING clause
      * @param referencingNew                whether or not NEW appears in REFERENCING clause
      * @param oldReferencingName            old referencing table name, if any, that appears in REFERCING clause
@@ -146,7 +148,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             Timestamp creationTimestamp,
             int[] referencedCols,
             int[] referencedColsInTriggerAction,
-            String triggerDefinition,
+            List<String> triggerDefinitionList,
             boolean referencingOld,
             boolean referencingNew,
             String oldReferencingName,
@@ -166,7 +168,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         this.referencedCols = referencedCols;
         this.referencedColsInTriggerAction = referencedColsInTriggerAction;
         this.creationTimestamp = creationTimestamp;
-        this.triggerDefinition = triggerDefinition;
+        this.triggerDefinitionList = triggerDefinitionList;
         this.referencingOld = referencingOld;
         this.referencingNew = referencingNew;
         this.oldReferencingName = oldReferencingName;
@@ -280,9 +282,9 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * @param lcc The LanguageConnectionContext to use.
      * @return the trigger action sps
      */
-    public SPSDescriptor getActionSPS(LanguageConnectionContext lcc) throws StandardException {
+    public SPSDescriptor getActionSPS(LanguageConnectionContext lcc, int index) throws StandardException {
 
-        return getSPS(lcc, false /* isWhenClause */);
+        return getSPS(lcc, index);
 
     }
 
@@ -290,19 +292,20 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * Get the SPS for the triggered SQL statement or the WHEN clause.
      *
      * @param lcc the LanguageConnectionContext to use
-     * @param isWhenClause {@code true} if the SPS for the WHEN clause is
-     *   requested, {@code false} if it is the triggered SQL statement
+     * @param index {@code -1} if the SPS for the WHEN clause is
+     *   requested, {@code >=0} if it is one of the triggered SQL statements
      * @return the requested SPS
      * @throws StandardException if an error occurs
      */
-    private SPSDescriptor getSPS(LanguageConnectionContext lcc, // XXX arnaud return list here
-                                 boolean isWhenClause)
+    private SPSDescriptor getSPS(LanguageConnectionContext lcc,
+                                 int index)
             throws StandardException
     {
+        boolean isWhenClause = index == -1;
         DataDictionary dd = getDataDictionary();
         SPSDescriptor sps = isWhenClause ? whenSPS : actionSPS;
         UUID spsId = isWhenClause ? whenSPSId : actionSPSId;
-        String originalSQL = isWhenClause ? whenClauseText : triggerDefinition;
+        String originalSQL = isWhenClause ? whenClauseText : triggerDefinitionList.get(index);
 
         if (sps == null) {
             //bug 4821 - do the sysstatement look up in a nested readonly
@@ -349,7 +352,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
                     referencedColsInTriggerAction,
                     getTableDescriptor(),
                     null,
-                                        false);
+                    false);
 
             String newText = dd.getTriggerActionString(stmtnode,
                     oldReferencingName,
@@ -360,9 +363,9 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
                     0,
                     getTableDescriptor(),
                     null,
-                                        false,
-                                        null,
-                                        cols);
+                    false,
+                    null,
+                    cols);
             if (isWhenClause) {
                 // The WHEN clause is not a full SQL statement, just a search
                 // condition, so we need to turn it into a statement in order
@@ -402,7 +405,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             // This trigger doesn't have a WHEN clause.
             return null;
         }
-        return getSPS(lcc, true /* isWhenClause */);
+        return getSPS(lcc, -1);
     }
 
     /**
@@ -499,8 +502,16 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     /**
      * Get the original trigger definition.
      */
-    public String getTriggerDefinition() {
-        return triggerDefinition;
+    public String getTriggerDefinition(int index) {
+        return triggerDefinitionList.get(index);
+    }
+
+    public List<String> getTriggerDefinitionList() {
+        return triggerDefinitionList;
+    }
+
+    public int getTriggerDefinitionSize() {
+        return triggerDefinitionList.size();
     }
 
     /**
@@ -755,7 +766,14 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
                 referencedColsInTriggerAction[i] = in.readInt();
             }
         }
-        triggerDefinition = (String) in.readObject();
+        Object triggerDef = in.readObject();
+        // This used to be a String, so we check that to be backwards compatible
+        if (triggerDef instanceof String) {
+            triggerDefinitionList = new ArrayList<>();
+            triggerDefinitionList.add((String) triggerDef);
+        } else {
+            triggerDefinitionList = (List<String>) triggerDef;
+        }
         referencingOld = in.readBoolean();
         referencingNew = in.readBoolean();
         oldReferencingName = (String) in.readObject();
@@ -817,7 +835,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
                 out.writeInt(aReferencedColsInTriggerAction);
             }
         }
-        out.writeObject(triggerDefinition);
+        out.writeObject(triggerDefinitionList);
         out.writeBoolean(referencingOld);
         out.writeBoolean(referencingNew);
         out.writeObject(oldReferencingName);

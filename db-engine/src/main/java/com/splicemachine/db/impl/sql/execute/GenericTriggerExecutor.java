@@ -48,6 +48,9 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * A trigger executor is an object that executes a trigger.  It is subclassed by row and statement executors.
  */
@@ -59,9 +62,9 @@ public abstract class GenericTriggerExecutor {
     protected LanguageConnectionContext lcc;
 
     private boolean whenClauseRetrieved;
-    private boolean actionRetrieved;
+    private List<Boolean> actionRetrievedList;
     private SPSDescriptor whenClause;
-    private SPSDescriptor action;
+    private List<SPSDescriptor> actionList;
 
     // Cached prepared statement and activation for WHEN clause and
     // trigger action.
@@ -86,6 +89,12 @@ public abstract class GenericTriggerExecutor {
         this.triggerd = triggerd;
         this.activation = activation;
         this.lcc = lcc;
+        this.actionRetrievedList = new ArrayList<>(triggerd.getTriggerDefinitionSize());
+        this.actionList = new ArrayList<>(triggerd.getTriggerDefinitionSize());
+        for (int i = 0; i < triggerd.getTriggerDefinitionSize(); i++) {
+            this.actionRetrievedList.add(false);
+            this.actionList.add(null);
+        }
     }
 
     /**
@@ -107,12 +116,12 @@ public abstract class GenericTriggerExecutor {
         return whenClause;
     }
 
-    private SPSDescriptor getAction() throws StandardException {
-        if (!actionRetrieved) {
-            actionRetrieved = true;
-            action = triggerd.getActionSPS(lcc);
+    private SPSDescriptor getAction(int index) throws StandardException {
+        if (!actionRetrievedList.get(index)) {
+            actionRetrievedList.set(index, true);
+            actionList.set(index, triggerd.getActionSPS(lcc, index));
         }
-        return action;
+        return actionList.get(index);
     }
 
     /**
@@ -274,10 +283,12 @@ public abstract class GenericTriggerExecutor {
                 spsWhenActivation = activation;
             compile(getWhenClause(), whenPS, true);
         }
-        if (getAction() != null) {
-            if (spsActionActivation == null)
-                spsActionActivation = activation;
-            compile(getAction(), actionPS, false);
+        for (int i = 0; i < actionList.size(); ++i) {
+            if (getAction(i) != null) {
+                if (spsActionActivation == null)
+                    spsActionActivation = activation;
+                compile(getAction(i), actionPS, false);
+            }
         }
     }
 
@@ -357,7 +368,9 @@ public abstract class GenericTriggerExecutor {
         SPSDescriptor whenClauseDescriptor = getWhenClause();
         if (whenClauseDescriptor == null ||
                 executeSPS(whenClauseDescriptor, true)) {
-            executeSPS(getAction(), false);
+            for (int i = 0; i < actionList.size(); ++i) {
+                executeSPS(getAction(i), false);
+            }
         }
     }
 } 
