@@ -93,6 +93,7 @@ import com.splicemachine.db.impl.sql.compile.PrivilegeNode;
 import com.splicemachine.db.impl.sql.compile.ConstraintDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.DMLModStatementNode;
 import com.splicemachine.db.impl.sql.compile.RoutineDesignator;
+import com.splicemachine.db.impl.sql.compile.StatementListNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TableElementList;
 import com.splicemachine.db.impl.sql.compile.TableElementNode;
@@ -13672,30 +13673,45 @@ actionStatement(Token[] tokenHolder, HashSet<String> hs) throws StandardExceptio
     }
 }
 
-StatementNode
-triggerActions(Token[] tokenHolder,
-               HashSet<String> hs,
-               Boolean isBefore,
-               List<String> actionTextList) throws StandardException :
+StatementListNode
+triggerActionList(HashSet<String> hs,
+                  Boolean isBefore,
+                  List<String> actionTextList) throws StandardException :
 {
+    StatementListNode actionNodeList = (StatementListNode) nodeFactory.getNode(C_NodeTypes.STATEMENT_LIST_NODE, getContextManager());
     StatementNode actionNode = null;
-    Token endPosition;
-    int endOffset;
 }
 {
-(
-    <BEGIN> <ATOMIC> actionNode = actionStatement(tokenHolder, hs)
-    endPosition = <SEMICOLON>
+    <BEGIN> <ATOMIC>
+    (
+        actionNode = triggerAction(hs, isBefore, actionTextList)
+        <SEMICOLON>
+        {
+            actionNodeList.addStatement(actionNode);
+        }
+    )*
     <END>
     {
-        endOffset = endPosition.beginOffset - 1;
+        return actionNodeList;
     }
 |
-    actionNode = actionStatement(tokenHolder, hs)
+    actionNode = triggerAction(hs, isBefore, actionTextList)
     {
-        endOffset = getToken(0).endOffset;
+        actionNodeList.addStatement(actionNode);
+        return actionNodeList;
     }
-)
+}
+
+StatementNode
+triggerAction(HashSet<String> hs,
+              Boolean isBefore,
+              List<String> actionTextList) throws StandardException :
+{
+    Token[] tokenHolder = new Token[1];
+    StatementNode actionNode = null;
+}
+{
+    actionNode = actionStatement(tokenHolder, hs)
     {
         // No DML in action node for BEFORE triggers.
         if (isBefore.booleanValue() && (actionNode instanceof DMLModStatementNode)) {
@@ -13708,7 +13724,7 @@ triggerActions(Token[] tokenHolder,
             throw StandardException.newException(SQLState.LANG_UNSUPPORTED_TRIGGER_STMT, "SET", "AFTER");
 
         actionNode.setBeginOffset(tokenHolder[0].beginOffset);
-        actionNode.setEndOffset(endOffset);
+        actionNode.setEndOffset(getToken(0).endOffset);
 
         actionTextList.add(StringUtil.slice(
                 statementSQLText, actionNode.getBeginOffset(), actionNode.getEndOffset(), false));
@@ -13724,13 +13740,9 @@ triggerDefinition() throws StandardException :
     Boolean             isRow = Boolean.FALSE;  // STATEMENT implicit by default
     TableName           tableName;
     TableName           triggerName;
-    Token[]             tokenHolder = new Token[1];
-    Token               beginToken;
-    Token               checkTok = null;
-    Token               endToken;
     TriggerEventDML     triggerEvent;
     StatementNode       actionNode;
-    StatementListNode   actionNodeList = (StatementListNode) nodeFactory.getNode(C_NodeTypes.STATEMENT_LIST_NODE, getContextManager());
+    StatementListNode   actionNodeList;
     List<String>        actionTextList = new ArrayList();
     ValueNode           whenClause = null;
     Token               whenOpen = null;
@@ -13738,7 +13750,7 @@ triggerDefinition() throws StandardException :
     ResultColumnList    triggerColumns = (ResultColumnList) nodeFactory.getNode(
                                             C_NodeTypes.RESULT_COLUMN_LIST,
                                             getContextManager());
-    Vector                refClause = null;
+    Vector              refClause = null;
     HashSet<String>     hs = new HashSet<String>();
 }
 {
@@ -13751,12 +13763,12 @@ triggerDefinition() throws StandardException :
         [ <MODE> <DB2SQL> ]
         [ <WHEN> whenOpen = <LEFT_PAREN> whenClause = valueExpression() whenClose = <RIGHT_PAREN> ]
         //we are not top level statement
-        actionNode = triggerActions(tokenHolder, hs, isBefore, actionTextList)
+        actionNodeList = triggerActionList(hs, isBefore, actionTextList)
         // the trigger body
     {
         // no params in trigger action
          HasNodeVisitor visitor = new HasNodeVisitor(ParameterNode.class);
-        actionNode.accept(visitor);
+        actionNodeList.accept(visitor);
         if (whenClause != null) {
             whenClause.accept(visitor);
         }
@@ -13775,7 +13787,6 @@ triggerDefinition() throws StandardException :
                                         false);
         }
 
-        actionNodeList.addStatement(actionNode);
         actionNodeList.setBeginOffset(actionNodeList.get(0).getBeginOffset());
         actionNodeList.setEndOffset(actionNodeList.get(actionNodeList.size() - 1).getEndOffset());
 
