@@ -115,10 +115,10 @@ public class SIConfigurations implements ConfigurationDefault {
     private static final int DEFAULT_TIMESTAMP_SERVER_BIND_PORT = 60012;
 
     public static final String ACTIVE_TRANSACTION_MAX_CACHE_SIZE="splice.txn.activeMaxCacheSize";
-    private static final int DEFAULT_ACTIVE_TRANSACTION_MAX_CACHE_SIZE = 1<<12;
+    public static final int DEFAULT_ACTIVE_TRANSACTION_MAX_CACHE_SIZE = 1<<12;
 
     public static final String ACTIVE_TRANSACTION_INITIAL_CACHE_SIZE="splice.txn.activeInitialCacheSize";
-    private static final int DEFAULT_ACTIVE_TRANSACTION_INITIAL_CACHE_SIZE = 1<<7;
+    public static final int DEFAULT_ACTIVE_TRANSACTION_INITIAL_CACHE_SIZE = 1<<7;
 
     // Timeout in milliseconds
     public static final String SPARK_COMPACTION_MAXIMUM_WAIT = "spark.compaction.maximum.wait";
