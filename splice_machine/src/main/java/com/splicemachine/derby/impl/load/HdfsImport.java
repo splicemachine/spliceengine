@@ -42,6 +42,7 @@ import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.collect.Lists;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -833,23 +834,56 @@ public class HdfsImport {
 
     static List<String> normalizeIdentifierList(String insertColumnListStr) {
         List<String> normalizedList = new ArrayList<>();
-        if (insertColumnListStr.charAt(0) == '"') {
-            // quoted column list. may be case sensitive, may contain commas.
-            for (String ele : insertColumnListStr.split("\"")) {
-                String trimmedEle = ele.trim();
-                if (! trimmedEle.isEmpty() && trimmedEle.charAt(0) != ',') {
-                    normalizedList.add(trimmedEle);
-                }
-            }
-        } else {
-            // no quotes. straight col list.
-            for (String columnName : insertColumnListStr.split(",")) {
-                normalizedList.add(columnName.trim().toUpperCase());
-            }
+
+        String[] candidateColumns = insertColumnListStr.split(",");
+        List<String> columns = getColumns(candidateColumns);
+        for (String columnName : columns) {
+            String normalizedColumnName = normalize(columnName);
+            normalizedList.add(normalizedColumnName);
         }
+
         return normalizedList;
     }
 
+    static List<String> getColumns(String[] s) {
+        List<String> columns = Lists.newArrayList();
+        int i = 0;
+        boolean closed = true;
+        while(i < s.length) {
+            if (!s[i].startsWith("\"")) {
+                columns.add(s[i]);
+            }
+            else {
+                closed = false;
+                String col = s[i];
+                while(!s[i].endsWith("\"") && i < s.length) {
+                    ++i;
+                    col += "," + s[i];
+                }
+                closed = col.endsWith("\"");
+                if (closed){
+                    columns.add(col);
+                }
+                else {
+                    throw new RuntimeException(String.format("Column name %s not well-formatted", col));
+                }
+            }
+            ++i;
+        }
+        return columns;
+    }
+    static String normalize(String s) {
+        s = s.trim();
+        if (!s.startsWith("\"") && !s.endsWith("\"")) {
+            return s.toUpperCase();
+        }
+        else if (s.startsWith("\"") && s.endsWith("\"")) {
+            return s.substring(1, s.length()-1);
+        }
+        else {
+            throw new RuntimeException(String.format("Column name %s not well-formatted", s));
+        }
+    }
     /**
      * Quote a string argument so that it can be used as a literal in an
      * SQL statement. If the string argument is {@code null} an SQL NULL token
