@@ -68,7 +68,7 @@ public class Configuration {
 
 
     // for DatabaseMetaData.getDriverName()
-    public final static String dncDriverName = "Apache Derby Network Client JDBC Driver";
+    public final static String dncDriverName = "Splice Machine Network Client JDBC Driver";
 
 
     // Hard-wired for JDBC
