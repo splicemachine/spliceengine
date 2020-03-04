@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
@@ -68,7 +69,7 @@ public class CreateTriggerNode extends DDLStatementNode {
     private ValueNode whenClause;
     private String whenText;
     private String originalWhenText;
-    private List<StatementNode> actionNodeList;
+    private StatementListNode actionNodeList;
     private List<String> actionTextList;
     private List<String> originalActionTextList; // text w/o trim of spaces
     private int actionOffset;
@@ -294,7 +295,7 @@ public class CreateTriggerNode extends DDLStatementNode {
         this.whenClause = (ValueNode) whenClause;
         this.originalWhenText = (String)whenText;
         this.whenText = (whenText == null) ? null : ((String) whenText).trim();
-        this.actionNodeList = (List<StatementNode>) actionNodeList;
+        this.actionNodeList = (StatementListNode) actionNodeList;
         this.originalActionTextList = (List<String>) actionTextList;
         this.actionOffset = (Integer) actionOffset;
         this.whenOffset   = (Integer) whenOffset;
@@ -305,7 +306,7 @@ public class CreateTriggerNode extends DDLStatementNode {
         this.actionTextList = Lists.newArrayListWithCapacity(this.originalActionTextList.size());
         for (int i = 0; i < this.originalActionTextList.size(); ++i) {
             this.actionTextList.add(originalActionTextList.get(i) == null ? null : originalActionTextList.get(i).trim());
-            this.actionTransformationsList.add(new ArrayList<int[]>());
+            this.actionTransformationsList.add(new ArrayList<>());
         }
 
     }
@@ -334,15 +335,10 @@ public class CreateTriggerNode extends DDLStatementNode {
                 printLabel(depth, "whenClause: ");
                 whenClause.treePrint(depth + 1);
             }
-            if (actionNodeList != null) {
-                if (actionNodeList.size() == 1) {
-                    printLabel(depth, "actionNode: ");
-                    actionNodeList.get(0).treePrint(depth + 1);
-                }
-                printLabel(depth, "actionNodes: ");
-                for (int index = 0; index < actionNodeList.size(); index++) {
-                    debugPrint(formatNodeString("[" + index + "]:", depth + 1));
-                    actionNodeList.get(index).treePrint(depth + 1);
+            if (actionNodeList.size() > 0) {
+                printLabel(depth, "actionNode: ");
+                for (StatementNode actionNode: actionNodeList) {
+                    actionNode.treePrint(depth + 1);
                 }
             }
         }
@@ -763,7 +759,7 @@ public class CreateTriggerNode extends DDLStatementNode {
 
             int[] cols;
 
-            cols = getDataDictionary().examineTriggerNodeAndCols(actionNodeList.get(0), //XXX arnaud
+            cols = getDataDictionary().examineTriggerNodeAndCols(actionNodeList,
                             oldTableName,
                             newTableName,
                             referencedColInts,
@@ -1041,12 +1037,12 @@ public class CreateTriggerNode extends DDLStatementNode {
                 isEnabled,
                 triggerTableDescriptor,
                 whenText,
-                actionTextList.get(0), // XXX arnaud
+                actionTextList,
                 (actionCompSchemaId == null) ? compSchemaDescriptor.getUUID() : actionCompSchemaId,
                 referencedColInts,
                 referencedColsInTriggerAction,
                 originalWhenText,
-                originalActionTextList.get(0), // XXX arnaud
+                originalActionTextList,
                 oldTableInReferencingClause,
                 newTableInReferencingClause,
                 oldReferencingName,

@@ -13672,10 +13672,10 @@ actionStatement(Token[] tokenHolder, HashSet<String> hs) throws StandardExceptio
     }
 }
 
-QueryTreeNode
+StatementNode
 triggerActions(Token[] tokenHolder, MutableInt endOffset, HashSet<String> hs) throws StandardException :
 {
-    QueryTreeNode actionNode = null;
+    StatementNode actionNode = null;
     Token endPosition;
 }
 {
@@ -13707,7 +13707,8 @@ triggerDefinition() throws StandardException :
     int                 actionBegin;
     int                 actionEnd;
     TriggerEventDML     triggerEvent;
-    QueryTreeNode       actionNode;
+    StatementNode       actionNode;
+    StatementListNode   actionNodeList = (StatementListNode) nodeFactory.getNode(C_NodeTypes.STATEMENT_LIST_NODE, getContextManager());
     ValueNode           whenClause = null;
     Token               whenOpen = null;
     Token               whenClose = null;
@@ -13772,8 +13773,10 @@ triggerDefinition() throws StandardException :
                                         whenOffset, whenEnd, false);
         }
 
-        List<QueryTreeNode> actionNodeList = new ArrayList();
-        actionNodeList.add(actionNode);
+        actionNodeList.addStatement(actionNode);
+        actionNodeList.setBeginOffset(actionNodeList.get(0).getBeginOffset());
+        actionNodeList.setEndOffset(actionNodeList.get(actionNodeList.size() - 1).getEndOffset());
+
         List<String> actionTextList = new ArrayList();
         actionTextList.add(actionText);
 

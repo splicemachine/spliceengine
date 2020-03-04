@@ -3654,9 +3654,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     TriggerEventDML triggerEventMask,
                     boolean createTriggerTime) throws StandardException
     {
-            StringBuilder newText = new StringBuilder();
-            int start = 0;
-
             //Total Number of columns in the trigger table
             int numberOfColsInTriggerTable = triggerTableDescriptor.getNumberOfColumns();
 
