@@ -225,6 +225,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String REPLICATION_PROGRESS_ROWKEY = "ReplicationProgress";
     public static final byte[] REPLICATION_PROGRESS_ROWKEY_BYTES = Bytes.toBytes("ReplicationProgress");
     public static final byte[] REPLICATION_PROGRESS_TSCOL_BYTES = Bytes.toBytes("Timestamp");
+    public static final byte[] REPLICATION_SNAPSHOT_TSCOL_BYTES = Bytes.toBytes("Timestamp");
 
     @SuppressFBWarnings(value = "MS_MUTABLE_ARRAY",justification = "Intentional")
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);

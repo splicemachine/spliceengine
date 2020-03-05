@@ -21,6 +21,7 @@ import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.hadoop.hbase.wal.WALEdit;
 import org.apache.hadoop.hbase.wal.WALFactory;
+import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.log4j.Logger;
@@ -110,7 +111,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
             List<Future<Void>> futures = Lists.newArrayList();
             long timestamp = SIDriver.driver().getTimestampSource().currentTimestamp();
             if (timestamp != preTimestamp) {
-
+                long currentTime = System.currentTimeMillis();
                 for (PartitionServer server : servers) {
                     ServerName serverName = ServerName.valueOf(server.getHostname(), server.getPort(), server.getStartupTimestamp());
                     GetWALPositionsTask task = new GetWALPositionsTask(snapshot, serverName);
@@ -131,7 +132,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                         String clusterKey = peer.getPeerConfig().getClusterKey();
                         Connection connection = getConnection(clusterKey);
                         removeOldWals(snapshot);
-                        sendSnapshot(connection, timestamp, snapshot);
+                        sendSnapshot(connection, timestamp, snapshot, currentTime);
                     }
                 }
                 preTimestamp = timestamp;
@@ -213,7 +214,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
         Configuration conf = HConfiguration.unwrapDelegate();
         FileSystem fs = FSUtils.getWALFileSystem(conf);
         Map<String, Long> replicationProgress = new HashMap<>();
-
+        PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
         for (String server : serverWalPositions.keySet()) {
             Map<String, Long> walPosition = serverWalPositions.get(server);
             for (String wal : walPosition.keySet()) {
@@ -231,6 +232,23 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                     long previous = position;
                     while ((entry = reader.next()) != null) {
                         WALEdit edit = entry.getEdit();
+                        WALKey walKey = entry.getKey();
+                        TableName table = walKey.getTableName();
+                        String ns = table.getNamespaceAsString();
+                        String name = table.getQualifierAsString();
+                        if (!ns.equals(HConfiguration.getConfiguration().getNamespace())) {
+                            // ignore non-splice table
+                            previous = reader.getPosition();
+                            SpliceLogUtils.info(LOG, "Skip non-splice table %s.%s. Bump up position to %d",
+                                    ns, name, previous);
+                            continue;
+                        }
+                        if (!admin.replicationEnabled(name)) {
+                            previous = reader.getPosition();
+                            SpliceLogUtils.info(LOG, "Skip non-replicated table %s.%s. Bump up position to %d",
+                                    ns, name, previous);
+                            continue;
+                        }
 
                         List<Cell> cells = edit.getCells();
                         if (cells.size() > 0) {
@@ -239,8 +257,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                                     cell.getFamilyLength());
                             String row = Bytes.toStringBinary(cell.getRowArray(), cell.getRowOffset(),
                                     cell.getRowLength());
-                            if (family.equals(SIConstants.DEFAULT_FAMILY_NAME) ||
-                                    row.equals(HBaseConfiguration.REPLICATION_PROGRESS_ROWKEY))
+                            if (family.equals(SIConstants.DEFAULT_FAMILY_NAME))
                                 break;
                             else {
                                 previous = reader.getPosition();
@@ -343,7 +360,10 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
      * @param serverSnapshot
      * @throws Exception
      */
-    private void sendSnapshot(Connection conn, Long timestamp, ConcurrentHashMap<String, Map<String, Long>> serverSnapshot) throws Exception{
+    private void sendSnapshot(Connection conn,
+                              Long timestamp,
+                              ConcurrentHashMap<String, Map<String, Long>> serverSnapshot,
+                              long currentTime) throws Exception{
 
         Table table = null;
         try {
@@ -353,6 +373,10 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
             // construct the single put
             byte[] rowKey = timestamp.toString().getBytes();
             Put put = new Put(rowKey);
+
+            put.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,
+                    HBaseConfiguration.REPLICATION_SNAPSHOT_TSCOL_BYTES, Bytes.toBytes(currentTime));
+
             StringBuffer sb = new StringBuffer();
             // add encoded region column into the put
             for (Map<String, Long> snapshot : serverSnapshot.values()) {
