@@ -44,8 +44,8 @@ node('splice-standalone') {
             ])
         } catch (Exception e) {
             dir('spliceengine'){
-                branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
-
+                branch = source_branch[-2..-1]
+                
                 if ( "$branch" == ".7" ) {
                         branch = "branch-2.7"
                     } else if ( "$branch" == ".8" ) {
@@ -69,7 +69,7 @@ node('splice-standalone') {
         wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
             dir('spliceengine'){
                 def platforms = ""
-                branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
+                branch = source_branch[-2..-1]
 
                 if ( "$branch" == ".7" ) {
                             platforms = "cdh5.14.2"
@@ -98,7 +98,7 @@ node('splice-standalone') {
     stage('SpotBugs') {
       dir('spliceengine'){
           def platforms = ""
-          branch = "git rev-parse --abbrev-ref HEAD |  tr -d '\n'| tail -c 2"
+          branch = source_branch[-2..-1]
 
           if ( "$branch" == ".7" ) {
                         platforms = "cdh5.14.2"
