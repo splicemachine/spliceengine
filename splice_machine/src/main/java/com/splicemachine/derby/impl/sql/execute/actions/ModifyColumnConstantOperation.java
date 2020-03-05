@@ -870,7 +870,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                         // dependencies.
                         for (int i = 0; i < trdToBeDropped.getTriggerDefinitionSize() && !gotDropped; ++i) {
                             gotDropped = columnDroppedAndTriggerDependencies(trdToBeDropped, tableDescriptor,
-                                    trdToBeDropped.getActionId(),
+                                    trdToBeDropped.getActionId(i),
                                     i, cascade, columnName, activation);
                         }
 

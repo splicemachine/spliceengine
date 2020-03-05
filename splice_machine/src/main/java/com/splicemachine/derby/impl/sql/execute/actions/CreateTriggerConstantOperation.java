@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
@@ -75,7 +74,6 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
     private TableDescriptor triggerTable;        // null after readExternal
     private UUID triggerTableId;        // set in readExternal
     private List<UUID> actionSPSIdList;
-    private UUID actionListDependentId;
 
     // CONSTRUCTORS
 
@@ -146,7 +144,6 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         this.referencingNew = referencingNew;
         this.oldReferencingName = oldReferencingName;
         this.newReferencingName = newReferencingName;
-        this.actionListDependentId = null;
 
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(triggerSchemaName != null, "triggerSchemaName sd is null");
@@ -280,15 +277,6 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
             }
         }
 
-        /*
-         * If we have more than one trigger action, SYSTRIGGERS.ACTIONSTMTID should not refer to SYSSTATEMENTS.STMTID
-         * anymore, but to SYSDEPENDS.DEPENDENTID. For each entry in SYSDEPENDS with that id, the PROVIDERID column
-         * will then refer to a SYSSTATEMENTS.STMTID
-         */
-        if (actionSPSIdList.size() > 1) {
-            actionListDependentId = dd.getUUIDFactory().createUUID();
-        }
-
         if (whenSPSId == null && whenText != null) {
             whenSPSId = dd.getUUIDFactory().createUUID();
         }
@@ -311,7 +299,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
                         isEnabled,
                         triggerTable,
                         whenSPSId,
-                        actionListDependentId == null ? actionSPSIdList.get(0) : actionListDependentId,
+                        actionSPSIdList,
                         new Timestamp(System.currentTimeMillis()),
                         referencedCols,
                         referencedColsInTriggerAction,
@@ -343,7 +331,6 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         /*
         ** Create the trigger actions
         */
-        List<SPSDescriptor> actionSpsDescriptorList = new ArrayList<>(actionSPSIdList.size());
         for (int i = 0; i < actionSPSIdList.size(); ++i) {
             SPSDescriptor actionspsd = createSPS(lcc, ddg, dd, tc, tmpTriggerId, triggerSd,
                     actionSPSIdList.get(i), spsCompSchemaId, actionTextList.get(i), i, triggerTable);
@@ -386,7 +373,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         ** Dont change it arbitrarily -- see sps code.
         */
         String spsName = "TRIGGER" +
-                (isWhen ? "WHEN_" : "ACTN_") + //XXX arnaud
+                (isWhen ? "WHEN_" : "ACTN" + index + "_") +
                 triggerId + "_" + triggerTable.getUUID().toString();
 
         SPSDescriptor spsd = new SPSDescriptor(dd, spsName,
