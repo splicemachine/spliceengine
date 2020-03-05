@@ -436,7 +436,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
         col = row.getColumn(19);
         if (col.getObject() != null) {
             assert triggerDefinitionList == null: "TriggerDefinitionList and TriggerDefinition can never both be defined";
-            triggerDefinitionList = (List<String>) col;
+            triggerDefinitionList = (List<String>) col.getObject();
         }
         descriptor = new TriggerDescriptor(
                 dd,
