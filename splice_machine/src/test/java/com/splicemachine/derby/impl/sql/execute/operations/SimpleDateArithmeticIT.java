@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.impl.load.HBaseBulkLoadIT;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -41,15 +42,17 @@ import static org.junit.Assert.fail;
  *         Date: 2/19/15
  */
 public class SimpleDateArithmeticIT {
-    private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    private static final String SCHEMA_NAME = SimpleDateArithmeticIT.class.getSimpleName().toUpperCase();
 
-    private static SpliceSchemaWatcher schemaWatcher =
-        new SpliceSchemaWatcher(SimpleDateArithmeticIT.class.getSimpleName().toUpperCase());
+    private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    private static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
 
     private static final String QUALIFIED_TABLE_NAME = schemaWatcher.schemaName + ".date_add_test";
     private static final String QUALIFIED_TABLE_NAME2 = schemaWatcher.schemaName + ".old_date_test";
     private static final String QUALIFIED_TIME_TABLE_NAME = schemaWatcher.schemaName + ".time_test";
     private static final String QUALIFIED_TABLE_NAME3 = schemaWatcher.schemaName + "null_value_test";
+
+    private static String BADDIR;
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -57,6 +60,8 @@ public class SimpleDateArithmeticIT {
 
     @BeforeClass
     public static void createTables() throws Exception {
+        BADDIR = SpliceUnitTest.createBadLogDirectory(SCHEMA_NAME).getCanonicalPath();
+
         new TableCreator(spliceClassWatcher.getOrCreateConnection())
         .withCreate(String.format("create table %s (s varchar(15), d date, t timestamp, t2 timestamp)", QUALIFIED_TABLE_NAME))
         .withInsert(String.format("insert into %s values(?,?,?,?)", QUALIFIED_TABLE_NAME))
@@ -84,7 +89,7 @@ public class SimpleDateArithmeticIT {
 
         String dataDir = SpliceUnitTest.getResourceDirectory() + "date.csv";
 
-        String sqlText = String.format("CALL SYSCS_UTIL.MERGE_DATA_FROM_FILE('" + schemaWatcher.schemaName + "','OLD_DATE_TEST',null,'%s',null,null,'yyyy-MM-dd HH:mm:ss.SSS','yyyy-MM-dd',null,0,'/BAD',false,null)", dataDir);
+        String sqlText = String.format("CALL SYSCS_UTIL.MERGE_DATA_FROM_FILE('" + schemaWatcher.schemaName + "','OLD_DATE_TEST',null,'%s',null,null,'yyyy-MM-dd HH:mm:ss.SSS','yyyy-MM-dd',null,0,'%s',false,null)", dataDir, BADDIR);
         try {
             CallableStatement cs = spliceClassWatcher.prepareCall(sqlText);
             ResultSet rs = cs.executeQuery();
@@ -102,7 +107,7 @@ public class SimpleDateArithmeticIT {
 
         dataDir = SpliceUnitTest.getResourceDirectory() + "time.csv";
 
-        sqlText = String.format("CALL SYSCS_UTIL.MERGE_DATA_FROM_FILE('" + schemaWatcher.schemaName + "','TIME_TEST',null,'%s',null,null,'yyyy-MM-dd HH:mm:ss.SSS','yyyy-MM-dd','HH:mm:ss',0,'/BAD',false,null)", dataDir);
+        sqlText = String.format("CALL SYSCS_UTIL.MERGE_DATA_FROM_FILE('" + schemaWatcher.schemaName + "','TIME_TEST',null,'%s',null,null,'yyyy-MM-dd HH:mm:ss.SSS','yyyy-MM-dd','HH:mm:ss',0,'%s',false,null)", dataDir, BADDIR);
         try {
             CallableStatement cs = spliceClassWatcher.prepareCall(sqlText);
             ResultSet rs = cs.executeQuery();
