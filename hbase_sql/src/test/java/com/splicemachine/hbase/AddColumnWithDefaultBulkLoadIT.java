@@ -34,10 +34,12 @@ import static com.splicemachine.test_tools.Rows.rows;
  * Created by yxia on 11/1/17.
  */
 public class AddColumnWithDefaultBulkLoadIT extends SpliceUnitTest {
-    private static final String SCHEMA=AddColumnWithDefaultBulkLoadIT.class.getSimpleName().toUpperCase();
+    private static final String SCHEMA_NAME=AddColumnWithDefaultBulkLoadIT.class.getSimpleName().toUpperCase();
     public static final String CLASS_NAME = AddColumnWithDefaultBulkLoadIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static String BADDIR;
+    private static String BULKLOADDIR;
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -66,16 +68,16 @@ public class AddColumnWithDefaultBulkLoadIT extends SpliceUnitTest {
         /* split the table into multiple partitions */
         spliceClassWatcher.executeUpdate(format("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX" +
                         "('%s', 'T1',null, 'a1', '%s', '|', null, null, null, null, -1, '%s', true, null)",
-                        SCHEMA,
+                        SCHEMA_NAME,
                         SpliceUnitTest.getResourceDirectory()+"table_split_key1.csv",
-                        SpliceUnitTest.getResourceDirectory() + "baddir"));
+                        BADDIR));
 
         /* bulk import the rows */
         spliceClassWatcher.executeQuery(format("call SYSCS_UTIL.IMPORT_DATA" +
                         "('%s', 'T1', null, '%s', null, null, 'MM/dd/yyyy HH:mm:ss', null, null, -1, '%s', true, null)",
-                        SCHEMA,
+                        SCHEMA_NAME,
                         SpliceUnitTest.getResourceDirectory()+"t1_part1.csv",
-                        SpliceUnitTest.getResourceDirectory() + "baddir"));
+                        BADDIR));
 
         /* add a new not-null column with default value */
         spliceClassWatcher.executeUpdate("alter table T1 add column c1 varchar(10) not null default 'ZZZZZ'");
@@ -83,9 +85,9 @@ public class AddColumnWithDefaultBulkLoadIT extends SpliceUnitTest {
         /* bulk import more rows */
         spliceClassWatcher.executeQuery(format("call SYSCS_UTIL.IMPORT_DATA" +
                         "('%s', 'T1', null, '%s', null, null, 'MM/dd/yyyy HH:mm:ss', null, null, -1, '%s', true, null)",
-                SCHEMA,
+                SCHEMA_NAME,
                 SpliceUnitTest.getResourceDirectory()+"t1_part2.csv",
-                SpliceUnitTest.getResourceDirectory() + "baddir"));
+                BADDIR));
 
         /* collect stats */
         spliceClassWatcher.getOrCreateConnection().prepareStatement("analyze schema " + CLASS_NAME).execute();
@@ -95,24 +97,25 @@ public class AddColumnWithDefaultBulkLoadIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void createDataSet() throws Exception {
+        BADDIR = SpliceUnitTest.createBadLogDirectory(SCHEMA_NAME).getCanonicalPath();
+        BULKLOADDIR = SpliceUnitTest.createBulkLoadDirectory(SCHEMA_NAME).getCanonicalPath();
         createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
     }
 
     @AfterClass
     public static void cleanup() throws Exception {
-        String sql = String.format("delete from T1 --splice-properties bulkDeleteDirectory='%s'", SpliceUnitTest.getResourceDirectory()+"data");
+        String sql = String.format("delete from T1 --splice-properties bulkDeleteDirectory='%s'", BULKLOADDIR);
         spliceClassWatcher.execute(sql);
         ResultSet rs = spliceClassWatcher.executeQuery("select count(*) from T1");
         rs.next();
         int count = rs.getInt(1);
         Assert.assertTrue(count==0);
-        String dir = SpliceUnitTest.getResourceDirectory()+"data";
-        FileUtils.deleteDirectory(new File(dir));
+        FileUtils.deleteDirectory(new File(BULKLOADDIR));
     }
 
     @Test
     public void testBulkIndexCreation() throws Exception {
-        String sql = format("create index idx_t1 on t1 (c1, b1) auto splitkeys hfile location '%s'", SpliceUnitTest.getResourceDirectory()+"data");
+        String sql = format("create index idx_t1 on t1 (c1, b1) auto splitkeys hfile location '%s'", BULKLOADDIR);
         methodWatcher.executeUpdate(sql);
 
         /* verify the correctness of the index */
@@ -138,7 +141,7 @@ public class AddColumnWithDefaultBulkLoadIT extends SpliceUnitTest {
         Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
-        sql = format("delete from T1 --splice-properties bulkDeleteDirectory='%s'\n where c1='ZZZZZ'", SpliceUnitTest.getResourceDirectory()+"data");
+        sql = format("delete from T1 --splice-properties bulkDeleteDirectory='%s'\n where c1='ZZZZZ'", BULKLOADDIR);
         methodWatcher.executeUpdate(sql);
 
         /* verify the correctness of the delete*/
