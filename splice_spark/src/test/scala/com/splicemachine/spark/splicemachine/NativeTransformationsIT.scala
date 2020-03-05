@@ -22,7 +22,7 @@ import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 import scala.collection.immutable.IndexedSeq
 
 @RunWith(classOf[JUnitRunner])
-class NativeTransformationsTest extends FunSuite with TestContext with BeforeAndAfter with Matchers {
+class NativeTransformationsIT extends FunSuite with TestContext with BeforeAndAfter with Matchers {
   val rowCount = 10
   var sqlContext : SQLContext = _
   var rows : IndexedSeq[(Int, Int, String, Long)] = _
