@@ -28,7 +28,8 @@ import java.util.Map;
  */
 public class ConfigurationBuilder {
     // SIConfigurations
-    public int activeTransactionCacheSize;
+    public int activeTransactionMaxCacheSize;
+    public int activeTransactionInitialCacheSize;
     public int completedTxnCacheSize;
     public int completedTxnConcurrency;
     public int readResolverQueueSize;
