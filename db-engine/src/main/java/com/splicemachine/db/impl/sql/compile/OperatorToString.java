@@ -968,7 +968,7 @@ public class OperatorToString {
                             methodName.equals("ADD_MONTHS")    ||
                             methodName.equals("ADD_YEARS")     ||
                             methodName.equals("ADD_DAYS")      ||
-                            methodName.equals("ROUND"))
+                            methodName.equalsIgnoreCase("ROUND"))
                             throwNotImplementedError();
                         else if (methodName.equals("toDegrees"))
                             methodName = "degrees";
