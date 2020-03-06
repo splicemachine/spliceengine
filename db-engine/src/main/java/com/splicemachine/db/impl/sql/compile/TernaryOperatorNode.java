@@ -103,7 +103,7 @@ public class TernaryOperatorNode extends OperatorNode
 	};
 	static final String[][] TernaryArgType = {
 			{ClassName.StringDataValue, ClassName.StringDataValue, "java.lang.Integer"},
-			{ClassName.StringDataValue, ClassName.StringDataValue, ClassName.NumberDataValue},
+			{ClassName.ConcatableDataValue, ClassName.ConcatableDataValue, ClassName.NumberDataValue},
 			{ClassName.ConcatableDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue},
 			{ClassName.DataValueDescriptor, ClassName.DataValueDescriptor, ClassName.DataValueDescriptor},
 			{ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.NumberDataValue}, // time.timestampadd( interval, count)
@@ -133,12 +133,12 @@ public class TernaryOperatorNode extends OperatorNode
 		this.leftOperand = (ValueNode) leftOperand;
 		this.rightOperand = (ValueNode) rightOperand;
 		this.operatorType = (Integer) operatorType;
-		this.operator = (String) TernaryOperators[this.operatorType];
-		this.methodName = (String) TernaryMethodNames[this.operatorType];
-		this.resultInterfaceType = (String) TernaryResultType[this.operatorType];
-		this.receiverInterfaceType = (String) TernaryArgType[this.operatorType][0];
-		this.leftInterfaceType = (String) TernaryArgType[this.operatorType][1];
-		this.rightInterfaceType = (String) TernaryArgType[this.operatorType][2];
+		this.operator = TernaryOperators[this.operatorType];
+		this.methodName = TernaryMethodNames[this.operatorType];
+		this.resultInterfaceType = TernaryResultType[this.operatorType];
+		this.receiverInterfaceType = TernaryArgType[this.operatorType][0];
+		this.leftInterfaceType = TernaryArgType[this.operatorType][1];
+		this.rightInterfaceType = TernaryArgType[this.operatorType][2];
 		if (trimType != null)
 				this.trimType = (Integer) trimType;
 	}
@@ -343,7 +343,7 @@ public class TernaryOperatorNode extends OperatorNode
 			mb.upCast(rightInterfaceType);
 			mb.getField(field);
 			nargs = 3;
-
+			receiverType = receiverInterfaceType;
 		}
 		else if (operatorType == SUBSTRING)
 		{
@@ -681,9 +681,9 @@ public class TernaryOperatorNode extends OperatorNode
 	}
 	/**
 	 * Bind locate operator
-	 * The variable receiver is the string which will searched
-	 * The variable leftOperand is the search character that will looked in the
-	 *     receiver variable.
+	 * The variable leftOperand is the string which will be searched
+	 * The variable receiver is the search character that will be looked in the
+	 *     leftOperand variable.
 	 *
 	 * @return	The new top of the expression tree.
 	 *
@@ -703,14 +703,15 @@ public class TernaryOperatorNode extends OperatorNode
 		{
 			if( leftOperand.requiresTypeFromContext())
 			{
-				receiver.setType(getVarcharDescriptor());
-	            //Since both receiver and leftOperands are parameters, use the
+				// we cannot tell whether it is StringType or BitType, so set to BitType as default
+				receiver.setType(getVarBitDescriptor());
+				//Since both receiver and leftOperands are parameters, use the
 				//collation of compilation schema for receiver.
 				receiver.setCollationUsingCompilationSchema();
 			}
 			else
 			{
-				if( leftOperand.getTypeId().isStringTypeId() )
+				if( leftOperand.getTypeId().isStringTypeId() || leftOperand.getTypeId().isBitTypeId())
 				{
 					//Since the leftOperand is not a parameter, receiver will
 					//get it's collation from leftOperand through following
@@ -729,11 +730,12 @@ public class TernaryOperatorNode extends OperatorNode
 		{
 			if(receiver.requiresTypeFromContext())
 			{
-				leftOperand.setType(getVarcharDescriptor());
+				// we cannot tell whether it is StringType or BitType, so set to BitType as default
+				leftOperand.setType(getVarBitDescriptor());
 			}
 			else
 			{
-				if( receiver.getTypeId().isStringTypeId() )
+				if( receiver.getTypeId().isStringTypeId() || receiver.getTypeId().isBitTypeId())
 				{
 					leftOperand.setType(
 							         receiver.getTypeServices());
@@ -759,19 +761,40 @@ public class TernaryOperatorNode extends OperatorNode
 
 		/*
 		** Check the type of the operand - this function is allowed only
-		** for: receiver = CHAR
-		**      firstOperand = CHAR
+		** for: receiver = CHAR or CharBit
+		**      firstOperand = CHAR or CharBit
 		**      secondOperand = INT
 		*/
 		secondOperandType = leftOperand.getTypeId();
 		offsetType = rightOperand.getTypeId();
 		firstOperandType = receiver.getTypeId();
 
-		if (!firstOperandType.isStringTypeId() ||
-			!secondOperandType.isStringTypeId() ||
-			offsetType.getJDBCTypeId() != Types.INTEGER)
+		if (offsetType.getJDBCTypeId() != Types.INTEGER) {
 			throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE,
 					"LOCATE", "FUNCTION");
+		} else {
+			if (!firstOperandType.isStringTypeId() && !firstOperandType.isBitTypeId() ||
+				!secondOperandType.isStringTypeId() && !secondOperandType.isBitTypeId()) {
+				throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE,
+						"LOCATE", "FUNCTION");
+			}
+		}
+		// do implicit casting
+		if (firstOperandType.isStringTypeId() && secondOperandType.isBitTypeId()) {
+			// we do not support cast of Long varchar and CLOB
+			if (firstOperandType.isClobTypeId() || firstOperandType.isLongVarcharTypeId()) {
+				throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE,
+						"LOCATE", "FUNCTION");
+			}
+			receiver = castArgToVarBit(receiver);
+		} else if (firstOperandType.isBitTypeId() && secondOperandType.isStringTypeId()) {
+			// we do not support cast of Long varchar and CLOB
+			if (secondOperandType.isClobTypeId() || secondOperandType.isLongVarcharTypeId()) {
+				throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE,
+						"LOCATE", "FUNCTION");
+			}
+			leftOperand = castArgToVarBit(leftOperand);
+		}
 
 		/*
 		** The result type of a LocateFunctionNode is an integer.
@@ -809,6 +832,28 @@ public class TernaryOperatorNode extends OperatorNode
 		return vn;
 	}
 
+	// cast arg to Varbit
+	protected ValueNode castArgToVarBit(ValueNode vn) throws StandardException
+	{
+		if (! vn.getTypeId().isBitTypeId()) {
+
+			DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARBINARY, true,
+					vn.getTypeServices().getMaximumWidth());
+
+			ValueNode newNode = (ValueNode)
+					getNodeFactory().getNode(
+							C_NodeTypes.CAST_NODE,
+							vn,
+							dtd,
+							getContextManager());
+
+			newNode.setCollationUsingCompilationSchema();
+
+			((CastNode) newNode).bindCastNodeOnly();
+			vn = newNode;
+		}
+		return vn;
+	}
 	/**
 	 * Bind substr expression.
 	 *
@@ -1239,7 +1284,11 @@ public class TernaryOperatorNode extends OperatorNode
 		return new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true);
 	}
 
-    protected boolean isEquivalent(ValueNode o) throws StandardException
+	private DataTypeDescriptor getVarBitDescriptor() {
+		return new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARBINARY), true);
+	}
+
+	protected boolean isEquivalent(ValueNode o) throws StandardException
     {
     	if (isSameNodeType(o))
 	{
