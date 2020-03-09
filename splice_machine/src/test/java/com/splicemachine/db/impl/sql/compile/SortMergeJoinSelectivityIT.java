@@ -50,7 +50,7 @@ public class SortMergeJoinSelectivityIT extends BaseJoinSelectivityIT {
                     s,
                     new int[]{1,3},
                     "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk, ts_5_spk --splice-properties joinStrategy=SORTMERGE\n where ts_10_spk.c1 = ts_5_spk.c1",
-                    "rows=10","MergeSortJoin");
+                    "rows=5","MergeSortJoin");
         }
     }
 
@@ -72,7 +72,7 @@ public class SortMergeJoinSelectivityIT extends BaseJoinSelectivityIT {
                     s,
                     new int[]{1,4,4},
                     "explain select * from ts_10_spk --splice-properties joinStrategy=SORTMERGE\n right outer join ts_5_spk on ts_10_spk.c1 = ts_5_spk.c1",
-                    "rows=10","MergeSortLeftOuterJoin","preds=[(TS_10_SPK.C1[4:5] = TS_5_SPK.C1[4:1])]");
+                    "rows=5","MergeSortLeftOuterJoin","preds=[(TS_10_SPK.C1[4:5] = TS_5_SPK.C1[4:1])]");
         }
     }
 

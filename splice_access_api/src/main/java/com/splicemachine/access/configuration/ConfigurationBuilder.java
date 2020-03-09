@@ -95,6 +95,7 @@ public class ConfigurationBuilder {
     public long fallbackRemoteLatencyRatio;
     public long partitionCacheExpiration;
     public int collectSchemaStatisticsMaximumConcurrent;
+    public long fallbackSparkOverhead;
 
     // StorageConfiguration
     public int splitBlockSize;

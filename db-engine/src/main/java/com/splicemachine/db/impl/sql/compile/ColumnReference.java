@@ -1445,7 +1445,7 @@ public class ColumnReference extends ValueNode {
     @Override
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
         long cardinality = cardinality();
-        return cardinality==0?numberOfRows:cardinality;
+        return cardinality==0 || cardinality > numberOfRows?numberOfRows:cardinality;
     }
 
     /**

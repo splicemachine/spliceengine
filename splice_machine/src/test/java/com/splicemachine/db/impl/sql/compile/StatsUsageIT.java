@@ -144,10 +144,10 @@ public class StatsUsageIT extends SpliceUnitTest {
         //test effectivePartitionStats
         rowContainsQuery(3,"explain select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
                 "        t1 as X, t1 as Y --splice-properties joinStrategy=BROADCAST\n " +
-                "        where X.a1=Y.a1 and Y.a1=1","outputRows=26,",methodWatcher);
+                "        where X.a1=Y.a1 and Y.a1=1","outputRows=29,",methodWatcher);
         rowContainsQuery(3,"explain select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
                 "        t1 as X, t1 as Y --splice-properties joinStrategy=BROADCAST\n " +
-                "        where X.c1=Y.c1 and Y.c1=1","outputRows=2,",methodWatcher);
+                "        where X.c1=Y.c1 and Y.c1=1","outputRows=4,",methodWatcher);
     }
 
     @Test

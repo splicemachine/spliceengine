@@ -336,6 +336,8 @@ public interface SConfiguration {
 
     int getCollectSchemaStatisticsMaximumConcurrent();
 
+    long getSparkOverhead();
+
     // StorageConfiguration
     int getSplitBlockSize();
 

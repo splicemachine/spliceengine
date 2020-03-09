@@ -57,6 +57,7 @@ public class SimpleCostEstimate implements CostEstimate{
     /* consecutive broadcast joins memory used in bytes */
     private double accumulatedMemory = 0.0d;
     private boolean singleRow = false;
+    private double sparkOverhead = 0.0d;
 
     public SimpleCostEstimate(){ }
 
@@ -130,6 +131,7 @@ public class SimpleCostEstimate implements CostEstimate{
         this.remoteCostPerPartition = other.getRemoteCostPerPartition();
         this.accumulatedMemory = other.getAccumulatedMemory();
         this.setSingleRow(other.isSingleRow());
+        this.sparkOverhead = other.getSparkOverhead();
     }
 
     @Override
@@ -237,7 +239,8 @@ public class SimpleCostEstimate implements CostEstimate{
                 ",partitions="+partitionCount()+
                 ",rowOrdering="+rowOrdering+
                 ",predicateList="+predicateList+
-                ",singleRow="+isSingleRow()+")";
+                ",singleRow="+isSingleRow()+
+                ",sparkOverhead="+sparkOverhead + ")";
     }
 
     @Override public void setRowCount(double outerRows){
@@ -311,6 +314,7 @@ public class SimpleCostEstimate implements CostEstimate{
         clone.setLocalCostPerPartition(localCostPerPartition);
         clone.setRemoteCostPerPartition(remoteCostPerPartition);
         clone.setSingleRow(singleRow);
+        clone.sparkOverhead = sparkOverhead;
         return clone;
     }
 
@@ -578,4 +582,14 @@ public class SimpleCostEstimate implements CostEstimate{
     public boolean isSingleRow() {return singleRow;}
 
     public void setSingleRow(boolean singleRowInRelation) { singleRow = singleRowInRelation;}
+
+    @Override
+    public void setSparkOverhead(double sparkOverhead) {
+        this.sparkOverhead = sparkOverhead;
+    }
+
+    @Override
+    public double getSparkOverhead() {
+        return sparkOverhead;
+    }
 }

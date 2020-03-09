@@ -1511,29 +1511,55 @@ public class BinaryRelationalOperatorNode
         // Binary Relational Operator Node...
         double selectivity;
 
-        if (rightOperand instanceof ColumnReference && ((ColumnReference) rightOperand).getSource().getTableColumnDescriptor() != null) {
+        if (rightOperand instanceof ColumnReference && ((ColumnReference) rightOperand).getSource().getTableColumnDescriptor() != null &&
+            leftOperand instanceof ColumnReference && ((ColumnReference) leftOperand).getSource().getTableColumnDescriptor() != null) {
             ColumnReference right = (ColumnReference) rightOperand;
-            if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.LEFTOUTER)) {
-                selectivity = (1.0d - right.nullSelectivity()) / right.nonZeroCardinality(innerRowCount);
-            } else if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.FULLOUTER)) {
+            ColumnReference left = (ColumnReference) leftOperand;
+            // right hand side of the binary operation may not reference the inner table, check the table number to be sure
+            if (right.getTableNumber() != optTable.getTableNumber()) {
+                right = (ColumnReference) leftOperand;
+                left = (ColumnReference) rightOperand;
+            }
+            double rightNonZeroCardinality = right.nonZeroCardinality(innerRowCount);
+            double leftNonZeroCardinality = left.nonZeroCardinality(outerRowCount);
+
+            // we use the simple assumption that all the rows in the table with smaller cardinality have matches
+            // in the table with the larger cardinality
+            selectivity = ((1.0d - left.nullSelectivity()) * (1.0d - right.nullSelectivity())) /
+                    Math.max(leftNonZeroCardinality, rightNonZeroCardinality);
+
+            if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.LEFTOUTER) ||
+                    selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.FULLOUTER)) {
                 // TODO DB-7816, temporarily borrow the selectivity logic from left join, may need to revisit
-                selectivity = (1.0d - right.nullSelectivity()) / right.nonZeroCardinality(innerRowCount);
-            } else if (leftOperand instanceof ColumnReference && ((ColumnReference) leftOperand).getSource().getTableColumnDescriptor() != null) {
-                ColumnReference left = (ColumnReference) leftOperand;
-                selectivity = ((1.0d - left.nullSelectivity()) * (1.0d - right.nullSelectivity())) /
-                        Math.min(left.nonZeroCardinality(outerRowCount), right.nonZeroCardinality(innerRowCount));
-                selectivity = selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.INNER) ?
-                        selectivity : 1.0d - selectivity;
+                if (leftNonZeroCardinality >= rightNonZeroCardinality) {
+                    // add non-matching row count to the inner join selectivity
+                    selectivity += (leftNonZeroCardinality - rightNonZeroCardinality)/(leftNonZeroCardinality * innerRowCount);
+                } else {
+                    // all the non-null value has a match in the right, so just need to add
+                    // the null row count from left
+                    selectivity += left.nullSelectivity()/innerRowCount;
+                }
+            } else {
                 if (optTable instanceof FromTable && ((FromTable) optTable).getExistsTable()) {
-                    selectivity = selectivity * left.nonZeroCardinality(outerRowCount)/outerRowCount;
-                    if ((optTable instanceof FromBaseTable) && ((FromBaseTable) optTable).isAntiJoin()) {
-                        selectivity = selectivity /(innerRowCount - innerRowCount/right.nonZeroCardinality(innerRowCount) + 1);
+                    if (leftNonZeroCardinality >= rightNonZeroCardinality) {
+                        // output row = left rows per value * rightZeroCardinality
+                        selectivity = (1-left.nullSelectivity())/leftNonZeroCardinality * rightNonZeroCardinality/innerRowCount;
+                        if ((optTable instanceof FromBaseTable) && ((FromBaseTable) optTable).isAntiJoin()) {
+                            // output row = left not null row - output row estimated above for inclusion join
+                            selectivity = (1-left.nullSelectivity())/leftNonZeroCardinality * (leftNonZeroCardinality - rightNonZeroCardinality)/innerRowCount;
+                        }
+                    } else {
+                        // output row = all left not null rows
+                        selectivity = (1 - left.nullSelectivity())/innerRowCount;
+                        if ((optTable instanceof FromBaseTable) && ((FromBaseTable) optTable).isAntiJoin()) {
+                            // following the above assumption, no row will be returned, but to be conservative, we will
+                            // assume 10% selectivity from left rows
+                            selectivity = 0.1 * selectivity;
+                        }
                     }
                 }
-            } else { // No Left Column Reference
-                selectivity = super.joinSelectivity(optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
             }
-        } else { // No Right ColumnReference
+        } else { // No Left or  Right ColumnReference
             selectivity = super.joinSelectivity(optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
         }
         assert selectivity >= 0.0d:"selectivity is out of bounds " + selectivity + this + " right-> " + rightOperand + " left -> " + leftOperand;
