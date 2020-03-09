@@ -49,7 +49,7 @@ public class MergeJoinSelectivityIT extends BaseJoinSelectivityIT {
             rowContainsQuery(s,
                     new int[]{1,3},
                     "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk, ts_5_spk --splice-properties joinStrategy=MERGE\n where ts_10_spk.c1 = ts_5_spk.c1",
-                    "rows=10","MergeJoin");
+                    "rows=5","MergeJoin");
         }
     }
 
