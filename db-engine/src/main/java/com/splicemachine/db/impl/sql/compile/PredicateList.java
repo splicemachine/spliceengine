@@ -1154,40 +1154,41 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             if(relop!=null)
                 thisOperator=relop.getOperator();
 
-                  /* Allow only one start and stop position per index column */
-            if(currentStartPosition+numColsInStartPred<=thisIndexPosition){
-                /*
-                ** We're working on a new index column for the start position.
-                ** Is it just one more than the previous position?
-                */
-                if((thisIndexPosition-currentStartPosition)> numColsInStartPred ||
-                        !considerJoinPredicateAsKey && thisPred.isJoinPredicate()){
-                    /*
-                    ** There's a gap in the start positions.  Don't mark any
-                    ** more predicates as start predicates.
-                    */
-                    gapInStartPositions=true;
-                }else if((thisOperator==RelationalOperator.EQUALS_RELOP)||(thisOperator==RelationalOperator.IS_NULL_RELOP)){
-                    /* Remember the last "=" or IS NULL predicate in the start
-                     * position.  (The sort on the predicates above has ensured
-                     * that these predicates appear 1st within the predicates on
-                     * a specific column.)
-                     */
+			      /* Allow only one start and stop position per index column */
+            if(currentStartPosition+numColsInStartPred<=thisIndexPosition) {
+				/*
+				** We're working on a new index column for the start position.
+				** Is it just one more than the previous position?
+				*/
+                if ((thisIndexPosition - currentStartPosition) > numColsInStartPred) {
+					/*
+					** There's a gap in the start positions.  Don't mark any
+					** more predicates as start predicates.
+					*/
+                    gapInStartPositions = true;
+                } else if (!considerJoinPredicateAsKey && thisPred.isJoinPredicate()) {
+                    // ignore the join predicate if it cannot be used as the key
+                } else if((thisOperator==RelationalOperator.EQUALS_RELOP)||(thisOperator==RelationalOperator.IS_NULL_RELOP)){
+					/* Remember the last "=" or IS NULL predicate in the start
+					 * position.  (The sort on the predicates above has ensured
+					 * that these predicates appear 1st within the predicates on
+					 * a specific column.)
+					 */
                     lastStartEqualsPosition=thisIndexPosition;
                 }
 
-                if(!gapInStartPositions){
-                    /*
-                    ** There is no gap in start positions.  Is this predicate
-                    ** useful as a start position?  This depends on the
-                    ** operator - for example, indexCol = <expr> is useful,
-                    ** while indexCol < <expr> is not useful with asc index
-                    ** we simply need to reverse the logic for desc indexes
-                    **
-                    ** The relop has to figure out whether the index column
-                    ** is on the left or the right, so pass the Optimizable
-                    ** table to help it.
-                    */
+                if(!gapInStartPositions && (considerJoinPredicateAsKey || !thisPred.isJoinPredicate())){
+					/*
+					** There is no gap in start positions.  Is this predicate
+					** useful as a start position?  This depends on the
+					** operator - for example, indexCol = <expr> is useful,
+					** while indexCol < <expr> is not useful with asc index
+					** we simply need to reverse the logic for desc indexes
+					**
+					** The relop has to figure out whether the index column
+					** is on the left or the right, so pass the Optimizable
+					** table to help it.
+					*/
                     if(!seenGT
                             && (isIn || ((relop.usefulStartKey(optTable) && (thisIndexPosition == -1 || isAscending[thisIndexPosition]))
                                 || (relop.usefulStopKey(optTable) && (thisIndexPosition != -1 && !isAscending[thisIndexPosition]))))){
@@ -1203,12 +1204,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
             /* Same as above, except for stop keys */
             if(currentStopPosition + numColsInStopPred <= thisIndexPosition || thisIndexPosition == -1){
-                if((thisIndexPosition-currentStopPosition)> numColsInStopPred ||
-                        !considerJoinPredicateAsKey && thisPred.isJoinPredicate()){
+                if((thisIndexPosition-currentStopPosition)> numColsInStopPred){
                     gapInStopPositions=true;
                 }
 
-                if(!gapInStopPositions){
+                if(!gapInStopPositions && (considerJoinPredicateAsKey || !thisPred.isJoinPredicate())){
                     if(!seenGE
                             && (isIn || ((relop.usefulStopKey(optTable) && (thisIndexPosition == -1 || isAscending[thisIndexPosition]))
                                 || (relop.usefulStartKey(optTable) && (thisIndexPosition != -1 && !isAscending[thisIndexPosition]))))){

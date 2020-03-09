@@ -128,6 +128,9 @@ public class StatsConfiguration implements ConfigurationDefault {
     public static final String COLLECT_SCHEMA_STATISTICS_MAXIMUM_CONCURRENT = "splice.statistics.collectSchemaStatisticsMaximumConcurrent";
     public static final int DEFAULT_COLLECT_SCHEMA_STATISTICS_MAXIMUM_CONCURRENT = 100;
 
+    /* spark plan overhead  */
+    public static final String FALLBACK_SPARK_OVERHEAD ="splice.statistics.fallbackSparkOverhead";
+    public static final long DEFAULT_FALLBACK_SPARK_OVERHEAD= 100000;
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
@@ -152,5 +155,7 @@ public class StatsConfiguration implements ConfigurationDefault {
 //        builder.fallbackIndexSelectivityFraction = configurationSource.getDouble(FALLBACK_INDEX_SELECTIVITY_FRACTION, DEFAULT_FALLBACK_INDEX_SELECTIVITY_FRACTION);
         builder.optimizerExtraQualifierMultiplier = configurationSource.getDouble(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER, DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER);
         builder.collectSchemaStatisticsMaximumConcurrent = configurationSource.getInt(COLLECT_SCHEMA_STATISTICS_MAXIMUM_CONCURRENT, DEFAULT_COLLECT_SCHEMA_STATISTICS_MAXIMUM_CONCURRENT);
+        builder.fallbackSparkOverhead = configurationSource.getLong(FALLBACK_SPARK_OVERHEAD, DEFAULT_FALLBACK_SPARK_OVERHEAD);
+
     }
 }
