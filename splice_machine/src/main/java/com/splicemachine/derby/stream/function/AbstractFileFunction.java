@@ -36,6 +36,7 @@ import org.supercsv.prefs.CsvPreference;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -167,7 +168,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                                  String dateTimeFormat, String timestampFormat,
                                  SpliceDateTimeFormatter dateFormatter,
                                  SpliceDateTimeFormatter timestampFormatter,
-                                 SpliceDateTimeFormatter timeFormatter)  throws Exception {
+                                 SpliceDateTimeFormatter timeFormatter)  throws StandardException, SQLException {
         int columnID = 0;
         String columnValue = null;
         int numofColumnsinTable = 0;
@@ -228,6 +229,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                     case StoredFormatIds.SQL_DATE_ID:
                         if(calendar==null)
                             calendar = new GregorianCalendar();
+                        value = truncateDateIfNecessary(value);
                         if (dateTimeFormat == null || value == null)
                             ((DateTimeDataValue)dvd).setValue(value,calendar);
                         else
@@ -260,7 +262,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                 }
             }
             return returnRow;
-        } catch (Exception e) {
+        } catch (StandardException | SQLException e) {
             if (operationContext != null && operationContext.isPermissive()) {
                 String extendedMessage;
                 if (columnnumbermistmatch)
@@ -272,6 +274,16 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             }
             throw e; // Not Permissive of errors
         }
+    }
+
+    private static String truncateDateIfNecessary(String value) {
+        if (value != null) {
+            String[] s = value.split(" ");
+            if (s.length > 1) {
+                value = s[0];
+            }
+        }
+        return value;
     }
 
     void checkPreference() {
