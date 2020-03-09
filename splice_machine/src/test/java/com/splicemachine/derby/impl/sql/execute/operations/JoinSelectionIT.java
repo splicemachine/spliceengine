@@ -215,7 +215,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
             				  "ON a2.PID = a3.PID " +
             				  "WHERE a2.PID = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
-			  LO_MERGE_SORT_JOIN, methodWatcher);
+			  LO_BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
@@ -562,7 +562,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         // Test DNF in nested level
         rowContainsQuery(5,
                 "explain select * from a, b where (((a.i = b.i and a.j=1) or (a.i = b.i and a.j=2)) and a.k=3) and b.k=3",
-                "preds=[(A.J[2:2] IN (1,2))]", methodWatcher);
+                "preds=[(A.J[0:2] IN (1,2))]", methodWatcher);
 
 
         // Negative test: predicate does not repeat in all clauses
