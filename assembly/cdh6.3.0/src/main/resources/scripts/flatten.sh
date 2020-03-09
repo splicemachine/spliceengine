@@ -4,7 +4,7 @@ cm_host="localhost"
 cm_port="7180"
 cm_user="admin"
 cm_pass="admin"
-cm_api_ver="api/v9"
+cm_api_ver="api/v32"
 ssh_user=$(whoami)
 cluster_hosts=()
 timeout=240
@@ -141,15 +141,8 @@ clean_out_zookeeper()
 {
 	zookeeper-client -server ${zookeeper_host}:${zookeeper_port} <<< "
 ls /
-rmr /startupPath
-rmr /spliceJobs
-rmr /derbyPropertyPath
-rmr /spliceTasks
-rmr /hbase
-rmr /conglomerates
-rmr /transactions
-rmr /ddl
-rmr /splice
+deleteall /splice
+deleteall /hbase
 ls /
 quit
 "
