@@ -1036,10 +1036,24 @@ public abstract class ValueNode extends QueryTreeNode
                 selectivity = 1.0d/innerRowCount;
                 break;
             case INNER:
-                selectivity = (1.0d-.1d)*(1.0d-.1d)/Math.min(innerRowCount,outerRowCount);
-                break;
-            case ANTIJOIN:
-                selectivity = 1.0d-((1.0d-.1d)*(1.0d-.1d)/Math.min(innerRowCount,outerRowCount));
+			case ANTIJOIN:
+                selectivity = (1.0d-.1d)*(1.0d-.1d)/Math.max(innerRowCount,outerRowCount);
+                if ((optTable instanceof FromTable && ((FromTable) optTable).getExistsTable())) {
+					if (outerRowCount >= innerRowCount) {
+						selectivity = (1 - .1d) / outerRowCount;
+						if (selectivityJoinType == SelectivityUtil.SelectivityJoinType.ANTIJOIN) {
+							// output row = left not null row - output row estimated above for inclusion join
+							selectivity = (1 - .1d) / outerRowCount * (outerRowCount - innerRowCount) / innerRowCount;
+						}
+					} else {
+						selectivity = (1 - .1d)/innerRowCount;
+						if (selectivityJoinType == SelectivityUtil.SelectivityJoinType.ANTIJOIN) {
+							// following the above assumption, no row will be returned, but to be conservative, we will
+							// assume 10% selectivity from left rows
+							selectivity = 0.1 * selectivity;
+						}
+					}
+				}
                 break;
         }
         return selectivity;

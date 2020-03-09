@@ -121,6 +121,11 @@ public class Subquery_Table_IT extends SpliceUnitTest {
             s.executeUpdate("insert into tab3 values (1,1),(2,2),(4,4)");
             s.executeUpdate("create table tab4 (a4 int not null, b4 int)");
             s.executeUpdate("insert into tab4 values (1,1),(2,2),(5,5)");
+            s.execute("analyze table tab1");
+            s.execute("analyze table tab2");
+            s.execute("analyze table tab3");
+            s.execute("analyze table tab4");
+
         }
     }
 
@@ -1036,7 +1041,7 @@ public class Subquery_Table_IT extends SpliceUnitTest {
     public void testSemiJoinWithInSubqueryWithMultipleTables() throws Exception {
         String sqlText = "select * from tab1, tab4 where b1 in (select b2 from tab2, tab3  where a2=a3)";
 
-        testOrderOfTables("explain " + sqlText, Arrays.asList("TAB4", "TAB3", "TAB2", "TAB1"));
+        testOrderOfTables("explain " + sqlText, Arrays.asList("TAB3", "TAB2", "TAB4", "TAB1"));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =

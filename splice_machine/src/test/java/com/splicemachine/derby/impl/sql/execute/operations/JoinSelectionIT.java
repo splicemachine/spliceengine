@@ -215,7 +215,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
             				  "ON a2.PID = a3.PID " +
             				  "WHERE a2.PID = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
-			  LO_MERGE_SORT_JOIN, methodWatcher);
+			  LO_BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
