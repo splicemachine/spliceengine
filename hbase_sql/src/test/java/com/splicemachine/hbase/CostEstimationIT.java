@@ -224,24 +224,26 @@ public class CostEstimationIT extends SpliceUnitTest {
         /*  t11 is hinted to have a total rowcount of 300, t22 and t33 have the default rowcount of 20.
             The plan is similar to the following:
             --------------------------------------------------------------------
-            Cursor(n=10,rows=1,updateMode=READ_ONLY (1),engine=control)
-              ->  ScrollInsensitive(n=9,totalCost=141.458,outputRows=1,outputHeapSize=0 B,partitions=1)
-                ->  ProjectRestrict(n=8,totalCost=39.315,outputRows=1,outputHeapSize=0 B,partitions=1)
-                  ->  GroupBy(n=7,totalCost=39.315,outputRows=1,outputHeapSize=0 B,partitions=1)
-                    ->  ProjectRestrict(n=6,totalCost=21.497,outputRows=219,outputHeapSize=332 B,partitions=1)
-                      ->  BroadcastLeftOuterJoin(n=5,totalCost=21.497,outputRows=219,outputHeapSize=332 B,partitions=1,preds=[(A2[8:2] = A3[8:3])])
-                        ->  TableScan[T33(48224)](n=4,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=332 B,partitions=1)
-                        ->  BroadcastJoin(n=3,totalCost=13.039,outputRows=219,outputHeapSize=272 B,partitions=1,preds=[(A1[4:1] = A2[4:2])])
-                          ->  TableScan[T22(48208)](n=2,totalCost=4.04,scannedRows=20,outputRows=18,outputHeapSize=272 B,partitions=1,preds=[(A2[2:1] = 90)])
-                          ->  TableScan[T11(48192)](n=1,totalCost=4.6,scannedRows=300,outputRows=270,outputHeapSize=270 B,partitions=1,preds=[(A1[0:1] = 90)])
+Plan
+----
+Cursor(n=10,rows=1,updateMode=READ_ONLY (1),engine=control (default))
+  ->  ScrollInsensitive(n=9,totalCost=47.976,outputRows=1,outputHeapSize=0 B,partitions=1)
+    ->  ProjectRestrict(n=8,totalCost=41.166,outputRows=1,outputHeapSize=0 B,partitions=1)
+      ->  GroupBy(n=7,totalCost=41.166,outputRows=1,outputHeapSize=0 B,partitions=1)
+        ->  ProjectRestrict(n=6,totalCost=21.089,outputRows=15,outputHeapSize=128 B,partitions=1)
+          ->  BroadcastLeftOuterJoin(n=5,totalCost=21.089,outputRows=15,outputHeapSize=128 B,partitions=1,preds=[(A2[8:2] = A3[8:3])])
+            ->  TableScan[T33(1888)](n=4,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=128 B,partitions=1)
+            ->  BroadcastJoin(n=3,totalCost=12.835,outputRows=15,outputHeapSize=68 B,partitions=1,preds=[(A1[4:1] = A2[4:2])])
+              ->  TableScan[T22(1872)](n=2,totalCost=4.04,scannedRows=20,outputRows=18,outputHeapSize=68 B,partitions=1,preds=[(A2[2:1] = 90)])
+              ->  TableScan[T11(1856)](n=1,totalCost=4.6,scannedRows=300,outputRows=270,outputHeapSize=270 B,partitions=1,preds=[(A1[0:1] = 90)])
 
-            10 rows selected
+10 rows selected
          */
         rowContainsQuery(new int[]{2,3,4,5,6,7,8,9,10},"explain select count(*) from --splice-properties joinOrder=fixed\n" +
                         "t11  --splice-properties useDefaultRowCount=300\n" +
                         ", t22 left join t33 --splice-properties joinStrategy=broadcast\n" +
                         "on a2=a3 where a1=a2 and a1=90", methodWatcher,
-                "outputRows=1", "outputRows=1", "outputRows=1", "outputRows=219", "outputRows=219", "outputRows=20", "outputRows=219", "outputRows=18", "outputRows=270");
+                "outputRows=1", "outputRows=1", "outputRows=1", "outputRows=15", "outputRows=15", "outputRows=20", "outputRows=15", "outputRows=18", "outputRows=270");
 
     }
 
