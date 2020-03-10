@@ -14,6 +14,7 @@
 
 package com.splicemachine.timestamp.hbase;
 
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.timestamp.api.TimestampIOException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
@@ -72,9 +73,36 @@ public class ZkTimestampSource implements TimestampSource {
         }
     	return _tc;
     }
-    
+
+    @Override
+    public long currentTimestamp() {
+        TimestampClient client = getTimestampClient();
+
+        long nextTimestamp;
+        try {
+            nextTimestamp = client.getCurrentTimestamp();
+        } catch (Exception e) {
+            LOG.warn("Unable to fetch new timestamp, will retry", e);
+
+            // In case of error we are going to reconnect, so we can retry once more and see if we are lucky...
+            try {
+                Thread.sleep(100);
+
+                nextTimestamp = client.getCurrentTimestamp();
+            } catch (Exception e2) {
+                LOG.error("Unable to get current timestamp", e2);
+                throw new RuntimeException("Unable to get current timestamp", e2);
+            }
+        }
+
+        SpliceLogUtils.debug(LOG, "Current timestamp: %s", nextTimestamp);
+
+        return nextTimestamp;
+    }
+
     @Override
     public long nextTimestamp() {
+
 		TimestampClient client = getTimestampClient();
 				
 		long nextTimestamp;

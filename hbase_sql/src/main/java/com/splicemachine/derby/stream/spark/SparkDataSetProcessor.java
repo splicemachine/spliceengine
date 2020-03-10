@@ -464,6 +464,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                         // spark does not support schema merging for avro
                         dataset = SpliceSpark.getSession()
                                 .read()
+                                .option("ignoreExtension", false)
                                 .format("com.databricks.spark.avro")
                                 .load(location);
                     } else if (storedAs.toLowerCase().equals("o")) {
@@ -544,8 +545,15 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                             .mode(SaveMode.Append).parquet(location);
                 }
                 else if (storedAs.toLowerCase().equals("a")) {
+                    if (compression.equals("none")) {
+                        compression = "uncompressed";
+                    }
+                    /*
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                             .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
+                     */
+                    empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                            .mode(SaveMode.Append).format("avro").save(location);
                 }
                 else if (storedAs.toLowerCase().equals("o")) {
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))

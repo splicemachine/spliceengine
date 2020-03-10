@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2012 - 2020 Splice Machine, Inc.
+  ~
+  ~ This file is part of Splice Machine.
+  ~ Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+  ~ GNU Affero General Public License as published by the Free Software Foundation, either
+  ~ version 3, or (at your option) any later version.
+  ~ Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  ~ without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  ~ See the GNU Affero General Public License for more details.
+  ~ You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+  ~ If not, see <http://www.gnu.org/licenses/>.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>remote_it</artifactId>
+    <name>Splice Machine - Remote ITs</name>
+    <description>Running integration tests against a remote JDBC connection</description>
+    <parent>
+        <artifactId>spliceengine-parent</artifactId>
+        <groupId>com.splicemachine</groupId>
+        <version>3.0.0.1950-SNAPSHOT</version>
+    </parent>
+    <properties>
+        <skipTests>${maven.skip.tests}</skipTests>
+        <!-- These are needed for hbase_sql -->
+        <envClassifier>cdh6.3.0</envClassifier>
+        <spark.version>2.4.0-cdh6.3.0</spark.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>db-client</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Test jars -->
+
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_machine</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>hbase_sql</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}-tests</classifier>
+            <type>test-jar</type>
+            <scope>test</scope>
+            <exclusions>
+                <!-- Exclusions are due to MNG-1388 -->
+                <exclusion>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_storage</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>hbase_pipeline</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>scala_util</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>commons-dbutils</groupId>
+            <artifactId>commons-dbutils</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- org.spark_project.guava -->
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-network-common_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+        <dependency>
+            <!-- com.splicemachine.pipeline.ErrorState -->
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_machine</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <profiles>
+        <profile>
+            <id>ee</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>enterprise_it</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_backup</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}-tests</classifier>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>com.splicemachine</groupId>
+                            <artifactId>hbase_sql</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.splicemachine</groupId>
+                            <artifactId>hbase_storage</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.hbase</groupId>
+                            <artifactId>hbase-server</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_ee</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}-tests</classifier>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>com.splicemachine</groupId>
+                            <artifactId>splice_replication</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.splicemachine</groupId>
+                            <artifactId>splice_backup</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.splicemachine</groupId>
+                            <artifactId>hbase_storage</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <dependenciesToScan combine.children="append">
+                                <dependency>com.splicemachine:splice_backup</dependency>
+                                <dependency>com.splicemachine:enterprise_it</dependency>
+                                <dependency>com.splicemachine:splice_ee</dependency>
+                            </dependenciesToScan>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
+                    <execution>
+                        <id>integration-tests-serial</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <groups>com.splicemachine.test.SerialTest</groups>
+                            <excludedGroups>com.splicemachine.test.HBaseTest, ${excluded.categories}</excludedGroups>
+                            <argLine>-Xmx4g</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <dependenciesToScan>
+                                <dependency>com.splicemachine:splice_machine</dependency>
+                                <dependency>com.splicemachine:hbase_sql</dependency>
+                            </dependenciesToScan>
+                            <includes>
+                                <include>**/*IT.java</include>
+                            </includes>
+                            <excludes>
+                                <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
+                                <!-- splice_machine ITs failing in remote mode -->
+                                <exclude>**/IndexIT.java</exclude>
+                                <exclude>**/InListMultiprobeIT.java</exclude>
+                                <exclude>**/CheckConstraintIT.java</exclude>
+                                <exclude>**/PyStoredProcedureResultSetFactoryIT.java</exclude>
+                                <exclude>**/QueryTimeoutIT.java</exclude>
+                                <exclude>**/RowCountOperationIT.java</exclude>
+                                <exclude>**/SavepointConstantOperationIT.java</exclude>
+                                <exclude>**/SpliceUDTIT.java</exclude>
+                                <exclude>**/SqlJJarIT.java</exclude>
+                                <exclude>**/TimestampIT.java</exclude>
+                                <exclude>**/Trigger_Create_IT.java</exclude>
+                                <exclude>**/Trigger_Dependency_IT.java</exclude>
+                                <exclude>**/Trigger_Exec_Stored_Proc_IT.java</exclude>
+                                <exclude>**/Trigger_Referencing_Clause_IT.java</exclude>
+                                <exclude>**/Trigger_Row_IT.java</exclude>
+                                <exclude>**/Trigger_Row_Transition_IT.java</exclude>
+                                <exclude>**/Trigger_Statement_IT.java</exclude>
+                                <exclude>**/Trigger_When_Clause_IT.java</exclude>
+                                <exclude>**/UpdateFromSubqueryIT.java</exclude>
+                                <!-- hbase_sql ITs failing in remote mode -->
+                                <exclude>com/splicemachine/hbase/**</exclude>
+                                <exclude>com/splicemachine/mrio/**</exclude>
+                                <exclude>**/CallableTransactionIT.java</exclude>
+                                <exclude>**/VacuumIT.java</exclude>
+                            </excludes>
+                            <runOrder>alphabetical</runOrder>
+                            <systemPropertyVariables>
+                                <splice.schemaCleanup>none</splice.schemaCleanup>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>integration-tests-parallel</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.HBaseTest, ${excluded.categories}</excludedGroups>
+                            <!--<skipTests>${skip.integration.tests}</skipTests>-->
+                            <parallel>classes</parallel>
+                            <threadCount>16</threadCount>
+                            <perCoreThreadCount>false</perCoreThreadCount>
+                            <argLine>-Xmx4g</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <dependenciesToScan>
+                                <dependency>com.splicemachine:splice_machine</dependency>
+                                <dependency>com.splicemachine:hbase_sql</dependency>
+                            </dependenciesToScan>
+                            <includes>
+                                <include>**/*IT.java</include>
+                            </includes>
+                            <excludes>
+                                <!-- Skip all unit tests >
+                                <exclude>**/*Test.java</exclude -->
+                                <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
+                                <!-- Failing in remote mode -->
+                                <exclude>**/AlterTableConstantOperationIT.java</exclude>
+                                <exclude>**/ArrayJoinIT.java</exclude>
+                                <exclude>**/AuthenticationIT.java</exclude>
+                                <exclude>**/AuthorizationIT.java</exclude>
+                                <exclude>**/CaseSensitiveImportIT.java</exclude>
+                                <exclude>**/ConstraintConstantOperationIT.java</exclude>
+                                <exclude>**/CrossJoinIT.java</exclude>
+                                <exclude>**/DecoderIT.java</exclude>
+                                <exclude>**/DropColumnIT.java</exclude>
+                                <exclude>**/DropColumnTransactionIT.java</exclude>
+                                <exclude>**/ExplainPlanIT.java</exclude>
+                                <exclude>**/ExportOperationIT.java</exclude>
+                                <exclude>**/FlattenedOuterJoinIT.java</exclude>
+                                <exclude>**/FunctionIT.java</exclude>
+                                <exclude>**/HashNestedLoopJoinIT.java</exclude>
+                                <exclude>**/HdfsImportIT.java</exclude>
+                                <exclude>**/HdfsUnsafeImportIT.java</exclude>
+                                <exclude>**/HBaseBulkLoadIT.java</exclude>
+                                <exclude>**/HBaseBulkLoadIndexIT.java</exclude>
+                                <exclude>**/ImportBinaryValueIT.java</exclude>
+                                <exclude>**/ImportDefaultValueIT.java</exclude>
+                                <exclude>**/ImportErrorIT.java</exclude>
+                                <exclude>**/ImportNullityIT.java</exclude>
+                                <exclude>**/ImportWithDifferentColumnOrderIT.java</exclude>
+                                <exclude>**/InnerJoinIT.java</exclude>
+                                <exclude>**/JdbcApiIT.java</exclude>
+                                <exclude>**/JoinSelectionIT.java</exclude>
+                                <exclude>**/KeyDecoderIT.java</exclude>
+                                <exclude>**/MergeJoinIT.java</exclude>
+                                <exclude>**/MicrostrategiesCustomerIT.java</exclude>
+                                <exclude>**/MicrostrategiesDemoIT.java</exclude>
+                                <exclude>**/MicrostrategiesItemIT.java</exclude>
+                                <exclude>**/MsOrderDetailIT.java</exclude>
+                                <exclude>**/NonUniqueIndexIT.java</exclude>
+                                <exclude>**/OuterJoinIT.java</exclude>
+                                <exclude>**/PrimaryKeyIT.java</exclude>
+                                <exclude>**/SelectivityIT.java</exclude>
+                                <exclude>**/SimpleDateArithmeticIT.java</exclude>
+                                <exclude>**/SpliceAdminIT.java</exclude>
+                                <exclude>**/SpliceSequenceIT.java</exclude>
+                                <exclude>**/SQLArrayIT.java</exclude>
+                                <exclude>**/TempTableIT.java</exclude>
+                                <exclude>**/ThreeTableEquiJoinIT.java</exclude>
+                                <exclude>**/TPCHIT.java</exclude>
+                                <exclude>**/UniqueIndexIT.java</exclude>
+                                <exclude>**/UpportIT.java</exclude>
+                                <exclude>**/VTIOperationIT.java</exclude>
+                                <exclude>**/WorkdayTinyIT.java</exclude>
+                                <!-- hbase_sql ITs failing in remote mode -->
+                                <exclude>com/splicemachine/hbase/**</exclude>
+                                <exclude>com/splicemachine/mrio/**</exclude>
+                                <exclude>**/AddColumnWithDefaultBulkLoadIT.java</exclude>
+                                <exclude>**/ClusterDDLTestIT.java</exclude>
+                                <exclude>**/ExternalTableIT.java</exclude>
+                                <exclude>**/ExternalTablePartitionIT.java</exclude>
+                                <exclude>**/TempTableHBaseIT.java</exclude>
+                                <exclude>**/TransactionResolutionIT.java</exclude>
+                                <!-- Serial IT failing to compile -->
+                                <exclude>**/VacuumIT.java</exclude>
+                                <!-- EE ITs failing in remote mode -->
+                                <exclude>com/splicemachine/backup/**</exclude>
+                            </excludes>
+                            <runOrder>alphabetical</runOrder>
+                            <systemPropertyVariables>
+                                <splice.schemaCleanup>async</splice.schemaCleanup>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

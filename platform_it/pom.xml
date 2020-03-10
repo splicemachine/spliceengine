@@ -51,6 +51,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>hbase_storage</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>splice_machine</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
@@ -119,6 +125,14 @@
                     <groupId>org.mortbay.jetty</groupId>
                     <artifactId>servlet-api</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-core</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -132,7 +146,37 @@
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.curator</groupId>
+                    <artifactId>curator-framework</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.parquet</groupId>
+                    <artifactId>parquet-hadoop-bundle</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-1.2-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-mapreduce</artifactId>
+            <version>${hbase.version}</version>
+            <scope>runtime</scope>
         </dependency>
         <!-- Kafka dependencies -->
         <dependency>
@@ -158,6 +202,16 @@
             <version>${hadoop.version}</version>
             <classifier>tests</classifier>
             <scope>runtime</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -193,6 +247,11 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>com.sun.jersey</groupId>
+            <artifactId>jersey-bundle</artifactId>
+            <version>1.17.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-hive_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
@@ -219,6 +278,21 @@
                     <artifactId>parquet-avro</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-core-api</artifactId>
+            <version>2.0.0-M15</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-protocol-shared</artifactId>
+            <version>2.0.0-M15</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-protocol-ldap</artifactId>
+            <version>2.0.0-M15</version>
         </dependency>
     </dependencies>
     <build>
@@ -796,6 +870,7 @@
                                 <argument>${project.build.directory}/classes</argument>
                                 <argument>${secure}</argument>
                                 <argument>${nodeCount}</argument>
+                                <argument>-Dlog4j.configurationFile=${log4j.config.uri}</argument>
                             </arguments>
                         </configuration>
                     </plugin>
@@ -893,6 +968,7 @@
                                     -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
                                 </argument>
                                 <argument>-Dsplice.spark.scheduler.mode=FAIR</argument>
+                                <argument>-Dsplice.spark.blacklist.enabled=false</argument>
                                 <argument>-Dsplice.spark.serializer=com.splicemachine.serializer.SpliceKryoSerializer
                                 </argument>
                                 <argument>-Dsplice.spark.shuffle.compress=false</argument>
@@ -1017,15 +1093,7 @@
         </profile>
 
         <profile>
-            <id>hdp2.5.5</id>
-            <properties>
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>hdp2.6.1</id>
+            <id>hdp3.1.0</id>
             <properties>
                 <extraDependency>splice_ranger_service</extraDependency>
                 <extraDependency2>splice_ranger_admin</extraDependency2>
@@ -1033,152 +1101,20 @@
             </properties>
         </profile>
         <profile>
-            <id>hdp2.6.3</id>
-            <properties>
-                <extraDependency>splice_ranger_service</extraDependency>
-                <extraDependency2>splice_ranger_admin</extraDependency2>
-                <extraDependency3>splice_atlas</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>hdp2.6.4</id>
-            <properties>
-                <extraDependency>splice_ranger_service</extraDependency>
-                <extraDependency2>splice_ranger_admin</extraDependency2>
-                <extraDependency3>splice_atlas</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>hdp2.6.5</id>
-            <properties>
-                <extraDependency>splice_ranger_service</extraDependency>
-                <extraDependency2>splice_ranger_admin</extraDependency2>
-                <extraDependency3>splice_atlas</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.8.3</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.8.5</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.12.0</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.12.2</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.12.2-2.3</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.13.0</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.13.2</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.13.3</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>mapr5.2.0</id>
+            <id>cdh6.3.0</id>
             <properties>
                 <extraDependency>splice_ee</extraDependency>
                 <extraDependency2>splice_ee</extraDependency2>
                 <extraDependency3>splice_ee</extraDependency3>
             </properties>
-        </profile>
-        <profile>
-            <id>cdh5.14.0</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.14.2</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.16.1</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>mapr6.0.0</id>
-            <properties>
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>mapr6.1.0</id>
-            <properties>
-                <maven.test.skip>true</maven.test.skip>
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_sentry</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
+                </dependency>
+            </dependencies>
         </profile>
         <profile>
             <id>dbaas</id>

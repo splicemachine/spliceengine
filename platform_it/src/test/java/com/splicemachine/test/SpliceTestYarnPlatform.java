@@ -25,19 +25,17 @@ import java.security.PrivilegedExceptionAction;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.service.CompositeService;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.MiniYARNClusterSplice;
 import org.apache.hadoop.yarn.server.nodemanager.NodeManager;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.ContainerManagerImpl;
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler;
 import org.apache.log4j.Logger;
-
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 /**
  * Starts Yarn server
  */
@@ -190,12 +188,7 @@ public class SpliceTestYarnPlatform {
 
     private static void waitForNMToRegister(NodeManager nm)
         throws Exception {
-        int attempt = 60;
-        ContainerManagerImpl cm =
-            ((ContainerManagerImpl) nm.getNMContext().getContainerManager());
-        while (cm.getBlockNewContainerRequestsStatus() && attempt-- > 0) {
-            Thread.sleep(2000);
-        }
+        HBasePlatformUtils.waitForNMToRegister(nm);
     }
 
     public ResourceManager getResourceManager() {

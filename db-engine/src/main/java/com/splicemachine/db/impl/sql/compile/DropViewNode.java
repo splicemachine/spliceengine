@@ -40,7 +40,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import org.apache.spark.sql.catalyst.plans.logical.Except;
 
 /**
  * A DropViewNode is the root of a QueryTree that represents a DROP VIEW

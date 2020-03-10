@@ -48,10 +48,6 @@ import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 
@@ -1340,77 +1336,6 @@ abstract class SQLBinary
         setValue(shrunkData);
     }
 
-    /**
-     *
-     * Write to a Project Tungsten UnsafeRow format.
-     *
-     * @see UnsafeRowWriter#write(int, byte[])
-     *
-     * @param unsafeRowWriter
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException{
-        if (isNull())
-            unsafeRowWriter.setNullAt(ordinal);
-        else {
-            unsafeRowWriter.write(ordinal, dataValue);
-        }
-    }
-
-    /**
-     * Read Data as position in Array
-     *
-     * @param unsafeArrayData
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-        if (unsafeArrayData.isNullAt(ordinal))
-            setToNull();
-        else {
-            isNull = false;
-            dataValue = unsafeArrayData.getBinary(ordinal);
-        }
-    }
-
-    /**
-     *
-     * Write Array Data
-     *
-     * @param unsafeArrayWriter
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-        if (isNull())
-            unsafeArrayWriter.setNull(ordinal);
-        else {
-            unsafeArrayWriter.write(ordinal, dataValue);
-        }
-    }
-
-    /**
-     *
-     * Read from a Project Tungsten UnsafeRow format.
-     *
-     * @see UnsafeRow#getBinary(int)
-     *
-     * @throws StandardException
-     */
-    @Override
-    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-        if (unsafeRow.isNullAt(ordinal))
-            setToNull();
-        else {
-            isNull = false;
-            dataValue = unsafeRow.getBinary(ordinal);
-        }
-    }
-
     @Override
     public void read(Row row, int ordinal) throws StandardException {
         if (row.isNullAt(ordinal))
@@ -1510,7 +1435,7 @@ abstract class SQLBinary
 			result.setValue(0);
 			return result;
 		}
-		
+
 		int index = startVal - 1;
 		if (mySearchFrom.length - index < mySearchFor.length) {
 			result.setValue(0);

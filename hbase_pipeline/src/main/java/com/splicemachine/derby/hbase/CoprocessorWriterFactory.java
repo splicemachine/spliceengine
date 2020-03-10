@@ -23,7 +23,7 @@ import com.splicemachine.pipeline.api.WritePipelineFactory;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.pipeline.client.BulkWritesRPCInvoker;
-import com.splicemachine.pipeline.client.RpcChannelFactory;
+import com.splicemachine.ipc.RpcChannelFactory;
 
 import java.io.IOException;
 

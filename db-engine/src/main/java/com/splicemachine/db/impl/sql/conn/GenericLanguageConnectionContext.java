@@ -339,6 +339,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     private String defaultSchema;
 
+    private String replicationRole = "NONE";
+
     /* constructor */
     public GenericLanguageConnectionContext(
             ContextManager cm,
@@ -3889,5 +3891,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     public void setClientSupportsDecimal38(boolean newVal) {
         clientSupportsDecimal38 = newVal;
+    }
+
+    @Override
+    public void setReplicationRole(String role) {
+        this.replicationRole = role;
+    }
+
+    @Override
+    public String getReplicationRole() {
+        return replicationRole;
     }
 }

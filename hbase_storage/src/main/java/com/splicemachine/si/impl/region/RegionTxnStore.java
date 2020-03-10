@@ -438,6 +438,8 @@ public class RegionTxnStore implements TxnPartition{
 
     @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
     private void resolveTxn(TxnMessage.Txn txn){
+        if (txn == null)
+            return;
         switch(Txn.State.fromInt(txn.getState())){
             case ROLLEDBACK:
                 if(isTimedOut(txn)){

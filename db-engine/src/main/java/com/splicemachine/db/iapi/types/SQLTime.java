@@ -55,10 +55,6 @@ import java.text.ParseException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
@@ -1130,81 +1126,6 @@ public final class SQLTime extends DataType
     public Format getFormat() {
     	return Format.TIME;
     }
-
-	/**
-	 *
-	 * Write to a Project Tungsten Format (UnsafeRow).  We encode Time as
-	 * 2 ints.
-	 *
-	 * @param unsafeRowWriter
-	 * @param ordinal
-     */
-	@Override
-	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
-		if (isNull())
-			unsafeRowWriter.setNullAt(ordinal);
-		else {
-			unsafeRowWriter.write(ordinal,(((long)encodedTime) << 32) | (encodedTimeFraction & 0xffffffffL));
-		}
-	}
-
-	/**
-	 *
-	 * Write Element into Positioned Array
-	 *
-	 * @param unsafeArrayWriter
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-		if (isNull())
-			unsafeArrayWriter.setNull(ordinal);
-		else {
-			unsafeArrayWriter.write(ordinal,(((long)encodedTime) << 32) | (encodedTimeFraction & 0xffffffffL));
-		}
-	}
-
-	/**
-	 *
-	 * Read Element from Positioned Array
-	 *
-	 * @param unsafeArrayData
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-		if (unsafeArrayData.isNullAt(ordinal))
-			setToNull();
-		else {
-			long l = unsafeArrayData.getLong(ordinal);
-			encodedTime = (int)(l >> 32);
-			encodedTimeFraction = (int)l;
-			isNull = false;
-		}
-	}
-
-	/**
-	 *
-	 * Read data into a Project Tungsten Format (UnsafeRow).  We read
-	 * data as two ints.
-	 *
-	 * @param unsafeRow
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-		if (unsafeRow.isNullAt(ordinal))
-			setToNull();
-		else {
-			long l = unsafeRow.getLong(ordinal);
-			encodedTime = (int)(l >> 32);
-			encodedTimeFraction = (int)l;
-			isNull = false;
-		}
-	}
 
 	@Override
 	public void read(Row row, int ordinal) throws StandardException {

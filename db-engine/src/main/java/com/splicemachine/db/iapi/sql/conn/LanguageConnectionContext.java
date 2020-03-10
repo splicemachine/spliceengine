@@ -1438,4 +1438,8 @@ public interface LanguageConnectionContext extends Context {
     boolean clientSupportsDecimal38();
 
     void setClientSupportsDecimal38(boolean newVal);
+
+	void setReplicationRole(String role);
+
+	String getReplicationRole();
 }

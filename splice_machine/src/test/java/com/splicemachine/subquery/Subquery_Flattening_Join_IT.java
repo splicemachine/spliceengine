@@ -16,8 +16,10 @@ package com.splicemachine.subquery;
 
 import com.splicemachine.derby.test.framework.RuledConnection;
 import com.splicemachine.derby.test.framework.SchemaRule;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.TableRule;
 import org.junit.Assert;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -32,11 +34,16 @@ import java.sql.Statement;
  * @author Scott Fines
  *         Date: 7/25/16
  */
-public class Subquery_Flattening_Join_IT{
+public class Subquery_Flattening_Join_IT {
+
+    private static final String SCHEMA = Subquery_Flattening_Join_IT.class.getSimpleName();
+
+    @ClassRule
+    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     public RuledConnection conn = new RuledConnection(null,true);
 
-    public SchemaRule schema = new SchemaRule(conn,Subquery_Flattening_Join_IT.class.getSimpleName().toUpperCase());
+    public SchemaRule schema = new SchemaRule(conn, SCHEMA.toUpperCase());
 
     public TableRule a = new TableRule(conn,"A","(account_id varchar(75),first_name varchar(25),last_name varchar(25))");
     public TableRule b = new TableRule(conn,"B","(account_id bigint,trans_amt DECIMAL(10,2))");

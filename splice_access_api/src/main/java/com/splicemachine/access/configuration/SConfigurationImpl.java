@@ -87,6 +87,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long regionLoadUpdateInterval;
     private final  long transactionsWatcherUpdateInterval;
     private final  String backupPath;
+    private final  String replicationPath;
     private final  String compressionAlgorithm;
     private final  String namespace;
     private final  String spliceRootPath;
@@ -98,9 +99,13 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long backupMaxBandwidthMB;
     private final  boolean backupUseDistcp;
     private final  int backupIOBufferSize;
+    private final  boolean replicationEnabled;
     private final  int replicationSnapshotInterval;
-    private final  int replicationSinkPort;
-    private final int replicationProgressUpdateInterval;
+    private final  int replicationProgressUpdateInterval;
+    private final  String replicationMonitorQuorum;
+    private final  String replicationMonitorPath;
+    private final  int replicationMonitorInterval;
+    private final  String replicationHealthcheckScript;
 
     // OperationConfiguration
     private final  int sequenceBlockSize;
@@ -394,17 +399,39 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getBackupIOBufferSize() {
         return backupIOBufferSize;
     }
+
+    @Override
+    public String getReplicationPath() {
+        return replicationPath;
+    }
+    @Override
+    public boolean replicationEnabled() {
+        return replicationEnabled;
+    }
     @Override
     public int getReplicationSnapshotInterval() {
         return replicationSnapshotInterval;
     }
     @Override
-    public int getReplicationSinkPort() {
-        return replicationSinkPort;
-    }
-    @Override
     public int getReplicationProgressUpdateInterval() {
         return replicationProgressUpdateInterval;
+    }
+    @Override
+    public String getReplicationMonitorQuorum() {
+        return replicationMonitorQuorum;
+    }
+
+    @Override
+    public String getReplicationMonitorPath() {
+        return replicationMonitorPath;
+    }
+    @Override
+    public int getReplicationMonitorInterval() {
+        return replicationMonitorInterval;
+    }
+    @Override
+    public String getReplicationHealthcheckScript() {
+        return replicationHealthcheckScript;
     }
     @Override
     public String getCompressionAlgorithm() {
@@ -937,15 +964,20 @@ public final class SConfigurationImpl implements SConfiguration {
         regionLoadUpdateInterval = builder.regionLoadUpdateInterval;
         transactionsWatcherUpdateInterval = builder.transactionsWatcherUpdateInterval;
         backupPath = builder.backupPath;
+        replicationPath = builder.replicationPath;
         backupParallelism = builder.backupParallelism;
         backupKeepAliveInterval = builder.backupKeepAliveInterval;
         backupTimeout = builder.backupTimeout;
         backupMaxBandwidthMB = builder.backupMaxBandwidthMB;
         backupUseDistcp = builder.backupUseDistcp;
         backupIOBufferSize = builder.backupIOBufferSize;
+        replicationEnabled = builder.replicationEnabled;
         replicationSnapshotInterval = builder.replicationSnapshotInterval;
-        replicationSinkPort = builder.replicationSinkPort;
         replicationProgressUpdateInterval = builder.replicationProgressUpdateInterval;
+        replicationMonitorPath = builder.replicationMonitorPath;
+        replicationMonitorQuorum = builder.replicationMonitorQuorum;
+        replicationMonitorInterval = builder.replicationMonitorInterval;
+        replicationHealthcheckScript = builder.replicationHealthcheckScript;
         compressionAlgorithm = builder.compressionAlgorithm;
         namespace = builder.namespace;
         spliceRootPath = builder.spliceRootPath;

@@ -129,8 +129,8 @@ public class DefaultRoleIT {
     private String selectQuery3      = format("select a3 from %s.%s", SCHEMA3, TABLE3);
     private String selectQuery4      = format("select a4 from %s.%s", SCHEMA4, TABLE4);
     private String selectQuery5      = format("select a5 from %s.%s", SCHEMA5, TABLE5);
-    String localURLTemplate = "jdbc:splice://localhost:1527/splicedb;create=true;user=%s;password=%s";
-    String remoteURLTemplate = "jdbc:splice://localhost:1528/splicedb;create=true;user=%s;password=%s";
+    String localURLTemplate = "jdbc:splice://localhost:1527/splicedb;create=true";
+    String remoteURLTemplate = "jdbc:splice://localhost:1528/splicedb;create=true";
 
     @BeforeClass
     public static void setUpClass() throws Exception {
