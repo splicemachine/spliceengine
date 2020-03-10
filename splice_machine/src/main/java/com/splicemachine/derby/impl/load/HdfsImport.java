@@ -101,6 +101,7 @@ public class HdfsImport {
     };
 
     private static final ResultColumnDescriptor[] MERGE_RESULT_COLUMNS = new GenericColumnDescriptor[]{
+            new GenericColumnDescriptor("rowsAffected", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
             new GenericColumnDescriptor("rowsUpdated", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
             new GenericColumnDescriptor("rowsInserted", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
             new GenericColumnDescriptor("failedRows", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
@@ -531,7 +532,7 @@ public class HdfsImport {
                 results);
     }
 
-    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
+    @SuppressFBWarnings(value="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING", justification = "no sql injection")
     private static void doImport(String schemaName,
                                  String tableName,
                                  String indexName,
@@ -730,10 +731,13 @@ public class HdfsImport {
                 ips.executeUpdate();
                 String badFileName = ((EmbedConnection) conn).getLanguageConnection().getBadFile();
                 ExecRow result = new ValueRow(5);
+                long rowsImported = ((EmbedConnection) conn).getLanguageConnection().getRecordsImported();
+                long rowsAffected = rowsImported + rowsUpdated;
                 if (isMerge) {
                     result.setRowArray(new DataValueDescriptor[]{
+                            new SQLLongint(rowsAffected),
                             new SQLLongint(rowsUpdated),
-                            new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getRecordsImported()),
+                            new SQLLongint(rowsImported),
                             new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getFailedRecords()),
                             new SQLLongint(contentSummary.fileCount()),
                             new SQLLongint(contentSummary.size()),
@@ -741,7 +745,7 @@ public class HdfsImport {
                     });
                 } else {
                     result.setRowArray(new DataValueDescriptor[]{
-                            new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getRecordsImported()),
+                            new SQLLongint(rowsImported),
                             new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getFailedRecords()),
                             new SQLLongint(contentSummary.fileCount()),
                             new SQLLongint(contentSummary.size()),
@@ -756,7 +760,7 @@ public class HdfsImport {
                                                (isCheckScan ? CHECK_RESULT_COLUMNS : IMPORT_RESULT_COLUMNS), act);
                 rs.open();
                 results[0] = new EmbedResultSet40((EmbedConnection) conn, rs, false, null, true);
-            } catch (Exception e) {
+            } catch (SQLException | StandardException | IOException e) {
                 throw new SQLException(e);
             }
         } finally {
@@ -855,14 +859,14 @@ public class HdfsImport {
             }
             else {
                 closed = false;
-                String col = s[i];
+                StringBuffer col = new StringBuffer(s[i]);
                 while(!s[i].endsWith("\"") && i < s.length) {
                     ++i;
-                    col += "," + s[i];
+                    col.append(",").append(s[i]);
                 }
-                closed = col.endsWith("\"");
+                closed = col.toString().endsWith("\"");
                 if (closed){
-                    columns.add(col);
+                    columns.add(col.toString());
                 }
                 else {
                     throw new RuntimeException(String.format("Column name %s not well-formatted", col));
