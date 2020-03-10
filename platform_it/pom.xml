@@ -1107,14 +1107,14 @@
                 <extraDependency2>splice_ee</extraDependency2>
                 <extraDependency3>splice_ee</extraDependency3>
             </properties>
-            <dependencies>
+            <!--dependencies>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_sentry</artifactId>
                     <version>${project.version}</version>
                     <classifier>${envClassifier}</classifier>
                 </dependency>
-            </dependencies>
+            </dependencies-->
         </profile>
         <profile>
             <id>dbaas</id>
