@@ -60,7 +60,7 @@ public class PermissionIT {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        String remoteURLTemplate = "jdbc:splice://localhost:1528/splicedb;create=true;user=%s;password=%s";
+        String remoteURLTemplate = "jdbc:splice://localhost:1528/splicedb";
 
         adminConn = spliceClassWatcherAdmin.createConnection();
         adminConn.execute( format("insert into %s.%s values (1,1,1,1)", SCHEMA1, TABLE ) );
