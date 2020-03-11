@@ -190,7 +190,16 @@ public class ScanCostFunction{
     }
 
 
-    public void generateOneRowCost() throws StandardException {
+    public void generateOneRowCost(boolean useSpark) throws StandardException {
+        double openLatency = scc.getOpenLatency();
+        double closeLatency = scc.getCloseLatency();
+        double localLatency = scc.getLocalLatency();
+        double remoteLatency = scc.getRemoteLatency();
+        if (!useSpark) {
+            openLatency = openLatency/10;
+            closeLatency = closeLatency/10;
+        }
+
         // Total Row Count from the Base Conglomerate
         double totalRowCount = 1.0d;
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
@@ -206,10 +215,10 @@ public class ScanCostFunction{
         // This should be the same for every conglomerate path
         scanCost.setEstimatedHeapSize((long)(totalRowCount*colSizeFactor));
         // Should be the same for each conglomerate
-        scanCost.setRemoteCost((long)(scc.getOpenLatency()+scc.getCloseLatency()+totalRowCount*scc.getRemoteLatency()*(1+colSizeFactor/100d)));
+        scanCost.setRemoteCost((long)(openLatency+closeLatency+totalRowCount*remoteLatency*(1+colSizeFactor/100d)));
         // Base Cost + LookupCost + Projection Cost
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
-        double baseCost = scc.getOpenLatency()+scc.getCloseLatency()+(totalRowCount*scc.getLocalLatency()*(1+scc.getConglomerateAvgRowWidth()/100d));
+        double baseCost = openLatency+closeLatency+(totalRowCount*localLatency*(1+scc.getConglomerateAvgRowWidth()/100d));
         scanCost.setFromBaseTableRows(totalRowCount);
         scanCost.setFromBaseTableCost(baseCost);
         scanCost.setScannedBaseTableRows(totalRowCount);
@@ -224,11 +233,11 @@ public class ScanCostFunction{
             scanCost.setIndexLookupRows(-1.0d);
             scanCost.setIndexLookupCost(-1.0d);
         } else {
-            lookupCost = totalRowCount*(scc.getOpenLatency()+scc.getCloseLatency());
+            lookupCost = totalRowCount*(openLatency+closeLatency);
             scanCost.setIndexLookupRows(totalRowCount);
             scanCost.setIndexLookupCost(lookupCost+baseCost);
         }
-        double projectionCost = totalRowCount * scc.getLocalLatency() * colSizeFactor*1d/1000d;
+        double projectionCost = totalRowCount * localLatency * colSizeFactor*1d/1000d;
         scanCost.setProjectionRows(scanCost.getEstimatedRowCount());
         scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
@@ -273,7 +282,7 @@ public class ScanCostFunction{
      * @throws StandardException
      */
 
-    public void generateCost() throws StandardException {
+    public void generateCost(boolean useSpark) throws StandardException {
 
         double baseTableSelectivity = computePhaseSelectivity(selectivityHolder,QualifierPhase.BASE);
         double filterBaseTableSelectivity = computePhaseSelectivity(selectivityHolder,QualifierPhase.BASE,QualifierPhase.FILTER_BASE);
@@ -303,6 +312,10 @@ public class ScanCostFunction{
         double closeLatency = scc.getCloseLatency();
         double localLatency = scc.getLocalLatency();
         double remoteLatency = scc.getRemoteLatency();
+        if (!useSpark) {
+            openLatency = openLatency/10;
+            closeLatency = closeLatency/10;
+        }
         double remoteCost = openLatency + closeLatency + totalRowCount*totalSelectivity*remoteLatency*(1+colSizeFactor/1024d); // Per Kb
 
         assert openLatency >= 0 : "openLatency cannot be negative -> " + openLatency;
