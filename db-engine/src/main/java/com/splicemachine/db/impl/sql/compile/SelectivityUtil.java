@@ -82,7 +82,7 @@ public class SelectivityUtil {
     }
 
 
-    private static boolean isTheRightJoinPredicate(Predicate p, JoinPredicateType predicateType) {
+    public static boolean isTheRightJoinPredicate(Predicate p, JoinPredicateType predicateType) {
         if (p == null || !p.isJoinPredicate())
             return false;
 
