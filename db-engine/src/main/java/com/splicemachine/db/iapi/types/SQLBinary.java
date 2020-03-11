@@ -1450,5 +1450,86 @@ abstract class SQLBinary
         return dataValue;
     }
 
+	/**
+	 * This method implements the locate function for binary string.
+	 * @param searchFrom    - The binary string to search from
+	 * @param start         - The position to search from in the binary string searchFrom
+	 * @param result        - The object to return
+	 *
+	 *
+	 * @return  The position in searchFrom the fist occurrence of this.value.
+	 *              0 is returned if searchFrom does not contain this.value.
+	 * @exception StandardException     Thrown on error
+	 */
+	public NumberDataValue locate(  ConcatableDataValue searchFrom,
+									NumberDataValue start,
+									NumberDataValue result)
+			throws StandardException
+	{
+		int startVal;
 
+		if( result == null )
+		{
+			result = new SQLInteger();
+		}
+
+		if( start.isNull() )
+		{
+			startVal = 1;
+		}
+		else
+		{
+			startVal = start.getInt();
+		}
+
+		if( searchFrom.isNull() || this.isNull() )
+		{
+			result.setToNull();
+			return result;
+		}
+
+		if( startVal < 1 )
+		{
+			throw StandardException.newException(
+					SQLState.LANG_INVALID_PARAMETER_FOR_SEARCH_POSITION,
+					this, searchFrom,
+					startVal);
+		}
+
+		byte[] mySearchFrom = searchFrom.getBytes();
+		byte[] mySearchFor = this.getBytes();
+
+		if(mySearchFor == null || mySearchFor.length == 0)
+		{
+			result.setValue(startVal);
+			return result;
+		}
+
+		if (mySearchFrom == null || mySearchFrom.length == 0)
+		{
+			result.setValue(0);
+			return result;
+		}
+		
+		int index = startVal - 1;
+		if (mySearchFrom.length - index < mySearchFor.length) {
+			result.setValue(0);
+			return result;
+		}
+
+		for (; index < mySearchFrom.length - mySearchFor.length + 1; index++) {
+			int offset=0;
+			for (; offset < mySearchFor.length; offset ++) {
+				if (mySearchFrom[index + offset] != mySearchFor[offset])
+					break;
+			}
+			if (offset == mySearchFor.length) {
+				result.setValue(index + 1);
+				return result;
+			}
+		}
+		//no match is found
+		result.setValue(0);
+		return result;
+	}
 }
