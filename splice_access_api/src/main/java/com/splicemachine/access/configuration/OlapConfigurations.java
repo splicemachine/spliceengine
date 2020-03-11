@@ -145,6 +145,14 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS = "splice.olap.compaction.automaticallyPurgeDeletedRows";
     public static final boolean DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS = true;
 
+    // Olap Server keepalive timeout in seconds until it kills itself. It has to be larger than an HMaster failover
+    // when deployed on premise if we want it to survive the HMaster failover.
+    public static final String OLAP_SERVER_KEEPALIVE_TIMEOUT = "splice.olap.server.keepalive.timeout";
+    public static final long DEFAULT_OLAP_SERVER_KEEPALIVE_TIMEOUT = 180; // 15 minutes
+
+    // Olap Server mode for external execution, either YARN or KUBERNETES
+    public static final String OLAP_SERVER_MODE = "splice.olap.server.mode";
+    public static final String DEFAULT_OLAP_SERVER_MODE = "YARN";
 
     /* Map of Splice queues to YARN queues
 
@@ -191,5 +199,8 @@ public class OlapConfigurations implements ConfigurationDefault {
         builder.olapServerIsolatedCompaction = configurationSource.getBoolean(OLAP_SERVER_ISOLATED_COMPACTION, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION);
         builder.olapServerIsolatedCompactionQueueName = configurationSource.getString(OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME);
         builder.olapCompactionAutomaticallyPurgeDeletedRows = configurationSource.getBoolean(OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS, DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS);
+
+        builder.olapServerKeepAliveTimeout = configurationSource.getLong(OLAP_SERVER_KEEPALIVE_TIMEOUT, DEFAULT_OLAP_SERVER_KEEPALIVE_TIMEOUT);
+        builder.olapServerMode = configurationSource.getString(OLAP_SERVER_MODE, DEFAULT_OLAP_SERVER_MODE);
     }
 }

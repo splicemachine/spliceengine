@@ -236,6 +236,8 @@ public interface SConfiguration {
 
     boolean getOlapServerExternal();
 
+    long getOlapServerKeepAliveTimeout();
+
     int getOlapServerThreads();
 
     int getOlapServerSubmitAttempts();
@@ -396,4 +398,5 @@ public interface SConfiguration {
 
     String getRangerUserSyncCaseConversion();
 
+    String getOlapServerMode();
 }
