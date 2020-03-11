@@ -232,7 +232,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         Scan memScan = new Scan(scan);
         memScan.setFilter(null);   // Remove SamplingFilter if the scan has it
         memScan.setAsyncPrefetch(false); // async would keep buffering rows indefinitely
-        memScan.setReadType(Scan.ReadType.STREAM);
+        memScan.setReadType(Scan.ReadType.PREAD);
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_ONLY,SIConstants.TRUE_BYTES);
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_BEGIN_KEY, hri.getStartKey());
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_END_KEY, hri.getEndKey());
