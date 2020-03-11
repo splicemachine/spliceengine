@@ -871,6 +871,10 @@ public class FromBaseTable extends FromTable {
 
                 if(!p.isJoinPredicate()&& !p.isFullJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) //skip join predicates unless they support predicate pushdown
                     scf.addPredicate(p, defaultSelectivityFactor);
+                else if (p.isJoinPredicate() && !p.isFullJoinPredicate() && currentJoinStrategy.getJoinStrategyType() == JoinStrategy.JoinStrategyType.MERGE) {
+                    scf.addScanPredicateForMergeJoin(p, defaultSelectivityFactor);
+
+                }
             }
             scf.generateCost(optimizer.isForSpark());
             singleScanRowCount=costEstimate.singleScanRowCount();

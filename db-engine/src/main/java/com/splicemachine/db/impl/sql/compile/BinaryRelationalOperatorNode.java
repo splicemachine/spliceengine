@@ -1641,7 +1641,7 @@ public class BinaryRelationalOperatorNode
         return selectivity;
     }
 
-    private DataValueDescriptor getKeyBoundary(DataValueDescriptor d1, DataValueDescriptor d2, boolean isStartKey) throws StandardException{
+    public static DataValueDescriptor getKeyBoundary(DataValueDescriptor d1, DataValueDescriptor d2, boolean isStartKey) throws StandardException{
 
         if (d1 == null || d1.isNull()) {
             if (d2 == null || d2.isNull()) {
