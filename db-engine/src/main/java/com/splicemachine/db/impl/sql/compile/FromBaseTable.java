@@ -859,7 +859,7 @@ public class FromBaseTable extends FromTable {
 
         if(currentJoinStrategy.allowsJoinPredicatePushdown() && isOneRowResultSet(cd,baseTableRestrictionList)){ // Retrieving only one row...
             singleScanRowCount=1.0;
-            scf.generateOneRowCost();
+            scf.generateOneRowCost(optimizer.isForSpark());
         }
         else {
             int predListSize = predList!=null?baseTableRestrictionList.size():0;
@@ -872,7 +872,7 @@ public class FromBaseTable extends FromTable {
                 if(!p.isJoinPredicate()&& !p.isFullJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) //skip join predicates unless they support predicate pushdown
                     scf.addPredicate(p, defaultSelectivityFactor);
             }
-            scf.generateCost();
+            scf.generateCost(optimizer.isForSpark());
             singleScanRowCount=costEstimate.singleScanRowCount();
         }
         tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN1,tableNumber,0,0.0,cd, correlationName, costEstimate);
