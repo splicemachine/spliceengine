@@ -16,12 +16,15 @@ package com.splicemachine.hbase;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.lifecycle.MasterLifecycle;
 import com.splicemachine.olap.OlapServer;
+import com.splicemachine.lifecycle.DatabaseLifecycleService;
+import com.splicemachine.olap.OlapServerMaster;
 import com.splicemachine.olap.OlapServerSubmitter;
 import com.splicemachine.pipeline.InitializationCompleted;
 import com.splicemachine.si.constants.SIConstants;
@@ -43,6 +46,9 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooDefs;
 
 import javax.management.MBeanServer;
 import java.io.IOException;
@@ -146,7 +152,7 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
     @Override
     public void postStartMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
         try {
-            boot(ctx.getEnvironment().getServerName());
+            boot();
             boolean replicationEnabled = HConfiguration.getConfiguration().replicationEnabled();
             if (replicationEnabled) {
                 this.choreService = new ChoreService("Splice Master ChoreService");
@@ -178,50 +184,61 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
         return Optional.of(this);
     }
 
-
-    private synchronized void boot(ServerName serverName) throws IOException{
+    private synchronized void boot() throws IOException{
         //make sure the SIDriver is booted
         if (! manager.getState().equals(DatabaseLifecycleManager.State.NOT_STARTED))
             return; // Race Condition, only load one...
 
-        if (HConfiguration.getConfiguration().getOlapServerExternal()) {
-            try {
-                manager.registerNetworkService(new DatabaseLifecycleService() {
-                    List<OlapServerSubmitter> serverSubmitters;
+        SConfiguration conf = HConfiguration.getConfiguration();
+        if (conf.getOlapServerExternal()) {
+            OlapServerMaster.Mode mode = OlapServerMaster.Mode.valueOf(conf.getOlapServerMode());
+            if (mode.equals(OlapServerMaster.Mode.KUBERNETES)) {
+                String root = conf.getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH;
+                try {
+                    ZkUtils.safeCreate(root + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                    ZkUtils.safeCreate(root + HBaseConfiguration.OLAP_SERVER_LEADER_ELECTION_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                } catch (Exception e) {
+                    throw new IOException(e);
+                }
+            } else {
+                try {
+                    manager.registerNetworkService(new DatabaseLifecycleService() {
+                        List<OlapServerSubmitter> serverSubmitters;
 
-                    @Override
-                    public void start() throws Exception {
-                        Collection<String> queues = HConfiguration.getConfiguration().getOlapServerYarnQueues().keySet();
-                        serverSubmitters = new ArrayList<>();
-                        Set<String> names = new HashSet<>(queues);
-                        names.add(SIConstants.OLAP_DEFAULT_QUEUE_NAME);
-                        if (HConfiguration.getConfiguration().getOlapServerIsolatedCompaction()) {
-                            names.add(HConfiguration.getConfiguration().getOlapServerIsolatedCompactionQueueName());
+                        @Override
+                        public void start() throws Exception {
+                            Collection<String> queues = HConfiguration.getConfiguration().getOlapServerYarnQueues().keySet();
+                            serverSubmitters = new ArrayList<>();
+                            Set<String> names = new HashSet<>(queues);
+                            names.add(SIConstants.OLAP_DEFAULT_QUEUE_NAME);
+                            if (HConfiguration.getConfiguration().getOlapServerIsolatedCompaction()) {
+                                names.add(HConfiguration.getConfiguration().getOlapServerIsolatedCompactionQueueName());
+                            }
+
+                            for (String queue : names) {
+                                OlapServerSubmitter oss = new OlapServerSubmitter(queue);
+                                serverSubmitters.add(oss);
+                                Thread thread = new Thread(oss, "OlapServerSubmitter-" + queue);
+                                thread.setDaemon(true);
+                                thread.start();
+                            }
                         }
 
-                        for (String queue : names) {
-                            OlapServerSubmitter oss = new OlapServerSubmitter(serverName, queue);
-                            serverSubmitters.add(oss);
-                            Thread thread = new Thread(oss, "OlapServerSubmitter-"+queue);
-                            thread.setDaemon(true);
-                            thread.start();
+                        @Override
+                        public void registerJMX(MBeanServer mbs) throws Exception {
                         }
-                    }
 
-                    @Override
-                    public void registerJMX(MBeanServer mbs) throws Exception {
-                    }
-
-                    @Override
-                    public void shutdown() throws Exception {
-                        for (OlapServerSubmitter oss : serverSubmitters) {
-                            oss.stop();
+                        @Override
+                        public void shutdown() throws Exception {
+                            for (OlapServerSubmitter oss : serverSubmitters) {
+                                oss.stop();
+                            }
                         }
-                    }
-                });
-            } catch(Exception e){
-                LOG.error("Unexpected exception registering Olap Server service", e);
-                throw new DoNotRetryIOException(e);
+                    });
+                } catch (Exception e) {
+                    LOG.error("Unexpected exception registering Olap Server service", e);
+                    throw new DoNotRetryIOException(e);
+                }
             }
         }
 

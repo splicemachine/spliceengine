@@ -18,7 +18,9 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -47,7 +49,9 @@ import com.splicemachine.management.JmxDatabaseAdminstrator;
 import com.splicemachine.management.Manager;
 import com.splicemachine.olap.AsyncOlapNIOLayer;
 import com.splicemachine.olap.JobExecutor;
+import com.splicemachine.olap.OlapServerNotReadyException;
 import com.splicemachine.olap.OlapServerProvider;
+import com.splicemachine.olap.OlapServerZNode;
 import com.splicemachine.olap.TimedOlapClient;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.primitives.Bytes;
@@ -135,19 +139,24 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         final OlapServerProvider osp = queue -> {
             try {
                 if (config.getOlapServerExternal()) {
-                    String serverName = hbcf.getMasterServer().getServerName();
                     byte[] bytes = null;
                     int tries = 0;
-                    IOException catched = null;
+                    Exception catched = null;
+                    String root = HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH;
                     while (tries < maxRetries) {
                         tries++;
                         try {
-                            bytes = ZkUtils.getData(HConfiguration.getConfiguration().getSpliceRootPath() +
-                                    HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName + ":" + queue);
+                            List<String> servers = ZkUtils.getChildren(root, false);
+                            OlapServerZNode node = servers.stream()
+                                    .map(OlapServerZNode::parseFrom)
+                                    .filter(n -> n.getQueueName().equals(queue))
+                                    .sorted()
+                                    .findFirst().orElseThrow(() -> new OlapServerNotReadyException(queue, servers));
+                            bytes = ZkUtils.getData(root + "/" + node.toZNode());
                             break;
                         } catch (IOException e) {
                             catched = e;
-                            if (e.getCause() instanceof KeeperException.NoNodeException) {
+                            if (e instanceof OlapServerNotReadyException) {
                                 // sleep & retry
                                 try {
                                     long pause = PipelineUtils.getPauseTime(tries, 10);
@@ -161,8 +170,12 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
                             }
                         }
                     }
-                    if (bytes == null)
-                        throw catched;
+                    if (bytes == null) {
+                        if (catched instanceof IOException)
+                            throw (IOException) catched;
+                        else
+                            throw new IOException(catched);
+                    }
                     String hostAndPort = Bytes.toString(bytes);
                     return HostAndPort.fromString(hostAndPort);
                 } else {

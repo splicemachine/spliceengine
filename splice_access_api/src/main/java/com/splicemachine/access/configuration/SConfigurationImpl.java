@@ -161,6 +161,8 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapServerMemory;
     private final int olapServerMemoryOverhead;
     private final int olapServerVirtualCores;
+    private final long olapServerKeepAliveTimeout;
+    private final String olapServerMode;
     private final String olapLog4jConfig;
     private final Map<String, String> olapServerIsolatedRoles;
     private final Map<String, String> olapServerYarnQueues;
@@ -663,6 +665,10 @@ public final class SConfigurationImpl implements SConfiguration {
         return olapServerVirtualCores;
     }
     @Override
+    public long getOlapServerKeepAliveTimeout() {
+        return olapServerKeepAliveTimeout;
+    }
+    @Override
     public int getOlapServerThreads() {
         return olapServerThreads;
     }
@@ -673,6 +679,10 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getOlapShufflePartitions() {
         return olapShufflePartitions;
+    }
+    @Override
+    public String getOlapServerMode() {
+        return olapServerMode;
     }
 
     @Override
@@ -1036,6 +1046,8 @@ public final class SConfigurationImpl implements SConfiguration {
         olapServerMemory = builder.olapServerMemory;
         olapServerMemoryOverhead = builder.olapServerMemoryOverhead;
         olapServerVirtualCores = builder.olapServerVirtualCores;
+        olapServerKeepAliveTimeout = builder.olapServerKeepAliveTimeout;
+        olapServerMode = builder.olapServerMode;
         olapClientRetries = builder.olapClientRetries;
         olapShufflePartitions = builder.olapShufflePartitions;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;

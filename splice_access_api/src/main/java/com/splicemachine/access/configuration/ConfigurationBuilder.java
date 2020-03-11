@@ -151,6 +151,7 @@ public class ConfigurationBuilder {
     public int olapServerMemory;
     public int olapServerMemoryOverhead;
     public int olapServerVirtualCores;
+    public long olapServerKeepAliveTimeout;
     public int partitionserverJmxPort;
     public String partitionserverJmxUser;
     public String partitionserverJmxPassword;
@@ -214,6 +215,7 @@ public class ConfigurationBuilder {
     public boolean olapServerIsolatedCompaction;
     public String olapServerIsolatedCompactionQueueName;
     public boolean olapCompactionAutomaticallyPurgeDeletedRows;
+    public String olapServerMode;
 
 
     /**

@@ -82,6 +82,21 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String OLAP_SERVER_PATH = "/olapServer";
 
     /**
+     * The Path in zookeeper for olap server leader election.
+     */
+    public static final String OLAP_SERVER_LEADER_ELECTION_PATH = "/leaderElection";
+
+    /**
+     * The Path in zookeeper for olap server queues.
+     */
+    public static final String OLAP_SERVER_QUEUE_PATH = "/queues";
+
+    /**
+     * The Path in zookeeper for olap server keep alive.
+     */
+    public static final String OLAP_SERVER_KEEP_ALIVE_PATH = "/keepAlive";
+
+    /**
      * The Path in zookeeper for coordinating concurrent HMasters booting up
      */
     public static final String MASTER_INIT_PATH = "/masterInitialization";
