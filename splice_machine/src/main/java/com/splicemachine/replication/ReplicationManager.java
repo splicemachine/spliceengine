@@ -36,4 +36,5 @@ public interface ReplicationManager {
     void monitorReplication(String masterClusterKey, String slaveClusterKey) throws StandardException;
     default String getReplicatedWalPosition(String wal) throws StandardException{ return null;}
     default List<String> getReplicatedWalPositions(short peerId) throws StandardException{return null;}
+    default long getReplicationProgress() throws StandardException {return -1;};
 }

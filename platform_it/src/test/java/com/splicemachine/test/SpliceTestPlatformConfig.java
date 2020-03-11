@@ -321,8 +321,8 @@ class SpliceTestPlatformConfig {
         // Replication
         //
         config.setBoolean("replication.source.eof.autorecovery", true);
-        config.set("hbase.replication.source.service", "com.splicemachine.replication.SpliceReplication");
-        config.set("hbase.replication.sink.service", "com.splicemachine.replication.SpliceReplication");
+        //config.set("hbase.replication.source.service", "com.splicemachine.replication.SpliceReplication");
+        //config.set("hbase.replication.sink.service", "com.splicemachine.replication.SpliceReplication");
         config.setBoolean("replication.source.eof.autorecovery", true);
         config.setBoolean("splice.replication.enabled", true);
 

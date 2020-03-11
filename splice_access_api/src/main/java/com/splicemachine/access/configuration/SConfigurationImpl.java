@@ -169,7 +169,8 @@ public final class SConfigurationImpl implements SConfiguration {
     private final boolean olapCompactionAutomaticallyPurgeDeletedRows;
 
     // SIConfigurations
-    private final  int activeTransactionCacheSize;
+    private final  int activeTransactionMaxCacheSize;
+    private final  int activeTransactionInitialCacheSize;
     private final  int completedTxnCacheSize;
     private final  int completedTxnConcurrency;
     private final  int readResolverQueueSize;
@@ -558,8 +559,12 @@ public final class SConfigurationImpl implements SConfiguration {
 
     // SIConfigurations
     @Override
-    public int getActiveTransactionCacheSize() {
-        return activeTransactionCacheSize;
+    public int getActiveTransactionMaxCacheSize() {
+        return activeTransactionMaxCacheSize;
+    }
+    @Override
+    public int getActiveTransactionInitialCacheSize() {
+        return activeTransactionInitialCacheSize;
     }
     @Override
     public int getCompletedTxnCacheSize() {
@@ -897,7 +902,8 @@ public final class SConfigurationImpl implements SConfiguration {
      */
     SConfigurationImpl(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         configSource = configurationSource;
-        activeTransactionCacheSize = builder.activeTransactionCacheSize;
+        activeTransactionMaxCacheSize = builder.activeTransactionMaxCacheSize;
+        activeTransactionInitialCacheSize = builder.activeTransactionInitialCacheSize;
         completedTxnCacheSize = builder.completedTxnCacheSize;
         completedTxnConcurrency = builder.completedTxnConcurrency;
         readResolverQueueSize = builder.readResolverQueueSize;

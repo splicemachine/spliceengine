@@ -102,4 +102,22 @@ public interface ConcatableDataValue extends DataValueDescriptor, VariableSizeDa
 			StringDataValue toStr,
 			ConcatableDataValue result)
             throws StandardException;
+
+	/**
+	 * Position in searchFrom of the first occurrence of this.value.
+	 * The search begins from position start.  0 is returned if searchFrom does
+	 * not contain this.value.  Position 1 is the first character in searchFrom.
+	 *
+	 * @param searchFrom    - The string or binary string to search from
+	 * @param start         - The position to search from in string searchFrom
+	 * @param result        - The object to return
+	 *
+	 * @return  The position in searchFrom the fist occurrence of this.value.
+	 *              0 is returned if searchFrom does not contain this.value.
+	 * @exception StandardException     Thrown on error
+	 */
+	NumberDataValue locate(ConcatableDataValue searchFrom,
+						   NumberDataValue start,
+						   NumberDataValue result)
+			throws StandardException;
 }

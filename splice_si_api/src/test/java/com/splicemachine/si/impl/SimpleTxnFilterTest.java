@@ -76,7 +76,7 @@ public class SimpleTxnFilterTest{
         OperationFactory operationFactory = testEnv.getBaseOperationFactory();
         TimestampSource tss = new TestingTimestampSource();
         this.txnStore=new TestingTxnStore(new IncrementingClock(),tss,exceptionFactory,Long.MAX_VALUE);
-        this.txnSupplier = new ActiveTxnCacheSupplier(new CompletedTxnCacheSupplier(txnStore, 1024, 4),1024);
+        this.txnSupplier = new ActiveTxnCacheSupplier(new CompletedTxnCacheSupplier(txnStore, 1024, 4),1024,1024);
         this.txnLifecycleManager= new ClientTxnLifecycleManager(tss,exceptionFactory);
         this.txnLifecycleManager.setTxnStore(txnStore);
         this.txnLifecycleManager.setKeepAliveScheduler(new ManualKeepAliveScheduler(txnStore));
