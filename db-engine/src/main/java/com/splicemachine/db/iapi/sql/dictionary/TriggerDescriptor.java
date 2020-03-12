@@ -787,13 +787,13 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
 
         obj = in.readObject();
         if (obj instanceof List) {
-            assert triggerDefinitionList != null : "triggerDefinition and triggerDefinitionList cannot both be defined";
+            assert triggerDefinitionList == null : "triggerDefinition and triggerDefinitionList cannot both be defined";
             triggerDefinitionList = (List<String>) obj;
         }
 
         obj = in.readObject();
         if (obj instanceof List) {
-            assert actionSPSIdList != null : "actionSPSIdList and actionSPSId cannot both be defined";
+            assert actionSPSIdList == null : "actionSPSIdList and actionSPSId cannot both be defined";
             actionSPSIdList= (List<UUID>) obj;
         }
 
