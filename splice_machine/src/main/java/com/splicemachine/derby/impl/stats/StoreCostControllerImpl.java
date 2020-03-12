@@ -80,6 +80,8 @@ public class StoreCostControllerImpl implements StoreCostController {
     private boolean isSampleStats;
     private double sampleFraction;
     private boolean isMergedStats;
+    private final double sparkOverhead;
+    private final long sparkRowThreshold;
 
 
     public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics, long defaultRowCount) throws StandardException {
@@ -90,6 +92,8 @@ public class StoreCostControllerImpl implements StoreCostController {
         extraQualifierMultiplier = config.getOptimizerExtraQualifierMultiplier();
         fallbackLocalLatency =config.getFallbackLocalLatency();
         fallbackRemoteLatencyRatio =config.getFallbackRemoteLatencyRatio();
+        sparkOverhead = config.getSparkOverhead();
+        sparkRowThreshold = config.getDetermineSparkRowThreshold();
         String tableId = Long.toString(td.getBaseConglomerateDescriptor().getConglomerateNumber());
         baseTableRow = td.getEmptyExecRow();
         if (conglomerateDescriptor.getIndexDescriptor() != null &&
@@ -326,6 +330,16 @@ public class StoreCostControllerImpl implements StoreCostController {
     @Override
     public double getCloseLatency() {
         return closeLatency;
+    }
+
+    @Override
+    public double getSparkOverhead() {
+        return sparkOverhead;
+    }
+
+    @Override
+    public long getSparkRowThreshold() {
+        return sparkRowThreshold;
     }
 
     @Override

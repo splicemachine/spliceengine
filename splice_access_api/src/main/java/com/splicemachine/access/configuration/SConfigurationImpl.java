@@ -225,6 +225,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long fallbackRemoteLatencyRatio;
     private final  long partitionCacheExpiration;
     private final  int collectSchemaStatisticsMaximumConcurrent;
+    private final  long sparkOverhead;
 
     // StorageConfiguration
     private final  int splitBlockSize;
@@ -840,6 +841,10 @@ public final class SConfigurationImpl implements SConfiguration {
     }
     @Override
     public String getStorageFactoryHome() { return storageFactoryHome;}
+    @Override
+    public long getSparkOverhead() {
+        return sparkOverhead;
+    }
 
     // StorageConfiguration
     @Override
@@ -927,6 +932,7 @@ public final class SConfigurationImpl implements SConfiguration {
         fallbackOpencloseLatency = builder.fallbackOpencloseLatency;
         fallbackRegionRowCount = builder.fallbackRegionRowCount;
         fallbackRemoteLatencyRatio = builder.fallbackRemoteLatencyRatio;
+        sparkOverhead = builder.fallbackSparkOverhead;
         partitionCacheExpiration = builder.partitionCacheExpiration;
         splitBlockSize = builder.splitBlockSize;
         regionMaxFileSize = builder.regionMaxFileSize;
