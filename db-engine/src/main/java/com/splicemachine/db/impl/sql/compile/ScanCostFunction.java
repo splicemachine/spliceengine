@@ -551,13 +551,6 @@ public class ScanCostFunction{
                         rq.start = value;
                         rq.includeStart = true;
                         break OP_SWITCH;
-                    } else {
-                        // pick the larger start value
-                        if (rq.start.compare(value) <= 0) {
-                            rq.start = value;
-                            rq.includeStart = true;
-                        }
-                        break OP_SWITCH;
                     }
                 }
                 columnHolder.add(new RangeSelectivity(scc,value,null,true,true,colNum,phase, selectivityFactor, useExtrapolation));
@@ -570,13 +563,6 @@ public class ScanCostFunction{
                     if(rq.start==null){
                         rq.start = value;
                         rq.includeStart = false;
-                        break OP_SWITCH;
-                    } else {
-                        // pick the larger start value
-                        if (rq.start.compare(value) < 0) {
-                            rq.start = value;
-                            rq.includeStart = false;
-                        }
                         break OP_SWITCH;
                     }
                 }
@@ -591,13 +577,6 @@ public class ScanCostFunction{
                         rq.stop = value;
                         rq.includeStop = true;
                         break OP_SWITCH;
-                    } else {
-                        // pick the smaller stop value
-                        if (rq.stop.compare(value) >= 0) {
-                            rq.stop = value;
-                            rq.includeStop = true;
-                        }
-                        break OP_SWITCH;
                     }
                 }
                 columnHolder.add(new RangeSelectivity(scc,null,value,true,true,colNum,phase, selectivityFactor, useExtrapolation));
@@ -611,13 +590,6 @@ public class ScanCostFunction{
                         rq.stop = value;
                         rq.includeStop = false;
                         break OP_SWITCH;
-                    } else {
-                        // pick the smaller stop value
-                        if (rq.stop.compare(value) > 0) {
-                            rq.stop = value;
-                            rq.includeStop = false;
-                        }
-                        break OP_SWITCH;
                     }
                 }
                 columnHolder.add(new RangeSelectivity(scc,null,value,true,false,colNum,phase, selectivityFactor, useExtrapolation));
@@ -625,112 +597,6 @@ public class ScanCostFunction{
             default:
                 throw new RuntimeException("Unknown Qualifier Type");
          }
-        return true;
-    }
-
-    public boolean addScanPredicateForMergeJoin(Predicate p, double selectivityFactor) throws StandardException {
-        QualifierPhase phase = QualifierPhase.BASE;
-        if (!SelectivityUtil.isTheRightJoinPredicate(p, SelectivityUtil.JoinPredicateType.MERGE_SEARCH))
-            return false;
-
-        // the check isTheRightJoinPredicate() should ensure that this predicate is a BinaryRelationalOperatorNode
-        ValueNode valueNode = p.getAndNode().getLeftOperand();
-        if (!(valueNode instanceof BinaryRelationalOperatorNode))
-            return false;
-
-        ValueNode leftOperand = ((BinaryRelationalOperatorNode) valueNode).leftOperand;
-        ValueNode rightOperand = ((BinaryRelationalOperatorNode) valueNode).rightOperand;
-        ColumnReference innerColumn = null;
-        ColumnReference outerColumn = null;
-
-        if (leftOperand instanceof ColumnReference) {
-            ColumnReference cr = (ColumnReference) leftOperand;
-            if (cr.getTableNumber() == baseTable.getTableNumber()) {
-                innerColumn = cr;
-            }
-            else {
-                outerColumn = cr;
-            }
-        }
-        else return false;
-
-        if (rightOperand instanceof ColumnReference) {
-            ColumnReference cr = (ColumnReference) rightOperand;
-            if (cr.getTableNumber() == baseTable.getTableNumber()) {
-                innerColumn = cr;
-            }
-            else {
-                outerColumn = cr;
-            }
-        }
-        else return false;
-
-        StoreCostController innerTableCostController = innerColumn.getStoreCostController();
-        StoreCostController outerTableCostController = outerColumn.getStoreCostController();
-
-        DataValueDescriptor minOuterColumn = null;
-        DataValueDescriptor maxOuterColumn = null;
-        DataValueDescriptor minInnerColumn = null;
-        DataValueDescriptor maxInnerColumn = null;
-
-        int colNum = innerColumn.getColumnNumber();
-        List<SelectivityHolder> columnHolder = getSelectivityListForColumn(colNum);
-
-        if (outerTableCostController != null) {
-            long rc = (long)outerTableCostController.baseRowCount();
-            if (rc == 0) {
-                columnHolder.add(new ZeroSelectivity(colNum, phase));
-                return true;
-            }
-            minOuterColumn = outerTableCostController.minValue(outerColumn.getSource().getColumnPosition());
-            maxOuterColumn = outerTableCostController.maxValue(outerColumn.getSource().getColumnPosition());
-        }
-
-        if (innerTableCostController != null) {
-            long rc = (long)innerTableCostController.baseRowCount();
-            if (rc == 0) {
-                columnHolder.add(new ZeroSelectivity(colNum, phase));
-                return true;
-            }
-            minInnerColumn = innerTableCostController.minValue(innerColumn.getSource().getColumnPosition());
-            maxInnerColumn = innerTableCostController.maxValue(innerColumn.getSource().getColumnPosition());
-        }
-
-        DataValueDescriptor startKey = BinaryRelationalOperatorNode.getKeyBoundary(minInnerColumn, minOuterColumn, true);
-        DataValueDescriptor endKey = BinaryRelationalOperatorNode.getKeyBoundary(maxInnerColumn, maxOuterColumn, false);
-
-        if (startKey!= null && minInnerColumn != null && startKey.compare(minInnerColumn) > 0 ||
-                endKey!= null && maxInnerColumn != null && endKey.compare(maxInnerColumn)< 0) {
-            for(SelectivityHolder sh: columnHolder){
-                if (!sh.isRangeSelectivity())
-                    continue;
-                RangeSelectivity rq = (RangeSelectivity) sh;
-                if(rq.start==null){
-                    rq.start = startKey;
-                    rq.includeStart = true;
-                } else {
-                    // pick the larger start value
-                    if (rq.start.compare(startKey) <= 0) {
-                        rq.start = startKey;
-                        rq.includeStart = true;
-                    }
-                }
-
-                if(rq.stop==null){
-                    rq.stop = endKey;
-                    rq.includeStop = false;
-                } else {
-                    // pick the smaller stop value
-                    if (rq.stop.compare(endKey) > 0) {
-                        rq.stop = endKey;
-                        rq.includeStop = false;
-                    }
-                }
-                return true;
-            }
-            columnHolder.add(new RangeSelectivity(scc, startKey, endKey, true, true, colNum, phase, selectivityFactor, false));
-        }
-
         return true;
     }
 
