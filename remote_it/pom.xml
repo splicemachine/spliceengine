@@ -289,6 +289,7 @@
                                 <exclude>**/SpliceSequenceIT.java</exclude>
                                 <exclude>**/SQLArrayIT.java</exclude>
                                 <exclude>**/TempTableIT.java</exclude>
+                                <exclude>**/TimetravelIT.java</exclude>
                                 <exclude>**/ThreeTableEquiJoinIT.java</exclude>
                                 <exclude>**/TPCHIT.java</exclude>
                                 <exclude>**/UniqueIndexIT.java</exclude>
