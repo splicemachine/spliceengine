@@ -37,10 +37,12 @@ class ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction extends SpliceFla
     public Iterator<ExecRow> call(Iterator<Integer> partitions) throws Exception {
         Properties props = new Properties();
 
+        // TODO bootstrap servers to config
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,  "localhost:" + 9092);
 
         String group_id = "spark-consumer-"+UUID.randomUUID();
         props.put(ConsumerConfig.GROUP_ID_CONFIG,group_id);
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, group_id);
 
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
