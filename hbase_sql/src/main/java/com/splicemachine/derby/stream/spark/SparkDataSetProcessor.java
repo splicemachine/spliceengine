@@ -887,6 +887,15 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         tempOperationStrings.addLast(new IndentedString(getOpDepth(), sb.toString()));
     }
 
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
+        Properties props = new Properties();
+        String consumerId = "spark-consumer-"+UUID.randomUUID();
+        props.put("bootstrap.servers", "localhost:" + 9092);        // TODO bootstrap servers to config
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerId);
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumerId);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
+
     @Override
     public void finalizeTempOperationStrings() {
         if (!tempOperationStrings.isEmpty()) {
