@@ -21,7 +21,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1949-SNAPSHOT</version>
+        <version>3.1.0.1951-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -69,13 +69,14 @@
             concurrentlinkedhashmap-lru,
             kryo-serializers,
             lucene-core,
-	    scala_util,
+	        scala_util,
             hbase_pipeline,
             hbase_storage,
             hbase_sql,
             splice_ee,
             splice_backup,
             splice_replication,
+            splice_replication_monitor,
             splice_auth,
             splice_colperms,
             splice_encryption,
@@ -657,10 +658,10 @@
                                             </sources>
                                         </mapping>
                                         <mapping>
-                                            <directory>/var/lib/ambari-server/resources/stacks/HDP/2.6/services/SPLICEMACHINE</directory>
+                                            <directory>/var/lib/ambari-server/resources/stacks/HDP/3.1/services/SPLICEMACHINE</directory>
                                             <sources>
                                                 <source>
-                                                    <location>${project.build.directory}/classes/stacks/HDP/2.6/services/SPLICEMACHINE</location>
+                                                    <location>${project.build.directory}/classes/stacks/HDP/3.1/services/SPLICEMACHINE</location>
                                                 </source>
                                             </sources>
                                         </mapping>
@@ -1600,7 +1601,7 @@
             </build>
         </profile>
 
-        <profile>
+       <profile>
             <id>standalone</id>
             <dependencies>
                 <dependency>

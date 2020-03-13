@@ -30,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ha.HAServiceProtocol;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.service.CompositeService;
@@ -46,10 +47,7 @@ import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.server.api.ResourceTracker;
-import org.apache.hadoop.yarn.server.api.protocolrecords.NodeHeartbeatRequest;
-import org.apache.hadoop.yarn.server.api.protocolrecords.NodeHeartbeatResponse;
-import org.apache.hadoop.yarn.server.api.protocolrecords.RegisterNodeManagerRequest;
-import org.apache.hadoop.yarn.server.api.protocolrecords.RegisterNodeManagerResponse;
+import org.apache.hadoop.yarn.server.api.protocolrecords.*;
 import org.apache.hadoop.yarn.server.applicationhistoryservice.ApplicationHistoryServer;
 import org.apache.hadoop.yarn.server.applicationhistoryservice.ApplicationHistoryStore;
 import org.apache.hadoop.yarn.server.applicationhistoryservice.MemoryApplicationHistoryStore;
@@ -627,43 +625,12 @@ public class MiniYARNClusterSplice extends CompositeService {
                         RecordFactoryProvider.getRecordFactory(null);
 
                     // For in-process communication without RPC
-                    return new ResourceTracker() {
-
-                        @Override
-                        public NodeHeartbeatResponse nodeHeartbeat(
-                            NodeHeartbeatRequest request) throws YarnException,
-                            IOException {
-                            NodeHeartbeatResponse response;
-                            try {
-                                response = rt.nodeHeartbeat(request);
-                            } catch (YarnException e) {
-                                LOG.info("Exception in heartbeat from node " +
-                                             request.getNodeStatus().getNodeId(), e);
-                                throw e;
-                            }
-                            return response;
-                        }
-
-                        @Override
-                        public RegisterNodeManagerResponse registerNodeManager(
-                            RegisterNodeManagerRequest request)
-                            throws YarnException, IOException {
-                            RegisterNodeManagerResponse response;
-                            try {
-                                response = rt.registerNodeManager(request);
-                            } catch (YarnException e) {
-                                LOG.info("Exception in node registration from "
-                                             + request.getNodeId().toString(), e);
-                                throw e;
-                            }
-                            return response;
-                        }
-                    };
+                    return HBasePlatformUtils.getResourceTracker(rt);
                 }
 
                 @Override
                 protected void stopRMProxy() { }
-            };
+             };
         }
     }
 

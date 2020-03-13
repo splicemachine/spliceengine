@@ -14,12 +14,12 @@
 
 package com.splicemachine.si.impl.store;
 
-import com.splicemachine.collections.LongKeyedCache;
-import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
+import org.spark_project.guava.cache.Cache;
+import org.spark_project.guava.cache.CacheBuilder;
 
 import java.io.IOException;
 
@@ -33,16 +33,17 @@ import java.io.IOException;
  * Date: 6/18/14
  */
 public class ActiveTxnCacheSupplier implements TxnSupplier {
-    private final LongKeyedCache<TxnView> cache;
+    private static final int CACHE_DEFAULT_CONCURRENCY_LEVEL = 4;
+    private final Cache<Long,TxnView> cache;
     private final TxnSupplier delegate;
 
-    public ActiveTxnCacheSupplier(TxnSupplier delegate, int maxSize) {
-        this(delegate, maxSize, false);
+    public ActiveTxnCacheSupplier(TxnSupplier delegate, int initialSize, int maxSize) {
+        this(delegate, initialSize, maxSize, false);
     }
 
-    public ActiveTxnCacheSupplier(TxnSupplier delegate, int maxSize, boolean threadSafe) {
-        this.cache = LongKeyedCache.<TxnView>newBuilder().maxEntries(maxSize)
-                .withHashFunction(HashFunctions.murmur3(0)).threadSafe(threadSafe).build();
+    public ActiveTxnCacheSupplier(TxnSupplier delegate, int initialSize, int maxSize, boolean threadSafe) {
+        this.cache = CacheBuilder.newBuilder().initialCapacity(initialSize).maximumSize(maxSize)
+                .concurrencyLevel(threadSafe ? CACHE_DEFAULT_CONCURRENCY_LEVEL : 1).build();
         this.delegate = delegate;
     }
 
@@ -53,7 +54,7 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 
     @Override
     public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
-        TxnView txn = this.cache.get(txnId);
+        TxnView txn = this.cache.getIfPresent(txnId);
         if (txn != null) return txn;
         //bummer, not cached. try delegate
         txn = delegate.getTransaction(txnId, getDestinationTables);
@@ -66,7 +67,7 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 
     @Override
     public boolean transactionCached(long txnId) {
-        return cache.get(txnId) != null ? true : delegate.transactionCached(txnId);
+        return cache.getIfPresent(txnId) != null ? true : delegate.transactionCached(txnId);
     }
 
     @Override
@@ -79,16 +80,12 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 
     @Override
     public TxnView getTransactionFromCache(long txnId) {
-        TxnView tentative = cache.get(txnId);
+        TxnView tentative = cache.getIfPresent(txnId);
         return tentative != null ? tentative : delegate.getTransactionFromCache(txnId);
     }
 
     @Override
     public TaskId getTaskId(long txnId) throws IOException {
         return delegate.getTaskId(txnId);
-    }
-
-    public int getSize() {
-        return cache.size();
     }
 }

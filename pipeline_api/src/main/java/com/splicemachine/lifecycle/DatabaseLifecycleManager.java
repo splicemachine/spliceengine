@@ -14,6 +14,9 @@
 
 package com.splicemachine.lifecycle;
 
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
 
 import javax.management.MBeanServer;
@@ -217,6 +220,7 @@ public class DatabaseLifecycleManager{
             if(!bootServices(State.BOOTING_GENERAL_SERVICES,engineServices)) return; //bail, we encountered an error
             if(!bootServices(State.BOOTING_SERVER,generalServices)) return; //bail, we encountered an error
             bootServices(State.RUNNING,networkServices);
+
         }
 
         private boolean bootServices(State nextState,List<DatabaseLifecycleService> services){

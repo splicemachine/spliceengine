@@ -26,6 +26,7 @@ import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.region.SamplingFilter;
 import com.splicemachine.storage.*;
+import com.splicemachine.storage.SplitRegionScanner;
 import com.splicemachine.test.HBaseTestUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;

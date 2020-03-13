@@ -22,4 +22,7 @@ import org.apache.hadoop.hbase.RegionTooBusyException;
  *         Date: 12/23/15
  */
 public class HTooBusy extends RegionTooBusyException implements PipelineTooBusy{
+    public HTooBusy(String msg) {
+        super(msg);
+    }
 }

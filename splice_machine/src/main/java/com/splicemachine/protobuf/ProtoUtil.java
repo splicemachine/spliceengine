@@ -107,6 +107,14 @@ public class ProtoUtil {
     }
 
 
+    public static DDLChange createSetReplicationRole(long txnId, String role) {
+        return DDLChange.newBuilder().setTxnId(txnId).setSetReplicationRole(SetReplicationRole.newBuilder()
+                .setRole(role)
+                .build())
+                .setDdlChangeType(DDLChangeType.SET_REPLICATION_ROLE)
+                .build();
+    }
+
     public static DDLChange createNotifyModifyClasspath(long txnId, String classpath) {
         return DDLChange.newBuilder().setTxnId(txnId).setNotifyModifyClasspath(NotifyModifyClasspath.newBuilder()
                 .setClasspath(classpath).build())

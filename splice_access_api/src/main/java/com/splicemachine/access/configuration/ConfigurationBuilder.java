@@ -28,7 +28,8 @@ import java.util.Map;
  */
 public class ConfigurationBuilder {
     // SIConfigurations
-    public int activeTransactionCacheSize;
+    public int activeTransactionMaxCacheSize;
+    public int activeTransactionInitialCacheSize;
     public int completedTxnCacheSize;
     public int completedTxnConcurrency;
     public int readResolverQueueSize;
@@ -106,6 +107,7 @@ public class ConfigurationBuilder {
     public long regionLoadUpdateInterval;
     public long transactionsWatcherUpdateInterval;
     public String backupPath;
+    public String replicationPath;
     public String compressionAlgorithm;
     public String namespace;
     public String spliceRootPath;
@@ -117,9 +119,13 @@ public class ConfigurationBuilder {
     public long backupMaxBandwidthMB;
     public boolean backupUseDistcp;
     public int backupIOBufferSize;
+    public boolean replicationEnabled;
     public int replicationSnapshotInterval;
-    public int replicationSinkPort;
     public int replicationProgressUpdateInterval;
+    public String replicationMonitorQuorum;
+    public String replicationMonitorPath;
+    public int replicationMonitorInterval;
+    public String replicationHealthcheckScript;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;

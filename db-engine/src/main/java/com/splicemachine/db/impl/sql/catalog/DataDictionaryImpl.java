@@ -7755,6 +7755,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSTOKENS_NUM:
                     retval=new TabInfoImpl(new SYSTOKENSRowFactory(luuidFactory,exFactory,dvf));
                     break;
+                case SYSREPLICATION_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSREPLICATIONRowFactory(luuidFactory,exFactory,dvf));
+                    break;
             }
             if (retval != null) {
                 initSystemIndexVariables(retval);
@@ -10857,5 +10860,109 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if (result != null)
             dataDictionaryCache.tokenCacheAdd(token, result);
         return result;
+    }
+
+    @Override
+    public void addReplication(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSREPLICATION_CATALOG_NUM);
+        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
+        int insertRetCode=ti.insertRow(row,tc);
+    }
+
+    @Override
+    public void deleteReplication(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
+        ReplicationDescriptor d = (ReplicationDescriptor) descriptor;
+        String scope = d.getScope();
+        String schemaName = d.getSchemaName();
+        String tableName = d.getTableName();
+
+        TabInfoImpl ti=getNonCoreTI(SYSREPLICATION_CATALOG_NUM);
+        if (scope!= null && schemaName == null && tableName == null) {
+            ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+            keyRow.setColumn(1, new SQLVarchar(scope));
+            ti.deleteRow(tc, keyRow, SYSREPLICATIONRowFactory.SYSREPLICATION_INDEX1_ID);
+        }
+        else if (scope!= null && schemaName != null && tableName == null) {
+            ExecIndexRow keyRow = exFactory.getIndexableRow(2);
+            keyRow.setColumn(1, new SQLVarchar(scope));
+            keyRow.setColumn(2, new SQLVarchar(schemaName));
+            ti.deleteRow(tc, keyRow, SYSREPLICATIONRowFactory.SYSREPLICATION_INDEX2_ID);
+        }
+        else if (scope!= null && schemaName != null && tableName != null) {
+            ExecIndexRow keyRow = exFactory.getIndexableRow(3);
+            keyRow.setColumn(1, new SQLVarchar(scope));
+            keyRow.setColumn(2, new SQLVarchar(schemaName));
+            keyRow.setColumn(3, new SQLVarchar(tableName));
+            ti.deleteRow(tc, keyRow, SYSREPLICATIONRowFactory.SYSREPLICATION_INDEX3_ID);
+        }
+    }
+
+    @Override
+    public boolean databaseReplicationEnabled() throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSREPLICATION_CATALOG_NUM);
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, new SQLVarchar(SYSREPLICATIONRowFactory.SCOPE_DATABASE));
+
+        ReplicationDescriptor result = (ReplicationDescriptor)
+                getDescriptorViaIndex(
+                        SYSREPLICATIONRowFactory.SYSREPLICATION_INDEX1_ID,
+                        keyRow,
+                        null,
+                        ti,
+                        null,
+                        null,
+                        false,
+                        TransactionController.ISOLATION_REPEATABLE_READ,
+                        getTransactionCompile());
+        return result != null;
+    }
+
+    @Override
+    public boolean schemaReplicationEnabled(String schemaName) throws StandardException {
+
+        TabInfoImpl ti=getNonCoreTI(SYSREPLICATION_CATALOG_NUM);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(2);
+        keyRow.setColumn(1, new SQLVarchar(SYSREPLICATIONRowFactory.SCOPE_SCHEMA));
+        keyRow.setColumn(2, new SQLVarchar(schemaName));
+
+        ReplicationDescriptor result = (ReplicationDescriptor)
+                getDescriptorViaIndex(
+                        SYSREPLICATIONRowFactory.SYSREPLICATION_INDEX2_ID,
+                        keyRow,
+                        null,
+                        ti,
+                        null,
+                        null,
+                        false,
+                        TransactionController.ISOLATION_REPEATABLE_READ,
+                        getTransactionCompile());
+
+        return result != null;
+    }
+
+    @Override
+    public boolean tableReplicationEnabled(String schemaName,
+                                      String tableName) throws StandardException {
+
+        TabInfoImpl ti=getNonCoreTI(SYSREPLICATION_CATALOG_NUM);
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(3);
+        keyRow.setColumn(1, new SQLVarchar(SYSREPLICATIONRowFactory.SCOPE_TABLE));
+        keyRow.setColumn(2, new SQLVarchar(schemaName));
+        keyRow.setColumn(3, new SQLVarchar(tableName));
+
+        ReplicationDescriptor result = (ReplicationDescriptor)
+                getDescriptorViaIndex(
+                        SYSREPLICATIONRowFactory.SYSREPLICATION_INDEX3_ID,
+                        keyRow,
+                        null,
+                        ti,
+                        null,
+                        null,
+                        false,
+                        TransactionController.ISOLATION_REPEATABLE_READ,
+                        getTransactionCompile());
+        return result != null;
     }
 }

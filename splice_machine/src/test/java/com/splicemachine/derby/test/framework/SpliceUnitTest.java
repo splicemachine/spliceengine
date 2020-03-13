@@ -616,6 +616,16 @@ public class SpliceUnitTest {
         return badImportLogDirectory;
     }
 
+    public static File createBulkLoadDirectory(String schemaName) {
+        File bulkLoadDirectory = new File(SpliceUnitTest.getBaseDirectory() + "/target/HFILE/" + schemaName);
+        if (bulkLoadDirectory.exists()) {
+            recursiveDelete(bulkLoadDirectory);
+        }
+        assertTrue("Couldn't create " + bulkLoadDirectory, bulkLoadDirectory.mkdirs());
+        assertTrue("Failed to create " + bulkLoadDirectory, bulkLoadDirectory.exists());
+        return bulkLoadDirectory;
+    }
+
     public static void recursiveDelete(File file) {
         if (file != null) {
             File[] directoryFiles = file.listFiles();

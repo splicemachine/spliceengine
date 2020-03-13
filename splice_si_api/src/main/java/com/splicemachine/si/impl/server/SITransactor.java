@@ -18,6 +18,7 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.LongHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
+import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.*;
@@ -184,7 +185,14 @@ public class SITransactor implements Transactor{
             constraintState = new SimpleTxnFilter(null, txn, NoOpReadResolver.INSTANCE, txnSupplier);
             supplier = constraintState.getTxnSupplier();
         } else {
-            supplier = new ActiveTxnCacheSupplier(txnSupplier, 100);
+            SIDriver driver = SIDriver.driver();
+            int initialSize = driver != null ?
+                    driver.getConfiguration().getActiveTransactionInitialCacheSize() :
+                    SIConfigurations.DEFAULT_ACTIVE_TRANSACTION_INITIAL_CACHE_SIZE;
+            int maxSize = driver != null ?
+                    driver.getConfiguration().getActiveTransactionMaxCacheSize() :
+                    SIConfigurations.DEFAULT_ACTIVE_TRANSACTION_MAX_CACHE_SIZE;
+            supplier = new ActiveTxnCacheSupplier(txnSupplier, initialSize, maxSize);
         }
         @SuppressWarnings("unchecked") final LongHashSet[] conflictingChildren=new LongHashSet[mutations.size()];
 
