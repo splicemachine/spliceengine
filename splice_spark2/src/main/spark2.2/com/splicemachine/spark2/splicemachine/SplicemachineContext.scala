@@ -13,6 +13,7 @@
  */
 package com.splicemachine.spark2.splicemachine
 
+import java.io.Externalizable
 import java.security.{PrivilegedExceptionAction, SecureRandom}
 import java.sql.Connection
 
@@ -26,7 +27,11 @@ import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import java.util.Properties
 
 import com.splicemachine.db.impl.jdbc.EmbedConnection
+import com.splicemachine.spark.splicemachine.ShuffleUtils
 import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.clients.producer.ProducerRecord
 
 //import com.splicemachine.derby.vti.SpliceDatasetVTI
 //import com.splicemachine.derby.vti.SpliceRDDVTI
@@ -52,6 +57,22 @@ import org.apache.hadoop.security.token.Token
 import org.apache.log4j.Logger
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
+import scala.collection.JavaConverters._
+import org.apache.kafka.common.serialization.IntegerSerializer
+import com.splicemachine.derby.stream.spark.ExternalizableSerializer
+import com.splicemachine.db.impl.sql.execute.ValueRow
+import com.splicemachine.db.iapi.types.SQLInteger
+import com.splicemachine.db.iapi.types.SQLLongint
+import com.splicemachine.db.iapi.types.SQLDouble
+import com.splicemachine.db.iapi.types.SQLReal
+import com.splicemachine.db.iapi.types.SQLSmallint
+import com.splicemachine.db.iapi.types.SQLTinyint
+import com.splicemachine.db.iapi.types.SQLBoolean
+import com.splicemachine.db.iapi.types.SQLClob
+import com.splicemachine.db.iapi.types.SQLBlob
+import com.splicemachine.db.iapi.types.SQLTimestamp
+import com.splicemachine.db.iapi.types.SQLDate
+import com.splicemachine.db.iapi.types.SQLDecimal
 
 private object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
@@ -252,8 +273,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     */
   def createTable(tableName: String,
                   structType: StructType,
-                  keys: Seq[String],
-                  createTableOptions: String): Unit = {
+                  keys: Seq[String],  // not being used
+                  createTableOptions: String): Unit = {  // createTableOptions not being used
     val spliceOptions = Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> tableName)
@@ -361,29 +382,55 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     */
   def df(sql: String): Dataset[Row] = {
 
-    val spliceOptions = Map(
-      JDBCOptions.JDBC_URL -> url)
-    val jdbcOptions = new JDBCOptions(spliceOptions)
-    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
-    val configuration = HConfiguration.getConfiguration
+//    val spliceOptions = Map(
+//      JDBCOptions.JDBC_URL -> url,
+//      JDBCOptions.JDBC_TABLE_NAME -> "placeholder"
+//    )
+//    val jdbcOptions = new JDBCOptions(spliceOptions)
+//    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+//    val configuration = HConfiguration.getConfiguration
+//
+////    try {
+//    val topicName = getRandomName() // Kafka topic
+//
+////    println( s"SMC.df topic $topicName" )
+//
+//    // hbase user has read/write permission on the topic
+//
+//    conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql + " --splice-properties useSpark=true").execute()
 
-    try {
-      val id = getRandomName() // Kafka topic
-
-      // hbase user has read/write permission on the topic
-
-      conn.prepareStatement(s"EXPORT_KAFKA('$id') " + sql).execute()
-
-      // TODO consume Kafka stream
-//      val df = KafkaToDF("topic")
-      val df = null
-      df
-    }
+    val kdf = new KafkaToDF
+    kdf.df( send(sql) )
+//    }
   }
 
   def internalDf(sql: String): Dataset[Row] = {
     df(sql)
   }
+
+  private[this] def send(sql: String): String = {
+
+    val spliceOptions = Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> "placeholder"
+    )
+    val jdbcOptions = new JDBCOptions(spliceOptions)
+    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val configuration = HConfiguration.getConfiguration
+
+    //    try {
+    val topicName = getRandomName() // Kafka topic
+
+    //    println( s"SMC.df topic $topicName" )
+
+    // hbase user has read/write permission on the topic
+
+    conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql + " --splice-properties useSpark=true").execute()
+
+    topicName
+    //    }
+  }
+
   /**
     *
     * Table with projections in Splice mapped to an RDD.
@@ -397,8 +444,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
                   columnProjection: Seq[String] = Nil): RDD[Row] = {
     val columnList = SpliceJDBCUtil.listColumns(columnProjection.toArray)
     val sqlText = s"SELECT $columnList FROM ${schemaTableName}"
-//    df(sqlText).rdd
-    null
+    val kdf = new KafkaToDF
+    kdf.rdd( send(sqlText) )
   }
 
   def getRandomName(): String = {
@@ -406,6 +453,41 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     new SecureRandom().nextBytes(name)
     Bytes.toHex(name)+"-"+System.nanoTime()
   }
+
+  /**
+   *
+   * Insert a dataFrame into a table (schema.table).  This corresponds to an
+   *
+   * insert into from select statement
+   *
+   * The status directory and number of badRecordsAllowed allows for duplicate primary keys to be
+   * written to a bad records file.  If badRecordsAllowed is set to -1, all bad records will be written
+   * to the status directory.
+   *
+   * @param dataFrame input data
+   * @param schemaTableName
+   * @param statusDirectory status directory where bad records file will be created
+   * @param badRecordsAllowed how many bad records are allowed. -1 for unlimited
+   */
+  def insert(dataFrame: DataFrame, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Unit =
+    insert(dataFrame.rdd, dataFrame.schema, schemaTableName, statusDirectory, badRecordsAllowed)
+
+  /**
+   * Insert a RDD into a table (schema.table).  The schema is required since RDD's do not have schema.
+   *
+   * The status directory and number of badRecordsAllowed allows for duplicate primary keys to be
+   * written to a bad records file.  If badRecordsAllowed is set to -1, all bad records will be written
+   * to the status directory.
+   *
+   * @param rdd input data
+   * @param schema
+   * @param schemaTableName
+   * @param statusDirectory status directory where bad records file will be created
+   * @param badRecordsAllowed how many bad records are allowed. -1 for unlimited
+   *
+   */
+  def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Unit =
+    insert(rdd, schema, schemaTableName, ", insertMode=INSERT, statusDirectory=" + statusDirectory + ", badRecordsAllowed=" + badRecordsAllowed)
 
   /**
     *
@@ -416,24 +498,129 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param dataFrame input data
     * @param schemaTableName output table
     */
-  def insert(dataFrame: DataFrame, schemaTableName: String): Unit = {
+  def insert(dataFrame: DataFrame, schemaTableName: String): Unit = insert(dataFrame.rdd, dataFrame.schema, schemaTableName)
 
-    val id = getRandomName() //Kafka topic
+  /**
+   * Insert a RDD into a table (schema.table).  The schema is required since RDD's do not have schema.
+   *
+   * @param rdd input data
+   * @param schema
+   * @param schemaTableName
+   */
+  def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = insert(rdd, schema, schemaTableName, "")
+
+  private[this] def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, spliceProperties: String): Unit = {
+    val topicName = getRandomName() //Kafka topic
+
+    println( s"SMC.insert topic $topicName" )
 
     // hbase user has read/write permission on the topic
 
-    // TODO produce DataFrame to Kakfa
-    // ShuffleUtils.shuffle(dataFrame).rdd.mapPartitions(new KafkaStreamer(id))
+//    ShuffleUtils.shuffle(dataFrame).rdd.mapPartitionsWithIndex(
+    rdd.rdd.mapPartitions(
+//      new com.splicemachine.derby.stream.spark.KafkaStreamer[Row]("localhost", 9092, -1, topicName)
+//      new KafkaStreamer[Row]("localhost", 9092, topicName)
+//      (i,itrRow) => {
+      itrRow => {
+        println( s"SMC.insert mapPartitions" ) //WithIndex" )
+        // TODO bootstrap servers to config
+        val props = new Properties
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "srv126:9092,srv127:9092,srv128:9092,srv129:9092,srv130:9092,srv61:9092,srv62:9092,srv63:9092")
+        props.put(ProducerConfig.CLIENT_ID_CONFIG, "spark-producer-"+java.util.UUID.randomUUID() )
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, classOf[IntegerSerializer].getName)
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, classOf[ExternalizableSerializer].getName)
 
-    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
-    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") select " + columnList + " from " +
-      "new com.splicemachine.derby.vti.KafkaVTI("+id+") " +
+        val producer = new KafkaProducer[Integer, Externalizable](props)
+
+        // java example
+//        int count = 0 ;
+//        while (locatedRowIterator.hasNext()) {
+//          T lr = locatedRowIterator.next();
+//
+//          ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName,
+//            partition.intValue(), count++, lr);
+//          producer.send(record);
+//        }
+
+        var count = 0
+        itrRow.foreach( row => {
+//          println( s"SMC.insert partition $i record $count" )
+//          producer.send( new ProducerRecord(topicName, i, count, externalizable(row)) )
+          println( s"SMC.insert record $count" )
+          producer.send( new ProducerRecord(topicName, count, externalizable(row, schema)) )
+          count += 1
+        })
+
+        producer.close
+
+        java.util.Arrays.asList("OK").iterator().asScala
+      }
+    ).collect
+
+    val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url).replace("\"","")
+    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") --splice-properties useSpark=true"+spliceProperties+"\nselect " + columnList + " from " +
+      "new com.splicemachine.derby.vti.KafkaVTI('"+topicName+"') " +
       "as SpliceDatasetVTI (" + schemaString + ")"
 
+    println( s"SMC.insert sql $sqlText" )
     executeUpdate(sqlText)
   }
 
+  def externalizable(row: Row, schema: StructType): ValueRow = {
+    val valRow = new ValueRow(row.length);
+    for (i <- 1 to row.length) {
+//      val fieldDef = row.schema(i-1)
+      val fieldDef = schema(i-1)
+      spliceType( fieldDef.dataType , row , i-1 ) match {
+        case Some(splType) =>
+          valRow.setColumn( i , splType )
+        case None =>
+          throw new IllegalArgumentException(s"Can't get Splice type for ${fieldDef.dataType.simpleString}")
+      }
+    }
+    valRow
+  }
+
+  def spliceType(sparkType: DataType, row: Row, i: Int): Option[com.splicemachine.db.iapi.types.DataType] = {
+    val isNull = row.isNullAt(i)
+    sparkType match {  // the first several SQL types are set to null in the default constructor
+      case IntegerType => Option( if (isNull) new SQLInteger else new SQLInteger(row.getInt(i)) )
+      case LongType => Option( if (isNull) new SQLLongint else new SQLLongint(row.getLong(i)) )
+      case DoubleType => Option( if (isNull) new SQLDouble else new SQLDouble(row.getDouble(i)) )
+      case FloatType => Option( if (isNull) new SQLReal else new SQLReal(row.getFloat(i)) )
+      case ShortType => Option( if (isNull) new SQLSmallint else new SQLSmallint(row.getShort(i)) )
+      case ByteType => Option( if (isNull) new SQLTinyint else new SQLTinyint(row.getByte(i)) )
+      case BooleanType => Option( if (isNull) new SQLBoolean else new SQLBoolean(row.getBoolean(i)) )
+      case StringType => {
+        val clob = new SQLClob
+        clob setStreamHeaderFormat false
+        if (isNull) clob.setToNull else clob.setValue( row.getString(i) )
+        Option(clob)
+      }
+      case BinaryType => {
+        val blob = new SQLBlob
+        if (isNull) blob.setToNull else blob.setValue( row.getAs[Array[Byte]](i) )
+        Option(blob)
+      }
+      case TimestampType => {
+        val ts = new SQLTimestamp
+        if (isNull) ts.setToNull else ts.setValue( row.getTimestamp(i) , null )
+        Option(ts)
+      }
+      case DateType => {
+        val dt = new SQLDate
+        if (isNull) dt.setToNull else dt.setValue( row.getDate(i) , null )
+        Option(dt)
+      }
+      case t: DecimalType => {
+        val dc = new SQLDecimal
+        if (isNull) dc.setToNull else dc.setValue( row.getDecimal(i) )
+        Option(dc)
+      }
+      case _ => None
+    }
+  }
 
   /**
    * Export a dataFrame to Kafka
