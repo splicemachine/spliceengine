@@ -70,7 +70,6 @@
             <artifactId>spark_sql</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}</classifier>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
