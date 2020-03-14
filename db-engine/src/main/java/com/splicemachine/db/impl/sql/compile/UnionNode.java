@@ -264,9 +264,9 @@ public class UnionNode extends SetOperatorNode{
         // getNextDecoratedPermutation() method.
         updateBestPlanMap(ADD_PLAN,this);
 
-        leftResultSet=optimizeSource(optimizer, leftResultSet, getLeftOptPredicateList(), outerCost);
+        leftResultSet=optimizeSource(optimizer, leftResultSet, getLeftOptPredicateList(), null);
 
-        rightResultSet=optimizeSource(optimizer, rightResultSet, getRightOptPredicateList(), outerCost);
+        rightResultSet=optimizeSource(optimizer, rightResultSet, getRightOptPredicateList(), null);
 
         CostEstimate leftCost = leftResultSet.getCostEstimate();
         CostEstimate rightCost = rightResultSet.getCostEstimate();
@@ -319,7 +319,7 @@ public class UnionNode extends SetOperatorNode{
         /*
         ** Get the cost of this result set in the context of the whole plan.
         */
-//        getCurrentAccessPath().getJoinStrategy().estimateCost(this, predList, null, outerCost, optimizer, costEstimate);
+        getCurrentAccessPath().getJoinStrategy().estimateCost(this, predList, null, outerCost, optimizer, costEstimate);
 
         optimizer.considerCost(this,predList,costEstimate,outerCost);
 
@@ -707,9 +707,19 @@ public class UnionNode extends SetOperatorNode{
      */
     @Override
     public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
+        if (useSelf && trulyTheBestAccessPath != null) {
+            return getTrulyTheBestAccessPath().getCostEstimate();
+        }
+
         // If we already found it, just return it.
         if(finalCostEstimate!=null)
             return finalCostEstimate;
+
+        if (trulyTheBestAccessPath != null && getTrulyTheBestAccessPath().getCostEstimate().getBase() != null) {
+            finalCostEstimate = getTrulyTheBestAccessPath().getCostEstimate().getBase();
+            return finalCostEstimate;
+        }
+
 
         CostEstimate leftCE=leftResultSet.getFinalCostEstimate(true);
         CostEstimate rightCE=rightResultSet.getFinalCostEstimate(true);
