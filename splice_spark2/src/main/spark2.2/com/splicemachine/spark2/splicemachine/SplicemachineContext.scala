@@ -399,14 +399,23 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 //
 //    conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql + " --splice-properties useSpark=true").execute()
 
+    val sqlMod = if( sql.trim.toUpperCase.startsWith("SELECT") ) {
+      val spliceProps = " --splice-properties useSpark=true"
+      if( sql.toUpperCase.contains("WHERE") ) {
+        sql.toUpperCase.replace( "WHERE" , spliceProps+"\nWHERE")
+      } else {
+        sql + spliceProps
+      }
+    } else {
+      sql
+    }
+
     val kdf = new KafkaToDF
-    kdf.df( send(sql) )
+    kdf.df( send(sqlMod) )
 //    }
   }
 
-  def internalDf(sql: String): Dataset[Row] = {
-    df(sql)
-  }
+  def internalDf(sql: String): Dataset[Row] = df(sql)
 
   private[this] def send(sql: String): String = {
 
@@ -425,7 +434,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     // hbase user has read/write permission on the topic
 
-    conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql + " --splice-properties useSpark=true").execute()
+//    println( s"SMC.send sql $sql" )
+    conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql).execute()
 
     topicName
     //    }
@@ -443,7 +453,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   def rdd(schemaTableName: String,
                   columnProjection: Seq[String] = Nil): RDD[Row] = {
     val columnList = SpliceJDBCUtil.listColumns(columnProjection.toArray)
-    val sqlText = s"SELECT $columnList FROM ${schemaTableName}"
+    val sqlText = s"SELECT $columnList FROM ${schemaTableName} --splice-properties useSpark=true"
     val kdf = new KafkaToDF
     kdf.rdd( send(sqlText) )
   }
@@ -453,6 +463,18 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     new SecureRandom().nextBytes(name)
     Bytes.toHex(name)+"-"+System.nanoTime()
   }
+
+  /**
+   *
+   * Table with projections in Splice mapped to an RDD.
+   * Runs the query inside Splice Machine and sends the results to the Spark Adapter app
+   *
+   * @param schemaTableName Accessed table
+   * @param columnProjection Selected columns
+   * @return RDD[Row] with the result of the projection
+   */
+  def internalRdd(schemaTableName: String,
+                  columnProjection: Seq[String] = Nil): RDD[Row] = rdd(schemaTableName, columnProjection)
 
   /**
    *
