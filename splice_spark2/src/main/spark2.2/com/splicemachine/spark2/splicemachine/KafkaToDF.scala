@@ -46,18 +46,20 @@ class KafkaToDF {
   def rdd(topicName: String): RDD[Row] = rdd_schema(topicName)._1
 
   def rdd_schema(topicName: String): (RDD[Row], StructType) = {
-        val props = new Properties()
-        val consumerId = "spark-consumer-"+UUID.randomUUID()
-        val brokers = "localhost:" + 9092
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers)
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerId)
-        props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumerId)
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, classOf[IntegerDeserializer].getName)
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ExternalizableDeserializer].getName)
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+    val props = new Properties()
+    val consumerId = "spark-consumer-"+UUID.randomUUID()
+    // TODO move broker addresses to config
+    val brokers = "localhost:" + 9092
 
-        val consumer = new KafkaConsumer[Integer, Externalizable](props)
-        consumer.subscribe(util.Arrays.asList(topicName))
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers)
+    props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerId)
+    props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumerId)
+    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, classOf[IntegerDeserializer].getName)
+    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ExternalizableDeserializer].getName)
+    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+
+    val consumer = new KafkaConsumer[Integer, Externalizable](props)
+    consumer.subscribe(util.Arrays.asList(topicName))
 //        val ps = consumer.partitionsFor(topicName)
 //        val partitions = new Array[Int](ps.size)
 //        var i = 0
@@ -81,27 +83,28 @@ class KafkaToDF {
 //        while ( {
 //            records == null || records.isEmpty
 //        }) {
-            val records = consumer.poll(20000).asScala  // TODO move timeout to config
-            consumer.close
+    val records = consumer.poll(20000).asScala  // TODO move timeout to config
+    consumer.close
 //            if (TaskContext.get.isInterrupted) {  // TODO: was giving null pointer exception
 //                consumer.close
 //                throw new TaskKilledException
 //            }
 
-            // TODO if records.count > 0
+    // records.isEmpty when consumer.poll times out
+    //    a query that legitimately returns no rows in the db also seems to result in timeout here
+    if (records.isEmpty) { ( spark.sparkContext.parallelize( Seq[Row]() ) , StructType(Nil) ) }
+    else {
+      val seqBuilder = Seq.newBuilder[Row]
+      for (record <- records.iterator) {
+        //              println(s"${record.value.getClass.getName}")
+        //              println(s"offset = ${record.offset}, key = ${record.key}, value = ${record.value}")
+        seqBuilder += record.value.asInstanceOf[Row]
+      }
 
-            val seqBuilder = Seq.newBuilder[Row]
-            for (record <- records.iterator) {
-//              println(s"${record.value.getClass.getName}")
-//              println(s"offset = ${record.offset}, key = ${record.key}, value = ${record.value}")
-              seqBuilder += record.value.asInstanceOf[Row]
-            }
-
-            val rows = seqBuilder.result
-
-            val rdd = spark.sparkContext.parallelize( rows )
-
-    (rdd, rows(0).schema)
+      val rows = seqBuilder.result
+      val rdd = spark.sparkContext.parallelize(rows)
+      (rdd, rows(0).schema)
+    }
 
         //        return new Iterator<ExecRow>() {
 //            ConsumerRecords<Integer, Externalizable> records = null;
@@ -136,6 +139,6 @@ class KafkaToDF {
 //                return (ExecRow)it.next().value();
 //            }
 //        };
-    }
+  }
 
 }
