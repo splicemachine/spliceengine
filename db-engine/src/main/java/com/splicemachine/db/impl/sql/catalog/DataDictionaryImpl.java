@@ -1650,8 +1650,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         // don't orphan Files
         if(isSchemaReferenced(tc,getNonCoreTI(SYSFILES_CATALOG_NUM),
-                SYSFILESRowFactory.SYSFILES_INDEX3_ID,
-                1,
+                SYSFILESRowFactory.SYSFILES_INDEX1_ID,
+                2,
                 schemaIdOrderable)){
             return false;
         }
