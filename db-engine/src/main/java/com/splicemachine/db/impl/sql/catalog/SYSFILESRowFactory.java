@@ -75,12 +75,10 @@ public class SYSFILESRowFactory extends CatalogRowFactory {
 
     static final int		SYSFILES_INDEX1_ID = 0;
     static final int		SYSFILES_INDEX2_ID = 1;
-	static final int		SYSFILES_INDEX3_ID = 2;
 
 	private static final int[][] indexColumnPositions = {
 		{NAME_COL_NUM, SCHEMA_ID_COL_NUM},
-		{ID_COL_NUM},
-			{SCHEMA_ID_COL_NUM}
+		{ID_COL_NUM}
 	};
 
     private	static	final	boolean[]	uniqueness = null;
@@ -89,8 +87,7 @@ public class SYSFILESRowFactory extends CatalogRowFactory {
 		"80000000-00d3-e222-873f-000a0a0b1900",	// catalog UUID
 		"80000000-00d3-e222-9920-000a0a0b1900",	// heap UUID
 		"80000000-00d3-e222-a373-000a0a0b1900",	// SYSSQLFILES_INDEX1
-		"80000000-00d3-e222-be7b-000a0a0b1900",	// SYSSQLFILES_INDEX2
-		"80000000-00d3-e222-be7c-000a0a0b1900",	// SYSSQLFILES_INDEX3
+		"80000000-00d3-e222-be7b-000a0a0b1900"	// SYSSQLFILES_INDEX2
 	};
 
 	/////////////////////////////////////////////////////////////////////////////
