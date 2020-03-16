@@ -78,23 +78,40 @@ private object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
 }
 
+object KafkaOptions {
+  val KAFKA_SERVERS = "KAFKA_SERVERS"
+  val KAFKA_POLL_TIMEOUT = "KAFKA_POLL_TIMEOUT"
+}
+
 /**
   *
   * Context for Splice Machine.
   *
-  * @param options Supported options are SpliceJDBCOptions.JDBC_URL, SpliceJDBCOptions.JDBC_INTERNAL_QUERIES, SpliceJDBCOptions.JDBC_TEMP_DIRECTORY
+  * @param options Supported options are JDBCOptions.JDBC_URL (required), JDBCOptions.JDBC_INTERNAL_QUERIES,
+  *                JDBCOptions.JDBC_TEMP_DIRECTORY, KafkaOptions.KAFKA_SERVERS, KafkaOptions.KAFKA_POLL_TIMEOUT
   */
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
-  private[this] val url = options.get(JDBCOptions.JDBC_URL).get
+  private[this] val url = options(JDBCOptions.JDBC_URL)
+
+  private[this] val kafkaServers = options.getOrElse(KafkaOptions.KAFKA_SERVERS, "localhost:9092")
+  println(s"Kafka: $kafkaServers")
+
+  private[this] val kafkaPollTimeout = options.getOrElse(KafkaOptions.KAFKA_POLL_TIMEOUT, "20000").toLong
 
   /**
-    *
-    * Context for Splice Machine, specifying only the JDBC url.
-    *
-    * @param url JDBC Url with authentication parameters
-    */
-  def this(url: String) {
-    this(Map(JDBCOptions.JDBC_URL -> url));
+   *
+   * Context for Splice Machine.
+   *
+   * @param url JDBC Url with authentication parameters
+   * @param kafkaServers Comma-separated list of Kafka broker addresses in the form host:port
+   * @param kafkaPollTimeout Number of milliseconds to wait when polling Kafka
+   */
+  def this(url: String, kafkaServers: String = "localhost:9092", kafkaPollTimeout: Long = 20000) {
+    this(Map(
+      JDBCOptions.JDBC_URL -> url,
+      KafkaOptions.KAFKA_SERVERS -> kafkaServers,
+      KafkaOptions.KAFKA_POLL_TIMEOUT -> kafkaPollTimeout.toString
+    ))
   }
 
   @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
@@ -410,7 +427,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       sql
     }
 
-    val kdf = new KafkaToDF
+    val kdf = new KafkaToDF(kafkaServers, kafkaPollTimeout)
     kdf.df( send(sqlMod) )
 //    }
   }
@@ -454,7 +471,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
                   columnProjection: Seq[String] = Nil): RDD[Row] = {
     val columnList = SpliceJDBCUtil.listColumns(columnProjection.toArray)
     val sqlText = s"SELECT $columnList FROM ${schemaTableName} --splice-properties useSpark=true"
-    val kdf = new KafkaToDF
+    val kdf = new KafkaToDF(kafkaServers, kafkaPollTimeout)
     kdf.rdd( send(sqlText) )
   }
 
@@ -509,7 +526,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    *
    */
   def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Unit =
-    insert(rdd, schema, schemaTableName, ", insertMode=INSERT, statusDirectory=" + statusDirectory + ", badRecordsAllowed=" + badRecordsAllowed)
+    insert(rdd, schema, schemaTableName, Map("insertMode"->"INSERT","statusDirectory"->statusDirectory,"badRecordsAllowed"->badRecordsAllowed.toString) )
 
   /**
     *
@@ -529,9 +546,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param schema
    * @param schemaTableName
    */
-  def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = insert(rdd, schema, schemaTableName, "")
+  def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = insert(rdd, schema, schemaTableName, Map[String,String]())
 
-  private[this] def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, spliceProperties: String): Unit = {
+  private[this] def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, spliceProperties: scala.collection.immutable.Map[String,String]): Unit = {
     val topicName = getRandomName() //Kafka topic
 
     println( s"SMC.insert topic $topicName" )
@@ -545,9 +562,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 //      (i,itrRow) => {
       itrRow => {
         println( s"SMC.insert mapPartitions" ) //WithIndex" )
-        // TODO bootstrap servers to config
         val props = new Properties
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "srv126:9092,srv127:9092,srv128:9092,srv129:9092,srv130:9092,srv61:9092,srv62:9092,srv63:9092")
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServers)
         props.put(ProducerConfig.CLIENT_ID_CONFIG, "spark-producer-"+java.util.UUID.randomUUID() )
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, classOf[IntegerSerializer].getName)
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, classOf[ExternalizableSerializer].getName)
@@ -581,7 +597,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url).replace("\"","")
-    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") --splice-properties useSpark=true"+spliceProperties+"\nselect " + columnList + " from " +
+    val sProps = spliceProperties.map({case (k,v) => k+"="+v}).fold("--splice-properties useSpark=true")(_+", "+_)
+    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") "+sProps+"\nselect " + columnList + " from " +
       "new com.splicemachine.derby.vti.KafkaVTI('"+topicName+"') " +
       "as SpliceDatasetVTI (" + schemaString + ")"
 
@@ -643,6 +660,47 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       case _ => None
     }
   }
+
+  /**
+   * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)
+   *
+   * @param dataFrame input data
+   * @param schemaTableName
+   * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   */
+  def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
+                      options: scala.collection.mutable.Map[String, String]): Unit =
+    bulkImportHFile(dataFrame.rdd, dataFrame.schema, schemaTableName, options)
+
+  /**
+   * Bulk Import HFile from a RDD into a schemaTableName(schema.table)
+   *
+   * @param rdd input data
+   * @param schemaTableName
+   * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   */
+  def bulkImportHFile(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String,
+                      options: scala.collection.mutable.Map[String, String]): Unit = {
+
+    if( ! options.contains("bulkImportDirectory") ) {
+      throw new IllegalArgumentException("bulkImportDirectory cannot be null")
+    }
+
+    insert(rdd, schema, schemaTableName, options.toMap)
+  }
+
+  /**
+   *
+   * Sample the dataframe, split the table, and insert a dataFrame into a table (schema.table).  This corresponds to an
+   *
+   * insert into from select statement
+   *
+   * @param dataFrame
+   * @param schemaTableName
+   * @param sampleFraction
+   */
+  def splitAndInsert(dataFrame: DataFrame, schemaTableName: String, sampleFraction: Double): Unit =
+    insert(dataFrame.rdd, dataFrame.schema, schemaTableName, Map("sampleFraction"->sampleFraction.toString))
 
   /**
    * Export a dataFrame to Kafka
