@@ -100,6 +100,16 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
   /**
    *
+   * Context for Splice Machine, specifying only the JDBC url.
+   *
+   * @param url JDBC Url with authentication parameters
+   */
+  def this(url: String) {
+    this(Map(JDBCOptions.JDBC_URL -> url));
+  }
+
+  /**
+   *
    * Context for Splice Machine.
    *
    * @param url JDBC Url with authentication parameters
