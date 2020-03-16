@@ -34,7 +34,9 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.StructType
 
-class KafkaToDF {
+class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
+  private[this] val destServers = kafkaServers
+  private[this] val timeout = pollTimeout
 
   def spark(): SparkSession = SparkSession.builder.getOrCreate  // TODO will this work in all envs?
 
@@ -48,10 +50,7 @@ class KafkaToDF {
   def rdd_schema(topicName: String): (RDD[Row], StructType) = {
     val props = new Properties()
     val consumerId = "spark-consumer-"+UUID.randomUUID()
-    // TODO move broker addresses to config
-    val brokers = "localhost:" + 9092
-
-    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers)
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, destServers)
     props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerId)
     props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumerId)
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, classOf[IntegerDeserializer].getName)
@@ -83,7 +82,7 @@ class KafkaToDF {
 //        while ( {
 //            records == null || records.isEmpty
 //        }) {
-    val records = consumer.poll(20000).asScala  // TODO move timeout to config
+    val records = consumer.poll(timeout).asScala
     consumer.close
 //            if (TaskContext.get.isInterrupted) {  // TODO: was giving null pointer exception
 //                consumer.close
