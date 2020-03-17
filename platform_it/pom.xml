@@ -79,6 +79,20 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_spark</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_spark</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}-tests</classifier>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-minikdc</artifactId>
             <version>${hadoop.version}</version>
@@ -219,6 +233,20 @@
                     <artifactId>parquet-avro</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <!-- com.splicemachine.spark.splicemachine.SparkStreamingIT -->
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-streaming_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Scala dependencies -->
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.binary.version}</artifactId>
+            <version>2.2.4</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
@@ -365,6 +393,24 @@
                             <systemPropertyVariables>
                                 <splice.schemaCleanup>async</splice.schemaCleanup>
                             </systemPropertyVariables>
+                        </configuration>
+                    </execution>
+                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: NSDS -->
+                    <execution>
+                        <id>integration-tests-nsds</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <dependenciesToScan>
+                                <dependency>com.splicemachine:splice_spark</dependency>
+                            </dependenciesToScan>
+                            <argLine>-Xmx2g -Xms64m -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ ${hbase.rootdir}</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <includes>
+                                <include>com/splicemachine/spark/splicemachine/**/*IT.java</include>
+                            </includes>
                         </configuration>
                     </execution>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
