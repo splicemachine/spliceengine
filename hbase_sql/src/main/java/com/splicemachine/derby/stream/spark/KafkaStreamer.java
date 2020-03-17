@@ -20,6 +20,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.marshall.dvd.KryoDescriptorSerializer;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.StreamProtocol;
 import com.splicemachine.stream.handlers.OpenHandler;
 import io.netty.bootstrap.Bootstrap;
@@ -71,8 +72,7 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
     private static final Logger LOG = Logger.getLogger(KafkaStreamer.class);
 
     private int numPartitions;
-    private String host;
-    private int port;
+    private String bootstrapServers;
     private String topicName;
     private int partition;
     private volatile TaskContext taskContext;
@@ -81,9 +81,8 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
     public KafkaStreamer(){
     }
 
-    public KafkaStreamer(String host, int port, int numPartitions, String topicName) {
-        this.host = host;
-        this.port = port;
+    public KafkaStreamer(int numPartitions, String topicName) {
+        this.bootstrapServers = SIDriver.driver().getConfiguration().getKafkaBootstrapServers();
         this.numPartitions = numPartitions;
         this.topicName = topicName;
     }
@@ -106,9 +105,8 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
             }
         }
 
-        // TODO bootstrap servers to config
         Properties props = new Properties();
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, host + ":" + 9092);
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.CLIENT_ID_CONFIG, "spark-producer-"+UUID.randomUUID() );
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ExternalizableSerializer.class.getName());
@@ -135,8 +133,7 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
     public String toString() {
         return "KafkaStreamer{" +
                 "numPartitions=" + numPartitions +
-                ", host='" + host + '\'' +
-                ", port=" + port +
+                ", bootstrapServers='" + bootstrapServers + '\'' +
                 ", topicName=" + topicName +
                 '}';
     }
@@ -144,16 +141,14 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeUTF(host);
-        out.writeInt(port);
+        out.writeUTF(bootstrapServers);
         out.writeInt(numPartitions);
         out.writeUTF(topicName);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        host = in.readUTF();
-        port = in.readInt();
+        bootstrapServers = in.readUTF();
         numPartitions = in.readInt();
         topicName = in.readUTF();
     }

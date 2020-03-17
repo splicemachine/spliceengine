@@ -400,7 +400,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     @Override
     public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
         Properties props = new Properties();
-        props.put("bootstrap.servers", "localhost" + ":" + 9092);
+        props.put("bootstrap.servers", SIDriver.driver().getConfiguration().getKafkaBootstrapServers());
         props.put("enable.auto.commit", false);
         props.put("auto.commit.interval.ms", "1000");
         props.put("session.timeout.ms", "30000");

@@ -168,6 +168,9 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL = "splice.replication.progress.update.interval";
     public static final int DEFAULT_SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL = 200;
 
+    public static final String KAFKA_BOOTSTRAP_SERVERS = "splice.kafka.bootstrapServers";
+    public static final String DEFAULT_KAFKA_BOOTSTRAP_SERVERS = "localhost:9092";
+
     /**
      * The Path in zookeeper for storing the maximum reserved timestamp
      * from the ZkTimestampSource implementation.
@@ -241,5 +244,6 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.replicationSnapshotInterval = configurationSource.getInt(SPLICE_REPLICATION_SNAPSHOT_INTERVAL, DEFAULT_SPLICE_REPLICATION_SNAPSHOT_INTERVAL);
         builder.replicationSinkPort = configurationSource.getInt(SPLICE_REPLICATION_SINK_PORT, DEFAULT_SPLICE_REPLICATION_SINK_PORT);
         builder.replicationProgressUpdateInterval = configurationSource.getInt(SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL, DEFAULT_SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL);
+        builder.kafkaBootstrapServers = configurationSource.getString(KAFKA_BOOTSTRAP_SERVERS, DEFAULT_KAFKA_BOOTSTRAP_SERVERS);
     }
 }

@@ -61,7 +61,7 @@ public class SparkKafkaDataSetWriter<V> implements DataSetWriter{
         long start = System.currentTimeMillis();
 
         CountFunction countFunction = new CountFunction<>();
-        JavaRDD streamed = rdd.map(countFunction).mapPartitionsWithIndex(new KafkaStreamer("localhost", 9092, rdd.getNumPartitions(), topicName), true);
+        JavaRDD streamed = rdd.map(countFunction).mapPartitionsWithIndex(new KafkaStreamer(rdd.getNumPartitions(), topicName), true);
         streamed.collect();
 
         long end = System.currentTimeMillis();

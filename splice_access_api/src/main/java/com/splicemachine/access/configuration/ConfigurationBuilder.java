@@ -120,6 +120,7 @@ public class ConfigurationBuilder {
     public int replicationSnapshotInterval;
     public int replicationSinkPort;
     public int replicationProgressUpdateInterval;
+    public String kafkaBootstrapServers;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;

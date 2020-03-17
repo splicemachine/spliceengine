@@ -130,6 +130,8 @@ public interface SConfiguration {
 
     boolean getHbaseSecurityAuthentication();
 
+    String getKafkaBootstrapServers();
+
     // OperationConfiguration
     int getSequenceBlockSize();
 
