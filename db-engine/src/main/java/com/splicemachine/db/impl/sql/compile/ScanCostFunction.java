@@ -219,6 +219,7 @@ public class ScanCostFunction{
         // Base Cost + LookupCost + Projection Cost
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
         double baseCost = openLatency+closeLatency+(totalRowCount*localLatency*(1+scc.getConglomerateAvgRowWidth()/100d));
+        scanCost.setSparkOverhead(0.0);
         scanCost.setFromBaseTableRows(totalRowCount);
         scanCost.setFromBaseTableCost(baseCost);
         scanCost.setScannedBaseTableRows(totalRowCount);
@@ -336,9 +337,12 @@ public class ScanCostFunction{
         // if this is costing control path, and the table actually exceeds the threshold to swtich to Spark
         // penalize the plan with a fix Spark overhead
 
+        scanCost.setSparkOverhead(0.0);
         if (!useSpark) {
-            if (scannedBaseTableRows > scc.getSparkRowThreshold())
+            if (scannedBaseTableRows > scc.getSparkRowThreshold()) {
                 baseCost += scc.getSparkOverhead();
+                scanCost.setSparkOverhead(scc.getSparkOverhead());
+            }
         }
 
         assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;

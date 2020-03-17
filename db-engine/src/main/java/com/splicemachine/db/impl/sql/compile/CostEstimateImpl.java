@@ -612,4 +612,10 @@ public class CostEstimateImpl implements CostEstimate {
     public boolean isSingleRow() {return singleRow;}
 
     public void setSingleRow(boolean singleRowInRelation) { singleRow = singleRowInRelation;}
+
+    public double getSparkOverhead() {
+        return 0.0;
+    }
+
+    public void setSparkOverhead(double sparkOverhead) { }
 }
