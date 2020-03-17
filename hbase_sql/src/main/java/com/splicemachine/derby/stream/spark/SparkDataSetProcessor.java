@@ -47,6 +47,7 @@ import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.IndentedString;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -890,7 +891,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
         Properties props = new Properties();
         String consumerId = "spark-consumer-"+UUID.randomUUID();
-        props.put("bootstrap.servers", "localhost:" + 9092);        // TODO bootstrap servers to config
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, SIDriver.driver().getConfiguration().getKafkaBootstrapServers());
         props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerId);
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumerId);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());

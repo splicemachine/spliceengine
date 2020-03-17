@@ -126,6 +126,7 @@ public class ConfigurationBuilder {
     public String replicationMonitorPath;
     public int replicationMonitorInterval;
     public String replicationHealthcheckScript;
+    public String kafkaBootstrapServers;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;

@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportKafkaOperation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -37,8 +38,7 @@ class ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction extends SpliceFla
     public Iterator<ExecRow> call(Iterator<Integer> partitions) throws Exception {
         Properties props = new Properties();
 
-        // TODO bootstrap servers to config
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,  "localhost:" + 9092);
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, SIDriver.driver().getConfiguration().getKafkaBootstrapServers());
 
         String group_id = "spark-consumer-"+UUID.randomUUID();
         props.put(ConsumerConfig.GROUP_ID_CONFIG,group_id);
