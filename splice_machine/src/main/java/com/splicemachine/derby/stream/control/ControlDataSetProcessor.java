@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
@@ -118,7 +119,8 @@ public class ControlDataSetProcessor implements DataSetProcessor{
                             txnSupplier,transactory,txnOperationFactory);
 
                     this.region(localRegion).scanner(p.openScanner(getScan(),metricFactory)); //set the scanner
-                    TableScannerIterator tableScannerIterator=new TableScannerIterator(this,spliceOperation);
+                    SpliceOperation scanOperation = (spliceOperation instanceof ScanOperation) ? spliceOperation : null;
+                    TableScannerIterator tableScannerIterator=new TableScannerIterator(this, scanOperation);
                     if(spliceOperation!=null){
                         spliceOperation.registerCloseable(tableScannerIterator);
                         spliceOperation.registerCloseable(p);
