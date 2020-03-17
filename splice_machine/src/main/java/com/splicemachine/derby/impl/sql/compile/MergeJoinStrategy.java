@@ -175,11 +175,18 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         if (outerTableEmpty) {
             return (outerCost.getLocalCostPerPartition())+innerCost.getOpenCost()+innerCost.getCloseCost();
         }
-        else
-            return outerCost.getLocalCostPerPartition()+innerCost.getLocalCostPerPartition()*innerScanSelectivity+
-                innerRemoteCost/outerCost.partitionCount() +
-                innerCost.getOpenCost()+innerCost.getCloseCost()
-                        + joiningRowCost/outerCost.partitionCount();
+        else {
+            // adjust inner localCostPerPartition based on innerScanSelectivity
+            double innerLocalCostPerPartition = innerCost.getLocalCostPerPartition();
+            // sparkOverhead is only set for control path to penalize the plan that could switch from control to spark
+            if (innerCost.getSparkOverhead() != 0d) {
+                innerLocalCostPerPartition = (innerCost.getLocalCost() - innerCost.getSparkOverhead())/innerCost.partitionCount();
+            }
+            return outerCost.getLocalCostPerPartition() + innerLocalCostPerPartition * innerScanSelectivity + innerCost.getSparkOverhead() +
+                    innerRemoteCost / outerCost.partitionCount() +
+                    innerCost.getOpenCost() + innerCost.getCloseCost()
+                    + joiningRowCost / outerCost.partitionCount();
+        }
     }
 
     /* ****************************************************************************************************************/

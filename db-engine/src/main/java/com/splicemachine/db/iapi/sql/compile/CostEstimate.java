@@ -301,4 +301,8 @@ public interface CostEstimate extends StoreCostResult {
     public boolean isSingleRow();
 
     public void setSingleRow(boolean singleRowInRelation);
+
+    public void setSparkOverhead(double sparkOverhead);
+
+    public double getSparkOverhead();
 }
