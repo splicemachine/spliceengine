@@ -80,6 +80,8 @@ public class SYSFILESRowFactory extends CatalogRowFactory {
 		{NAME_COL_NUM, SCHEMA_ID_COL_NUM},
 		{ID_COL_NUM}
 	};
+	// The SYSFILES_INDEX3(SCHEMA_ID_COL_NUM) UUID: "80000000-00d3-e222-be7c-000a0a0b1900"
+	// It was dropped in DB-6376 for supporting more Jars in one schema
 
     private	static	final	boolean[]	uniqueness = null;
 
