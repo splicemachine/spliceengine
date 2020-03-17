@@ -23,7 +23,7 @@ import org.scalatest.junit.JUnitRunner
 import org.scalatest.{ FunSuite, Matchers}
 
 @RunWith(classOf[JUnitRunner])
-class SplicemachineContextTest extends FunSuite with TestContext with Matchers {
+class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
   val rowCount = 10
 
   private def serialize(value: Any): Array[Byte] = {

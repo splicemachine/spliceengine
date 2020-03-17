@@ -33,7 +33,7 @@ import org.apache.spark.streaming.{Milliseconds, StreamingContext}
 import scala.collection.mutable.Queue
 
 @RunWith(classOf[JUnitRunner])
-class SparkStreamingTest extends FunSuite with TestStreamingContext with BeforeAndAfter with Matchers {
+class SparkStreamingIT extends FunSuite with TestStreamingContext with BeforeAndAfter with Matchers {
   val rowCount = 10
   var sqlContext : SQLContext = _
   var rows : IndexedSeq[(Int, Int, String, Long)] = _
