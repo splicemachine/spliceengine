@@ -963,12 +963,14 @@ public class OperatorToString {
                         // for the ROUND function.
                         // ADD_MONTHS returns incorrect results on
                         // Spark for old dates.
+                        // The ROUND function came from Splice package (uppercase) and java.lang.StrictMath (lowercase),
+                        // we need to handle it especially.
                         if (methodName.equals("MONTH_BETWEEN") ||
                             methodName.equals("REGEXP_LIKE")   ||
                             methodName.equals("ADD_MONTHS")    ||
                             methodName.equals("ADD_YEARS")     ||
                             methodName.equals("ADD_DAYS")      ||
-                            methodName.equals("ROUND"))
+                            methodName.equalsIgnoreCase("ROUND"))
                             throwNotImplementedError();
                         else if (methodName.equals("toDegrees"))
                             methodName = "degrees";
