@@ -330,30 +330,25 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
                              CostEstimate baseCost,
                              CostEstimate sortCost) throws StandardException{
         /*
-        ** Do a bunch of set-up the first time: get the SortCostController,
-        ** the template row, the ColumnOrdering array, and the estimated
-        ** row size.
+        ** Make the sort cost consistent with that of the sortmerge join.
         */
-        if(scc==null){
-            if(baseCost.isUninitialized()) return;
-            if (optimizer == null) {
-                double parallelCost = (baseCost.localCost()+baseCost.remoteCost())/baseCost.partitionCount();
-                baseCost.setLocalCost(baseCost.localCost()+parallelCost);
-                baseCost.setLocalCostPerPartition(baseCost.localCost());
-                /* only local cost is changed, remote cost is not changed as sort does not change
-                   the rowcount, so no need to change the remote cost nor remoteCostPerPartition
-                 */
-                // set sortCost
-                if (sortCost != null) {
-                    sortCost.setLocalCost(parallelCost);
-                    sortCost.setLocalCostPerPartition(parallelCost);
-                }
-                return;
-            } else {
-                scc = optimizer.newSortCostController(this);
-            }
+        if(baseCost.isUninitialized()) return;
+        double parallelCost;
+        if (optimizer == null) {
+            parallelCost = OptimizerImpl.getSortCost((int)(baseCost.rowCount()/baseCost.partitionCount()), 1);
+        } else {
+            parallelCost = optimizer.getSortCost((int)(baseCost.rowCount()/baseCost.partitionCount()));
         }
-        scc.estimateSortCost(baseCost, sortCost);
+        baseCost.setLocalCost(baseCost.localCost()+parallelCost);
+        baseCost.setLocalCostPerPartition(baseCost.localCost());
+        /* only local cost is changed, remote cost is not changed as sort does not change
+           the rowcount, so no need to change the remote cost nor remoteCostPerPartition
+         */
+        // set sortCost
+        if (sortCost != null) {
+            sortCost.setLocalCost(parallelCost);
+            sortCost.setLocalCostPerPartition(parallelCost);
+        }
     }
 
     @Override

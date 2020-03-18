@@ -405,4 +405,6 @@ public interface Optimizer{
     public void setForSpark(boolean forSpark);
 
     public boolean isForSpark();
+
+    public double getSortCost(int rowsPerPartition);
 }

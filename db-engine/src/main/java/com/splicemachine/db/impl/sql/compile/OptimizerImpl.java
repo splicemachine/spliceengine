@@ -2574,4 +2574,27 @@ public class OptimizerImpl implements Optimizer{
         return currentRowOrdering;
     }
 
+    static long log(int x, int base)
+    {
+        return (long) (Math.log(x) / Math.log(base));
+    }
+
+    // We haven't modelled the details of Tungsten sort, so we can't accurately
+    // cost it as an external sort algorithm.
+    // For now, instead of using zero sort costs,
+    // let's just use a naive sort cost formula which assumes
+    // the sort is done in memory with a simple nlog(n) bounding.
+    // TODO: Find the actual formula for estimating Tungsten sort costs.
+    public static double getSortCost(int rowsPerPartition, double costPerComparison) {
+        double sortCost =
+                (costPerComparison *
+                        (rowsPerPartition * log(rowsPerPartition, 2)));
+        return sortCost;
+    }
+
+    @Override
+    public double getSortCost(int rowsPerPartition) {
+        return getSortCost(rowsPerPartition, 1);
+    }
+
 }

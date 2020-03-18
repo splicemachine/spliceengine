@@ -94,7 +94,7 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
         double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.HASH_SEARCH);
         double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly, outerCost.rowCount(), innerCost.rowCount());
-        double joinCost = mergeSortJoinStrategyLocalCost(innerCost, outerCost,totalJoinedRows);
+        double joinCost = mergeSortJoinStrategyLocalCost(innerCost, outerCost,totalJoinedRows, optimizer);
         double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost,outerCost,totalOutputRows);
         innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
         innerCost.setNumPartitions(outerCost.partitionCount());
@@ -107,24 +107,7 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         innerCost.setRowOrdering(null);
     }
 
-    static long log(int x, int base)
-    {
-        return (long) (Math.log(x) / Math.log(base));
-    }
 
-
-    // We haven't modelled the details of Tungsten sort, so we can't accurately
-    // cost it as an external sort algorithm.
-    // For now, instead of using zero sort costs,
-    // let's just use a naive sort cost formula which assumes
-    // the sort is done in memory with a simple nlog(n) bounding.
-    // TODO: Find the actual formula for estimating Tungsten sort costs.
-    static double getSortCost(int rowsPerPartition, double costPerComparison) {
-        double sortCost =
-            (costPerComparison *
-              (rowsPerPartition * log(rowsPerPartition, 2)));
-        return sortCost;
-    }
     /**
      *
      * Merge Sort Join Local Cost Computation
@@ -138,7 +121,7 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
      * @param outerCost
      * @return
      */
-    public static double mergeSortJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, double numOfJoinedRows) {
+    public static double mergeSortJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, double numOfJoinedRows, Optimizer optimizer) {
         SConfiguration config = EngineDriver.driver().getConfiguration();
 
         double localLatency = config.getFallbackLocalLatency();
@@ -150,9 +133,8 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
            (innerRowCount / outerTablePartitions) > Integer.MAX_VALUE ?
            Integer.MAX_VALUE : (int)(innerRowCount / outerTablePartitions);
 
-        double factor = 1d;
         double innerSortCost =
-            getSortCost(innerRowCountPerPartition, localLatency*factor);
+            optimizer.getSortCost(innerRowCountPerPartition);
 
         double outerRowCount = outerCost.rowCount() > 1? outerCost.rowCount():1;
         int outerRowCountPerPartition =
@@ -160,7 +142,7 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
            Integer.MAX_VALUE : (int)(outerRowCount / outerTablePartitions);
 
         double outerSortCost =
-            getSortCost(outerRowCountPerPartition, localLatency*factor);
+            optimizer.getSortCost(outerRowCountPerPartition);
 
         assert outerCost.getLocalCostPerPartition() != 0d || outerCost.localCost() == 0d;
         assert innerCost.getLocalCostPerPartition() != 0d || innerCost.localCost() == 0d;
