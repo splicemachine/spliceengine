@@ -16,7 +16,12 @@ MYLIBDIR=${PARCELS_ROOT}/${PARCEL_DIRNAME}/lib
     exit 1
 }
 
-PREPENDSTRING="${CONF_DIR}:${MYLIBDIR}/*:${PARCELS_ROOT}/CDH/lib/spark/jars/*"
+[ -d ${PARCELS_ROOT}/SPARK2 ] || {
+    echo "Could not find SPARK2 parcel lib dir, exiting" >&2
+    exit 1
+}
+
+PREPENDSTRING=`echo ${MYLIBDIR}/*.jar ${PARCELS_ROOT}/SPARK2/lib/spark2/jars/*.jar ${PARCELS_ROOT}/SPARK2/lib/spark2/kafka-0.10/*.jar | sed 's/ /:/g'`
 echo "prepending $PREPENDSTRING to HBASE_CLASSPATH_PREFIX"
 if [ -z $HBASE_CLASSPATH_PREFIX ] ; then
     export HBASE_CLASSPATH_PREFIX="${PREPENDSTRING}"

@@ -106,6 +106,8 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String replicationMonitorPath;
     private final  int replicationMonitorInterval;
     private final  String replicationHealthcheckScript;
+    private final  int replicationSinkPort;
+    private final String kafkaBootstrapServers;
 
     // OperationConfiguration
     private final  int sequenceBlockSize;
@@ -452,6 +454,10 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public boolean getHbaseSecurityAuthentication() {
         return hbaseSecurityAuthentication;
+    }
+    @Override
+    public String getKafkaBootstrapServers() {
+        return kafkaBootstrapServers;
     }
 
     // OperationConfiguration
@@ -983,6 +989,7 @@ public final class SConfigurationImpl implements SConfiguration {
         spliceRootPath = builder.spliceRootPath;
         hbaseSecurityAuthorization = builder.hbaseSecurityAuthorization;
         hbaseSecurityAuthentication = builder.hbaseSecurityAuthentication;
+        kafkaBootstrapServers = builder.kafkaBootstrapServers;
         debugDumpBindTree = builder.debugDumpBindTree;
         debugDumpClassFile = builder.debugDumpClassFile;
         debugDumpOptimizedTree = builder.debugDumpOptimizedTree;

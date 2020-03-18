@@ -30,12 +30,24 @@
             <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>splice_spark</artifactId>
+            <artifactId>splice_spark2</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -69,7 +81,7 @@
             concurrentlinkedhashmap-lru,
             kryo-serializers,
             lucene-core,
-	        scala_util,
+            scala_util,
             hbase_pipeline,
             hbase_storage,
             hbase_sql,
@@ -81,7 +93,7 @@
             splice_colperms,
             splice_encryption,
             akka-remote_${scala.binary.version},
-            splice_spark,
+            splice_spark2,
             super-csv,
             c3p0,
             mchange-commons-java,
@@ -344,7 +356,7 @@
                                         javax.servlet-api,
                                         javax.ws.rs-api,
                                         jython-standalone,
-                                        splice_spark
+                                        splice_spark2
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>

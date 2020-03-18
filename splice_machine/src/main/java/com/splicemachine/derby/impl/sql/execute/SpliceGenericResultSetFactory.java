@@ -30,6 +30,7 @@ import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportKafkaOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -1928,12 +1929,12 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
 
     @Override
     public NoPutResultSet getBinaryExportResultSet(NoPutResultSet source,
-                                             Activation activation,
-                                             int resultSetNumber,
-                                             String exportPath,
-                                             String compression,
-                                             String format,
-                                             int srcResultDescriptionSavedObjectNum) throws StandardException {
+                                                   Activation activation,
+                                                   int resultSetNumber,
+                                                   String exportPath,
+                                                   String compression,
+                                                   String format,
+                                                   int srcResultDescriptionSavedObjectNum) throws StandardException {
         // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
         // export operation returns (exported row count, and export time) not the columns of the source operation.
         // Not what we need to format the rows during export.  So ExportNode now saves the source
@@ -1954,6 +1955,32 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 "",
                 "",
                 ""
+        );
+        op.markAsTopResultSet();
+        return op;
+
+    }
+
+    @Override
+    public NoPutResultSet getKafkaExportResultSet(NoPutResultSet source,
+                                                   Activation activation,
+                                                   int resultSetNumber,
+                                                   String topicName,
+                                                   int srcResultDescriptionSavedObjectNum) throws StandardException {
+        // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
+        // export operation returns (exported row count, and export time) not the columns of the source operation.
+        // Not what we need to format the rows during export.  So ExportNode now saves the source
+        // ResultColumnDescriptors and we retrieve them here.
+        Object resultDescription = activation.getPreparedStatement().getSavedObject(srcResultDescriptionSavedObjectNum);
+        ResultColumnDescriptor[] columnDescriptors = ((GenericResultDescription) resultDescription).getColumnInfo();
+
+        ConvertedResultSet convertedResultSet = (ConvertedResultSet) source;
+        SpliceBaseOperation op = new ExportKafkaOperation(
+                convertedResultSet.getOperation(),
+                columnDescriptors,
+                activation,
+                resultSetNumber,
+                topicName
         );
         op.markAsTopResultSet();
         return op;

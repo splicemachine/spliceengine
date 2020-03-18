@@ -284,9 +284,10 @@ public interface C_NodeTypes
     int STRING_AGGREGATE_NODE = 273;
     int VALUE_TUPLE_NODE = 274;
     int TIME_SPAN_NODE = 275;
+	int KAFKA_EXPORT_NODE = 276;
 
-    // Final value in set, keep up to date!
-    int FINAL_VALUE = TIME_SPAN_NODE;
+	// Final value in set, keep up to date!
+	int FINAL_VALUE = KAFKA_EXPORT_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision
