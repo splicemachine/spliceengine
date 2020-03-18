@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -24,7 +24,7 @@ import org.apache.spark.sql.types._
 /**
   * Created by jleach on 4/7/17.
   */
-class SplicemachineDialectNoTime extends JdbcDialect {
+class SplicemachineDialectNoTime2 extends JdbcDialect {
   override def canHandle(url: String): Boolean = url.startsWith("jdbc:splice")
 
   override def getCatalystType(

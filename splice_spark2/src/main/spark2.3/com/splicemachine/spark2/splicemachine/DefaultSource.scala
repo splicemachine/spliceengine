@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,7 +14,7 @@
 package com.splicemachine.spark2.splicemachine
 
 import org.apache.spark.sql.execution.datasources.jdbc.JdbcUtils._
-import org.apache.spark.sql.execution.datasources.jdbc.{JdbcUtils, SpliceRelation, JDBCOptions, JDBCRDD}
+import org.apache.spark.sql.execution.datasources.jdbc.{JdbcUtils, SpliceRelation2, JDBCOptions, JDBCRDD}
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
@@ -26,7 +26,7 @@ class DefaultSource extends RelationProvider with CreatableRelationProvider
   override def createRelation(sqlContext: SQLContext,
                               parameters: Map[String, String]):
   BaseRelation = {
-    new SpliceRelation(new JDBCOptions(parameters))(sqlContext,None)
+    new SpliceRelation2(new JDBCOptions(parameters))(sqlContext,None)
   }
 
   /**
@@ -52,7 +52,7 @@ class DefaultSource extends RelationProvider with CreatableRelationProvider
     try {
       val tableExists = JdbcUtils.tableExists(conn, jdbcOptions)
       if (tableExists) {
-        val actualRelation = new SpliceRelation(new JDBCOptions(parameters))(sqlContext,Option.apply(df.schema))
+        val actualRelation = new SpliceRelation2(new JDBCOptions(parameters))(sqlContext,Option.apply(df.schema))
 
         mode match {
           case SaveMode.Overwrite =>
@@ -84,7 +84,7 @@ class DefaultSource extends RelationProvider with CreatableRelationProvider
         }
       } else {
         createTable(conn, df, jdbcOptions)
-        val actualRelation = new SpliceRelation(new JDBCOptions(parameters))(sqlContext,Option.apply(df.schema))
+        val actualRelation = new SpliceRelation2(new JDBCOptions(parameters))(sqlContext,Option.apply(df.schema))
         actualRelation.insert(df,false)
         actualRelation
       }
@@ -105,7 +105,7 @@ class DefaultSource extends RelationProvider with CreatableRelationProvider
   override def createRelation(sqlContext: SQLContext, parameters: Map[String, String],
                               schema: StructType):
   BaseRelation = {
-    new SpliceRelation(new JDBCOptions(parameters))(sqlContext,Option.apply(schema))
+    new SpliceRelation2(new JDBCOptions(parameters))(sqlContext,Option.apply(schema))
   }
 
 }

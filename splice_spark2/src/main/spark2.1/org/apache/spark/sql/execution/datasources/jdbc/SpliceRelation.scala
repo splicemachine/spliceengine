@@ -1,6 +1,6 @@
 package org.apache.spark.sql.execution.datasources.jdbc
 
-import com.splicemachine.spark.splicemachine.{SpliceJDBCOptions, SpliceJDBCUtil, SplicemachineContext}
+import com.splicemachine.spark2.splicemachine.{SpliceJDBCOptions, SpliceJDBCUtil, SplicemachineContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions.JDBC_UPPER_BOUND
 import org.apache.spark.sql.jdbc.JdbcDialects

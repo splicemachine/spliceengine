@@ -9,7 +9,7 @@ import org.apache.spark.sql.types._
 /**
   * Created by jleach on 4/7/17.
   */
-class SplicemachineDialect extends JdbcDialect {
+class SplicemachineDialect2 extends JdbcDialect {
   override def canHandle(url: String): Boolean = url.startsWith("jdbc:splice")
 
   override def getCatalystType(

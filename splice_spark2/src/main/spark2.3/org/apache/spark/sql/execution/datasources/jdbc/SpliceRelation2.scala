@@ -1,6 +1,6 @@
 package org.apache.spark.sql.execution.datasources.jdbc
 
-import com.splicemachine.spark.splicemachine.{SpliceJDBCOptions, SpliceJDBCUtil, SplicemachineContext}
+import com.splicemachine.spark2.splicemachine.{SpliceJDBCOptions, SpliceJDBCUtil, SplicemachineContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.jdbc.JdbcDialects
 import org.apache.spark.sql.types.StructType
@@ -11,7 +11,7 @@ import org.apache.spark.sql.sources._
   * Created by jleach on 4/7/17.
   */
 
-case class SpliceRelation(jdbcOptions: JDBCOptions)(@transient val sqlContext: SQLContext, @transient var userSchema: Option[StructType]) extends BaseRelation
+case class SpliceRelation2(jdbcOptions: JDBCOptions)(@transient val sqlContext: SQLContext, @transient var userSchema: Option[StructType]) extends BaseRelation
   with PrunedFilteredScan
   with InsertableRelation {
 
