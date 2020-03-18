@@ -672,6 +672,42 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   /**
+   * Delete records in a dataframe based on joining by primary keys from the data frame.  Be careful with column naming and case sensitivity.
+   *
+   * @param dataFrame rows to delete
+   * @param schemaTableName table to delete from
+   */
+  def delete(dataFrame: DataFrame, schemaTableName: String): Unit = {}  // TODO
+
+  /**
+   * Delete records in a dataframe based on joining by primary keys from the data frame.  Be careful with column naming and case sensitivity.
+   *
+   * @param rdd rows to delete
+   * @param schema
+   * @param schemaTableName table to delete from
+   */
+  def delete(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {}  // TODO
+
+  /**
+   * Update data from a dataframe for a specified schemaTableName (schema.table).  The keys are required for the update and any other
+   * columns provided will be updated in the rows.
+   *
+   * @param dataFrame rows for update
+   * @param schemaTableName table to update
+   */
+  def update(dataFrame: DataFrame, schemaTableName: String): Unit = {}  // TODO
+
+  /**
+   * Update data from a RDD for a specified schemaTableName (schema.table) and schema (StructType).  The keys are required for the update and any other
+   * columns provided will be updated in the rows.
+   *
+   * @param rdd rows for update
+   * @param schema
+   * @param schemaTableName
+   */
+  def update(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {}  // TODO
+
+  /**
    * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)
    *
    * @param dataFrame input data
