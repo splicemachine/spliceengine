@@ -586,7 +586,13 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "-5844 |",
             "1 |\n" +
             "----\n" +
-            " 3 |"
+            " 3 |",
+            "1 |\n" +
+            "----\n" +
+            " 1 |",
+            "1  |\n" +
+            "-----\n" +
+            "1.0 |"
         };
 
         String query[] = {
@@ -692,7 +698,9 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "select c || c || c || c from t1 --splice-properties useSpark=%s\n",
             "select DATE('2017-01-01') - a from t6 --splice-properties useSpark=%s\n",
             "select a - DATE('2017-01-01') from t6 --splice-properties useSpark=%s\n",
-            "select a - (b-3) from t6 --splice-properties useSpark=%s\n"
+            "select a - (b-3) from t6 --splice-properties useSpark=%s\n",
+            "select round(avg(1)) from t1 --splice-properties useSpark=%s\n",
+            "select round(avg(1),1) from t1 --splice-properties useSpark=%s\n"
         };
 
         for (int i = 0; i < query.length; i++) {

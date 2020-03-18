@@ -381,6 +381,16 @@ public class SQLChar
         }
     }
 
+    @Override
+    public byte[] getBytes() throws StandardException {
+        if (isNull())
+            return null;
+        String string = getString();
+        if (string != null)
+            return string.getBytes();
+        return null;
+    }
+
     /**
      * Get Short from a SQLChar.
      *
@@ -2493,7 +2503,7 @@ public class SQLChar
      *              0 is returned if searchFrom does not contain this.value.
      * @exception StandardException     Thrown on error
      */
-    public NumberDataValue locate(  StringDataValue searchFrom,
+    public NumberDataValue locate(  ConcatableDataValue searchFrom,
                                     NumberDataValue start,
                                     NumberDataValue result)
                                     throws StandardException
@@ -2514,7 +2524,7 @@ public class SQLChar
             startVal = start.getInt();
         }
 
-        if( searchFrom.isNull() )
+        if( searchFrom.isNull() || this.isNull())
         {
             result.setToNull();
             return result;
@@ -2559,7 +2569,8 @@ public class SQLChar
                 NumberDataValue start,
                 NumberDataValue length,
                 ConcatableDataValue result,
-                int maxLen)
+                int maxLen,
+                boolean isFixedLength)
         throws StandardException
     {
         int startInt;
@@ -2568,7 +2579,10 @@ public class SQLChar
 
         if (result == null)
         {
-            result = getNewVarchar();
+            if (isFixedLength)
+                result = new SQLChar();
+            else
+                result = getNewVarchar();
         }
 
         stringResult = (StringDataValue) result;
@@ -2606,57 +2620,24 @@ public class SQLChar
                     SQLState.LANG_SUBSTR_START_OR_LEN_OUT_OF_RANGE);
         }
 
-        // Return null if length is non-positive
-        if (lengthInt < 0)
-        {
-            stringResult.setToNull();
-            return stringResult;
-        }
-
-        /* If startInt < 0 then we count from the right of the string */
-        if (startInt < 0)
-        {
-            // Return '' if window is to left of string.
-            if (startInt + getLength() < 0 &&
-                (startInt + getLength() + lengthInt <= 0))
-            {
-                stringResult.setValue("");
-                return stringResult;
-            }
-
-            // Convert startInt to positive to get substring from right
-            startInt += getLength();
-
-            while (startInt < 0)
-            {
-                startInt++;
-                lengthInt--;
-            }
-        }
-        else if (startInt > 0)
-        {
-            /* java substring() is 0 based */
-            startInt--;
-        }
-
-        /* Oracle docs don't say what happens if the window is to the
-         * left of the string.  Return "" if the window
-         * is to the left or right.
-         */
-        if (lengthInt == 0 ||
-            lengthInt <= 0 - startInt ||
-            startInt > getLength())
+        if (lengthInt == 0)
         {
             stringResult.setValue("");
             return stringResult;
         }
 
-        if (lengthInt >= getLength() - startInt)
-        {
+        /* java substring() is 0 based */
+        startInt--;
+
+        if (startInt >= getLength()) {
+            stringResult.setValue("");
+            if (isFixedLength)
+                stringResult.setWidth(lengthInt, -1, false);
+        } else if (lengthInt > getLength() - startInt) {
             stringResult.setValue(getString().substring(startInt));
-        }
-        else
-        {
+            if (isFixedLength)
+                stringResult.setWidth(lengthInt, -1, false);
+        } else {
             stringResult.setValue(
                 getString().substring(startInt, startInt + lengthInt));
         }

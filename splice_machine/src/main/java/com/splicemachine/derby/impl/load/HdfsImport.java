@@ -42,6 +42,7 @@ import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.collect.Lists;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -100,6 +101,7 @@ public class HdfsImport {
     };
 
     private static final ResultColumnDescriptor[] MERGE_RESULT_COLUMNS = new GenericColumnDescriptor[]{
+            new GenericColumnDescriptor("rowsAffected", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
             new GenericColumnDescriptor("rowsUpdated", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
             new GenericColumnDescriptor("rowsInserted", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
             new GenericColumnDescriptor("failedRows", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
@@ -530,7 +532,7 @@ public class HdfsImport {
                 results);
     }
 
-    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
+    @SuppressFBWarnings(value="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING", justification = "no sql injection")
     private static void doImport(String schemaName,
                                  String tableName,
                                  String indexName,
@@ -729,10 +731,13 @@ public class HdfsImport {
                 ips.executeUpdate();
                 String badFileName = ((EmbedConnection) conn).getLanguageConnection().getBadFile();
                 ExecRow result = new ValueRow(5);
+                long rowsImported = ((EmbedConnection) conn).getLanguageConnection().getRecordsImported();
+                long rowsAffected = rowsImported + rowsUpdated;
                 if (isMerge) {
                     result.setRowArray(new DataValueDescriptor[]{
+                            new SQLLongint(rowsAffected),
                             new SQLLongint(rowsUpdated),
-                            new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getRecordsImported()),
+                            new SQLLongint(rowsImported),
                             new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getFailedRecords()),
                             new SQLLongint(contentSummary.fileCount()),
                             new SQLLongint(contentSummary.size()),
@@ -740,7 +745,7 @@ public class HdfsImport {
                     });
                 } else {
                     result.setRowArray(new DataValueDescriptor[]{
-                            new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getRecordsImported()),
+                            new SQLLongint(rowsImported),
                             new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getFailedRecords()),
                             new SQLLongint(contentSummary.fileCount()),
                             new SQLLongint(contentSummary.size()),
@@ -755,7 +760,7 @@ public class HdfsImport {
                                                (isCheckScan ? CHECK_RESULT_COLUMNS : IMPORT_RESULT_COLUMNS), act);
                 rs.open();
                 results[0] = new EmbedResultSet40((EmbedConnection) conn, rs, false, null, true);
-            } catch (Exception e) {
+            } catch (SQLException | StandardException | IOException e) {
                 throw new SQLException(e);
             }
         } finally {
@@ -833,23 +838,56 @@ public class HdfsImport {
 
     static List<String> normalizeIdentifierList(String insertColumnListStr) {
         List<String> normalizedList = new ArrayList<>();
-        if (insertColumnListStr.charAt(0) == '"') {
-            // quoted column list. may be case sensitive, may contain commas.
-            for (String ele : insertColumnListStr.split("\"")) {
-                String trimmedEle = ele.trim();
-                if (! trimmedEle.isEmpty() && trimmedEle.charAt(0) != ',') {
-                    normalizedList.add(trimmedEle);
-                }
-            }
-        } else {
-            // no quotes. straight col list.
-            for (String columnName : insertColumnListStr.split(",")) {
-                normalizedList.add(columnName.trim().toUpperCase());
-            }
+
+        String[] candidateColumns = insertColumnListStr.split(",");
+        List<String> columns = getColumns(candidateColumns);
+        for (String columnName : columns) {
+            String normalizedColumnName = normalize(columnName);
+            normalizedList.add(normalizedColumnName);
         }
+
         return normalizedList;
     }
 
+    static List<String> getColumns(String[] s) {
+        List<String> columns = Lists.newArrayList();
+        int i = 0;
+        boolean closed = true;
+        while(i < s.length) {
+            if (!s[i].startsWith("\"")) {
+                columns.add(s[i]);
+            }
+            else {
+                closed = false;
+                StringBuffer col = new StringBuffer(s[i]);
+                while(!s[i].endsWith("\"") && i < s.length) {
+                    ++i;
+                    col.append(",").append(s[i]);
+                }
+                closed = col.toString().endsWith("\"");
+                if (closed){
+                    columns.add(col.toString());
+                }
+                else {
+                    throw new RuntimeException(String.format("Column name %s not well-formatted", col));
+                }
+            }
+            ++i;
+        }
+        return columns;
+    }
+    static String normalize(String s) {
+        s = s.trim();
+        if (!s.startsWith("\"") && !s.endsWith("\"")) {
+            return s.toUpperCase();
+        }
+        else if (s.startsWith("\"") && s.endsWith("\"")) {
+            return s.substring(1, s.length()-1);
+        }
+        else {
+            throw new RuntimeException(String.format("Column name %s not well-formatted", s));
+        }
+    }
     /**
      * Quote a string argument so that it can be used as a literal in an
      * SQL statement. If the string argument is {@code null} an SQL NULL token

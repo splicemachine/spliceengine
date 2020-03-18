@@ -18,10 +18,8 @@ package com.splicemachine.access.configuration;
 
 import org.spark_project.guava.base.Splitter;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -97,9 +95,6 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String OLAP_SERVER_VIRTUAL_CORES = "splice.olap_server.virtualCores";
     private static final int DEFAULT_OLAP_SERVER_VIRTUAL_CORES = 1;
 
-    public static final String ACTIVE_TRANSACTION_CACHE_SIZE="splice.txn.activeCacheSize";
-    private static final int DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE = 1<<12;
-
     // Timeout in milliseconds
     public static final String SPARK_COMPACTION_MAXIMUM_WAIT = "spark.compaction.maximum.wait";
     public static final int DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT = 60000;
@@ -163,7 +158,6 @@ public class OlapConfigurations implements ConfigurationDefault {
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
-        builder.activeTransactionCacheSize  = configurationSource.getInt(ACTIVE_TRANSACTION_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
         builder.olapServerBindPort  = configurationSource.getInt(OLAP_SERVER_BIND_PORT, DEFAULT_OLAP_SERVER_BIND_PORT);
         builder.olapServerStagingDir = configurationSource.getString(OLAP_SERVER_STAGING_DIR, DEFAULT_OLAP_SERVER_STAGING_DIR);
         builder.olapServerExternal  = configurationSource.getBoolean(OLAP_SERVER_EXTERNAL, DEFAULT_OLAP_SERVER_EXTERNAL);
