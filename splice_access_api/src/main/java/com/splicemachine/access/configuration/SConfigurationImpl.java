@@ -106,7 +106,6 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String replicationMonitorPath;
     private final  int replicationMonitorInterval;
     private final  String replicationHealthcheckScript;
-    private final  int replicationSinkPort;
     private final String kafkaBootstrapServers;
 
     // OperationConfiguration
