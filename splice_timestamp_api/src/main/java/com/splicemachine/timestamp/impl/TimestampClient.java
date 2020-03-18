@@ -229,14 +229,18 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
     }
 
     public long refresh() throws TimestampIOException {
-        return getNextTimestamp(true);
+        return getNextTimestamp(true, false);
     }
 
     public long getNextTimestamp() throws TimestampIOException {
-        return getNextTimestamp(false);
+
+        return getNextTimestamp(false, true);
     }
 
-    public long getNextTimestamp(boolean refresh) throws TimestampIOException {
+    public long getCurrentTimestamp() throws TimestampIOException {
+        return getNextTimestamp(false, false);
+    }
+    public long getNextTimestamp(boolean refresh, boolean increment) throws TimestampIOException {
 
         // Measure duration of full client request for JMX
         long requestStartTime = System.currentTimeMillis();
@@ -257,9 +261,11 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         }
 
         try {
-            ChannelBuffer buffer = ChannelBuffers.buffer(3);
+            ChannelBuffer buffer = ChannelBuffers.buffer(4);
             buffer.writeShort(clientCallId);
-            buffer.writeByte(refresh?1:0);
+            byte b = refresh?(byte)1:0;
+            b =(byte) (b | ((increment?1:0)<<1));
+            buffer.writeByte(b);
             SpliceLogUtils.trace(LOG, "Writing request message to server for client: %s", callback);
             if(channel == null) {
                 throw new TimestampIOException("Unable to connect to TimestampServer");

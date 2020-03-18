@@ -339,6 +339,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     private String defaultSchema;
 
+    private String replicationRole = "NONE";
+
     /* constructor */
     public GenericLanguageConnectionContext(
             ContextManager cm,
@@ -3886,5 +3888,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     public String getUserName() {
         return userName;
+    }
+
+    @Override
+    public void setReplicationRole(String role) {
+        this.replicationRole = role;
+    }
+
+    @Override
+    public String getReplicationRole() {
+        return replicationRole;
     }
 }

@@ -1441,4 +1441,7 @@ public interface LanguageConnectionContext extends Context {
 
 	String getUserName();
 
+	void setReplicationRole(String role);
+
+	String getReplicationRole();
 }

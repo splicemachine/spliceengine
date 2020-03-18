@@ -19,6 +19,7 @@ import java.io.InterruptedIOException;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.TimeUnit;
 
+import com.splicemachine.hbase.SpliceMasterObserver;
 import com.splicemachine.pipeline.InitializationCompleted;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -43,8 +44,6 @@ import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
-import com.splicemachine.hbase.SpliceMasterObserver;
-import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.ZkUtils;
 
 /**
@@ -131,7 +130,8 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
             }while(onHold);
         }
         //register splice metrics
-        new SpliceMetrics();
+        // TODO: reimplement using metric2 framework
+        //new SpliceMetrics();
     }
 
     private boolean causeIsPleaseHold(Throwable e) {

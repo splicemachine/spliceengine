@@ -19,9 +19,9 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
+import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.lifecycle.MasterLifecycle;
 import com.splicemachine.olap.OlapServer;
-import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.olap.OlapServerSubmitter;
 import com.splicemachine.pipeline.InitializationCompleted;
 import com.splicemachine.si.constants.SIConstants;
@@ -33,40 +33,33 @@ import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
 import com.splicemachine.timestamp.impl.TimestampServer;
 import com.splicemachine.timestamp.impl.TimestampServerHandler;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.PleaseHoldException;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.coprocessor.BaseMasterObserver;
+import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.RegionInfo;
+import org.apache.hadoop.hbase.client.TableDescriptor;
+import org.apache.hadoop.hbase.coprocessor.MasterCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.MasterObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
 
 import javax.management.MBeanServer;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Responsible for actions (create system tables, restore tables) that should only happen on one node.
  */
-public class SpliceMasterObserver extends BaseMasterObserver {
+public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, Coprocessor, Stoppable {
 
     private static final Logger LOG = Logger.getLogger(SpliceMasterObserver.class);
-
     public static final byte[] INIT_TABLE = Bytes.toBytes("SPLICE_INIT");
-
     private TimestampServer timestampServer;
     private DatabaseLifecycleManager manager;
     private OlapServer olapServer;
+    private ChoreService choreService;
+    volatile boolean stopped = false;
 
     @Override
     public void start(CoprocessorEnvironment ctx) throws IOException {
@@ -75,13 +68,11 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 
             LOG.info("Starting Timestamp Master Observer");
 
-            ZooKeeperWatcher zkw = ((MasterCoprocessorEnvironment)ctx).getMasterServices().getZooKeeper();
-            RecoverableZooKeeper rzk = zkw.getRecoverableZooKeeper();
-
-            HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),rzk);
+            RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+            HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(), null);
             SConfiguration configuration=env.configuration();
 
-            String timestampReservedPath=configuration.getSpliceRootPath()+HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
+            String timestampReservedPath=configuration.getSpliceRootPath()+ HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
             int timestampPort=configuration.getTimestampServerBindPort();
             int timestampBlockSize = configuration.getTimestampBlockSize();
 
@@ -106,16 +97,17 @@ public class SpliceMasterObserver extends BaseMasterObserver {
              * issue during testing
              */
             this.manager = new DatabaseLifecycleManager();
-            super.start(ctx);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
     }
 
     @Override
-    public void stop(CoprocessorEnvironment ctx) throws IOException {
+    public void preStopMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
         try {
             LOG.warn("Stopping SpliceMasterObserver");
+            stopped = true;
+            choreService.shutdown();
             manager.shutdown();
             this.timestampServer.stopServer();
         } catch (Throwable t) {
@@ -124,10 +116,13 @@ public class SpliceMasterObserver extends BaseMasterObserver {
     }
 
     @Override
-    public void preCreateTable(ObserverContext<MasterCoprocessorEnvironment> ctx, HTableDescriptor desc, HRegionInfo[] regions) throws IOException {
+    public void preCreateTableAction(ObserverContext<MasterCoprocessorEnvironment> ctx, TableDescriptor desc, RegionInfo[] regions) throws IOException {
+        SpliceLogUtils.info(LOG, "SpliceMasterObserver.preCreateTable()");
+
+        TableName tableName = desc.getTableName();
         try {
-            SpliceLogUtils.info(LOG, "preCreateTable %s", Bytes.toString(desc.getTableName().getName()));
-            if (Bytes.equals(desc.getTableName().getName(), INIT_TABLE)) {
+            SpliceLogUtils.info(LOG, "preCreateTable %s", Bytes.toString(tableName.getName()));
+            if (Bytes.equals(tableName.getName(), INIT_TABLE)) {
                 switch(manager.getState()){
                     case NOT_STARTED:
                         throw new PleaseHoldException("Please Hold - Master not started");
@@ -151,11 +146,38 @@ public class SpliceMasterObserver extends BaseMasterObserver {
     @Override
     public void postStartMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
         try {
-            boot(ctx.getEnvironment().getMasterServices().getServerName());
+            boot(ctx.getEnvironment().getServerName());
+            boolean replicationEnabled = HConfiguration.getConfiguration().replicationEnabled();
+            if (replicationEnabled) {
+                this.choreService = new ChoreService("Splice Master ChoreService");
+                SpliceReplicationSourceChore replicationSnapshotChore =
+                        new SpliceReplicationSourceChore("SpliceReplicationSourceChore", this,
+                                HConfiguration.getConfiguration().getReplicationSnapshotInterval());
+                choreService.scheduleChore(replicationSnapshotChore);
+
+                SpliceReplicationSinkChore replicationProgressTrackerChore =
+                        new SpliceReplicationSinkChore("SpliceReplicationSinkChore", this,
+                                HConfiguration.getConfiguration().getReplicationProgressUpdateInterval());
+                choreService.scheduleChore(replicationProgressTrackerChore);
+                String replicationMonitorQuorum = HConfiguration.getConfiguration().getReplicationMonitorQuorum();
+                if (replicationMonitorQuorum != null) {
+                    ReplicationMonitorChore replicationMonitorChore =
+                            new ReplicationMonitorChore("ReplicationMonitorCore", this,
+                                    HConfiguration.getConfiguration().getReplicationMonitorInterval());
+                    choreService.scheduleChore(replicationMonitorChore);
+                }
+                SIDriver.driver().getExecutorService().submit(new SetReplicationRoleTask());
+            }
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
     }
+
+    @Override
+    public Optional<MasterObserver> getMasterObserver() {
+        return Optional.of(this);
+    }
+
 
     private synchronized void boot(ServerName serverName) throws IOException{
         //make sure the SIDriver is booted
@@ -246,4 +268,13 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         }
     }
 
+    @Override
+    public void stop(String why) {
+        stopped = true;
+    }
+
+    @Override
+    public boolean isStopped() {
+        return stopped;
+    }
 }

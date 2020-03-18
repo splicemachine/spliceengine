@@ -7765,6 +7765,11 @@ MessageId.java.
             </msg>
 
             <msg>
+                <name>51045</name>
+                <text>The request is not supported for a read-only database.</text>
+            </msg>
+
+            <msg>
                 <name>54002</name>
                 <text>A string constant starting with '{0}' is too long.</text>
                 <arg>prefix</arg>
@@ -8946,6 +8951,20 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
            </msg>
 
            <msg>
+               <name>SE027</name>
+               <text>Cannot inject fake {0} statistics: {1} </text>
+               <arg>type</arg>
+               <arg>reason</arg>
+           </msg>
+
+           <msg>
+               <name>SE030</name>
+               <text>Coprocessor service {0} is missing. Make sure that it is properly configured in {1}</text>
+               <arg>coprocessorService</arg>
+               <arg>configurationField</arg>
+           </msg>
+
+           <msg>
                <name>BR001</name>
                <text>Invalid backup type: {0}.</text>
                <arg>backupType</arg>
@@ -9066,6 +9085,34 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <text>Full backup not supported for external table '{0}'.'{1}'</text>
                <arg>schema</arg>
                <arg>table</arg>
+           </msg>
+           <msg>
+               <name>BR025</name>
+               <text>No table in schema '{0}' is eligible for backup</text>
+               <arg>schema</arg>
+           </msg>
+           <msg>
+               <name>RPL001</name>
+               <text>Incorrect replication role '{0}'</text>
+               <arg>role</arg>
+           </msg>
+           <msg>
+               <name>RPL002</name>
+               <text>Replication peer already exists</text>
+           </msg>
+           <msg>
+               <name>RPL003</name>
+               <text>Replication peer '{0}' does not exists</text>
+               <arg>peerId</arg>
+           </msg>
+           <msg>
+               <name>RPL004</name>
+               <text>Cannot connect to '{0}' </text>
+               <arg>clusterKey</arg>
+           </msg>
+           <msg>
+               <name>RPL005</name>
+               <text>Database is read-only.</text>
            </msg>
            <msg>
                <name>EXT01</name>

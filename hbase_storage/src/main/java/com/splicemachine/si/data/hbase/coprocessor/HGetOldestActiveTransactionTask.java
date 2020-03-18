@@ -25,8 +25,6 @@ import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 
-import java.util.concurrent.Callable;
-
 public class HGetOldestActiveTransactionTask implements GetOldestActiveTransactionTask {
     ServerName serverName;
     public HGetOldestActiveTransactionTask(ServerName serverName){

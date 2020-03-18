@@ -114,11 +114,21 @@ public interface SConfiguration {
 
     int getBackupIOBufferSize();
 
+    boolean replicationEnabled();
+
+    public String getReplicationPath();
+
     int getReplicationSnapshotInterval();
 
-    int getReplicationSinkPort();
-
     int getReplicationProgressUpdateInterval();
+
+    String getReplicationMonitorQuorum();
+
+    String getReplicationMonitorPath();
+
+    int getReplicationMonitorInterval();
+
+    String getReplicationHealthcheckScript();
 
     String getCompressionAlgorithm();
 
@@ -183,7 +193,8 @@ public interface SConfiguration {
     int getRegionToLoadPerTask();
 
     // SIConfigurations
-    int getActiveTransactionCacheSize();
+    int getActiveTransactionMaxCacheSize();
+    int getActiveTransactionInitialCacheSize();
 
     int getCompletedTxnCacheSize();
 

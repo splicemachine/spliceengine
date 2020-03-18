@@ -119,6 +119,8 @@ public class SpliceDatabase extends BasicDatabase{
 
     private void setupASTVisitors(LanguageConnectionContext lctx) {
 
+        String role = SIDriver.driver().lifecycleManager().getReplicationRole();
+        lctx.setReplicationRole(role);
         // If you add a visitor, be careful of ordering.
 
         List<Class<? extends ISpliceVisitor>> afterOptVisitors=new ArrayList<>();
@@ -408,6 +410,15 @@ public class SpliceDatabase extends BasicDatabase{
                         for (Context context : allContexts) {
                             ((LanguageConnectionContext) context).enterRestoreMode();
                         }
+                        break;
+                    case SET_REPLICATION_ROLE:
+                        String role = change.getSetReplicationRole().getRole();
+                        SIDriver.driver().lifecycleManager().setReplicationRole(role);
+                        allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+                        for(Context context : allContexts){
+                            ((LanguageConnectionContext) context).setReplicationRole(role);
+                        }
+                        SpliceLogUtils.info(LOG,"set replication role to %s", role);
                         break;
                     case NOTIFY_JAR_LOADER:
                         DDLUtils.preNotifyJarLoader(change,dataDictionary,dependencyManager);

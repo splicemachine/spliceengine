@@ -160,19 +160,6 @@ message SpliceRegionSizeResponse {
     required int64 sizeInBytes = 2;
 }
 
-service SpliceRegionServerCoprocessorService {
-	rpc getOldestActiveTransaction(SpliceOldestActiveTransactionRequest)
-		returns (SpliceOldestActiveTransactionResponse);
-}
-
-message SpliceOldestActiveTransactionRequest {
-
-}
-
-message SpliceOldestActiveTransactionResponse {
-    required int64 oldestActiveTransaction = 1;
-}
-
 service BackupCoprocessorService {
   rpc prepareBackup(PrepareBackupRequest)
   returns (PrepareBackupResponse);
@@ -214,4 +201,50 @@ service BlockingProbeEndpoint {
 
     rpc blockPostFlush(BlockingProbeRequest)
         returns (BlockingProbeResponse);
+}
+
+message GetRegionServerLSNRequest {
+    optional string walGroupId=1;
+}
+
+message GetRegionServerLSNResponse {
+    optional bool isNew  = 1;
+    message Result {
+        optional uint64 lsn = 1;
+        optional string regionName = 2;
+        optional bool valid = 3;
+    }
+    repeated Result result = 2;
+}
+
+message GetWALPositionsRequest {
+}
+
+message GetWALPositionsResponse {
+    message Result {
+        optional string WALName = 1;
+        optional uint64 position = 2;
+    }
+    repeated Result result = 1;
+}
+
+message SpliceOldestActiveTransactionRequest {
+
+}
+
+message SpliceOldestActiveTransactionResponse {
+    required int64 oldestActiveTransaction = 1;
+}
+
+message TestResponse {
+    optional uint64 count = 1;
+}
+
+service SpliceRSRpcServices {
+    rpc getWALPositions(GetWALPositionsRequest)
+        returns (GetWALPositionsResponse);
+    rpc getRegionServerLSN(GetRegionServerLSNRequest)
+        returns (GetRegionServerLSNResponse);
+    rpc getOldestActiveTransaction(SpliceOldestActiveTransactionRequest)
+        returns (SpliceOldestActiveTransactionResponse);
 }

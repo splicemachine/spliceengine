@@ -17,8 +17,11 @@ package com.splicemachine.derby.transactions;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.impl.storage.TableSplit;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceTestDataSource;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
@@ -35,6 +38,9 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -54,11 +60,37 @@ import static org.junit.Assert.fail;
 public class TransactionResolutionIT {
     private static final String SCHEMA = TransactionResolutionIT.class.getSimpleName().toUpperCase();
 
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(TransactionResolutionIT.class.getSimpleName());
+
+    public static final SpliceTableWatcher table_a = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(i int, j int)");
+    public static final SpliceTableWatcher table_b = new SpliceTableWatcher("B",schemaWatcher.schemaName,"(i int, j int, primary key(i,j))");
+
+    public static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
+
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(classWatcher)
+            .around(schemaWatcher)
+            .around(table_b)
+            .around(table_a).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        Statement statement = classWatcher.getStatement();
+                        statement.execute("insert into "+table_a+" (i,j) values (1,1), (2,2), (3,3), (4,4)");
+                        for (int i = 0; i < 6; ++i) {
+                            statement.execute("insert into a select i + (select count(*) from a), j + (select count(*) from a) from a");
+                        }
+                        for (int i = 0; i < 9; ++i) {
+                            statement.execute("insert into a select i + (select count(*) from a), j from a");
+                        }
+                    }catch(Exception e){
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+
 
     private SpliceTestDataSource dataSource;
-    
-    @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @Before
     public void startup() {
@@ -70,6 +102,26 @@ public class TransactionResolutionIT {
         dataSource.shutdown();
     }
 
+    @Test(timeout = 60000)
+    public void testActiveTransactionResolution() throws Exception {
+        try (Connection conn1 = dataSource.getConnection("localhost", 1527)) {
+            conn1.setAutoCommit(false);
+            conn1.setSchema(SCHEMA);
+            try (Statement st = conn1.createStatement()) {
+                int res = st.executeUpdate("insert into b --splice-properties useSpark=true\n" +
+                        "select i, j from a order by j, i");
+                assertEquals(131072, res);
+                for (boolean spark : new boolean[]{true, false}) {
+                    try (ResultSet rs = st.executeQuery("select count(*) from b --splice-properties useSpark="+spark)) {
+                        assertTrue(rs.next());
+                        int count = rs.getInt(1);
+                        assertEquals(131072, count);
+                    }
+                }
+            }
+            conn1.commit();
+        }
+    }
 
     @Test
     public void testMissingTransactionsDuringFlush() throws Exception {
@@ -178,7 +230,7 @@ public class TransactionResolutionIT {
                     hbaseConn.getAdmin().flush(TableName.valueOf("splice:" + conglomerateId));
 
                     Thread.sleep(4000);
-                    
+
                     try (ResultScanner rs = table.getScanner(scan)) {
 
                         Result result;
