@@ -18,9 +18,11 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
-import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.*;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
@@ -41,7 +43,7 @@ public class JoinOperationCharJoinPredicateIT extends SpliceUnitTest {
     private static final String SCHEMA = JoinOperationCharJoinPredicateIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
     private static String[] JOINS = {"NESTEDLOOP", "SORTMERGE", "BROADCAST"};
-    private static String[] USE_SPARK = {"false"}; //, "true"};
+    private static String[] USE_SPARK = {"false", "true"};
     private static boolean[] USE_INDEX = {true, false};
     private static int[] CHAR_SIZES = {3,5};
     private static String[] CHAR_TYPES = {"CHAR"}; //, "VARCHAR"}; // VARBIT?
