@@ -107,7 +107,6 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int replicationMonitorInterval;
     private final  String replicationHealthcheckScript;
     private final  int replicationSinkPort;
-    private final int replicationProgressUpdateInterval;
     private final String kafkaBootstrapServers;
 
     // OperationConfiguration
@@ -457,7 +456,9 @@ public final class SConfigurationImpl implements SConfiguration {
         return hbaseSecurityAuthentication;
     }
     @Override
-    public String getKafkaBootstrapServers() { return kafkaBootstrapServers; }
+    public String getKafkaBootstrapServers() {
+        return kafkaBootstrapServers;
+    }
 
     // OperationConfiguration
     @Override
