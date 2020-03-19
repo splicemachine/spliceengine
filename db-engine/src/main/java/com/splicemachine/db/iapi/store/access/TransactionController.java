@@ -1478,15 +1478,6 @@ public interface TransactionController
 	void destroy();
 
     /**
-     * Get the context manager that the transaction was created with.
-     * <p>
-     *
-	 * @return The context manager that the transaction was created with.
-     *
-     **/
-	ContextManager getContextManager();
-
-    /**
      * Get string id of the transaction.
      * <p>
      * This transaction "name" will be the same id which is returned in
