@@ -1437,7 +1437,9 @@ public interface LanguageConnectionContext extends Context {
     // data with 38 digits of precision.
     boolean clientSupportsDecimal38();
 
-    void setClientSupportsDecimal38(boolean newVal);
+	void setClientSupportsDecimal38(boolean newVal);
+
+	String getUserName();
 
 	void setReplicationRole(String role);
 

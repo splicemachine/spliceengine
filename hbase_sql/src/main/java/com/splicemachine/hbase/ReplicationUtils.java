@@ -3,6 +3,7 @@ package com.splicemachine.hbase;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.ConfigurationSource;
 import com.splicemachine.concurrent.SystemClock;
+import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -191,10 +192,10 @@ public class ReplicationUtils {
 
     public static void setReplicationRoleLocal(String role) throws IOException {
         SIDriver.driver().lifecycleManager().setReplicationRole(role);
-        Collection<LanguageConnectionContext> allContexts=
+        Collection<Context> allContexts=
                 ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
-        for(LanguageConnectionContext context : allContexts){
-            context.setReplicationRole(role);
+        for(Context context : allContexts){
+            ((LanguageConnectionContext)context).setReplicationRole(role);
         }
     }
 
