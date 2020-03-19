@@ -243,13 +243,13 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
         double totalJoinedRows = outerCost.rowCount() * innerCost.rowCount();
         double joinCost = crossJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
+        innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
         innerCost.setRowCount(totalOutputRows);
-        innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
         innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setRowOrdering(null);
     }
@@ -278,10 +278,10 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         assert outerCost.getRemoteCostPerPartition() != 0d || outerCost.remoteCost() == 0d;
         double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.partitionCount();
         double innerRemoteCost = innerCost.getRemoteCostPerPartition()*innerCost.partitionCount();
+        // the cost is similar to broadcast join except that the joingRowCost is larger as it is lack of equality conditions
         return outerCost.getLocalCostPerPartition() +
-                outerCost.getRemoteCostPerPartition()  +
-                (outerCost.rowCount()/outerCost.partitionCount()) * (innerLocalCost + innerRemoteCost) +
-                joiningRowCost/outerCost.partitionCount();
+                (innerLocalCost + innerRemoteCost) +innerCost.getOpenCost()+innerCost.getCloseCost()+.01 +
+        joiningRowCost/outerCost.partitionCount();
     }
 
 

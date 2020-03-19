@@ -307,6 +307,10 @@ public class CrossJoinIT extends SpliceUnitTest {
                 format("explain select count(*) from %s as s1 inner join %s as s2 " +
                         "--SPLICE-PROPERTIES useSpark=true \n" +
                         " on s1.c1 > s2.c2" , bigTable, bigTable);
+        ResultSet rs = classWatcher.executeQuery(sqlText);
+        String plan = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+
+
         rowContainsQuery(6, sqlText,"CrossJoin", classWatcher);
     }
 
@@ -320,12 +324,12 @@ public class CrossJoinIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testPickBroadcastEquality() throws Exception {
+    public void testPickNestedLoopEquality() throws Exception {
         String sqlText =
                 format("explain select count(*) from %s as a inner join %s as b " +
                         "--SPLICE-PROPERTIES useSpark=%s \n" +
                         " on a.a1 = b.a1" , s1, s1, useSpark);
-        rowContainsQuery(6, sqlText,"Broadcast", classWatcher);
+        rowContainsQuery(6, sqlText,"NestedLoop", classWatcher);
     }
 
 
@@ -334,7 +338,8 @@ public class CrossJoinIT extends SpliceUnitTest {
         String sqlText =
                 format("explain select count(*) from %s as s1 inner join %s as s2 " +
                         "--SPLICE-PROPERTIES useSpark=%s \n" +
-                        " on s1.c1 = s2.c2 and s2.c2 < 10" , bigTable, bigTable, useSpark);
+                        " on s1.c1 = s2.c2 and s2.c2 < 200" , bigTable, bigTable, useSpark);
+
         rowContainsQuery(6, sqlText,"Broadcast", classWatcher);
     }
 
