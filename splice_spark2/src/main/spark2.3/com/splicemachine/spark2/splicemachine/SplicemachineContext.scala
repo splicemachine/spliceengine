@@ -749,6 +749,27 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     insert(dataFrame.rdd, dataFrame.schema, schemaTableName, Map("sampleFraction"->sampleFraction.toString))
 
   /**
+   * Upsert data into the table (schema.table) from a DataFrame.  This will insert the data if the record is not found by primary key and if it is it will change
+   * the columns that are different between the two records.
+   *
+   * @param dataFrame input data
+   * @param schemaTableName output table
+   */
+  def upsert(dataFrame: DataFrame, schemaTableName: String): Unit =
+    upsert(dataFrame.rdd, dataFrame.schema, schemaTableName)
+
+  /**
+   * Upsert data into the table (schema.table) from an RDD.  This will insert the data if the record is not found by primary key and if it is it will change
+   * the columns that are different between the two records.
+   *
+   * @param rdd input data
+   * @param schema
+   * @param schemaTableName
+   */
+  def upsert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit =
+    insert(rdd, schema, schemaTableName, Map("insertMode"->"UPSERT") )
+
+  /**
    * Export a dataFrame to Kafka
    *
    * @param topic  - Kafka topic directory
