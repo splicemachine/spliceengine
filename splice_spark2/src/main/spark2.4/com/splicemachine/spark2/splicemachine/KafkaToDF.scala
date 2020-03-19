@@ -49,10 +49,10 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
 
   def rdd_schema(topicName: String): (RDD[Row], StructType) = {
     val props = new Properties()
-    val consumerId = "spark-consumer-"+UUID.randomUUID()
+    val consumerId = UUID.randomUUID()
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, destServers)
-    props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerId)
-    props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumerId)
+    props.put(ConsumerConfig.GROUP_ID_CONFIG, "spark-consumer-group-"+consumerId)
+    props.put(ConsumerConfig.CLIENT_ID_CONFIG, "spark-consumer-"+consumerId)
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, classOf[IntegerDeserializer].getName)
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ExternalizableDeserializer].getName)
     props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
@@ -82,7 +82,7 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
 //        while ( {
 //            records == null || records.isEmpty
 //        }) {
-    val records = consumer.poll(timeout).asScala
+    val records = consumer.poll( java.time.Duration.ofMillis(timeout) ).asScala
     consumer.close
 //            if (TaskContext.get.isInterrupted) {  // TODO: was giving null pointer exception
 //                consumer.close
