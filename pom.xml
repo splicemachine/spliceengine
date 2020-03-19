@@ -228,6 +228,11 @@
                 <scope>compile</scope>
             </dependency>
             <dependency>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs</artifactId>
+                <version>4.0.0</version>
+            </dependency>
+            <dependency>
                 <groupId>com.google.code.gson</groupId>
                 <artifactId>gson</artifactId>
                 <version>2.2.4</version>
@@ -589,9 +594,9 @@
                     </configuration>
                 </plugin>
                 <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>findbugs-maven-plugin</artifactId>
-                    <version>3.0.3</version>
+                    <groupId>com.github.spotbugs</groupId>
+                    <artifactId>spotbugs-maven-plugin</artifactId>
+                    <version>3.1.12.2</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -1691,57 +1696,6 @@
                             </execution>
                         </executions>
                     </plugin>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>findbugs-maven-plugin</artifactId>
-                        <configuration>
-                            <excludeFilterFile>${basedir}/../findbugs-exclude.xml</excludeFilterFile>
-                            <!-- defaults for findbugs:findbugs
-                            <classFilesDirectory>${project.build.outputDirectory}</classFilesDirectory>
-                            <findbugsXmlOutputDirectory>${project.build.directory}</findbugsXmlOutputDirectory>
-                            <outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
-                            <testClassFilesDirectory>${project.build.testOutputDirectory}</testClassFilesDirectory>
-                            <xmlOutput>false</xmlOutput>
-                            <xmlOutputDirectory>${project.build.directory}</xmlOutputDirectory>
-                            <debug>false</debug>
-                            <effort>Default</effort>
-                            <excludeBugsFile></excludeBugsFile>
-                            <failOnError>true</failOnError>
-                            <findbugsXmlOutput>true</findbugsXmlOutput>
-                            <fork>true</fork>
-                            <includeFilterFile></includeFilterFile>
-                            <includeTests>false</includeTests>
-                            <jvmArgs></jvmArgs>
-                            <maxHeap>512</maxHeap>
-                            <maxRank></maxRank>
-                            <nested>false</nested>
-                            <omitVisitors></omitVisitors>
-                            <onlyAnalyze></onlyAnalyze>
-                            <outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
-                            <pluginList></pluginList>
-                            <plugins></plugins>
-                            <relaxed>false</relaxed>
-                            <skip>false</skip>
-                            <skipEmptyReport>false</skipEmptyReport>
-                            <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
-                            <threshold>Default</threshold>
-                            <timeout>600000</timeout>
-                            <trace>false</trace>
-                            <visitors></visitors>
-                            <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
-                            <xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
-                            -->
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>findbugs</id>
-                                <phase>compile</phase>
-                                <goals>
-                                    <goal>findbugs</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
                 </plugins>
             </build>
         </profile>
@@ -1865,10 +1819,6 @@
                 <artifactId>maven-surefire-report-plugin</artifactId>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <reportSets>
@@ -1878,6 +1828,11 @@
                         </reports>
                     </reportSet>
                 </reportSets>
+            </plugin>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>3.1.12.2</version>
             </plugin>
         </plugins>
     </reporting>
