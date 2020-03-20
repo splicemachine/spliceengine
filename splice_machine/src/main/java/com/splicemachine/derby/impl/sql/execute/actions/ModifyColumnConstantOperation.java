@@ -380,7 +380,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
     private void updateNonPhysicallyPopulatedColumnToDefault(ColumnDescriptor columnDescriptor, TableDescriptor td, LanguageConnectionContext lcc)
             throws StandardException {
-        DefaultInfo defaultInfo = columnDescriptor.getDefaultInfo();
         String  columnName = columnDescriptor.getColumnName();
         String  defaultText;
 
