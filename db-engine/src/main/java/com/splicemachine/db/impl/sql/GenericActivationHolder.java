@@ -101,6 +101,8 @@ final public class GenericActivationHolder implements Activation
     DataTypeDescriptor[]    paramTypes;
     private final LanguageConnectionContext lcc;
 
+    private boolean isSubStatement = false;
+
     /**
      * Constructor for an ActivationHolder
      *
@@ -859,4 +861,13 @@ final public class GenericActivationHolder implements Activation
     public DataSetProcessorType datasetProcessorType() {
         return ac.datasetProcessorType();
     }
+
+	@Override
+	public boolean isSubStatement() { return isSubStatement; }
+
+	@Override
+        public void setSubStatement(boolean newValue) {
+	    isSubStatement = newValue;
+	    ac.setSubStatement(newValue);
+	}
 }

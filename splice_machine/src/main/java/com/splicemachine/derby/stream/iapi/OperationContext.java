@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.pipeline.api.RecordingContext;
 import com.splicemachine.si.api.txn.TxnView;
@@ -90,4 +91,5 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
 
     TxnView getTxn();
     OperationContext getClone() throws IOException, ClassNotFoundException;
+    ActivationHolder getActivationHolder();
 }

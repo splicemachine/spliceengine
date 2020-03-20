@@ -26,8 +26,6 @@ public interface InsertDataSetWriterBuilder extends DataSetWriterBuilder{
 
     InsertDataSetWriterBuilder autoIncrementRowLocationArray(RowLocation[] rowLocations);
 
-    InsertDataSetWriterBuilder execRowDefinition(ExecRow definition);
-
     InsertDataSetWriterBuilder execRowTypeFormatIds(int[] typeFormatIds);
 
     InsertDataSetWriterBuilder sequences(SpliceSequence[] sequences);
@@ -35,8 +33,6 @@ public interface InsertDataSetWriterBuilder extends DataSetWriterBuilder{
     InsertDataSetWriterBuilder isUpsert(boolean isUpsert);
 
     InsertDataSetWriterBuilder pkCols(int[] keyCols);
-
-    InsertDataSetWriterBuilder tableVersion(String tableVersion);
 
     InsertDataSetWriterBuilder sampleFraction(double sampleFraction);
 }
