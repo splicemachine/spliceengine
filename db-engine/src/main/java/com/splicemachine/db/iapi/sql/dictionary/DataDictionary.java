@@ -202,7 +202,7 @@ public interface DataDictionary{
     */
     /* NOTE - SYSCONGLOMERATES must be first, since that table must exist before
      * any other conglomerates can be created/added to the system.
-	 */
+     */
     int SYSCONGLOMERATES_CATALOG_NUM=0;
     int SYSTABLES_CATALOG_NUM=1;
     int SYSCOLUMNS_CATALOG_NUM=2;
@@ -243,7 +243,7 @@ public interface DataDictionary{
     int SYSTOKENS_NUM=33;
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
-	 */
+     */
     int NOTNULL_CONSTRAINT=1;
     int PRIMARYKEY_CONSTRAINT=2;
     int UNIQUE_CONSTRAINT=3;
@@ -613,14 +613,14 @@ public interface DataDictionary{
      * Drop all table descriptors for a schema.
      *
      * @param schema    A descriptor for the schema to drop the tables
-     *			from.
+     *            from.
      *
      * @exception StandardException        Thrown on failure
      */
-	/*
-	void dropAllTableDescriptors(SchemaDescriptor schema)
-						throws StandardException;
-	*/
+    /*
+    void dropAllTableDescriptors(SchemaDescriptor schema)
+                        throws StandardException;
+    */
 
     /**
      * Get a ColumnDescriptor given its Default ID.
@@ -1162,18 +1162,14 @@ public interface DataDictionary{
     TriggerDescriptor getTriggerDescriptor(String name,SchemaDescriptor sd) throws StandardException;
 
     int[] examineTriggerNodeAndCols(
-			Visitable actionStmt,
-			String oldReferencingName,
-			String newReferencingName,
-			String triggerDefinition,
-			int[] referencedCols,
-			int[] referencedColsInTriggerAction,
-			int actionOffset,
-			TableDescriptor triggerTableDescriptor,
-			TriggerEventDML triggerEventMask,
-                        boolean createTriggerTime,
-                        List<int[]> replacements
-			) throws StandardException;
+            Visitable actionStmt,
+            String oldReferencingName,
+            String newReferencingName,
+            int[] referencedCols,
+            int[] referencedColsInTriggerAction,
+            TableDescriptor triggerTableDescriptor,
+            TriggerEventDML triggerEventMask,
+            boolean createTriggerTime) throws StandardException;
 
     /**
      * This method does the job of transforming the trigger action plan text
