@@ -80,7 +80,6 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.splicemachine.si.constants.SIConstants.OLAP_DEFAULT_QUEUE_NAME;
 import static com.splicemachine.si.constants.SIConstants.YARN_DEFAULT_QUEUE_NAME;
 import static org.apache.zookeeper.KeeperException.Code.NODEEXISTS;
 import static org.apache.zookeeper.KeeperException.Code.NONODE;
@@ -151,7 +150,7 @@ public class OlapServerSubmitter implements Runnable {
 
             for (int i = 0; i<maxAttempts; ++i) {
                 try {
-                    ApplicationId appId = findApplication(yarnClient, yarnQueue);
+                    ApplicationId appId = findApplication(yarnClient);
                     if (appId == null) {
                         appId = submitApplication(yarnClient, memory, memoryOverhead, olapPort, cpuCores, sparkYarnQueue, yarnQueue);
                     }
@@ -205,10 +204,15 @@ public class OlapServerSubmitter implements Runnable {
                             appState != YarnApplicationState.KILLED &&
                             appState != YarnApplicationState.FAILED &&
                             !stop) {
-                        Thread.sleep(1000);
+                        Thread.sleep(2000);
                         appReport = yarnClient.getApplicationReport(appId);
                         appState = appReport.getYarnApplicationState();
+                        if (!appState.equals(YarnApplicationState.RUNNING)) {
+                            reportDiagnostics("YARN state for application is " + appState +". Not enough YARN resources?");
+                        }
                     }
+                    reportDiagnostics(appReport.getDiagnostics());
+
                     stopAttempt.set(true);
 
                     if (!stop) {
@@ -222,6 +226,7 @@ public class OlapServerSubmitter implements Runnable {
                     }
                 } catch (Exception e) {
                     LOG.error("Exception while submitting Olap Server, retrying in 10s", e);
+                    reportDiagnostics(e.getMessage());
                     Thread.sleep(10000);
                 }
             }
@@ -235,17 +240,34 @@ public class OlapServerSubmitter implements Runnable {
 
     }
 
-    private ApplicationId findApplication(YarnClient yarnClient, String yarnQueue) throws IOException, YarnException {
-        List<ApplicationReport> reports = yarnClient.getApplications(Collections.singleton(yarnQueue),
-                Collections.singleton(UserGroupInformation.getCurrentUser().getUserName()), Collections.singleton("YARN"),
+    private ApplicationId findApplication(YarnClient yarnClient) throws IOException, YarnException {
+        List<ApplicationReport> reports = yarnClient.getApplications(Collections.singleton("YARN"),
                 EnumSet.of(YarnApplicationState.RUNNING, YarnApplicationState.SUBMITTED, YarnApplicationState.ACCEPTED, YarnApplicationState.NEW, YarnApplicationState.NEW_SAVING));
         for (ApplicationReport ar : reports) {
-            if (ar.getName().equals("OlapServer-"+queueName)) {
+            if (ar.getName().equals("OlapServer-"+queueName) && ar.getUser().equals(UserGroupInformation.getCurrentUser().getUserName())) {
                 LOG.info("Found existing application: " + ar);
                 return ar.getApplicationId();
             }
         }
         return null;
+    }
+
+    private void reportDiagnostics(String diagnostics) {
+        try {
+            RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+            String root = HConfiguration.getConfiguration().getSpliceRootPath();
+
+            String diagnosticsPath = root + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_DIAGNOSTICS_PATH + "/" + queueName;
+
+            if (rzk.exists(diagnosticsPath, false) != null) {
+                rzk.setData(diagnosticsPath, Bytes.toBytes(diagnostics), -1);
+            } else {
+                rzk.create(diagnosticsPath, Bytes.toBytes(diagnostics), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+            }
+        } catch (Exception e) {
+            LOG.error("Exception while trying to report diagnostics", e);
+            // ignore this exception during error reporting
+        }
     }
 
     private ApplicationId submitApplication(YarnClient yarnClient, int memory, int memoryOverhead,
@@ -429,6 +451,7 @@ public class OlapServerSubmitter implements Runnable {
             // Create Path structure, if we can create it it was empty and we don't have to clear it
             createPath(rzk, masterPath);
             createPath(rzk, masterPath + HBaseConfiguration.OLAP_SERVER_KEEP_ALIVE_PATH);
+            createPath(rzk, masterPath + HBaseConfiguration.OLAP_SERVER_DIAGNOSTICS_PATH);
             if (createPath(rzk, masterPath + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH))
                 return;
 

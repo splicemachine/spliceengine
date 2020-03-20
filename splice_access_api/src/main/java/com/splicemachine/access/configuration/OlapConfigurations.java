@@ -148,10 +148,10 @@ public class OlapConfigurations implements ConfigurationDefault {
     // Olap Server keepalive timeout in seconds until it kills itself. It has to be larger than an HMaster failover
     // when deployed on premise if we want it to survive the HMaster failover.
     public static final String OLAP_SERVER_KEEPALIVE_TIMEOUT = "splice.olap.server.keepalive.timeout";
-    public static final long DEFAULT_OLAP_SERVER_KEEPALIVE_TIMEOUT = 180; // 15 minutes
+    public static final long DEFAULT_OLAP_SERVER_KEEPALIVE_TIMEOUT = 900; // 15 minutes
 
     // Olap Server mode for external execution, either YARN or KUBERNETES
-    public static final String OLAP_SERVER_MODE = "splice.olap.server.mode";
+    public static final String OLAP_SERVER_MODE = "splice.olap_server.deployment.mode";
     public static final String DEFAULT_OLAP_SERVER_MODE = "YARN";
 
     /* Map of Splice queues to YARN queues

@@ -22,6 +22,7 @@ import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.util.NetworkUtils;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -122,6 +123,8 @@ public class OlapServerMaster implements LeaderSelectorListener {
             } catch (Exception e) {
                 LOG.error("Unexpected exception when submitting Spark application with authentication", e);
 
+                reportDiagnostics(e.getMessage());
+
                 if (mode == Mode.YARN) {
                     rmClient.unregisterApplicationMaster(
                             FinalApplicationStatus.FAILED, "", "");
@@ -164,13 +167,31 @@ public class OlapServerMaster implements LeaderSelectorListener {
             final int port = Integer.parseInt(args[0]);
             final String roleName = args[1];
             final Mode mode = Mode.valueOf(args[2].toUpperCase());
-            final String appId = args[3];
+            final String appId = args.length > 2 ? args[3] : null;
             new OlapServerMaster(port, roleName, mode, appId).run();
         } catch (Throwable t) {
             LOG.error("Failed due to unexpected exception, exiting forcefully", t);
         } finally {
             // Some issue prevented us from exiting normally
             System.exit(-1);
+        }
+    }
+
+    private void reportDiagnostics(String diagnostics) {
+        try {
+            RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+            String root = HConfiguration.getConfiguration().getSpliceRootPath();
+
+            String diagnosticsPath = root + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_DIAGNOSTICS_PATH + "/spark-" + queueName;
+
+            if (rzk.exists(diagnosticsPath, false) != null) {
+                rzk.setData(diagnosticsPath, com.splicemachine.primitives.Bytes.toBytes(diagnostics), -1);
+            } else {
+                rzk.create(diagnosticsPath, com.splicemachine.primitives.Bytes.toBytes(diagnostics), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+            }
+        } catch (Exception e) {
+            LOG.error("Exception while trying to report diagnostics", e);
+            // ignore this exception during error reporting
         }
     }
 

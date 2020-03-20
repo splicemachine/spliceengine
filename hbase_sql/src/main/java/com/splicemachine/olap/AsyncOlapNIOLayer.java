@@ -139,6 +139,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                     return future;
                 }
             } catch (ConnectException ce) {
+                connected = false;
                 // retry submission once if it's a connection exception
                 if (!retry)
                     retry = true;

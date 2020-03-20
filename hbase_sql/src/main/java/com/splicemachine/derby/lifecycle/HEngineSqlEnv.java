@@ -136,59 +136,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         final int retries = config.getOlapClientRetries();
         int maxRetries = config.getMaxRetries();
         HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
-        final OlapServerProvider osp = queue -> {
-            try {
-                if (config.getOlapServerExternal()) {
-                    byte[] bytes = null;
-                    int tries = 0;
-                    Exception catched = null;
-                    String root = HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH;
-                    while (tries < maxRetries) {
-                        tries++;
-                        try {
-                            List<String> servers = ZkUtils.getChildren(root, false);
-                            OlapServerZNode node = servers.stream()
-                                    .map(OlapServerZNode::parseFrom)
-                                    .filter(n -> n.getQueueName().equals(queue))
-                                    .sorted()
-                                    .findFirst().orElseThrow(() -> new OlapServerNotReadyException(queue, servers));
-                            bytes = ZkUtils.getData(root + "/" + node.toZNode());
-                            break;
-                        } catch (IOException e) {
-                            catched = e;
-                            if (e instanceof OlapServerNotReadyException) {
-                                // sleep & retry
-                                try {
-                                    long pause = PipelineUtils.getPauseTime(tries, 10);
-                                    LOG.warn("Couldn't find OlapServer znode after " + tries+ " retries, sleeping for " +pause + " ms", e);
-                                    clock.sleep(pause, TimeUnit.MILLISECONDS);
-                                } catch (InterruptedException ie) {
-                                    throw new IOException(ie);
-                                }
-                            } else {
-                                throw e;
-                            }
-                        }
-                    }
-                    if (bytes == null) {
-                        if (catched instanceof IOException)
-                            throw (IOException) catched;
-                        else
-                            throw new IOException(catched);
-                    }
-                    String hostAndPort = Bytes.toString(bytes);
-                    return HostAndPort.fromString(hostAndPort);
-                } else {
-                    return HostAndPort.fromParts(hbcf.getMasterServer().getHostname(), config.getOlapServerBindPort());
-                }
-            } catch (SQLException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof IOException)
-                    throw (IOException) cause;
-                else
-                    throw new IOException(e);
-            }
-        };
+        final OlapServerProvider osp = new OlapServerProviderImpl(config, maxRetries, clock, hbcf);
 
         Stream.Builder<String> queuesBuilder = Stream.builder();
         queuesBuilder.accept(SIConstants.OLAP_DEFAULT_QUEUE_NAME);
@@ -220,4 +168,6 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     public ServiceDiscovery serviceDiscovery() {
         return serviceDiscovery;
     }
+
+
 }
