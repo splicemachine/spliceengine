@@ -195,6 +195,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>  <!-- needed by Kafka 2.0 but not 2.2 -->
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.15</version>
+            <scope>runtime</scope>
+        </dependency>
         <!-- Yarn dependencies -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
