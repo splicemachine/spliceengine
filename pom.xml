@@ -887,7 +887,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
-                <!--module>splice_spark</module-->
+                <module>splice_spark</module>
                 <module>splice_spark2</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -923,7 +923,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
-                <!--module>splice_spark</module-->
+                <module>splice_spark</module>
                 <module>splice_spark2</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -960,7 +960,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
-                <!--module>splice_spark</module-->
+                <module>splice_spark</module>
                 <module>splice_spark2</module>
                 <module>scala_util</module>
                 <module>assembly</module>
