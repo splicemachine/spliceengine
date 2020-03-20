@@ -401,7 +401,7 @@ public class DataDescriptorGenerator
         String              whenClauseText
     ) throws StandardException
     {
-        return new TriggerDescriptor(
+		return new TriggerDescriptorV2(
                     dataDictionary,
                     sd,
                     uuid,

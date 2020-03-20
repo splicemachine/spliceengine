@@ -35,9 +35,6 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -49,32 +46,6 @@ import java.util.Arrays;
  *
  */
 public class SQLVarcharTest extends SQLDataValueDescriptorTest {
-
-        @Test
-        public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLChar value = new SQLChar("Splice Machine");
-                SQLChar valueA = new SQLChar();
-                writer.reset();
-                value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect","Splice Machine",row.getString(0));
-                valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect","Splice Machine",valueA.getString());
-            }
-
-        @Test
-        public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLChar value = new SQLChar();
-                SQLChar valueA = new SQLChar();
-                writer.reset();
-                value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
-                value.read(row, 0);
-                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-            }
 
         @Test
         public void testColumnStatistics() throws Exception {
@@ -109,37 +80,6 @@ public class SQLVarcharTest extends SQLDataValueDescriptorTest {
                 Assert.assertTrue((range == 702.0d || range == 694.0d));
 
                 Assert.assertEquals(2392.0d,(double) stats.rangeSelectivity(new SQLVarchar(new char[]{'T'}),new SQLVarchar(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
-        }
-
-        @Test
-        public void testArray() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLArray value = new SQLArray();
-                value.setType(new SQLVarchar());
-                value.setValue(new DataValueDescriptor[] {new SQLVarchar("23"),new SQLVarchar("48"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"),
-                        new SQLVarchar("10"), new SQLVarchar(), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10"), new SQLVarchar("10")
-                });
-                SQLArray valueA = new SQLArray();
-                valueA.setType(new SQLVarchar());
-                writer.reset();
-                value.write(writer,0);
-                valueA.read(row,0);
-                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
-
         }
 
         @Test

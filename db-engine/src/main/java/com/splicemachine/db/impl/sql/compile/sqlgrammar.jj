@@ -7276,6 +7276,7 @@ getTimeSpan(ValueNode value) throws StandardException :
     }
 }
 
+
 /*
  * <A NAME="staticClassReference">staticClassReference</A>
  */

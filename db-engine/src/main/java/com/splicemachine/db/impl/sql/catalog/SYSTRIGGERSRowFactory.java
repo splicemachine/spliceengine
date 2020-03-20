@@ -31,34 +31,16 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLBoolean;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLTimestamp;
-import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.iapi.types.UserType;
-
-import com.splicemachine.db.iapi.types.DataValueFactory;
-
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
-
+import com.splicemachine.db.catalog.ReferencedColumns;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-
-import com.splicemachine.db.iapi.error.StandardException;
-
-import com.splicemachine.db.catalog.ReferencedColumns;
-import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
-import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
 import java.sql.Timestamp;
@@ -439,26 +421,32 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
 
         // 18th column is WHENCLAUSETEXT (longvarchar)
         String whenClauseText = null;
-        col = row.getColumn(18);
-        whenClauseText = col.getString();
+        if (row.nColumns() >= 18) {
+            col = row.getColumn(18);
+            whenClauseText = col.getString();
+        }
 
         // 19th column is TRIGGERDEFINITIONLIST(user type List<String>)
-        col = row.getColumn(19);
-        if (col.getObject() != null) {
-            assert triggerDefinitionList == null: "TriggerDefinitionList and TriggerDefinition can never both be defined";
-            triggerDefinitionList = (List<String>) col.getObject();
+        if (row.nColumns() >= 19) {
+            col = row.getColumn(19);
+            if (col.getObject() != null) {
+                assert triggerDefinitionList == null : "TriggerDefinitionList and TriggerDefinition can never both be defined";
+                triggerDefinitionList = (List<String>) col.getObject();
+            }
         }
 
         // 20th column is ACTIONSTMTIDLIST (user type List<UUID>)
-        col = row.getColumn(20);
-        if (col.getObject() != null) {
-            assert actionSPSIDList == null: "ActionStmtIdList and ActionStmtId can never both be defined";
-            actionSPSIDList = (List<UUID>) col.getObject();
+        if (row.nColumns() >= 20) {
+            col = row.getColumn(20);
+            if (col.getObject() != null) {
+                assert actionSPSIDList == null : "ActionStmtIdList and ActionStmtId can never both be defined";
+                actionSPSIDList = (List<UUID>) col.getObject();
+            }
         }
 
         assert actionSPSIDList.size() == triggerDefinitionList.size();
 
-        descriptor = new TriggerDescriptor(
+        descriptor = new TriggerDescriptorV2(
                 dd,
                 dd.getSchemaDescriptor(suuid, null),
                 uuid,

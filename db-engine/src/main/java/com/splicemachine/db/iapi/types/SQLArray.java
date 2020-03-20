@@ -34,14 +34,8 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
-import org.apache.spark.unsafe.Platform;
 import scala.util.hashing.MurmurHash3;
 
 import javax.ws.rs.NotSupportedException;
@@ -401,72 +395,6 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	}
 	public Format getFormat() {
 		return Format.ARRAY;
-	}
-
-	/**
-	 *
-	 * Write into a Project Tungsten format (UnsafeRow).  This calls the
-	 * reference's write method.
-	 *
-	 *
-	 * @param unsafeRowWriter
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
-		if (isNull()) {
-			unsafeRowWriter.setNullAt(ordinal);
-		} else {
-			UnsafeArrayWriter unsafeArrayWriter = new UnsafeArrayWriter();
-			BufferHolder bh = new BufferHolder(new UnsafeRow(value.length));
-			unsafeArrayWriter.initialize(bh, value.length, 8); // 4 bytes for int?
-			for (int i = 0; i< value.length; i++) {
-				if (value[i] == null || value[i].isNull()) {
-					unsafeArrayWriter.setNull(i);
-				} else {
-					value[i].writeArray(unsafeArrayWriter, i);
-				}
-			}
-			long currentOffset = unsafeRowWriter.holder().cursor;
-			unsafeRowWriter.setOffsetAndSize(ordinal, bh.cursor-16);
-			unsafeRowWriter.holder().grow(bh.cursor-16);
-			Platform.copyMemory(bh.buffer,16,unsafeRowWriter.holder().buffer,currentOffset,bh.cursor-16);
-		}
-	}
-
-	/**
-	 *
-	 * Read into a Project Tungsten format.  This calls the Reference's
-	 * read method.
-	 *
-	 * @param unsafeRow
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-		if (unsafeRow.isNullAt(ordinal)) {
-			value = null;
-			setIsNull(true);
-		} else {
-			UnsafeArrayData unsafeArrayData = unsafeRow.getArray(ordinal);
-			value = new DataValueDescriptor[unsafeArrayData.numElements()];
-			for (int i = 0; i<value.length; i++) {
-				DataValueDescriptor dvd = type.cloneValue(true);
-				dvd.read(unsafeArrayData,i);
-				value[i] = dvd;
-			}
-		}
-	}
-
-	@Override
-	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-		throw new NotSupportedException("Nested Arrays Not Supported Currently");
-	}
-
-	@Override
-	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-		throw new NotSupportedException("Nested Arrays Not Supported Currently");
 	}
 
 	@Override

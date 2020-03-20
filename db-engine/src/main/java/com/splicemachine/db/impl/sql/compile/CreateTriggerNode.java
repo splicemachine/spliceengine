@@ -558,10 +558,9 @@ public class CreateTriggerNode extends DDLStatementNode {
                 // Replace the transition table name with a VTI.
                 final int replacementOffset = newText.length();
 
-                newText.append("new com.splicemachine.db.catalog.TriggerNewTransitionRows() ");
-//                newText.append(baseTableName.equals(oldTableName) ?
-//                                "new com.splicemachine.db.catalog.TriggerOldTransitionRows() " :
-//                                "new com.splicemachine.db.catalog.TriggerNewTransitionRows() ");
+                newText.append(baseTableName.equals(oldTableName) ?
+                                "new com.splicemachine.derby.catalog.TriggerOldTransitionRows() " :
+                                "new com.splicemachine.derby.catalog.TriggerNewTransitionRows() ");
                 /*
                 ** If the user supplied a correlation, then just
                 ** pick it up automatically; otherwise, supply
@@ -812,6 +811,14 @@ public class CreateTriggerNode extends DDLStatementNode {
                     referencedColsInTriggerAction, triggerTableDescriptor);
         } else {
             //This is a table level trigger
+            // TODO: Add analysis to only include the required columns.
+            //       currently TriggerExecutionContext.extractColumns
+            //       includes all columns for an UPDATE statement trigger.
+//            int numCols = triggerTableDescriptor.getNumberOfColumns();
+//            referencedColsInTriggerAction = new int[numCols];
+//            for (int i = 1; i <= numCols; i++) {
+//                referencedColsInTriggerAction[i-1] = i;
+//            }
 
             for (int i = 0; i < originalActionTextList.size(); ++i) {
                 transformedActionTextList.add(transformStatementTriggerText(

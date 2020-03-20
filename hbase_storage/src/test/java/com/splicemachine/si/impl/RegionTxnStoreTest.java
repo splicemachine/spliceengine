@@ -30,6 +30,7 @@ import com.splicemachine.si.impl.store.TestingTimestampSource;
 import com.splicemachine.si.impl.store.TestingTxnStore;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;

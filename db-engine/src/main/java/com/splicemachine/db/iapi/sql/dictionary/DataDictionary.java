@@ -45,6 +45,8 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+import org.joda.time.DateTime;
+
 import java.sql.Types;
 import java.util.Dictionary;
 import java.util.List;
@@ -241,6 +243,7 @@ public interface DataDictionary{
     int SYSSOURCECODE_CATALOG_NUM=31;
     int SYSSNAPSHOT_NUM=32;
     int SYSTOKENS_NUM=33;
+    int SYSREPLICATION_CATALOG_NUM=34;
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
      */
@@ -2183,4 +2186,14 @@ public interface DataDictionary{
     void setMetadataAccessRestrictionEnabled();
 
     void updateSystemSchemasView(TransactionController tc) throws StandardException;
+
+    void addReplication(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
+
+    void deleteReplication(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
+
+    boolean tableReplicationEnabled(String schemaName, String tableName) throws StandardException;
+
+    boolean databaseReplicationEnabled() throws StandardException;
+
+    boolean schemaReplicationEnabled(String schemaName) throws StandardException;
 }

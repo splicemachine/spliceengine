@@ -15,40 +15,42 @@
 package com.splicemachine.hbase;
 
 
-import java.io.IOException;
-
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.client.SpliceClient;
+import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
 import com.splicemachine.derby.lifecycle.ManagerLoader;
+import com.splicemachine.derby.lifecycle.MonitoredLifecycleService;
+import com.splicemachine.derby.lifecycle.NetworkLifecycleService;
+import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.PipelineEnvironmentLoadService;
+import com.splicemachine.lifecycle.RegionServerLifecycle;
 import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.si.data.hbase.ZkUpgrade;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.coprocessor.BaseRegionServerObserver;
-import org.apache.hadoop.hbase.coprocessor.ObserverContext;
-import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.RegionServerServices;
-
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.hbase.HBaseConnectionFactory;
-import com.splicemachine.concurrent.SystemClock;
-import com.splicemachine.derby.lifecycle.MonitoredLifecycleService;
-import com.splicemachine.derby.lifecycle.NetworkLifecycleService;
-import com.splicemachine.lifecycle.DatabaseLifecycleManager;
-import com.splicemachine.lifecycle.RegionServerLifecycle;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.hadoop.hbase.Coprocessor;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessor;
+import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.RegionServerObserver;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
+import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 
 /**
  * This class implements both CoprocessorService and RegionServerObserver.  One instance will be created for each
  * region and one instance for the RegionServerObserver interface.  We should probably consider splitting this into
  * two classes.
  */
-public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
+public class RegionServerLifecycleObserver implements RegionServerCoprocessor, RegionServerObserver, Coprocessor {
     private static final Logger LOG = Logger.getLogger(RegionServerLifecycleObserver.class);
     public static volatile String regionServerZNode;
     public static volatile String rsZnode;
@@ -56,7 +58,6 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
     public static volatile boolean isHbaseJVM = false;
 
     private DatabaseLifecycleManager lifecycleManager;
-
     /**
      * Logs the start of the observer and runs the SpliceDriver if needed...
      */
@@ -85,9 +86,9 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private DatabaseLifecycleManager startEngine(CoprocessorEnvironment e) throws IOException{
-        RegionServerServices regionServerServices = ((RegionServerCoprocessorEnvironment) e).getRegionServerServices();
+        RegionServerServices regionServerServices =(RegionServerServices)((RegionServerCoprocessorEnvironment) e).getOnlineRegions();
 
-        rsZnode = regionServerServices.getZooKeeper().rsZNode;
+        rsZnode = regionServerServices.getZooKeeper().getZNodePaths().rsZNode;
         regionServerZNode = regionServerServices.getServerName().getServerName();
 
         //ensure that the SI environment is booted properly
@@ -114,13 +115,14 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
                     return HBasePipelineEnvironment.loadEnvironment(new SystemClock(),cfDriver);
                 }
             });
-            
+
             env.txnStore().setOldTransactions(ZkUpgrade.getOldTransactions(config));
 
             //register the network boot service
             manager.registerNetworkService(new NetworkLifecycleService(config));
 
             manager.start();
+            SIDriver.driver().getExecutorService().submit(new SetReplicationRoleTask());
             return manager;
         }catch(Exception e1){
             LOG.error("Unexpected exception registering boot service", e1);

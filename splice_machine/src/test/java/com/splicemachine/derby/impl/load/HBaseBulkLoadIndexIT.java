@@ -52,6 +52,8 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
     private static final String NATION = "NATION";
     private static final String REGION = "REGION";
     private static boolean notSupported;
+    private static String BADDIR;
+    private static String BULKLOADDIR;
 
     @ClassRule
     public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -65,35 +67,38 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
     @BeforeClass
     public static void loaddata() throws Exception {
         try {
+            BADDIR = SpliceUnitTest.createBadLogDirectory(SCHEMA_NAME).getCanonicalPath();
+            BULKLOADDIR = SpliceUnitTest.createBulkLoadDirectory(SCHEMA_NAME).getCanonicalPath();
+
             TestUtils.executeSqlFile(spliceClassWatcher, "tcph/createTable.sql", SCHEMA_NAME);
             spliceClassWatcher.prepareStatement("create table lineitem2 as select * from lineitem with no data").execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"), getResource("data"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, LINEITEM2, getResource("lineitem.tbl"), getResource("data"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"), getResource("data"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"), getResource("data"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"), getResource("data"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, SUPPLIER, getResource("supplier.tbl"), getResource("data"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PART, getResource("part.tbl"), getResource("data"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, NATION, getResource("nation.tbl"), getResource("data"))).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, REGION, getResource("region.tbl"), getResource("data"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"), BULKLOADDIR)).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, LINEITEM2, getResource("lineitem.tbl"), BULKLOADDIR)).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"), BULKLOADDIR)).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"), BULKLOADDIR)).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"), BULKLOADDIR)).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, SUPPLIER, getResource("supplier.tbl"), BULKLOADDIR)).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PART, getResource("part.tbl"), BULKLOADDIR)).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, NATION, getResource("nation.tbl"), BULKLOADDIR)).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, REGION, getResource("region.tbl"), BULKLOADDIR)).execute();
 
             spliceClassWatcher.prepareStatement(format("create index O_CUST_IDX on ORDERS(\n" +
                     " O_CUSTKEY,\n" +
                     " O_ORDERKEY\n" +
-                    " ) auto splitkeys sample fraction 0.1 hfile location '%s'", getResource("data"))).execute();
+                    " ) auto splitkeys sample fraction 0.1 hfile location '%s'", BULKLOADDIR)).execute();
 
             spliceClassWatcher.prepareStatement(format("create index O_DATE_PRI_KEY_IDX on ORDERS(\n" +
                     " O_ORDERDATE,\n" +
                     " O_ORDERPRIORITY,\n" +
                     " O_ORDERKEY\n" +
-                    " ) auto splitkeys hfile location '%s'", getResource("data"))).execute();
+                    " ) auto splitkeys hfile location '%s'", BULKLOADDIR)).execute();
 
             spliceClassWatcher.prepareStatement(format("create index L_SHIPDATE_IDX on LINEITEM(\n" +
                     " L_SHIPDATE,\n" +
                     " L_PARTKEY,\n" +
                     " L_EXTENDEDPRICE,\n" +
                     " L_DISCOUNT\n" +
-                    " ) splitkeys location '%s' columnDelimiter '|' hfile location '%s'", getResource("shipDateIndex.csv"),  getResource("data"))).execute();
+                    " ) splitkeys location '%s' columnDelimiter '|' hfile location '%s'", getResource("shipDateIndex.csv"),  BULKLOADDIR)).execute();
 
             spliceClassWatcher.prepareStatement(format(" create index L_PART_IDX on LINEITEM(\n" +
                     " L_PARTKEY,\n" +
@@ -105,7 +110,7 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
                     " L_QUANTITY,\n" +
                     " L_SHIPMODE,\n" +
                     " L_SHIPINSTRUCT\n" +
-                    " ) physical splitkeys location '%s' hfile location '%s'", getResource("l_part_idx.txt"), getResource("data"))).execute();
+                    " ) physical splitkeys location '%s' hfile location '%s'", getResource("l_part_idx.txt"), BULKLOADDIR)).execute();
 
             spliceClassWatcher.prepareStatement(format("create index L_SHIPDATE_IDX2 on LINEITEM2(\n" +
                     " L_SHIPDATE,\n" +
@@ -150,8 +155,8 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
             assertEquals(9958L, (long) spliceClassWatcher.query("select count(*) from lineitem2 --splice-properties index=L_PART_IDX2"));
             assertEquals(9958L, (long) spliceClassWatcher.query("select count(*) from lineitem2 --splice-properties index=L_SHIPDATE_IDX2"));
             spliceClassWatcher.execute("create table t(COL1 varchar(1000),COL2 varchar(1000), primary key(col1))");
-            String sql = String.format("call syscs_util.SYSCS_SPLIT_TABLE_OR_INDEX('%s', 'T', null, 'COL1', '%s', null,null,null,null,null,0,'/BAD',true,null)",
-                    SCHEMA_NAME, SpliceUnitTest.getResourceDirectory()+"largeKey.csv");
+            String sql = String.format("call syscs_util.SYSCS_SPLIT_TABLE_OR_INDEX('%s', 'T', null, 'COL1', '%s', null,null,null,null,null,0,'%s',true,null)",
+                    SCHEMA_NAME, SpliceUnitTest.getResourceDirectory()+"largeKey.csv", BADDIR);
             spliceClassWatcher.execute(sql);
             TestConnection conn = spliceClassWatcher.getOrCreateConnection();
             new TableCreator(conn)
@@ -175,8 +180,7 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
     @AfterClass
     public static void cleanup() throws Exception {
         testBulkDelete();
-        String dir = getResource("data");
-        FileUtils.deleteDirectory(new File(dir));
+        FileUtils.deleteDirectory(new File(BULKLOADDIR));
     }
 
     private static void testBulkDelete() throws Exception {
@@ -201,7 +205,7 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
     }
 
     private static void bulkDelete(String tableName) throws Exception {
-        String sql = String.format("delete from %s --splice-properties bulkDeleteDirectory='%s'", tableName, getResource("data"));
+        String sql = String.format("delete from %s --splice-properties bulkDeleteDirectory='%s'", tableName, BULKLOADDIR);
         spliceClassWatcher.execute(sql);
         ResultSet rs = spliceClassWatcher.executeQuery(String.format("select count(*) from %s", tableName));
         rs.next();
@@ -438,12 +442,12 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
         if (notSupported)
             return;
 
-        String bulkImport = String.format("call syscs_util.bulk_import_hfile('%s','T','COL1', '%s', null,null,null,null,null,-1,'/BAD',true,null, '%s', true)",
-                SCHEMA_NAME, SpliceUnitTest.getResourceDirectory()+"largeKey.csv", SpliceUnitTest.getResourceDirectory());
+        String bulkImport = String.format("call syscs_util.bulk_import_hfile('%s','T','COL1', '%s', null,null,null,null,null,-1,'%s',true,null, '%s', true)",
+                SCHEMA_NAME, SpliceUnitTest.getResourceDirectory()+"largeKey.csv", BADDIR, BULKLOADDIR);
         spliceClassWatcher.execute(bulkImport);
 
         String createIndex = String.format("create index ti on t(col2) SPLITKEYS LOCATION '%s' HFILE LOCATION '%s'",
-                SpliceUnitTest.getResourceDirectory()+"largeKey.csv", SpliceUnitTest.getResourceDirectory());
+                SpliceUnitTest.getResourceDirectory()+"largeKey.csv", BULKLOADDIR);
         spliceClassWatcher.execute(createIndex);
 
         ResultSet rs = spliceClassWatcher.executeQuery("select count(*) from t --splice-properties index=null");
@@ -479,7 +483,7 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
         if (notSupported)
             return;
         try {
-            methodWatcher.execute(String.format("create unique index bi on b(i) auto splitkeys hfile location '%s'", getResource("data")));
+            methodWatcher.execute(String.format("create unique index bi on b(i) auto splitkeys hfile location '%s'", BULKLOADDIR));
             fail();
         }
         catch (Exception e) {

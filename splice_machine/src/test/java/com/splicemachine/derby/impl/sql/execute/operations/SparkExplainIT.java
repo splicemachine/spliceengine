@@ -533,7 +533,7 @@ public class SparkExplainIT extends SpliceUnitTest {
         testQueryContains(sqlText, expected, methodWatcher, true);
     }
 
-    @Test
+    @Test @Ignore("DB-9272")
     public void testMixtureOfOuterJoins() throws Exception {
         String sqlText = format("sparkexplain select * from t1 left join t2 --splice-properties useSpark=%s\n" +
                 "full join t3 " +
@@ -553,7 +553,7 @@ public class SparkExplainIT extends SpliceUnitTest {
         testQueryContains(sqlText, expected, methodWatcher, true);
     }
 
-    @Test
+    @Test @Ignore("DB-9272")
     public void testCorrelatedSubqueryWithFullJoinInWhereClause() throws Exception {
         String sqlText = format("sparkexplain select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s\n on a1=a2 where a1 in (select a3 from t3 where b2=b3)", useSpark);
         testQueryContains(sqlText, Arrays.asList("outer", "LeftSemi"), methodWatcher, true);

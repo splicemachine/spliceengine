@@ -63,34 +63,21 @@ public class CheckTableIT extends SpliceUnitTest {
         Connection conn = spliceClassWatcher.getOrCreateConnection();
         new TableCreator(conn)
                 .withCreate("create table A (a int, b int, c int, primary key(a,b))")
-                .withInsert("insert into A values(?,?,?)")
                 .withIndex("create index AI on A(c)")
-                .withRows(rows(
-                        row(1, 1, 1),
-                        row(2, 2, 2),
-                        row(4, 4, 4),
-                        row(5, 5, 5),
-                        row(7,7,7)))
                 .create();
         spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT', 'A', null,'\\x83')");
         spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT', 'A', 'AI','\\x83')");
         spliceClassWatcher.execute("call syscs_util.syscs_perform_major_compaction_on_table('CHECKTABLEIT', 'A')");
         spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT', 'A', null,'\\x86')");
         spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT', 'A', 'AI','\\x86')");
+        spliceClassWatcher.execute("call syscs_util.syscs_perform_major_compaction_on_table('CHECKTABLEIT', 'A')");
+        spliceClassWatcher.execute("insert into A values(1,1,1),(2,2,2),(4,4,4),(5,5,5),(7,7,7)");
         String dir = SpliceUnitTest.getResourceDirectory();
         spliceClassWatcher.execute(String.format("call syscs_util.bulk_import_hfile('CHECKTABLEIT', 'A', null, '%s/check_table.csv','|', null,null,null,null,0,null, true, null, '%s/data', true)", dir, dir));
 
-
         new TableCreator(conn)
                 .withCreate("create table B (a int, b int, c int, primary key(a,b))")
-                .withInsert("insert into B values(?,?,?)")
                 .withIndex("create unique index BI on B(c)")
-                .withRows(rows(
-                        row(1, 1, 1),
-                        row(2, 2, 2),
-                        row(4, 4, 4),
-                        row(5, 5, 5),
-                        row(7,7,7)))
                 .create();
 
         spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT', 'B', null,'\\x83')");
@@ -98,6 +85,8 @@ public class CheckTableIT extends SpliceUnitTest {
         spliceClassWatcher.execute("call syscs_util.syscs_perform_major_compaction_on_table('CHECKTABLEIT', 'B')");
         spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT', 'B', null,'\\x86')");
         spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT', 'B', 'BI','\\x86')");
+        spliceClassWatcher.execute("call syscs_util.syscs_perform_major_compaction_on_table('CHECKTABLEIT', 'B')");
+        spliceClassWatcher.execute("insert into B values (1,1,1),(2,2,2),(4,4,4),(5,5,5),(7,7,7)");
         spliceClassWatcher.execute(String.format("call syscs_util.bulk_import_hfile('CHECKTABLEIT', 'B', null, '%s/check_table.csv','|', null,null,null,null,0,null, true, null, '%s/data', true)", dir, dir));
 
         int m = 10;
@@ -345,7 +334,7 @@ public class CheckTableIT extends SpliceUnitTest {
         // Delete 1st region of the table
         long conglomerateId = TableSplit.getConglomerateId(connection, schemaName, tableName, null);
         TableName tName = TableName.valueOf(config.getNamespace(),Long.toString(conglomerateId));
-        List<HRegionInfo> partitions = admin.getTableRegions(tName.getName());
+        List<HRegionInfo> partitions = admin.getTableRegions(tName);
         for (HRegionInfo partition : partitions) {
             byte[] startKey = partition.getStartKey();
             if (startKey.length == 0) {
@@ -359,7 +348,7 @@ public class CheckTableIT extends SpliceUnitTest {
         // Delete 2nd region of index
         conglomerateId = TableSplit.getConglomerateId(connection, schemaName, tableName, indexName);
         TableName iName = TableName.valueOf(config.getNamespace(),Long.toString(conglomerateId));
-        partitions = admin.getTableRegions(iName.getName());
+        partitions = admin.getTableRegions(iName);
         for (HRegionInfo partition : partitions) {
             byte[] startKey = partition.getStartKey();
             byte[] endKey = partition.getEndKey();

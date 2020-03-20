@@ -26,10 +26,10 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.ClusterConnection;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.RegionLocator;
@@ -38,6 +38,7 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.client.metrics.ScanMetrics;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
@@ -192,6 +193,14 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
                         @Override
                         public void close() {
                             // nothing
+                        }
+
+                        public boolean renewLease() {
+                            return false;
+                        }
+
+                        public ScanMetrics getScanMetrics() {
+                            return null;
                         }
 
                         @Override
@@ -374,7 +383,7 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
 
     private List<HRegionLocation> getAllRegionLocations(boolean refresh) throws IOException {
         if (refresh)
-           ((HConnection) connection).clearRegionCache(tableName);
+           ((ClusterConnection) connection).clearRegionCache(tableName);
         try(RegionLocator regionLocator=connection.getRegionLocator(tableName)){
             return regionLocator.getAllRegionLocations();
         }
@@ -411,7 +420,8 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
                     byte[] bytes = blob.getBytes(1, (int) blob.length());
 
                     HBaseProtos.TableSchema result = HBaseProtos.TableSchema.parseFrom(bytes);
-                    return new HPartitionDescriptor(HTableDescriptor.convert(result));
+//                   TODO return new HPartitionDescriptor(HTableDescriptor.convert(result));
+                    return null;
                 }
             }
         } catch (SQLException e) {

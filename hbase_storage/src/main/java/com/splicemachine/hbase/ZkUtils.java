@@ -21,7 +21,7 @@ import com.splicemachine.access.configuration.HBaseConfiguration;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
+import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -58,7 +58,7 @@ public class ZkUtils{
     /**
      * @return direct interface to a ZooKeeperWatcher
      */
-    public static ZooKeeperWatcher getZooKeeperWatcher(){
+    public static ZKWatcher getZooKeeperWatcher(){
         try{
             return zkManager.getZooKeeperWatcher();
         }catch(ZooKeeperConnectionException e){
@@ -103,7 +103,17 @@ public class ZkUtils{
         }
     }
 
-
+    public static boolean safeDelete(String path,int version, RecoverableZooKeeper rzk) throws KeeperException, InterruptedException{
+        try{
+            rzk.delete(path,version);
+            return true;
+        }catch(KeeperException e){
+            if(e.code()!=KeeperException.Code.NONODE)
+                throw e;
+            else
+                return false;
+        }
+    }
     public static boolean recursiveSafeCreate(String path,byte[] bytes,List<ACL> acls,CreateMode createMode) throws InterruptedException, KeeperException{
         if(path==null || path.length()<=0) return true; //nothing to do, we've gone all the way to the root
         RecoverableZooKeeper rzk=getRecoverableZooKeeper();
@@ -120,7 +130,20 @@ public class ZkUtils{
         }
     }
 
-
+    public static boolean recursiveSafeCreate(String path,byte[] bytes,List<ACL> acls,CreateMode createMode, RecoverableZooKeeper rzk) throws InterruptedException, KeeperException{
+        if(path==null || path.length()<=0) return true; //nothing to do, we've gone all the way to the root
+        try{
+            return safeCreate(path,bytes,acls,createMode,rzk);
+        }catch(KeeperException e){
+            if(e.code()==KeeperException.Code.NONODE){
+                //parent node doesn't exist, so recursively create it, and then try and create your node again
+                String parent=path.substring(0,path.lastIndexOf('/'));
+                recursiveSafeCreate(parent,new byte[]{},acls,CreateMode.PERSISTENT, rzk);
+                return safeCreate(path,bytes,acls,createMode, rzk);
+            }else
+                throw e;
+        }
+    }
     public static boolean safeCreate(String path,byte[] bytes,List<ACL> acls,CreateMode createMode,RecoverableZooKeeper zooKeeper) throws KeeperException, InterruptedException{
         try{
             zooKeeper.create(path,bytes,acls,createMode);
@@ -168,6 +191,22 @@ public class ZkUtils{
         delete(path);
     }
 
+    public static void recursiveDelete(String path, RecoverableZooKeeper rzk) throws InterruptedException, KeeperException, IOException{
+        List<String> children=getChildren(path,false, rzk);
+        for(String child : children){
+            recursiveDelete(path+"/"+child, rzk);
+        }
+        delete(path, rzk);
+    }
+
+    public static List<String> getChildren(String path,boolean watch, RecoverableZooKeeper rzk) throws IOException{
+        try{
+            return rzk.getChildren(path,watch);
+        }catch(InterruptedException | KeeperException e){
+            throw new IOException(e);
+        }
+    }
+
     /**
      * Sets the data onto ZooKeeper.
      * <p/>
@@ -181,6 +220,14 @@ public class ZkUtils{
     public static void setData(String path,byte[] data,int version) throws IOException{
         try{
             getRecoverableZooKeeper().setData(path,data,version);
+        }catch(KeeperException | InterruptedException e){
+            throw new IOException(e);
+        }
+    }
+
+    public static void setData(String path,byte[] data,int version, RecoverableZooKeeper rzk) throws IOException{
+        try{
+            rzk.setData(path,data,version);
         }catch(KeeperException | InterruptedException e){
             throw new IOException(e);
         }
@@ -385,6 +432,10 @@ public class ZkUtils{
 
     public static void delete(String path) throws InterruptedException, KeeperException{
         RecoverableZooKeeper rzk=getRecoverableZooKeeper();
+        rzk.delete(path,-1);
+    }
+
+    public static void delete(String path, RecoverableZooKeeper rzk) throws InterruptedException, KeeperException{
         rzk.delete(path,-1);
     }
 

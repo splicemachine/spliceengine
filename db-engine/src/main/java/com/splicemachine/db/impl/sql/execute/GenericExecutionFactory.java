@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.reference.EngineType;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -259,13 +260,15 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
      *
      * @throws StandardException Thrown on error
      */
-    public TriggerExecutionContext getTriggerExecutionContext(String statementText,
+    public TriggerExecutionContext getTriggerExecutionContext(ConnectionContext cc,
+                                                              String statementText,
                                                               int[] changedColIds,
                                                               String[] changedColNames,
                                                               UUID targetTableId,
                                                               String targetTableName,
                                                               Vector<AutoincrementCounter> aiCounters) throws StandardException {
-        return new TriggerExecutionContext(statementText,
+        return new TriggerExecutionContext(cc,
+                statementText,
                 changedColIds,
                 changedColNames,
                 targetTableId,
@@ -274,14 +277,16 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
                 null);
     }
 
-    public TriggerExecutionContext getTriggerExecutionContext(String statementText,
+    public TriggerExecutionContext getTriggerExecutionContext(ConnectionContext cc,
+                                                              String statementText,
                                                               int[] changedColIds,
                                                               String[] changedColNames,
                                                               UUID targetTableId,
                                                               String targetTableName,
                                                               Vector<AutoincrementCounter> aiCounters,
                                                               FormatableBitSet heapList) throws StandardException {
-        return new TriggerExecutionContext(statementText,
+        return new TriggerExecutionContext(cc,
+                statementText,
                 changedColIds,
                 changedColNames,
                 targetTableId,

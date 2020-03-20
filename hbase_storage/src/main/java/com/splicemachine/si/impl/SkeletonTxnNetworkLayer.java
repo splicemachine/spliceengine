@@ -21,14 +21,14 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
-import org.apache.hadoop.hbase.ipc.PayloadCarryingRpcController;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import com.splicemachine.ipc.SpliceRpcController;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import org.apache.hadoop.hbase.ipc.CoprocessorRpcUtils.BlockingRpcCallback;
 
 /**
  * @author Scott Fines
@@ -40,7 +40,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     public void beginTransaction(byte[] rowKey,TxnMessage.TxnInfo txnInfo) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
         ServerRpcController controller=new ServerRpcController();
-        service.beginTransaction(controller,txnInfo,new BlockingRpcCallback<TxnMessage.VoidResponse>());
+        service.beginTransaction(controller,txnInfo,new BlockingRpcCallback<>());
         dealWithError(controller);
     }
 
@@ -112,7 +112,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     @Override
     public TxnMessage.Txn getTxn(byte[] rowKey,TxnMessage.TxnRequest request) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
-        SpliceRpcControl controller = new SpliceRpcControl();
+        SpliceRpcController controller = new SpliceRpcController();
         controller.setPriority(HConstants.HIGH_QOS);
         BlockingRpcCallback<TxnMessage.Txn> done=new BlockingRpcCallback<>();
         service.getTransaction(controller,request,done);
@@ -151,14 +151,5 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
         }
         SpliceLogUtils.error(LOG, ex);
         throw ex;
-    }
-
-    class SpliceRpcControl extends PayloadCarryingRpcController {
-        // Prevent resetting PRC priority by super class
-        public void setPriority(final TableName tn) {
-            if (getPriority() == HConstants.NORMAL_QOS) {
-                super.setPriority(tn);
-            }
-        }
     }
 }

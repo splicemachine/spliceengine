@@ -101,6 +101,7 @@ public class ExportFileTest {
         assertTrue(new File(testDir).isDirectory());
     }
 
+    @Ignore
     @Test
     public void createDirectory_returnsFalseWhenCannotCreate() throws IOException, StandardException {
         String testDir = "/noPermissionToCreateFolderInRoot";

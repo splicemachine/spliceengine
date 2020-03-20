@@ -23,15 +23,9 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.test.SerialTest;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.*;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -225,7 +219,7 @@ public class VacuumIT extends SpliceUnitTest{
             try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
                 for (long congId : conglomerates) {
                     TableName tn = TableName.valueOf("splice:" + congId);
-                    HTableDescriptor td = admin.getTableDescriptor(tn);
+                    TableDescriptorBuilder.ModifyableTableDescriptor td = (TableDescriptorBuilder.ModifyableTableDescriptor)TableDescriptorBuilder.copy(admin.getTableDescriptor(tn));
                     admin.disableTable(tn);
                     admin.deleteTable(tn);
                     td.setValue(SIConstants.TRANSACTION_ID_ATTR, null);
@@ -363,7 +357,7 @@ public class VacuumIT extends SpliceUnitTest{
             for (long congId : conglomerates) {
                 // make sure the table exists in HBase and hasn't been dropped by VACUUM
                 TableName tn = TableName.valueOf("splice:" + congId);
-                HTableDescriptor td = admin.getTableDescriptor(tn);
+                TableDescriptorBuilder.ModifyableTableDescriptor td = (TableDescriptorBuilder.ModifyableTableDescriptor)TableDescriptorBuilder.copy(admin.getTableDescriptor(tn));
                 admin.disableTable(tn);
                 admin.deleteTable(tn);
                 td.setValue(SIConstants.TRANSACTION_ID_ATTR, null);
@@ -448,7 +442,7 @@ public class VacuumIT extends SpliceUnitTest{
                 for (long congId : conglomerates) {
                     // make sure the table exists in HBase and hasn't been dropped by VACUUM
                     TableName tn = TableName.valueOf("splice:" + congId);
-                    HTableDescriptor td = admin.getTableDescriptor(tn);
+                    TableDescriptorBuilder.ModifyableTableDescriptor td = (TableDescriptorBuilder.ModifyableTableDescriptor)TableDescriptorBuilder.copy(admin.getTableDescriptor(tn));
                     admin.disableTable(tn);
                     admin.deleteTable(tn);
                     td.setValue(SIConstants.DROPPED_TRANSACTION_ID_ATTR, Long.toString(txnId));

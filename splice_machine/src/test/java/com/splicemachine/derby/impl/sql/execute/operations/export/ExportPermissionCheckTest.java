@@ -20,6 +20,7 @@ import com.splicemachine.si.impl.TestingFileSystem;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -48,6 +49,7 @@ public class ExportPermissionCheckTest {
 //        SpliceConstants.config.set("fs.default.name", "file:///");
     }
 
+    @Ignore
     @Test
     public void verify_failCase() throws IOException, StandardException {
         ExportParams exportParams = ExportParams.withDirectory("/ExportPermissionCheckTest");
