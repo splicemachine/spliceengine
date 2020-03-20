@@ -463,7 +463,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 // log the current dictionary version
                 dictionaryVersion=softwareVersion;
                 
-				/* Set properties for current and create time 
+				/* Set properties for current and create time
                  * DataDictionary versions.
 				 */
                 bootingTC.setProperty(DataDictionary.CORE_DATA_DICTIONARY_VERSION,
@@ -1391,8 +1391,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             }
         }
 
-		/* Use schemaNameOrderable in both start 
-		 * and stop position for index 1 scan. 
+		/* Use schemaNameOrderable in both start
+		 * and stop position for index 1 scan.
 		 */
         schemaNameOrderable=new SQLVarchar(schemaName);
 
@@ -1477,8 +1477,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TableDescriptor td;
         TabInfoImpl ti=coreInfo[SYSTABLES_CORE_NUM];
 
-		/* Use tableNameOrderable and schemaIdOrderable in both start 
-		 * and stop position for scan. 
+		/* Use tableNameOrderable and schemaIdOrderable in both start
+		 * and stop position for scan.
 		 */
         tableNameOrderable=new SQLVarchar(tableName);
         schemaIDOrderable=new SQLChar(schemaUUID);
@@ -1762,8 +1762,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor tableNameOrderable;
         TabInfoImpl ti=coreInfo[SYSTABLES_CORE_NUM];
 
-		/* Use tableIdOrderable and schemaIdOrderable in both start 
-		 * and stop position for index 1 scan. 
+		/* Use tableIdOrderable and schemaIdOrderable in both start
+		 * and stop position for index 1 scan.
 		 */
         tableNameOrderable=new SQLVarchar(td.getName());
         schemaIDOrderable=getIDValueAsCHAR(schema.getUUID());
@@ -1794,8 +1794,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TabInfoImpl ti=coreInfo[SYSTABLES_CORE_NUM];
         SYSTABLESRowFactory rf=(SYSTABLESRowFactory)ti.getCatalogRowFactory();
 
-		/* Use tableIdOrderable and schemaIdOrderable in both start 
-		 * and stop position for index 1 scan. 
+		/* Use tableIdOrderable and schemaIdOrderable in both start
+		 * and stop position for index 1 scan.
 		 */
         tableNameOrderable=new SQLVarchar(td.getName());
         schemaIDOrderable=getIDValueAsCHAR(schema.getUUID());
@@ -2036,8 +2036,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor columnNameOrderable;
         DataValueDescriptor tableIdOrderable;
 
-		/* Use tableIDOrderable and columnNameOrderable in both start 
-		 * and stop position for scan. 
+		/* Use tableIDOrderable and columnNameOrderable in both start
+		 * and stop position for scan.
 		 */
         tableIdOrderable=getIDValueAsCHAR(tableID);
         columnNameOrderable=new SQLVarchar(columnName);
@@ -2186,11 +2186,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if(!usesSqlAuthorization)
             return;
 
-		/* This method has 2 steps to it. First get all the ColPermsDescriptor   
+		/* This method has 2 steps to it. First get all the ColPermsDescriptor
 		for given tableid. And next step is to go back to SYSCOLPERMS to find
 		unique row corresponding to each of ColPermsDescriptor and update the
 		"COLUMNS" column in SYSCOLPERMS. The reason for this 2 step process is
-		that SYSCOLPERMS has a non-unique row on "TABLEID" column and hence   
+		that SYSCOLPERMS has a non-unique row on "TABLEID" column and hence
 		we can't get a unique handle on each of the affected row in SYSCOLPERMS
 		using just the "TABLEID" column */
 
@@ -2211,8 +2211,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 permissionDescriptorsList,
                 false);
 
-		/* Next, using each of the ColPermDescriptor's uuid, get the unique row 
-		in SYSCOLPERMS and adjust the "COLUMNS" column in SYSCOLPERMS to 
+		/* Next, using each of the ColPermDescriptor's uuid, get the unique row
+		in SYSCOLPERMS and adjust the "COLUMNS" column in SYSCOLPERMS to
 		accomodate the added or dropped column in the tableid*/
         ColPermsDescriptor colPermsDescriptor;
         ExecRow curRow;
@@ -2842,8 +2842,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TabInfoImpl ti=coreInfo[SYSCOLUMNS_CORE_NUM];
         SYSCOLUMNSRowFactory rf=(SYSCOLUMNSRowFactory)ti.getCatalogRowFactory();
 
-		/* Use objectID/columnName in both start 
-		 * and stop position for index 1 scan. 
+		/* Use objectID/columnName in both start
+		 * and stop position for index 1 scan.
 		 */
         refIDOrderable=getIDValueAsCHAR(formerUUID);
         columnNameOrderable=new SQLVarchar(formerName);
@@ -2857,8 +2857,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         row=rf.makeRow(cd,null);
 
 		/*
-		** Figure out if the index in syscolumns needs 
-		** to be updated. 
+		** Figure out if the index in syscolumns needs
+		** to be updated.
 		*/
         if(SanityManager.DEBUG){
             SanityManager.ASSERT(rf.getNumIndexes()==2,
@@ -2946,8 +2946,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TabInfoImpl ti=getNonCoreTI(SYSVIEWS_CATALOG_NUM);
         UUID viewID=tdi.getUUID();
 
-		/* Use viewIdOrderable in both start 
-		 * and stop position for scan. 
+		/* Use viewIdOrderable in both start
+		 * and stop position for scan.
 		 */
         viewIdOrderable=getIDValueAsCHAR(viewID);
 
@@ -2975,8 +2975,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor viewIdOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSVIEWS_CATALOG_NUM);
 
-		/* Use aliasNameOrderable in both start 
-		 * and stop position for scan. 
+		/* Use aliasNameOrderable in both start
+		 * and stop position for scan.
 		 */
         viewIdOrderable=getIDValueAsCHAR(vd.getUUID());
 
@@ -3045,9 +3045,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor idOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSFILES_CATALOG_NUM);
         TransactionController tc=getTransactionExecute();
-		
-		/* Use tableIdOrderable and schemaIdOrderable in both start 
-		 * and stop position for index 1 scan. 
+
+		/* Use tableIdOrderable and schemaIdOrderable in both start
+		 * and stop position for index 1 scan.
 		 */
         idOrderable=getIDValueAsCHAR(fid.getUUID());
 
@@ -3101,8 +3101,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor stmtIDOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
 
-		/* Use stmtIdOrderable in both start 
-		 * and stop position for scan. 
+		/* Use stmtIdOrderable in both start
+		 * and stop position for scan.
 		 */
         stmtIDOrderable=new SQLChar(stmtUUID);
 
@@ -3161,8 +3161,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor stmtNameOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
 
-		/* Use stmtNameOrderable and schemaIdOrderable in both start 
-		 * and stop position for scan. 
+		/* Use stmtNameOrderable and schemaIdOrderable in both start
+		 * and stop position for scan.
 		 */
         stmtNameOrderable=new SQLVarchar(stmtName);
         schemaIDOrderable=new SQLChar(schemaUUID);
@@ -3181,7 +3181,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         null,
                         null,
                         false);
-	
+
 		/*
 		** Set up the parameter defaults.  We are only
 		** doing this when we look up by name because
@@ -3395,7 +3395,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 			/*beetle:5119, reason for doing add here instead of update
 			 *is with NOCOMPILE option of create statement/boot time SPS,
 			 *SPS statement is not compiled to find out the parameter info.
-			 *Because of the parameter info was not inserted at SPSDescriptor 
+			 *Because of the parameter info was not inserted at SPSDescriptor
 			 *creation time. As this is the first time we are compiling paramter
 			 *infor should be inserted instead of the update.
 			 */
@@ -3403,10 +3403,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }else{
             Object[] parameterDefaults=spsd.getParameterDefaults();
 
-			/* 
+			/*
 			** Update each column with the new defaults and with
 			** the new datatypes.  It is possible that someone has
-			** done a drop/create on the underlying table and 
+			** done a drop/create on the underlying table and
 			** changed the type of a column, which has changed
 			** the type of a parameter to our statement.
 			*/
@@ -4115,7 +4115,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     /*
-	 * The arrary passed will have either -1 or a column position as it's 
+	 * The arrary passed will have either -1 or a column position as it's
 	 * elements. If the array only has -1 as for all it's elements, then
 	 * this method will return null. Otherwise, the method will create a
 	 * new arrary with all -1 entries removed from the original arrary.
@@ -4162,7 +4162,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 	**
 	** @return a string that is used to get the column using
 	** getObject() on the desired result set and CAST it back
-	** to the proper type in the SQL domain. 
+	** to the proper type in the SQL domain.
 	**
 	** @exception StandardException on invalid column name
 	*/
@@ -4192,7 +4192,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 		** but we need it to make the column reference appear
 		** EXACTLY like a regular column reference, so we need
 		** the object in the SQL Domain and we need to have the
-		** type information.  Thus a user should be able to do 
+		** type information.  Thus a user should be able to do
 		** something like
 		**
 		**		CREATE TRIGGER ... INSERT INTO T length(Column), ...
@@ -4234,7 +4234,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 	        **
 	        **  Triggers currently use jdbc 1.2 to access columns.  The default
 	        **  uses getObject() which is not supported for an XML type until
-	        **  jdbc 4.  In the meantime use getString() and then call 
+	        **  jdbc 4.  In the meantime use getString() and then call
 	        **  XMLPARSE() on the string to get the type.  See Derby issue and
 	        **  http://wiki.apache.org/db-db/TriggerImplementation , for
 	        **  better long term solutions.  Long term I think changing the
@@ -4243,14 +4243,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 	        **  best future direction, but believe such a change appropriate
 	        **  for a major release, not a bug fix.
 	        **
-	        **  Rather than the above described code generation, use the 
+	        **  Rather than the above described code generation, use the
 	        **  following for XML types to generate an XML column from the
 	        **  old or new row.
-	        ** 
+	        **
 	        **          XMLPARSE(DOCUMENT
 	        **              CAST (com.splicemachine.db.iapi.db.Factory::
 	        **                  getTriggerExecutionContext().getNewRow().
-	        **                      getString(<colPosition>) AS CLOB)  
+	        **                      getString(<colPosition>) AS CLOB)
 	        **                        PRESERVE WHITESPACE)
 	        */
 
@@ -4309,8 +4309,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor triggerNameOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSTRIGGERS_CATALOG_NUM);
 
-		/* Use triggerNameOrderable and schemaIdOrderable in both start 
-		 * and stop position for scan. 
+		/* Use triggerNameOrderable and schemaIdOrderable in both start
+		 * and stop position for scan.
 		 */
         triggerNameOrderable=new SQLVarchar(name);
         schemaIDOrderable=getIDValueAsCHAR(sd.getUUID());
@@ -4818,7 +4818,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
                 assert subCD!=null:"subCD is expected to be non-null";
                 cd=(ConstraintDescriptor)rf.buildDescriptor(outRow,subCD,this);
-	
+
 				/* If dList is null, then caller only wants a single descriptor - we're done
 				 * else just add the current descriptor to the list.
 				 */
@@ -4853,7 +4853,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return null;
         }
 
-        // get the table descriptor	
+        // get the table descriptor
         return getTableDescriptor((UUID)slist.get(0));
     }
 
@@ -4929,7 +4929,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         try{
 			/* Use tableIDOrderable in both start and stop positions for scan */
             DataValueDescriptor orderable=getIDValueAsCHAR(uuid);
-	
+
 			/* Set up the start/stop position for the scan */
             ExecIndexRow keyRow=exFactory.getIndexableRow(1);
             keyRow.setColumn(1,orderable);
@@ -5057,8 +5057,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TabInfoImpl ti=getNonCoreTI(SYSCONSTRAINTS_CATALOG_NUM);
         SYSCONSTRAINTSRowFactory rf=(SYSCONSTRAINTSRowFactory)ti.getCatalogRowFactory();
 
-		/* Use objectID/columnName in both start 
-		 * and stop position for index 1 scan. 
+		/* Use objectID/columnName in both start
+		 * and stop position for index 1 scan.
 		 */
         IDOrderable=getIDValueAsCHAR(formerUUID);
 
@@ -5070,8 +5070,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         row=rf.makeRow(cd,null);
 
 		/*
-		** Figure out if the index in sysconstraints needs 
-		** to be updated. 
+		** Figure out if the index in sysconstraints needs
+		** to be updated.
 		*/
         assert rf.getNumIndexes()==3:"Programmer error: there are more indexes on sysconstraints than expected";
 
@@ -5137,8 +5137,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 break;
         }
 
-		/* Use constraintNameOrderable and schemaIdOrderable in both start 
-		 * and stop position for index 2 scan. 
+		/* Use constraintNameOrderable and schemaIdOrderable in both start
+		 * and stop position for index 2 scan.
 		 */
         constraintNameOrderable=new SQLVarchar(descriptor.getConstraintName());
         schemaIDOrderable=getIDValueAsCHAR(descriptor.getSchemaDescriptor().getUUID());
@@ -5232,10 +5232,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             indexNum=SYSFOREIGNKEYSRowFactory.SYSFOREIGNKEYS_INDEX1_ID;
 
 			/*
-			** If we have a foreign key, we need to decrement the 
+			** If we have a foreign key, we need to decrement the
 			** reference count of the contraint that this FK references.
 			** We need to do this *before* we drop the foreign key
-			** because of the way FK.getReferencedConstraint() works.	
+			** because of the way FK.getReferencedConstraint() works.
 			*/
             ReferencedKeyConstraintDescriptor refDescriptor=(ReferencedKeyConstraintDescriptor)getConstraintDescriptor(
                     ((ForeignKeyConstraintDescriptor)constraint).
@@ -5261,8 +5261,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
 
 
-		/* Use constraintIdOrderable in both start 
-		 * and stop position for index 1 scan. 
+		/* Use constraintIdOrderable in both start
+		 * and stop position for index 1 scan.
 		 */
         constraintIdOrderable=getIDValueAsCHAR(constraint.getUUID());
 
@@ -5310,8 +5310,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor constraintIdOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSCHECKS_CATALOG_NUM);
 
-		/* Use constraintIdOrderable in both start 
-		 * and stop position for index 1 scan. 
+		/* Use constraintIdOrderable in both start
+		 * and stop position for index 1 scan.
 		 */
         constraintIdOrderable=getIDValueAsCHAR(constraintId);
 
@@ -5662,8 +5662,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor tableIDOrderable;
         TabInfoImpl ti=coreInfo[SYSCONGLOMERATES_CORE_NUM];
 
-		/* Use tableIDOrderable in both start 
-		 * and stop position for index 3 scan. 
+		/* Use tableIDOrderable in both start
+		 * and stop position for index 3 scan.
 		 */
         tableIDOrderable=getIDValueAsCHAR(td.getUUID());
 
@@ -5743,8 +5743,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor schemaNameOrderable;
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
 
-		/* Use schemaNameOrderable in both start 
-		 * and stop position for index 1 scan. 
+		/* Use schemaNameOrderable in both start
+		 * and stop position for index 1 scan.
 		 */
         schemaNameOrderable=new SQLVarchar(schemaName);
 
@@ -5932,8 +5932,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor dependentIDOrderable=getIDValueAsCHAR(dependentID);
         TabInfoImpl ti=getNonCoreTI(SYSDEPENDS_CATALOG_NUM);
 
-		/* Use dependentIDOrderable in both start 
-		 * and stop position for index 1 scan. 
+		/* Use dependentIDOrderable in both start
+		 * and stop position for index 1 scan.
 		 */
         keyRow1=exFactory.getIndexableRow(1);
         keyRow1.setColumn(1,dependentIDOrderable);
@@ -5978,8 +5978,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor dependentIDOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSDEPENDS_CATALOG_NUM);
 
-		/* Use dependentIDOrderable in both start 
-		 * and stop position for index 1 scan. 
+		/* Use dependentIDOrderable in both start
+		 * and stop position for index 1 scan.
 		 */
         dependentIDOrderable=getIDValueAsCHAR(dependentsUUID);
 
@@ -6072,8 +6072,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor nameSpaceOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSALIASES_CATALOG_NUM);
 
-		/* Use aliasNameOrderable and aliasTypeOrderable in both start 
-		 * and stop position for scan. 
+		/* Use aliasNameOrderable and aliasTypeOrderable in both start
+		 * and stop position for scan.
 		 */
         aliasNameOrderable=new SQLVarchar(aliasName);
         char[] charArray=new char[1];
@@ -6177,8 +6177,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void dropAliasDescriptor(AliasDescriptor ad,TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSALIASES_CATALOG_NUM);
 
-		/* Use aliasNameOrderable and nameSpaceOrderable in both start 
-		 * and stop position for index 1 scan. 
+		/* Use aliasNameOrderable and nameSpaceOrderable in both start
+		 * and stop position for index 1 scan.
 		 */
 
         char[] charArray=new char[1];
@@ -6402,7 +6402,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                           DataDescriptorGenerator ddg) throws StandardException{
         /*
 		** Create a new schema descriptor -- with no args
-		** creates the system schema descriptor in which 
+		** creates the system schema descriptor in which
 		** all tables reside (SYS)
 		*/
         systemSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSTEM_SCHEMA_UUID);
@@ -6938,8 +6938,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                           TabInfoImpl ti) throws StandardException{
         ConglomerateDescriptor[] cgd=new ConglomerateDescriptor[ti.getNumberOfIndexes()];
 
-		/* Ordering problem with sysconglomerates.  We need to create 
-		 * all of the conglomerates first before adding rows to 
+		/* Ordering problem with sysconglomerates.  We need to create
+		 * all of the conglomerates first before adding rows to
 		 * sysconglomerates.  (All of the conglomerates for sysconglomerates
 		 * must be there before we can add to them.)
 		 *
@@ -7187,7 +7187,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         td.setUUID(crf.getCanonicalTableUUID());
         addDescriptor(td,sd,SYSTABLES_CATALOG_NUM,false,tc,false);
         toid=td.getUUID();
-	
+
 		/* Add the conglomerate for the heap */
         ConglomerateDescriptor cgd=ddg.newConglomerateDescriptor(conglomId,
                 heapName,
@@ -7824,7 +7824,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return;
         }
 
-		/* The completing of the noncoreInfo entry must be synchronized. 
+		/* The completing of the noncoreInfo entry must be synchronized.
 		 * NOTE: We are assuming that we will not access a different
 		 * noncoreInfo in the course of completing of this noncoreInfo,
 		 * otherwise a deadlock could occur.

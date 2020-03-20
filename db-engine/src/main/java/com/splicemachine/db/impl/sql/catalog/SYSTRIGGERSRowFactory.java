@@ -318,7 +318,6 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
         boolean referencingNew;
         ReferencedColumns rcd;
         TriggerDescriptor descriptor;
-        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(row.nColumns() == SYSTRIGGERS_COLUMN_COUNT,
