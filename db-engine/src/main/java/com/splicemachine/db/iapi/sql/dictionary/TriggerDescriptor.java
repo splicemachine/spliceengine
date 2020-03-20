@@ -51,6 +51,7 @@ import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.TriggerEvent;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -131,6 +132,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * @param whenClauseText                the SQL text of the WHEN clause, or {@code null}
      *                                      if there is no WHEN clause
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "DB-9292")
     public TriggerDescriptor(
             DataDictionary dataDictionary,
             SchemaDescriptor sd,
@@ -228,6 +230,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     /**
      * Get the time that this trigger was created.
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9292")
     public Timestamp getCreationTimestamp() {
         return creationTimestamp;
     }
@@ -439,6 +442,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     /**
      * Get the referenced column array for this trigger, used in "alter table drop column", we get the handle and change it
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9292")
     public int[] getReferencedCols() {
         return referencedCols;
     }
@@ -446,6 +450,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     /**
      * Get the referenced column array for the trigger action columns.
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9292")
     public int[] getReferencedColsInTriggerAction() {
         return referencedColsInTriggerAction;
     }
