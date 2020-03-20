@@ -48,10 +48,6 @@ import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 
@@ -59,10 +55,7 @@ import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
 import java.io.InputStream;
-import java.sql.Blob;
-import java.sql.DataTruncation;
-import java.sql.SQLException;
-import java.sql.PreparedStatement;
+import java.sql.*;
 
 /**
  * SQLBinary is the abstract class for the binary datatypes.
@@ -999,124 +992,104 @@ abstract class SQLBinary
         return result;
     }
 
-  
-    /**
-     * The SQL substr() function.
-     *
-     * @param start        Start of substr
-     * @param length    Length of substr
-     * @param result    The result of a previous call to this method,
-     *                    null if not called yet.
-     * @param maxLen    Maximum length of the result
-     *
-     * @return    A ConcatableDataValue containing the result of the substr()
-     *
-     * @exception StandardException        Thrown on error
-     */
-    public final ConcatableDataValue substring(
-                NumberDataValue start,
-                NumberDataValue length,
-                ConcatableDataValue result,
-                int maxLen)
-        throws StandardException
-    {
-        int startInt;
-        int lengthInt;
-        BitDataValue varbitResult;
 
-        if (result == null)
-        {
-            result = new SQLVarbit();
-        }
+	/**
+	 * The SQL substr() function.
+	 *
+	 * @param start		Start of substr
+	 * @param length	Length of substr
+	 * @param result	The result of a previous call to this method,
+	 *					null if not called yet.
+	 * @param maxLen	Maximum length of the result
+	 *
+	 * @return	A ConcatableDataValue containing the result of the substr()
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public final ConcatableDataValue substring(
+				NumberDataValue start,
+				NumberDataValue length,
+				ConcatableDataValue result,
+				int maxLen,
+				boolean isFixedLength)
+		throws StandardException
+	{
+		int startInt;
+		int lengthInt;
+		BitDataValue bitResult;
 
-        varbitResult = (BitDataValue) result;
+		if (result == null)
+		{
+			if (isFixedLength)
+				result = new SQLBit();
+			else
+				result = new SQLVarbit();
+		}
 
-        /* The result is null if the receiver (this) is null or if the length is negative.
-         * Oracle docs don't say what happens if the start position or the length is a usernull.
-         * We will return null, which is the only sensible thing to do.
-         * (If the user did not specify a length then length is not a user null.)
-         */
-        if (this.isNull() || start.isNull() || (length != null && length.isNull()))
-        {
-            varbitResult.setToNull();
-            return varbitResult;
-        }
+		bitResult = (BitDataValue) result;
+
+		/* The result is null if the receiver (this) is null or if the length is negative.
+		 * Oracle docs don't say what happens if the start position or the length is a usernull.
+		 * We will return null, which is the only sensible thing to do.
+		 * (If the user did not specify a length then length is not a user null.)
+		 */
+		if (this.isNull() || start.isNull() || (length != null && length.isNull()))
+		{
+			bitResult.setToNull();
+			return bitResult;
+		}
 
         startInt = start.getInt();
 
-        // If length is not specified, make it till end of the string
-        if (length != null)
-        {
-            lengthInt = length.getInt();
-        }
-        else lengthInt = getLength() - startInt + 1;
+		// If length is not specified, make it till end of the string
+		if (length != null)
+		{
+			lengthInt = length.getInt();
+		}
+		else lengthInt = maxLen - startInt + 1;
 
-        /* DB2 Compatibility: Added these checks to match DB2. We currently enforce these
-         * limits in both modes. We could do these checks in DB2 mode only, if needed, so
-         * leaving earlier code for out of range in for now, though will not be exercised
-         */
-        if ((startInt <= 0 || lengthInt < 0 || startInt > getLength() ||
-                lengthInt > getLength() - startInt + 1))
-            throw StandardException.newException(SQLState.LANG_SUBSTR_START_OR_LEN_OUT_OF_RANGE);
+		/* DB2 Compatibility: Added these checks to match DB2. We currently enforce these
+		 * limits in both modes. We could do these checks in DB2 mode only, if needed, so
+		 * leaving earlier code for out of range in for now, though will not be exercised
+		 */
+		if ((startInt <= 0 || lengthInt < 0 || startInt > maxLen ||
+				lengthInt > maxLen - startInt + 1))
+			throw StandardException.newException(SQLState.LANG_SUBSTR_START_OR_LEN_OUT_OF_RANGE);
 
-        // Return null if length is non-positive
-        if (lengthInt < 0)
-        {
-            varbitResult.setToNull();
-            return varbitResult;
-        }
+		if (lengthInt == 0)
+		{
+			bitResult.setValue(new byte[0]);
+			return bitResult;
+		}
 
-        /* If startInt < 0 then we count from the right of the string */
-        if (startInt < 0)
-        {
-            startInt += getLength();
-            if (startInt < 0)
-            {
-                lengthInt += startInt;
-                startInt = 0;
-            }
-            if (lengthInt + startInt > 0)
-            {
-                lengthInt += startInt;
-            }
-            else
-            {
-                lengthInt = 0;
-            }
-        }
-        else if (startInt > 0)
-        {
-            /* java substr() is 0 based */
-            startInt--;
-        }
+		startInt--;
 
-        /* Oracle docs don't say what happens if the window is to the
-         * left of the string.  Return "" if the window
-         * is to the left or right or if the length is 0.
-         */
-        if (lengthInt == 0 ||
-            lengthInt <= 0 - startInt ||
-            startInt > getLength())
-        {
-            varbitResult.setValue(new byte[0]);
-            return varbitResult;
-        }
+		byte[] substring;
+		if (startInt >= getLength()) {
+			if (isFixedLength) {
+				substring = new byte[lengthInt];
+				java.util.Arrays.fill(substring, 0, substring.length, SQLBinary.PAD);
+			} else {
+				substring = new byte[0];
+			}
+		} else if (lengthInt > getLength() - startInt) {
+			if (isFixedLength) {
+				substring = new byte[lengthInt];
+				System.arraycopy(dataValue, startInt, substring, 0, dataValue.length - startInt);
+				java.util.Arrays.fill(substring, dataValue.length - startInt, substring.length, SQLBinary.PAD);
 
-        if (lengthInt >= getLength() - startInt)
-        {
-            byte[] substring = new byte[dataValue.length - startInt];
-            System.arraycopy(dataValue, startInt, substring, 0, substring.length);
-            varbitResult.setValue(substring);
-        }
-        else
-        {
-            byte[] substring = new byte[lengthInt];
-            System.arraycopy(dataValue, startInt, substring, 0, substring.length);
-            varbitResult.setValue(substring);
-        }
+			} else {
+				substring = new byte[dataValue.length - startInt];
+				System.arraycopy(dataValue, startInt, substring, 0, substring.length);
+			}
+		} else {
+			substring = new byte[lengthInt];
+			System.arraycopy(dataValue, startInt, substring, 0, substring.length);
+		}
 
-        return varbitResult;
-    }
+		bitResult.setValue(substring);
+		return bitResult;
+	}
 
     public ConcatableDataValue replace(
         StringDataValue fromStr,
@@ -1340,77 +1313,6 @@ abstract class SQLBinary
         setValue(shrunkData);
     }
 
-    /**
-     *
-     * Write to a Project Tungsten UnsafeRow format.
-     *
-     * @see UnsafeRowWriter#write(int, byte[])
-     *
-     * @param unsafeRowWriter
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException{
-        if (isNull())
-            unsafeRowWriter.setNullAt(ordinal);
-        else {
-            unsafeRowWriter.write(ordinal, dataValue);
-        }
-    }
-
-    /**
-     * Read Data as position in Array
-     *
-     * @param unsafeArrayData
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-        if (unsafeArrayData.isNullAt(ordinal))
-            setToNull();
-        else {
-            isNull = false;
-            dataValue = unsafeArrayData.getBinary(ordinal);
-        }
-    }
-
-    /**
-     *
-     * Write Array Data
-     *
-     * @param unsafeArrayWriter
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-        if (isNull())
-            unsafeArrayWriter.setNull(ordinal);
-        else {
-            unsafeArrayWriter.write(ordinal, dataValue);
-        }
-    }
-
-    /**
-     *
-     * Read from a Project Tungsten UnsafeRow format.
-     *
-     * @see UnsafeRow#getBinary(int)
-     *
-     * @throws StandardException
-     */
-    @Override
-    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-        if (unsafeRow.isNullAt(ordinal))
-            setToNull();
-        else {
-            isNull = false;
-            dataValue = unsafeRow.getBinary(ordinal);
-        }
-    }
-
     @Override
     public void read(Row row, int ordinal) throws StandardException {
         if (row.isNullAt(ordinal))
@@ -1510,7 +1412,7 @@ abstract class SQLBinary
 			result.setValue(0);
 			return result;
 		}
-		
+
 		int index = startVal - 1;
 		if (mySearchFrom.length - index < mySearchFor.length) {
 			result.setValue(0);

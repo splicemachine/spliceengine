@@ -108,9 +108,7 @@ public class CellUtils {
 
 
     public static byte[] getBuffer(Cell keyValue) {
-        // TODO: jc- not really sure getRowArray() gives back the same thing as getBuffer() did
-//        return keyValue.getRowArray();
-        return ((KeyValue)keyValue).getBuffer();
+        return keyValue.getValueArray();
     }
 
     public static int getLength(Cell keyValue) {

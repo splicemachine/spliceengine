@@ -162,7 +162,8 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
                                     "SYSSOURCECODE",
 									"SYSSNAPSHOTS",
 									"SYSTOKENS",
-                                    "SYSDUMMY1"
+                                    "SYSDUMMY1",
+									"SYSREPLICATION"
     };
 
 	protected	static final int		NUM_NONCORE = nonCoreNames.length;

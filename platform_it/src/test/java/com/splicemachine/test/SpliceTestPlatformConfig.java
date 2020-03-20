@@ -14,20 +14,26 @@
 
 package com.splicemachine.test;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.splicemachine.access.HConfiguration;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static com.google.common.collect.Lists.transform;
+
+import java.util.List;
+
 import com.splicemachine.access.configuration.OlapConfigurations;
-import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
+import org.apache.commons.collections.ListUtils;
+import org.apache.hadoop.hbase.security.access.AccessController;
+import org.apache.hadoop.hbase.security.token.TokenProvider;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.splicemachine.hbase.*;
 import com.splicemachine.si.data.hbase.coprocessor.*;
 import com.splicemachine.utils.BlockingProbeEndpoint;
-import org.apache.commons.collections.ListUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HConstants;
@@ -37,27 +43,18 @@ import org.apache.hadoop.hbase.regionserver.DefaultStoreEngine;
 import org.apache.hadoop.hbase.regionserver.RpcSchedulerFactory;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
-import org.apache.hadoop.hbase.security.access.AccessController;
-import org.apache.hadoop.hbase.security.token.TokenProvider;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.List;
 import java.util.stream.Collectors;
-
-import static com.google.common.collect.Lists.transform;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
-import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
-import com.splicemachine.utils.BlockingProbeEndpoint;
-import com.splicemachine.hbase.SpliceReplicationService;
+import com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices;
 /**
  * HBase configuration for SpliceTestPlatform and SpliceTestClusterParticipant.
  */
@@ -66,7 +63,6 @@ class SpliceTestPlatformConfig {
     private static final List<Class<?>> REGION_SERVER_COPROCESSORS = ImmutableList.<Class<?>>of(
             RegionServerLifecycleObserver.class,
             BlockingProbeEndpoint.class,
-            SpliceReplicationService.class,
             SpliceRSRpcServices.class
     );
 
@@ -215,11 +211,11 @@ class SpliceTestPlatformConfig {
         //
         // Threads, timeouts
         //
-        config.setClass("hbase.region.server.rpc.scheduler.factory.class", SpliceRpcSchedulerFactory.class, RpcSchedulerFactory.class);
+        //config.setClass("hbase.region.server.rpc.scheduler.factory.class", SpliceRpcSchedulerFactory.class, RpcSchedulerFactory.class);
         config.setLong("hbase.rpc.timeout", MINUTES.toMillis(5));
         config.setInt("hbase.client.max.perserver.tasks",50);
         config.setInt("hbase.client.ipc.pool.size",10);
-        config.setInt("hbase.rowlock.wait.duration",0);
+        config.setInt("hbase.rowlock.wait.duration",10);
 
         config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
         config.setLong("hbase.client.operation.timeout", MINUTES.toMillis(2));
@@ -234,6 +230,7 @@ class SpliceTestPlatformConfig {
         config.setLong("hbase.master.lease.thread.wakefrequency", SECONDS.toMillis(3));
 //        config.setBoolean("hbase.master.loadbalance.bytable",true);
         config.setInt("hbase.balancer.period",5000);
+        config.setInt("hbase.hfile.compaction.discharger.interval", 20*1000);
 
         config.setLong("hbase.server.thread.wakefrequency", SECONDS.toMillis(1));
         config.setLong("hbase.client.pause", 100);
@@ -269,6 +266,8 @@ class SpliceTestPlatformConfig {
         config.setBoolean(CacheConfig.CACHE_BLOOM_BLOCKS_ON_WRITE_KEY, true); // hfile.block.bloom.cacheonwrite
         config.set("hbase.master.hfilecleaner.plugins", getHFileCleanerAsString());
         config.setInt("hbase.mapreduce.bulkload.max.hfiles.perRegion.perFamily", 1024);
+        config.set("hbase.procedure.store.wal.use.hsync", "false");
+        config.set("hbase.unsafe.stream.capability.enforce", "false");
         //
         // Misc
         //
@@ -297,6 +296,9 @@ class SpliceTestPlatformConfig {
         config.setBoolean("splice.authentication.impersonation.enabled", true);
         config.set("splice.authentication.ldap.mapGroupAttr", "jy=splice,dgf=splice");
         config.setInt("splice.txn.completedTxns.cacheSize", 4096);
+        //config.set("splice.replication.monitor.quorum", "srv091:2181");
+        //config.set("splice.replication.healthcheck.script", "/Users/jyuan/replication/scripts/healthCheck.sh");
+
         // below two parameters are needed to test ranger authorization on standalone system
         // config.set("splice.authorization.scheme", "RANGER");
         // config.set("splice.metadataRestrictionEnabled", "RANGER");
@@ -315,6 +317,16 @@ class SpliceTestPlatformConfig {
         // Snapshots
         //
         config.setBoolean("hbase.snapshot.enabled", true);
+
+
+        //
+        // Replication
+        //
+        config.setBoolean("replication.source.eof.autorecovery", true);
+        //config.set("hbase.replication.source.service", "com.splicemachine.replication.SpliceReplication");
+        //config.set("hbase.replication.sink.service", "com.splicemachine.replication.SpliceReplication");
+        config.setBoolean("replication.source.eof.autorecovery", true);
+        config.setBoolean("splice.replication.enabled", true);
 
         HConfiguration.reloadConfiguration(config);
         return HConfiguration.unwrapDelegate();

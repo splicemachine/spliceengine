@@ -82,8 +82,10 @@ public class RegionSplitsIT extends SpliceUnitTest {
                             }
                         }
                        // spliceClassWatcher.commit();
-                        RegionUtils.splitTable(conglomId);
                         String compactionStmt = "call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(?, ?)";
+                        ps = spliceClassWatcher.prepareStatement(compactionStmt);
+                        RegionUtils.splitTable(conglomId);
+                        compactionStmt = "call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(?, ?)";
                         ps = spliceClassWatcher.prepareStatement(compactionStmt);
                         ps.setString(1, SCHEMA_NAME);
                         ps.setString(2, TABLE1_NAME);

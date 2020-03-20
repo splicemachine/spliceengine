@@ -35,7 +35,6 @@ package com.splicemachine.db.impl.sql.compile;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.parser.ParserInterface;
 import org.apache.spark.sql.types.DataType;
 
 import java.io.IOException;

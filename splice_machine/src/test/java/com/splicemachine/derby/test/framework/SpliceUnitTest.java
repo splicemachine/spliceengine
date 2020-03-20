@@ -576,20 +576,22 @@ public class SpliceUnitTest {
         Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(2));
     }
 
-    protected static void validateMergeResults(ResultSet resultSet, int updated,int inserted, int bad) throws SQLException {
+    protected static void validateMergeResults(ResultSet resultSet, int affected, int updated,int inserted, int bad) throws SQLException {
         Assert.assertTrue("No rows returned!",resultSet.next());
-        Assert.assertEquals("Incorrect number of rows reported!",updated,resultSet.getInt(1));
-        Assert.assertEquals("Incorrect number of rows reported!",inserted,resultSet.getInt(2));
-        Assert.assertEquals("Incorrect number of files reported!",1,resultSet.getInt(4));
-        Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(3));
+        Assert.assertEquals("Incorrect number of rows reported!",affected,resultSet.getInt(1));
+        Assert.assertEquals("Incorrect number of rows reported!",updated,resultSet.getInt(2));
+        Assert.assertEquals("Incorrect number of rows reported!",inserted,resultSet.getInt(3));
+        Assert.assertEquals("Incorrect number of files reported!",1,resultSet.getInt(5));
+        Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(4));
     }
 
-    protected static void validateMergeResults(ResultSet resultSet, int updated,int inserted, int bad, int file) throws SQLException {
+    protected static void validateMergeResults(ResultSet resultSet, int affected, int updated,int inserted, int bad, int file) throws SQLException {
         Assert.assertTrue("No rows returned!",resultSet.next());
-        Assert.assertEquals("Incorrect number of rows reported!",updated,resultSet.getInt(1));
-        Assert.assertEquals("Incorrect number of rows reported!",inserted,resultSet.getInt(2));
-        Assert.assertEquals("Incorrect number of files reported!",file,resultSet.getInt(4));
-        Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(3));
+        Assert.assertEquals("Incorrect number of rows reported!",affected,resultSet.getInt(1));
+        Assert.assertEquals("Incorrect number of rows reported!",updated,resultSet.getInt(2));
+        Assert.assertEquals("Incorrect number of rows reported!",inserted,resultSet.getInt(3));
+        Assert.assertEquals("Incorrect number of files reported!",file,resultSet.getInt(5));
+        Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(4));
     }
 
     public static String printMsgSQLState(String testName, SQLException e) {

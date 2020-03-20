@@ -59,11 +59,13 @@ public class TimestampServerHandler extends TimestampBaseHandler {
         ensureReadableBytes(buf, TimestampServer.FIXED_MSG_RECEIVED_LENGTH);
 
         final short callerId = buf.readShort();
-        final byte refresh = buf.readByte();
+        final byte b = buf.readByte();
+        boolean refresh = ((b & 1) != 0);
+        boolean increment = ((b & 2) != 0);
         ensureReadableBytes(buf, 0);
 
         SpliceLogUtils.trace(LOG, "Received timestamp request from client. Caller id = %s", callerId);
-        long nextTimestamp = oracle.getNextTimestamp(refresh==(byte)1 ? true : false);
+        long nextTimestamp = oracle.getNextTimestamp(refresh, increment);
         assert nextTimestamp > 0;
 
 

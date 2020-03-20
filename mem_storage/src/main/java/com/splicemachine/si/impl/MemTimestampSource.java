@@ -26,6 +26,11 @@ public class MemTimestampSource implements TimestampSource {
 
 
     @Override
+    public long currentTimestamp() {
+        return id.get();
+    }
+
+    @Override
     public long nextTimestamp() {
         return id.addAndGet(SIConstants.TRASANCTION_INCREMENT);
     }

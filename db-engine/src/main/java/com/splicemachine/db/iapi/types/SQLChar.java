@@ -49,13 +49,8 @@ import com.splicemachine.db.iapi.util.UTF8Util;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
-import org.apache.spark.unsafe.types.UTF8String;
 import org.joda.time.DateTime;
 
 import java.io.*;
@@ -2569,7 +2564,8 @@ public class SQLChar
                 NumberDataValue start,
                 NumberDataValue length,
                 ConcatableDataValue result,
-                int maxLen)
+                int maxLen,
+                boolean isFixedLength)
         throws StandardException
     {
         int startInt;
@@ -2578,7 +2574,10 @@ public class SQLChar
 
         if (result == null)
         {
-            result = getNewVarchar();
+            if (isFixedLength)
+                result = new SQLChar();
+            else
+                result = getNewVarchar();
         }
 
         stringResult = (StringDataValue) result;
@@ -2616,57 +2615,24 @@ public class SQLChar
                     SQLState.LANG_SUBSTR_START_OR_LEN_OUT_OF_RANGE);
         }
 
-        // Return null if length is non-positive
-        if (lengthInt < 0)
-        {
-            stringResult.setToNull();
-            return stringResult;
-        }
-
-        /* If startInt < 0 then we count from the right of the string */
-        if (startInt < 0)
-        {
-            // Return '' if window is to left of string.
-            if (startInt + getLength() < 0 &&
-                (startInt + getLength() + lengthInt <= 0))
-            {
-                stringResult.setValue("");
-                return stringResult;
-            }
-
-            // Convert startInt to positive to get substring from right
-            startInt += getLength();
-
-            while (startInt < 0)
-            {
-                startInt++;
-                lengthInt--;
-            }
-        }
-        else if (startInt > 0)
-        {
-            /* java substring() is 0 based */
-            startInt--;
-        }
-
-        /* Oracle docs don't say what happens if the window is to the
-         * left of the string.  Return "" if the window
-         * is to the left or right.
-         */
-        if (lengthInt == 0 ||
-            lengthInt <= 0 - startInt ||
-            startInt > getLength())
+        if (lengthInt == 0)
         {
             stringResult.setValue("");
             return stringResult;
         }
 
-        if (lengthInt >= getLength() - startInt)
-        {
+        /* java substring() is 0 based */
+        startInt--;
+
+        if (startInt >= getLength()) {
+            stringResult.setValue("");
+            if (isFixedLength)
+                stringResult.setWidth(lengthInt, -1, false);
+        } else if (lengthInt > getLength() - startInt) {
             stringResult.setValue(getString().substring(startInt));
-        }
-        else
-        {
+            if (isFixedLength)
+                stringResult.setWidth(lengthInt, -1, false);
+        } else {
             stringResult.setValue(
                 getString().substring(startInt, startInt + lengthInt));
         }
@@ -3492,80 +3458,6 @@ public class SQLChar
     public int getSqlCharSize() { return sqlCharSize; }
     public void setSqlCharSize(int size) { sqlCharSize = size; }
 
-    /**
-     *
-     * Write into the Project Tungsten Format (UnsafeRow).
-     *
-     * @see UnsafeRowWriter#write(int, UTF8String)
-     *
-     * @param unsafeRowWriter
-     * @param ordinal
-     */
-    @Override
-    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
-        if (isNull())
-            unsafeRowWriter.setNullAt(ordinal);
-        else {
-            unsafeRowWriter.write(ordinal, UTF8String.fromString(value));
-        }
-    }
-
-    /**
-     *
-     * Write Array of SQLChars
-     *
-     * @param unsafeArrayWriter
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-        if (isNull())
-            unsafeArrayWriter.setNull(ordinal);
-        else {
-            unsafeArrayWriter.write(ordinal, UTF8String.fromString(value));
-        }
-    }
-
-    /**
-     *
-     * Read the data from the array into this element
-     *
-     * @param unsafeArrayData
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-        if (unsafeArrayData.isNullAt(ordinal))
-            setToNull();
-        else {
-            isNull = false;
-            value = unsafeArrayData.getUTF8String(ordinal).toString();
-        }
-    }
-
-    /**
-     *
-     * Read into the Project Tungsten Format (UnsafeRow).
-     *
-     * @see UnsafeRow#getUTF8String(int)
-     *
-     * @param unsafeRow
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-        if (unsafeRow.isNullAt(ordinal))
-            setToNull();
-        else {
-            isNull = false;
-            value = unsafeRow.getUTF8String(ordinal).toString();
-        }
-    }
-
-    @Override
     public void read(Row row, int ordinal) throws StandardException {
         if (row.isNullAt(ordinal))
             setToNull();

@@ -39,5 +39,11 @@ public class RegionUtils{
                 Thread.sleep(200);
             }
         }
+        catch (IOException e) {
+            if (e.getMessage().contains("NOT splittable")) {
+                Thread.sleep(200);
+            }
+            splitTable(conglomId);
+        }
     }
 }

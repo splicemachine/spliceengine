@@ -18,6 +18,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLSyntaxErrorException;
+import java.util.Arrays;
 import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -78,6 +79,20 @@ public class TernaryFunctionForBitDataIT extends SpliceUnitTest {
                                 "aa", "aa", "aa", "aa", "aa".getBytes(), "aa".getBytes(),"aa".getBytes(),"aa".getBytes())
                             ))
                 .create();
+
+
+        new TableCreator(conn)
+                .withCreate("create table t2(id int, a1 char(10), a2 varchar(10), b1 char(10) for bit data, b2 varchar(10) for bit data, c1 int, d1 int)")
+                .withInsert("insert into t2 values (?, ?, ?, ?, ?, ?, ?) ")
+                .withRows(rows(
+                        row(1, "abac bc", "abac bc", "abac bc".getBytes(), "abac bc".getBytes(), 2, 4),
+                        row(2, "abac bc", "abac bc", "abac bc".getBytes(), "abac bc".getBytes(), 2, 6),
+                        row(3, "abac bc", "abac bc", "abac bc".getBytes(), "abac bc".getBytes(), 7, 2),
+                        row(4, "abac bc", "abac bc", "abac bc".getBytes(), "abac bc".getBytes(), null, 4),
+                        row(5, "abac bc", "abac bc", "abac bc".getBytes(), "abac bc".getBytes(), 4, null),
+                        row(6, "aabac c", "aabac c", "aabac c".getBytes(), "aabac c".getBytes(), 3, 4)))
+                .create();
+
         conn.commit();
     }
 
@@ -367,4 +382,275 @@ public class TernaryFunctionForBitDataIT extends SpliceUnitTest {
             }
         }
     }
+
+    @Test
+    public void testSubstr() throws Exception {
+        String sqlText = format("select id, substr(b1, c1, d1), length(substr(b1, c1, d1)) from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        byte[][] expected = {"bac ".getBytes(), "bac bc".getBytes(), "c ".getBytes(), null, null, "bac ".getBytes()};
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        int i=0;
+        while (rs.next()) {
+            int id = rs.getInt(1);
+            byte[] byteArray = rs.getBytes(2);
+            assertTrue("substr for row with id=" + id +" does not match the expected result.", Arrays.equals(expected[id-1], byteArray));
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testSubstrFixedLength1() throws Exception {
+        String sqlText = format("select id, substr(b1, c1, 3), length(substr(b1, c1, 3)) from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        byte[][] expected = {"bac".getBytes(), "bac".getBytes(), "c  ".getBytes(), null, "c b".getBytes(), "bac".getBytes()};
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        int i=0;
+        while (rs.next()) {
+            int id = rs.getInt(1);
+            byte[] byteArray = rs.getBytes(2);
+            int length = rs.getInt(3);
+            assertTrue("substr for row with id=" + id +" does not match the expected result.", Arrays.equals(expected[id-1], byteArray) && (length==3 || length==0));
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testSubstrFixedLength12() throws Exception {
+        String sqlText = format("select id, substr(b1, 6), length(substr(b1, 6)) from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        byte[][] expected = {"bc   ".getBytes(), "bc   ".getBytes(), "bc   ".getBytes(), "bc   ".getBytes(), "bc   ".getBytes(), " c   ".getBytes()};
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        int i=0;
+        while (rs.next()) {
+            int id = rs.getInt(1);
+            byte[] byteArray = rs.getBytes(2);
+            int length = rs.getInt(3);
+            assertTrue("substr for row with id=" + id +" does not match the expected result.", Arrays.equals(expected[id-1], byteArray) && (length==5 || length==0));
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testSubstr2() throws Exception {
+        String sqlText = format("select id, substr(b2, c1, d1) from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        // the third row does not have the padding space
+        byte[][] expected = {"bac ".getBytes(), "bac bc".getBytes(), "c".getBytes(), null, null, "bac ".getBytes()};
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        int i=0;
+        while (rs.next()) {
+            int id = rs.getInt(1);
+            byte[] byteArray = rs.getBytes(2);
+            assertTrue("substr for row with id=" + id +" does not match the expected result.", Arrays.equals(expected[id-1], byteArray));
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testSubstrFixedLength2() throws Exception {
+        String sqlText = format("select id, substr(b2, c1, 3), length(substr(b2, c1, 3)) from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        byte[][] expected = {"bac".getBytes(), "bac".getBytes(), "c  ".getBytes(), null, "c b".getBytes(), "bac".getBytes()};
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        int i=0;
+        while (rs.next()) {
+            int id = rs.getInt(1);
+            byte[] byteArray = rs.getBytes(2);
+            int length = rs.getInt(3);
+            assertTrue("substr for row with id=" + id +" does not match the expected result.", Arrays.equals(expected[id-1], byteArray) && (length==3 || length==0));
+        }
+        rs.close();
+    }
+
+    @Test
+    public void testSubstr3() throws Exception {
+        String sqlText = format("select id, '-' || substr(a1, c1, d1) || '-' from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        String expected = "ID |    2    |\n" +
+                "--------------\n" +
+                " 1 | -bac -  |\n" +
+                " 2 |-bac bc- |\n" +
+                " 3 |  -c -   |\n" +
+                " 4 |  NULL   |\n" +
+                " 5 |  NULL   |\n" +
+                " 6 | -bac -  |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSubstrFixedLength3() throws Exception {
+        String sqlText = format("select id, '-' || substr(a1, c1, 3) || '-' from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        String expected = "ID |  2   |\n" +
+                "-----------\n" +
+                " 1 |-bac- |\n" +
+                " 2 |-bac- |\n" +
+                " 3 |-c  - |\n" +
+                " 4 |NULL  |\n" +
+                " 5 |-c b- |\n" +
+                " 6 |-bac- |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSubstrFixedLength32() throws Exception {
+        String sqlText = format("select id, '-' || substr(a1, 6) || '-' from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        String expected = "ID |   2    |\n" +
+                "-------------\n" +
+                " 1 |-bc   - |\n" +
+                " 2 |-bc   - |\n" +
+                " 3 |-bc   - |\n" +
+                " 4 |-bc   - |\n" +
+                " 5 |-bc   - |\n" +
+                " 6 |- c   - |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSubstrVarLength3() throws Exception {
+        String sqlText = format("select id, '-' || substr(a1, c1) || '-' from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        String expected = "ID |     2      |\n" +
+                "-----------------\n" +
+                " 1 |-bac bc   - |\n" +
+                " 2 |-bac bc   - |\n" +
+                " 3 |  -c   -    |\n" +
+                " 4 |   NULL     |\n" +
+                " 5 | -c bc   -  |\n" +
+                " 6 |-bac c   -  |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSubstr4() throws Exception {
+        String sqlText = format("select id, '-' || substr(a2, c1, d1) || '-' from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        String expected = "ID |    2    |\n" +
+                "--------------\n" +
+                " 1 | -bac -  |\n" +
+                " 2 |-bac bc- |\n" +
+                " 3 |   -c-   |\n" +
+                " 4 |  NULL   |\n" +
+                " 5 |  NULL   |\n" +
+                " 6 | -bac -  |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSubstrFixedLength4() throws Exception {
+        String sqlText = format("select id, '-' || substr(a2, c1, 3) || '-' from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        String expected = "ID |  2   |\n" +
+                "-----------\n" +
+                " 1 |-bac- |\n" +
+                " 2 |-bac- |\n" +
+                " 3 |-c  - |\n" +
+                " 4 |NULL  |\n" +
+                " 5 |-c b- |\n" +
+                " 6 |-bac- |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSubstrVarLength4() throws Exception {
+        String sqlText = format("select id, '-' || substr(a2, 6) || '-' from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        String expected = "ID |  2  |\n" +
+                "----------\n" +
+                " 1 |-bc- |\n" +
+                " 2 |-bc- |\n" +
+                " 3 |-bc- |\n" +
+                " 4 |-bc- |\n" +
+                " 5 |-bc- |\n" +
+                " 6 |- c- |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSubstrVarLength41() throws Exception {
+        String sqlText = format("select id, '-' || substr(a2, 8) || '-' from t2 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        String expected = "ID | 2 |\n" +
+                "--------\n" +
+                " 1 |-- |\n" +
+                " 2 |-- |\n" +
+                " 3 |-- |\n" +
+                " 4 |-- |\n" +
+                " 5 |-- |\n" +
+                " 6 |-- |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSubstrParameterizedQuery() throws Exception {
+        ResultSet rs = null;
+        String sqlText = format("select id, substr(?, 4, 4) from t2 --splice-properties useSpark=%s\n where id=1",  useSpark);
+        try {
+            PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
+            ps.setString(1, "cbaabc");
+            rs = ps.executeQuery();
+
+            String[] expected = {"abc "};
+            int i=0;
+            while (rs.next()) {
+                int id = rs.getInt(1);
+                String str = rs.getString(2);
+                assertTrue("substr for row with id=" + id +" does not match the expected result.", str.equals(expected[id-1]));
+            }
+        } finally {
+            if (rs != null)
+                rs.close();
+        }
+    }
+
+    @Test
+    public void testSubstrStartPositionBeyondStringLength() throws Exception {
+        String sqlText = format("select id, '-' || substr(a2, 5, 3) || '-' from t1 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        String expected = "ID |  2   |\n" +
+                "-----------\n" +
+                " 1 |- bc- |\n" +
+                " 2 |- bc- |\n" +
+                " 3 |- bc- |\n" +
+                " 4 |-   - |\n" +
+                " 5 |-   - |\n" +
+                " 6 |-   - |\n" +
+                " 7 |NULL  |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSubstrStartPositionBeyondStringLength2() throws Exception {
+        String sqlText = format("select id, substr(a6, 5, 3) from t1 --splice-properties useSpark=%s\n order by id",  useSpark);
+
+        byte[][] expected = {" bc".getBytes(), " bc".getBytes(), " bc".getBytes(), "   ".getBytes(), "   ".getBytes(), "   ".getBytes(), null};
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        int i=0;
+        while (rs.next()) {
+            int id = rs.getInt(1);
+            byte[] byteArray = rs.getBytes(2);
+            assertTrue("substr for row with id=" + id +" does not match the expected result.", Arrays.equals(expected[id-1], byteArray));
+        }
+        rs.close();
+    }
+
 }

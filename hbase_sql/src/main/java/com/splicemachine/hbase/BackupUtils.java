@@ -327,9 +327,8 @@ public class BackupUtils {
         byte[] requestStartKey = request.hasStartKey() ? request.getStartKey().toByteArray() : new byte[0];
         byte[] requestEndKey = request.hasEndKey() ? request.getEndKey().toByteArray() : new byte[0];
 
-        HRegionInfo regionInfo = region.getRegionInfo();
-        byte[] regionStartKey = regionInfo.getStartKey() != null? regionInfo.getStartKey() : new byte[0];
-        byte[] regionEndKey = regionInfo.getEndKey() != null ? regionInfo.getEndKey() : new byte[0];
+        byte[] regionStartKey = region.getRegionInfo().getStartKey() != null? region.getRegionInfo().getStartKey() : new byte[0];
+        byte[] regionEndKey = region.getRegionInfo().getEndKey() != null ? region.getRegionInfo().getEndKey() : new byte[0];
 
         return Bytes.compareTo(requestStartKey, regionStartKey) ==0 &&
                 Bytes.compareTo(requestEndKey, regionEndKey) == 0;
