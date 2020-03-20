@@ -45,6 +45,7 @@ public class TestKafkaCluster {
         Properties props = new Properties();
         assert props.containsKey("zookeeper.connect");
         props.put("zookeeper.connect", zkConnectString);
+        props.put("broker.id","0");
         props.put("port","9092");
         props.put("offsets.topic.replication.factor", offsetsTopicReplicationFactor);  // helps splice standalone work on Kafka 2.2
         return new KafkaConfig(props);

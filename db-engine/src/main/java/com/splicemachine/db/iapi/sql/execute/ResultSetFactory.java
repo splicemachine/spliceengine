@@ -2127,6 +2127,14 @@ public interface ResultSetFactory {
 									  String compression,
 									  String format,
 									  int srcResultDescriptionSavedObjectNum) throws StandardException;
+	/**
+	 * Kafka Export
+	 */
+	NoPutResultSet getKafkaExportResultSet(NoPutResultSet source,
+											Activation activation,
+											int resultSetNumber,
+											String topicName,
+											int srcResultDescriptionSavedObjectNum) throws StandardException;
     /**
      * Batch Once
      */

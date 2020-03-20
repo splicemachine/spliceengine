@@ -262,6 +262,12 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
     }
 
     @Override
+    public Visitable visit(KafkaExportNode node) throws StandardException {
+        nullify();
+        return super.visit(node);
+    }
+
+    @Override
     public Visitable visit(SubqueryNode node) throws StandardException {
         nullify();
         return super.visit(node);

@@ -340,6 +340,8 @@ public interface C_NodeNames
 
     String BINARY_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.BinaryExportNode";
 
+	String KAFKA_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.KafkaExportNode";
+
     String TRUNC_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TruncateOperatorNode";
 
     String BATCH_ONCE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.BatchOnceNode";
