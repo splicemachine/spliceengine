@@ -257,8 +257,8 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
          * lcc.  This is expensive, but pretty atypical since trigger actions aren't likely to be invalidated too often.
          * Also, when possible, we already have the triggerTable. */
         if (type == SPS_TYPE_TRIGGER && triggerTable == null) {
-            // 49 because name consists of (see CreateTriggerConstantAction): TRIGGER<ACTN|WHEN>_<UUID:36>_<UUID:36>
-            String uuidStr = name.substring(49);
+            // name consists of (see CreateTriggerConstantAction): TRIGGER<ACTN|WHEN>_<UUID:36>_<UUID:36>
+            String uuidStr = name.split("_")[2];
             triggerTable = dd.getTableDescriptor(recreateUUID(uuidStr));
             if (SanityManager.DEBUG) {
                 if (triggerTable == null) {
