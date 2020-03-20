@@ -97,6 +97,11 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String OLAP_SERVER_KEEP_ALIVE_PATH = "/keepAlive";
 
     /**
+     * The Path in zookeeper for olap server diagnostics.
+     */
+    public static final String OLAP_SERVER_DIAGNOSTICS_PATH = "/diagnostics";
+
+    /**
      * The Path in zookeeper for coordinating concurrent HMasters booting up
      */
     public static final String MASTER_INIT_PATH = "/masterInitialization";
