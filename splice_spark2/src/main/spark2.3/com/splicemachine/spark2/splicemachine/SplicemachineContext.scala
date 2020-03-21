@@ -48,7 +48,6 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import java.util.Properties
 
-import com.splicemachine.access.HConfiguration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.io.Text
@@ -325,20 +324,26 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   /**
+   * Get JDBC connection
+   */
+  def getConnection(): Connection = {
+    val jdbcOptions = new JDBCOptions( Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> "placeholder"
+    ))
+    JdbcUtils.createConnectionFactory( jdbcOptions )()
+  }
+
+  /**
     *
     * Execute an update statement via JDBC against Splice Machine
     *
     * @param sql
     */
   def executeUpdate(sql: String): Unit = {
-    val spliceOptions = Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> "dismiss")
-    val jdbcOptions = new JDBCOptions(spliceOptions)
-    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val conn = getConnection()
     try {
-      val statement = conn.createStatement
-      statement.executeUpdate(sql)
+      conn.createStatement.executeUpdate(sql)
     } finally {
       conn.close()
     }
@@ -351,15 +356,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param sql
     */
   def execute(sql: String): Unit = {
-    val spliceOptions = Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> "dismiss"
-      )
-    val jdbcOptions = new JDBCOptions(spliceOptions)
-    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val conn = getConnection()
     try {
-      val statement = conn.createStatement
-      statement.execute(sql)
+      conn.createStatement.execute(sql)
     } finally {
       conn.close()
     }
@@ -408,24 +407,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @return Dataset[Row] with the result of the query
     */
   def df(sql: String): Dataset[Row] = {
-
-//    val spliceOptions = Map(
-//      JDBCOptions.JDBC_URL -> url,
-//      JDBCOptions.JDBC_TABLE_NAME -> "placeholder"
-//    )
-//    val jdbcOptions = new JDBCOptions(spliceOptions)
-//    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
-//    val configuration = HConfiguration.getConfiguration
-//
-////    try {
-//    val topicName = getRandomName() // Kafka topic
-//
-////    println( s"SMC.df topic $topicName" )
-//
-//    // hbase user has read/write permission on the topic
-//
-//    conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql + " --splice-properties useSpark=true").execute()
-
     val sqlMod = if( sql.trim.toUpperCase.startsWith("SELECT") ) {
       val spliceProps = " --splice-properties useSpark=true"
       if( sql.toUpperCase.contains("WHERE") ) {
@@ -437,35 +418,27 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       sql
     }
 
-    val kdf = new KafkaToDF(kafkaServers, kafkaPollTimeout)
-    kdf.df( send(sqlMod) )
-//    }
+    new KafkaToDF( kafkaServers , kafkaPollTimeout ).df( send(sqlMod) )
   }
 
   def internalDf(sql: String): Dataset[Row] = df(sql)
 
   private[this] def send(sql: String): String = {
-
-    val spliceOptions = Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> "placeholder"
-    )
-    val jdbcOptions = new JDBCOptions(spliceOptions)
-    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
-    val configuration = HConfiguration.getConfiguration
-
-    //    try {
-    val topicName = getRandomName() // Kafka topic
-
     //    println( s"SMC.df topic $topicName" )
+    //    println( s"SMC.send sql $sql" )
+
+    val topicName = getRandomName() // Kafka topic
 
     // hbase user has read/write permission on the topic
 
-//    println( s"SMC.send sql $sql" )
-    conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql).execute()
+    val conn = getConnection()
+    try {
+      conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql).execute()
+    } finally {
+      conn.close()
+    }
 
     topicName
-    //    }
   }
 
   /**
@@ -481,8 +454,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
                   columnProjection: Seq[String] = Nil): RDD[Row] = {
     val columnList = SpliceJDBCUtil.listColumns(columnProjection.toArray)
     val sqlText = s"SELECT $columnList FROM ${schemaTableName} --splice-properties useSpark=true"
-    val kdf = new KafkaToDF(kafkaServers, kafkaPollTimeout)
-    kdf.rdd( send(sqlText) )
+    new KafkaToDF( kafkaServers , kafkaPollTimeout ).rdd( send(sqlText) )
   }
 
   def getRandomName(): String = {
