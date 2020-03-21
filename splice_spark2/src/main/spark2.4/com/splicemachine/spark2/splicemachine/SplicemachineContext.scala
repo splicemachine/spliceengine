@@ -48,7 +48,6 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import java.util.Properties
 
-import com.splicemachine.access.HConfiguration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.io.Text
@@ -234,13 +233,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @return true if the table exists, false otherwise
     */
   def tableExists(schemaTableName: String): Boolean = {
-    val spliceOptions = Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName)
-    val jdbcOptions = new JdbcOptionsInWrite(spliceOptions)
-    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val (conn, jdbcOptionsInWrite) = getConnection(schemaTableName)
     try {
-      JdbcUtils.tableExists(conn, jdbcOptions)
+      JdbcUtils.tableExists(conn, jdbcOptionsInWrite)
     } finally {
       conn.close()
     }
@@ -275,13 +270,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     */
   def dropTable(schemaTableName: String): Unit = {
-    val spliceOptions = Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName)
-    val jdbcOptions = new JdbcOptionsInWrite(spliceOptions)
-    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val (conn, jdbcOptionsInWrite) = getConnection(schemaTableName)
     try {
-      JdbcUtils.dropTable(conn, jdbcOptions.table, jdbcOptions)
+      JdbcUtils.dropTable(conn, jdbcOptionsInWrite.table, jdbcOptionsInWrite)
     } finally {
       conn.close()
     }
@@ -293,35 +284,48 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     *
     * We currently do not have any custom table options.  These could be added if needed.
     *
-    * @param tableName
+    * @param schemaTableName
     * @param structType
     * @param keys
     * @param createTableOptions
     */
-  def createTable(tableName: String,
+  def createTable(schemaTableName: String,
                   structType: StructType,
                   keys: Seq[String],  // not being used
                   createTableOptions: String): Unit = {  // createTableOptions not being used
-    val spliceOptions = Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> tableName)
-    val jdbcOptions = new JdbcOptionsInWrite(spliceOptions)
-    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val (conn, jdbcOptionsInWrite) = getConnection(schemaTableName)
     try {
-      val actSchemaString = schemaString(structType, jdbcOptions.url)
-      val keyArray = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
+      val actSchemaString = schemaString(structType, jdbcOptionsInWrite.url)
+      val keyArray = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptionsInWrite)
       val primaryKeyString = new StringBuilder()
-      val dialect = JdbcDialects.get(jdbcOptions.url)
+      val dialect = JdbcDialects.get(jdbcOptionsInWrite.url)
       keyArray foreach { field =>
         val name = dialect.quoteIdentifier(field)
         primaryKeyString.append(s", $name")
       }
-      val sql = s"CREATE TABLE $tableName ($actSchemaString) $primaryKeyString"
+      val sql = s"CREATE TABLE $schemaTableName ($actSchemaString) $primaryKeyString"
       val statement = conn.createStatement
       statement.executeUpdate(sql)
     } finally {
       conn.close()
     }
+  }
+
+  /**
+   * Get JDBC connection
+   */
+  def getConnection(): Connection = getConnection("placeholder")._1
+
+  /**
+   * Get JDBC connection
+   */
+  private[this] def getConnection(schemaTableName: String): (Connection, JdbcOptionsInWrite) = {
+    val jdbcOptionsInWrite = new JdbcOptionsInWrite( Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
+    ))
+    val conn = JdbcUtils.createConnectionFactory( jdbcOptionsInWrite )()
+    (conn, jdbcOptionsInWrite)
   }
 
   /**
@@ -331,14 +335,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param sql
     */
   def executeUpdate(sql: String): Unit = {
-    val spliceOptions = Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> "dismiss")
-    val jdbcOptions = new JDBCOptions(spliceOptions)
-    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val conn = getConnection()
     try {
-      val statement = conn.createStatement
-      statement.executeUpdate(sql)
+      conn.createStatement.executeUpdate(sql)
     } finally {
       conn.close()
     }
@@ -351,15 +350,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param sql
     */
   def execute(sql: String): Unit = {
-    val spliceOptions = Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> "dismiss"
-      )
-    val jdbcOptions = new JDBCOptions(spliceOptions)
-    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val conn = getConnection()
     try {
-      val statement = conn.createStatement
-      statement.execute(sql)
+      conn.createStatement.execute(sql)
     } finally {
       conn.close()
     }
@@ -408,24 +401,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @return Dataset[Row] with the result of the query
     */
   def df(sql: String): Dataset[Row] = {
-
-//    val spliceOptions = Map(
-//      JDBCOptions.JDBC_URL -> url,
-//      JDBCOptions.JDBC_TABLE_NAME -> "placeholder"
-//    )
-//    val jdbcOptions = new JDBCOptions(spliceOptions)
-//    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
-//    val configuration = HConfiguration.getConfiguration
-//
-////    try {
-//    val topicName = getRandomName() // Kafka topic
-//
-////    println( s"SMC.df topic $topicName" )
-//
-//    // hbase user has read/write permission on the topic
-//
-//    conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql + " --splice-properties useSpark=true").execute()
-
     val sqlMod = if( sql.trim.toUpperCase.startsWith("SELECT") ) {
       val spliceProps = " --splice-properties useSpark=true"
       if( sql.toUpperCase.contains("WHERE") ) {
@@ -437,35 +412,27 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       sql
     }
 
-    val kdf = new KafkaToDF(kafkaServers, kafkaPollTimeout)
-    kdf.df( send(sqlMod) )
-//    }
+    new KafkaToDF( kafkaServers , kafkaPollTimeout ).df( send(sqlMod) )
   }
 
   def internalDf(sql: String): Dataset[Row] = df(sql)
 
   private[this] def send(sql: String): String = {
-
-    val spliceOptions = Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> "placeholder"
-    )
-    val jdbcOptions = new JDBCOptions(spliceOptions)
-    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
-    val configuration = HConfiguration.getConfiguration
-
-    //    try {
-    val topicName = getRandomName() // Kafka topic
-
     //    println( s"SMC.df topic $topicName" )
+    //    println( s"SMC.send sql $sql" )
+
+    val topicName = getRandomName() // Kafka topic
 
     // hbase user has read/write permission on the topic
 
-//    println( s"SMC.send sql $sql" )
-    conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql).execute()
+    val conn = getConnection()
+    try {
+      conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql).execute()
+    } finally {
+      conn.close()
+    }
 
     topicName
-    //    }
   }
 
   /**
@@ -481,8 +448,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
                   columnProjection: Seq[String] = Nil): RDD[Row] = {
     val columnList = SpliceJDBCUtil.listColumns(columnProjection.toArray)
     val sqlText = s"SELECT $columnList FROM ${schemaTableName} --splice-properties useSpark=true"
-    val kdf = new KafkaToDF(kafkaServers, kafkaPollTimeout)
-    kdf.rdd( send(sqlText) )
+    new KafkaToDF( kafkaServers , kafkaPollTimeout ).rdd( send(sqlText) )
   }
 
   def getRandomName(): String = {
