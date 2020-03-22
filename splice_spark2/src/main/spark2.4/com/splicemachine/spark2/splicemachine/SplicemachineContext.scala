@@ -524,6 +524,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    */
   def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = insert(rdd, schema, schemaTableName, Map[String,String]())
 
+  private[this] def columnList(schema: StructType): String = SpliceJDBCUtil.listColumns(schema.fieldNames)
+  private[this] def schemaString(schema: StructType): String = SpliceJDBCUtil.schemaWithoutNullableString(schema, url).replace("\"","")
+
   private[this] def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, spliceProperties: scala.collection.immutable.Map[String,String]): Unit = {
     val topicName = getRandomName() //Kafka topic
 
@@ -531,13 +534,22 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     // hbase user has read/write permission on the topic
 
-//    ShuffleUtils.shuffle(dataFrame).rdd.mapPartitionsWithIndex(
+    send(topicName, rdd, schema)
+
+    val colList = columnList(schema)
+    val sProps = spliceProperties.map({case (k,v) => k+"="+v}).fold("--splice-properties useSpark=true")(_+", "+_)
+    val sqlText = "insert into " + schemaTableName + " (" + colList + ") "+sProps+"\nselect " + colList + " from " +
+      "new com.splicemachine.derby.vti.KafkaVTI('"+topicName+"') " +
+      "as SpliceDatasetVTI (" + schemaString(schema) + ")"
+
+    println( s"SMC.insert sql $sqlText" )
+    executeUpdate(sqlText)
+  }
+
+  private[this] def send(topicName: String, rdd: JavaRDD[Row], schema: StructType): Unit =
     rdd.rdd.mapPartitions(
-//      new com.splicemachine.derby.stream.spark.KafkaStreamer[Row]("localhost", 9092, -1, topicName)
-//      new KafkaStreamer[Row]("localhost", 9092, topicName)
-//      (i,itrRow) => {
       itrRow => {
-        println( s"SMC.insert mapPartitions" ) //WithIndex" )
+        //println( s"SMC.insert mapPartitions" )
         val props = new Properties
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServers)
         props.put(ProducerConfig.CLIENT_ID_CONFIG, "spark-producer-"+java.util.UUID.randomUUID() )
@@ -546,21 +558,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
         val producer = new KafkaProducer[Integer, Externalizable](props)
 
-        // java example
-//        int count = 0 ;
-//        while (locatedRowIterator.hasNext()) {
-//          T lr = locatedRowIterator.next();
-//
-//          ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName,
-//            partition.intValue(), count++, lr);
-//          producer.send(record);
-//        }
-
         var count = 0
         itrRow.foreach( row => {
-//          println( s"SMC.insert partition $i record $count" )
-//          producer.send( new ProducerRecord(topicName, i, count, externalizable(row)) )
-          println( s"SMC.insert record $count" )
+          //println( s"SMC.insert record $count" )
           producer.send( new ProducerRecord(topicName, count, externalizable(row, schema)) )
           count += 1
         })
@@ -571,21 +571,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       }
     ).collect
 
-    val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url).replace("\"","")
-    val sProps = spliceProperties.map({case (k,v) => k+"="+v}).fold("--splice-properties useSpark=true")(_+", "+_)
-    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") "+sProps+"\nselect " + columnList + " from " +
-      "new com.splicemachine.derby.vti.KafkaVTI('"+topicName+"') " +
-      "as SpliceDatasetVTI (" + schemaString + ")"
-
-    println( s"SMC.insert sql $sqlText" )
-    executeUpdate(sqlText)
-  }
-
   def externalizable(row: Row, schema: StructType): ValueRow = {
     val valRow = new ValueRow(row.length);
     for (i <- 1 to row.length) {
-//      val fieldDef = row.schema(i-1)
       val fieldDef = schema(i-1)
       spliceType( fieldDef.dataType , row , i-1 ) match {
         case Some(splType) =>
@@ -1072,52 +1060,53 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 //    val fieldMap = Map(schema.fields.map(x => x.metadata.getString("name") -> x): _*)
 //    new StructType(columns.map(name => fieldMap(name)))
 //  }
-//
-//  /**
-//    * Export a dataFrame in CSV
-//    *
-//    * @param location  - Destination directory
-//    * @param compression - Whether to compress the output or not
-//    * @param replicationCount - Replication used for HDFS write
-//    * @param fileEncoding - fileEncoding or null, defaults to UTF-8
-//    * @param fieldSeparator - fieldSeparator or null, defaults to ','
-//    * @param quoteCharacter - quoteCharacter or null, defaults to '"'
-//    *
-//    */
-//  def export(dataFrame: DataFrame, location: String,
-//                   compression: Boolean, replicationCount: Int,
-//             fileEncoding: String,
-//             fieldSeparator: String,
-//             quoteCharacter: String): Unit = {
-//    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
-//    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
-//    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
-//    val encoding = quotedOrNull(fileEncoding)
-//    val separator = quotedOrNull(fieldSeparator)
-//    val quoteChar = quotedOrNull(quoteCharacter)
-//    val sqlText = s"export ( '$location', $compression, $replicationCount, $encoding, $separator, $quoteChar) select " + columnList + " from " +
-//      s"new com.splicemachine.derby.vti.SpliceDatasetVTI() as SpliceDatasetVTI ($schemaString)"
-//    internalConnection.createStatement().execute(sqlText)
-//  }
-//
-//  private[this] def quotedOrNull(value: String) = {
-//    if (value == null) "null" else s"'$value"
-//  }
-//
-//  /**
-//    * Export a dataFrame in binary format
-//    *
-//    * @param location  - Destination directory
-//    * @param compression - Whether to compress the output or not
-//    * @param format - Binary format to be used, currently only 'parquet' is supported
-//    */
-//  def exportBinary(dataFrame: DataFrame, location: String,
-//                   compression: Boolean, format: String): Unit = {
-//    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
-//    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
-//    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
-//    val sqlText = s"export_binary ( '$location', $compression, '$format') select " + columnList + " from " +
-//      s"new com.splicemachine.derby.vti.SpliceDatasetVTI() as SpliceDatasetVTI ($schemaString)"
-//    internalConnection.createStatement().execute(sqlText)
-//  }
+
+  /**
+   * Export a dataFrame in CSV
+   *
+   * @param location  - Destination directory
+   * @param compression - Whether to compress the output or not
+   * @param replicationCount - Replication used for HDFS write
+   * @param fileEncoding - fileEncoding or null, defaults to UTF-8
+   * @param fieldSeparator - fieldSeparator or null, defaults to ','
+   * @param quoteCharacter - quoteCharacter or null, defaults to '"'
+   *
+   */
+  def export(dataFrame: DataFrame, location: String,
+             compression: Boolean, replicationCount: Int,
+             fileEncoding: String,
+             fieldSeparator: String,
+             quoteCharacter: String): Unit = {
+    val str = (value: String) => { Option(value).map(v => s"'$v'").getOrElse("null") }
+    export(
+      dataFrame,
+      s"export ( '$location', $compression, $replicationCount, ${str(fileEncoding)}, ${str(fieldSeparator)}, ${str(quoteCharacter)})"
+    )
+  }
+
+  /**
+   * Export a dataFrame in binary format
+   *
+   * @param location  - Destination directory
+   * @param compression - Whether to compress the output or not
+   * @param format - Binary format to be used, currently only 'parquet' is supported
+   */
+  def exportBinary(dataFrame: DataFrame, location: String,
+                   compression: Boolean, format: String): Unit =
+    export(dataFrame, s"export_binary ( '$location', $compression, '$format')")
+
+
+  private[this] def export(dataFrame: DataFrame, exportCmd: String): Unit = {
+    val topicName = getRandomName()
+    println( s"SMC.export topic $topicName" )
+
+    val schema = dataFrame.schema
+    send(topicName, dataFrame.rdd, schema)
+
+    val sqlText = exportCmd + s" select " + columnList(schema) + " from " +
+      s"new com.splicemachine.derby.vti.KafkaVTI('"+topicName+s"') as SpliceDatasetVTI (${schemaString(schema)})" +
+      " --splice-properties useSpark=true"
+    println( s"SMC.export sql $sqlText" )
+    execute(sqlText)
+  }
 }
