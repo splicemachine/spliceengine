@@ -23,12 +23,8 @@ import java.util
 import java.util.{Properties, UUID}
 
 import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.clients.consumer.ConsumerRecords
-import org.apache.spark.TaskContext
-import org.apache.spark.TaskKilledException
 import scala.collection.JavaConverters._
-//import com.splicemachine.db.impl.sql.execute.ValueRow
 import org.apache.spark.sql.{Dataset, Row}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.rdd.RDD
@@ -38,7 +34,7 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
   private[this] val destServers = kafkaServers
   private[this] val timeout = pollTimeout
 
-  def spark(): SparkSession = SparkSession.builder.getOrCreate  // TODO will this work in all envs?
+  def spark(): SparkSession = SparkSession.builder.getOrCreate
 
   def df(topicName: String): Dataset[Row] = {
     val (rdd, schema) = rdd_schema(topicName)
@@ -59,35 +55,9 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
 
     val consumer = new KafkaConsumer[Integer, Externalizable](props)
     consumer.subscribe(util.Arrays.asList(topicName))
-//        val ps = consumer.partitionsFor(topicName)
-//        val partitions = new Array[Int](ps.size)
-//        var i = 0
-//        while ( {
-//            i < ps.size
-//        }) {
-//            partitions.add(i)
-//
-//            i += 1
-//        }
-////        consumer.close
-//        int partition = partitions.next
-//        consumer.assign(java.util.Arrays.asList(new TopicPartition(topicName, partition)))
 
-        //        consumer.close();
-//        ConsumerRecords<Integer, Externalizable> records = null;
-//        Iterator<ConsumerRecord<Integer, Externalizable>> it = null;
-//        ConsumerRecord<Integer, Externalizable> next = null;
-
-//        var records: ConsumerRecords[Integer, Externalizable] = null
-//        while ( {
-//            records == null || records.isEmpty
-//        }) {
-    val records = consumer.poll( java.time.Duration.ofMillis(timeout) ).asScala
+    val records = consumer.poll( java.time.Duration.ofMillis(timeout) ).asScala  // records: ConsumerRecords[Integer, Externalizable]
     consumer.close
-//            if (TaskContext.get.isInterrupted) {  // TODO: was giving null pointer exception
-//                consumer.close
-//                throw new TaskKilledException
-//            }
 
     // records.isEmpty when consumer.poll times out
     //    a query that legitimately returns no rows in the db also seems to result in timeout here
@@ -104,40 +74,5 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
       val rdd = spark.sparkContext.parallelize(rows)
       (rdd, rows(0).schema)
     }
-
-        //        return new Iterator<ExecRow>() {
-//            ConsumerRecords<Integer, Externalizable> records = null;
-//            Iterator<ConsumerRecord<Integer, Externalizable>> it = null;
-//            ConsumerRecord<Integer, Externalizable> next = null;
-//            boolean exhausted = false;
-//
-//            @Override
-//            public boolean hasNext() {
-//                if (exhausted) return false;
-//                if (it == null) {
-//                    while (records == null || records.isEmpty()) {
-//                        records = consumer.poll(1000);
-//                        if (TaskContext.get().isInterrupted()) {
-//                            consumer.close();
-//                            throw new TaskKilledException();
-//                        }
-//                    }
-//                    it = records.iterator();
-//                }
-//                if (it.hasNext()) {
-//                    return true;
-//                }
-//                else {
-//                    consumer.close();
-//                    return false;
-//                }
-//            }
-//
-//            @Override
-//            public ExecRow next() {
-//                return (ExecRow)it.next().value();
-//            }
-//        };
   }
-
 }
