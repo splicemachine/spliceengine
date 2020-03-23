@@ -80,7 +80,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     private String name;
     private String oldReferencingName;
     private String newReferencingName;
-    private List<String> triggerDefinitionList;
+    List<String> triggerDefinitionList;
     private SchemaDescriptor sd;
     private TriggerEventDML triggerDML;
     private boolean isBefore;
@@ -88,7 +88,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     private boolean referencingOld;
     private boolean referencingNew;
     private TableDescriptor td;
-    private List<UUID> actionSPSIdList;
+    List<UUID> actionSPSIdList;
     private UUID whenSPSId;
     private boolean isEnabled;
     private int[] referencedCols;
@@ -97,7 +97,8 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     private UUID triggerSchemaId;
     private UUID triggerTableId;
     private String whenClauseText;
-    protected int numBaseTableColumns;
+    int numBaseTableColumns;
+    protected int version;
 
 
     /**
@@ -177,6 +178,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         this.triggerTableId = td.getUUID();
         this.whenClauseText = whenClauseText;
         this.numBaseTableColumns = td.getNumberOfColumns();
+        this.version = 1;
     }
     
     /**
@@ -811,18 +813,6 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         newReferencingName = (String) in.readObject();
         whenClauseText = (String) in.readObject();
 
-        obj = in.readObject();
-        if (obj instanceof List) {
-            assert triggerDefinitionList == null : "triggerDefinition and triggerDefinitionList cannot both be defined";
-            triggerDefinitionList = (List<String>) obj;
-        }
-
-        obj = in.readObject();
-        if (obj instanceof List) {
-            assert actionSPSIdList == null : "actionSPSIdList and actionSPSId cannot both be defined";
-            actionSPSIdList= (List<UUID>) obj;
-        }
-
     }
 
     @Override
@@ -884,8 +874,6 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         out.writeObject(oldReferencingName);
         out.writeObject(newReferencingName);
         out.writeObject(whenClauseText);
-        out.writeObject(triggerDefinitionList.size() > 1 ? triggerDefinitionList : null);
-        out.writeObject(actionSPSIdList.size() > 1 ? actionSPSIdList : null);
     }
 
     /**
