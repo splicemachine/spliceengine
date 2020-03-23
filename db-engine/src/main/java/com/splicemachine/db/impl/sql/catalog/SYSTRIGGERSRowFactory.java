@@ -445,7 +445,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
 
         assert actionSPSIDList.size() == triggerDefinitionList.size();
 
-        descriptor = new TriggerDescriptorV2(
+        descriptor = new TriggerDescriptorV3(
                 dd,
                 dd.getSchemaDescriptor(suuid, null),
                 uuid,
