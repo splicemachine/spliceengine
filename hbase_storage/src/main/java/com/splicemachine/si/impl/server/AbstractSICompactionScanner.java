@@ -26,6 +26,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -40,6 +41,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
     private final SICompactionState compactionState;
     private final InternalScanner delegate;
     private final BlockingQueue<Entry> queue;
+    private Semaphore permits;
     private final Timer timer;
     private final int timeDelta;
     private final CompactionContext context;
@@ -57,6 +59,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
         this.delegate = scanner;
         this.purgeConfig = purgeConfig;
         this.queue = new ArrayBlockingQueue(bufferSize);
+        this.permits = new Semaphore(bufferSize);
         this.timer = new Timer("Compaction-resolution-throttle", true);
         this.timeDelta = (int) (60000 * resolutionShare);
         this.remainingTime = new AtomicLong(timeDelta);
@@ -64,7 +67,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
     }
 
     @Override
-    public boolean next(List<Cell> list) throws IOException{
+    public boolean next(List<Cell> list) throws IOException {
         if (failure.get() != null) {
             timer.cancel();
             throw failure.get();
@@ -75,13 +78,15 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
         Entry entry;
         try {
             entry = queue.take();
+            int toRelease = entry.cells.size();
             final boolean more = entry.more;
             List<TxnView> txns = waitFor(entry.txns);
             compactionState.mutate(entry.cells, txns, list, purgeConfig);
             if (!more) {
                 timer.cancel();
-                    context.close();
+                context.close();
             }
+            permits.release(toRelease);
             return more;
         } catch (Exception e) {
             timer.cancel();
@@ -129,7 +134,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
     }
 
     public void start() {
-        Thread thread = new Thread( new Runnable() {
+        Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
                 boolean more = true;
@@ -139,6 +144,10 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
                         more = delegate.next(list);
                         List<Future<TxnView>> txns = compactionState.resolve(list);
                         queue.put(new Entry(list, txns, more));
+                        // we acquire the permits after inserting because we don't want to block indefinitely if
+                        // we process a row with more Cells than maximum permits available, we don't care too much about
+                        // going a bit above the max number of permits
+                        permits.acquire(list.size());
                     }
                 } catch (IOException e) {
                     LOG.error("Unexpected exception", e);

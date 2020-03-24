@@ -215,9 +215,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             if(tableEnvMatch && scanner != null){
                 SIDriver driver=SIDriver.driver();
                 SimpleCompactionContext context = new SimpleCompactionContext();
-                boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
+                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
                 PurgeConfig purgeConfig;
                 if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
@@ -230,7 +229,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 }
                 SICompactionScanner siScanner = new SICompactionScanner(
                         state, scanner, purgeConfig,
-                        conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+                        conf.getOlapCompactionResolutionShare(), conf.getLocalCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
             }else{

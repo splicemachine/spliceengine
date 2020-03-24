@@ -136,6 +136,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final double olapCompactionResolutionShare;
     private final double flushResolutionShare;
     private final int olapCompactionResolutionBufferSize;
+    private final int localCompactionResolutionBufferSize;
     private final boolean olapCompactionBlocking;
     private final boolean resolutionOnFlushes;
     private final double bulkImportSampleFraction;
@@ -1057,6 +1058,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapCompactionResolutionShare = builder.olapCompactionResolutionShare;
         flushResolutionShare = builder.flushResolutionShare;
         olapCompactionResolutionBufferSize = builder.olapCompactionResolutionBufferSize;
+        localCompactionResolutionBufferSize = builder.localCompactionResolutionBufferSize;
         olapCompactionBlocking = builder.olapCompactionBlocking;
         olapLog4jConfig = builder.olapLog4jConfig;
         olapServerIsolatedRoles = builder.olapServerIsolatedRoles;
@@ -1136,6 +1138,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getOlapCompactionResolutionBufferSize() {
         return olapCompactionResolutionBufferSize;
+    }
+
+    @Override
+    public int getLocalCompactionResolutionBufferSize() {
+        return localCompactionResolutionBufferSize;
     }
 
     @Override
