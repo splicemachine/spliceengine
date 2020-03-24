@@ -597,7 +597,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
   def primaryKeys(schemaTableName: String): Array[String] =
     SpliceJDBCUtil.retrievePrimaryKeys(
-      new JdbcOptionsInWrite(Map(
+      new JDBCOptions(Map(
         JDBCOptions.JDBC_URL -> url,
         JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
     )
@@ -626,6 +626,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
 
+//    println( s"SMC.modifyOnKeys sql $combinedText" )
     executeUpdate(combinedText)
   }
 

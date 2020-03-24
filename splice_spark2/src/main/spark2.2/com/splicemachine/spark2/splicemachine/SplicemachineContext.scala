@@ -597,7 +597,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
   def primaryKeys(schemaTableName: String): Array[String] =
     SpliceJDBCUtil.retrievePrimaryKeys(
-      new JdbcOptionsInWrite(Map(
+      new JDBCOptions(Map(
         JDBCOptions.JDBC_URL -> url,
         JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
     )
