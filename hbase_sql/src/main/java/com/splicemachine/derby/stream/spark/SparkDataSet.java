@@ -690,7 +690,9 @@ public class SparkDataSet<V> implements DataSet<V> {
         Dataset<Row> leftDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new LocatedRowToRowFunction()),
                         context.getOperation().getLeftOperation().getExecRowDefinition().schema());
-        OperationContext<SpliceOperation> leftContext = EngineDriver.driver().processorFactory().distributedProcessor().createOperationContext(context.getOperation().getLeftOperation());
+        OperationContext<SpliceOperation> leftContext = context.getOperation().getLeftOperation().getOperationContext();
+        if (leftContext == null)
+            leftContext = EngineDriver.driver().processorFactory().distributedProcessor().createOperationContext(context.getOperation().getLeftOperation());
 
         return new NativeSparkDataSet(leftDF, leftContext).join(context, rightDataSet, joinType, isBroadcast);
     }
@@ -701,7 +703,9 @@ public class SparkDataSet<V> implements DataSet<V> {
         Dataset<Row> leftDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new LocatedRowToRowFunction()),
                         context.getOperation().getLeftOperation().getExecRowDefinition().schema());
-        OperationContext<SpliceOperation> leftContext = EngineDriver.driver().processorFactory().distributedProcessor().createOperationContext(context.getOperation().getLeftOperation());
+        OperationContext<SpliceOperation> leftContext = context.getOperation().getLeftOperation().getOperationContext();
+        if (leftContext == null)
+            leftContext = EngineDriver.driver().processorFactory().distributedProcessor().createOperationContext(context.getOperation().getLeftOperation());
 
         return new NativeSparkDataSet(leftDF, leftContext).crossJoin(context, rightDataSet, type);
     }

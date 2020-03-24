@@ -399,17 +399,17 @@ Cursor(n=10,rows=1,updateMode=READ_ONLY (1),engine=control (default))
         /* the plan should look like the following:
         Plan
         ----
-        Cursor(n=11,rows=59736,updateMode=READ_ONLY (1),engine=Spark (cost))
-          ->  ScrollInsensitive(n=10,totalCost=29274.433,outputRows=59736,outputHeapSize=521.382 KB,partitions=1)
-            ->  ProjectRestrict(n=9,totalCost=9552.096,outputRows=59736,outputHeapSize=521.382 KB,partitions=1)
-              ->  MergeSortJoin(n=8,totalCost=9552.096,outputRows=59736,outputHeapSize=521.382 KB,partitions=1,preds=[(T1.A1[14:1] = B.A2[14:2])])
-                ->  Union(n=7,totalCost=182.482,outputRows=73748,outputHeapSize=288.039 KB,partitions=2)
-                  ->  TableScan[T33(2000)](n=6,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=20 B,partitions=1)
-                  ->  ProjectRestrict(n=5,totalCost=130.205,outputRows=73728,outputHeapSize=288.02 KB,partitions=1)
-                    ->  BroadcastJoin(n=4,totalCost=130.205,outputRows=73728,outputHeapSize=288.02 KB,partitions=1,preds=[(A1[6:1] = A2[6:2])])
-                      ->  TableScan[T22(1984)](n=3,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=288.02 KB,partitions=1)
-                      ->  IndexScan[IDX1_T111(1937)](n=2,totalCost=48.237,scannedRows=40960,outputRows=40960,outputHeapSize=160 KB,partitions=1,baseTable=T111(1920))
-                ->  TableScan[T1(1856)](n=1,totalCost=4.045,scannedRows=40,outputRows=40,outputHeapSize=160 B,partitions=1)
+        Cursor(n=11,rows=32,updateMode=READ_ONLY (1),engine=Spark (cost))
+          ->  ScrollInsensitive(n=10,totalCost=4854.766,outputRows=32,outputHeapSize=291 B,partitions=1)
+            ->  ProjectRestrict(n=9,totalCost=4844.069,outputRows=32,outputHeapSize=291 B,partitions=1)
+              ->  MergeSortJoin(n=8,totalCost=4844.069,outputRows=32,outputHeapSize=291 B,partitions=1,preds=[(T1.A1[14:1] = B.A2[14:2])])
+                ->  Union(n=7,totalCost=145.618,outputRows=36884,outputHeapSize=180.02 KB,partitions=2)
+                  ->  TableScan[T33(1904)](n=6,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=20 B,partitions=1)
+                  ->  ProjectRestrict(n=5,totalCost=93.341,outputRows=36864,outputHeapSize=180 KB,partitions=1)
+                    ->  BroadcastJoin(n=4,totalCost=93.341,outputRows=36864,outputHeapSize=180 KB,partitions=1,preds=[(A1[6:1] = A2[6:2])])
+                      ->  TableScan[T22(1888)](n=3,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=180 KB,partitions=1)
+                      ->  IndexScan[IDX1_T111(1841)](n=2,totalCost=48.237,scannedRows=40960,outputRows=40960,outputHeapSize=160 KB,partitions=1,baseTable=T111(1824))
+                ->  TableScan[T1(1760)](n=1,totalCost=4.045,scannedRows=40,outputRows=40,outputHeapSize=160 B,partitions=1)
 
         11 rows selected
          */
@@ -422,11 +422,11 @@ Cursor(n=10,rows=1,updateMode=READ_ONLY (1),engine=control (default))
                 "where t1.a1=b.a2";
 
         rowContainsQuery(new int[]{4,5,6,7,8,9,10,11}, sqlText, methodWatcher,
-                new String[] {"MergeSortJoin", "outputRows=59736"},
-                new String[] {"Union", "outputRows=73748"},
+                new String[] {"MergeSortJoin", "outputRows=32"},
+                new String[] {"Union", "outputRows=36884"},
                 new String[] {"TableScan[T33", "outputRows=20"},
-                new String[] {"ProjectRestrict", "outputRows=73728"},
-                new String[] {"BroadcastJoin", "outputRows=73728"},
+                new String[] {"ProjectRestrict", "outputRows=36864"},
+                new String[] {"BroadcastJoin", "outputRows=36864"},
                 new String[] {"TableScan[T22", "outputRows=20"},
                 new String[] {"IndexScan[IDX1_T111", "outputRows=40960"},
                 new String[] {"TableScan[T1", "outputRows=40"}
@@ -438,17 +438,17 @@ Cursor(n=10,rows=1,updateMode=READ_ONLY (1),engine=control (default))
         /* the plan should look like the following:
         Plan
         ----
-        Cursor(n=11,rows=32,updateMode=READ_ONLY (1),engine=Spark (cost))
-          ->  ScrollInsensitive(n=10,totalCost=23598.674,outputRows=32,outputHeapSize=74.393 KB,partitions=1)
-            ->  ProjectRestrict(n=9,totalCost=18113.006,outputRows=32,outputHeapSize=74.393 KB,partitions=1)
-              ->  BroadcastJoin(n=8,totalCost=18113.006,outputRows=32,outputHeapSize=74.393 KB,partitions=1,preds=[(T1.A1[14:1] = B.SQLCol2[14:2])])
-                ->  Intersect(n=7,totalCost=16416.922,outputRows=10,outputHeapSize=74.267 KB,partitions=1)
-                  ->  TableScan[T33(1728)](n=6,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=20 B,partitions=1)
-                  ->  ProjectRestrict(n=5,totalCost=130.205,outputRows=73728,outputHeapSize=288.02 KB,partitions=1)
-                    ->  BroadcastJoin(n=4,totalCost=130.205,outputRows=73728,outputHeapSize=288.02 KB,partitions=1,preds=[(A1[6:1] = A2[6:2])])
-                      ->  TableScan[T22(1712)](n=3,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=288.02 KB,partitions=1)
-                      ->  IndexScan[IDX1_T111(1665)](n=2,totalCost=48.237,scannedRows=40960,outputRows=40960,outputHeapSize=160 KB,partitions=1,baseTable=T111(1648))
-                ->  TableScan[T1(1584)](n=1,totalCost=4.045,scannedRows=40,outputRows=40,outputHeapSize=160 B,partitions=1)
+        Cursor(n=11,rows=8,updateMode=READ_ONLY (1),engine=Spark (cost))
+          ->  ScrollInsensitive(n=10,totalCost=8661.43,outputRows=8,outputHeapSize=29.479 KB,partitions=1)
+            ->  ProjectRestrict(n=9,totalCost=8485.316,outputRows=8,outputHeapSize=29.479 KB,partitions=1)
+              ->  BroadcastJoin(n=8,totalCost=8485.316,outputRows=8,outputHeapSize=29.479 KB,partitions=1,preds=[(T1.A1[14:1] = B.SQLCol2[14:2])])
+                ->  Intersect(n=7,totalCost=8264.938,outputRows=10,outputHeapSize=36.354 KB,partitions=1)
+                  ->  TableScan[T33(2048)](n=6,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=20 B,partitions=1)
+                  ->  ProjectRestrict(n=5,totalCost=93.341,outputRows=36864,outputHeapSize=180 KB,partitions=1)
+                    ->  BroadcastJoin(n=4,totalCost=93.341,outputRows=36864,outputHeapSize=180 KB,partitions=1,preds=[(A1[6:1] = A2[6:2])])
+                      ->  TableScan[T22(2032)](n=3,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=180 KB,partitions=1)
+                      ->  IndexScan[IDX1_T111(1985)](n=2,totalCost=48.237,scannedRows=40960,outputRows=40960,outputHeapSize=160 KB,partitions=1,baseTable=T111(1968))
+                ->  TableScan[T1(1904)](n=1,totalCost=4.045,scannedRows=40,outputRows=40,outputHeapSize=160 B,partitions=1)
 
         11 rows selected
          */
@@ -461,11 +461,11 @@ Cursor(n=10,rows=1,updateMode=READ_ONLY (1),engine=control (default))
                 "where t1.a1=b.a2";
 
         rowContainsQuery(new int[]{4,5,6,7,8,9,10,11}, sqlText, methodWatcher,
-                new String[] {"BroadcastJoin", "outputRows=32"},
+                new String[] {"BroadcastJoin", "outputRows=8"},
                 new String[] {"Intersect", "outputRows=10"},
                 new String[] {"TableScan[T33", "outputRows=20"},
-                new String[] {"ProjectRestrict", "outputRows=73728"},
-                new String[] {"BroadcastJoin", "outputRows=73728"},
+                new String[] {"ProjectRestrict", "outputRows=36864"},
+                new String[] {"BroadcastJoin", "outputRows=36864"},
                 new String[] {"TableScan[T22", "outputRows=20"},
                 new String[] {"IndexScan[IDX1_T111", "outputRows=40960"},
                 new String[] {"TableScan[T1", "outputRows=40"}
