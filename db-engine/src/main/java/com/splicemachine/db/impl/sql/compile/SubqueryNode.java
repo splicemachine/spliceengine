@@ -50,6 +50,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.execute.OnceResultSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -83,6 +84,7 @@ import java.util.*;
  * <UL> where x = (SELECT true FROM (SELECT MAX(x) FROM z) WHERE SQLCOL1 = y) </UL>
  */
 
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class SubqueryNode extends ValueNode{
     /* Subquery types.
      * NOTE: FROM_SUBQUERY only exists for a brief second in the parser.  It
@@ -634,7 +636,7 @@ public class SubqueryNode extends ValueNode{
             if (!(resultSet instanceof RowResultSetNode)) {
                 ValueNode fetchFirst = (NumericConstantNode) getNodeFactory().getNode(
                         C_NodeTypes.INT_CONSTANT_NODE,
-                        new Integer(1),
+                        Integer.valueOf(1),
                         getContextManager());
                 this.fetchFirst = fetchFirst;
             }
@@ -1099,7 +1101,10 @@ public class SubqueryNode extends ValueNode{
          */
 
         /* Optimize the underlying result set */
-        resultSet=resultSet.optimize(dataDictionary, null, outerRows, forSpark);
+        resultSet=resultSet.optimize(dataDictionary, null, 0, forSpark);
+        if (subqueryType != EXPRESSION_SUBQUERY || hasCorrelatedCRs()) {
+            resultSet.getCostEstimate().multiply(outerRows, resultSet.getCostEstimate());
+        }
     }
 
     /**
@@ -2219,6 +2224,8 @@ public class SubqueryNode extends ValueNode{
                                 this,
                                 getContextManager());
                 break;
+            default:
+                assert false;
         }
         ucoNode.bindComparisonOperator();
         return ucoNode;
@@ -2499,6 +2506,8 @@ public class SubqueryNode extends ValueNode{
                         this,
                         getContextManager());
                 break;
+            default:
+                assert false;
         }
 
         // clean up the state of the tree to reflect a bound expression subquery
