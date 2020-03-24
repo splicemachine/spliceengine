@@ -354,6 +354,8 @@ public interface SConfiguration {
 
     int getOlapCompactionResolutionBufferSize();
 
+    int getLocalCompactionResolutionBufferSize();
+
     boolean getOlapCompactionBlocking();
 
     boolean getResolutionOnFlushes();

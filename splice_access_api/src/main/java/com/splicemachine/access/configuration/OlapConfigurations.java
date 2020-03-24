@@ -111,7 +111,7 @@ public class OlapConfigurations implements ConfigurationDefault {
 
     // Size of buffer for asynchronous transaction resolution
     public static final String SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = "spark.compaction.resolution.bufferSize";
-    public static final int DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = 1024*100;
+    public static final int DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = 1024*1024;
 
     // Whether we block asynchronous transaction resolution when the executor is full
     public static final String SPARK_COMPACTION_BLOCKING = "spark.compaction.blocking";
