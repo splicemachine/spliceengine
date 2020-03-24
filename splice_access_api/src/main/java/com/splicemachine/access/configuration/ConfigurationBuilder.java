@@ -201,6 +201,7 @@ public class ConfigurationBuilder {
     public double flushResolutionShare;
     public int olapCompactionResolutionBufferSize;
     public boolean olapCompactionBlocking;
+    public int localCompactionResolutionBufferSize;
     public boolean resolutionOnFlushes;
     public int olapClientRetries;
     public double bulkImportSampleFraction;
