@@ -346,7 +346,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val sqlMod = if( sql.trim.toUpperCase.startsWith("SELECT") ) {
       val spliceProps = " --splice-properties useSpark=true"
       if( sql.toUpperCase.contains("WHERE") ) {
-        sql.toUpperCase.replace( "WHERE" , spliceProps+"\nWHERE")
+        val w = sql.toUpperCase.indexOf("WHERE")
+        sql.substring(0, w) + spliceProps+"\n" + sql.substring(w, sql.length())
       } else {
         sql + spliceProps
       }
@@ -626,6 +627,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
 
+//    println( s"SMC.modifyOnKeys sql $combinedText" )
     executeUpdate(combinedText)
   }
 
