@@ -117,7 +117,9 @@ public abstract class RoutingWriteHandler implements WriteHandler {
             ctx.failed(mutation,WriteResult.notServingRegion());
         else if(t instanceof WrongPartitionException)
             ctx.failed(mutation,WriteResult.wrongRegion());
-        else
-            ctx.failed(mutation, WriteResult.failed(t.getClass().getSimpleName()+":"+t.getMessage()));
+        else {
+            LOG.error("Unexpected exception", t);
+            ctx.failed(mutation, WriteResult.failed(t.getClass().getSimpleName() + ":" + t.getMessage()));
+        }
     }
 }
