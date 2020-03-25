@@ -2000,6 +2000,7 @@ public interface SQLState {
 	String INVALID_REPLICATION_PEER									= "RPL003";
     String CANNOT_CONNECT_PEER                                      = "RPL004";
 	String READ_ONLY												= "RPL005";
+	String REPLICATION_CONFIG_ERROR                                 = "RPL006";
     /**
      * External table
      */
