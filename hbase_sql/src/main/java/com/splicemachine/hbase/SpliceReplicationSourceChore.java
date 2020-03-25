@@ -408,15 +408,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
             conn = connectionMap.get(clusterKey);
         }
         else {
-            String s[] = clusterKey.split(":");
-            String zkQuorum = s[0];
-            String port = s[1];
-            String hbaseRoot = s[2];
-            Configuration conf = org.apache.hadoop.hbase.HBaseConfiguration.create();
-            conf.set(HConstants.ZOOKEEPER_CLIENT_PORT, port);
-            conf.set(HConstants.ZOOKEEPER_QUORUM, zkQuorum);
-            conf.set(HConstants.ZOOKEEPER_ZNODE_PARENT, hbaseRoot);
-            conn = ConnectionFactory.createConnection(conf);
+            conn = ReplicationUtils.createConnection(clusterKey);
             connectionMap.put(clusterKey, conn);
         }
         return conn;
