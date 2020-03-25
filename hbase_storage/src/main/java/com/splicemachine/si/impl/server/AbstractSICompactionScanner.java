@@ -48,6 +48,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
     private final PurgeConfig purgeConfig;
     private AtomicReference<IOException> failure = new AtomicReference<>();
     private AtomicLong remainingTime;
+    private volatile boolean stop = false;
 
     public AbstractSICompactionScanner(SICompactionState compactionState,
                                        InternalScanner scanner,
@@ -88,9 +89,15 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
             }
             permits.release(toRelease);
             return more;
-        } catch (Exception e) {
+        } catch (Throwable t) {
             timer.cancel();
-            throw new IOException(e);
+            stop = true;
+
+            // unblock reading thread
+            permits.release(queue.size());
+            queue.clear();
+
+            throw new IOException(t);
         }
     }
 
@@ -139,12 +146,12 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
             public void run() {
                 boolean more = true;
                 try {
-                    while (more) {
+                    while (more && !stop) {
                         List<Cell> list = new ArrayList<>();
                         more = delegate.next(list);
                         List<Future<TxnView>> txns = compactionState.resolve(list);
                         queue.put(new Entry(list, txns, more));
-                        // we acquire the permits after inserting because we don't want to block indefinitely if
+                        // We acquire the permits after inserting because we don't want to block indefinitely if
                         // we process a row with more Cells than maximum permits available, we don't care too much about
                         // going a bit above the max number of permits
                         permits.acquire(list.size());
@@ -152,9 +159,9 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
                 } catch (IOException e) {
                     LOG.error("Unexpected exception", e);
                     failure.set(e);
-                } catch (InterruptedException ie) {
-                    LOG.error("Unexpected exception", ie);
-                    failure.set(new IOException("Compaction interrupted", ie));
+                } catch (Throwable t) {
+                    LOG.error("Unexpected exception", t);
+                    failure.set(new IOException("Compaction interrupted", t));
                 }
             }
         }, "CompactionReader");
