@@ -146,6 +146,7 @@ public class PartitionWriteHandler implements WriteHandler {
                  * it's because we were unable to write ANY records to the WAL, so we can safely assume that
                  * all the puts failed and can be safely retried.
                  */
+                LOG.error("Unexpected exception", wce);
                 WriteResult result=WriteResult.failed(wce.getClass().getSimpleName()+":"+wce.getMessage());
                 for(KVPair mutation : filteredMutations){
                     ctx.result(mutation,result);
