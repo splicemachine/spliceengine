@@ -738,10 +738,29 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @return table's schema
     */
   def getSchema(schemaTableName: String): StructType = {
-    val newSpliceOptions = Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName)
-    JDBCRDD.resolveTable(new JDBCOptions(newSpliceOptions))
+    val schemaJdbc = JdbcUtils.getSchemaOption(
+      getConnection(),
+      new JDBCOptions(Map(
+        JDBCOptions.JDBC_URL -> url,
+        JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
+      )
+      )).getOrElse(StructType(Nil))
+
+    // If schemaJdbc contains a ShortType field, it may have been incorrectly mapped by JDBC,
+    //  so get a schema from df and take its types
+    if( schemaJdbc.exists(_.dataType.isInstanceOf[ShortType]) ) {
+      val schemaDf = df(s"select top 1 * from $schemaTableName").schema
+
+      if (schemaJdbc.size == schemaDf.size) {
+        var i = 0
+        var schema = StructType(Nil)
+        for (field <- schemaJdbc.iterator) {
+          schema = schema.add(field.name, schemaDf(i).dataType, field.nullable)
+          i += 1
+        }
+        schema
+      } else { schemaJdbc }
+    } else { schemaJdbc }
   }
 
   private[this]val dialect = new SplicemachineDialect2
