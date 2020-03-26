@@ -35,9 +35,11 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.commons.io.FileUtils;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.io.File;
 import java.sql.ResultSet;
@@ -396,6 +398,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
 
     }
 
+    @Category(HBaseTest.class)
     @Test
     public void testExternalTablePlainText() throws Exception {
         //Plain text
@@ -416,6 +419,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "LOCATION '"+getExternalResourceDirectory()+"testCsvFile';", rs.getString(1));
     }
 
+    @Category(HBaseTest.class)
     @Test
     public void testExternalTableParquetWithoutCompression() throws Exception {
         //Parquet Without compression
@@ -434,6 +438,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "LOCATION '"+getExternalResourceDirectory()+"testParquet';", rs.getString(1));
     }
 
+    @Category(HBaseTest.class)
     @Test
     public void testExternalTableOrcSnappy() throws Exception {
         //Orc With compression
