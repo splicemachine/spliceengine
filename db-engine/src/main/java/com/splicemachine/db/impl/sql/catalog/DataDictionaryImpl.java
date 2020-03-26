@@ -5094,7 +5094,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         bArray[2]=true;
                         break;
                     default:
-                        assert false: "Unexpected colToSet: " + colToSet;
+                        // Do nothing
                 }
             }
         }
