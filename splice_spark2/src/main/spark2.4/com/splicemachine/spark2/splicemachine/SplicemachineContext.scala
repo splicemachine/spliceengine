@@ -738,13 +738,18 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @return table's schema
     */
   def getSchema(schemaTableName: String): StructType = {
-    val schemaJdbc = JdbcUtils.getSchemaOption(
-      getConnection(),
-      new JDBCOptions(Map(
-        JDBCOptions.JDBC_URL -> url,
-        JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
-      )
-      )).getOrElse(StructType(Nil))
+    val options = new JDBCOptions(Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
+    ))
+    val schemaJdbcOpt = JdbcUtils.getSchemaOption(getConnection(), options)
+
+    if( schemaJdbcOpt.isEmpty ) {
+      if   ( tableExists(schemaTableName) ) { JDBCRDD.resolveTable( options ) }  // resolveTable should throw a descriptive exception
+      else { throw new Exception( s"Table/View '$schemaTableName' does not exist." ) }
+    }
+
+    val schemaJdbc = schemaJdbcOpt.get
 
     // If schemaJdbc contains a ShortType field, it may have been incorrectly mapped by JDBC,
     //  so get a schema from df and take its types
