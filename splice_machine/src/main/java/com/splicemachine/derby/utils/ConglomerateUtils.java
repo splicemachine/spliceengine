@@ -227,7 +227,7 @@ public class ConglomerateUtils{
 
     public static void createConglomerate(boolean isExternal,long conglomId,
                                           Conglomerate conglomerate,
-                                          Txn txn,
+                                          TxnView txn,
                                           String schemaDisplayName,
                                           String tableDisplayName,
                                           String indexDisplayName,
@@ -258,7 +258,7 @@ public class ConglomerateUtils{
             String tableName,
             long conglomId,
             byte[] conglomData,
-            Txn txn,
+            TxnView txn,
             String schemaDisplayName,
             String tableDisplayName,
             String indexDisplayName,

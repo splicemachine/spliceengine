@@ -17,7 +17,6 @@ package com.splicemachine.olap;
 import com.google.common.net.HostAndPort;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ExtensionRegistry;
-import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.pipeline.Exceptions;

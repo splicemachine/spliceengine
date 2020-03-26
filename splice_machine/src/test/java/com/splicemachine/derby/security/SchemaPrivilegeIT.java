@@ -126,7 +126,7 @@ public class SchemaPrivilegeIT {
 
     @Before
     public  void setUpClass() throws Exception {
-        String remoteURLTemplate = "jdbc:splice://localhost:1528/splicedb;create=true;user=%s;password=%s";
+        String remoteURLTemplate = "jdbc:splice://localhost:1528/splicedb;create=true";
 
         adminConn = spliceClassWatcherAdmin.createConnection();
         user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);

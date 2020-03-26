@@ -31,9 +31,6 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-import com.splicemachine.db.impl.sql.compile.*;
-import org.spark_project.guava.base.Optional;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.TypeDescriptor;
@@ -64,12 +61,17 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.jdbc.LOBStoredProcedure;
 import com.splicemachine.db.impl.services.locks.Timeout;
+import com.splicemachine.db.impl.sql.compile.ColumnReference;
+import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
+import com.splicemachine.db.impl.sql.compile.SetNode;
+import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
+import org.spark_project.guava.base.Optional;
 import org.spark_project.guava.collect.FluentIterable;
 import org.spark_project.guava.collect.ImmutableListMultimap;
 import org.spark_project.guava.collect.Lists;
@@ -87,6 +89,8 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Standard database implementation of the data dictionary that stores the information in the system catlogs.
@@ -3997,11 +4001,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             // Add the replacement code that accesses a value in the
             // transition variable.
             final int replacementOffset = newText.length();
+            boolean isSetTarget = false;
+            if (actionStmt instanceof SetNode) {
+                String regex    =   "(^set[\\s]+$)|([\\s]+set[\\s]+$)|(,[\\s]*$)";
+                Pattern pattern =   Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+                Matcher matcher =   pattern.matcher(newText);
+                if (matcher.find())
+                    isSetTarget = true;
+            }
+
             newText.append(genColumnReferenceSQL(triggerTableDescriptor, colName,
                            tableName.getTableName(),
                            tableName.getTableName().equals(oldReferencingName),
                            colPositionInRuntimeResultSet,
-                           actionStmt instanceof SetNode));
+                           isSetTarget));
 
             start = ref.getEndOffset() + 1 - actionOffset;
 
@@ -7739,6 +7752,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSTOKENS_NUM:
                     retval=new TabInfoImpl(new SYSTOKENSRowFactory(luuidFactory,exFactory,dvf));
                     break;
+                case SYSREPLICATION_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSREPLICATIONRowFactory(luuidFactory,exFactory,dvf));
+                    break;
                 case SYSBACKUPFILESET_CATALOG_NUM:
                 case SYSBACKUPJOBS_CATALOG_NUM:
                 default:
@@ -10830,5 +10846,109 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if (result != null)
             dataDictionaryCache.tokenCacheAdd(token, result);
         return result;
+    }
+
+    @Override
+    public void addReplication(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSREPLICATION_CATALOG_NUM);
+        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
+        int insertRetCode=ti.insertRow(row,tc);
+    }
+
+    @Override
+    public void deleteReplication(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
+        ReplicationDescriptor d = (ReplicationDescriptor) descriptor;
+        String scope = d.getScope();
+        String schemaName = d.getSchemaName();
+        String tableName = d.getTableName();
+
+        TabInfoImpl ti=getNonCoreTI(SYSREPLICATION_CATALOG_NUM);
+        if (scope!= null && schemaName == null && tableName == null) {
+            ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+            keyRow.setColumn(1, new SQLVarchar(scope));
+            ti.deleteRow(tc, keyRow, SYSREPLICATIONRowFactory.SYSREPLICATION_INDEX1_ID);
+        }
+        else if (scope!= null && schemaName != null && tableName == null) {
+            ExecIndexRow keyRow = exFactory.getIndexableRow(2);
+            keyRow.setColumn(1, new SQLVarchar(scope));
+            keyRow.setColumn(2, new SQLVarchar(schemaName));
+            ti.deleteRow(tc, keyRow, SYSREPLICATIONRowFactory.SYSREPLICATION_INDEX2_ID);
+        }
+        else if (scope!= null && schemaName != null && tableName != null) {
+            ExecIndexRow keyRow = exFactory.getIndexableRow(3);
+            keyRow.setColumn(1, new SQLVarchar(scope));
+            keyRow.setColumn(2, new SQLVarchar(schemaName));
+            keyRow.setColumn(3, new SQLVarchar(tableName));
+            ti.deleteRow(tc, keyRow, SYSREPLICATIONRowFactory.SYSREPLICATION_INDEX3_ID);
+        }
+    }
+
+    @Override
+    public boolean databaseReplicationEnabled() throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSREPLICATION_CATALOG_NUM);
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, new SQLVarchar(SYSREPLICATIONRowFactory.SCOPE_DATABASE));
+
+        ReplicationDescriptor result = (ReplicationDescriptor)
+                getDescriptorViaIndex(
+                        SYSREPLICATIONRowFactory.SYSREPLICATION_INDEX1_ID,
+                        keyRow,
+                        null,
+                        ti,
+                        null,
+                        null,
+                        false,
+                        TransactionController.ISOLATION_REPEATABLE_READ,
+                        getTransactionCompile());
+        return result != null;
+    }
+
+    @Override
+    public boolean schemaReplicationEnabled(String schemaName) throws StandardException {
+
+        TabInfoImpl ti=getNonCoreTI(SYSREPLICATION_CATALOG_NUM);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(2);
+        keyRow.setColumn(1, new SQLVarchar(SYSREPLICATIONRowFactory.SCOPE_SCHEMA));
+        keyRow.setColumn(2, new SQLVarchar(schemaName));
+
+        ReplicationDescriptor result = (ReplicationDescriptor)
+                getDescriptorViaIndex(
+                        SYSREPLICATIONRowFactory.SYSREPLICATION_INDEX2_ID,
+                        keyRow,
+                        null,
+                        ti,
+                        null,
+                        null,
+                        false,
+                        TransactionController.ISOLATION_REPEATABLE_READ,
+                        getTransactionCompile());
+
+        return result != null;
+    }
+
+    @Override
+    public boolean tableReplicationEnabled(String schemaName,
+                                      String tableName) throws StandardException {
+
+        TabInfoImpl ti=getNonCoreTI(SYSREPLICATION_CATALOG_NUM);
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(3);
+        keyRow.setColumn(1, new SQLVarchar(SYSREPLICATIONRowFactory.SCOPE_TABLE));
+        keyRow.setColumn(2, new SQLVarchar(schemaName));
+        keyRow.setColumn(3, new SQLVarchar(tableName));
+
+        ReplicationDescriptor result = (ReplicationDescriptor)
+                getDescriptorViaIndex(
+                        SYSREPLICATIONRowFactory.SYSREPLICATION_INDEX3_ID,
+                        keyRow,
+                        null,
+                        ti,
+                        null,
+                        null,
+                        false,
+                        TransactionController.ISOLATION_REPEATABLE_READ,
+                        getTransactionCompile());
+        return result != null;
     }
 }

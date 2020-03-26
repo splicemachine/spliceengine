@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1950-SNAPSHOT</version>
+        <version>3.1.0.1952-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -39,12 +39,28 @@
             <artifactId>hbase-client</artifactId>
             <version>${hbase.version}</version>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-server</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-server</artifactId>
             <version>${hbase.version}</version>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <!-- org.spark_project.guava -->
@@ -64,9 +80,7 @@
             <artifactId>annotations</artifactId>
             <scope>provided</scope>
         </dependency>
-
         <!--Test dependencies -->
-
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>pipeline_api</artifactId>
@@ -94,6 +108,16 @@
             <artifactId>hbase-testing-util</artifactId>
             <version>${hbase.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-core</artifactId>
+                </exclusion>
+            </exclusions>
        </dependency>
     </dependencies>
     <build>
@@ -161,7 +185,7 @@
         </plugins>
         <resources>
             <resource>
-                <directory>${envHbase}/src/main/resources</directory>
+                <directory>src/main/resources</directory>
             </resource>
         </resources>
     </build>

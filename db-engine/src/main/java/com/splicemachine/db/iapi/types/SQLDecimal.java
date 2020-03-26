@@ -41,12 +41,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.StructField;
 
@@ -1168,59 +1163,6 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		return Format.DECIMAL;
 	}
 
-	/**
-	 *
-	 * Write to a Project Tungsten Format (UnsafeRow).
-	 *
-	 * @see UnsafeRowWriter#write(int, Decimal, int, int)
-	 *
-	 * @param unsafeRowWriter
-	 * @param ordinal
-     */
-	@Override
-	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
-		if (isNull())
-				unsafeRowWriter.setNullAt(ordinal);
-		else {
-			unsafeRowWriter.write(ordinal, Decimal.apply(value,getValuePrecision(),value.scale()), getValuePrecision(), value.scale());
-		}
-	}
-
-	/**
-	 *
-	 * Write Element into positioned array
-	 *
-	 * @param unsafeArrayWriter
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-		if (isNull())
-			unsafeArrayWriter.setNull(ordinal);
-		else {
-			unsafeArrayWriter.write(ordinal, Decimal.apply(value,getValuePrecision(),value.scale()), getValuePrecision(), value.scale());
-		}
-	}
-
-	/**
-	 *
-	 * Read element from positioned array
-	 *
-	 * @param unsafeArrayData
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-		if (unsafeArrayData.isNullAt(ordinal))
-			setToNull();
-		else {
-			isNull = false;
-			value = unsafeArrayData.getDecimal(ordinal,precision,scale).toJavaBigDecimal();
-		}
-	}
-
 	@Override
 	public void read(Row row, int ordinal) throws StandardException {
 		if (row.isNullAt(ordinal))
@@ -1228,26 +1170,6 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		else {
 			isNull = false;
 			value = row.getDecimal(ordinal);
-		}
-	}
-
-	/**
-	 *
-	 * Read from a Project Tungsten Format (UnsafeRow).
-	 *
-	 * @see UnsafeRow#getDecimal(int, int, int)
-	 *
-	 * @param unsafeRow
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-		if (unsafeRow.isNullAt(ordinal))
-				setToNull();
-		else {
-			isNull = false;
-			value = unsafeRow.getDecimal(ordinal, precision, scale).toJavaBigDecimal();
 		}
 	}
 
@@ -1313,7 +1235,6 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		}
 	}
 
-
 	private int getValuePrecision() {
 		if (value == null)
 			return 0;
@@ -1326,5 +1247,4 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
 		return value.precision();
 	}
-
 }

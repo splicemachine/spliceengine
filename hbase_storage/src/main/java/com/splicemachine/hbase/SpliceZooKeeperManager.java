@@ -14,19 +14,18 @@
 
 package com.splicemachine.hbase;
 
-import java.io.Closeable;
-import java.io.IOException;
-
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Abortable;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
+import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.SConfiguration;
+import java.io.Closeable;
+import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -34,7 +33,7 @@ import com.splicemachine.access.api.SConfiguration;
  */
 public class SpliceZooKeeperManager implements Abortable, Closeable{
     private static final Logger LOG=Logger.getLogger(SpliceZooKeeperManager.class);
-    protected ZooKeeperWatcher watcher;
+    protected ZKWatcher watcher;
     protected RecoverableZooKeeper rzk;
     private volatile boolean isAborted;
 
@@ -44,7 +43,7 @@ public class SpliceZooKeeperManager implements Abortable, Closeable{
 
     public void initialize(SConfiguration configuration){
         try{
-            watcher=new ZooKeeperWatcher((Configuration) configuration.getConfigSource().unwrapDelegate(), "spliceconnection", this);
+            ZKWatcher watcher=new ZKWatcher((Configuration) configuration.getConfigSource().unwrapDelegate(), "spliceconnection", this);
             rzk=watcher.getRecoverableZooKeeper();
         }catch(Exception e){
             LOG.error(e);
@@ -52,7 +51,7 @@ public class SpliceZooKeeperManager implements Abortable, Closeable{
         }
     }
 
-    public ZooKeeperWatcher getZooKeeperWatcher() throws ZooKeeperConnectionException{
+    public ZKWatcher getZooKeeperWatcher() throws ZooKeeperConnectionException{
         return watcher;
     }
 

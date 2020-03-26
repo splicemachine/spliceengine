@@ -14,6 +14,7 @@
 
 package com.splicemachine.hbase;
 
+import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.client.ClientRegionConstants;
 import com.splicemachine.access.client.MemstoreAware;
 import com.splicemachine.access.client.MemstoreKeyValueScanner;
@@ -25,6 +26,7 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.coprocessor.ObserverContextImpl;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionObserver;
 import org.apache.hadoop.hbase.regionserver.*;
@@ -34,10 +36,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -77,7 +76,7 @@ public class MemstoreAwareObserverTest {
     public void preCompactTestScanner() throws Exception {
         MemstoreAwareObserver mao = new MemstoreAwareObserver();
         InternalScanner in = new StubInternalScanner();
-        InternalScanner out = mao.preCompact(mockCtx, mockStore, in, userScanType, mockCompactionReq);
+        InternalScanner out = mao.preCompact(mockCtx, mockStore, in, userScanType, null, mockCompactionReq);
         assertEquals(in, out);
     }
 
@@ -86,15 +85,15 @@ public class MemstoreAwareObserverTest {
         MemstoreAwareObserver mao = new MemstoreAwareObserver();
         SpliceCompactionRequest compactionRequest = new StubCompactionRequest();
 
-        mao.preCompact(mockCtx, mockStore, mockScanner, userScanType, compactionRequest);
+        mao.preCompact(mockCtx, mockStore, mockScanner, userScanType, null, compactionRequest);
         MemstoreAware first = ((StubCompactionRequest)compactionRequest).guinea.get();
 
-        mao.preCompact(mockCtx, mockStore, mockScanner, userScanType, compactionRequest);
+        mao.preCompact(mockCtx, mockStore, mockScanner, userScanType, null, compactionRequest);
         MemstoreAware second = ((StubCompactionRequest)compactionRequest).guinea.get();
         assertEquals(first, second);
 
         SpliceCompactionRequest newCompactionReq = new StubCompactionRequest();
-        mao.preCompact(mockCtx, mockStore, mockScanner, userScanType, newCompactionReq);
+        mao.preCompact(mockCtx, mockStore, mockScanner, userScanType, null, newCompactionReq);
         MemstoreAware turd = ((StubCompactionRequest)newCompactionReq).guinea.get();
         assertEquals(first, turd);
     }
@@ -104,12 +103,12 @@ public class MemstoreAwareObserverTest {
         MemstoreAwareObserver mao = new MemstoreAwareObserver();
         SpliceCompactionRequest compactionRequest = new StubCompactionRequest();
 
-        mao.preCompact(mockCtx, mockStore, mockScanner, userScanType, compactionRequest);
+        mao.preCompact(mockCtx, mockStore, mockScanner, userScanType, null, compactionRequest);
         MemstoreAware pre = ((StubCompactionRequest)compactionRequest).guinea.get();
         // preStorefilesRename() will increment compaction count
         compactionRequest.preStorefilesRename();
 
-        mao.postCompact(mockCtx, mockStore, mockStoreFile, compactionRequest);
+        mao.postCompact(mockCtx, mockStore, mockStoreFile, null, compactionRequest);
         // afterExecute() will decrement compaction cost
         compactionRequest.afterExecute();
         MemstoreAware post = ((StubCompactionRequest)compactionRequest).guinea.get();
@@ -119,7 +118,7 @@ public class MemstoreAwareObserverTest {
 
     @Test
     public void compactionEarlyFailureWorks() throws Exception {
-        SpliceCompactionRequest compactionRequest = new SpliceCompactionRequest();
+        SpliceCompactionRequest compactionRequest = new SpliceCompactionRequest(Lists.newArrayList());
 
         // there's been an exception, preCompact() and preStorefilesRename() are not called
 
@@ -131,19 +130,19 @@ public class MemstoreAwareObserverTest {
     // tests - splits
     //==============================================================================================================
 
-    @Test
-    public void prePostSplitTest() throws Exception {
-        MemstoreAwareObserver mao = new MemstoreAwareObserver();
-
-        mao.preSplit(mockCtx, createByteArray(20));
-        MemstoreAware pre = mao.getMemstoreAware();
-        assertEquals(true, pre.splitMerge);
-
-        mao.postCompleteSplit(mockCtx);
-        MemstoreAware post = mao.getMemstoreAware();
-
-        assertEquals(false, post.splitMerge);
-    }
+//    @Test
+//    public void prePostSplitTest() throws Exception {
+//        MemstoreAwareObserver mao = new MemstoreAwareObserver();
+//
+//        mao.preSplit(mockCtx, createByteArray(20));
+//        MemstoreAware pre = mao.getMemstoreAware();
+//        assertEquals(true, pre.splitMerge);
+//
+//        mao.postCompleteSplit(mockCtx);
+//        MemstoreAware post = mao.getMemstoreAware();
+//
+//        assertEquals(false, post.splitMerge);
+//    }
 
     //==============================================================================================================
     // tests - flushes
@@ -154,13 +153,13 @@ public class MemstoreAwareObserverTest {
         MemstoreAwareObserver mao = new MemstoreAwareObserver();
 
         InternalScanner in = new StubInternalScanner();
-        InternalScanner out = mao.preFlush(mockCtx, mockStore, in);
+        InternalScanner out = mao.preFlush(mockCtx, mockStore, in, null);
         assertEquals(in, out);
 
         MemstoreAware pre = mao.getMemstoreAware();
         assertEquals(true, pre.flush);
 
-        mao.postFlush(mockCtx, mockStore, mockStoreFile);
+        mao.postFlush(mockCtx, mockStore, mockStoreFile, null);
         MemstoreAware post = mao.getMemstoreAware();
 
         assertEquals(false, post.flush);
@@ -181,10 +180,9 @@ public class MemstoreAwareObserverTest {
         byte[] endKey = createByteArray(24);
 
         ObserverContext<RegionCoprocessorEnvironment> fakeCtx = mockRegionEnv(startKey, endKey);
-        KeyValueScanner preScanner = mock(MemstoreKeyValueScanner.class);
+        RegionScanner preScanner = mock(RegionScanner.class);
 
-        KeyValueScanner postScanner = mao.preStoreScannerOpen(fakeCtx, mockStore(5000L), mockScan(startKey, endKey),
-                                                              EmptyNavigableSet.<byte[]>instance(), preScanner);
+        RegionScanner postScanner = mao.postScannerOpen(fakeCtx, mockScan(startKey, endKey), preScanner);
 
         assertNotNull(postScanner);
         assertNotEquals(preScanner, postScanner);
@@ -197,12 +195,10 @@ public class MemstoreAwareObserverTest {
 
         // env and scan do not share same start and end keys (partition miss)
         ObserverContext<RegionCoprocessorEnvironment> fakeCtx = mockRegionEnv(createByteArray(13), createByteArray(24));
-        KeyValueScanner preScanner = mock(MemstoreKeyValueScanner.class);
+        RegionScanner preScanner = mock(RegionScanner.class);
 
         try {
-            mao.preStoreScannerOpen(fakeCtx, mockStore(5000L),
-                                    mockScan(createByteArray(14), createByteArray(25)),
-                                    EmptyNavigableSet.<byte[]>instance(), preScanner);
+            mao.postScannerOpen(fakeCtx, mockScan(createByteArray(14), createByteArray(25)), preScanner);
             fail("Expected DoNotRetryIOException");
         } catch (IOException e) {
             // expected
@@ -221,17 +217,15 @@ public class MemstoreAwareObserverTest {
         byte[] endKey = createByteArray(24);
 
         ObserverContext<RegionCoprocessorEnvironment> fakeCtx = mockRegionEnv(startKey, endKey);
-        KeyValueScanner scanner = mock(MemstoreKeyValueScanner.class);
+        RegionScanner scanner = mock(RegionScanner.class);
         Scan internalScanner = mockScan(startKey, endKey);
 
         // compacting...
         SpliceCompactionRequest compactionRequest = new StubCompactionRequest();
-        mao.preCompact(mockCtx, mockStore, (InternalScanner) internalScanner, userScanType, compactionRequest);
+        mao.preCompact(mockCtx, mockStore, (InternalScanner) internalScanner, userScanType, null, compactionRequest);
         compactionRequest.preStorefilesRename();
         try {
-            mao.preStoreScannerOpen(fakeCtx, mockStore(5000L),
-                                    internalScanner,
-                                    EmptyNavigableSet.<byte[]>instance(), scanner);
+            mao.postScannerOpen(fakeCtx, internalScanner, scanner);
             fail("Expected IOException - compacting");
         } catch (IOException e) {
             // expected
@@ -241,11 +235,9 @@ public class MemstoreAwareObserverTest {
 
         // signal compaction complete, open scan again
         compactionRequest.afterExecute();
-        mao.postCompact(mockCtx, mockStore, mockStoreFile, compactionRequest);
+        mao.postCompact(mockCtx, mockStore, mockStoreFile, null, compactionRequest);
 
-        KeyValueScanner theScan = mao.preStoreScannerOpen(fakeCtx, mockStore(5000L),
-                                                          internalScanner,
-                                                          EmptyNavigableSet.<byte[]>instance(), scanner);
+        RegionScanner theScan = mao.postScannerOpen(fakeCtx, internalScanner, scanner);
         assertNotNull(theScan);
         theScan.close();
     }
@@ -261,15 +253,13 @@ public class MemstoreAwareObserverTest {
         byte[] endKey = createByteArray(24);
 
         ObserverContext<RegionCoprocessorEnvironment> fakeCtx = mockRegionEnv(startKey, endKey);
-        KeyValueScanner scanner = mock(MemstoreKeyValueScanner.class);
+        RegionScanner scanner = mock(RegionScanner.class);
         Scan internalScanner = mockScan(startKey, endKey);
 
         // flushing...
-        mao.preFlush(fakeCtx, mockStore, (InternalScanner) scanner);
+        mao.preFlush(fakeCtx, mockStore, (InternalScanner) scanner, null);
         try {
-            mao.preStoreScannerOpen(fakeCtx, mockStore(5000L),
-                                    internalScanner,
-                                    EmptyNavigableSet.<byte[]>instance(), scanner);
+            mao.postScannerOpen(fakeCtx, internalScanner, scanner);
             fail("Expected IOException - flushing");
         } catch (IOException e) {
             // expected
@@ -278,52 +268,50 @@ public class MemstoreAwareObserverTest {
         }
 
         // signal flush complete, open scan again
-        mao.postFlush(fakeCtx, mockStore, mockStoreFile);
+        mao.postFlush(fakeCtx, mockStore, mockStoreFile, null);
 
-        KeyValueScanner theScan = mao.preStoreScannerOpen(fakeCtx, mockStore(5000L),
-                                                            internalScanner,
-                                                            EmptyNavigableSet.<byte[]>instance(), scanner);
+        RegionScanner theScan = mao.postScannerOpen(fakeCtx, internalScanner, scanner);
         assertNotNull(theScan);
         theScan.close();
     }
 
-    @Test
-    public void preStoreScannerOpenWhileSplitting() throws Exception {
-        MemstoreAwareObserver mao = new MemstoreAwareObserver();
-
-        // request split, open scan, verify exception, close split, re-issue scan, verify success
-
-        // env and scan share same start and end keys (partition hit)
-        byte[] startKey = createByteArray(13);
-        byte[] endKey = createByteArray(24);
-
-        ObserverContext<RegionCoprocessorEnvironment> fakeCtx = mockRegionEnv(startKey, endKey);
-        KeyValueScanner scanner = mock(MemstoreKeyValueScanner.class);
-        Scan internalScanner = mockScan(startKey, endKey);
-        KeyValueScanner theScan;
-
-        // splitting...
-        mao.preSplit(fakeCtx, createByteArray(20));
-        try {
-            mao.preStoreScannerOpen(fakeCtx, mockStore(5000L),
-                                    internalScanner,
-                                    EmptyNavigableSet.<byte[]>instance(), scanner);
-            fail("Expected IOException - splitting");
-        } catch (IOException e) {
-            // expected
-            assertEquals(e.getLocalizedMessage(),
-                         String.format("splitting, merging, or active compaction on scan on %s", REGION_NAME));
-        }
-
-        // signal split complete, open scan again
-        mao.postCompleteSplit(fakeCtx);
-
-        theScan = mao.preStoreScannerOpen(fakeCtx, mockStore(5000L),
-                                            internalScanner,
-                                            EmptyNavigableSet.<byte[]>instance(), scanner);
-        assertNotNull(theScan);
-        theScan.close();
-    }
+//    @Test
+//    public void preStoreScannerOpenWhileSplitting() throws Exception {
+//        MemstoreAwareObserver mao = new MemstoreAwareObserver();
+//
+//        // request split, open scan, verify exception, close split, re-issue scan, verify success
+//
+//        // env and scan share same start and end keys (partition hit)
+//        byte[] startKey = createByteArray(13);
+//        byte[] endKey = createByteArray(24);
+//
+//        ObserverContext<RegionCoprocessorEnvironment> fakeCtx = mockRegionEnv(startKey, endKey);
+//        KeyValueScanner scanner = mock(MemstoreKeyValueScanner.class);
+//        Scan internalScanner = mockScan(startKey, endKey);
+//        KeyValueScanner theScan;
+//
+//        // splitting...
+//        mao.preSplit(fakeCtx, createByteArray(20));
+//        try {
+//            mao.preStoreScannerOpen(fakeCtx, mockStore(5000L),
+//                                    internalScanner,
+//                                    EmptyNavigableSet.<byte[]>instance(), scanner);
+//            fail("Expected IOException - splitting");
+//        } catch (IOException e) {
+//            // expected
+//            assertEquals(e.getLocalizedMessage(),
+//                         String.format("splitting, merging, or active compaction on scan on %s", REGION_NAME));
+//        }
+//
+//        // signal split complete, open scan again
+//        mao.postCompleteSplit(fakeCtx);
+//
+//        theScan = mao.preStoreScannerOpen(fakeCtx, mockStore(5000L),
+//                                            internalScanner,
+//                                            EmptyNavigableSet.<byte[]>instance(), scanner);
+//        assertNotNull(theScan);
+//        theScan.close();
+//    }
 
     //==============================================================================================================
     // threaded tests -- compactions, flushes, splits -- while scanning
@@ -452,45 +440,45 @@ public class MemstoreAwareObserverTest {
         assertEquals("ScanReq1 Failed to start scan.", exceptions.get(0).getLocalizedMessage());
     }
 
-    @Test
-    public void threadedSplitThenScan() throws Exception {
-        // create split, wait
-        // create scan, fail
-        // after split completes, issue scan again, succeed
-        // verify split and final scan finish
-        // T1: splitPause                          -> Complete
-        // T2:            -> openScanner -> Error              -> openScanner -> Success
-
-        final MemstoreAwareObserver mao = new MemstoreAwareObserver();
-        // env and scan share same start and end keys (partition hit)
-        byte[] startKey = createByteArray(13);
-        byte[] endKey = createByteArray(24);
-
-        ObserverContext<RegionCoprocessorEnvironment> fakeCtx = mockRegionEnv(startKey, endKey);
-        Scan internalScanner = mockScan(startKey, endKey);
-        StateOrdering ordering = new StateOrdering();
-        final ScanRequestThread scanFailThread = new ScanRequestThread("ScanReq1", mao, fakeCtx, internalScanner,
-                                                                       false, ordering);
-        final SplitRequestThread splitThread = new SplitRequestThread("SplitReq", mao, fakeCtx,
-                                                                      false, ordering);
-
-        final ScanRequestThread scanSucceedThread = new ScanRequestThread("ScanReq2", mao, fakeCtx, internalScanner,
-                                                                          false, ordering);
-        ordering.registerStart(splitThread.getName());
-        ordering.registerStart(scanFailThread.getName());
-        ordering.registerFinish(splitThread.getName());
-        ordering.registerStart(scanSucceedThread.getName());
-        ordering.registerFinish(scanSucceedThread.getName());
-
-        List<Throwable> exceptions = assertConcurrent("threadedSplitThenScan()", Arrays.asList(scanFailThread,
-                                                                                                splitThread,
-                                                                                                scanSucceedThread), 20);
-        assertFalse(exceptions.toString(), scanFailThread.completed);
-        assertTrue(exceptions.toString(), splitThread.completed);
-        assertTrue(exceptions.toString(), scanSucceedThread.completed);
-        assertEquals(exceptions.toString(), 1, exceptions.size());
-        assertEquals("ScanReq1 Failed to start scan.", exceptions.get(0).getLocalizedMessage());
-    }
+//    @Test
+//    public void threadedSplitThenScan() throws Exception {
+//        // create split, wait
+//        // create scan, fail
+//        // after split completes, issue scan again, succeed
+//        // verify split and final scan finish
+//        // T1: splitPause                          -> Complete
+//        // T2:            -> openScanner -> Error              -> openScanner -> Success
+//
+//        final MemstoreAwareObserver mao = new MemstoreAwareObserver();
+//        // env and scan share same start and end keys (partition hit)
+//        byte[] startKey = createByteArray(13);
+//        byte[] endKey = createByteArray(24);
+//
+//        ObserverContext<RegionCoprocessorEnvironment> fakeCtx = mockRegionEnv(startKey, endKey);
+//        Scan internalScanner = mockScan(startKey, endKey);
+//        StateOrdering ordering = new StateOrdering();
+//        final ScanRequestThread scanFailThread = new ScanRequestThread("ScanReq1", mao, fakeCtx, internalScanner,
+//                                                                       false, ordering);
+//        final SplitRequestThread splitThread = new SplitRequestThread("SplitReq", mao, fakeCtx,
+//                                                                      false, ordering);
+//
+//        final ScanRequestThread scanSucceedThread = new ScanRequestThread("ScanReq2", mao, fakeCtx, internalScanner,
+//                                                                          false, ordering);
+//        ordering.registerStart(splitThread.getName());
+//        ordering.registerStart(scanFailThread.getName());
+//        ordering.registerFinish(splitThread.getName());
+//        ordering.registerStart(scanSucceedThread.getName());
+//        ordering.registerFinish(scanSucceedThread.getName());
+//
+//        List<Throwable> exceptions = assertConcurrent("threadedSplitThenScan()", Arrays.asList(scanFailThread,
+//                                                                                                splitThread,
+//                                                                                                scanSucceedThread), 20);
+//        assertFalse(exceptions.toString(), scanFailThread.completed);
+//        assertTrue(exceptions.toString(), splitThread.completed);
+//        assertTrue(exceptions.toString(), scanSucceedThread.completed);
+//        assertEquals(exceptions.toString(), 1, exceptions.size());
+//        assertEquals("ScanReq1 Failed to start scan.", exceptions.get(0).getLocalizedMessage());
+//    }
 
     @Test
     public void threadedCompactThenScanThenFlushThenScan() throws Exception {
@@ -647,48 +635,48 @@ public class MemstoreAwareObserverTest {
         assertEquals("FlushReq Induced failure.", exceptions.get(1).getLocalizedMessage());
     }
 
-    @Test
-    public void threadedSplitThenScanSplitFails() throws Exception {
-        // create split, wait
-        // create scan, fail
-        // split fails, issue scan again, succeed
-        // verify split failed and final scan finish
-        // T1: splitPause                           -> Failure
-        // T2:            -> openScanner -> Error              -> openScanner -> Success
-
-        final MemstoreAwareObserver mao = new MemstoreAwareObserver();
-        // env and scan share same start and end keys (partition hit)
-        byte[] startKey = createByteArray(13);
-        byte[] endKey = createByteArray(24);
-
-        ObserverContext<RegionCoprocessorEnvironment> fakeCtx = mockRegionEnv(startKey, endKey);
-        Scan internalScanner = mockScan(startKey, endKey);
-        StateOrdering ordering = new StateOrdering();
-        final ScanRequestThread scanFailThread = new ScanRequestThread("ScanReq1", mao, fakeCtx, internalScanner,
-                                                                       false, ordering);
-        final SplitRequestThread splitThread = new SplitRequestThread("SplitReq", mao,
-                                                                      fakeCtx,
-                                                                      true, ordering);
-
-        final ScanRequestThread scanSucceedThread = new ScanRequestThread("ScanReq2", mao, fakeCtx, internalScanner,
-                                                                          false, ordering);
-
-        ordering.registerStart(splitThread.getName());
-        ordering.registerStart(scanFailThread.getName());
-        ordering.registerFinish(splitThread.getName());
-        ordering.registerStart(scanSucceedThread.getName());
-        ordering.registerFinish(scanSucceedThread.getName());
-
-        List<Throwable> exceptions = assertConcurrent("threadedSplitThenScanSplitFails()",
-                                                      Arrays.asList(scanFailThread,splitThread, scanSucceedThread),
-                                                      20);
-        assertFalse(exceptions.toString(), scanFailThread.completed);
-        assertFalse(exceptions.toString(), splitThread.completed);
-        assertTrue(exceptions.toString(), scanSucceedThread.completed);
-        assertEquals(exceptions.toString(), 2, exceptions.size());
-        assertEquals("ScanReq1 Failed to start scan.", exceptions.get(0).getLocalizedMessage());
-        assertEquals("SplitReq Induced failure.", exceptions.get(1).getLocalizedMessage());
-    }
+//    @Test
+//    public void threadedSplitThenScanSplitFails() throws Exception {
+//        // create split, wait
+//        // create scan, fail
+//        // split fails, issue scan again, succeed
+//        // verify split failed and final scan finish
+//        // T1: splitPause                           -> Failure
+//        // T2:            -> openScanner -> Error              -> openScanner -> Success
+//
+//        final MemstoreAwareObserver mao = new MemstoreAwareObserver();
+//        // env and scan share same start and end keys (partition hit)
+//        byte[] startKey = createByteArray(13);
+//        byte[] endKey = createByteArray(24);
+//
+//        ObserverContext<RegionCoprocessorEnvironment> fakeCtx = mockRegionEnv(startKey, endKey);
+//        Scan internalScanner = mockScan(startKey, endKey);
+//        StateOrdering ordering = new StateOrdering();
+//        final ScanRequestThread scanFailThread = new ScanRequestThread("ScanReq1", mao, fakeCtx, internalScanner,
+//                                                                       false, ordering);
+//        final SplitRequestThread splitThread = new SplitRequestThread("SplitReq", mao,
+//                                                                      fakeCtx,
+//                                                                      true, ordering);
+//
+//        final ScanRequestThread scanSucceedThread = new ScanRequestThread("ScanReq2", mao, fakeCtx, internalScanner,
+//                                                                          false, ordering);
+//
+//        ordering.registerStart(splitThread.getName());
+//        ordering.registerStart(scanFailThread.getName());
+//        ordering.registerFinish(splitThread.getName());
+//        ordering.registerStart(scanSucceedThread.getName());
+//        ordering.registerFinish(scanSucceedThread.getName());
+//
+//        List<Throwable> exceptions = assertConcurrent("threadedSplitThenScanSplitFails()",
+//                                                      Arrays.asList(scanFailThread,splitThread, scanSucceedThread),
+//                                                      20);
+//        assertFalse(exceptions.toString(), scanFailThread.completed);
+//        assertFalse(exceptions.toString(), splitThread.completed);
+//        assertTrue(exceptions.toString(), scanSucceedThread.completed);
+//        assertEquals(exceptions.toString(), 2, exceptions.size());
+//        assertEquals("ScanReq1 Failed to start scan.", exceptions.get(0).getLocalizedMessage());
+//        assertEquals("SplitReq Induced failure.", exceptions.get(1).getLocalizedMessage());
+//    }
 
     //==============================================================================================================
     // helpers
@@ -710,7 +698,7 @@ public class MemstoreAwareObserverTest {
         RegionCoprocessorEnvironment mockEnv = mock(RegionCoprocessorEnvironment.class);
         when(mockEnv.getRegion()).thenReturn(mockRegion);
         when(mockEnv.getRegionInfo()).thenReturn(mockRInfo);
-        ObserverContext<RegionCoprocessorEnvironment> fakeCtx = new ObserverContext<>();
+        ObserverContextImpl<RegionCoprocessorEnvironment> fakeCtx = new ObserverContextImpl<RegionCoprocessorEnvironment>(null);
         fakeCtx.prepare(mockEnv);
         return fakeCtx;
     }
@@ -727,7 +715,7 @@ public class MemstoreAwareObserverTest {
         ScanInfo mockInfo = mock(ScanInfo.class);
         when(mockInfo.getTtl()).thenReturn(ttlInMillis);
 
-        Store mockStore = mock(HStore.class);
+        HStore mockStore = mock(HStore.class);
         when(mockStore.getScanInfo()).thenReturn(mockInfo);
         return mockStore;
     }
@@ -866,10 +854,9 @@ public class MemstoreAwareObserverTest {
         public void runMe() throws Exception {
             // DEBUG
             System.out.println(getName()+" Starting scan.");
-            KeyValueScanner theScan;
+            RegionScanner theScan;
             try {
-                theScan = mao.preStoreScannerOpen(fakeCtx, mockStore(5000L), internalScanner,
-                        EmptyNavigableSet.<byte[]>instance(), mock(MemstoreKeyValueScanner.class));
+                theScan = mao.postScannerOpen(fakeCtx, internalScanner,mock(RegionScanner.class));
             } catch (IOException e) {
                 throw new RuntimeException(getName()+" Failed to start scan.",e);
             }
@@ -912,12 +899,12 @@ public class MemstoreAwareObserverTest {
 
         @Override
         public void runMe() throws Exception {
-            compactionRequest.beforeExecute();
+            //compactionRequest.beforeExecute();
             try{
                 // DEBUG:
                 System.out.println(getName()+" Starting compaction.");
                 try {
-                    mao.preCompact(mockCtx,mockStore,internalScanner,userScanType,compactionRequest);
+                    mao.preCompact(mockCtx,mockStore,internalScanner,userScanType,null,compactionRequest);
                     // DEBUG:
 //                    System.out.println(getName()+" preStorefilesRename begin.");
                     // next compactionRequest call will block. advance stage so other threads can work.
@@ -937,7 +924,7 @@ public class MemstoreAwareObserverTest {
                 }
                 // signal compaction complete, open scan again
                 try {
-                    mao.postCompact(mockCtx,mockStore,mockStoreFile,compactionRequest);
+                    mao.postCompact(mockCtx,mockStore,mockStoreFile,null,compactionRequest);
                 } catch (IOException e) {
                     throw new RuntimeException(getName()+" Failed to terminate compaction.",e);
                 }
@@ -961,13 +948,13 @@ public class MemstoreAwareObserverTest {
         }
 
         /**
-         * {@link RegionObserver#postFlush(ObserverContext, Store, StoreFile)}
+         * {@link RegionObserver#postFlush(ObserverContext, Store, StoreFile, FlushLifeCycleTracker)}
          * @throws Exception
          */
         @Override
         public void runMe() throws Exception{
             try {
-                mao.preFlush(fakeCtx, mockStore, internalScanner);
+                mao.preFlush(fakeCtx, mockStore, internalScanner,null);
             } catch (IOException e) {
                 throw new RuntimeException(getName()+" Failed to start flush.",e);
             }
@@ -981,7 +968,7 @@ public class MemstoreAwareObserverTest {
                 try {
                     // DEBUG:
 //                    System.out.println(getName()+" postFlush.");
-                    mao.postFlush(fakeCtx, mockStore, mockStoreFile);
+                    mao.postFlush(fakeCtx, mockStore, mockStoreFile,null);
                 } catch (IOException e) {
                     throw new RuntimeException(getName()+" Failed to terminate flush.",e);
                 }
@@ -989,47 +976,47 @@ public class MemstoreAwareObserverTest {
         }
     }
 
-    private class SplitRequestThread extends ThreadTest {
-        private final ObserverContext<RegionCoprocessorEnvironment> fakeCtx;
-
-        private SplitRequestThread(String name, RegionObserver mao, ObserverContext<RegionCoprocessorEnvironment> fakeCtx,
-                                   boolean shouldFail, StateOrdering ordering) {
-            super(ordering, name, mao, shouldFail);
-            this.fakeCtx = fakeCtx;
-        }
-
-        /**
-         * {@link RegionObserver#postCompleteSplit(ObserverContext)}
-         * {@link RegionObserver#postRollBackSplit(ObserverContext)}
-         * @throws Exception
-         */
-        @Override
-        public void runMe() throws Exception{
-            try {
-                mao.preSplit(fakeCtx, createByteArray(20));
-            } catch (IOException e) {
-                throw new RuntimeException(getName()+" Failed to start split.",e);
-            }
-            waitForFinish();
-            try {
-                if (shouldFail) {
-                    /*
-                     * When a Split fails, then the coprocessor call of "postRollBackSplit" is called,
-                     * but only on RegionObserver instances.
-                     */
-                    mao.postRollBackSplit(fakeCtx);
-                    throw new RuntimeException(getName()+" Induced failure.");
-                }
-            } finally {
-                // HBase calls regardless of success/failure
-                try {
-                    mao.postCompleteSplit(fakeCtx);
-                } catch (IOException e) {
-                    throw new RuntimeException(getName()+" Failed to terminate split.",e);
-                }
-            }
-        }
-    }
+//    private class SplitRequestThread extends ThreadTest {
+//        private final ObserverContext<RegionCoprocessorEnvironment> fakeCtx;
+//
+//        private SplitRequestThread(String name, RegionObserver mao, ObserverContext<RegionCoprocessorEnvironment> fakeCtx,
+//                                   boolean shouldFail, StateOrdering ordering) {
+//            super(ordering, name, mao, shouldFail);
+//            this.fakeCtx = fakeCtx;
+//        }
+//
+//        /**
+//         * {@link RegionObserver#postCompleteSplit(ObserverContext)}
+//         * {@link RegionObserver#postRollBackSplit(ObserverContext)}
+//         * @throws Exception
+//         */
+//        @Override
+//        public void runMe() throws Exception{
+//            try {
+//                mao.preSplit(fakeCtx, createByteArray(20));
+//            } catch (IOException e) {
+//                throw new RuntimeException(getName()+" Failed to start split.",e);
+//            }
+//            waitForFinish();
+//            try {
+//                if (shouldFail) {
+//                    /*
+//                     * When a Split fails, then the coprocessor call of "postRollBackSplit" is called,
+//                     * but only on RegionObserver instances.
+//                     */
+//                    mao.postRollBackSplit(fakeCtx);
+//                    throw new RuntimeException(getName()+" Induced failure.");
+//                }
+//            } finally {
+//                // HBase calls regardless of success/failure
+//                try {
+//                    mao.postCompleteSplit(fakeCtx);
+//                } catch (IOException e) {
+//                    throw new RuntimeException(getName()+" Failed to terminate split.",e);
+//                }
+//            }
+//        }
+//    }
 
     private class StateOrdering{
         public static final String START_STAGE = ".START";
@@ -1103,7 +1090,11 @@ public class MemstoreAwareObserverTest {
 
    private static class StubCompactionRequest extends SpliceCompactionRequest {
        AtomicReference<MemstoreAware> guinea;
-       
+
+       StubCompactionRequest () {
+           super(Lists.newArrayList());
+       }
+
        @Override
        public void setMemstoreAware(AtomicReference<MemstoreAware> memstoreAware) {
            super.setMemstoreAware(memstoreAware);

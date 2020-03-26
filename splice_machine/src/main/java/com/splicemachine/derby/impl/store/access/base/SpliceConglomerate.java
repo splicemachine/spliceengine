@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericConglomerate;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -37,10 +38,6 @@ import com.yahoo.sketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -107,7 +104,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         this.tmpFlag=tmpFlag;
 
         try{
-            ((SpliceTransaction)rawtran).setActiveState(false,false,null);
+            ((BaseSpliceTransaction)rawtran).setActiveState(false,false,null);
         }catch(Exception e){
             throw new RuntimeException(e);
         }
@@ -215,26 +212,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     @Override
     public int hashCode(){
         return (int)(containerId^(containerId>>>32));
-    }
-
-    @Override
-    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
-        throw new UnsupportedOperationException("Not Implemented");
-    }
-
-    @Override
-    public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-        throw new UnsupportedOperationException("Not Implemented");
-    }
-
-    @Override
-    public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-        throw new UnsupportedOperationException("Not Implemented");
-    }
-
-    @Override
-    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-        throw new UnsupportedOperationException("Not Implemented");
     }
 
     @Override

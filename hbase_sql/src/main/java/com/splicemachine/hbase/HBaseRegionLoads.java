@@ -30,10 +30,10 @@ import com.google.common.collect.Maps;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.storage.SkeletonHBaseClientPartition;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.protobuf.generated.ClusterStatusProtos;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Throwables;
@@ -45,13 +45,13 @@ import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.HPartitionLoad;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.storage.PartitionServerLoad;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.ipc.CoprocessorRpcUtils.BlockingRpcCallback;
 
 /**
  * @author P Trolard
@@ -221,7 +221,8 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
                     .setType(HBaseProtos.RegionSpecifier.RegionSpecifierType.ENCODED_REGION_NAME).setValue(
                                         ZeroCopyLiteralByteString.copyFromUtf8(info.getFirst())).build());
                 ClusterStatusProtos.RegionLoad load = rl.build();
-                HPartitionLoad value=new HPartitionLoad(info.getFirst(),load.getStorefileSizeMB(),load.getMemstoreSizeMB(),load.getStorefileIndexSizeMB());
+                HPartitionLoad value=new HPartitionLoad(info.getFirst(),load.getStorefileSizeMB(),
+                        load.getMemstoreSizeMB(), (int)load.getStorefileIndexSizeKB()/1024);
                 retMap.put(info.getFirst(),value);
             }
 

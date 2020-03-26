@@ -14,6 +14,8 @@
 
 package com.splicemachine.access.client;
 
+import org.apache.hadoop.hbase.CellComparator;
+import org.apache.hadoop.hbase.CellComparatorImpl;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 
@@ -40,5 +42,4 @@ public class SpliceHRegionInfo extends HRegionInfo {
     public KeyValue.KVComparator getComparator() {
         return SpliceKVComparator.INSTANCE;
     }
-
 }

@@ -23,7 +23,7 @@ import org.apache.hadoop.hbase.HTableDescriptor;
  */
 public class ReadOnlyHTableDescriptor extends HTableDescriptor {
     public ReadOnlyHTableDescriptor(HTableDescriptor desc) {
-            super(desc.getTableName(), desc.getColumnFamilies(), desc.getValues());
+            super(desc);
     }
 
     @Override

@@ -1351,6 +1351,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numResultSets(1)
                             .smallint("peerId")
                             .varchar("clusterKey", 32672)
+                            .arg("enabled", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                            .arg("isSerial", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
                             .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
                             .build();
                     procedures.add(addPeer);
@@ -1379,34 +1381,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(disablePeer);
 
-                    Procedure setupReplicationSink = Procedure.newBuilder().name("SETUP_REPLICATION_SINK")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                            .build();
-                    procedures.add(setupReplicationSink);
-
-                    Procedure setupReplicationSinkLocal = Procedure.newBuilder().name("SETUP_REPLICATION_SINK_LOCAL")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                            .build();
-                    procedures.add(setupReplicationSinkLocal);
-
-                    Procedure shutdownReplicationSink = Procedure.newBuilder().name("SHUTDOWN_REPLICATION_SINK")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                            .build();
-                    procedures.add(shutdownReplicationSink);
-
-                    Procedure shutdownReplicationSinkLocal = Procedure.newBuilder().name("SHUTDOWN_REPLICATION_SINK_LOCAL")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                            .build();
-                    procedures.add(shutdownReplicationSinkLocal);
-
                     Procedure enableTableReplication = Procedure.newBuilder().name("ENABLE_TABLE_REPLICATION")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -1425,6 +1399,21 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(disableTableReplication);
 
+                    Procedure setReplicationRole = Procedure.newBuilder().name("SET_REPLICATION_ROLE")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .varchar("role", 10)
+                            .build();
+                    procedures.add(setReplicationRole);
+
+                    Procedure getReplicationRole = Procedure.newBuilder().name("GET_REPLICATION_ROLE")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(getReplicationRole);
+
                     Procedure updateAllSystemProcedures = Procedure.newBuilder()
                             .name("SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES")
                             .numOutputParams(0).numResultSets(0).modifiesSql()
@@ -1441,6 +1430,74 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .catalog("procName")
                             .build();
                     procedures.add(updateSystemProcedure);
+
+                    Procedure enableSchemaReplication = Procedure.newBuilder().name("ENABLE_SCHEMA_REPLICATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .build();
+                    procedures.add(enableSchemaReplication);
+
+
+                    Procedure disableSchemaReplication = Procedure.newBuilder().name("DISABLE_SCHEMA_REPLICATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .build();
+                    procedures.add(disableSchemaReplication);
+
+                    Procedure enableDatabaseReplication = Procedure.newBuilder().name("ENABLE_DATABASE_REPLICATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(enableDatabaseReplication);
+
+                    Procedure disableDatabaseReplication = Procedure.newBuilder().name("DISABLE_DATABASE_REPLICATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(disableDatabaseReplication);
+
+                    Procedure getClusterKey = Procedure.newBuilder().name("GET_CLUSTER_KEY")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(getClusterKey);
+
+                    Procedure getPeers = Procedure.newBuilder().name("LIST_PEERS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(getPeers);
+
+                    Procedure getWalPositions = Procedure.newBuilder().name("GET_REPLICATED_WAL_POSITIONS")
+                            .numOutputParams(0)
+                            .smallint("peerId")
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(getWalPositions);
+
+                    Procedure getWalPosition = Procedure.newBuilder().name("GET_REPLICATED_WAL_POSITION")
+                            .numOutputParams(0)
+                            .varchar("wal",32672)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(getWalPosition);
+
+                    Procedure getReplicationProgress = Procedure.newBuilder().name("GET_REPLICATION_PROGRESS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(getReplicationProgress);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

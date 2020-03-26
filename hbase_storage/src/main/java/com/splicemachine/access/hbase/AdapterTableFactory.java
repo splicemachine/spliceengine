@@ -30,7 +30,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import javax.sql.DataSource;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -86,7 +85,7 @@ public class AdapterTableFactory implements PartitionFactory<TableName>{
 
     @Override
     public PartitionAdmin getAdmin() throws IOException{
-        return new H10PartitionAdmin(connection.getAdmin(),timeKeeper,tableInfoFactory,partitionInfoCache);
+        return new HBasePartitionAdmin(connection.getAdmin(),timeKeeper,tableInfoFactory,partitionInfoCache);
     }
 
     public Table getRawTable(TableName tableName) throws IOException{

@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.iapi.types.*;
@@ -262,13 +263,14 @@ public class OperatorToString {
      * Returns The string representation of a Derby expression tree.
      * 
      * @param  operand           The expression tree to parse and translate to text.
-     * @param  vars.sparkExpression
+     * @param  vars              It contains the following parameters:
+     *      vars.sparkExpression
      *                           True, if converting the expression to spark SQL,
      *                           otherwise false.
-     * @param  vars.sparkVersion
+     *      vars.sparkVersion
      *                           The spark major version for which we're generating
      *                           the spark SQL expression, if "sparkExpression" is true.
-     * @param  vars.relationalOpDepth
+     *      vars.relationalOpDepth
      *                           The current number of relational operators or other
      *                           null-hiding expressions, such as CASE, which we
      *                           are nested within.  Used in determining if a spark
@@ -369,6 +371,36 @@ public class OperatorToString {
                 leftExpr = vars.sparkExpressionTree;
                 String rightOperandString = opToString2(bron.getRightOperand(), vars);
                 rightExpr = vars.sparkExpressionTree;
+
+                // do explict padding for comparison of fixed char types
+                if (vars.sparkExpression) {
+                    ValueNode leftOperand = bron.getLeftOperand();
+                    ValueNode rightOperand = bron.getRightOperand();
+                    if (leftOperand.getTypeId() != null && leftOperand.getTypeId().getTypeFormatId() == StoredFormatIds.CHAR_TYPE_ID &&
+                        rightOperand.getTypeId() != null && rightOperand.getTypeId().getTypeFormatId() == StoredFormatIds.CHAR_TYPE_ID) {
+                        
+                        if (leftOperand.getTypeServices() != null && rightOperand.getTypeServices() != null) {
+                            int leftWidth = leftOperand.getTypeServices().getMaximumWidth();
+                            int rightWidth = rightOperand.getTypeServices().getMaximumWidth();
+                            if (leftWidth > rightWidth) {
+                                // pad right
+                                rightOperandString = format("RPAD(%s, %d, ' ') ",
+                                        rightOperandString,
+                                        leftWidth);
+                                if (vars.buildExpressionTree)
+                                    rightExpr = new SparkStringPadOperator(rightExpr, leftWidth, " ", true);
+                            } else if (leftWidth < rightWidth) {
+                                // pad left
+                                leftOperandString = format("RPAD(%s, %d, ' ') ",
+                                        leftOperandString,
+                                        rightWidth);
+                                if (vars.buildExpressionTree)
+                                    leftExpr = new SparkStringPadOperator(leftExpr, rightWidth, " ", true);
+                            }
+                        }
+                    }
+                }
+
                 String opString =
                         format("(%s %s %s)", leftOperandString,
                                bron.getOperatorString(), rightOperandString);
@@ -963,12 +995,14 @@ public class OperatorToString {
                         // for the ROUND function.
                         // ADD_MONTHS returns incorrect results on
                         // Spark for old dates.
+                        // The ROUND function came from Splice package (uppercase) and java.lang.StrictMath (lowercase),
+                        // we need to handle it especially.
                         if (methodName.equals("MONTH_BETWEEN") ||
                             methodName.equals("REGEXP_LIKE")   ||
                             methodName.equals("ADD_MONTHS")    ||
                             methodName.equals("ADD_YEARS")     ||
                             methodName.equals("ADD_DAYS")      ||
-                            methodName.equals("ROUND"))
+                            methodName.equalsIgnoreCase("ROUND"))
                             throwNotImplementedError();
                         else if (methodName.equals("toDegrees"))
                             methodName = "degrees";

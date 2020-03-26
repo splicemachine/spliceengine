@@ -53,10 +53,6 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 
@@ -628,78 +624,6 @@ public class UserType extends DataType
 	
 	public Format getFormat() {
 		return Format.USERTYPE;
-	}
-
-	/**
-	 *
-	 * Write to a Project Tungsten Format.  Serializes the objects as byte[]
-	 *
-	 * @see UnsafeRowWriter#write(int, byte[])
-	 *
-	 * @param unsafeRowWriter
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException{
-		if (isNull())
-			unsafeRowWriter.setNullAt(ordinal);
-		else
-			unsafeRowWriter.write(ordinal, SerializationUtils.serialize((Serializable)value));
-	}
-
-	/**
-	 *
-	 * Write Element into Positioned Array
-	 *
-	 * @param unsafeArrayWriter
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-		if (isNull())
-			unsafeArrayWriter.setNull(ordinal);
-		else
-			unsafeArrayWriter.write(ordinal, SerializationUtils.serialize((Serializable)value));
-	}
-
-	/**
-	 *
-	 * Read Element from Positioned Array
-	 *
-	 * @param unsafeArrayData
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-		if (unsafeArrayData.isNullAt(ordinal))
-			setToNull();
-		else {
-			isNull = false;
-			value = SerializationUtils.deserialize(unsafeArrayData.getBinary(ordinal));
-		}
-	}
-
-	/**
-	 *
-	 * Read from a Project Tungsten Format.  Reads the object as a byte[]
-	 *
-	 * @see UnsafeRow#getBinary(int)
-	 *
-	 * @param unsafeRow
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-		if (unsafeRow.isNullAt(ordinal))
-			setToNull();
-		else {
-			isNull = false;
-			value = SerializationUtils.deserialize(unsafeRow.getBinary(ordinal));
-		}
 	}
 
 	@Override

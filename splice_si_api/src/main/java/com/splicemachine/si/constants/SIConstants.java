@@ -50,6 +50,10 @@ public class SIConstants {
     public static final long SUBTRANSANCTION_ID_MASK = 0xFFl;
     public static final long TRANSANCTION_ID_MASK= 0xFFFFFFFFFFFFFF00l;
 
+    public static final String REPLICATION_ROLE_SLAVE = "SLAVE";
+    public static final String REPLICATION_ROLE_MASTER = "MASTER";
+    public static final String REPLICATION_ROLE_NONE = "NONE";
+
     /**
      * Splice Columns
      *

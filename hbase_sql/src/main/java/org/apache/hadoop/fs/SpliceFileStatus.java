@@ -39,12 +39,6 @@ public class SpliceFileStatus extends FileStatus {
     }
 
     @Override
-    @Deprecated
-    public boolean isDir() {
-        return fileStatus.isDir();
-    }
-
-    @Override
     public boolean isSymlink() {
         return fileStatus.isSymlink();
     }

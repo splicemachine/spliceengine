@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.hbase;
 
+import org.apache.hadoop.hbase.client.NoServerForRegionException;
 import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
 import org.apache.hadoop.net.ConnectTimeoutException;
 import org.spark_project.guava.base.Throwables;
@@ -115,6 +116,7 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
         t=Throwables.getRootCause(t);
         t=processPipelineException(t);
         if(t instanceof NotServingPartitionException
+                || t instanceof NoServerForRegionException
                 || t instanceof WrongPartitionException
                 || t instanceof PipelineTooBusy
                 || t instanceof RegionBusyException
@@ -126,6 +128,9 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
                 || t instanceof IndexNotSetUpException) return true;
         return false;
     }
+
+    @Override
+    public boolean isHBase() { return true; }
 
     @Override
     public Exception processErrorResult(WriteResult result){
@@ -150,7 +155,7 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
                 case WRONG_REGION:
                     return new HWrongRegion();
                 case REGION_TOO_BUSY:
-                    return new HTooBusy();
+                    return new HTooBusy("Region too busy");
                 case NOT_RUN:
                     //won't happen
                     return new IOException("Unexpected NotRun code for an error");

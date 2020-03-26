@@ -33,9 +33,6 @@ package com.splicemachine.db.iapi.types;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -49,49 +46,6 @@ import java.util.GregorianCalendar;
  *
  */
 public class SQLDateTest extends SQLDataValueDescriptorTest {
-
-        @Test
-        public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                Date date = new Date(System.currentTimeMillis());
-                int computeEncodedDate = SQLDate.computeEncodedDate(date);
-                SQLDate value = new SQLDate(date);
-                SQLDate valueA = new SQLDate();
-                value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",computeEncodedDate,row.getInt(0));
-                valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect",date.toString(),valueA.getDate(new GregorianCalendar()).toString());
-            }
-
-        @Test
-        public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLDate value = new SQLDate();
-                SQLDate valueA = new SQLDate();
-                value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
-                value.read(row, 0);
-                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-            }
-
-        @Test
-        public void testArray() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLArray value = new SQLArray();
-                value.setType(new SQLDate());
-                value.setValue(new DataValueDescriptor[] {new SQLDate(new Date(System.currentTimeMillis())),new SQLDate(new Date(System.currentTimeMillis())),
-                        new SQLDate(new Date(System.currentTimeMillis())), new SQLDate()});
-                SQLArray valueA = new SQLArray();
-                valueA.setType(new SQLDate());
-                writer.reset();
-                value.write(writer,0);
-                valueA.read(row,0);
-                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
-
-        }
 
         @Test
         public void testExecRowSparkRowConversion() throws StandardException {

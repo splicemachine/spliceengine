@@ -1992,6 +1992,17 @@ public interface SQLState {
 	String NO_BACKUP_EXT_TABLE									   = "BR024";
 	String EMPTY_SCHEMA                                            = "BR025";
 
+	/**
+	 * Replication
+	 */
+	String INVALID_REPLICATION_ROLE									= "RPL001";
+	String PEER_EXISTS									            = "RPL002";
+	String INVALID_REPLICATION_PEER									= "RPL003";
+    String CANNOT_CONNECT_PEER                                      = "RPL004";
+	String READ_ONLY												= "RPL005";
+    /**
+     * External table
+     */
 	String ROW_FORMAT_NOT_ALLOWED_WITH_PARQUET					   	= "EXT01";
 	String ROW_FORMAT_NOT_ALLOWED_WITH_ORC						   	= "EXT02";
 	String STORED_AS_REQUIRED_WITH_EXTERNAL_TABLES		   			= "EXT03";
