@@ -2158,16 +2158,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
             ResultSet tableIdRs = stmt.executeQuery("SELECT T.TABLEID, T.TABLETYPE, T.COMPRESSION, T.DELIMITED, " +
                     "T.ESCAPED, T.LINES, T.STORED, T.LOCATION" +
                     " FROM SYSVW.SYSTABLESVIEW T " +
-                    "WHERE T.TABLETYPE IN ('T','E') " +
+                    "WHERE T.TABLETYPE IN ('T','E','S','V') " +
                     "AND T.TABLENAME LIKE '" + tableName + "' AND T.SCHEMANAME = '" + schemaName + "'");
 
             PreparedStatement getColumnInfoStmt = connection.prepareStatement("SELECT C.COLUMNNAME, C.REFERENCEID, " +
                     "C.COLUMNNUMBER FROM SYSVW.SYSCOLUMNSVIEW C WHERE C.REFERENCEID = ? " +
                     "ORDER BY C.COLUMNNUMBER");
 
-            PreparedStatement getPartitionedColsStmt = connection.prepareStatement("SELECT C.COLUMNNAME " +
-                    "FROM SYSVW.SYSCOLUMNSVIEW C WHERE C.REFERENCEID = ? " +
-                    "AND C.PARTITIONPOSITION > -1 ORDER BY C.PARTITIONPOSITION");
 
             String tableId = "" ;
             boolean firstCol = true;
@@ -2177,8 +2174,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
             StringBuilder extTblString = new StringBuilder("");
             if (tableIdRs.next()){
                 tableId = tableIdRs.getString(1);
+                String tableType = tableIdRs.getString(2);
                 //Process external table definition
-                if ("E".equals(tableIdRs.getString(2))) {
+                if ("E".equals(tableType)) {
+                    PreparedStatement getPartitionedColsStmt = connection.prepareStatement("SELECT C.COLUMNNAME " +
+                            "FROM SYSVW.SYSCOLUMNSVIEW C WHERE C.REFERENCEID = ? " +
+                            "AND C.PARTITIONPOSITION > -1 ORDER BY C.PARTITIONPOSITION");
                     String tmpStr;
                     isExternal = "EXTERNAL ";
                     tmpStr = tableIdRs.getString(3);
@@ -2192,7 +2193,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         extTblString.append( firstCol ? "\nPARTITIONED BY (" + pcRS.getString(1) : "," + pcRS.getString(1));
                         firstCol = false;
                     }
-                    extTblString.append(")");
+                    if (!firstCol)
+                        extTblString.append(")");
 
                     // Row Format
                     if (tableIdRs.getString(4) != null || tableIdRs.getString(6) != null) {
@@ -2229,7 +2231,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         extTblString.append("\nLOCATION ''" + tmpStr + "''");
                     }
                 }//End External Table
-
+                else if ("V".equals(tableType)) {
+                    //Target table is a View
+                    throw ErrorState.LANG_INVALID_OPERATION_ON_VIEW.newException("SHOW CREATE TABLE", "\""+schemaName+"\".\""+tableName+"\"");
+                } else if ("S".equals(tableType)) {
+                    //Target table is a system table
+                    throw ErrorState.LANG_NO_USER_DDL_IN_SYSTEM_SCHEMA.newException("SHOW CREATE TABLE", schemaName);
+                }
                 // Get column list, and write DDL for each column.
                 StringBuilder colStringBuilder = new StringBuilder("");
                 String createColString = "";
