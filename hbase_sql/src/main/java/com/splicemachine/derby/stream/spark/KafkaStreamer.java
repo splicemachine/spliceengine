@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -93,14 +93,8 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
         taskContext = TaskContext.get();
 
         if (taskContext.attemptNumber() > 0) {
-            // TODO handle retries
-
-            int entriesInKafka = 0;
-            // open connection to partition in Kafka
-            // get number of entries there
-
-            // TODO failed task retry
-            for (int i = 0; i < entriesInKafka; ++i) {
+            long entriesInKafka = KafkaUtils.messageCount(bootstrapServers, topicName, partition);
+            for (long i = 0; i < entriesInKafka; ++i) {
                 locatedRowIterator.next();
             }
         }
