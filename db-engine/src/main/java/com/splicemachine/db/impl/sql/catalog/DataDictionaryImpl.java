@@ -5094,7 +5094,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         bArray[2]=true;
                         break;
                     default:
-                        assert false: "Unexpected colToSet: " + colToSet;
+                        // Do nothing
                 }
             }
         }
@@ -10852,11 +10852,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void addReplication(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
         TabInfoImpl ti=getNonCoreTI(SYSREPLICATION_CATALOG_NUM);
         ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
-        int insertRetCode=ti.insertRow(row,tc);
+        ti.insertRow(row,tc);
     }
 
     @Override
     public void deleteReplication(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
+        assert descriptor instanceof ReplicationDescriptor;
         ReplicationDescriptor d = (ReplicationDescriptor) descriptor;
         String scope = d.getScope();
         String schemaName = d.getSchemaName();
