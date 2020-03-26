@@ -752,7 +752,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             throw PublicAPI.wrapStandardException(e);
         }
     }
-    
+
     public static void VACUUM() throws SQLException{
         List<HostAndPort> servers;
         try {
@@ -775,7 +775,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
         }
 
-        Vacuum vacuum=new Vacuum(getDefaultConn());
+        Vacuum vacuum = new Vacuum(getDefaultConn());
         try{
             vacuum.vacuumDatabase(oldestActiveTransaction);
         }finally{
@@ -1056,11 +1056,11 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     private static final String sqlConglomsInSchema=
-            "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S "+
-                    "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
+            "SELECT CONGLOMERATENUMBER FROM SYSVW.SYSCONGLOMERATEINSCHEMAS "+
+                    "WHERE SCHEMANAME = ?";
 
     private static final String sqlConglomsInTable=
-            sqlConglomsInSchema+" AND T.TABLENAME = ?";
+            sqlConglomsInSchema+" AND TABLENAME = ?";
 
     public static String getSqlConglomsInSchema(){
         return sqlConglomsInSchema;
@@ -1461,7 +1461,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         "isindex=false and " +
                         "isconstraint=false and " +
                         "(s.schemaname<>'SYS' or t.tablename<>'SYSSNAPSHOTS') and " +
-                        "t.tablename=?"; 
+                        "t.tablename=?";
 
         String sql2 =
                 "select conglomeratename, conglomeratenumber " +
@@ -2206,16 +2206,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
             ResultSet tableIdRs = stmt.executeQuery("SELECT T.TABLEID, T.TABLETYPE, T.COMPRESSION, T.DELIMITED, " +
                     "T.ESCAPED, T.LINES, T.STORED, T.LOCATION" +
                     " FROM SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
-                    "WHERE T.TABLETYPE IN ('T','E') AND T.SCHEMAID = S.SCHEMAID " +
+                    "WHERE T.TABLETYPE IN ('T','E','S','V') AND T.SCHEMAID = S.SCHEMAID " +
                     "AND T.TABLENAME LIKE '" + tableName + "' AND S.SCHEMANAME = '" + schemaName + "'");
 
             PreparedStatement getColumnInfoStmt = connection.prepareStatement("SELECT C.COLUMNNAME, C.REFERENCEID, " +
                     "C.COLUMNNUMBER FROM SYS.SYSCOLUMNS C, SYS.SYSTABLES T WHERE T.TABLEID = ? " +
                     "AND T.TABLEID = C.REFERENCEID ORDER BY C.COLUMNNUMBER");
-
-            PreparedStatement getPartitionedColsStmt = connection.prepareStatement("SELECT C.COLUMNNAME " +
-                    "FROM SYS.SYSCOLUMNS C, SYS.SYSTABLES T WHERE T.TABLEID = ? " +
-                    "AND T.TABLEID = C.REFERENCEID AND C.PARTITIONPOSITION > -1 ORDER BY C.PARTITIONPOSITION");
 
             String tableId = "" ;
             boolean firstCol = true;
@@ -2225,8 +2221,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
             StringBuilder extTblString = new StringBuilder("");
             if (tableIdRs.next()){
                 tableId = tableIdRs.getString(1);
+                String tableType = tableIdRs.getString(2);
                 //Process external table definition
                 if ("E".equals(tableIdRs.getString(2))) {
+                    PreparedStatement getPartitionedColsStmt = connection.prepareStatement("SELECT C.COLUMNNAME " +
+                            "FROM SYS.SYSCOLUMNS C, SYS.SYSTABLES T WHERE T.TABLEID = ? " +
+                            "AND T.TABLEID = C.REFERENCEID AND C.PARTITIONPOSITION > -1 ORDER BY C.PARTITIONPOSITION");
                     String tmpStr;
                     isExternal = "EXTERNAL ";
                     tmpStr = tableIdRs.getString(3);
@@ -2240,7 +2240,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         extTblString.append( firstCol ? "\nPARTITIONED BY (" + pcRS.getString(1) : "," + pcRS.getString(1));
                         firstCol = false;
                     }
-                    extTblString.append(")");
+                    if (!firstCol)
+                        extTblString.append(")");
 
                     // Row Format
                     if (tableIdRs.getString(4) != null || tableIdRs.getString(6) != null) {
@@ -2277,7 +2278,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         extTblString.append("\nLOCATION ''" + tmpStr + "''");
                     }
                 }//End External Table
-
+                else if ("V".equals(tableType)) {
+                    //Target table is a View
+                    throw ErrorState.LANG_INVALID_OPERATION_ON_VIEW.newException("SHOW CREATE TABLE", "\""+schemaName+"\".\""+tableName+"\"");
+                } else if ("S".equals(tableType)) {
+                    //Target table is a system table
+                    throw ErrorState.LANG_NO_USER_DDL_IN_SYSTEM_SCHEMA.newException("SHOW CREATE TABLE", schemaName);
+                }
                 // Get column list, and write DDL for each column.
                 StringBuilder colStringBuilder = new StringBuilder("");
                 String createColString = "";
