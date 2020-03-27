@@ -126,7 +126,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test
+    @Test @Ignore("DB-9279")
     public void concurrencyTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
@@ -189,7 +189,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test
+    @Test @Ignore("DB-9279")
     public void overflowTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
