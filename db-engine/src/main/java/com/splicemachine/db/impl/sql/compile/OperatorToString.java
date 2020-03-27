@@ -315,11 +315,25 @@ public class OperatorToString {
                     String functionName = eon.sparkFunctionName();
 
                     // Splice extracts fractional seconds, but spark only extracts whole seconds.
-                    if (functionName.equals("SECOND") || functionName.equals("WEEK") ||
-                        functionName.equals("WEEKDAY") || functionName.equals("WEEKDAYNAME"))
+                    if (functionName.equals("SECOND")) {
                         throwNotImplementedError();
-                    else
+                    } else if (functionName.equals("WEEK") || functionName.equals("WEEKDAY") || functionName.equals("WEEKDAYNAME")) {
+                        String parameter = "";
+                        switch (functionName) {
+                            case "WEEK":
+                                parameter = "W";
+                                break;
+                            case "WEEKDAY":
+                                parameter = "u";
+                                break;
+                            case "WEEKDAYNAME":
+                                parameter = "EEEE";
+                                break;
+                        }
+                        return format("date_format(%s, \"\") ", opToString2(uop.getOperand(), vars), parameter);
+                    } else {
                         return format("%s(%s) ", functionName, opToString2(uop.getOperand(), vars));
+                    }
                 }
                 else if (operand instanceof DB2LengthOperatorNode) {
                     DB2LengthOperatorNode lengthOp = (DB2LengthOperatorNode)operand;
@@ -627,9 +641,6 @@ public class OperatorToString {
                     if (top.getOperator().equals("LOCATE") ||
                         top.getOperator().equals("replace") ||
                         top.getOperator().equals("substring") ) {
-
-                        if (vars.sparkVersion.lessThan(spark_2_3_0) && top.getOperator().equals("replace"))
-                            throwNotImplementedError();
 
                         vars.relationalOpDepth.decrement();
                         String retval = format("%s(%s, %s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),

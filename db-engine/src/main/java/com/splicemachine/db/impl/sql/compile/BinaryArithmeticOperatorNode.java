@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
+import com.splicemachine.db.iapi.types.DataTypeUtilities;
 import com.splicemachine.db.iapi.types.TypeId;
 
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -152,7 +153,7 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
 				int charMaxWidth = leftDTS.getMaximumWidth();
 				precision += (2 * charMaxWidth);								
 				scale += charMaxWidth;								
-				maxWidth = precision + 3;
+				maxWidth = DataTypeUtilities.computeMaxWidth(precision, scale);
 			}
 
 			leftOperand = (ValueNode)
