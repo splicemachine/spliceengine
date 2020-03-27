@@ -369,8 +369,8 @@ public class ExternalTableIT extends SpliceUnitTest{
         String[] files = newFile.list();
         int count = files.length;
 
-        methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s'",tablePath));
+        methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))" +
+                " PARTITIONED BY (\"partition1\") STORED AS PARQUET  LOCATION '%s'",tablePath));
 
         files = newFile.list();
         int count2 = files.length;
@@ -379,11 +379,11 @@ public class ExternalTableIT extends SpliceUnitTest{
         ResultSet rs = methodWatcher.executeQuery("select * from table_to_existing_file order by 1");
         String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
         String expected =
-                "COL1 |COL2 |COL3 |\n" +
-                        "------------------\n" +
-                        " AAA | AAA | AAA |\n" +
-                        " BBB | BBB | BBB |\n" +
-                        " CCC | CCC | CCC |";
+                "partition1 | column1 | column2 |\n" +
+                        "--------------------------------\n" +
+                        "    AAA    |   AAA   |   AAA   |\n" +
+                        "    BBB    |   BBB   |   BBB   |\n" +
+                        "    CCC    |   CCC   |   CCC   |";
         Assert.assertEquals(actual, expected, actual);
     }
 
@@ -391,17 +391,17 @@ public class ExternalTableIT extends SpliceUnitTest{
     public void createParquetTableMergeSchema() throws  Exception{
         String tablePath = getResourceDirectory()+"parquet_sample_one";
 
-        methodWatcher.executeUpdate(String.format("create external table parquet_table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s' merge schema",tablePath));
+        methodWatcher.executeUpdate(String.format("create external table parquet_table_to_existing_file (\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))" +
+                " PARTITIONED BY (\"partition1\") STORED AS PARQUET  LOCATION '%s'",tablePath));
 
         ResultSet rs = methodWatcher.executeQuery("select * from parquet_table_to_existing_file order by 1");
         String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
         String expected =
-                "COL1 |COL2 |COL3 |\n" +
-                "------------------\n" +
-                " AAA | AAA | AAA |\n" +
-                " BBB | BBB | BBB |\n" +
-                " CCC | CCC | CCC |";
+                "partition1 | column1 | column2 |\n" +
+                        "--------------------------------\n" +
+                        "    AAA    |   AAA   |   AAA   |\n" +
+                        "    BBB    |   BBB   |   BBB   |\n" +
+                        "    CCC    |   CCC   |   CCC   |";
         Assert.assertEquals(actual, expected, actual);
     }
 
@@ -888,12 +888,12 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testWriteReadWithPreExistingParquet() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_simple_file_test"));
-        ResultSet rs = methodWatcher.executeQuery("select COL2 from parquet_simple_file_table where col1='AAA'");
-        Assert.assertEquals("COL2 |\n" +
-                "------\n" +
-                " AAA |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table (\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))\n" +
+                "partitioned by (\"partition1\") STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_simple_file_test"));
+        ResultSet rs = methodWatcher.executeQuery("select \"column1\" from parquet_simple_file_table where \"partition1\"='AAA'");
+        Assert.assertEquals("column1 |\n" +
+                "----------\n" +
+                "   AAA   |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
@@ -908,13 +908,13 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testWriteReadWithPreExistingParquetAndOr() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table_and_or (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_simple_file_test"));
-        ResultSet rs = methodWatcher.executeQuery("select COL2 from parquet_simple_file_table_and_or where col1='BBB' OR ( col1='AAA' AND col2='AAA')");
-        Assert.assertEquals("COL2 |\n" +
-                "------\n" +
-                " AAA |\n" +
-                " BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table_and_or (\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))\n" +
+                "partitioned by (\"partition1\") STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_simple_file_test"));
+        ResultSet rs = methodWatcher.executeQuery("select \"column1\" from parquet_simple_file_table_and_or where \"partition1\"='BBB' OR ( \"partition1\"='AAA' AND \"column1\"='AAA')");
+        Assert.assertEquals("column1 |\n" +
+                "----------\n" +
+                "   AAA   |\n" +
+                "   BBB   |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
@@ -1053,12 +1053,12 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testReadPassedConstraint() throws Exception {
-            methodWatcher.executeUpdate(String.format("create external table failing_correct_attribute(col1 varchar(24), col2 varchar(24), col4 varchar(24))" +
-                    "partitioned by (col1) STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
-            ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_correct_attribute where col1='AAA'");
-            Assert.assertEquals("COL2 |\n" +
-                    "------\n" +
-                    " AAA |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            methodWatcher.executeUpdate(String.format("create external table failing_correct_attribute(\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))" +
+                    "partitioned by (\"partition1\") STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
+            ResultSet rs = methodWatcher.executeQuery("select \"column1\" from failing_correct_attribute where \"column1\"='AAA'");
+            Assert.assertEquals("column1 |\n" +
+                    "----------\n" +
+                    "   AAA   |",TestUtils.FormattedResult.ResultFactory.toString(rs));
 
     }
 
