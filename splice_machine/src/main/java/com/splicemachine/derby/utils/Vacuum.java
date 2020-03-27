@@ -14,49 +14,35 @@
 
 package com.splicemachine.derby.utils;
 
+import com.carrotsearch.hppc.LongHashSet;
+import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.api.TableDescriptor;
+import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.DataCell;
+import com.splicemachine.storage.DataDelete;
+import com.splicemachine.storage.DataScanner;
+import com.splicemachine.storage.Partition;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
+import org.spark_project.guava.collect.Iterables;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-
-import com.carrotsearch.hppc.LongHashSet;
-
-import com.splicemachine.access.configuration.HBaseConfiguration;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.storage.DataCell;
-import com.splicemachine.storage.DataDelete;
-import com.splicemachine.storage.DataScanner;
-import com.splicemachine.storage.Partition;
-import org.spark_project.guava.collect.Iterables;
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.TableDescriptor;
-import com.splicemachine.db.iapi.error.PublicAPI;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.pipeline.ErrorState;
-import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.stream.Stream;
-import com.splicemachine.stream.StreamException;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
 
 /**
  * Utility for Vacuuming Splice.
@@ -83,27 +69,20 @@ public class Vacuum{
 
     public void vacuumDatabase(long oldestActiveTransaction) throws SQLException{
         //get all the conglomerates from sys.sysconglomerates
-        PreparedStatement ps = null;
-        ResultSet rs = null;
         LongHashSet activeConglomerates = new LongHashSet();
-        try{
-            ps = connection.prepareStatement("select conglomeratenumber from sys.sysconglomerates");
-            rs = ps.executeQuery();
-
-            while(rs.next()){
-                activeConglomerates.add(rs.getLong(1));
+        try (PreparedStatement ps =connection.prepareStatement("select conglomeratenumber from sys.sysconglomerates")){
+            try (ResultSet rs =ps.executeQuery()){
+                while (rs.next()) {
+                    activeConglomerates.add(rs.getLong(1));
+                }
             }
-        }finally{
-            if(rs!=null)
-                rs.close();
-            if(ps!=null)
-                ps.close();
         }
         LOG.info("Found " + activeConglomerates.size() + " active conglomerates.");
 
         //get all dropped conglomerates
         Map<Long, Long> droppedConglomerates = new HashMap<>();
-        List<Long> toDelete = new ArrayList<>();
+        Set<Long> allTableConglomerates = new HashSet<>();
+        Queue<Long> toDelete = new ConcurrentLinkedQueue<>();
         SIDriver driver = SIDriver.driver();
         try (Partition dropped = driver.getTableFactory().getTable(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME)) {
             try (DataScanner scanner = dropped.openScanner(driver.baseOperationFactory().newScan())) {
@@ -147,6 +126,7 @@ public class Vacuum{
                         }
                         continue; //ignore system tables
                     }
+                    allTableConglomerates.add(tableConglom);
                     boolean requiresDroppedId = false;
                     boolean ignoreDroppedId = false;
                     if (table.getTransactionId() != null) {
@@ -214,8 +194,8 @@ public class Vacuum{
                     }
                 }catch(NumberFormatException nfe){
                     /*This is either TEMP, TRANSACTIONS, SEQUENCES, or something
-					 * that's not managed by splice. Ignore it
-					 */
+                     * that's not managed by splice. Ignore it
+                     */
                     LOG.info("Ignoring non-numeric table name: " + table.getTableName());
                 }
             }
@@ -228,6 +208,12 @@ public class Vacuum{
             for (long removed : toDelete) {
                 DataDelete delete = driver.baseOperationFactory().newDelete(Bytes.toBytes(removed));
                 deletes.add(delete);
+            }
+            for (long droppedConglomerate : droppedConglomerates.keySet()) {
+                if (!allTableConglomerates.contains(droppedConglomerate)) {
+                    DataDelete delete = driver.baseOperationFactory().newDelete(Bytes.toBytes(droppedConglomerate));
+                    deletes.add(delete);
+                }
             }
             dropped.delete(deletes);
         } catch (IOException | InterruptedException | ExecutionException e) {
