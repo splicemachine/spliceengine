@@ -14,20 +14,44 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.spark_project.guava.base.Throwables;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.spark_project.guava.base.Throwables;
+import org.spark_project.guava.collect.Lists;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
 
 import static org.junit.Assert.*;
 
-public class BatchOnceOperationIT {
+@RunWith(Parameterized.class)
+@Category(SerialTest.class)
+public class BatchOnceOperationIT extends SpliceUnitTest {
 
     private static final String SCHEMA = BatchOnceOperationIT.class.getSimpleName().toUpperCase();
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
+        params.add(new Object[]{"true"});
+        params.add(new Object[]{"false"});
+
+        return params;
+    }
+
+    private String useSpark;
+
+    public BatchOnceOperationIT(String useSpark) {
+        this.useSpark = useSpark;
+    }
 
     @ClassRule
     public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -71,12 +95,12 @@ public class BatchOnceOperationIT {
      */
     @Test
     public void notBatchOnce() throws Exception {
-        assertFalse(isBatchOnceUpdate("update A set A.name = 'foo' where A.name IS NULL"));
-        assertFalse(isBatchOnceUpdate("update A set A.name = (select B.name from B where B.id = 10)"));
-        assertFalse(isBatchOnceUpdate("update A set A.name = (select B.name from B where B.id = B.id2)"));
-        assertFalse(isBatchOnceUpdate("update A set A.name = (select B.name from B where A.id > B.id)"));
-        assertFalse(isBatchOnceUpdate("update A set A.name = (select B.name from B where A.id = 2*B.id)"));
-        assertFalse(isBatchOnceUpdate("update A set A.name = (select B.name from B where 2*A.id = B.id)"));
+        assertFalse(isBatchOnceUpdate(format("update A --splice-properties useSpark=%s\n set A.name = 'foo' where A.name IS NULL", useSpark)));
+        assertFalse(isBatchOnceUpdate(format("update A --splice-properties useSpark=%s\n set A.name = (select B.name from B where B.id = 10)", useSpark)));
+        assertFalse(isBatchOnceUpdate(format("update A --splice-properties useSpark=%s\n set A.name = (select B.name from B where B.id = B.id2)", useSpark)));
+        assertFalse(isBatchOnceUpdate(format("update A --splice-properties useSpark=%s\n set A.name = (select B.name from B where A.id > B.id)", useSpark)));
+        assertFalse(isBatchOnceUpdate(format("update A --splice-properties useSpark=%s\n set A.name = (select B.name from B where A.id = 2*B.id)", useSpark)));
+        assertFalse(isBatchOnceUpdate(format("update A --splice-properties useSpark=%s\n set A.name = (select B.name from B where 2*A.id = B.id)", useSpark)));
     }
 
     /**
@@ -88,7 +112,7 @@ public class BatchOnceOperationIT {
         // insert duplicate value in table B;
         methodWatcher.executeUpdate("insert into B values(16,'xxx', 16, 'xxx')");
         try {
-            doUpdate(true, 0, "update A set A.name = (select B.name from B where A.id = B.id) where A.name IS NULL");
+            doUpdate(true, 0, format("update A --splice-properties useSpark=%s\n set A.name = (select B.name from B where A.id = B.id) where A.name IS NULL", useSpark));
             fail();
         } catch (SQLException e) {
             Throwable cause = Throwables.getRootCause(e);
@@ -99,7 +123,7 @@ public class BatchOnceOperationIT {
 
     @Test
     public void update() throws Exception {
-        doUpdate(true, 6, "update A set A.name = (select B.name from B where A.id = B.id) where A.name IS NULL");
+        doUpdate(true, 6, format("update A --splice-properties useSpark=%s\n set A.name = (select B.name from B where A.id = B.id) where A.name IS NULL", useSpark));
 
         ResultSet rs = methodWatcher.executeQuery("select A.id,A.name from A");
 
@@ -120,35 +144,10 @@ public class BatchOnceOperationIT {
                 "21 |NULL |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Test
-    public void updateOnSpark() throws Exception {
-         String sql = "update A --SPLICE-PROPERTIES useSpark=true \n" +
-                 " \tset A.name = (select B.name from B where A.id = B.id) where A.name IS NULL";
-
-        doUpdate(true, 6, sql);
-
-        ResultSet rs = methodWatcher.executeQuery("select A.id,A.name from A");
-
-        assertEquals("" +
-                "ID |NAME |\n" +
-                "----------\n" +
-                "10 | 10_ |\n" +
-                "11 | 11_ |\n" +
-                "12 | 12_ |\n" +
-                "13 |NULL |\n" +
-                "14 |NULL |\n" +
-                "15 |NULL |\n" +
-                "16 | 16_ |\n" +
-                "17 | 17_ |\n" +
-                "18 | 18_ |\n" +
-                "19 |NULL |\n" +
-                "20 |NULL |\n" +
-                "21 |NULL |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-    }
     /* Same test as above but position of column refs in subquery where clause is reversed. */
     @Test
     public void updateReverseSubqueryColumnReferences() throws Exception {
-        doUpdate(true, 6, "update A set A.name = (select B.name from B where B.id = A.id) where A.name IS NULL");
+        doUpdate(true, 6, format("update A --splice-properties useSpark=%s\n set A.name = (select B.name from B where B.id = A.id) where A.name IS NULL", useSpark));
 
         ResultSet rs = methodWatcher.executeQuery("select A.id,A.name from A");
 
@@ -171,7 +170,7 @@ public class BatchOnceOperationIT {
 
     @Test
     public void updateAlternateColumns() throws Exception {
-        doUpdate(true, 6, "update A set A.name2 = (select B.name2 from B where A.id2 = B.id2) where A.name2 IS NULL");
+        doUpdate(true, 6, format("update A --splice-properties useSpark=%s\n set A.name2 = (select B.name2 from B where A.id2 = B.id2) where A.name2 IS NULL", useSpark));
 
         ResultSet rs = methodWatcher.executeQuery("select * from A");
 
@@ -196,9 +195,9 @@ public class BatchOnceOperationIT {
     @Test
     public void updateOverExistsJoin() throws Exception {
         doUpdate(true, 6,
-                "update A set A.name = (select B.name from B where A.id = B.id) " +
+                format("update A --splice-properties useSpark=%s\n set A.name = (select B.name from B where A.id = B.id) " +
                         "where A.name IS NULL " +
-                        "and exists (select name from B where A.id=B.id)"
+                        "and exists (select name from B where A.id=B.id)", useSpark)
         );
 
         ResultSet rs = methodWatcher.executeQuery("select A.id,A.name from A");
@@ -226,12 +225,14 @@ public class BatchOnceOperationIT {
         methodWatcher.executeUpdate("create table B2(id int, name varchar(9))");
         methodWatcher.executeUpdate("insert into A2 values(1, null)");
         methodWatcher.executeUpdate("insert into B2 values(1, 'testName')");
-        doUpdate(true, 1, "update A2 set A2.name = (select B2.name from B2 where A2.id = B2.id) where A2.name is null");
+        doUpdate(true, 1, format("update A2 --splice-properties useSpark=%s\n set A2.name = (select B2.name from B2 where A2.id = B2.id) where A2.name is null", useSpark));
         ResultSet rs = methodWatcher.executeQuery("select * from A2");
         assertEquals("" +
                 "ID |  NAME   |\n" +
                 "--------------\n" +
                 " 1 |testName |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+        methodWatcher.executeUpdate("drop table A2");
+        methodWatcher.executeUpdate("drop table B2");
     }
 
     @Test
@@ -244,7 +245,7 @@ public class BatchOnceOperationIT {
         methodWatcher.executeUpdate("insert into B3 values('1111', '2222', '3333', 1)");
 
         // when
-        doUpdate(true, 1, "update A3 set A3.name = (select B3.name3 from B3 where A3.id = B3.id) where A3.name is null");
+        doUpdate(true, 1, format("update A3 --splice-properties useSpark=%s\n set A3.name = (select B3.name3 from B3 where A3.id = B3.id) where A3.name is null", useSpark));
 
         // then
         ResultSet rs = methodWatcher.executeQuery("select * from A3");
@@ -252,11 +253,13 @@ public class BatchOnceOperationIT {
                 "ID |NAME |\n" +
                 "----------\n" +
                 " 1 |3333 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+        methodWatcher.executeUpdate("drop table A3");
+        methodWatcher.executeUpdate("drop table B3");
     }
 
     @Test
     public void testMultiplePredicates() throws Exception {
-        String sqlText = "update a set a.name=(select b.name from b where a.id=b.id and a.id2=b.id2)";
+        String sqlText = format("update a --splice-properties useSpark=%s\n set a.name=(select b.name from b where a.id=b.id and a.id2=b.id2)", useSpark);
         doUpdate(true, 9, sqlText);
         ResultSet rs = methodWatcher.executeQuery("select * from A order by id");
         String s = TestUtils.FormattedResult.ResultFactory.toString(rs);
@@ -277,6 +280,54 @@ public class BatchOnceOperationIT {
                 "21 |NULL |2100 | NULL  |", s);
         System.out.println(s);
     }
+
+    @Test
+    public void testJoinUpdate() throws Exception {
+        String[] joinStrategies = {"broadcast", "sortmerge", "nestedloop", "merge"};
+        for (String joinStrategy: joinStrategies) {
+            methodWatcher.executeUpdate("create table t1(a1 int, b1 varchar(10), c1 int, primary key (c1))");
+            methodWatcher.executeUpdate("create table t2(a2 int, b2 varchar(10), c2 int, primary key (c2))");
+            methodWatcher.executeUpdate("insert into t1 values (1,'a',1), (1,'aa',11), (2, 'b', 2), (3, 'c', 3)");
+            methodWatcher.executeUpdate("insert into t2 values (1, 'aA', 1), (1, 'aAA', 11), (2, 'bB', 2)");
+
+            String sql = format("update t1 --splice-properties useSpark=%s\n " +
+                    "set b1 = (select b2 from t2 where c1 = c2) " +
+                    "where exists (select 1 from t2  --splice-properties joinStrategy=%s\n " +
+                    "where c1=c2)", useSpark, joinStrategy);
+            // when
+            doUpdate(true, 1, sql);
+
+            // then
+            ResultSet rs = methodWatcher.executeQuery("select * from t1");
+            assertEquals("" +
+                    "ID |NAME |\n" +
+                    "----------\n" +
+                    " 1 |3333 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+            methodWatcher.executeUpdate("drop table t1");
+            methodWatcher.executeUpdate("drop table t2");
+        }
+    }
+
+    @Test
+    public void testScalarSubqueryWithDistinct() throws Exception {
+
+    }
+
+    @Test
+    public void testFlattenedSubqueryPath() throws Exception {
+
+    }
+
+    @Test
+    public void testCoveringIndex() throws Exception {
+
+    }
+
+    @Test
+    public void testIndexLookup() throws Exception {
+
+    }
+
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //

@@ -36,8 +36,8 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
-import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+
 import java.util.Collection;
 
 /**
@@ -72,6 +72,8 @@ public class BatchOnceNode extends SingleChildResultSetNode {
     /* The column position of the correlated column in the subquery result set */
     private int[] subqueryCorrelatedColumnPositions;
 
+    private int sourceRowLocationColumnPosition;
+
 
     /* Used by NodeFactory */
     public BatchOnceNode() {
@@ -81,12 +83,16 @@ public class BatchOnceNode extends SingleChildResultSetNode {
     public void init(Object projectRestrictNode,
                      Object subqueryNode,
                      Object sourceCorrelatedColumnPosition,
-                     Object subqueryCorrelatedColumnPosition
+                     Object subqueryCorrelatedColumnPosition,
+                     Object sourceRowLocationColumnPosition,
+                     Object resultColumns
     ) {
         this.childResult = (ResultSetNode) projectRestrictNode;
         this.subqueryNode = (SubqueryNode) subqueryNode;
         this.sourceCorrelatedColumnPositions = (int[]) sourceCorrelatedColumnPosition;
         this.subqueryCorrelatedColumnPositions = (int[]) subqueryCorrelatedColumnPosition;
+        this.sourceRowLocationColumnPosition = (int)sourceRowLocationColumnPosition;
+        this.resultColumns = (ResultColumnList)resultColumns;
     }
 
     @Override
@@ -105,21 +111,13 @@ public class BatchOnceNode extends SingleChildResultSetNode {
         mb.push(sourceCorrelatedColumnItem);                 // ARG 6 - position of the correlated CR in the update source RS
         int subqueryCorrelatedColumnItem=acb.addItem(FormatableIntHolder.getFormatableIntHolders(subqueryCorrelatedColumnPositions));
         mb.push(subqueryCorrelatedColumnItem);               // ARG 7 - position of the correlated CR in subquery RS
+        mb.push(sourceRowLocationColumnPosition);            // ARG 8 - position of the rowLocation column
+        mb.push(subqueryNode.getCardinalityCheck());         // ARG 9 - whether or not cardinality check is required
 
         // push: method to invoke on ResultSetFactory
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getBatchOnceResultSet", ClassName.NoPutResultSet, 7);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getBatchOnceResultSet", ClassName.NoPutResultSet, 9);
     }
-
-
-    @Override
-    public ResultColumnDescriptor[] makeResultDescriptors() {
-        return childResult.makeResultDescriptors();
-    }
-
-    @Override
-    public ResultColumnList getResultColumns() {
-        return this.childResult.getResultColumns();
-    }
+    
 
     @Override
     public void acceptChildren(Visitor v) throws StandardException {
