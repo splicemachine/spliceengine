@@ -48,6 +48,7 @@ import com.splicemachine.db.impl.ast.ColumnCollectingVisitor;
 import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
 import org.spark_project.guava.base.Predicates;
 
+import java.sql.Types;
 import java.util.*;
 
 /**
@@ -2580,7 +2581,15 @@ public class SelectNode extends ResultSetNode{
             ResultColumn rc = rowRCL.elementAt(i);
             if (rc.getTypeId() == null)
                 throw StandardException.newException("Type in Result Column is not specified");
-            rc.setExpression(getNullNode(rc.getTypeServices()));
+            if (rc.getTypeId().getJDBCTypeId() == Types.REF) {
+                ValueNode rowLocationNode = (ValueNode) getNodeFactory().getNode(
+                        C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
+                        getContextManager());
+                rc.setExpression(rowLocationNode);
+
+            } else {
+                rc.setExpression(getNullNode(rc.getTypeServices()));
+            }
         }
 
         // Manufacture a RowResultSetNode

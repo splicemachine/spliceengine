@@ -19,12 +19,11 @@ import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
-import com.splicemachine.db.iapi.types.SQLRef;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.OnceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.marshall.*;
@@ -33,15 +32,15 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.primitives.Bytes;
 import org.spark_project.guava.collect.ArrayListMultimap;
 import org.spark_project.guava.collect.Lists;
+import org.spark_project.guava.collect.Maps;
 import org.spark_project.guava.collect.Multimap;
-import org.spark_project.guava.collect.Sets;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
 
 /**
  *
@@ -61,6 +60,8 @@ public class BatchOnceFunction<Op extends SpliceOperation>
     private KeyEncoder subqueryKeyEncoder;
     private int sourceColumnPosition;
     private int subqueryColumnPosition;
+    private int sourceRowLoationColumnPosition;
+    private int cardinalityCheck;
 
     /* Collection of ExecRows we have read from the source and updated with results from the subquery but
      * not yet returned to the operation above us. */
@@ -108,6 +109,8 @@ public class BatchOnceFunction<Op extends SpliceOperation>
         this.subqueryKeyEncoder = getKeyEncoder(subqueryCorrelatedColumnPositions, subqueryExecRow);
         this.sourceColumnPosition = getColumnPosition(sourceExecRow, sourceCorrelatedColumnPositions);
         this.subqueryColumnPosition = getColumnPosition(subqueryExecRow, subqueryCorrelatedColumnPositions);
+        this.sourceRowLoationColumnPosition = op.getSourceRowLocationColumnPosition();
+        this.cardinalityCheck = op.getCardinalityCheck();
     }
 
     private void loadNextBatch(Iterator<ExecRow> locatedRows) throws StandardException, IOException {
@@ -140,7 +143,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
             //
             // row location
             //
-            newRow.setColumn(ROW_LOC_COL, new SQLRef(new HBaseRowLocation(sourceRow.getKey())));
+            newRow.setColumn(ROW_LOC_COL, sourceRow.getColumn(sourceRowLoationColumnPosition));
 
             sourceRowsMap.put(Bytes.toHex(sourceKey), newRow.getClone());
         }
@@ -162,17 +165,31 @@ public class BatchOnceFunction<Op extends SpliceOperation>
             subquerySource.openCore();
             Iterator<ExecRow> subqueryIterator = subquerySource.getExecRowIterator();
             ExecRow nextRowCore;
-            Set<String> uniqueKeySet = Sets.newHashSetWithExpectedSize(batchSize);
+            Map<String, DataValueDescriptor> uniqueKeyMap = Maps.newHashMapWithExpectedSize(batchSize);
             while (subqueryIterator.hasNext()) {
                 nextRowCore = subqueryIterator.next().getClone();
                 byte[] keyColumn = subqueryKeyEncoder.getKey(nextRowCore);
-                Collection<ExecRow> correspondingSourceRows = sourceRowsMap.get(Bytes.toHex(keyColumn));
+                String keyAsString = Bytes.toHex(keyColumn);
+                Collection<ExecRow> correspondingSourceRows = sourceRowsMap.get(keyAsString);
+                DataValueDescriptor newValue = nextRowCore.getColumn(subqueryColumnPosition);
                 for (ExecRow correspondingSourceRow : correspondingSourceRows) {
-                    correspondingSourceRow.setColumn(NEW_COL, nextRowCore.getColumn(subqueryColumnPosition));
+                    correspondingSourceRow.setColumn(NEW_COL, newValue);
                     rowQueue.add(correspondingSourceRow);
                 }
-                if (!uniqueKeySet.add(Bytes.toHex(keyColumn))) {
-                    throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
+                switch (this.cardinalityCheck) {
+                    case OnceOperation.NO_CARDINALITY_CHECK:
+                        break;
+                    case OnceOperation.DO_CARDINALITY_CHECK:
+                        if (uniqueKeyMap.put(keyAsString, newValue) != null) {
+                            throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
+                        }
+                        break;
+                    case OnceOperation.UNIQUE_CARDINALITY_CHECK:
+                        DataValueDescriptor oldValue = uniqueKeyMap.put(keyAsString, newValue);
+                        if (oldValue != null && !oldValue.equals(newValue)) {
+                            throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
+                        }
+                        break;
                 }
             }
         } finally {

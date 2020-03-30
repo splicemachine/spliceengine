@@ -14,12 +14,10 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.batchonce;
 
-import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.stream.function.CloneFunction;
-import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
@@ -28,11 +26,13 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Strings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Replaces a ProjectRestrictNode (below an Update) that would otherwise invoke a subquery for each source row.  This
@@ -71,6 +71,8 @@ public class BatchOnceOperation extends SpliceBaseOperation {
 
     private int sourceCorrelatedColumnItem;
     private int subqueryCorrelatedColumnItem;
+    private int sourceRowLocationColumnPosition;
+    private int cardinalityCheck;
 
     public BatchOnceOperation() {
     }
@@ -81,13 +83,17 @@ public class BatchOnceOperation extends SpliceBaseOperation {
                               SpliceOperation subquerySource,
                               String updateResultSetFieldName,
                               int sourceCorrelatedColumnItem,
-                              int subqueryCorrelatedColumnItem) throws StandardException {
+                              int subqueryCorrelatedColumnItem,
+                              int sourceRowLocationColumnPosition,
+                              int cardinalityCheck) throws StandardException {
         super(activation, rsNumber, 0d, 0d);
         this.source = source;
         this.subquerySource = subquerySource.getLeftOperation();
         this.updateResultSetFieldName = updateResultSetFieldName;
         this.sourceCorrelatedColumnItem = sourceCorrelatedColumnItem;
         this.subqueryCorrelatedColumnItem = subqueryCorrelatedColumnItem;
+        this.sourceRowLocationColumnPosition = sourceRowLocationColumnPosition;
+        this.cardinalityCheck = cardinalityCheck;
     }
 
     @Override
@@ -158,6 +164,8 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         this.updateResultSetFieldName = in.readUTF();
         this.sourceCorrelatedColumnItem = in.readInt();
         this.subqueryCorrelatedColumnItem = in.readInt();
+        this.sourceRowLocationColumnPosition = in.readInt();
+        this.cardinalityCheck = in.readInt();
     }
 
     @Override
@@ -168,6 +176,8 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         out.writeUTF(this.updateResultSetFieldName);
         out.writeInt(this.sourceCorrelatedColumnItem);
         out.writeInt(this.subqueryCorrelatedColumnItem);
+        out.writeInt(this.sourceRowLocationColumnPosition);
+        out.writeInt(this.cardinalityCheck);
     }
 
     public SpliceOperation getSubquerySource() {
@@ -180,6 +190,14 @@ public class BatchOnceOperation extends SpliceBaseOperation {
 
     public int[] getSubqueryCorrelatedColumnPositions() {
         return subqueryCorrelatedColumnPositions;
+    }
+
+    public int getSourceRowLocationColumnPosition() {
+        return sourceRowLocationColumnPosition;
+    }
+
+    public int getCardinalityCheck() {
+        return cardinalityCheck;
     }
 
     public SpliceOperation getSource() {

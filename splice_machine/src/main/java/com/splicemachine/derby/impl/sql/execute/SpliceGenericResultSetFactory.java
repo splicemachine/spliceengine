@@ -2007,7 +2007,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 NoPutResultSet subqueryResultSet,
                                                 String updateResultSetFieldName,
                                                 int sourceCorrelatedColumnItem,
-                                                int subqueryCorrelatedColumnItem) throws StandardException {
+                                                int subqueryCorrelatedColumnItem,
+                                                int sourceRowLoationColumnPosition,
+                                                int cardinalityCheck) throws StandardException {
 
         ConvertedResultSet convertedResultSet = (ConvertedResultSet) source;
         ConvertedResultSet convertedSubqueryResultSet = (ConvertedResultSet) subqueryResultSet;
@@ -2019,7 +2021,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 convertedSubqueryResultSet.getOperation(),
                 updateResultSetFieldName,
                 sourceCorrelatedColumnItem,
-                subqueryCorrelatedColumnItem);
+                subqueryCorrelatedColumnItem,
+                sourceRowLoationColumnPosition,
+                cardinalityCheck);
     }
 
     @Override
