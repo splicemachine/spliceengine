@@ -2136,7 +2136,8 @@ public interface ResultSetFactory {
 										 NoPutResultSet subqueryResultSet,
 										 String updateResultSetFieldName,
 										 int sourceCorrelatedColumnItem,
-										 int subqueryCorrelatedColumnItem) throws StandardException;
+										 int subqueryCorrelatedColumnItem,
+										 int sourceRowLoationColumnPosition) throws StandardException;
 
 	/**
 	 * Recursive query

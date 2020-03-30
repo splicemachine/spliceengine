@@ -126,6 +126,9 @@ public class BatchOnceVisitor extends AbstractSpliceVisitor {
             sourceCorrelatedColumnPositions[i] = sourceCorrelatedColumnPosition;
             subqueryCorrelatedColumnPositions[i] = subqueryCorrelatedColumnPosition;
         }
+        int sourceRowLocationColumnPosition = getRowRowLocationColumnPosition(newSourceNode);
+        assert sourceRowLocationColumnPosition > 0: "RowLocadtion column not found!";
+
         BatchOnceNode batchOnceNode = (BatchOnceNode) updateNode.getNodeFactory().getNode(
                 C_NodeTypes.BATCH_ONCE_NODE,
                 updateNode.getContextManager());
@@ -133,7 +136,8 @@ public class BatchOnceVisitor extends AbstractSpliceVisitor {
         batchOnceNode.init(newSourceNode,
                 subqueryNode,
                 sourceCorrelatedColumnPositions,
-                subqueryCorrelatedColumnPositions);
+                subqueryCorrelatedColumnPositions,
+                sourceRowLocationColumnPosition);
 
         /* Update node is over batch once */
         updateNode.init(batchOnceNode);
@@ -224,6 +228,18 @@ public class BatchOnceVisitor extends AbstractSpliceVisitor {
             }
         }
         return result;
+    }
+
+    private int getRowRowLocationColumnPosition(ResultSetNode resultSetNode) {
+        ResultColumnList sourceResultColumns = resultSetNode.getResultColumns();
+        int position = 1;
+        for (ResultColumn rc : sourceResultColumns) {
+            if (rc.getName().equals(UpdateNode.COLUMNNAME)) {
+                return position;
+            }
+            position++;
+        }
+        return -1;
     }
 
     /**

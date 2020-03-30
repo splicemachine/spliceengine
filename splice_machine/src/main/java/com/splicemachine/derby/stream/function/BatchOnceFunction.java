@@ -19,8 +19,6 @@ import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
-import com.splicemachine.db.iapi.types.SQLRef;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
@@ -61,6 +59,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
     private KeyEncoder subqueryKeyEncoder;
     private int sourceColumnPosition;
     private int subqueryColumnPosition;
+    private int sourceRowLoationColumnPosition;
 
     /* Collection of ExecRows we have read from the source and updated with results from the subquery but
      * not yet returned to the operation above us. */
@@ -108,6 +107,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
         this.subqueryKeyEncoder = getKeyEncoder(subqueryCorrelatedColumnPositions, subqueryExecRow);
         this.sourceColumnPosition = getColumnPosition(sourceExecRow, sourceCorrelatedColumnPositions);
         this.subqueryColumnPosition = getColumnPosition(subqueryExecRow, subqueryCorrelatedColumnPositions);
+        this.sourceRowLoationColumnPosition = op.getSourceRowLoationColumnPosition();
     }
 
     private void loadNextBatch(Iterator<ExecRow> locatedRows) throws StandardException, IOException {
@@ -140,7 +140,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
             //
             // row location
             //
-            newRow.setColumn(ROW_LOC_COL, new SQLRef(new HBaseRowLocation(sourceRow.getKey())));
+            newRow.setColumn(ROW_LOC_COL, sourceRow.getColumn(sourceRowLoationColumnPosition));
 
             sourceRowsMap.put(Bytes.toHex(sourceKey), newRow.getClone());
         }
