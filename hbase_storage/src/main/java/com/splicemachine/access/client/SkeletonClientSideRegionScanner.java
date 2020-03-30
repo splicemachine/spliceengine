@@ -50,7 +50,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 	private Configuration conf;
 	private FileSystem fs;
 	private Path rootDir;
-	private HTableDescriptor htd;
+	private TableDescriptor htd;
 	private HRegionInfo hri;
 	private Scan scan;
     private String hostAndPort;
@@ -64,7 +64,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 	public SkeletonClientSideRegionScanner(Configuration conf,
                                            FileSystem fs,
                                            Path rootDir,
-                                           HTableDescriptor htd,
+                                           TableDescriptor htd,
                                            HRegionInfo hri,
                                            Scan scan, String hostAndPort) throws IOException {
 		if (LOG.isDebugEnabled())
@@ -150,7 +150,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG,
                         "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",
-                        hri, htd.getNameAsString(), rootDir, scan);
+                        hri, htd.getTableName().getNameAsString(), rootDir, scan);
             }
             if (flushed) {
                 if (LOG.isDebugEnabled())
