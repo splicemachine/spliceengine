@@ -56,7 +56,7 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
     val consumer = new KafkaConsumer[Integer, Externalizable](props)
     consumer.subscribe(util.Arrays.asList(topicName))
 
-    val records = consumer.poll( java.time.Duration.ofMillis(timeout) ).asScala  // records: ConsumerRecords[Integer, Externalizable]
+    val records = consumer.poll( java.time.Duration.ofMillis(timeout) ).asScala  // records: Iterable[ConsumerRecords[Integer, Externalizable]]
     consumer.close
 
     // records.isEmpty when consumer.poll times out

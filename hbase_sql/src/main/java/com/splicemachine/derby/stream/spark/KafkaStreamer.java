@@ -93,7 +93,9 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
         taskContext = TaskContext.get();
 
         if (taskContext.attemptNumber() > 0) {
+            LOG.trace("KS.c attempts "+taskContext.attemptNumber());
             long entriesInKafka = KafkaUtils.messageCount(bootstrapServers, topicName, partition);
+            LOG.trace("KS.c entries "+entriesInKafka);
             for (long i = 0; i < entriesInKafka; ++i) {
                 locatedRowIterator.next();
             }
@@ -110,9 +112,11 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
             T lr = locatedRowIterator.next();
 
             ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName,
-                    partition.intValue(), count++, lr);
+                    /*partition.intValue(),*/ count++, lr);
             producer.send(record);
+            LOG.trace("KS.c sent "+partition.intValue()+" "+count+" "+lr);
         }
+        LOG.trace("KS.c count "+partition.intValue()+" "+count);
 
 //        ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName,
 //                partition.intValue(), -1, new ValueRow());
