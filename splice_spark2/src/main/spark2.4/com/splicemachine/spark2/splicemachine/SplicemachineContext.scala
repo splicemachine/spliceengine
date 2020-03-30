@@ -67,7 +67,7 @@ object KafkaOptions {
   *                JDBCOptions.JDBC_TEMP_DIRECTORY, KafkaOptions.KAFKA_SERVERS, KafkaOptions.KAFKA_POLL_TIMEOUT
   */
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
-  private[this] val url = options(JDBCOptions.JDBC_URL)
+  private[this] val url = options(JDBCOptions.JDBC_URL) + ";useSpark=true"
 
   private[this] val kafkaServers = options.getOrElse(KafkaOptions.KAFKA_SERVERS, "localhost:9092")
   println(s"Kafka: $kafkaServers")
@@ -336,34 +336,19 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param sql SQL query
     * @return Dataset[Row] with the result of the query
     */
-  def df(sql: String): Dataset[Row] = {
-    val sqlMod = if( sql.trim.toUpperCase.startsWith("SELECT") ) {
-      val spliceProps = " --splice-properties useSpark=true"
-      if( sql.toUpperCase.contains("WHERE") ) {
-        val w = sql.toUpperCase.indexOf("WHERE")
-        sql.substring(0, w) + spliceProps+"\n" + sql.substring(w, sql.length())
-      } else {
-        sql + spliceProps
-      }
-    } else {
-      sql
-    }
-
-    new KafkaToDF( kafkaServers , kafkaPollTimeout ).df( send(sqlMod) )
-  }
+  def df(sql: String): Dataset[Row] = new KafkaToDF( kafkaServers , kafkaPollTimeout ).df( send(sql) )
 
   def internalDf(sql: String): Dataset[Row] = df(sql)
 
   private[this] def send(sql: String): String = {
-    //    println( s"SMC.df topic $topicName" )
-    //    println( s"SMC.send sql $sql" )
-
     val topicName = getRandomName() // Kafka topic
+//    println( s"SMC.send topic $topicName" )
 
     // hbase user has read/write permission on the topic
 
     val conn = getConnection()
     try {
+//      println( s"SMC.send sql $sql" )
       conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql).execute()
     } finally {
       conn.close()
@@ -371,6 +356,19 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     topicName
   }
+
+  /**
+   *
+   * Table with projections in Splice mapped to an RDD.
+   * Runs the query inside Splice Machine and sends the results to the Spark Adapter app
+   *
+   * @param schemaTableName Accessed table
+   * @param columnProjection Selected columns
+   * @return RDD[Row] with the result of the projection
+   */
+  def rdd(schemaTableName: String,
+          columnProjection: java.util.List[String]): RDD[Row] =
+    rdd(schemaTableName, columnProjection.asScala)
 
   /**
     *
@@ -384,7 +382,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   def rdd(schemaTableName: String,
                   columnProjection: Seq[String] = Nil): RDD[Row] = {
     val columnList = SpliceJDBCUtil.listColumns(columnProjection.toArray)
-    val sqlText = s"SELECT $columnList FROM ${schemaTableName} --splice-properties useSpark=true"
+    val sqlText = s"SELECT $columnList FROM ${schemaTableName}"
     new KafkaToDF( kafkaServers , kafkaPollTimeout ).rdd( send(sqlText) )
   }
 
@@ -393,6 +391,19 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     new SecureRandom().nextBytes(name)
     Bytes.toHex(name)+"-"+System.nanoTime()
   }
+
+  /**
+   *
+   * Table with projections in Splice mapped to an RDD.
+   * Runs the query inside Splice Machine and sends the results to the Spark Adapter app
+   *
+   * @param schemaTableName Accessed table
+   * @param columnProjection Selected columns
+   * @return RDD[Row] with the result of the projection
+   */
+  def internalRdd(schemaTableName: String,
+                  columnProjection: java.util.List[String]): RDD[Row] =
+    internalRdd(schemaTableName, columnProjection.asScala)
 
   /**
    *
@@ -585,8 +596,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       throw new UnsupportedOperationException(s"$schemaTableName has no Primary Key, Required for the Table to Perform Deletes")
 
     modifyOnKeys(rdd, schema, schemaTableName, keys,
-      "delete from " + schemaTableName + " --splice-properties useSpark=true\n" +
-      "where exists (select 1 "
+      "delete from " + schemaTableName + " where exists (select 1 "
     )
   }
 
@@ -652,8 +662,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val columnList = SpliceJDBCUtil.listColumns(nonKeys)
 
     modifyOnKeys(rdd, schema, schemaTableName, keys,
-      "update " + schemaTableName + " --splice-properties useSpark=true\n" +
-        "set (" + columnList + ") = (" +
+      "update " + schemaTableName +
+        " set (" + columnList + ") = (" +
         "select " + columnList
     )
   }
@@ -752,7 +762,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val schemaJdbc = schemaJdbcOpt.get
 
     // If schemaJdbc contains a ShortType field, it may have been incorrectly mapped by JDBC,
-    //  so get a schema from df and take its types
+    //  so get a schema from df and take its type
     if( schemaJdbc.exists(_.dataType.isInstanceOf[ShortType]) ) {
       val schemaDf = df(s"select top 1 * from $schemaTableName").schema
 
@@ -760,7 +770,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         var i = 0
         var schema = StructType(Nil)
         for (field <- schemaJdbc.iterator) {
-          schema = schema.add(field.name, schemaDf(i).dataType, field.nullable)
+          val dataType = if( field.dataType.typeName.equals("short") ) { schemaDf(i).dataType } else { field.dataType }
+          schema = schema.add(field.name, dataType, field.nullable)
           i += 1
         }
         schema
@@ -807,6 +818,10 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
 
   private[this] def export(dataFrame: DataFrame, exportCmd: String): Unit = {
+    if( dataFrame.isEmpty ) {
+      throw new IllegalArgumentException( "Dataframe is empty." )
+    }
+
     val topicName = getRandomName()
 //    println( s"SMC.export topic $topicName" )
 
@@ -814,8 +829,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     send(topicName, dataFrame.rdd, schema)
 
     val sqlText = exportCmd + s" select " + columnList(schema) + " from " +
-      s"new com.splicemachine.derby.vti.KafkaVTI('"+topicName+s"') as SpliceDatasetVTI (${schemaString(schema)})" +
-      " --splice-properties useSpark=true"
+      s"new com.splicemachine.derby.vti.KafkaVTI('"+topicName+s"') as SpliceDatasetVTI (${schemaString(schema)})"
 //    println( s"SMC.export sql $sqlText" )
     execute(sqlText)
   }
