@@ -194,15 +194,9 @@ public class BroadcastJoinOperation extends JoinOperation{
 
         SConfiguration configuration= EngineDriver.driver().getConfiguration();
 
-        // Temporarily always use DataSet broadcast join, if it is legal,
-        // to avoid poor performance in large OLAP queries.
-        // SPLICE-2380 will remove this fix make the decision based
-        // on the number of tables in the query and other factors.
-        boolean useDataset = true ||
-                             SpliceClient.isClient() ||
+        boolean useDataset = SpliceClient.isClient() ||
                 rightResultSet.getEstimatedCost() / 1000 > configuration.getBroadcastDatasetCostThreshold() ||
                         rightResultSet.accessExternalTable();
-
         /** For semi-join, it is possible that the right side is a result from complex operations, like a sequence
          * of joins or some aggregations on top of base table. So heuristically it is better to go through the dataset implementation
          * if the rightResultSet is not a simple access of the base table
