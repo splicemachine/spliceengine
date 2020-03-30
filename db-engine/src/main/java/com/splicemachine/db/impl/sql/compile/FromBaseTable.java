@@ -3322,6 +3322,11 @@ public class FromBaseTable extends FromTable {
         return rowIdColumn;
     }
 
+    @Override
+    public void setRowIdColumn(ResultColumn rc) {
+        rowIdColumn = rc;
+    }
+
     /**
      *
      * Is this FromBaseTable node a distinct scan (effects cost estimate)
