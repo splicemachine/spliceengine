@@ -19,7 +19,6 @@ import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
-import com.splicemachine.hbase.ReadOnlyHTableDescriptor;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.stream.SparkCompactionContext;
@@ -29,10 +28,11 @@ import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.TableDescriptor;
+import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
@@ -91,8 +91,8 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         FileSystem fs = FSUtils.getCurrentFileSystem(conf);
         Path rootDir = FSUtils.getRootDir(conf);
 
-        HTableDescriptor htd = table.getTableDescriptor();
-        HRegion region = HRegion.openHRegion(conf, fs, rootDir, regionInfo, new ReadOnlyHTableDescriptor(htd), null, null, null);
+        TableDescriptor readOnlyTable = TableDescriptorBuilder.newBuilder(table.getDescriptor()).setReadOnly(true).build();
+        HRegion region = HRegion.openHRegion(conf, fs, rootDir, regionInfo, readOnlyTable, null, null, null);
         HStore store = region.getStore(storeColumn);
 
         assert it.hasNext();
