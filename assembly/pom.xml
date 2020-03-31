@@ -618,6 +618,9 @@
                                                 <source>
                                                     <location>common/src/main/resources/bin/sqlshell.sh</location>
                                                 </source>
+                                                <source>
+                                                    <location>common/src/main/resources/scripts/install-test.sql</location>
+                                                </source>
                                             </sources>
                                             <filemode>
                                                 755
