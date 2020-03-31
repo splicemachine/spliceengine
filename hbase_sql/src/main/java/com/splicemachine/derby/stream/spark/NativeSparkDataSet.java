@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.compile.SparkExpressionNode;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
@@ -1132,7 +1133,14 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
         StructType tableSchema = DataTypes.createStructType(fields);
 
-        StructType dataSchema = ExternalTableUtils.getDataSchema(dsp, tableSchema, partitionBy, location, "p");
+        StructType dataSchema = null;
+        try {
+            dataSchema = ExternalTableUtils.getDataSchema(dsp, tableSchema, partitionBy, location, "p");
+        } catch (StandardException e) {
+            if( ! e.getSqlState().equals(SQLState.EXTERNAL_TABLES_READ_FAILURE) ) {
+                throw e;
+            }
+        }
 
         if (dataSchema == null)
             dataSchema = tableSchema;
