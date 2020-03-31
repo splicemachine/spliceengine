@@ -81,6 +81,7 @@ public class CheckTableJob implements Callable<Void> {
     LanguageConnectionContext lcc;
     private String tableVersion;
     private Map<Long, LeadingIndexColumnInfo> leadingIndexColumnInfoMap;
+    private Map<Long, int[]> indexColumnInfoMap;
 
     public CheckTableJob(DistributedCheckTableJob request,OlapStatus jobStatus) {
         this.jobStatus = jobStatus;
@@ -118,10 +119,12 @@ public class CheckTableJob implements Callable<Void> {
         CheckTableResult checkTableResult = new CheckTableResult();
         Map<String, List<String>> errors = new TreeMap<>();
 
+        int[] baseColumnMap = getBaseColumnMap(tentativeIndexList);
         DataSet<ExecRow> tableDataSet = getTableDataSet(dsp, heapConglomId, tentativeIndexList);
         ExecRow key = getTableKeyExecRow(heapConglomId);
         KeyHashDecoder tableKeyDecoder = getKeyDecoder(key, null);
-        TableChecker tableChecker = dsp.getTableChecker(schemaName, tableName, tableDataSet, tableKeyDecoder, key);
+        TableChecker tableChecker = dsp.getTableChecker(schemaName, tableName, tableDataSet,
+                tableKeyDecoder, key, request.txn, request.fix);
 
         // Check each index
         for(DDLMessage.TentativeIndex tentativeIndex : tentativeIndexList) {
@@ -148,7 +151,8 @@ public class CheckTableJob implements Callable<Void> {
                 tableDataSet = getTableDataSet(dsp, heapConglomId, tentativeIndexList);
                 tableChecker.setTableDataSet(tableDataSet);
             }
-            List<String> messages = tableChecker.checkIndex(indexDataSet, indexName, indexKeyDecoder, indexKey, leadingIndexColumnInfo);
+            List<String> messages = tableChecker.checkIndex(indexDataSet, indexName, indexKeyDecoder, indexKey,
+                    leadingIndexColumnInfo, index.getConglomerate(), tentativeIndex);
             if (messages.size() > 0) {
                 errors.put(indexName, messages);
             }
@@ -288,7 +292,8 @@ public class CheckTableJob implements Callable<Void> {
         ExecRow defaultValueRow = getDefaultValueRow(baseColumnMap, templateRow);
         FormatableBitSet defaultValueMap = getDefaultValueMap(defaultValueRow);
 
-        this.leadingIndexColumnInfoMap = getIndexColumnMap(tentativeIndexList, baseColumnMap);
+        this.leadingIndexColumnInfoMap = getLeadingIndexColumnMap(tentativeIndexList, baseColumnMap);
+        this.indexColumnInfoMap = getIndexColumnMap(tentativeIndexList, baseColumnMap);
         DataSet<ExecRow> scanSet =
                 dsp.<TableScanOperation,ExecRow>newScanSet(null, Long.toString(conglomerateId))
                         .activation(activation)
@@ -313,9 +318,8 @@ public class CheckTableJob implements Callable<Void> {
         FormatableBitSet accessedKeyColumns = new FormatableBitSet(columnOrdering.length);
         for (int i = 0; i < baseColumnMap.length; ++i) {
             if (baseColumnMap[i] != -1) {
-                int pos = baseColumnMap[i];
                 for (int j = 0; j < columnOrdering.length; ++j) {
-                    if (columnOrdering[j] == pos) {
+                    if (columnOrdering[j] == i) {
                         accessedKeyColumns.set(j);
                     }
                 }
@@ -357,7 +361,27 @@ public class CheckTableJob implements Callable<Void> {
         }
         return defaultValueRow;
     }
-    private Map<Long, LeadingIndexColumnInfo> getIndexColumnMap(List<DDLMessage.TentativeIndex> tentativeIndexList, int[] baseColumnMap) {
+
+    private Map<Long, int[]> getIndexColumnMap(List<DDLMessage.TentativeIndex> tentativeIndexList, int[] baseColumnMap) {
+
+        Map<Long, int[]> indexColumnInfoMap = new HashMap<>();
+        for (DDLMessage.TentativeIndex tentativeIndex : tentativeIndexList) {
+            List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
+            int[] indexColumnMap = new int[indexCols.size()];
+            Long conglomerate = tentativeIndex.getIndex().getConglomerate();
+            int i = 0;
+            for (int indexCol : indexCols) {
+                // Find the position in template row
+                int pos = baseColumnMap[indexCol-1];
+                indexColumnMap[i++] = pos;
+            }
+            indexColumnInfoMap.put(conglomerate, indexColumnMap);
+        }
+
+        return indexColumnInfoMap;
+    }
+
+    private Map<Long, LeadingIndexColumnInfo> getLeadingIndexColumnMap(List<DDLMessage.TentativeIndex> tentativeIndexList, int[] baseColumnMap) {
 
         Map<Long, LeadingIndexColumnInfo> leadingIndexColumnInfoMap = new HashMap<>();
         for (DDLMessage.TentativeIndex tentativeIndex : tentativeIndexList) {
@@ -407,21 +431,17 @@ public class CheckTableJob implements Callable<Void> {
     }
 
     private int[] getBaseColumnMap(List<DDLMessage.TentativeIndex> tentativeIndexList) {
-
+        // includes all indexed columns
         BitSet accessedCols = new BitSet();
-        // Only include the first column of indexes that excludes null or default values
         int max = 0;
         int[] baseColumnMap = new int[0];
         for(DDLMessage.TentativeIndex index : tentativeIndexList) {
-            boolean excludeNulls = index.getIndex().hasExcludeNulls() && index.getIndex().getExcludeNulls();
-            boolean excludeDefaults = index.getIndex().hasExcludeDefaults() && index.getIndex().getExcludeDefaults();
-            if (excludeNulls || excludeDefaults) {
-                List<Integer> indexCols = index.getIndex().getIndexColsToMainColMapList();
-                int indexCol = indexCols.get(0);
+            List<Integer> indexCols = index.getIndex().getIndexColsToMainColMapList();
+            for (int indexCol : indexCols) {
                 if (indexCol > max) {
                     max = indexCol;
                 }
-                accessedCols.set(indexCol-1);
+                accessedCols.set(indexCol - 1);
             }
         }
         if (accessedCols.cardinality() > 0) {
