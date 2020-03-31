@@ -79,6 +79,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1941), new UpgradeScriptForTableColumnViewInSYSIBM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1948), new UpgradeScriptBase(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1948), new UpgradeScriptForAddDefaultToColumnViewInSYSIBM(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1953), new UpgradeScriptForRemoveUnusedIndexInSYSFILESTable(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1953), new UpgradeScriptForTriggerMultipleStatements(sdd,tc));
     }
 
