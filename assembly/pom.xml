@@ -1162,6 +1162,18 @@
                                             <filemode>755</filemode>
                                         </mapping>
                                         <mapping>
+                                            <directory>/opt/splice/default/scripts/</directory>
+                                            <configuration>true</configuration>
+                                            <username>mapr</username>
+                                            <groupname>mapr</groupname>
+                                            <sources>
+                                                <source>
+                                                    <location>common/src/main/resources/scripts/install-test.sql</location>
+                                                </source>
+                                            </sources>
+                                            <filemode>755</filemode>
+                                        </mapping>
+                                        <mapping>
                                             <directory>/opt/splice/default/lib/</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
