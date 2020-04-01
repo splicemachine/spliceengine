@@ -372,19 +372,16 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static Iterator<String> planToIterator(final Collection<QueryTreeNode> orderedNodes, final DataSetProcessorType type) throws StandardException {
         return Iterators.transform(orderedNodes.iterator(), new Function<QueryTreeNode, String>() {
-            int i = 0;
+            boolean header = true;
 
             @Override
             public String apply(QueryTreeNode queryTreeNode) {
                 try {
-                    if ((queryTreeNode instanceof UnionNode) && ((UnionNode) queryTreeNode).getIsRecursive()) {
-                        ((UnionNode) queryTreeNode).setStepNumInExplain(orderedNodes.size() - i);
-                    }
-                    return queryTreeNode.printExplainInformation(orderedNodes.size(), i, type, true);
+                    return queryTreeNode.printExplainInformation(header, type, true);
                 } catch (StandardException se) {
                     throw new RuntimeException(se);
                 } finally {
-                    i++;
+                    header = false;
                 }
             }
         });

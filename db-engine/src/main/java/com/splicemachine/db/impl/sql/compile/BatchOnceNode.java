@@ -129,10 +129,10 @@ public class BatchOnceNode extends SingleChildResultSetNode {
 
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         return spaceToLevel() +
                 "BatchOnce" + "(" +
-                "n=" + order +
+                "n=" + getResultSetNumber() +
                 attrDelim + getFinalCostEstimate(false).prettyProcessingString(attrDelim) +
                 ")";
     }

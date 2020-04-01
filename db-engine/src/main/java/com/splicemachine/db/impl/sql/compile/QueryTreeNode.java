@@ -1733,10 +1733,10 @@ public abstract class QueryTreeNode implements Node, Visitable{
         tree.add(this);
     }
 
-    public String printExplainInformation(int size, int i, DataSetProcessorType type, boolean fromPlanPrinter) throws StandardException {
+    public String printExplainInformation(boolean printHeader, DataSetProcessorType type, boolean fromPlanPrinter) throws StandardException {
 
-        String s = printExplainInformation(size - i, fromPlanPrinter);
-        if (i > 0)
+        String s = printExplainInformation(fromPlanPrinter);
+        if (!printHeader)
             return s;
         else {
             String engine = String.format(",engine=%s (%s))", type.isSpark()?"Spark":"control", type.level());
@@ -1745,11 +1745,11 @@ public abstract class QueryTreeNode implements Node, Visitable{
         return s;
     }
 
-    public String printExplainInformation(int order, boolean fromPlanPrinter) throws StandardException {
-        return printExplainInformation(",", order);
+    public String printExplainInformation(boolean fromPlanPrinter) throws StandardException {
+        return printExplainInformation(",");
     }
 
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         throw new RuntimeException("Not implemented in: " + this.getClass());
     }
 
@@ -1758,7 +1758,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
     }
 
     public String printExplainInformationForActivation() throws StandardException {
-        return WordUtils.wrap(printExplainInformation(", ", -1), 40, null, false);
+        return WordUtils.wrap(printExplainInformation(", "), 40, null, false);
     }
 
     public String toHTMLString() {
