@@ -2539,12 +2539,12 @@ public class SubqueryNode extends ValueNode{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         // TODO JL Costs?
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("Subquery(")
-                .append("n=").append(order);
+                .append("n=").append(getResultSet().getResultSetNumber());
                 if (resultSet!=null) {
                     sb.append(attrDelim).append(resultSet.getFinalCostEstimate(false).prettyScrollInsensitiveString(attrDelim));
                 }

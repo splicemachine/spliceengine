@@ -736,11 +736,11 @@ public class UnionNode extends SetOperatorNode{
         return "UNION";
     }
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append(isRecursive?"RecursiveUnion":"Union").append("(")
-                .append("n=").append(order);
+                .append("n=").append(getResultSetNumber());
         sb.append(attrDelim).append(costEstimate.prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
@@ -753,14 +753,6 @@ public class UnionNode extends SetOperatorNode{
 
     public boolean getIsRecursive() {
         return isRecursive;
-    }
-
-    public void setStepNumInExplain(int stepNum) {
-        stepNumInExplain = stepNum;
-    }
-
-    public int getStepNumInExplain() {
-        return stepNumInExplain;
     }
 
     public void setViewDescreiptor(TableDescriptor viewDescreiptor) {

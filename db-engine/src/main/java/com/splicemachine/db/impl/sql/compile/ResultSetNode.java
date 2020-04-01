@@ -1750,7 +1750,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
     }
 
     public String printExplainInformationForActivation() throws StandardException {
-        String outString = WordUtils.wrap(printExplainInformation(", ", getResultSetNumber()), 40, null, false);
+        String outString = WordUtils.wrap(printExplainInformation(", "), 40, null, false);
         
         // Avoid UTFDataFormatException that occurs when trying to encode very long strings.
         if (outString.length() >= 65536)

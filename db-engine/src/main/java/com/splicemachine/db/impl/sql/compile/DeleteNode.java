@@ -1069,11 +1069,11 @@ public class DeleteNode extends DMLModStatementNode
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
             .append("Delete").append("(")
-            .append("n=").append(order).append(attrDelim);
+            .append("n=").append(getResultSetNode().getResultSetNumber()).append(attrDelim);
         if (this.resultSet!=null) {
             sb.append(this.resultSet.getFinalCostEstimate(false).prettyDmlStmtString("deletedRows"));
         }
