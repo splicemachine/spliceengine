@@ -1777,10 +1777,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         return spaceToLevel() +
                 "VTI:" + getName() + "(" +
-                "n=" + order +
+                "n=" + getResultSetNumber() +
                 attrDelim + getFinalCostEstimate(false).prettyProcessingString(attrDelim) +
                 ")";
     }

@@ -2069,12 +2069,12 @@ public class JoinNode extends TableOperatorNode{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         JoinStrategy joinStrategy = RSUtils.ap(this).getJoinStrategy();
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append(joinStrategy.getJoinStrategyType().niceName()).append(rightResultSet.isNotExists()?"Anti":"").append("Join(")
-                .append("n=").append(order)
+                .append("n=").append(getResultSetNumber())
                 .append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         if (joinPredicates != null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);

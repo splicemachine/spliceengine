@@ -3356,12 +3356,12 @@ public class FromBaseTable extends FromTable {
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         String indexName = getIndexName();
         sb.append(spaceToLevel());
         sb.append(getClassName(indexName)).append("(");
-        sb.append("n=").append(order).append(attrDelim);
+        sb.append("n=").append(getResultSetNumber()).append(attrDelim);
         sb.append(getFinalCostEstimate(false).prettyFromBaseTableString(attrDelim));
         if (indexName != null)
             sb.append(attrDelim).append("baseTable=").append(getPrettyTableName());

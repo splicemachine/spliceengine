@@ -403,10 +403,10 @@ public class IndexToBaseRowNode extends FromTable{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         return spaceToLevel() +
                 "IndexLookup" + "(" +
-                "n=" + order +
+                "n=" + getResultSetNumber() +
                 attrDelim + getFinalCostEstimate(false).prettyIndexLookupString(attrDelim) +
                 ")";
     }
