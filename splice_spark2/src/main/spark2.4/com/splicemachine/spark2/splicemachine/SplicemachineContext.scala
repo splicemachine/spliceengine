@@ -358,19 +358,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   /**
-   *
-   * Table with projections in Splice mapped to an RDD.
-   * Runs the query inside Splice Machine and sends the results to the Spark Adapter app
-   *
-   * @param schemaTableName Accessed table
-   * @param columnProjection Selected columns
-   * @return RDD[Row] with the result of the projection
-   */
-  def rdd(schemaTableName: String,
-          columnProjection: java.util.List[String]): RDD[Row] =
-    rdd(schemaTableName, columnProjection.asScala)
-
-  /**
     *
     * Table with projections in Splice mapped to an RDD.
     * Runs the query inside Splice Machine and sends the results to the Spark Adapter app
@@ -391,19 +378,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     new SecureRandom().nextBytes(name)
     Bytes.toHex(name)+"-"+System.nanoTime()
   }
-
-  /**
-   *
-   * Table with projections in Splice mapped to an RDD.
-   * Runs the query inside Splice Machine and sends the results to the Spark Adapter app
-   *
-   * @param schemaTableName Accessed table
-   * @param columnProjection Selected columns
-   * @return RDD[Row] with the result of the projection
-   */
-  def internalRdd(schemaTableName: String,
-                  columnProjection: java.util.List[String]): RDD[Row] =
-    internalRdd(schemaTableName, columnProjection.asScala)
 
   /**
    *
@@ -798,7 +772,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
              fileEncoding: String,
              fieldSeparator: String,
              quoteCharacter: String): Unit = {
-    val str = (value: String) => { Option(value).map(v => s"'$v'").getOrElse("null") }
+    val str = (value: String) => { Option(value).map(v => if( v.equals("'") ) {s"'$v$v'"} else {s"'$v'"} ).getOrElse("null") }
     export(
       dataFrame,
       s"export ( '$location', $compression, $replicationCount, ${str(fileEncoding)}, ${str(fieldSeparator)}, ${str(quoteCharacter)})"
