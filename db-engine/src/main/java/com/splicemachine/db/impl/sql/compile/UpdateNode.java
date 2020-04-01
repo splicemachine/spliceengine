@@ -535,7 +535,7 @@ public final class UpdateNode extends DMLModStatementNode
 
         ResultColumn rowIdColumn = targetTable.getRowIdColumn();
         if (rowIdColumn == null) {
-            rowIdColumn =
+            rowLocationColumn =
                     (ResultColumn) getNodeFactory().getNode(
                             C_NodeTypes.RESULT_COLUMN,
                             COLUMNNAME,
@@ -545,11 +545,8 @@ public final class UpdateNode extends DMLModStatementNode
                             false		/* Not nullable */
                     )
             );
-            rowIdColumn.markGenerated();
-            targetTable.setRowIdColumn(rowIdColumn);
-        }
-
-        {
+            rowLocationColumn.markGenerated();
+        } else {
             ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
                     C_NodeTypes.COLUMN_REFERENCE,
                     rowIdColumn.getName(),

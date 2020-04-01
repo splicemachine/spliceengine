@@ -181,10 +181,9 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
                 int columnId = currentResultColumns.size() + 1;
                 VirtualColumnNode virtualColumnNode = createVirtualColumnNode(dmlNode, columnId, nodeBelowMe, rowLocResultCol);
 
-                ResultColumn newRC = currentResultColumns.elementAt(currentResultColumns.size()-1);
-                newRC = newRC.cloneMe();
+                ResultColumn newRC = rowLocResultCol.cloneMe();
                 newRC.setExpression(virtualColumnNode);
-                newRC.setName(rowLocationResultColName);
+                newRC.setResultSetNumber(currentResultColumns.elementAt(0).getResultSetNumber());
                 currentResultColumns.addResultColumn(newRC);
 
             }
