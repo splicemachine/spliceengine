@@ -336,11 +336,15 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param sql SQL query
     * @return Dataset[Row] with the result of the query
     */
-  def df(sql: String): Dataset[Row] = new KafkaToDF( kafkaServers , kafkaPollTimeout ).df( send(sql) )
+  def df(sql: String): Dataset[Row] = new KafkaToDF( kafkaServers , kafkaPollTimeout ).df( sendSql(sql) )
 
   def internalDf(sql: String): Dataset[Row] = df(sql)
 
-  private[this] def send(sql: String): String = {
+  private[this] def sendSql(sql: String): String = {
+    if( sql.toUpperCase.contains("USESPARK=FALSE") ) {
+      throw new IllegalArgumentException(s"Property useSpark=false is not supported by ${this.getClass.getName}")
+    }
+
     val topicName = getRandomName() // Kafka topic
 //    println( s"SMC.send topic $topicName" )
 
@@ -370,7 +374,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
                   columnProjection: Seq[String] = Nil): RDD[Row] = {
     val columnList = SpliceJDBCUtil.listColumns(columnProjection.toArray)
     val sqlText = s"SELECT $columnList FROM ${schemaTableName}"
-    new KafkaToDF( kafkaServers , kafkaPollTimeout ).rdd( send(sqlText) )
+    new KafkaToDF( kafkaServers , kafkaPollTimeout ).rdd( sendSql(sqlText) )
   }
 
   def getRandomName(): String = {
@@ -456,7 +460,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     // hbase user has read/write permission on the topic
 
-    send(topicName, rdd, schema)
+    sendData(topicName, rdd, schema)
 
     val colList = columnList(schema)
     val sProps = spliceProperties.map({case (k,v) => k+"="+v}).fold("--splice-properties useSpark=true")(_+", "+_)
@@ -468,7 +472,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     executeUpdate(sqlText)
   }
 
-  private[this] def send(topicName: String, rdd: JavaRDD[Row], schema: StructType): Unit =
+  private[this] def sendData(topicName: String, rdd: JavaRDD[Row], schema: StructType): Unit =
     rdd.rdd.mapPartitions(
       itrRow => {
         //println( s"SMC.insert mapPartitions" )
@@ -595,7 +599,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   ): Unit = {
     val topicName = getRandomName()
 //    println( s"SMC.modifyOnKeys topic $topicName" )
-    send(topicName, rdd, schema)
+    sendData(topicName, rdd, schema)
 
     val sqlText = sqlStart +
       " from new com.splicemachine.derby.vti.KafkaVTI('"+topicName+"') " +
@@ -800,7 +804,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 //    println( s"SMC.export topic $topicName" )
 
     val schema = dataFrame.schema
-    send(topicName, dataFrame.rdd, schema)
+    sendData(topicName, dataFrame.rdd, schema)
 
     val sqlText = exportCmd + s" select " + columnList(schema) + " from " +
       s"new com.splicemachine.derby.vti.KafkaVTI('"+topicName+s"') as SpliceDatasetVTI (${schemaString(schema)})"
