@@ -475,14 +475,14 @@ public class ShowCreateTableIT extends SpliceUnitTest
     public void testView() throws Exception {
         try
         {
-            methodWatcher.executeUpdate("create view v1 as (select a1 from showcreatetableit.t1)");
-            methodWatcher.execute("call syscs_util.SHOW_CREATE_TABLE('SYS','SYSTABLES')");
+            methodWatcher.executeUpdate("create view showcreatetableit.v1 as (select a1 from showcreatetableit.t1)");
+            methodWatcher.execute("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','V1')");
             Assert.fail("Expected to fail");
         }
         catch (SQLException e)
         {
             String sqlState = e.getSQLState();
-            Assert.assertEquals("42X62",sqlState);
+            Assert.assertEquals("42Y62",sqlState);
         }
     }
 
