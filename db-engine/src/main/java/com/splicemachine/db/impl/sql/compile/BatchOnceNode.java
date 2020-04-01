@@ -110,9 +110,10 @@ public class BatchOnceNode extends SingleChildResultSetNode {
         int subqueryCorrelatedColumnItem=acb.addItem(FormatableIntHolder.getFormatableIntHolders(subqueryCorrelatedColumnPositions));
         mb.push(subqueryCorrelatedColumnItem);               // ARG 7 - position of the correlated CR in subquery RS
         mb.push(sourceRowLocationColumnPosition);            // ARG 8 - position of the rowLocation column
+        mb.push(subqueryNode.getCardinalityCheck());         // ARG 9 - whether or not cardinality check is required
 
         // push: method to invoke on ResultSetFactory
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getBatchOnceResultSet", ClassName.NoPutResultSet, 8);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getBatchOnceResultSet", ClassName.NoPutResultSet, 9);
     }
 
 

@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -40,112 +41,213 @@ import java.util.Iterator;
 import java.util.List;
 
 public class OnceOperation extends SpliceBaseOperation {
-		private static final long serialversionUID = 1l;
-		private static Logger LOG = Logger.getLogger(OnceOperation.class);
-		public static final int DO_CARDINALITY_CHECK		= 1;
-		public static final int NO_CARDINALITY_CHECK		= 2;
-		public static final int UNIQUE_CARDINALITY_CHECK	= 3;
-		private ExecRow rowWithNulls;
-		// set in constructor and not altered during
-		// life of object.
-		public SpliceOperation source;
-		protected SpliceMethod<ExecRow> emptyRowFun;
-		protected String emptyRowFunMethodName;
-		private int cardinalityCheck;
-		public int subqueryNumber;
-		public int pointOfAttachment;
+    public static final int DO_CARDINALITY_CHECK = 1;
+    public static final int NO_CARDINALITY_CHECK = 2;
+    public static final int UNIQUE_CARDINALITY_CHECK = 3;
+    protected static final String NAME = OnceOperation.class.getSimpleName().replaceAll("Operation", "");
+    private static final long serialversionUID = 1l;
+    private static Logger LOG = Logger.getLogger(OnceOperation.class);
+    // set in constructor and not altered during
+    // life of object.
+    public SpliceOperation source;
+    public int subqueryNumber;
+    public int pointOfAttachment;
+    protected SpliceMethod<ExecRow> emptyRowFun;
+    protected String emptyRowFunMethodName;
+    private ExecRow rowWithNulls;
+    private int cardinalityCheck;
 
-	    protected static final String NAME = OnceOperation.class.getSimpleName().replaceAll("Operation","");
+    @Deprecated
+    public OnceOperation() {
+    }
 
-		@Override
-		public String getName() {
-				return NAME;
-		}
-		
-		@Deprecated
-		public OnceOperation(){}
+    public OnceOperation(SpliceOperation s, Activation a, GeneratedMethod emptyRowFun,
+                         int cardinalityCheck, int resultSetNumber,
+                         int subqueryNumber, int pointOfAttachment,
+                         double optimizerEstimatedRowCount,
+                         double optimizerEstimatedCost) throws StandardException {
+        super(a, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
+        SpliceLogUtils.trace(LOG, "instantiated");
+        this.source = s;
+        this.emptyRowFunMethodName = (emptyRowFun != null) ? emptyRowFun.getMethodName() : null;
+        this.cardinalityCheck = cardinalityCheck;
+        this.subqueryNumber = subqueryNumber;
+        this.pointOfAttachment = pointOfAttachment;
+        init();
+    }
 
-		public OnceOperation(SpliceOperation s, Activation a, GeneratedMethod emptyRowFun,
-												 int cardinalityCheck, int resultSetNumber,
-												 int subqueryNumber, int pointOfAttachment,
-												 double optimizerEstimatedRowCount,
-												 double optimizerEstimatedCost) throws StandardException {
-				super(a, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
-				SpliceLogUtils.trace(LOG, "instantiated");
-				this.source = s;
-				this.emptyRowFunMethodName = (emptyRowFun != null)?emptyRowFun.getMethodName():null;
-				this.cardinalityCheck = cardinalityCheck;
-				this.subqueryNumber = subqueryNumber;
-				this.pointOfAttachment = pointOfAttachment;
-				init();
-		}
+    @Override
+    public String getName() {
+        return NAME;
+    }
 
-		@Override
-		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-				SpliceLogUtils.trace(LOG, "readExternal");
-				super.readExternal(in);
-				source = (SpliceOperation) in.readObject();
-				emptyRowFunMethodName = readNullableString(in);
-				cardinalityCheck = in.readInt();
-				subqueryNumber = in.readInt();
-				pointOfAttachment = in.readInt();
-		}
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        SpliceLogUtils.trace(LOG, "readExternal");
+        super.readExternal(in);
+        source = (SpliceOperation) in.readObject();
+        emptyRowFunMethodName = readNullableString(in);
+        cardinalityCheck = in.readInt();
+        subqueryNumber = in.readInt();
+        pointOfAttachment = in.readInt();
+    }
 
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				SpliceLogUtils.trace(LOG, "writeExternal");
-				super.writeExternal(out);
-				out.writeObject(source);
-				writeNullableString(emptyRowFunMethodName, out);
-				out.writeInt(cardinalityCheck);
-				out.writeInt(subqueryNumber);
-				out.writeInt(pointOfAttachment);
-		}
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        SpliceLogUtils.trace(LOG, "writeExternal");
+        super.writeExternal(out);
+        out.writeObject(source);
+        writeNullableString(emptyRowFunMethodName, out);
+        out.writeInt(cardinalityCheck);
+        out.writeInt(subqueryNumber);
+        out.writeInt(pointOfAttachment);
+    }
 
-		@Override
-		public SpliceOperation getLeftOperation() {
-				SpliceLogUtils.trace(LOG,"getLeftOperation");
-				return source;
-		}
+    @Override
+    public SpliceOperation getLeftOperation() {
+        SpliceLogUtils.trace(LOG, "getLeftOperation");
+        return source;
+    }
 
-		@Override
-		public void init(SpliceOperationContext context) throws StandardException, IOException {
-				super.init(context);
-				source.init(context);
-				if(emptyRowFun == null) {
-						emptyRowFun = new SpliceMethod<ExecRow>(emptyRowFunMethodName, activation);
-				}
-		}
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
+        super.init(context);
+        source.init(context);
+        if (emptyRowFun == null) {
+            emptyRowFun = new SpliceMethod<ExecRow>(emptyRowFunMethodName, activation);
+        }
+    }
 
-		@Override
-		public ExecRow getExecRowDefinition() throws StandardException {
-				return source.getExecRowDefinition();
-		}
+    @Override
+    public ExecRow getExecRowDefinition() throws StandardException {
+        return source.getExecRowDefinition();
+    }
 
-		@Override
-		public int[] getRootAccessedCols(long tableNumber) throws StandardException {
-				return source.getRootAccessedCols(tableNumber);
-		}
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) throws StandardException {
+        return source.getRootAccessedCols(tableNumber);
+    }
 
-		@Override
-		public boolean isReferencingTable(long tableNumber) {
-				return source.isReferencingTable(tableNumber);
-		}
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return source.isReferencingTable(tableNumber);
+    }
 
-		@Override
-		public List<SpliceOperation> getSubOperations() {
-				SpliceLogUtils.trace(LOG, "getSubOperations");
-				List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
-				operations.add(source);
-				return operations;
-		}
+    @Override
+    public List<SpliceOperation> getSubOperations() {
+        SpliceLogUtils.trace(LOG, "getSubOperations");
+        List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
+        operations.add(source);
+        return operations;
+    }
 
-        @Override
-        public int[] getAccessedNonPkColumns() throws StandardException{
-            // by default return null
-            return source.getAccessedNonPkColumns();
+    @Override
+    public int[] getAccessedNonPkColumns() throws StandardException {
+        // by default return null
+        return source.getAccessedNonPkColumns();
+    }
+
+    @Override
+    public String prettyPrint(int indentLevel) {
+        String indent = "\n" + Strings.repeat("\t", indentLevel);
+
+        return new StringBuilder("Once:")
+                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("emptyRowFunName:").append(emptyRowFunMethodName)
+                .append(indent).append("cardinalityCheck:").append(cardinalityCheck)
+                .append(indent).append("subqueryNumber:").append(subqueryNumber)
+                .append(indent).append("pointOfAttachment:").append(pointOfAttachment)
+                .append(indent).append("source:").append(source.prettyPrint(indentLevel + 1))
+                .toString();
+    }
+
+    private ExecRow getRowWithNulls() throws StandardException {
+        if (rowWithNulls == null) {
+            rowWithNulls = emptyRowFun.invoke();
+        }
+        return rowWithNulls;
+    }
+
+    protected ExecRow validateNextRow(RowSource rowSource, boolean returnNullRow) throws StandardException, IOException {
+        ExecRow row = rowSource.next();
+        currentRowLocation = source.getCurrentRowLocation();
+        if (row != null) {
+            switch (cardinalityCheck) {
+                case NO_CARDINALITY_CHECK:
+                    break;
+                case DO_CARDINALITY_CHECK:
+                    if (cardinalityCheck == DO_CARDINALITY_CHECK) {
+                        /* Raise an error if the subquery returns > 1 row
+                         * We need to make a copy of the current candidateRow since
+                         * the getNextRow() for this check will wipe out the underlying
+                         * row.
+                         */
+                        ExecRow secondRow = rowSource.next();
+                        if (secondRow != null) {
+                            close();
+                            throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
+                        }
+                    }
+                    break;
+                case UNIQUE_CARDINALITY_CHECK:
+                    //TODO -sf- I don't think that this will work unless there's a sort order on the first column..
+                    DataValueDescriptor orderable1 = row.getColumn(1);
+
+                    ExecRow secondRow = rowSource.next();
+                    while (secondRow != null) {
+                        DataValueDescriptor orderable2 = secondRow.getColumn(1);
+                        if (!(orderable1.compare(DataValueDescriptor.ORDER_OP_EQUALS, orderable2, true, true))) {
+                            close();
+                            throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
+                        }
+                        secondRow = rowSource.next();
+                    }
+                    break;
+                default:
+                    if (SanityManager.DEBUG) {
+                        SanityManager.THROWASSERT(
+                                "cardinalityCheck not unexpected to be " +
+                                        cardinalityCheck);
+                    }
+                    break;
+            }
+        } else if (returnNullRow)
+            row = getRowWithNulls();
+
+        return row;
+    }
+
+    @Override
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
+
+        // We are consuming the dataset, get a resultDataSet
+        dsp.incrementOpDepth();
+        DataSet<ExecRow> raw = source.getResultDataSet(dsp).map(new CloneFunction<>(dsp.createOperationContext(this)));
+        dsp.decrementOpDepth();
+        dsp.prependSpliceExplainString(this.explainPlan);
+        final Iterator<ExecRow> iterator = raw.toLocalIterator();
+        ExecRow result;
+        try {
+            result = validateNextRow(new IteratorRowSource(iterator), true);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
         }
 
+        DataSet<ExecRow> ds = dsp.singleRowDataSet(result);
+        handleSparkExplain(ds, raw, dsp);
+        return ds;
+    }
+
+    @Override
+    protected void resubmitDistributed(ResubmitDistributedException e) throws StandardException {
+        throw e;
+    }
+
+    private interface RowSource {
+        ExecRow next() throws StandardException, IOException;
+    }
 
     private static class IteratorRowSource implements RowSource {
         private final Iterator<ExecRow> iterator;
@@ -163,104 +265,4 @@ public class OnceOperation extends SpliceBaseOperation {
             }
         }
     }
-
-		@Override
-		public String prettyPrint(int indentLevel) {
-				String indent = "\n"+ Strings.repeat("\t",indentLevel);
-
-				return new StringBuilder("Once:")
-								.append(indent).append("resultSetNumber:").append(resultSetNumber)
-								.append(indent).append("emptyRowFunName:").append(emptyRowFunMethodName)
-								.append(indent).append("cardinalityCheck:").append(cardinalityCheck)
-								.append(indent).append("subqueryNumber:").append(subqueryNumber)
-								.append(indent).append("pointOfAttachment:").append(pointOfAttachment)
-								.append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
-								.toString();
-		}
-
-		private ExecRow getRowWithNulls() throws StandardException {
-				if (rowWithNulls == null){
-						rowWithNulls = emptyRowFun.invoke();
-				}
-				return rowWithNulls;
-		}
-
-		private interface RowSource{
-				ExecRow next() throws StandardException,IOException;
-		}
-		protected ExecRow validateNextRow(RowSource rowSource,boolean returnNullRow) throws StandardException, IOException {
-				ExecRow row = rowSource.next();
-                currentRowLocation = source.getCurrentRowLocation();
-				if(row!=null){
-						switch (cardinalityCheck) {
-								case DO_CARDINALITY_CHECK:
-								case NO_CARDINALITY_CHECK:
-										if (cardinalityCheck == DO_CARDINALITY_CHECK) {
-                    				/* Raise an error if the subquery returns > 1 row
-                     				 * We need to make a copy of the current candidateRow since
-                     				 * the getNextRow() for this check will wipe out the underlying
-                             * row.
-                     				 */
-												ExecRow secondRow = rowSource.next();
-												if(secondRow!=null){
-														close();
-														throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
-												}
-										}
-										break;
-								case UNIQUE_CARDINALITY_CHECK:
-										//TODO -sf- I don't think that this will work unless there's a sort order on the first column..
-										DataValueDescriptor orderable1 = row.getColumn(1);
-
-										ExecRow secondRow = rowSource.next();
-										while(secondRow!=null){
-												DataValueDescriptor orderable2 = secondRow.getColumn(1);
-												if (! (orderable1.compare(DataValueDescriptor.ORDER_OP_EQUALS, orderable2, true, true))) {
-														close();
-														throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
-												}
-												secondRow = rowSource.next();
-										}
-										break;
-								default:
-										if (SanityManager.DEBUG) {
-												SanityManager.THROWASSERT(
-																"cardinalityCheck not unexpected to be " +
-																				cardinalityCheck);
-										}
-										break;
-						}
-				}else if(returnNullRow)
-						row = getRowWithNulls();
-
-				return row;
-		}
-
-    @Override
-    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-	if (!isOpen)
-		throw new IllegalStateException("Operation is not open");
-
-        // We are consuming the dataset, get a resultDataSet
-	dsp.incrementOpDepth();
-        DataSet<ExecRow> raw = source.getResultDataSet(dsp).map(new CloneFunction<>(dsp.createOperationContext(this)));
-        dsp.decrementOpDepth();
-        dsp.prependSpliceExplainString(this.explainPlan);
-        final Iterator<ExecRow> iterator = raw.toLocalIterator();
-        ExecRow result;
-        try {
-            result = validateNextRow(new IteratorRowSource(iterator), true);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-
-        DataSet<ExecRow> ds = dsp.singleRowDataSet(result);
-        handleSparkExplain(ds, raw, dsp);
-        return ds;
-    }
-
-	@Override
-	protected void resubmitDistributed(ResubmitDistributedException e) throws StandardException {
-		throw e;
-	}
 }

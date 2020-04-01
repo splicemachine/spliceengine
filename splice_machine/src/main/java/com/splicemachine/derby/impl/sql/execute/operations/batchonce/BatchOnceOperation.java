@@ -71,7 +71,8 @@ public class BatchOnceOperation extends SpliceBaseOperation {
 
     private int sourceCorrelatedColumnItem;
     private int subqueryCorrelatedColumnItem;
-    private int sourceRowLoationColumnPosition;
+    private int sourceRowLocationColumnPosition;
+    private int cardinalityCheck;
 
     public BatchOnceOperation() {
     }
@@ -83,14 +84,16 @@ public class BatchOnceOperation extends SpliceBaseOperation {
                               String updateResultSetFieldName,
                               int sourceCorrelatedColumnItem,
                               int subqueryCorrelatedColumnItem,
-                              int sourceRowLoationColumnPosition) throws StandardException {
+                              int sourceRowLocationColumnPosition,
+                              int cardinalityCheck) throws StandardException {
         super(activation, rsNumber, 0d, 0d);
         this.source = source;
         this.subquerySource = subquerySource.getLeftOperation();
         this.updateResultSetFieldName = updateResultSetFieldName;
         this.sourceCorrelatedColumnItem = sourceCorrelatedColumnItem;
         this.subqueryCorrelatedColumnItem = subqueryCorrelatedColumnItem;
-        this.sourceRowLoationColumnPosition = sourceRowLoationColumnPosition;
+        this.sourceRowLocationColumnPosition = sourceRowLocationColumnPosition;
+        this.cardinalityCheck = cardinalityCheck;
     }
 
     @Override
@@ -161,7 +164,8 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         this.updateResultSetFieldName = in.readUTF();
         this.sourceCorrelatedColumnItem = in.readInt();
         this.subqueryCorrelatedColumnItem = in.readInt();
-        this.sourceRowLoationColumnPosition = in.readInt();
+        this.sourceRowLocationColumnPosition = in.readInt();
+        this.cardinalityCheck = in.readInt();
     }
 
     @Override
@@ -172,7 +176,8 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         out.writeUTF(this.updateResultSetFieldName);
         out.writeInt(this.sourceCorrelatedColumnItem);
         out.writeInt(this.subqueryCorrelatedColumnItem);
-        out.writeInt(this.sourceRowLoationColumnPosition);
+        out.writeInt(this.sourceRowLocationColumnPosition);
+        out.writeInt(this.cardinalityCheck);
     }
 
     public SpliceOperation getSubquerySource() {
@@ -187,8 +192,12 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         return subqueryCorrelatedColumnPositions;
     }
 
-    public int getSourceRowLoationColumnPosition() {
-        return sourceRowLoationColumnPosition;
+    public int getSourceRowLocationColumnPosition() {
+        return sourceRowLocationColumnPosition;
+    }
+
+    public int getCardinalityCheck() {
+        return cardinalityCheck;
     }
 
     public SpliceOperation getSource() {
