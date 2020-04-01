@@ -113,8 +113,12 @@ public class OlapServerMaster implements LeaderSelectorListener {
         }
 
         String root = HConfiguration.getConfiguration().getSpliceRootPath();
-        queueZkPath = root + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH + "/" + queueName;
-        appZkPath = root + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_KEEP_ALIVE_PATH + "/" + appId;
+        String queueRoot = root + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH;
+        String appRoot = root + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_KEEP_ALIVE_PATH;
+        zkSafeCreate(queueRoot);
+        zkSafeCreate(appRoot);
+        queueZkPath = queueRoot + "/" + queueName;
+        appZkPath = appRoot + "/" + appId;
 
         UserGroupInformation.setLoginUser(ugi);
         ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
@@ -145,6 +149,10 @@ public class OlapServerMaster implements LeaderSelectorListener {
         finished.countDown();
 
         System.exit(0);
+    }
+
+    private void zkSafeCreate(String path) throws KeeperException, InterruptedException {
+        ZkUtils.safeCreate(path, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
     }
 
     private void startAppWatcher() {
@@ -182,7 +190,9 @@ public class OlapServerMaster implements LeaderSelectorListener {
             RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
             String root = HConfiguration.getConfiguration().getSpliceRootPath();
 
-            String diagnosticsPath = root + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_DIAGNOSTICS_PATH + "/spark-" + queueName;
+            String diagnosticsRoot = root + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_DIAGNOSTICS_PATH;
+            zkSafeCreate(diagnosticsRoot);
+            String diagnosticsPath = diagnosticsRoot + "/spark-" + queueName;
 
             if (rzk.exists(diagnosticsPath, false) != null) {
                 rzk.setData(diagnosticsPath, com.splicemachine.primitives.Bytes.toBytes(diagnostics), -1);
