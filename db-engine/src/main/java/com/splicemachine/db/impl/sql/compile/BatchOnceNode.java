@@ -36,8 +36,8 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
-import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+
 import java.util.Collection;
 
 /**
@@ -84,13 +84,15 @@ public class BatchOnceNode extends SingleChildResultSetNode {
                      Object subqueryNode,
                      Object sourceCorrelatedColumnPosition,
                      Object subqueryCorrelatedColumnPosition,
-                     Object sourceRowLocationColumnPosition
+                     Object sourceRowLocationColumnPosition,
+                     Object resultColumns
     ) {
         this.childResult = (ResultSetNode) projectRestrictNode;
         this.subqueryNode = (SubqueryNode) subqueryNode;
         this.sourceCorrelatedColumnPositions = (int[]) sourceCorrelatedColumnPosition;
         this.subqueryCorrelatedColumnPositions = (int[]) subqueryCorrelatedColumnPosition;
         this.sourceRowLocationColumnPosition = (int)sourceRowLocationColumnPosition;
+        this.resultColumns = (ResultColumnList)resultColumns;
     }
 
     @Override
@@ -115,17 +117,7 @@ public class BatchOnceNode extends SingleChildResultSetNode {
         // push: method to invoke on ResultSetFactory
         mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getBatchOnceResultSet", ClassName.NoPutResultSet, 9);
     }
-
-
-    @Override
-    public ResultColumnDescriptor[] makeResultDescriptors() {
-        return childResult.makeResultDescriptors();
-    }
-
-    @Override
-    public ResultColumnList getResultColumns() {
-        return this.childResult.getResultColumns();
-    }
+    
 
     @Override
     public void acceptChildren(Visitor v) throws StandardException {

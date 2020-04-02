@@ -139,7 +139,8 @@ public class BatchOnceVisitor extends AbstractSpliceVisitor {
                 subqueryNode,
                 sourceCorrelatedColumnPositions,
                 subqueryCorrelatedColumnPositions,
-                sourceRowLocationColumnPosition);
+                sourceRowLocationColumnPosition,
+                prUnderUpdate.getResultColumns());
 
         /* Update node is over batch once */
         updateNode.init(batchOnceNode);
