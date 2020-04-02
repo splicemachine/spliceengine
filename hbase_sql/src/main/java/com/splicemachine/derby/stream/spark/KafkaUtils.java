@@ -35,13 +35,16 @@ public class KafkaUtils {
         KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
 
         TopicPartition topicPartition = new TopicPartition(topicName, partition);
-        List<TopicPartition> partitions = Arrays.asList(topicPartition);
-        consumer.assign(partitions);
-        consumer.seekToEnd(partitions);
+        List<TopicPartition> partitionList = Arrays.asList(topicPartition);
+        consumer.assign(partitionList);
+        consumer.seekToEnd(partitionList);
         long nextOffset = consumer.position(topicPartition);
+
+        consumer.seekToBeginning(partitionList);
+        long firstOffset = consumer.position(topicPartition);
+
         consumer.close();
 
-        // with the first offset as 0, nextOffset will equal message count
-        return nextOffset;
+        return nextOffset - firstOffset;
     }
 }
