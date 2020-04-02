@@ -169,6 +169,7 @@ public class OnceOperation extends SpliceBaseOperation {
     }
 
     protected ExecRow validateNextRow(RowSource rowSource, boolean returnNullRow) throws StandardException, IOException {
+        ExecRow secondRow;
         ExecRow row = rowSource.next();
         currentRowLocation = source.getCurrentRowLocation();
         if (row != null) {
@@ -176,24 +177,22 @@ public class OnceOperation extends SpliceBaseOperation {
                 case NO_CARDINALITY_CHECK:
                     break;
                 case DO_CARDINALITY_CHECK:
-                    if (cardinalityCheck == DO_CARDINALITY_CHECK) {
-                        /* Raise an error if the subquery returns > 1 row
-                         * We need to make a copy of the current candidateRow since
-                         * the getNextRow() for this check will wipe out the underlying
-                         * row.
-                         */
-                        ExecRow secondRow = rowSource.next();
-                        if (secondRow != null) {
-                            close();
-                            throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
-                        }
+                    /* Raise an error if the subquery returns > 1 row
+                     * We need to make a copy of the current candidateRow since
+                     * the getNextRow() for this check will wipe out the underlying
+                     * row.
+                     */
+                    secondRow = rowSource.next();
+                    if (secondRow != null) {
+                        close();
+                        throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
                     }
                     break;
                 case UNIQUE_CARDINALITY_CHECK:
                     //TODO -sf- I don't think that this will work unless there's a sort order on the first column..
                     DataValueDescriptor orderable1 = row.getColumn(1);
 
-                    ExecRow secondRow = rowSource.next();
+                    secondRow = rowSource.next();
                     while (secondRow != null) {
                         DataValueDescriptor orderable2 = secondRow.getColumn(1);
                         if (!(orderable1.compare(DataValueDescriptor.ORDER_OP_EQUALS, orderable2, true, true))) {

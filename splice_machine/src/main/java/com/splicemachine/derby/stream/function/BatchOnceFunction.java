@@ -18,7 +18,6 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataType;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -31,11 +30,17 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.primitives.Bytes;
-import org.spark_project.guava.collect.*;
+import org.spark_project.guava.collect.ArrayListMultimap;
+import org.spark_project.guava.collect.Lists;
+import org.spark_project.guava.collect.Maps;
+import org.spark_project.guava.collect.Multimap;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Queue;
 
 /**
  *
@@ -166,21 +171,22 @@ public class BatchOnceFunction<Op extends SpliceOperation>
                 byte[] keyColumn = subqueryKeyEncoder.getKey(nextRowCore);
                 String keyAsString = Bytes.toHex(keyColumn);
                 Collection<ExecRow> correspondingSourceRows = sourceRowsMap.get(keyAsString);
+                DataValueDescriptor newValue = nextRowCore.getColumn(subqueryColumnPosition);
                 for (ExecRow correspondingSourceRow : correspondingSourceRows) {
-                    correspondingSourceRow.setColumn(NEW_COL, nextRowCore.getColumn(subqueryColumnPosition));
+                    correspondingSourceRow.setColumn(NEW_COL, newValue);
                     rowQueue.add(correspondingSourceRow);
                 }
                 switch (this.cardinalityCheck) {
                     case OnceOperation.NO_CARDINALITY_CHECK:
                         break;
                     case OnceOperation.DO_CARDINALITY_CHECK:
-                        if (uniqueKeyMap.put(keyAsString, null) != null) {
+                        if (uniqueKeyMap.put(keyAsString, newValue) != null) {
                             throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
                         }
                         break;
                     case OnceOperation.UNIQUE_CARDINALITY_CHECK:
-                        DataValueDescriptor oldValue = uniqueKeyMap.put(keyAsString, nextRowCore.getColumn(subqueryColumnPosition));
-                        if (oldValue != null && !oldValue.equals(nextRowCore.getColumn(subqueryColumnPosition))) {
+                        DataValueDescriptor oldValue = uniqueKeyMap.put(keyAsString, newValue);
+                        if (oldValue != null && !oldValue.equals(newValue)) {
                             throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
                         }
                         break;

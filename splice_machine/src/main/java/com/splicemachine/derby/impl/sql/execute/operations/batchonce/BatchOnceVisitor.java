@@ -127,7 +127,9 @@ public class BatchOnceVisitor extends AbstractSpliceVisitor {
             subqueryCorrelatedColumnPositions[i] = subqueryCorrelatedColumnPosition;
         }
         int sourceRowLocationColumnPosition = getRowRowLocationColumnPosition(newSourceNode);
-        assert sourceRowLocationColumnPosition > 0: "RowLocadtion column not found!";
+        if (sourceRowLocationColumnPosition <= 0) {
+            throw new RuntimeException(String.format("Unable to find the row location ResultColumn in child ProjectRestrictNode of node %s",updateNode));
+        }
 
         BatchOnceNode batchOnceNode = (BatchOnceNode) updateNode.getNodeFactory().getNode(
                 C_NodeTypes.BATCH_ONCE_NODE,

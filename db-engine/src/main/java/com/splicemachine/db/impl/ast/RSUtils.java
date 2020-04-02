@@ -100,7 +100,9 @@ public class RSUtils {
     public final static org.spark_project.guava.base.Predicate<ResultSetNode> isSinkingNode = new org.spark_project.guava.base.Predicate<ResultSetNode>() {
         @Override
         public boolean apply(ResultSetNode rsn) {
-            return sinkers.contains(rsn.getClass());
+            return sinkers.contains(rsn.getClass()) &&
+                    (!(rsn instanceof JoinNode) || RSUtils.isSinkingJoin(RSUtils.ap((JoinNode) rsn)) ||
+                            RSUtils.leftHasIndexLookup(rsn));
         }
     };
 

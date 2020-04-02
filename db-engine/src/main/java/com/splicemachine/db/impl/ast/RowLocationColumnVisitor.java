@@ -69,11 +69,6 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
         return doVisit(node);
     }
 
-    @Override
-    public Visitable visit(UpdateNode node) throws StandardException {
-        return doVisit(node);
-    }
-
     private Visitable doVisit(DMLStatementNode dmlNode) throws StandardException {
 
         // Only continue if the operation is over a sink (e.g. update over merge join, or any join with index lookup)
