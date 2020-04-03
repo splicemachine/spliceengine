@@ -291,6 +291,7 @@ public class NoBatchOnceOperationIT extends SpliceUnitTest {
             methodWatcher.executeUpdate("insert into t2 values (1, 'aA', 1), (1, 'aaA', 11), (2, 'bB', 2)");
 
             try {
+                /* test case 1 */
                 String sql = format("update t1 --splice-properties useSpark=%s\n " +
                         "set b1 = (select b2 from t2 --splice-properties joinStrategy=%s\n " +
                         "          where c1 = c2) " +
@@ -308,6 +309,26 @@ public class NoBatchOnceOperationIT extends SpliceUnitTest {
                         " 2 |bB  | 2 |\n" +
                         " 3 | c  | 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
                 rs.close();
+
+                /* test case 2 */
+                sql = format("update t1 --splice-properties useSpark=%s\n " +
+                        "set b1 = (select b2 from t2 --splice-properties joinStrategy=%s\n " +
+                        "          where c1 = c2 and a1<>2 and c2>10) " +
+                        "where exists (select 1 from t2  --splice-properties joinStrategy=%s\n " +
+                        "              where c1=c2)", useSpark, joinStrategy, joinStrategy);
+                // when
+                doUpdate(true, 3, sql);
+
+                // then
+                rs = methodWatcher.executeQuery("select * from t1");
+                assertEquals("A1 | B1  |C1 |\n" +
+                        "--------------\n" +
+                        " 1 |NULL | 1 |\n" +
+                        " 1 | aaA |11 |\n" +
+                        " 2 |NULL | 2 |\n" +
+                        " 3 |  c  | 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+                rs.close();
+
             } finally {
                 methodWatcher.executeUpdate("drop table if exists t1 ");
                 methodWatcher.executeUpdate("drop table if exists t2 ");
