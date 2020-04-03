@@ -152,7 +152,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
     }
 
     private void zkSafeCreate(String path) throws KeeperException, InterruptedException {
-        ZkUtils.safeCreate(path, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+        ZkUtils.safeCreate(path, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
 
     private void startAppWatcher() {
@@ -197,7 +197,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
             if (rzk.exists(diagnosticsPath, false) != null) {
                 rzk.setData(diagnosticsPath, com.splicemachine.primitives.Bytes.toBytes(diagnostics), -1);
             } else {
-                rzk.create(diagnosticsPath, com.splicemachine.primitives.Bytes.toBytes(diagnostics), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+                rzk.create(diagnosticsPath, com.splicemachine.primitives.Bytes.toBytes(diagnostics), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             }
         } catch (Exception e) {
             LOG.error("Exception while trying to report diagnostics", e);
@@ -398,6 +398,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
                 while (true) {
                     try {
                         rzk.getData(queueZkPath, this, null);
+                        return;
                     } catch (Exception e) {
                         if (tries < 5) {
                             LOG.warn("Unexpected exception when setting watcher, retrying", e);
