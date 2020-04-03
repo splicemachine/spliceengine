@@ -262,7 +262,7 @@ public class OlapServerSubmitter implements Runnable {
             if (rzk.exists(diagnosticsPath, false) != null) {
                 rzk.setData(diagnosticsPath, Bytes.toBytes(diagnostics), -1);
             } else {
-                rzk.create(diagnosticsPath, Bytes.toBytes(diagnostics), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+                rzk.create(diagnosticsPath, Bytes.toBytes(diagnostics), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             }
         } catch (Exception e) {
             LOG.error("Exception while trying to report diagnostics", e);
