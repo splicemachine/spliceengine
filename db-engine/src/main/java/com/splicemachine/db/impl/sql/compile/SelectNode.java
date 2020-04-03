@@ -987,7 +987,7 @@ public class SelectNode extends ResultSetNode{
          * semantic check at run time, so they could be expensive.
          * Set their dependencyMap so that they can be joined last.
          */
-        fromList.setDependencyMapForSSQ(numTables);
+        fromList.moveSSQAndSetDependencyMap(numTables);
 
         /* A valid group by without any aggregates or a having clause
          * is equivalent to a distinct without the group by.  We do the transformation

@@ -48,7 +48,6 @@ import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.*;
-import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -127,7 +126,7 @@ public class SpliceDatabase extends BasicDatabase{
         afterOptVisitors.add(RowLocationColumnVisitor.class);
         afterOptVisitors.add(FixSubqueryColRefs.class);
         afterOptVisitors.add(JoinConditionVisitor.class);
-        afterOptVisitors.add(BatchOnceVisitor.class);
+    //    afterOptVisitors.add(BatchOnceVisitor.class);
         afterOptVisitors.add(LimitOffsetVisitor.class);
         afterOptVisitors.add(PlanPrinter.class);
 
