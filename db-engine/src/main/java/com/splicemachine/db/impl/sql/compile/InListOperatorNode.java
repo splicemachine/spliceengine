@@ -166,6 +166,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 						getContextManager());
 			/* Set type info for the operator node */
 			equal.bindComparisonOperator();
+			equal.setOuterJoinLevel(getOuterJoinLevel());
 			return equal;
 		}
 		else if (allLeftOperandsColumnReferences() &&
@@ -315,6 +316,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 							getContextManager());
 					/* Set type info for the operator node */
 					equal.bindComparisonOperator();
+					equal.setOuterJoinLevel(getOuterJoinLevel());
 					return equal;
 				}
 			}
@@ -394,6 +396,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
     
                 /* Set type info for the operator node */
                 equal.bindComparisonOperator();
+                equal.setOuterJoinLevel(getOuterJoinLevel());
     
                 // Build a chain of AND'ed binary comparisons for each
                 // of the columns in a multicolumn IN list.
