@@ -55,6 +55,7 @@ public class SubqueryFlattening {
      * level node, probably a CursorNode.
      */
     public static void flatten(StatementNode statementNode) throws StandardException {
+        boolean flattenSSQForUpdate = !statementNode.getCompilerContext().isSSQFlatteningForUpdateDisabled();
 
         /*
          * Find all SelectNodes that have subqueries.
@@ -92,7 +93,7 @@ public class SubqueryFlattening {
                 selectNode.accept(aggregateFlatteningVisitor);
                 selectNode.accept(existsFlatteningVisitor);
                 // restrict the optimization for SELECT operation and INSERT operation (create table as, insert-select)
-                if (statementNode instanceof CursorNode || statementNode instanceof InsertNode || statementNode instanceof UpdateNode)
+                if (statementNode instanceof CursorNode || statementNode instanceof InsertNode || flattenSSQForUpdate && (statementNode instanceof UpdateNode))
                     selectNode.accept(scalarSubqueryFlatteningVisitor);
             }
 
