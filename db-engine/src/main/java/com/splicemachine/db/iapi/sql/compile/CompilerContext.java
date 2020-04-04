@@ -166,6 +166,7 @@ public interface CompilerContext extends Context
     boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
     int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
     boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
+    boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
 
     /////////////////////////////////////////////////////////////////////////////////////
     //
@@ -705,4 +706,8 @@ public interface CompilerContext extends Context
     public boolean isOuterJoinFlatteningDisabled();
 
     public void setOuterJoinFlatteningDisabled(boolean onOff);
+
+    public boolean isSSQFlatteningForUpdateDisabled();
+
+    public void setSSQFlatteningForUpdateDisabled(boolean onOff);
 }
