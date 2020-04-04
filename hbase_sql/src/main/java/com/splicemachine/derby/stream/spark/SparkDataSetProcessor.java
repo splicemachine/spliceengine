@@ -1158,8 +1158,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
         Properties props = new Properties();
-        String consumerId = "spark-consumer-"+UUID.randomUUID();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, SIDriver.driver().getConfiguration().getKafkaBootstrapServers());
+        String consumerId = "spark-consumer-dss-sdsp-"+UUID.randomUUID();
+        String bootstrapServers = SIDriver.driver().getConfiguration().getKafkaBootstrapServers();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerId);
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumerId);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
@@ -1174,6 +1175,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         consumer.close();
 
         SparkDataSet rdd = new SparkDataSet(SpliceSpark.getContext().parallelize(partitions, partitions.size()));
-        return rdd.mapPartitions(new ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction(context, topicName));
+        return rdd.mapPartitions(new ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction(context, topicName, bootstrapServers));
     }
 }

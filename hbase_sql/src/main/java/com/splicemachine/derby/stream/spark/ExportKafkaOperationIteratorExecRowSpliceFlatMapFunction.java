@@ -25,22 +25,28 @@ import java.util.UUID;
 
 class ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Iterator<Integer>, ExecRow> {
     private String topicName;
+    private String bootstrapServers;
 
     public ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction() {
     }
 
     public ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction(OperationContext context, String topicName) {
+        this(context, topicName, SIDriver.driver().getConfiguration().getKafkaBootstrapServers());
+    }
+
+    public ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction(OperationContext context, String topicName, String bootstrapServers) {
         super(context);
         this.topicName = topicName;
+        this.bootstrapServers = bootstrapServers;
     }
 
     @Override
     public Iterator<ExecRow> call(Iterator<Integer> partitions) throws Exception {
         Properties props = new Properties();
 
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, SIDriver.driver().getConfiguration().getKafkaBootstrapServers());
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
 
-        String group_id = "spark-consumer-"+UUID.randomUUID();
+        String group_id = "spark-consumer-dss-ekoiersfmf-"+UUID.randomUUID();
         props.put(ConsumerConfig.GROUP_ID_CONFIG,group_id);
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, group_id);
 
@@ -93,10 +99,12 @@ class ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction extends SpliceFla
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeUTF(topicName);
+        out.writeUTF(bootstrapServers);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         topicName = in.readUTF();
+        bootstrapServers = in.readUTF();
     }
 }

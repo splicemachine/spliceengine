@@ -103,7 +103,7 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
 
         Properties props = new Properties();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ProducerConfig.CLIENT_ID_CONFIG, "spark-producer-"+UUID.randomUUID() );
+        props.put(ProducerConfig.CLIENT_ID_CONFIG, "spark-producer-dss-ks-"+UUID.randomUUID() );
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ExternalizableSerializer.class.getName());
         KafkaProducer<Integer, Externalizable> producer = new KafkaProducer<>(props);
