@@ -273,6 +273,6 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.replicationEnabled = configurationSource.getBoolean(SPLICE_REPLICATION_ENABLED, DEFAULT_SPLICE_REPLICATION_ENABLED);
         builder.replicationMonitorInterval = configurationSource.getInt(SPLICE_REPLICATION_MONITOR_INTERVAL, DEFAULT_SPLICE_REPLICATION_MONITOR_INTERVAL);
         builder.replicationHealthcheckScript = configurationSource.getString(SPLICE_REPLICATION_HEALTHCHECKSCRIPT, null);
-        builder.kafkaBootstrapServers = configurationSource.getString(KAFKA_BOOTSTRAP_SERVERS, DEFAULT_KAFKA_BOOTSTRAP_SERVERS);
+        builder.kafkaBootstrapServers = configurationSource.getString(KAFKA_BOOTSTRAP_SERVERS, System.getProperty(KAFKA_BOOTSTRAP_SERVERS, DEFAULT_KAFKA_BOOTSTRAP_SERVERS));
     }
 }
