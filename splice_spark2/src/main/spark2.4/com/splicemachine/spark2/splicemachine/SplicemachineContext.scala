@@ -346,13 +346,13 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     }
 
     val topicName = getRandomName() // Kafka topic
-//    println( s"SMC.send topic $topicName" )
+//    println( s"SMC.sendSql topic $topicName" )
 
     // hbase user has read/write permission on the topic
 
     val conn = getConnection()
     try {
-//      println( s"SMC.send sql $sql" )
+//      println( s"SMC.sendSql sql $sql" )
       conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql).execute()
     } finally {
       conn.close()
@@ -475,7 +475,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] def sendData(topicName: String, rdd: JavaRDD[Row], schema: StructType): Unit =
     rdd.rdd.mapPartitions(
       itrRow => {
-        //println( s"SMC.insert mapPartitions" )
+        //println( s"SMC.sendData $topicName" )
+        //println( s"SMC.sendData mapPartitions" )
         val props = new Properties
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServers)
         props.put(ProducerConfig.CLIENT_ID_CONFIG, "spark-producer-"+java.util.UUID.randomUUID() )
@@ -486,7 +487,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
         var count = 0
         itrRow.foreach( row => {
-          //println( s"SMC.insert record $count" )
+          //println( s"SMC.sendData record $count" )
           producer.send( new ProducerRecord(topicName, count, externalizable(row, schema)) )
           count += 1
         })
