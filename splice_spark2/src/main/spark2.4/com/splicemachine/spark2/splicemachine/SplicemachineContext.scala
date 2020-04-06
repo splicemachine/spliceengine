@@ -341,7 +341,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   def internalDf(sql: String): Dataset[Row] = df(sql)
 
   private[this] def sendSql(sql: String): String = {
-    if( sql.toUpperCase.contains("USESPARK=FALSE") ) {
+    if( sql.toUpperCase.replace(" ","").contains("USESPARK=FALSE") ) {
       throw new IllegalArgumentException(s"Property useSpark=false is not supported by ${this.getClass.getName}")
     }
 
