@@ -15,11 +15,20 @@
 
 package com.splicemachine.derby.stream.output;
 
+import org.apache.spark.sql.types.StructType;
+import java.util.Optional;
+
 public abstract class KafkaDataSetWriterBuilder<V> {
     protected String topicName;
+    protected Optional<StructType> schema;
 
     public KafkaDataSetWriterBuilder<V> topicName(String topicName) {
         this.topicName = topicName;
+        return this;
+    }
+
+    public KafkaDataSetWriterBuilder<V> schema(Optional<StructType> schema) {
+        this.schema = schema;
         return this;
     }
 
