@@ -24,36 +24,49 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.sql.types.StructType;
 import org.apache.spark.util.LongAccumulator;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
+import java.util.Optional;
 
 
 public class SparkKafkaDataSetWriter<V> implements DataSetWriter{
     private String topicName;
     private JavaRDD<V> rdd;
+    private Optional<StructType> schema;
 
     public SparkKafkaDataSetWriter(){
     }
 
     public SparkKafkaDataSetWriter(JavaRDD<V> rdd,
                                    String topicName){
+        this(rdd, topicName, Optional.empty());
+    }
+
+    public SparkKafkaDataSetWriter(JavaRDD<V> rdd,
+                                   String topicName,
+                                   Optional<StructType> schema){
         this.rdd = rdd;
         this.topicName = topicName;
+        this.schema = schema;
     }
 
     public void writeExternal(ObjectOutput out) throws IOException{
         out.writeUTF(topicName);
         out.writeObject(rdd);
+        out.writeObject(schema.orElse(new StructType()));
     }
 
     @SuppressWarnings("unchecked")
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         topicName = in.readUTF();
         rdd = (JavaRDD)in.readObject();
+        StructType structType = (StructType)in.readObject();
+        schema = structType.length() > 0 ? Optional.of(structType) : Optional.empty();
     }
 
     @Override
@@ -61,12 +74,22 @@ public class SparkKafkaDataSetWriter<V> implements DataSetWriter{
         long start = System.currentTimeMillis();
 
         CountFunction countFunction = new CountFunction<>();
-        JavaRDD streamed = rdd.map(countFunction).mapPartitionsWithIndex(new KafkaStreamer(rdd.getNumPartitions(), topicName), true);
+        KafkaStreamer kafkaStreamer = new KafkaStreamer(rdd.getNumPartitions(), topicName, schema);
+        JavaRDD streamed = rdd.map(countFunction).mapPartitionsWithIndex(kafkaStreamer, true);
         streamed.collect();
+
+        Long count = countFunction.getCount().value();
+        if(count == 0) {
+            try {
+                kafkaStreamer.noData();
+            } catch(Exception e) {
+                throw StandardException.newException("", e);
+            }
+        }
 
         long end = System.currentTimeMillis();
         ValueRow valueRow=new ValueRow(2);
-        valueRow.setColumn(1,new SQLLongint(countFunction.getCount().value()));
+        valueRow.setColumn(1,new SQLLongint(count));
         valueRow.setColumn(2,new SQLLongint(end-start));
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }

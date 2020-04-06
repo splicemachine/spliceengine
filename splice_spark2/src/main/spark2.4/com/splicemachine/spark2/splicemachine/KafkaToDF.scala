@@ -15,20 +15,19 @@
 
 package com.splicemachine.spark2.splicemachine
 
-import com.splicemachine.derby.stream.spark.ExternalizableDeserializer
-import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.common.serialization.IntegerDeserializer
 import java.io.Externalizable
 import java.util
 import java.util.{Properties, UUID}
 
-import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.clients.consumer.ConsumerRecords
-import scala.collection.JavaConverters._
-import org.apache.spark.sql.{Dataset, Row}
-import org.apache.spark.sql.SparkSession
+import com.splicemachine.db.impl.sql.execute.ValueRow
+import com.splicemachine.derby.stream.spark.ExternalizableDeserializer
+import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
+import org.apache.kafka.common.serialization.IntegerDeserializer
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
+
+import scala.collection.JavaConverters._
 
 class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
   private[this] val destServers = kafkaServers
@@ -59,14 +58,18 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
     val records = consumer.poll( java.time.Duration.ofMillis(timeout) ).asScala  // records: Iterable[ConsumerRecords[Integer, Externalizable]]
     consumer.close
 
-    // records.isEmpty when consumer.poll times out
-    //    a query that legitimately returns no rows in the db also seems to result in timeout here
-    if (records.isEmpty) { ( spark.sparkContext.parallelize( Seq[Row]() ) , StructType(Nil) ) }
-    else {
+    if (records.isEmpty) { throw new Exception(s"Call timed out after ${timeout/1000.0} seconds.") }
+    else if(records.size == 1) {
+      val row = records.head.value.asInstanceOf[Row]
+      ( spark.sparkContext.parallelize( if(row.size > 0) { Seq(row) } else { Seq[Row]() } ),
+        row.schema
+      )
+    } else {
       val seqBuilder = Seq.newBuilder[Row]
       for (record <- records.iterator) {
-        //              println(s"${record.value.getClass.getName}")
-        //              println(s"offset = ${record.offset}, key = ${record.key}, value = ${record.value}")
+//        println(s"${record.value.getClass.getName}")
+//        println(s"offset = ${record.offset}, key = ${record.key}, value = ${record.value}")
+//        println(s"valuerow = ${record.value.asInstanceOf[ValueRow]}, valuerow.key = ${record.value.asInstanceOf[ValueRow].getKey}")
         seqBuilder += record.value.asInstanceOf[Row]
       }
 
