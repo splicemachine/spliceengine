@@ -190,10 +190,9 @@ public class ControlTableChecker implements TableChecker {
 
         if (invalidIndexCount > 0) {
             if (fix) {
-                return fixInvalidIndexes(result);
-            } else {
-                return reportInvalidIndexes(result);
+                fixInvalidIndexes(result);
             }
+            return reportInvalidIndexes(result);
         }
         return new LinkedList<>();
     }
@@ -201,7 +200,13 @@ public class ControlTableChecker implements TableChecker {
     private List<String> reportInvalidIndexes(ArrayListMultimap<String, byte[]> result) throws StandardException {
         List<String> messages = new LinkedList<>();
         int i = 0;
-        messages.add(String.format("The following %d indexes are invalid:", invalidIndexCount));
+        if (fix) {
+            messages.add(String.format("The following %d indexes are deleted:", invalidIndexCount));
+        }
+        else {
+            messages.add(String.format("The following %d indexes are invalid:", invalidIndexCount));
+        }
+
         for (String baseRowId : result.keySet()) {
             List<byte[]> keys = result.get(baseRowId);
             for (byte[] key : keys) {
@@ -219,7 +224,7 @@ public class ControlTableChecker implements TableChecker {
     }
 
 
-    private List<String> fixInvalidIndexes(ArrayListMultimap<String, byte[]> result) throws StandardException {
+    private void fixInvalidIndexes(ArrayListMultimap<String, byte[]> result) throws StandardException {
         try {
             WriteCoordinator writeCoordinator = PipelineDriver.driver().writeCoordinator();
             WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
@@ -227,27 +232,13 @@ public class ControlTableChecker implements TableChecker {
             RecordingCallBuffer<KVPair> writeBuffer = writeCoordinator.writeBuffer(indexPartition, txn, null, writeConfiguration);
 
             List<String> messages = new LinkedList<>();
-            int i = 0;
-            messages.add(String.format("The following %d indexes are deleted:", invalidIndexCount));
             for (String baseRowId : result.keySet()) {
                 List<byte[]> keys = result.get(baseRowId);
                 for (byte[] key : keys) {
-                    if (i == maxCheckTableErrors) {
-                        messages.add("...");
-                        return messages;
-                    }
                     writeBuffer.add(new KVPair(key, new byte[0], KVPair.Type.DELETE));
-                    if (i > maxCheckTableErrors) {
-                        continue;
-                    }
-                    indexKeyDecoder.set(key, 0, key.length);
-                    indexKeyDecoder.decode(indexKeyTemplate);
-                    messages.add(indexKeyTemplate.getClone().toString() + "=>" + baseRowId);
-                    i++;
                 }
             }
             writeBuffer.flushBuffer();
-            return messages;
         }
         catch (Exception e) {
             throw StandardException.plainWrapException(e);
@@ -266,15 +257,14 @@ public class ControlTableChecker implements TableChecker {
         }
         if (missingIndexCount > 0) {
             if (fix) {
-                return fixMissingIndexes(result);
-            } else {
-                return reportMissingIndexes(result);
+                fixMissingIndexes(result);
             }
+            return reportMissingIndexes(result);
         }
         return new LinkedList<>();
     }
 
-    private List<String> fixMissingIndexes(Map<String, ExecRow> result) throws StandardException {
+    private void fixMissingIndexes(Map<String, ExecRow> result) throws StandardException {
         List<String> messages = new LinkedList<>();
 
         DataSet<ExecRow> dataSet = new ControlDataSet<>(result.values().iterator());
@@ -286,27 +276,6 @@ public class ControlTableChecker implements TableChecker {
                 .txn(txn)
                 .build();
         writer.write();
-
-        int i = 0;
-        messages.add(String.format("Create index for the following %d rows from base table %s.%s:", result.size(), schemaName, tableName));
-        for (Map.Entry<String, ExecRow> entry : result.entrySet()) {
-            if (i >= maxCheckTableErrors) {
-                messages.add("...");
-                break;
-            }
-            byte[] key = entry.getValue().getKey();
-            if (tableKeyTemplate.nColumns() > 0) {
-                tableKeyDecoder.set(key, 0, key.length);
-                tableKeyDecoder.decode(tableKeyTemplate);
-                messages.add(tableKeyTemplate.getClone().toString());
-            }
-            else {
-                messages.add(entry.getKey());
-            }
-            i++;
-        }
-
-        return  messages;
     }
 
 
@@ -314,7 +283,14 @@ public class ControlTableChecker implements TableChecker {
         List<String> messages = new LinkedList<>();
 
         int i = 0;
-        messages.add(String.format("The following %d rows from base table %s.%s are not indexed:", result.size(), schemaName, tableName));
+        if (fix) {
+            messages.add(String.format("Create index for the following %d rows from base table %s.%s:", result.size(),
+                    schemaName, tableName));
+        }
+        else {
+            messages.add(String.format("The following %d rows from base table %s.%s are not indexed:", result.size(),
+                    schemaName, tableName));
+        }
         for (Map.Entry<String, ExecRow> entry : result.entrySet()) {
             if (i >= maxCheckTableErrors) {
                 messages.add("...");
