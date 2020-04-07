@@ -119,7 +119,6 @@ public class CheckTableJob implements Callable<Void> {
         CheckTableResult checkTableResult = new CheckTableResult();
         Map<String, List<String>> errors = new TreeMap<>();
 
-        int[] baseColumnMap = getBaseColumnMap(tentativeIndexList);
         DataSet<ExecRow> tableDataSet = getTableDataSet(dsp, heapConglomId, tentativeIndexList);
         ExecRow key = getTableKeyExecRow(heapConglomId);
         KeyHashDecoder tableKeyDecoder = getKeyDecoder(key, null);
