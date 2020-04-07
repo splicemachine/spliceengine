@@ -185,7 +185,6 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  boolean debugLogStatementContext;
     private final  boolean ignoreSavePoints;
     private final  boolean upgradeForced;
-    private final  int batchOnceBatchSize;
     private final  int importMaxQuotedColumnLines;
     private final  int indexBatchSize;
     private final  int indexLookupBlocks;
@@ -708,10 +707,6 @@ public final class SConfigurationImpl implements SConfiguration {
         return upgradeForced;
     }
     @Override
-    public int getBatchOnceBatchSize() {
-        return batchOnceBatchSize;
-    }
-    @Override
     public int getImportMaxQuotedColumnLines() {
         return importMaxQuotedColumnLines;
     }
@@ -991,7 +986,6 @@ public final class SConfigurationImpl implements SConfiguration {
         startupLockWaitPeriod = builder.startupLockWaitPeriod;
         threadKeepaliveTime = builder.threadKeepaliveTime;
         indexFetchSampleSize = builder.indexFetchSampleSize;
-        batchOnceBatchSize = builder.batchOnceBatchSize;
         sparkIoCompressionCodec = builder.sparkIoCompressionCodec;
         olapClientWaitTime = builder.olapClientWaitTime;
         olapClientTickTime = builder.olapClientTickTime;
