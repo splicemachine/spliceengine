@@ -22,7 +22,7 @@ import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 import scala.collection.immutable.IndexedSeq
 
 @RunWith(classOf[JUnitRunner])
-class NativeTransformationsTest extends FunSuite with TestContext with BeforeAndAfter with Matchers {
+class NativeTransformationsIT extends FunSuite with TestContext with BeforeAndAfter with Matchers {
   val rowCount = 10
   var sqlContext : SQLContext = _
   var rows : IndexedSeq[(Int, Int, String, Long)] = _
@@ -43,6 +43,9 @@ class NativeTransformationsTest extends FunSuite with TestContext with BeforeAnd
     insertInternalRows(rowCount)
   }
 
+  // sparkPlan is different in this version of NSDS compared to the original.
+  //  The original makes direct JDBC calls, while this one gets data back via Kafka without the full plan.
+
   test("join over join") {
      val df = splicemachineContext.df(
        """select * from sys.systables s1
@@ -54,8 +57,9 @@ class NativeTransformationsTest extends FunSuite with TestContext with BeforeAnd
      )
 
     val plan = df.queryExecution.sparkPlan.toString
-    assert("ExistingRDD".r.findAllMatchIn(plan).length == 3)
-    assert("SortMergeJoin".r.findAllMatchIn(plan).length == 2)
+    assert("ExistingRDD".r.findAllMatchIn(plan).length == 1)
+//    assert("ExistingRDD".r.findAllMatchIn(plan).length == 3)
+//    assert("SortMergeJoin".r.findAllMatchIn(plan).length == 2)
   }
 
   test("order by over join") {
@@ -67,9 +71,10 @@ class NativeTransformationsTest extends FunSuite with TestContext with BeforeAnd
     )
 
     val plan = df.queryExecution.sparkPlan.toString
-    assert("ExistingRDD".r.findAllMatchIn(plan).length == 2)
-    assert("SortMergeJoin".r.findAllMatchIn(plan).length == 1)
-    assert("Sort ".r.findAllMatchIn(plan).length == 1)
+    assert("ExistingRDD".r.findAllMatchIn(plan).length == 1)
+//    assert("ExistingRDD".r.findAllMatchIn(plan).length == 2)
+//    assert("SortMergeJoin".r.findAllMatchIn(plan).length == 1)
+//    assert("Sort ".r.findAllMatchIn(plan).length == 1)
   }
 
   test("simple project on join over join") {
@@ -83,8 +88,9 @@ class NativeTransformationsTest extends FunSuite with TestContext with BeforeAnd
     )
 
     val plan = df.queryExecution.sparkPlan.toString
-    assert("ExistingRDD".r.findAllMatchIn(plan).length == 3)
-    assert("SortMergeJoin".r.findAllMatchIn(plan).length == 2)
+    assert("ExistingRDD".r.findAllMatchIn(plan).length == 1)
+//    assert("ExistingRDD".r.findAllMatchIn(plan).length == 3)
+//    assert("SortMergeJoin".r.findAllMatchIn(plan).length == 2)
   }
 
   test("complex project on join over join") {
@@ -98,8 +104,9 @@ class NativeTransformationsTest extends FunSuite with TestContext with BeforeAnd
     )
 
     val plan = df.queryExecution.sparkPlan.toString
-    assert("ExistingRDD".r.findAllMatchIn(plan).length == 3)
-    assert("SortMergeJoin".r.findAllMatchIn(plan).length == 2)
+    assert("ExistingRDD".r.findAllMatchIn(plan).length == 1)
+//    assert("ExistingRDD".r.findAllMatchIn(plan).length == 3)
+//    assert("SortMergeJoin".r.findAllMatchIn(plan).length == 2)
   }
 
   test("aggregate on join over join") {
@@ -113,7 +120,8 @@ class NativeTransformationsTest extends FunSuite with TestContext with BeforeAnd
     )
 
     val plan = df.queryExecution.sparkPlan.toString
-    assert("ExistingRDD".r.findAllMatchIn(plan).length == 3)
-    assert("SortMergeJoin".r.findAllMatchIn(plan).length == 2)
+    assert("ExistingRDD".r.findAllMatchIn(plan).length == 1)
+//    assert("ExistingRDD".r.findAllMatchIn(plan).length == 3)
+//    assert("SortMergeJoin".r.findAllMatchIn(plan).length == 2)
   }
 }
