@@ -29,7 +29,6 @@ import com.splicemachine.db.impl.sql.GenericResultDescription;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
-import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -1995,35 +1994,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         );
         op.markAsTopResultSet();
         return op;
-    }
-
-    /**
-     * BatchOnce
-     */
-    @Override
-    public NoPutResultSet getBatchOnceResultSet(NoPutResultSet source,
-                                                Activation activation,
-                                                int resultSetNumber,
-                                                NoPutResultSet subqueryResultSet,
-                                                String updateResultSetFieldName,
-                                                int sourceCorrelatedColumnItem,
-                                                int subqueryCorrelatedColumnItem,
-                                                int sourceRowLoationColumnPosition,
-                                                int cardinalityCheck) throws StandardException {
-
-        ConvertedResultSet convertedResultSet = (ConvertedResultSet) source;
-        ConvertedResultSet convertedSubqueryResultSet = (ConvertedResultSet) subqueryResultSet;
-
-        return new BatchOnceOperation(
-                convertedResultSet.getOperation(),
-                activation,
-                resultSetNumber,
-                convertedSubqueryResultSet.getOperation(),
-                updateResultSetFieldName,
-                sourceCorrelatedColumnItem,
-                subqueryCorrelatedColumnItem,
-                sourceRowLoationColumnPosition,
-                cardinalityCheck);
     }
 
     @Override
