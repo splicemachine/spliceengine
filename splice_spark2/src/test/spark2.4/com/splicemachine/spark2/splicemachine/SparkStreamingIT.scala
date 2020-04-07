@@ -33,7 +33,7 @@ import org.apache.spark.streaming.{Milliseconds, StreamingContext}
 import scala.collection.mutable.Queue
 
 @RunWith(classOf[JUnitRunner])
-class SparkStreamingTest extends FunSuite with TestStreamingContext with BeforeAndAfter with Matchers {
+class SparkStreamingIT extends FunSuite with TestStreamingContext with BeforeAndAfter with Matchers {
   val rowCount = 10
   var sqlContext : SQLContext = _
   var rows : IndexedSeq[(Int, Int, String, Long)] = _
@@ -126,6 +126,7 @@ class SparkStreamingTest extends FunSuite with TestStreamingContext with BeforeA
    assert(newDF.count == 10)
  }
 
+  // TODO verify
  test ("deletion") {
    val queue:Queue[RDD[Row]] = Queue()
 
@@ -157,6 +158,7 @@ class SparkStreamingTest extends FunSuite with TestStreamingContext with BeforeA
    assert(newDF.count == 5)
  }
 
+  // TODO verify
  test ("update") {
    val queue:Queue[RDD[Row]] = Queue()
 
@@ -190,78 +192,81 @@ class SparkStreamingTest extends FunSuite with TestStreamingContext with BeforeA
    assertEquals(5, newDF.filter("c8_float >= 10.0").count())
  }
 
-  test ("join") {
-    val queue:Queue[RDD[Row]] = Queue()
+  // The following two tests run long when run with the other tests, but if the other tests are commented, they may complete
+  // TODO verify, runs long
+//  test ("join") {
+//    val queue:Queue[RDD[Row]] = Queue()
+//
+//    //insert initial rows
+//    insertInternalRows(10)
+//
+//    //create results table
+//    val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
+//
+//    if (splicemachineContext.tableExists(resultTN)) {
+//      splicemachineContext.dropTable(resultTN)
+//    }
+//    conn.createStatement().execute("create table "+resultTN + this.resultTypesCreateString)
+//
+//    val oldDF = sqlContext.read.options(internalOptions).splicemachine
+//    assert(oldDF.count == 10)
+//
+//    val results = new ListenableQueue[Boolean]
+//
+//    val dstream = ssc.queueStream(queue, true, null)
+//
+//    dstream.foreachRDD(rdd => {
+//      val df = sqlContext.createDataFrame(rdd, splicemachineContext.getSchema(internalTN))
+//
+//      val leftDF = df.filter("c6_int < 5").select("C6_INT","C7_BIGINT")
+//      val resultDF = leftDF.join(sqlContext.read.options(internalOptions).splicemachine, Seq("C6_INT","C7_BIGINT"))
+//        .select("C1_BOOLEAN", "C2_CHAR", "C3_DATE", "C4_DECIMAL")
+//      splicemachineContext.insert(resultDF, resultTN)
+//      results.enqueue(true)
+//    })
+//    enqueueRows(queue, 10)
+//
+//    ssc.start() // Start the computation
+//    results.waitFor(5) // block until there are 5 batches in results (or 1 minute passes)
+//
+//    val newDF = sqlContext.read.options(resultsOptions).splicemachine
+//
+//    assert(newDF.count == 5)
+//  }
 
-    //insert initial rows
-    insertInternalRows(10)
-
-    //create results table
-    val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
-
-    if (splicemachineContext.tableExists(resultTN)) {
-      splicemachineContext.dropTable(resultTN)
-    }
-    conn.createStatement().execute("create table "+resultTN + this.resultTypesCreateString)
-
-    val oldDF = sqlContext.read.options(internalOptions).splicemachine
-    assert(oldDF.count == 10)
-
-    val results = new ListenableQueue[Boolean]
-
-    val dstream = ssc.queueStream(queue, true, null)
-
-    dstream.foreachRDD(rdd => {
-      val df = sqlContext.createDataFrame(rdd, splicemachineContext.getSchema(internalTN))
-
-      val leftDF = df.filter("c6_int < 5").select("C6_INT","C7_BIGINT")
-      val resultDF = leftDF.join(sqlContext.read.options(internalOptions).splicemachine, Seq("C6_INT","C7_BIGINT"))
-        .select("C1_BOOLEAN", "C2_CHAR", "C3_DATE", "C4_DECIMAL")
-      splicemachineContext.insert(resultDF, resultTN)
-      results.enqueue(true)
-    })
-    enqueueRows(queue, 10)
-
-    ssc.start() // Start the computation
-    results.waitFor(5) // block until there are 5 batches in results (or 1 minute passes)
-
-    val newDF = sqlContext.read.options(resultsOptions).splicemachine
-
-    assert(newDF.count == 5)
-  }
-
-  test("conflicts") {
-    val queue:Queue[RDD[Row]] = Queue()
-
-    val oldDF = sqlContext.read.options(internalOptions).splicemachine
-    assert(oldDF.count == 0)
-
-    val results = new ListenableQueue[Boolean]
-    val errors = new ListenableQueue[Exception]
-
-    val dstream = ssc.queueStream(queue, true, null)
-
-    dstream.foreachRDD(rdd => {
-      try {
-        val df = sqlContext.createDataFrame(rdd, splicemachineContext.getSchema(internalTN))
-
-        splicemachineContext.insert(df, internalTN)
-        results.enqueue(true)
-      } catch {
-        case e: Exception =>
-          errors.enqueue(e)
-      }
-    })
-    enqueueRows(queue, 10)
-    enqueueRows(queue, 10)
-
-    ssc.start() // Start the computation
-    results.waitFor(5) // block until there are 10 batches in results (or 1 minute passes)
-    errors.waitFor(5) // 5 batches raising exception
-
-    val newDF = sqlContext.read.options(internalOptions).splicemachine
-    assert(newDF.count == 10)
-  }
+  // TODO verify, runs long
+//  test("conflicts") {
+//    val queue:Queue[RDD[Row]] = Queue()
+//
+//    val oldDF = sqlContext.read.options(internalOptions).splicemachine
+//    assert(oldDF.count == 0)
+//
+//    val results = new ListenableQueue[Boolean]
+//    val errors = new ListenableQueue[Exception]
+//
+//    val dstream = ssc.queueStream(queue, true, null)
+//
+//    dstream.foreachRDD(rdd => {
+//      try {
+//        val df = sqlContext.createDataFrame(rdd, splicemachineContext.getSchema(internalTN))
+//
+//        splicemachineContext.insert(df, internalTN)
+//        results.enqueue(true)
+//      } catch {
+//        case e: Exception =>
+//          errors.enqueue(e)
+//      }
+//    })
+//    enqueueRows(queue, 10)
+//    enqueueRows(queue, 10)
+//
+//    ssc.start() // Start the computation
+//    results.waitFor(5) // block until there are 10 batches in results (or 1 minute passes)
+//    errors.waitFor(5) // 5 batches raising exception
+//
+//    val newDF = sqlContext.read.options(internalOptions).splicemachine
+//    assert(newDF.count == 10)
+//  }
 
 }
 

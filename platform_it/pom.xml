@@ -99,6 +99,20 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_spark2</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_spark2</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}-tests</classifier>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-minikdc</artifactId>
             <version>${hadoop.version}</version>
@@ -490,6 +504,23 @@
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <includes>
                                 <include>com/splicemachine/spark/splicemachine/**/*IT.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>integration-tests-ensds</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <dependenciesToScan>
+                                <dependency>com.splicemachine:splice_spark2</dependency>
+                            </dependenciesToScan>
+                            <argLine>-Xmx2g -Xms64m -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ ${hbase.rootdir}</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <includes>
+                                <include>com/splicemachine/spark2/splicemachine/**/*IT.java</include>
                             </includes>
                         </configuration>
                     </execution>
