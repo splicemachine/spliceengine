@@ -21,7 +21,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.1953-SNAPSHOT</version>
+        <version>3.0.0.1954-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -617,6 +617,9 @@
                                             <sources>
                                                 <source>
                                                     <location>common/src/main/resources/bin/sqlshell.sh</location>
+                                                </source>
+                                                <source>
+                                                    <location>common/src/main/resources/scripts/install-test.sql</location>
                                                 </source>
                                             </sources>
                                             <filemode>
