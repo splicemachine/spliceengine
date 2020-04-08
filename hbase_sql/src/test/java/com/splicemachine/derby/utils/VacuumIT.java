@@ -68,13 +68,14 @@ public class VacuumIT extends SpliceUnitTest{
     protected static String TABLEG = "G";
     protected static String TABLEH = "H";
     protected static String TABLEI = "I";
+    protected static String TABLEJ = "J";
 
-	private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	@ClassRule
-	public static TestRule classRule = spliceClassWatcher;
+    private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    @ClassRule
+    public static TestRule classRule = spliceClassWatcher;
 
-	@Rule
-	public SpliceWatcher methodRule = new SpliceWatcher();
+    @Rule
+    public SpliceWatcher methodRule = new SpliceWatcher();
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -94,6 +95,8 @@ public class VacuumIT extends SpliceUnitTest{
             .schemaName, "(name varchar(40), title varchar(40), age int)");
     protected static SpliceTableWatcher spliceTableIWatcher = new SpliceTableWatcher(TABLEI, spliceSchemaWatcher
             .schemaName, "(name varchar(40), title varchar(40), age int)");
+    protected static SpliceTableWatcher spliceTableJWatcher = new SpliceTableWatcher(TABLEJ, spliceSchemaWatcher
+            .schemaName, "(name varchar(40), title varchar(40), age int)");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
@@ -103,10 +106,11 @@ public class VacuumIT extends SpliceUnitTest{
             .around(spliceTableEWatcher)
             .around(spliceTableGWatcher)
             .around(spliceTableHWatcher)
-            .around(spliceTableIWatcher);
+            .around(spliceTableIWatcher)
+            .around(spliceTableJWatcher);
 
-	@Test
-	public void testVacuumDoesNotBreakStuff() throws Exception {
+    @Test
+    public void testVacuumDoesNotBreakStuff() throws Exception {
         Connection connection = spliceClassWatcher.getOrCreateConnection();
         long[] conglomerateNumber = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, TABLE);
         String conglomerateString = Long.toString(conglomerateNumber[0]);
@@ -539,6 +543,39 @@ public class VacuumIT extends SpliceUnitTest{
             for(String t : deletedTables){
                 long conglom=new Long(t);
                 assertTrue(conglom>=DataDictionary.FIRST_USER_TABLE_NUMBER);
+            }
+        }
+    }
+
+    @Test
+    public void testVacuumRemoveDroppedConglomerateEntryIfTableAlreadyRemoved() throws Exception {
+        Connection connection = spliceClassWatcher.getOrCreateConnection();
+        long[] conglomerateNumbers = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, TABLEJ);
+        try (CallableStatement callableStatement = connection.prepareCall(String.format("drop table %s.J", CLASS_NAME))) {
+            callableStatement.execute();
+        }
+        try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+            for (long congId : conglomerateNumbers) {
+                TableName tableName = TableName.valueOf("splice:" + congId);
+                admin.disableTable(tableName);
+                admin.deleteTable(tableName);
+                assertFalse(admin.tableExists(tableName));
+            }
+        }
+        String name = "splice:"+ com.splicemachine.access.configuration.HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME;
+        try (Table droppedConglomerates = ConnectionFactory.createConnection(new Configuration()).getTable(TableName.valueOf(name))) {
+            for (long congId : conglomerateNumbers) {
+                Result result = droppedConglomerates.get(new Get(Bytes.toBytes(congId)));
+                assertFalse(result.isEmpty());
+            }
+        }
+        try (CallableStatement callableStatement = connection.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+            callableStatement.execute();
+        }
+        try (Table droppedConglomerates = ConnectionFactory.createConnection(new Configuration()).getTable(TableName.valueOf(name))) {
+            for (long congId : conglomerateNumbers) {
+                Result result = droppedConglomerates.get(new Get(Bytes.toBytes(congId)));
+                assertTrue(result.isEmpty());
             }
         }
     }
