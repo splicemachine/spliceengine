@@ -695,6 +695,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         int constantNodeType = getConstantNodeType(type);
         if (constantNodeType == C_NodeTypes.USERTYPE_CONSTANT_NODE) {
             constantNode = (ConstantNode) getNodeFactory().getNode(constantNodeType, value, cm);
+            constantNode.setType(type.getNullabilityType(value.isNull()));
         } else {
             constantNode = (ConstantNode) getNodeFactory().getNode(constantNodeType, type.getTypeId(), cm);
             constantNode.setValue(value);
@@ -1965,8 +1966,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
                     rc.setReferenced();
             } else if (col instanceof VirtualColumnNode) {
                 VirtualColumnNode vc = (VirtualColumnNode) col;
-                if (vc != null)
-                    vc.getSourceResultColumn().setReferenced();
+                vc.getSourceResultColumn().setReferenced();
             } else { //OrderedColumn
                 if (col instanceof OrderByColumn) {
                     ResultColumn rc = ((OrderByColumn) col).getResultColumn();
