@@ -38,6 +38,8 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.Collection;
 
 /**
@@ -78,6 +80,7 @@ public class BatchOnceNode extends SingleChildResultSetNode {
     }
 
     @Override
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="DB-9365")
     public void init(Object projectRestrictNode,
                      Object subqueryNode,
                      Object sourceCorrelatedColumnPosition,

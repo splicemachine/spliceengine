@@ -62,6 +62,7 @@ import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSTOKENSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.base.Predicates;
 import org.spark_project.guava.collect.Lists;
@@ -586,7 +587,6 @@ public class FromBaseTable extends FromTable {
         boolean constraintSpecified=false;
         ConstraintDescriptor consDesc=null;
 
-        StringUtil.SQLEqualsIgnoreCase(tableDescriptor.getSchemaName(),"SYS");
         Enumeration e=tableProperties.keys();
         while(e.hasMoreElements()){
             String key=(String)e.nextElement();
@@ -684,7 +684,7 @@ public class FromBaseTable extends FromTable {
                     splits = Integer.parseInt(value);
                     if (splits <= 0)
                         throw StandardException.newException(SQLState.LANG_INVALID_SPLITS, value);
-                } catch (Exception skipStatsE) {
+                } catch (NumberFormatException skipStatsE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SPLITS, value);
                 }
             } else if (key.equals("useDefaultRowCount")) {
@@ -693,7 +693,7 @@ public class FromBaseTable extends FromTable {
                     defaultRowCount = Long.parseLong(value);
                     if (defaultRowCount <= 0)
                         throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
-                } catch (Exception parseLongE) {
+                } catch (NumberFormatException parseLongE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
                 }
             } else if (key.equals("defaultSelectivityFactor")) {
@@ -702,7 +702,7 @@ public class FromBaseTable extends FromTable {
                     defaultSelectivityFactor = Double.parseDouble(value);
                     if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
                         throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
-                } catch (Exception parseDoubleE) {
+                } catch (NumberFormatException parseDoubleE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
                 }
             }else {
@@ -1166,7 +1166,7 @@ public class FromBaseTable extends FromTable {
             // probably doesn't exist anymore.
             if(baseConglomerateDescriptor==null){
                 //noinspection UnnecessaryBoxing
-                throw StandardException.newException(SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST,new Long(heapConglomerateId));
+                throw StandardException.newException(SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST,Long.valueOf(heapConglomerateId));
             }
 
             /* Build the 0-based array of base column names. */
@@ -3278,6 +3278,7 @@ public class FromBaseTable extends FromTable {
      * required to peform a referential action on dependent table.
      */
     @Override
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="DB-9366")
     public void setRefActionInfo(long fkIndexConglomId,
                                  int[] fkColArray,
                                  String parentResultSetId,

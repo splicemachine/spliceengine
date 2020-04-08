@@ -59,13 +59,6 @@ abstract class SetOperatorNode extends TableOperatorNode
     */
     boolean            all;
 
-    /**
-     * A field indicating that all had been set previous--e.g. that the user has explicitely
-     * called UNION ALL instead of just UNION. This allows us to properly cost stuff by
-     * knowing what the user actually asked for, rather than what it is.
-     */
-    boolean wasAll;
-
     OrderByList orderByList;
     ValueNode   offset; // OFFSET n ROWS
     ValueNode   fetchFirst; // FETCH FIRST n ROWS ONLY

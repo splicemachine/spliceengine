@@ -90,7 +90,7 @@ public class ScrollInsensitiveResultSetNode  extends SingleChildResultSetNode
         // Get the cost estimate for the child
         costEstimate = childResult.getFinalCostEstimate(true);
 
-        int erdNumber = acb.addItem(makeResultDescription());
+        acb.addItem(makeResultDescription());
 
         acb.pushGetResultSetFactoryExpression(mb);
 

@@ -66,7 +66,6 @@ import java.util.*;
 public class FromVTI extends FromTable implements VTIEnvironment {
     public static final String DATASET_PROVIDER = "com.splicemachine.derby.vti.iapi.DatasetProvider";
     JBitSet                correlationMap;
-    JBitSet                dependencyMap;
     MethodCallNode    methodCall;
     TableName            exposedName;
     SubqueryList subqueryList;
@@ -1559,8 +1558,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         ColumnDescriptor             colDesc = null;
 
 
-        TableName tableName = makeTableName(td.getSchemaName(),
-                td.getName());
+        makeTableName(td.getSchemaName(), td.getName());
 
         /* Add all of the columns in the table */
         rcList = (ResultColumnList) getNodeFactory().getNode(

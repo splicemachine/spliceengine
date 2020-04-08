@@ -74,7 +74,7 @@ import java.util.Vector;
 
 public class DeleteNode extends DMLModStatementNode
 {
-    public static String PIN = "pin";
+    public static final String PIN = "pin";
     /* Column name for the RowLocation column in the ResultSet */
     // Splice fork: changed this to public, like it is in UpdateNode.
     public static final String COLUMNNAME = "###RowLocationToDelete";
@@ -83,13 +83,11 @@ public class DeleteNode extends DMLModStatementNode
     private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
 
     /* Filled in by bind. */
-    protected boolean                deferred;
-    protected ExecRow                emptyHeapRow;
-    protected FromTable                targetTable;
-    protected FKInfo                fkInfo;
+    protected boolean          deferred;
+    protected ExecRow          emptyHeapRow;
+    protected FromTable        targetTable;
     protected FormatableBitSet readColsBitSet;
 
-    private ConstantAction[] dependentConstantActions;
     private boolean cascadeDelete;
     private StatementNode[] dependentNodes;
 
@@ -494,7 +492,7 @@ public class DeleteNode extends DMLModStatementNode
                       readColsBitSet.getNumBitsSet(),
                   (UUID) null,
                   resultSet.isOneRowResultSet(),
-                  dependentConstantActions);
+                  null);
         }
         else
         {

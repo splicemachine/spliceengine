@@ -79,14 +79,13 @@ import java.util.Vector;
 
 public final class UpdateNode extends DMLModStatementNode
 {
-    public static String PIN = "pin";
+    public static final String PIN = "pin";
     //Note: These are public so they will be visible to
     //the RepUpdateNode.
     public int[]                changedColumnIds;
     public ExecRow                emptyHeapRow;
     public boolean                deferred;
     public ValueNode            checkConstraints;
-    public FKInfo                fkInfo;
 
     protected FromTable            targetTable;
     protected FormatableBitSet             readColsBitSet;
@@ -1260,12 +1259,11 @@ public final class UpdateNode extends DMLModStatementNode
         throws StandardException
     {
         ResultColumnList        updateColumnList = updateSet.getResultColumns();
-        int                             count = updateColumnList.size();
+        int                     count = updateColumnList.size();
         ColumnDescriptorList    generatedColumns = baseTable.getGeneratedColumns();
-        int                                 generatedColumnCount = generatedColumns.size();
-        int                                columnCount = baseTable.getMaxColumnID();
-        HashSet                     updatedColumns = new HashSet();
-        UUID                            tableID = baseTable.getObjectID();
+        int                     generatedColumnCount = generatedColumns.size();
+        HashSet                 updatedColumns = new HashSet();
+        UUID                    tableID = baseTable.getObjectID();
         
         for (int ix = 0; ix < count; ix++)
         {

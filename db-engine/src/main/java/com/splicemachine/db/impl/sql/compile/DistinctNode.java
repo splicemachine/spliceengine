@@ -152,7 +152,8 @@ public class DistinctNode extends SingleChildResultSetNode
                                    RowOrdering rowOrdering)
             throws StandardException
     {
-        CostEstimate childCost = ((Optimizable) childResult).optimizeIt(
+        // RESOLVE: NEED TO FACTOR IN THE COST OF GROUPING (SORTING) HERE
+        ((Optimizable) childResult).optimizeIt(
                 optimizer, predList, outerCost, rowOrdering);
 
         return super.optimizeIt(optimizer, predList, outerCost, rowOrdering);

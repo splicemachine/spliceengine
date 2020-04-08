@@ -780,7 +780,6 @@ public abstract class ResultSetNode extends QueryTreeNode{
         Parser p;
         ValueNode defaultTree;
         LanguageConnectionContext lcc=getLanguageConnectionContext();
-        CompilerContext compilerContext=getCompilerContext();
 
         /* Get a Statement to pass to the parser */
 
