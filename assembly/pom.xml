@@ -39,6 +39,18 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>splice_spark</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>splice_spark2</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}</classifier>
@@ -93,6 +105,7 @@
             splice_colperms,
             splice_encryption,
             akka-remote_${scala.binary.version},
+            splice_spark,
             splice_spark2,
             super-csv,
             c3p0,
@@ -356,6 +369,7 @@
                                         javax.servlet-api,
                                         javax.ws.rs-api,
                                         jython-standalone,
+                                        splice_spark,
                                         splice_spark2
                                     </includeArtifactIds>
                                 </configuration>
@@ -1186,6 +1200,7 @@
                                                     <include>com.splicemachine:db-shared</include>
                                                     <include>com.splicemachine:db-tools-ij</include>
                                                     <include>com.splicemachine:splice_spark</include>
+                                                    <include>com.splicemachine:splice_spark2</include>
                                                     <include>tomcat:jasper-runtime</include>
                                                     <include>tomcat:tomcat-parent</include>
                                                     <include>org.apache.commons:commons-lang</include>
