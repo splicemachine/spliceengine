@@ -205,14 +205,17 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
         int storeFileIndexSizeMB = 0;
         try (Admin admin = connection.getAdmin()) {
             ClusterMetrics metrics = admin.getClusterMetrics();
-            for (ServerName serverName : serverToRegionMap.keySet()) {
+            for (Map.Entry<ServerName, List<RegionInfo>> entry : serverToRegionMap.entrySet()) {
+                ServerName serverName = entry.getKey();
                 ServerMetrics serverMetrics = metrics.getLiveServerMetrics().get(serverName);
                 Map<byte[], RegionMetrics> regionsMetrics = serverMetrics.getRegionMetrics();
-                for (RegionInfo regionInfo : serverToRegionMap.get(serverName)) {
+                for (RegionInfo regionInfo : entry.getValue()) {
                     RegionMetrics regionMetrics = regionsMetrics.get(regionInfo.getRegionName());
-                    totalStoreFileSizeMB += (int) regionMetrics.getStoreFileSize().get(Size.Unit.MEGABYTE);
-                    totalMemstoreSieMB += (int) regionMetrics.getMemStoreSize().get(Size.Unit.MEGABYTE);
-                    storeFileIndexSizeMB += (int) regionMetrics.getStoreFileIndexSize().get(Size.Unit.MEGABYTE);
+                    if (regionMetrics != null) {
+                        totalStoreFileSizeMB += (int) regionMetrics.getStoreFileSize().get(Size.Unit.MEGABYTE);
+                        totalMemstoreSieMB += (int) regionMetrics.getMemStoreSize().get(Size.Unit.MEGABYTE);
+                        storeFileIndexSizeMB += (int) regionMetrics.getStoreFileIndexSize().get(Size.Unit.MEGABYTE);
+                    }
                 }
             }
         }
