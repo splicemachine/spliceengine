@@ -20,6 +20,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.TableName;
@@ -111,6 +112,7 @@ public class HPartitionCreator implements PartitionCreator{
     }
 
     @Override
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="DB-9371")
     public PartitionCreator withSplitKeys(byte[][] splitKeys) {
         this.splitKeys = splitKeys;
         return this;

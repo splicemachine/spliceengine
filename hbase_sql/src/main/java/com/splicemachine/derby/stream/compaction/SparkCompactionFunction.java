@@ -23,6 +23,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.stream.SparkCompactionContext;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.EmptyListIterator;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -52,6 +53,7 @@ import java.util.List;
 /**
  * Created by jyuan on 4/12/19.
  */
+@SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="DB-9371")
 public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperation,Iterator<Tuple2<Integer,Iterator>>,String> implements Externalizable {
 
     private static final Logger LOG = Logger.getLogger(SparkCompactionFunction.class);
@@ -127,7 +129,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
             StringBuilder sb = new StringBuilder(100);
             sb.append(String.format("Result %d paths: ", paths.size()));
             for (Path path: paths) {
-                sb.append(String.format("\nPath: %s", path));
+                sb.append(String.format("%nPath: %s", path));
             }
             SpliceLogUtils.trace(LOG, sb.toString());
         }
