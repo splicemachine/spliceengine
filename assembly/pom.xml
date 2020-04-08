@@ -1203,6 +1203,7 @@
                                                     <include>com.splicemachine:db-shared</include>
                                                     <include>com.splicemachine:db-tools-ij</include>
                                                     <include>com.splicemachine:splice_spark</include>
+                                                    <include>com.splicemachine:splice_spark2</include>
                                                     <include>tomcat:jasper-runtime</include>
                                                     <include>tomcat:tomcat-parent</include>
                                                     <include>org.apache.commons:commons-lang</include>

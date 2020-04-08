@@ -409,29 +409,6 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     @Override public ExplainNode.SparkExplainKind getSparkExplainKind() { return NONE; }
     @Override public void setSparkExplain(ExplainNode.SparkExplainKind newValue) {  }
 
-    @Override
-    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
-        Properties props = new Properties();
-        props.put("bootstrap.servers", SIDriver.driver().getConfiguration().getKafkaBootstrapServers());
-        props.put("enable.auto.commit", false);
-        props.put("auto.commit.interval.ms", "1000");
-        props.put("session.timeout.ms", "30000");
-        props.put("auto.offset.reset", "latest");
-
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
-//        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
-        //ExternalizableDeserializer was implemented in package com.splicemachine.derby.stream.spark
-
-        KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
-        consumer.subscribe(Arrays.asList(topicName));
-
-        try {
-            ConsumerRecords<Integer, Externalizable> msgList = consumer.poll(1000);
-            for (ConsumerRecord<Integer, Externalizable> record : msgList) {
-                if (LOG.isInfoEnabled())
-                    LOG.info("KAFKA==receive: key = " + record.key() + ", value = " + record.value() + " offset===" + record.offset());
-            }
-
     @Override public void prependSpliceExplainString(String explainString) { }
     @Override public void appendSpliceExplainString(String explainString) { }
     @Override public void prependSparkExplainStrings(List<String> stringsToAdd, boolean firstOperationSource, boolean lastOperationSource) { }
