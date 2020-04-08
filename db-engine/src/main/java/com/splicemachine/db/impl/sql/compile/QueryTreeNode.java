@@ -1965,8 +1965,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
                     rc.setReferenced();
             } else if (col instanceof VirtualColumnNode) {
                 VirtualColumnNode vc = (VirtualColumnNode) col;
-                if (vc != null)
-                    vc.getSourceResultColumn().setReferenced();
+                vc.getSourceResultColumn().setReferenced();
             } else { //OrderedColumn
                 if (col instanceof OrderByColumn) {
                     ResultColumn rc = ((OrderByColumn) col).getResultColumn();
