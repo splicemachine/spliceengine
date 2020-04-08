@@ -21,6 +21,7 @@ import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
 import com.splicemachine.hbase.SpliceMasterObserver;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.InitializationCompleted;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.ipc.CallTimeoutException;
@@ -83,14 +84,6 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
                      * When this is returned, it means that a connection to HBase and the creation (or previous existence) of the
                      * "SPLICE_*" tables in HBase has been successful.
                      */
-
-                    /*
-                     * If an upgrade has been forced, we are now finished with it since this bit of code here only runs
-                     * on the region servers and we don't ever run upgrade code on region servers.  Only the master server
-                     * runs upgrade code via the SpliceMasterObserver.  So we mark the flag to false to ensure that the
-                     * region servers don't run the upgrade.
-                     */
-                    SQLConfiguration.upgradeForced = false;
 
                     // Ensure ZK paths exist.
                     try {

@@ -395,5 +395,4 @@ public interface SConfiguration {
     String getMetadataRestrictionEnabled();
 
     String getRangerUserSyncCaseConversion();
-
 }
