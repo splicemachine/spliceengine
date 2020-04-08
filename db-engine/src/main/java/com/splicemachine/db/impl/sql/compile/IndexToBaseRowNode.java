@@ -56,7 +56,6 @@ import java.util.Vector;
 public class IndexToBaseRowNode extends FromTable{
     protected FromBaseTable source;
     protected ConglomerateDescriptor baseCD;
-    protected boolean cursorTargetTable;
     public PredicateList restrictionList;
     protected boolean forUpdate;
     private FormatableBitSet heapReferencedCols;
