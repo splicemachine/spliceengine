@@ -90,6 +90,20 @@ public class InsertOperationIT {
 
         classWatcher.executeUpdate("create table TT1(i int)");
         classWatcher.executeUpdate("create table TT22(i int)");
+
+        classWatcher.executeUpdate("create table null_defaults(" +
+                "a smallint default null," +
+                "b integer default null," +
+                "c bigint default null," +
+                "d decimal(16 ,10) default null," +
+                "e numeric default null," +
+                "f real default null," +
+                "g double default null," +
+                "h float default null," +
+                "i char(3) default null," +
+                "j varchar(3) default null," +
+                "k clob(3) default null," +
+                "l blob(3) default null)");
     }
 
     @Rule
@@ -636,5 +650,19 @@ public class InsertOperationIT {
         ResultSet rs = methodWatcher.executeQuery(sql);
         assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
+
+    @Test
+    public void testInsertDefaultsNull() throws Exception {
+        String sqlText =
+                "INSERT INTO null_defaults (a) values (DEFAULT)";
+        methodWatcher.executeUpdate(sqlText);
+        String sql = "select * from null_defaults";
+        String expected = "A  |  B  |  C  |  D  |  E  |  F  |  G  |  H  |  I  |  J  |  K  |  L  |\n" +
+                "------------------------------------------------------------------------\n" +
+                "NULL |NULL |NULL |NULL |NULL |NULL |NULL |NULL |NULL |NULL |NULL |NULL |";
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 }
