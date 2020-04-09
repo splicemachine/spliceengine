@@ -228,6 +228,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 
 		/* Set type info for the operator node */
 		lessEqual.bindComparisonOperator();
+		lessEqual.setOuterJoinLevel(getOuterJoinLevel());
 
 		/* Create the AND */
 		AndNode newAnd = (AndNode) nodeFactory.getNode(
@@ -247,6 +248,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 
 		/* Set type info for the operator node */
 		greaterEqual.bindComparisonOperator();
+		greaterEqual.setOuterJoinLevel(getOuterJoinLevel());
 
 		/* Create the AND */
 		newAnd = (AndNode) nodeFactory.getNode(

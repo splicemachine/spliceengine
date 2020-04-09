@@ -1225,6 +1225,9 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return null;
     }
 
+    public void setRowIdColumn(ResultColumn rc) {
+    }
+
     public DataSetProcessorType getDataSetProcessorType() {
         return dataSetProcessorType;
     }
