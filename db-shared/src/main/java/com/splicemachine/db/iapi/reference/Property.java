@@ -1456,6 +1456,8 @@ public interface Property {
 
     String OUTERJOIN_FLATTENING_DISABLED = "derby.database.outerJoinFlatteningDisabled";
 
+    String SSQ_FLATTENING_FOR_UPDATE_DISABLED = "derby.database.ssqFlatteningForUpdateDisabled";
+
     /**
      * Default schema for this connection
      */

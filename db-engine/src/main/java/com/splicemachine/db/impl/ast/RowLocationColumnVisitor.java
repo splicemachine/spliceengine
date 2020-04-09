@@ -69,11 +69,6 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
         return doVisit(node);
     }
 
-    @Override
-    public Visitable visit(UpdateNode node) throws StandardException {
-        return doVisit(node);
-    }
-
     private Visitable doVisit(DMLStatementNode dmlNode) throws StandardException {
 
         // Only continue if the operation is over a sink (e.g. update over merge join, or any join with index lookup)
@@ -181,10 +176,9 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
                 int columnId = currentResultColumns.size() + 1;
                 VirtualColumnNode virtualColumnNode = createVirtualColumnNode(dmlNode, columnId, nodeBelowMe, rowLocResultCol);
 
-                ResultColumn newRC = currentResultColumns.elementAt(currentResultColumns.size()-1);
-                newRC = newRC.cloneMe();
+                ResultColumn newRC = rowLocResultCol.cloneMe();
                 newRC.setExpression(virtualColumnNode);
-                newRC.setName(rowLocationResultColName);
+                newRC.setResultSetNumber(currentResultColumns.elementAt(0).getResultSetNumber());
                 currentResultColumns.addResultColumn(newRC);
 
             }
