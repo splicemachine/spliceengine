@@ -51,6 +51,10 @@ public class CheckTableIT extends SpliceUnitTest {
     private static final String BI = "BI";
     private static final String C = "C";
     private static final String D = "D";
+    private static final String E = "E";
+    private static final String EI = "EI";
+    private static final String F = "F";
+    private static final String FI = "FI";
 
     @ClassRule
     public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -141,6 +145,50 @@ public class CheckTableIT extends SpliceUnitTest {
         spliceClassWatcher.execute("create index t1 on D(c, a) exclude null keys");
         spliceClassWatcher.execute("create index t2 on D(c, b) exclude default keys");
         spliceClassWatcher.execute("create index t3 on D(b, c) exclude null keys");
+
+        new TableCreator(conn)
+                .withCreate("create table CHECKTABLEIT2.E (a int, b int, c int, primary key(a,b))")
+                .withInsert("insert into CHECKTABLEIT2.E values(?,?,?)")
+                .withIndex("create index EI on CHECKTABLEIT2.E(c)")
+                .withRows(rows(
+                        row(1, 1, 1),
+                        row(2, 2, 2),
+                        row(4, 4, 4),
+                        row(5, 5, 5),
+                        row(7,7,7)))
+                .create();
+
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT2', 'E', null,'\\x83')");
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT2', 'E', 'EI','\\x83')");
+        spliceClassWatcher.execute("call syscs_util.syscs_perform_major_compaction_on_table('CHECKTABLEIT2', 'E')");
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT2', 'E', null,'\\x86')");
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT2', 'E', 'EI','\\x86')");
+        deleteFirstIndexRegion(spliceClassWatcher, conn, "CHECKTABLEIT2", E, EI);
+
+
+        new TableCreator(conn)
+                .withCreate("create table CHECKTABLEIT2.F (a int, b int, c int, primary key(a,b))")
+                .withInsert("insert into CHECKTABLEIT2.F values(?,?,?)")
+                .withIndex("create unique index CHECKTABLEIT2.FI on CHECKTABLEIT2.F(c)")
+                .withRows(rows(
+                        row(0, 0, 0)))
+                .create();
+
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT2', 'F', null,'\\x83')");
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT2', 'F', 'FI','\\x83')");
+        spliceClassWatcher.execute("call syscs_util.syscs_perform_major_compaction_on_table('CHECKTABLEIT2', 'F')");
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT2', 'F', null,'\\x86')");
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT2', 'F', 'FI','\\x86')");
+
+        ps = spliceClassWatcher.prepareStatement("insert into CHECKTABLEIT2.F select * from B");
+        ps.execute();
+        deleteFirstIndexRegion(spliceClassWatcher, conn, "CHECKTABLEIT2", F, FI);
+    }
+
+    @AfterClass
+    public static void dropTables() throws Exception {
+        spliceClassWatcher.execute("drop table CHECKTABLEIT2.E");
+        spliceClassWatcher.execute("drop table CHECKTABLEIT2.F");
     }
 
     @Test
@@ -149,6 +197,69 @@ public class CheckTableIT extends SpliceUnitTest {
         checkTable(SCHEMA_NAME, B, BI);
     }
 
+    @Test
+    public void testFixTableOnSpark() throws Exception {
+        spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 1, '%s/check-%s2.out')", "CHECKTABLEIT2", F, getResourceDirectory(), F));
+        String select =
+                "SELECT \"message\" " +
+                        "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
+                        "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
+                        "AS messages (\"message\" varchar(200)) order by 1";
+        ResultSet rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/check-%s2.out", getResourceDirectory(), F)));
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        String expected ="message    |\n" +
+                "---------------\n" +
+                "count = 99903 |\n" +
+                "count = 99904 |\n" +
+                "     F:       |\n" +
+                "     FI:      |";
+        Assert.assertEquals(s, expected, s);
+
+        spliceClassWatcher.execute(String.format("call syscs_util.fix_table('%s', '%s', null, '%s/check-%s2.out')", "CHECKTABLEIT2", F, getResourceDirectory(), F));
+        rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 1, '%s/check-%s2.out')", "CHECKTABLEIT2", F, getResourceDirectory(), F));
+        rs.next();
+        s = rs.getString(1);
+        Assert.assertEquals(s, s, "No inconsistencies were found.");
+    }
+
+    @Test
+    public void testFixTable() throws Exception {
+        spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", "CHECKTABLEIT2", E, getResourceDirectory(), E));
+        String select =
+                "SELECT \"message\" " +
+                        "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
+                        "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
+                        "AS messages (\"message\" varchar(200)) order by 1";
+        ResultSet rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/check-%s2.out", getResourceDirectory(), E)));
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        String expected = "message                                |\n" +
+                "-----------------------------------------------------------------------\n" +
+                "The following 2 rows from base table CHECKTABLEIT2.E are not indexed: |\n" +
+                "                              { 1, 1 }                                |\n" +
+                "                              { 2, 2 }                                |\n" +
+                "                                 EI:                                  |";
+        Assert.assertEquals(s, expected, s);
+
+        spliceClassWatcher.execute(String.format("call syscs_util.fix_table('%s', '%s', null, '%s/fix-%s.out')", "CHECKTABLEIT2", E, getResourceDirectory(), E));
+        select =
+                "SELECT \"message\" " +
+                        "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
+                        "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
+                        "AS messages (\"message\" varchar(200)) order by 1";
+        rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-%s.out", getResourceDirectory(), E)));
+        s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        expected = "message                                |\n" +
+                "------------------------------------------------------------------------\n" +
+                "Create index for the following 2 rows from base table CHECKTABLEIT2.E: |\n" +
+                "                               { 1, 1 }                                |\n" +
+                "                               { 2, 2 }                                |\n" +
+                "                                  EI:                                  |";
+        Assert.assertEquals(s, expected, s);
+        rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", "CHECKTABLEIT2", E, getResourceDirectory(), E));
+        rs.next();
+        s = rs.getString(1);
+        Assert.assertEquals(s, s, "No inconsistencies were found.");
+    }
     @Test
     public void checkTableWithSkippedNullValues() throws Exception {
         ResultSet rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, D, getResourceDirectory(), D));
@@ -366,6 +477,26 @@ public class CheckTableIT extends SpliceUnitTest {
             if (startKey.length != 0 && endKey.length != 0) {
                 String encodedRegionName = partition.getEncodedName();
                 spliceClassWatcher.execute(String.format("call syscs_util.delete_region('%s', '%s', '%s', '%s', false)",
+                        schemaName, tableName, indexName, encodedRegionName));
+                break;
+            }
+        }
+    }
+
+    public static void deleteFirstIndexRegion(SpliceWatcher spliceWatcher, Connection connection, String schemaName, String tableName, String indexName) throws Exception {
+        SConfiguration config = HConfiguration.getConfiguration();
+        HBaseTestingUtility testingUtility = new HBaseTestingUtility((Configuration) config.getConfigSource().unwrapDelegate());
+        HBaseAdmin admin = testingUtility.getHBaseAdmin();
+
+        // Delete 2nd region of index
+        long   conglomerateId = TableSplit.getConglomerateId(connection, schemaName, tableName, indexName);
+        TableName iName = TableName.valueOf(config.getNamespace(),Long.toString(conglomerateId));
+        List<HRegionInfo> partitions = admin.getTableRegions(iName.getName());
+        for (HRegionInfo partition : partitions) {
+            byte[] startKey = partition.getStartKey();
+            if (startKey.length == 0) {
+                String encodedRegionName = partition.getEncodedName();
+                spliceWatcher.execute(String.format("call syscs_util.delete_region('%s', '%s', '%s', '%s', false)",
                         schemaName, tableName, indexName, encodedRegionName));
                 break;
             }
