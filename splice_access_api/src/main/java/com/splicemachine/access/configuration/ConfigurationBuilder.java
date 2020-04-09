@@ -134,7 +134,6 @@ public class ConfigurationBuilder {
     public boolean debugLogStatementContext;
     public boolean ignoreSavePoints;
     public boolean upgradeForced;
-    public int batchOnceBatchSize;
     public int importMaxQuotedColumnLines;
     public int indexBatchSize;
     public int indexLookupBlocks;
