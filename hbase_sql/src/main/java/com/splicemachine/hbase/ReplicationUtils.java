@@ -149,19 +149,22 @@ public class ReplicationUtils {
     public static void addPeer(Connection connection,
                                String peerClusterKey,
                                String peerId,
-                               boolean enabled,
-                               boolean serial) throws SQLException, IOException, KeeperException, InterruptedException {
-        String sql = String.format("call syscs_util.add_peer(%s, '%s', '%s', '%s')", peerId, peerClusterKey,
-                enabled ? "true" : "false", serial ? "true" : "false");
+                               boolean enabled) throws SQLException, IOException, KeeperException, InterruptedException {
+        String sql = String.format("call syscs_util.add_peer(%s, '%s', '%s')", peerId, peerClusterKey,
+                enabled ? "true" : "false");
+        System.out.println("Run " + sql);
         ResultSet rs = connection.createStatement().executeQuery(sql);
         rs.next();
         try {
             int index = rs.findColumn("Success");
             String msg = rs.getString(index);
             SpliceLogUtils.info(LOG, msg);
+            System.out.println(msg);
         }
         catch (SQLException e) {
-            SpliceLogUtils.error(LOG, "Failed to add a peer: %s : ", peerClusterKey, rs.getString(1));
+            String message = String.format("Failed to add a peer: %s : ", peerClusterKey, rs.getString(1));
+            SpliceLogUtils.error(LOG, message);
+            System.out.println(message);
             throw e;
         }
     }
@@ -255,6 +258,7 @@ public class ReplicationUtils {
             List<String> children = masterRzk.getChildren(p, false);
             String peerStatePath = p + "/" + children.get(0);
             masterRzk.setData(peerStatePath, toByteArray(ReplicationProtos.ReplicationState.State.DISABLED), -1);
+            System.out.println("Disabled peer " + peer);
         }
     }
 

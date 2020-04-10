@@ -30,6 +30,7 @@ import org.apache.zookeeper.Watcher;
 import org.spark_project.guava.collect.Lists;
 
 import java.io.EOFException;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -218,8 +219,15 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
             Map<String, Long> walPosition = serverWalPositions.get(server);
             for (String wal : walPosition.keySet()) {
 
-                WALLink walLink = new WALLink(conf, server, wal);
                 long position = walPosition.get(wal);
+                WALLink walLink = null;
+                try {
+                    walLink = new WALLink(conf, server, wal);
+                } catch (FileNotFoundException e) {
+                    SpliceLogUtils.warn(LOG, "WAL %s no longer exists", wal);
+                    replicationProgress.put(wal, position);
+                    continue;
+                }
 
                 try (WAL.Reader reader = WALFactory.createReader(fs, walLink.getAvailablePath(fs), conf)) {
                     // Seek to the position and look ahead
