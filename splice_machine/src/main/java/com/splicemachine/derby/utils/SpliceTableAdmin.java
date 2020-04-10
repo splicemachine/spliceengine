@@ -83,8 +83,17 @@ public class SpliceTableAdmin {
         }
     }
 
+    public static void FIX_TABLE(String schemaName, String tableName, String indexName,
+                                   String outputFile, final ResultSet[] resultSet) throws Exception {
+        CHECK_TABLE(schemaName, tableName, indexName, Level.DETAIL.levelCode, outputFile, true, resultSet);
+    }
+
     public static void CHECK_TABLE(String schemaName, String tableName, String indexName, int level,
                                    String outputFile, final ResultSet[] resultSet) throws Exception {
+        CHECK_TABLE(schemaName, tableName, indexName, level, outputFile, false, resultSet);
+    }
+    public static void CHECK_TABLE(String schemaName, String tableName, String indexName, int level,
+                                   String outputFile, boolean fix, final ResultSet[] resultSet) throws Exception {
 
         if (outputFile == null || outputFile.trim().length() == 0) {
             throw StandardException.newException(SQLState.INVALID_PARAMETER, "outputFile", outputFile==null?"null":outputFile);
@@ -92,13 +101,13 @@ public class SpliceTableAdmin {
 
         outputFile = outputFile.trim();
         if (tableName == null && indexName == null) {
-            CHECK_SCHEMA(schemaName, level, outputFile, resultSet);
+            CHECK_SCHEMA(schemaName, level, outputFile, fix, resultSet);
         }
         else if (tableName != null && indexName == null) {
-            CHECK_TABLE(schemaName, tableName, level, outputFile, resultSet);
+            CHECK_TABLE(schemaName, tableName, level, outputFile, fix, resultSet);
         }
         else if (tableName != null && indexName != null){
-            CHECK_INDEX(schemaName, tableName, indexName, level, outputFile, resultSet);
+            CHECK_INDEX(schemaName, tableName, indexName, level, outputFile, fix, resultSet);
         }
         else {
             throw StandardException.newException(SQLState.INVALID_PARAMETER, "indexName", indexName);
@@ -116,6 +125,7 @@ public class SpliceTableAdmin {
     public static void CHECK_SCHEMA(String schemaName,
                                     int level,
                                     String outputFile,
+                                    boolean fix,
                                     final ResultSet[] resultSet) throws Exception {
         FSDataOutputStream out = null;
         FileSystem fs = null;
@@ -132,7 +142,7 @@ public class SpliceTableAdmin {
             ResultSet rs = getTables(schema);
             while (rs.next()) {
                 String table = rs.getString(1);
-                Map<String, List<String>> result = checkTable(schema, table, null, level);
+                Map<String, List<String>> result = checkTable(schema, table, null, level, fix);
                 if (result != null) {
                     for (Map.Entry<String, List<String>> entry : result.entrySet()) {
                         String key = entry.getKey();
@@ -163,7 +173,7 @@ public class SpliceTableAdmin {
      * @throws Exception
      */
     public static void CHECK_TABLE(String schemaName, String tableName, int level,
-                                   String outputFile, final ResultSet[] resultSet) throws Exception {
+                                   String outputFile, boolean fix, final ResultSet[] resultSet) throws Exception {
 
         FSDataOutputStream out = null;
         FileSystem fs = null;
@@ -179,7 +189,7 @@ public class SpliceTableAdmin {
             out = fs.create(new Path(outputFile));
 
 
-            errors = checkTable(schema, table, null, level);
+            errors = checkTable(schema, table, null, level, fix);
             resultSet[0] = processResults(errors, out, activation, outputFile);
         } finally {
             if (out != null) {
@@ -194,7 +204,7 @@ public class SpliceTableAdmin {
 
 
     public static void CHECK_INDEX(String schemaName, String tableName, String indexName, int level,
-                                   String outputFile, final ResultSet[] resultSet) throws Exception {
+                                   String outputFile, boolean fix, final ResultSet[] resultSet) throws Exception {
         FSDataOutputStream out = null;
         FileSystem fs = null;
         Map<String, List<String>> errors = null;
@@ -211,7 +221,7 @@ public class SpliceTableAdmin {
             fs = FileSystem.get(URI.create(outputFile), conf);
             out = fs.create(new Path(outputFile));
 
-            errors = checkTable(schema, table, index, level);
+            errors = checkTable(schema, table, index, level, fix);
             resultSet[0] = processResults(errors, out, activation, outputFile);
 
         } finally {
@@ -236,7 +246,11 @@ public class SpliceTableAdmin {
         return null;
     }
 
-    private static Map<String, List<String>> checkTable(String schema, String table, String index, int level) throws Exception {
+    private static Map<String, List<String>> checkTable(String schema,
+                                                        String table,
+                                                        String index,
+                                                        int level,
+                                                        boolean fix) throws Exception {
 
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc = lcc.getTransactionExecute();
@@ -276,7 +290,7 @@ public class SpliceTableAdmin {
 
         Map<String, List<String>> errors = null;
         if (tentativeIndexList.size() > 0) {
-            errors = checkIndexes(schema, table, cdList, tentativeIndexList, level);
+            errors = checkIndexes(schema, table, cdList, tentativeIndexList, level, fix);
         }
         return errors;
     }
@@ -299,12 +313,13 @@ public class SpliceTableAdmin {
                                                           String table,
                                                           ConglomerateDescriptorList cdList,
                                                           List<TentativeIndex> tentativeIndexList,
-                                                          int level) throws IOException, SQLException, StandardException {
+                                                          int level,
+                                                          boolean fix) throws IOException, SQLException, StandardException {
         if (level == Level.FAST.levelCode ) {
             return checkIndexesFast(schema, table, cdList, tentativeIndexList);
         }
         else if (level == Level.DETAIL.levelCode){
-            return checkIndexesInDetail(schema, table, tentativeIndexList);
+            return checkIndexesInDetail(schema, table, tentativeIndexList, fix);
         }
         else {
             throw StandardException.newException(SQLState.INVALID_CONSISTENCY_LEVEL);
@@ -359,9 +374,11 @@ public class SpliceTableAdmin {
     }
 
     private static Map<String, List<String>> checkIndexesInDetail(String schema, String table,
-                                                                  List<TentativeIndex> tentativeIndexList) throws IOException, SQLException {
+                                                                  List<TentativeIndex> tentativeIndexList,
+                                                                  boolean fix) throws IOException, SQLException, StandardException {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc = lcc.getTransactionExecute();
+        tc.elevate("check_table");
         TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
         Activation activation = lcc.getLastActivation();
 
@@ -376,7 +393,9 @@ public class SpliceTableAdmin {
 
         OlapClient olapClient = EngineDriver.driver().getOlapClient();
         ActivationHolder ah = new ActivationHolder(activation, null);
-        Future<CheckTableResult> futureResult = olapClient.submit(new DistributedCheckTableJob(ah, txn, schema, table, tentativeIndexList, jobGroup));
+        DistributedCheckTableJob checkTableJob = new DistributedCheckTableJob(ah, txn, schema, table,
+                tentativeIndexList, fix, jobGroup);
+        Future<CheckTableResult> futureResult = olapClient.submit(checkTableJob );
         CheckTableResult result = null;
         while (result == null) {
             try {
