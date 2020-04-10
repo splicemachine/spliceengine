@@ -32,7 +32,8 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.io.Writable;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataTypes;
-import org.junit.Test;
+import org.apache.orc.impl.NullMemoryManager;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -41,13 +42,11 @@ import java.util.Map;
 import static com.splicemachine.orc.OrcTester.Format.ORC_12;
 import static com.splicemachine.orc.OrcTester.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.hadoop.hive.ql.io.orc.CompressionKind.SNAPPY;
 import static org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory.javaLongObjectInspector;
 import static org.junit.Assert.assertEquals;
 
 public class TestOrcReaderPositions
 {
-    @Test
     public void testEntireFile()
             throws Exception
     {
@@ -74,7 +73,6 @@ public class TestOrcReaderPositions
         }
     }
 
-    @Test
     public void testStripeSkipping()
             throws Exception
     {
@@ -116,7 +114,6 @@ public class TestOrcReaderPositions
         }
     }
 
-    @Test
     public void testRowGroupSkipping()
             throws Exception
     {
@@ -165,7 +162,6 @@ public class TestOrcReaderPositions
         }
     }
 
-    @Test
     public void testReadUserMetadata()
             throws Exception
     {
@@ -221,8 +217,8 @@ public class TestOrcReaderPositions
             throws IOException
     {
         Configuration conf = new Configuration();
-        OrcFile.WriterOptions writerOptions = new OrcWriterOptions(conf)
-                .memory(new NullMemoryManager(conf))
+        OrcFile.WriterOptions writerOptions = OrcFile.writerOptions(conf)
+                // .memory(new NullMemoryManager(new Configuration()))
                 .inspector(createSettableStructObjectInspector("test", javaLongObjectInspector))
                 .compress(CompressionKind.SNAPPY);
         Writer writer = OrcFile.createWriter(new Path(file.toURI()), writerOptions);

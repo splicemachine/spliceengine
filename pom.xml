@@ -1532,7 +1532,7 @@
             </activation>
             <properties>
                 <envClassifier>mapr6.1.0-2.4</envClassifier>
-                <envHbase>hbase1.1.8</envHbase>
+                <envHbase>hbase1.1.13</envHbase>
                 <hadoop.version>2.7.0-mapr-1808</hadoop.version>
                 <hbase.version>1.1.13.0-mapr-630</hbase.version>
                 <hbase.bundle.version>1.1.13.0-mapr-630</hbase.bundle.version>
@@ -1545,7 +1545,7 @@
                 <kafka.version>1.1.1-mapr-1912</kafka.version>
                 <netty-all.version>4.1.17.Final</netty-all.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
-                <parquet.version>orc-spark-2.3</parquet.version>
+                <parquet.version>orc-spark-2.4</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
