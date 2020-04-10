@@ -85,6 +85,10 @@ public class SpliceMasterObserver extends BaseMasterObserver {
             int timestampPort=configuration.getTimestampServerBindPort();
             int timestampBlockSize = configuration.getTimestampBlockSize();
 
+            if (!ZkUtils.isSpliceLoaded()) {
+                ZkUtils.refreshZookeeper();
+            }
+
             TimestampBlockManager tbm= new ZkTimestampBlockManager(rzk,timestampReservedPath);
             this.timestampServer =new TimestampServer(timestampPort,new TimestampServerHandler(tbm, timestampBlockSize));
 

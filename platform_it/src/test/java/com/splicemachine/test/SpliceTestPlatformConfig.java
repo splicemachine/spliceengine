@@ -272,6 +272,8 @@ class SpliceTestPlatformConfig {
         //
         // Misc
         //
+        config.set("hbase.hregion.memstore.mslab.enabled", "false"); //disable mslab, memory intensive
+        config.set("hbase.regionserver.enable.table.latencies", "false"); // disable table latencies, memory intensive
         config.set("hbase.cluster.distributed", "true");  // don't start zookeeper for us
         config.set("hbase.master.distributed.log.splitting", "false"); // TODO: explain why we are setting this
 
