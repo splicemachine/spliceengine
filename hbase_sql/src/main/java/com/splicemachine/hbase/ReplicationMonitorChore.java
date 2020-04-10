@@ -62,6 +62,7 @@ public class ReplicationMonitorChore extends ScheduledChore {
     private String user;
     private String password;
     private List<String> peers;
+    private String hbaseClasspathPrefix;
 
     private ZKWatcher zkWatcher;
     RecoverableZooKeeper rzk;
@@ -100,13 +101,15 @@ public class ReplicationMonitorChore extends ScheduledChore {
     public ReplicationMonitorChore(String replicationMonitorQuorum,
                                    String replicationMonitorPath,
                                    String user,
-                                   String password) throws SQLException,
+                                   String password,
+                                   String hbaseClasspathPrefix) throws SQLException,
             IOException, KeeperException, InterruptedException {
 
         this.replicationMonitorQuorum = replicationMonitorQuorum;
         this.replicationMonitorPath = replicationMonitorPath;
         this.user = user;
         this.password = password;
+        this.hbaseClasspathPrefix = hbaseClasspathPrefix;
         init();
     }
 
@@ -115,9 +118,28 @@ public class ReplicationMonitorChore extends ScheduledChore {
         zkWatcher = new ZKWatcher(conf, "replication monitor", null, false);
         rzk = zkWatcher.getRecoverableZooKeeper();
         if (thisCluster != null) {
+            SpliceLogUtils.info(LOG, "register as a replication monitor");
             String path = replicationMonitorPath + "/monitors/" + thisCluster;
+            try {
+                if (rzk.exists(path, false) != null) {
+                    SpliceLogUtils.info(LOG, "remove znode %s created by previous monitor instance", path);
+                    ZkUtils.safeDelete(path, -1, rzk);
+                }
+            }
+            catch (KeeperException e) {
+                SpliceLogUtils.warn(LOG, "Encountered an error when trying to delete znode %s", path, e);
+            }
             ZkUtils.recursiveSafeCreate(path, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, rzk);
+            if (rzk.exists(path, false) != null) {
+                SpliceLogUtils.info(LOG, "created znode %s", path);
+            }
+            else {
+                SpliceLogUtils.info(LOG, "znode %s Not created?!", path);
+            }
             determineLeadership();
+        }
+        else {
+            SpliceLogUtils.info(LOG, "thisCluster = null");
         }
     }
 
@@ -352,18 +374,21 @@ public class ReplicationMonitorChore extends ScheduledChore {
 
         // Elect a new master. By default, choose the cluster that is most up-to-date with master
         String newMaster = electNewMaster();
-
+        System.out.println("Elected " + newMaster  + " as new master cluster ");
         boolean masterReachable = isMasterReachable();
 
         long masterTimestamp = -1;
         if (masterReachable) {
+            System.out.println("SyncWALs");
             // Sync old master with new master
             syncUpWALs();
 
             // disable replication from old master. If it is recovered, it's no longer replicating data to other clusters
+            System.out.println("Disabling old master");
             disableMaster();
 
             masterTimestamp = getMasterTimestamp();
+            System.out.println("Master cluster timestamp = " + masterTimestamp);
         }
 
         configureReplicationMonitor();
@@ -402,10 +427,14 @@ public class ReplicationMonitorChore extends ScheduledChore {
 
     private void syncUpWALs() throws JSchException, IOException{
         String[] s = masterCluster.split(":");
-        RemoteExec sync = new RemoteExec(s[0], user, password,
-                "hbase org.apache.hadoop.hbase.replication.regionserver.ReplicationSyncUp");
+        String[] host = s[0].split(",");
+        String export = String.format("export HBASE_CLASSPATH_PREFIX=\"%s\"", hbaseClasspathPrefix);
+        String syncUpWals = "hbase org.apache.hadoop.hbase.replication.regionserver.ReplicationSyncUp";
+        String command = String.format("%s && %s", export, syncUpWals);
+        RemoteExec sync = new RemoteExec(host[0], user, password, command);
         String output = sync.execute();
         LOG.info(output);
+        System.out.println(output);
     }
 
     private void disableMaster() throws InterruptedException, KeeperException, IOException {
@@ -438,6 +467,9 @@ public class ReplicationMonitorChore extends ScheduledChore {
         }
 
         String newMasterClusterKey = getClusterKey(newMaster);
+        if (ts > 0) {
+            setNewMasterTimestamp(newMasterClusterKey, ts);
+        }
         try (Connection connection = ReplicationUtils.connect(conf, newMasterClusterKey)){
             ReplicationUtils.setupReplicationMaster(connection, newMasterClusterKey);
             Integer peerId = 1;
@@ -446,15 +478,12 @@ public class ReplicationMonitorChore extends ScheduledChore {
                     continue;
                 }
                 String peerClusterKey = getClusterKey(peer);
-                ReplicationUtils.addPeer(connection, peerClusterKey, peerId.toString(), true, false);
+                ReplicationUtils.addPeer(connection, peerClusterKey, peerId.toString(), true);
                 peerId++;
             }
             // Add old master as a disabled peer
             String peerClusterKey = getClusterKey(masterCluster);
-            ReplicationUtils.addPeer(connection, peerClusterKey, peerId.toString(), false, false);
-            if (ts > 0) {
-                setNewMasterTimestamp(newMasterClusterKey, ts);
-            }
+            ReplicationUtils.addPeer(connection, peerClusterKey, peerId.toString(), false);
         }
 
     }
@@ -481,11 +510,13 @@ public class ReplicationMonitorChore extends ScheduledChore {
             String clusterKey = getClusterKey(peer);
             Configuration conf = ReplicationUtils.createConfiguration(clusterKey);
             long ts = ReplicationUtils.getTimestamp(conf, clusterKey);
+            System.out.println("Current timestamp for " + clusterKey + " is " + ts);
             if (ts > maxTs) {
                 maxTs = ts;
                 newMaster = peer;
             }
         }
+        System.out.println("Elected new master " + newMaster);
         return newMaster;
     }
 
