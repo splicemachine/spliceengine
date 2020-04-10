@@ -759,7 +759,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     // SPLICE-1219
-    @Ignore("SPLICE-1514")
+    //@Ignore("SPLICE-1514")
     public void testLocalBroadcastColumnar() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table left_side_bcast (col1 int, col2 int)" +
                 " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"left_side_bcast"));
@@ -784,17 +784,15 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
     @Test
-    // SPLICE-1219
-    @Ignore("SPLICE-1514")
     public void testLocalBroadcastColumnarAvro() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table left_side_bcast (col1 int, col2 int)" +
-                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"left_side_bcast"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into left_side_bcast values (1,5)," +
+        methodWatcher.executeUpdate(String.format("create external table left_side_bcast2 (col1 int, col2 int)" +
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"left_side_bcast2"));
+        int insertCount = methodWatcher.executeUpdate(String.format("insert into left_side_bcast2 values (1,5)," +
                 "(2,2)," +
                 "(3,3)"));
-        methodWatcher.executeUpdate(String.format("create external table right_side_bcast (col1 int, col2 int)" +
-                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"right_side_bcast"));
-        int insertCount2 = methodWatcher.executeUpdate(String.format("insert into right_side_bcast values (1,1)," +
+        methodWatcher.executeUpdate(String.format("create external table right_side_bcast2 (col1 int, col2 int)" +
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"right_side_bcast2"));
+        int insertCount2 = methodWatcher.executeUpdate(String.format("insert into right_side_bcast2 values (1,1)," +
                 "(2,2)," +
                 "(3,3)"));
 
@@ -802,7 +800,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals("insertCount is wrong",3,insertCount2);
 
         ResultSet rs = methodWatcher.executeQuery("select * from --splice-properties joinOrder=fixed\n " +
-                "left_side_bcast l inner join right_side_bcast r --splice-properties joinStrategy=BROADCAST\n" +
+                "left_side_bcast2 l inner join right_side_bcast2 r --splice-properties joinStrategy=BROADCAST\n" +
                 " on l.col1 = r.col1 and l.col2 > r.col2+1 ");
         Assert.assertEquals("COL1 |COL2 |COL1 |COL2 |\n" +
                 "------------------------\n" +
@@ -928,7 +926,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  2  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Test @Ignore
+    @Test
     public void testWriteReadFromCompressedParquetExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table compressed_parquet_test (col1 int, col2 varchar(24))" +
                 " COMPRESSED WITH SNAPPY STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"compressed_parquet_test"));
@@ -936,11 +934,12 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "(2,'YYYY')," +
                 "(3,'ZZZZ')"));
         Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from compressed_parquet_test");
-        Assert.assertEquals("COL2 |\n" +
-                "------\n" +
-                "AAAA |\n" +
-                "BBBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        ResultSet rs = methodWatcher.executeQuery("select * from compressed_parquet_test order by 1");
+        Assert.assertEquals("COL1 |COL2 |\n" +
+                "------------\n" +
+                "  1  |XXXX |\n" +
+                "  2  |YYYY |\n" +
+                "  3  |ZZZZ |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
@@ -1673,7 +1672,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
 
-    @Test @Ignore // failing on mapr5.2.0. Temporary ignoring
+    @Test
     public void testReadToNotPermittedLocation() throws Exception{
 
 
@@ -1700,7 +1699,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         }
     }
 
-    @Test @Ignore // failing on mapr5.2.0. Temporary ignoring
+    @Test
     public void testReadToNotPermittedLocationAvro() throws Exception{
 
 
@@ -2606,7 +2605,6 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  3  |  3  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Ignore
     @Test
     public void testParquetMergeSchema() throws Exception {
         try {
@@ -2648,7 +2646,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
 
-    @Ignore("DB-9109")
+    //@Ignore("DB-9109")
     @Test
     public void testReadWriteAvroFromHive() throws Exception {
 
@@ -2668,7 +2666,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals(actual, expected, actual);
     }
 
-    @Ignore("DB-9109")
+    //@Ignore("DB-9109")
     @Test
     public void testNumericType() throws Exception {
         methodWatcher.execute(String.format("create external table t_num (col1 NUMERIC(23,2), col2 bigint)" +
@@ -2791,7 +2789,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals(actual, expected, actual);
     }
 
-    @Test @Ignore("Need to import spark-avro.jar in hbase_sql to test in a separate Spark")
+    @Test
     public void testAvroColumnName() throws Exception {
         String tablePath = getExternalResourceDirectory() + "avro_colname";
         methodWatcher.executeUpdate(String.format("create external table avro_colname (col1 int, col2 varchar(24))" +
@@ -2812,7 +2810,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals(actual, expected, actual);
 
     }
-    @Test @Ignore("Need to import spark-avro.jar in hbase_sql to test in a separate Spark")
+    @Test
     public void testAvroPartitionColumnName() throws Exception {
         String tablePath = getExternalResourceDirectory() + "avro_partition_colname";
         methodWatcher.executeUpdate(String.format("create external table avro_patition_colname (col1 int, col2 varchar(24))" +

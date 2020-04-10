@@ -236,7 +236,6 @@ public class SpliceAdminIT extends SpliceUnitTest{
     }
 
     @Test
-    @Ignore("DB-5499")
     public void testGetWriteIntakeInfo() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_WRITE_INTAKE_INFO()");
         ResultSet rs = cs.executeQuery();

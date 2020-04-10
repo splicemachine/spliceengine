@@ -148,9 +148,8 @@ public class AuthorizationIT {
     }
 
     @Test
-    @Ignore("unknown reason")
     public void testCannotCreateRoleWithUserName() throws Exception {
-        assertFailed(methodWatcher.getOrCreateConnection(), format("create role %s", USER2), null); // "X0Y68"?
+        assertFailed(methodWatcher.getOrCreateConnection(), format("create role %s", USER2), "X0Y68");
     }
 
     /*****************************************************************************************************************/

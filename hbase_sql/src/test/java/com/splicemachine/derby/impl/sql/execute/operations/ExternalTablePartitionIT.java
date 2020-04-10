@@ -1339,7 +1339,6 @@ public class ExternalTablePartitionIT {
         return count;
     }
 
-    @Ignore("DB-9109")
     @Test
     public void testInsertionToHiveParquetData() throws Exception {
         methodWatcher.executeUpdate(
@@ -1356,7 +1355,6 @@ public class ExternalTablePartitionIT {
         assertEquals(actual, expected, actual);
     }
 
-    @Ignore("DB-9109")
     @Test
     public void testInsertionToHiveAvroData() throws Exception {
         methodWatcher.executeUpdate(
