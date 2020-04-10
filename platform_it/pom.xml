@@ -950,6 +950,7 @@
                                 <classpath/>
                                 <argument>${jacocoAgent}</argument>
                                 <argument>-Xdebug</argument>
+                                <argument>-Dhadoop.metrics.init.mode=STANDBY</argument>
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
@@ -1112,6 +1113,7 @@
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>${jacocoAgent}</argument>
+                                <argument>-Dhadoop.metrics.init.mode=STANDBY</argument>
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
                                 <argument>-XX:MaxHeapFreeRatio=30</argument>
                                 <argument>-Djava.awt.headless=true</argument>
