@@ -1677,12 +1677,36 @@ public class SystemProcedures{
     }
 
     /**
-     * Create a new user.
+     * Create a new user
      */
     public static void SYSCS_CREATE_USER
     (
             String userName,
             String password
+    ) throws SQLException {
+        create_user(userName,password,true);
+    }
+
+
+    /**
+     * Create a new user without create the same name schema associated with the new user.
+     */
+    public static void SYSCS_CREATE_USER_WITHOUT_SCHEMA
+    (
+            String userName,
+            String password
+    ) throws SQLException {
+        create_user(userName,password,false);
+    }
+
+    /**
+     * Implementation of create user
+     */
+    private static void create_user
+    (
+            String userName,
+            String password,
+            boolean createSchema
     )
             throws SQLException{
         userName=normalizeUserName(userName);
@@ -1717,7 +1741,8 @@ public class SystemProcedures{
             // Create User Schema if one doesn't exists.
             // If there is already a schema then we will let the admin decide what he want to do
             // like granting privileges to that schema manually. Look at SPLICE-1030
-            addSchema(userName, userName, lcc);
+            if (createSchema)
+                addSchema(userName, userName, lcc);
             status = true;
 
         }catch(StandardException se){
@@ -1729,9 +1754,13 @@ public class SystemProcedures{
         }
         finally {
             if (AUDITLOG.isInfoEnabled())
-                AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser,AuditEventType.CREATE_USER.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
+                AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser,
+                        createSchema ? AuditEventType.CREATE_USER.name() : AuditEventType.CREATE_USER_WITHOUT_SCHEMA.name(),
+                        status,
+                        ip,
+                        lcc.getStatementContext().getStatementText(),
+                        reason));
         }
-
     }
 
     /**

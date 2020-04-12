@@ -391,6 +391,14 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
 					.varchar("password",32672)
 					.build()
 			,
+			Procedure.newBuilder().name("SYSCS_CREATE_USER_WITHOUT_SCHEMA")
+					.numOutputParams(0).numResultSets(0).modifiesSql()
+					.returnType(null).isDeterministic(false)
+					.ownerClass(SYSTEM_PROCEDURES)
+					.catalog("userName")
+					.varchar("password",32672)
+					.build()
+			,
 			Procedure.newBuilder().name("SYSCS_SET_USER_ACCESS")
 					.numOutputParams(0).numResultSets(0).modifiesSql()
 					.returnType(null).isDeterministic(false)

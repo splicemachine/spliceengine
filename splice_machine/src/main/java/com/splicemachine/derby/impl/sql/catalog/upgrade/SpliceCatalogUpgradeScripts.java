@@ -82,6 +82,8 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1948), new UpgradeScriptForAddDefaultToColumnViewInSYSIBM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1953), new UpgradeScriptForRemoveUnusedIndexInSYSFILESTable(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1954), new UpgradeScriptToInvalidateStoredStatement(sdd,tc));
+        // Add new system procedures SYSCS_CREATE_USER_WITHOUT_SCHEMA
+        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1955), new UpgradeScriptToInvalidateStoredStatement(sdd,tc));
     }
     public void run() throws StandardException{
 

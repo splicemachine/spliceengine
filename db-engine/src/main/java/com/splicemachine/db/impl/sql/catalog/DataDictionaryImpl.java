@@ -9382,6 +9382,35 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
 
         //
+        // SYSCS_CREATE_USER_WITHOUT_SCHEMA( IN USERNAME  VARCHAR(128), IN PASSWORD VARCHAR(32672) )
+        //
+
+        {
+            // procedure argument names
+            String[] arg_names={"userName","password"};
+
+            // procedure argument types
+            TypeDescriptor[] arg_types={CATALOG_TYPE_SYSTEM_IDENTIFIER,
+                    DataTypeDescriptor.getCatalogType(Types.VARCHAR,32672)
+            };
+
+            createSystemProcedureOrFunction
+                    (
+                            "SYSCS_CREATE_USER_WITHOUT_SCHEMA",
+                            sysUtilUUID,
+                            arg_names,
+                            arg_types,
+                            0,
+                            0,
+                            RoutineAliasInfo.MODIFIES_SQL_DATA,
+                            false,
+                            null,
+                            newlyCreatedRoutines,
+                            tc
+                    );
+        }
+
+        //
         // SYSCS_RESET_PASSWORD( IN USERNAME  VARCHAR(128), IN PASSWORD VARCHAR(32672) )
         //
 

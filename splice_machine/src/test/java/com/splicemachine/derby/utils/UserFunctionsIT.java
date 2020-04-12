@@ -62,6 +62,8 @@ public class UserFunctionsIT {
 
     private static final String EXISTING_USER_NAME_4 = "FOREST";
 
+    private static final String EXISTING_USER_NAME_5 = "TOM";
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
@@ -89,6 +91,7 @@ public class UserFunctionsIT {
         classWatcher.prepareStatement("CALL SYSCS_UTIL.SYSCS_DROP_USER('" + EXISTING_USER_NAME_3 + "')").execute();
         classWatcher.prepareStatement("DROP SCHEMA " + EXISTING_USER_NAME_3.toUpperCase() +" RESTRICT").execute();
         classWatcher.prepareStatement("CALL SYSCS_UTIL.SYSCS_DROP_USER('" + EXISTING_USER_NAME_4 + "')").execute();
+        classWatcher.prepareStatement("CALL SYSCS_UTIL.SYSCS_DROP_USER('" + EXISTING_USER_NAME_5 + "')").execute();
     }
 
     @Test
@@ -226,6 +229,45 @@ public class UserFunctionsIT {
                             "RESULT |\n" +
                             "--------\n" +
                             "   1   |"
+                    ));
+        }
+
+    }
+
+    @Test
+    public void createUserWithoutSchema() throws Exception {
+        // clean and remove the schema
+        try{
+            methodWatcher.prepareStatement("DROP SCHEMA " + EXISTING_USER_NAME_5.toUpperCase() + " RESTRICT").execute();
+        }catch(Exception e){
+
+        }
+
+        String sysUserSchemaQuery = String.format("select count(*) as result from SYS.SYSSCHEMAS where SCHEMANAME='%s'",EXISTING_USER_NAME_5.toUpperCase());
+
+        //2. create the user without schema
+        methodWatcher.prepareStatement("CALL SYSCS_UTIL.SYSCS_CREATE_USER_WITHOUT_SCHEMA('" + EXISTING_USER_NAME_5 + "', 'tom')").execute();
+
+        // 3. Make sure the user exist
+        String userQuery = String.format("select count(*) as result from (select USERNAME from SYS.SYSUSERS where USERNAME ='%s') AS T",EXISTING_USER_NAME_5);
+        try (ResultSet resultSet = methodWatcher.executeQuery(userQuery)) {
+            String result = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(resultSet);
+            assertThat(EXISTING_USER_NAME_5 + " must be present in result set!", result,
+                    is(
+                            "RESULT |\n" +
+                                    "--------\n" +
+                                    "   1   |"
+                    ));
+        }
+
+        // 4. Make sure we have only one schema at that name
+        try (ResultSet resultSet = methodWatcher.executeQuery(sysUserSchemaQuery)) {
+            String result = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(resultSet);
+            assertThat(EXISTING_USER_NAME_5 + " schema should not be created!", result,
+                    is(
+                            "RESULT |\n" +
+                                    "--------\n" +
+                                    "   0   |"
                     ));
         }
 
