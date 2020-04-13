@@ -457,6 +457,22 @@ public class CrossJoinIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testCrossJoinHintWithoutUseSparkHint() throws Exception {
+        String sqlText = "select c4 from --splice-properties joinOrder=fixed\n" +
+                "t4 t\n" +
+                ",t3 c --splice-properties joinStrategy=CROSS\n" +
+                "where c.c3=t.c4 and t.c4 >=37770 and t.c4 <37771";
+        String expected = "C4   |\n" +
+                "-------\n" +
+                "37770 |";
+
+        ResultSet rs = classWatcher.executeQuery(sqlText);
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+    }
+
+    @Test
     public void testSingleTableWithCrossJoinHint() throws Exception {
         String sqlText = format("select * from \n" +
                 "a --splice-properties joinStrategy=CROSS, useSpark=%s\n" +
