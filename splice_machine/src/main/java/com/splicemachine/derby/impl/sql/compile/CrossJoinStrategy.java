@@ -196,21 +196,16 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         // Broadcast join has a similar restriction.
     if (JoinStrategyUtil.isNonCoveringIndex(innerTable))
             return false;
-
-        AccessPath currentAccessPath = innerTable.getCurrentAccessPath();
+        
         boolean isSpark = false;
-        boolean isForcedControl = false;
         boolean isOneRow = false;
-        boolean isHinted = currentAccessPath.isHintedJoinStrategy();
         if (innerTable instanceof FromBaseTable) {
-            DataSetProcessorType dspt = (((FromBaseTable) innerTable).getCompilerContext().getDataSetProcessorType());
             isSpark = optimizer.isForSpark();
-            isForcedControl = (dspt.isHinted() || dspt.isForced()) && !optimizer.isForSpark();
             isOneRow = ((FromBaseTable) innerTable).isOneRowResultSet();
         }
         // Only use cross join when it is inner join
-        // Only use cross join when it is on Spark, forced control and isHinted is for debug purpose
-        return !outerCost.isOuterJoin() && (isSpark || (isForcedControl && isHinted)) && !isOneRow;
+        // Only use cross join when it is on Spark
+        return !outerCost.isOuterJoin() && (isSpark) && !isOneRow;
     }
 
     @Override
