@@ -139,7 +139,9 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
                                        OptimizablePredicateList storeRestrictionList,
                                        OptimizablePredicateList nonStoreRestrictionList,
                                        OptimizablePredicateList requalificationRestrictionList,
-                                       DataDictionary dd) throws StandardException {
+                                       OptimizablePredicateList extraJoinPredicates,
+                                       DataDictionary dd,
+                                       AccessPath accessPath) throws StandardException {
        originalRestrictionList.transferPredicates(storeRestrictionList, innerTable.getReferencedTableMap(), innerTable, joinedTableSet);
        originalRestrictionList.copyPredicatesToOtherList(nonStoreRestrictionList);
     }

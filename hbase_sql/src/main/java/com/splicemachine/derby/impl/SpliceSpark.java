@@ -17,19 +17,35 @@ package com.splicemachine.derby.impl;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.NoSuchElementException;
 
 import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.client.SpliceClient;
+import com.splicemachine.concurrent.Clock;
+import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.hbase.AdapterPipelineEnvironment;
 import com.splicemachine.hbase.*;
+import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
+import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
+import com.splicemachine.derby.lifecycle.EngineLifecycleService;
+import com.splicemachine.hbase.HBaseRegionLoads;
+import com.splicemachine.hbase.RegionServerLifecycleObserver;
+import com.splicemachine.hbase.ZkUtils;
+import com.splicemachine.pipeline.ContextFactoryDriverService;
+import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.PipelineEnvironment;
+import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.si.data.hbase.ZkUpgrade;
 import com.splicemachine.si.data.hbase.coprocessor.AdapterSIEnvironment;
+import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
+import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.security.SecurityUtil;
@@ -41,20 +57,6 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.rdd.RDDOperationScope;
 import org.apache.spark.sql.SparkSession;
 import scala.Tuple2;
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.concurrent.Clock;
-import com.splicemachine.concurrent.SystemClock;
-import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
-import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
-import com.splicemachine.derby.lifecycle.EngineLifecycleService;
-import com.splicemachine.pipeline.ContextFactoryDriverService;
-import com.splicemachine.pipeline.PipelineDriver;
-import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
-import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 
 public class SpliceSpark {
     private static Logger LOG = Logger.getLogger(SpliceSpark.class);
@@ -243,6 +245,12 @@ public class SpliceSpark {
         conf.set("spark.sql.warehouse.dir", "/user/splice/spark-warehouse");
         conf.set("spark.sql.autoBroadcastJoinThreshold", "-1");
 
+        conf.set("spark.sql.join.preferSortMergeJoin", "false"); // msirek-temp
+        conf.set("spark.sql.defaultSizeInBytes", "-200001");  // msirek-temp
+
+        conf.set("spark.sql.shuffle.partitions", "16");  // msirek-temp
+
+
         String schedulerAllocationFile = System.getProperty("splice.spark.scheduler.allocation.file");
         if (schedulerAllocationFile != null) {
             conf.set("spark.scheduler.allocation.file", schedulerAllocationFile);
@@ -337,7 +345,6 @@ public class SpliceSpark {
         conf.set("spark.streaming.kafka.maxRatePerPartition", System.getProperty("splice.spark.streaming.kafka.maxRatePerPartition", ""));
         conf.set("spark.streaming.kafka.maxRetries", System.getProperty("splice.spark.streaming.kafka.maxRetries", "1"));
         conf.set("spark.streaming.ui.retainedBatches", System.getProperty("splice.spark.streaming.ui.retainedBatches", "100"));
-
 
         /*
 

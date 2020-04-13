@@ -31,14 +31,12 @@
 
 package com.splicemachine.db.iapi.sql.compile;
 
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 /**
@@ -326,6 +324,8 @@ public interface JoinStrategy {
      *                                            re-qualify rows, if necessary.
      * @param dd            The DataDictionary
      *
+     * @param accessPath    Details about how rows are accessed.  Join strategy, predicates, etc.
+     *
      * @exception StandardException        Thrown on error
      */
     void divideUpPredicateLists(Optimizable innerTable,
@@ -334,7 +334,9 @@ public interface JoinStrategy {
                                 OptimizablePredicateList storeRestrictionList,
                                 OptimizablePredicateList nonStoreRestrictionList,
                                 OptimizablePredicateList requalificationRestrictionList,
-                                DataDictionary dd)
+                                OptimizablePredicateList extraJoinPredicates,
+                                DataDictionary dd,
+                                AccessPath accessPath)
             throws StandardException;
 
     /**

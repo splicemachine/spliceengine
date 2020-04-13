@@ -988,7 +988,7 @@
                                 <argument>-Dsplice.spark.driver.maxResultSize=1g</argument>
                                 <argument>-Dsplice.spark.driver.memory=1g</argument>
                                 <argument>-Dsplice.spark.enabled=true</argument>
-                                <argument>-Dsplice.spark.executor.cores=3</argument>
+                                <argument>-Dsplice.spark.executor.cores=16</argument>
                                 <argument>${spark.defaultfs}</argument>
                                 <argument>
                                     -Dsplice.spark.executor.extraClassPath=${project.build.directory}:${project.build.directory}/classes:${project.build.directory}/dependency/*
@@ -1003,7 +1003,7 @@
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>-Dsplice.spark.executor.instances=1</argument>
-                                <argument>-Dsplice.spark.executor.memory=2000M</argument>
+                                <argument>-Dsplice.spark.executor.memory=10g</argument>
                                 <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
                                 <argument>-Dspark.broadcast.compress=true</argument>
                                 <argument>-Dsplice.spark.kryo.referenceTracking=false</argument>

@@ -1829,7 +1829,7 @@ public class FromBaseTable extends FromTable {
      * @throws StandardException Thrown on error
      * @see ResultSetNode#changeAccessPath
      */
-    public ResultSetNode changeAccessPath(JBitSet joinedTableSet) throws StandardException{
+    public ResultSetNode changeAccessPath(JBitSet joinedTableSet, Optimizable sourceRelation) throws StandardException{
         ResultSetNode retval;
         AccessPath ap=getTrulyTheBestAccessPath();
         ConglomerateDescriptor trulyTheBestConglomerateDescriptor= ap.getConglomerateDescriptor();
@@ -1881,14 +1881,16 @@ public class FromBaseTable extends FromTable {
         storeRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         nonStoreRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         requalificationRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
+        OptimizablePredicateList extraJoinPredicates=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         trulyTheBestJoinStrategy.divideUpPredicateLists(
-                this,
+                sourceRelation,
                 joinedTableSet,
                 restrictionList,
                 storeRestrictionList,
                 nonStoreRestrictionList,
                 requalificationRestrictionList,
-                getDataDictionary());
+                extraJoinPredicates,
+                getDataDictionary(), ap);
 
         /* Check to see if we are going to do execution-time probing
          * of an index using IN-list values.  We can tell by looking
@@ -2014,7 +2016,7 @@ public class FromBaseTable extends FromTable {
             templateColumns.addRCForRID();
 
             // If this is for update then we need to get the RID in the result row
-            if(forUpdate()){
+            if(true || forUpdate()){  // msirek-temp
                 resultColumns.addRCForRID();
             }
 

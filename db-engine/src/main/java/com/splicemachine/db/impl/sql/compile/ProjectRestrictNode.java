@@ -499,7 +499,11 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 }
             }
 
-            return ((Optimizable)childResult).feasibleJoinStrategy(restrictionList,optimizer,outerCost);
+            boolean retval = ((Optimizable)childResult).feasibleJoinStrategy(restrictionList,optimizer,outerCost);
+            if (!retval && predList != null)
+                retval = super.feasibleJoinStrategy(predList,optimizer,outerCost);
+            return retval;
+
         }else{
             if (childResult instanceof SelectNode)
                 unmapJoinPredicatesPushedToDT();
@@ -814,7 +818,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         */
         if(origChildOptimizable){
             processRowIdReferenceInFromBaseTableChild();
-            childResult=childResult.changeAccessPath(outerTables);
+            childResult=childResult.changeAccessPath(outerTables, this);
         }
         accessPathModified=true;
 
@@ -932,13 +936,16 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         PredicateList searchRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         PredicateList joinQualifierList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         PredicateList requalificationRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
+        OptimizablePredicateList extraJoinPredicates=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         trulyTheBestAccessPath.getJoinStrategy().divideUpPredicateLists(this,
                 joinedTableSet,
                 restrictionList,
                 searchRestrictionList,
                 joinQualifierList,
                 requalificationRestrictionList,
-                getDataDictionary());
+                extraJoinPredicates,
+                getDataDictionary(),
+                trulyTheBestAccessPath);
 
         /* Break out the non-qualifiers from HTN's join qualifier list and make that
          * the new restriction list for this PRN.

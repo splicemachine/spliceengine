@@ -40,10 +40,13 @@ import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.HashFunctions;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -53,6 +56,7 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog(SQLRowId.class);
     private static final char[] hexArray = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+    private static final Hash32 hashFunction = HashFunctions.murmur3(0);
     byte[] bytes;
 
     public SQLRowId() {
@@ -104,8 +108,12 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
         return bytes;
     }
 
-    public  int hashCode() {
-        return 0;
+    public int hashCode() {
+        int hash;
+        // Same calculation as in ByteSlice.
+        if (bytes == null || bytes.length == 0) return 0;
+        hash = hashFunction.hash(bytes, 0, bytes.length);
+        return hash;
     }
 
     public  String 	toString() {
@@ -317,7 +325,21 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
 
     @Override
     public void setSparkObject(Object sparkObject) throws StandardException {
+        if (sparkObject == null)
+            setToNull();
+        else {
+            bytes = (byte[]) sparkObject;
+            setIsNull(false);
+        }
+    }
 
+    @Override
+    public Object getSparkObject() throws StandardException {
+        if (isNull() || bytes == null)
+            return null;
+        byte[] newBytes = new byte[bytes.length];
+        System.arraycopy(bytes,0,newBytes,0,bytes.length);
+        return newBytes;
     }
 
 }

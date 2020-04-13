@@ -954,7 +954,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
      * @return A ResultSetNode tree modified to do any extra processing for
      * the chosen access path
      */
-    public ResultSetNode changeAccessPath(JBitSet joinedTableSet) throws StandardException{
+    public ResultSetNode changeAccessPath(JBitSet joinedTableSet, Optimizable sourceRelation) throws StandardException{
         return this;
     }
 

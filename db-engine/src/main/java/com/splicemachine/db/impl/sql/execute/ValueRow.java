@@ -34,10 +34,8 @@ package com.splicemachine.db.impl.sql.execute;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLDecimal;
-import com.splicemachine.db.iapi.types.TypeId;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
@@ -45,7 +43,6 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.Map;
 import scala.collection.Seq;
-import scala.util.hashing.MurmurHash3;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -417,10 +414,15 @@ public class ValueRow implements ExecRow, Externalizable {
 
 	public int hashCode() {
 		if (hash == 0) {
-			if (column.length > 0)
-			    hash = MurmurHash3.arrayHashing().hash(column);
-			else
-				hash = 123456789;
+                    if (column.length > 0) {
+                        final int prime = 31;
+                        hash = 1;
+
+                        for (DataValueDescriptor dvd:column)
+                            hash = prime * hash + dvd.hashCode();
+                    }
+                    else
+                        hash = 123456789;
 		}
 		return hash;
 	}

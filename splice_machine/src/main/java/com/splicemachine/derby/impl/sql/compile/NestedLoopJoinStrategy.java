@@ -236,7 +236,9 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
             OptimizablePredicateList storeRestrictionList,
             OptimizablePredicateList nonStoreRestrictionList,
             OptimizablePredicateList requalificationRestrictionList,
-            DataDictionary dd) throws StandardException{
+            OptimizablePredicateList extraJoinPredicates,
+            DataDictionary dd,
+            AccessPath ap) throws StandardException{
         /*
         ** All predicates are store predicates.  No requalification is
         ** necessary for non-covering index scans.

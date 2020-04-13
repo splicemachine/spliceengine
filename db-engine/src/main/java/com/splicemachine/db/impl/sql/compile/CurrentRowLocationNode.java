@@ -186,6 +186,12 @@ public class CurrentRowLocationNode extends ValueNode
     }
 
     @Override
+    public boolean isCloneable()
+	{
+		return true;
+	}
+
+    @Override
     public CurrentRowLocationNode getClone() throws StandardException {
         CurrentRowLocationNode currentRowLocationNode = (CurrentRowLocationNode) getNodeFactory().getNode(
                 C_NodeTypes.CURRENT_ROW_LOCATION_NODE,

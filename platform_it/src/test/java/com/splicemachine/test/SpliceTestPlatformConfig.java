@@ -154,6 +154,10 @@ class SpliceTestPlatformConfig {
         config.set("hbase.coprocessor.region.classes", getRegionCoprocessorsAsString(secure));
         config.set("hbase.coprocessor.master.classes", getMasterCoprocessorsAsString(secure));
 
+        config.setLong(HConstants.HREGION_MAX_FILESIZE, 10240 * MiB); // hbase.hregion.max.filesize
+
+        config.setBoolean("splice.debug.dumpClassFile", true);  // msirek-temp
+
         // Security
 
         if (secure) {

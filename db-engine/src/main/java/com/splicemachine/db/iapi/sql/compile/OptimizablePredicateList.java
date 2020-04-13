@@ -70,6 +70,15 @@ public interface OptimizablePredicateList {
 	void removeOptPredicate(int predCtr) throws StandardException;
 
 	/**
+	 * Remove an specific OptimizablePredicate from the list.
+	 *
+	 * @param pred	The predicate to remove.
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	void removeOptPredicate(OptimizablePredicate pred);
+
+	/**
 	 * Add the given OptimizablePredicate to the end of this list.
 	 *
 	 * @param optPredicate	The predicate to add
@@ -214,6 +223,14 @@ public interface OptimizablePredicateList {
 	void putOptimizableEqualityPredicateFirst(Optimizable optTable, ValueNode expr) throws StandardException;
 
 	/**
+	 * Move all of the predicates marked as qualifiers to the front of the list.
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	void putQualifiersFirst() throws StandardException;
+
+
+	/**
 	 * Transfer the predicates whose referenced set is contained by the
 	 * specified referencedTableMap from this list to the other list.
 	 * This is useful when splitting out a set of predicates from a larger
@@ -251,6 +268,27 @@ public interface OptimizablePredicateList {
 	 * @exception StandardException		Thrown on error
 	 */
 	void copyPredicatesToOtherList(OptimizablePredicateList otherList) throws StandardException;
+
+	void copyQualifiersToOtherList(OptimizablePredicateList otherList,
+                                       Optimizable innerTable) throws StandardException;
+
+	void copyNonQualifiersToOtherList(OptimizablePredicateList otherList,
+                                          Optimizable innerTable) throws StandardException;
+
+	void copyReferencedPredicatesToOtherList(OptimizablePredicateList otherList,
+                                                 Optimizable innerTable) throws StandardException;
+
+	/**
+	 * Remove all of the predicates that are in this list from the other list.
+	 *
+	 * This is useful when temporarily adding predicates to a list that need to
+         * be removed later.
+	 *
+	 * @param otherList                     The predicateList remove from
+	 *
+	 * @exception StandardException         Thrown on error
+	 */
+	void removePredicatesFromOtherList(OptimizablePredicateList otherList) throws StandardException;
 
 	/**
 	 * Sets the given list to have the same elements as this one, and

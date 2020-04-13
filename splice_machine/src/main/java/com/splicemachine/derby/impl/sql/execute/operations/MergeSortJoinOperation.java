@@ -200,6 +200,7 @@ public class MergeSortJoinOperation extends JoinOperation {
         rightDataSet1.map(new CountJoinedRightFunction(operationContext));
         DataSet<ExecRow> joined;
 
+        // useNativeSparkJoin = false;  // msirek-temp
         if (useNativeSparkJoin){
             if (joinType == JoinNode.LEFTOUTERJOIN)
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTOUTER,false);

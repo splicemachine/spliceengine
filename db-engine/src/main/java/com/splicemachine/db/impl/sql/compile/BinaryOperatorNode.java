@@ -881,7 +881,9 @@ public class BinaryOperatorNode extends OperatorNode
             if (getRightOperand() instanceof ColumnReference) {
                 ColumnReference rcr = (ColumnReference) getRightOperand();
                 if (rcr.getSource().getExpression() instanceof CurrentRowLocationNode) {
-                    return false;
+                    if (methodName.compareToIgnoreCase("NOTEQUALS") == 0) {
+                        return false;   // msirek-temp
+                    }
                 }
             }
         }

@@ -234,6 +234,7 @@ public class OperatorToString {
                 typeFormatId == LONGINT_TYPE_ID  ||
                 typeFormatId == DECIMAL_TYPE_ID  ||
                 typeFormatId == DOUBLE_TYPE_ID   ||
+                typeFormatId == REF_TYPE_ID      ||
                 typeFormatId == TIMESTAMP_TYPE_ID);
     }
 

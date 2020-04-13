@@ -419,4 +419,6 @@ public interface Optimizer{
     int getJoinPosition();
 
     default boolean isMemPlatform() { return false; };
+
+    OptimizablePredicateList getPredicateList();
 }

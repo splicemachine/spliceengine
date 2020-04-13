@@ -1874,6 +1874,9 @@ public class SelectNode extends ResultSetNode{
         ResultSetNode leftResultSet;
         ResultSetNode rightResultSet;
 
+        PredicateList predicateList = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());;
+        if (optimizer.getPredicateList() != null)
+            optimizer.getPredicateList().copyPredicatesToOtherList(predicateList);
         /*
         ** Modify the access path for each Optimizable, as necessary
         **
@@ -2034,6 +2037,28 @@ public class SelectNode extends ResultSetNode{
 
             ResultSetNode newPRNode = joinNode.genProjectRestrict();
 
+            // Set in stone any mappings to resultColumns that have been
+            // made in applied predicates.  We want the predicates to be
+            // applied as join predicates instead of after the join.
+            JBitSet referencedTableMap = joinNode.getReferencedTableMap();
+            for(int index=predicateList.size()-1;index>=0;index--){
+                Predicate predicate=predicateList.elementAt(index);
+                if(!predicate.getPushable()){
+                    continue;
+                }
+
+                JBitSet curBitSet=predicate.getReferencedSet();
+
+                /* Do we have a match? */
+                if(referencedTableMap.contains(curBitSet)){
+                    /* Remap all of the ColumnReferences to point to the
+                     * source of the values.
+                     */
+                    RemapCRsForJoinVisitor decoupleCRsVisitor = new RemapCRsForJoinVisitor();
+                    predicate.getAndNode().accept(decoupleCRsVisitor);  // msirek-temp
+                }
+            }
+
             // apply post outer join conditions
             if (((FromTable)rightResultSet).getOuterJoinLevel() > 0) {
                 PredicateList postJoinPredicates = ((FromTable)rightResultSet).getPostJoinPredicates();
@@ -2059,7 +2084,9 @@ public class SelectNode extends ResultSetNode{
             fromList.removeElementAt(1);
         }
 
-        return genProjectRestrict(origFromListSize);
+        ResultSetNode JoinResultSet = genProjectRestrict(origFromListSize);
+
+        return JoinResultSet;
 
     }
 

@@ -1582,7 +1582,7 @@ public class ResultColumn extends ValueNode
          * The SELECT generated for the HAVING needs its own copy
          * of the ColumnReferences.
          */
-        if (expression instanceof ColumnReference || expression instanceof CurrentRowLocationNode)
+        if (expression.isCloneable())
         {
             cloneExpr = expression.getClone();
         }
@@ -1610,6 +1610,7 @@ public class ResultColumn extends ValueNode
                     cloneExpr,
                     getContextManager());
         }
+        newResultColumn.copyFields(this);
 
         /* Set the VirtualColumnId and name in the new node */
         newResultColumn.setVirtualColumnId(getVirtualColumnId());
@@ -1671,6 +1672,9 @@ public class ResultColumn extends ValueNode
 
         newResultColumn.fromLeftChild = this.fromLeftChild;
         newResultColumn.indexExpression = this.indexExpression;
+        newResultColumn.isPulledupOrderingColumn = this.isPulledupOrderingColumn;
+        newResultColumn.wasDefault = this.wasDefault;
+        newResultColumn.defaultColumn = this.defaultColumn;
         return newResultColumn;
     }
 

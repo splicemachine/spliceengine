@@ -418,6 +418,13 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                                  int columnNumber, ValueNode expr,
                                                  boolean isExpr) throws StandardException {
         int size=size();
+
+        Optimizable hashTableFor = optTable;
+        if (optTable instanceof ProjectRestrictNode) {  // msirek-temp
+            ProjectRestrictNode prn = (ProjectRestrictNode) optTable;
+            if (prn.getChildResult() instanceof Optimizable)
+                hashTableFor = (Optimizable) (prn.getChildResult());
+        }
         for (int i = 0; i < size; i++){
             AndNode andNode;
             Predicate predicate = elementAt(i);
@@ -444,17 +451,25 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             ValueNode leftNode = andNode.getLeftOperand();
 
             if (isExpr) {
-                if (!leftNode.optimizableEqualityNode(optTable, expr, false)) {
+                if (!leftNode.optimizableEqualityNode(hashTableFor, expr, false)) {
                     continue;
                 }
             } else {
-                if (!leftNode.optimizableEqualityNode(optTable, columnNumber, false)) {
+                if (!leftNode.optimizableEqualityNode(hashTableFor, columnNumber, false)) {
                     continue;
                 }
             }
 
             if (!(leftNode instanceof BinaryRelationalOperatorNode)) {
                 continue;
+            }
+
+            if (predicate.hasRowID()) { // msirek-temp
+                if (optTable instanceof ProjectRestrictNode) {
+                    ProjectRestrictNode prn = (ProjectRestrictNode)optTable;
+                    if (prn.getResultColumns().size() == columnNumber)
+                        return true;
+                }
             }
 
             if (!isExpr) {
@@ -534,6 +549,27 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             }
         }
         return currentJoinStrategy != null && currentJoinStrategy.isHashJoin();
+    }
+
+    @Override
+    public void putQualifiersFirst() throws StandardException{
+        int size=size();
+        PredicateList qualifiersList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+        PredicateList nonQualifiersList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+
+        for(int index=0;index<size;index++){
+            Predicate predicate=elementAt(index);
+
+            removeElementAt(index);
+            if (predicate.isQualifier())
+                qualifiersList.addElement(predicate);
+            else
+                nonQualifiersList.addElement(predicate);
+
+            return;
+        }
+        nondestructiveAppend(qualifiersList);
+        nondestructiveAppend(nonQualifiersList);
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -1893,7 +1929,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             Predicate p = elementAt(index);
 
             // Skip rowid predicates that are either start or stop key
-            if (p.isRowId()&& (p.isStartKey() || p.isStopKey())) {
+            if (p.isRowId()&& (p.isStartKey() || p.isStopKey()) && p.referencedSet.size() < 2) {
                 continue;
             }
             nextAnd=p.getAndNode();
@@ -3240,6 +3276,52 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     public void copyPredicatesToOtherList(OptimizablePredicateList otherList) throws StandardException{
         for(int i=0;i<size();i++){
             otherList.addOptPredicate(getOptPredicate(i));
+        }
+    }
+
+    @Override
+    public void copyQualifiersToOtherList(OptimizablePredicateList otherList,
+                                          Optimizable innerTable) throws StandardException{
+        JBitSet referencedTableMap=innerTable.getReferencedTableMap();
+        JBitSet curBitSet;
+        for(int i=0;i<size();i++){
+            OptimizablePredicate pred = getOptPredicate(i);
+            curBitSet = pred.getReferencedMap();
+            if (pred.isQualifier() && referencedTableMap.intersects(curBitSet))
+                otherList.addOptPredicate(pred);
+        }
+    }
+
+    @Override
+    public void copyNonQualifiersToOtherList(OptimizablePredicateList otherList,
+                                             Optimizable innerTable) throws StandardException{
+        JBitSet referencedTableMap=innerTable.getReferencedTableMap();
+        JBitSet curBitSet;
+        for(int i=0;i<size();i++){
+            OptimizablePredicate pred = getOptPredicate(i);
+            curBitSet = pred.getReferencedMap();
+            if (!pred.isQualifier() && referencedTableMap.intersects(curBitSet))
+                otherList.addOptPredicate(pred);
+        }
+    }
+
+    @Override
+    public void copyReferencedPredicatesToOtherList(OptimizablePredicateList otherList,
+                                          Optimizable innerTable) throws StandardException{
+        JBitSet referencedTableMap=innerTable.getReferencedTableMap();
+        JBitSet curBitSet;
+        for(int i=0;i<size();i++){
+            OptimizablePredicate pred = getOptPredicate(i);
+            curBitSet = pred.getReferencedMap();
+            if (referencedTableMap.intersects(curBitSet))
+                otherList.addOptPredicate(pred);
+        }
+    }
+
+    @Override
+    public void removePredicatesFromOtherList(OptimizablePredicateList otherList) throws StandardException{
+        for(int i=0;i<size();i++){
+            otherList.removeOptPredicate(getOptPredicate(i));
         }
     }
 

@@ -34,6 +34,8 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import java.util.Collections;
@@ -86,6 +88,24 @@ public class VirtualColumnNode extends ValueNode
         this.columnId = (Integer) columnId;
         setType(source.getTypeServices());
     }
+
+	@Override
+	public VirtualColumnNode getClone() throws StandardException {
+	        NodeFactory nodeFactory =
+                    getLanguageConnectionContext().
+                      getLanguageConnectionFactory().
+                        getNodeFactory();
+	        VirtualColumnNode vcn = (VirtualColumnNode) nodeFactory.getNode(
+                C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                getSourceResultSet(),
+                getSourceColumn(),
+                getColumnId(),
+                getContextManager());
+
+	        if (getCorrelated())
+	            vcn.setCorrelated();
+	        return vcn;
+        }
 
 
     /**

@@ -75,8 +75,8 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
                             boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
         /* Currently BroadcastJoin does not work with a right side IndexRowToBaseRowOperation */
-        if (JoinStrategyUtil.isNonCoveringIndex(innerTable))
-            return false;
+        //if (JoinStrategyUtil.isNonCoveringIndex(innerTable))
+        //    return false;  // msirek-temp
 
         boolean hashFeasible = super.feasible(innerTable,predList,optimizer,outerCost,wasHinted,true);
 

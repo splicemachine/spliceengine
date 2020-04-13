@@ -394,7 +394,9 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             OptimizablePredicateList storeRestrictionList,
             OptimizablePredicateList nonStoreRestrictionList,
             OptimizablePredicateList requalificationRestrictionList,
-            DataDictionary dd
+            OptimizablePredicateList extraJoinPredicates,
+            DataDictionary dd,
+            AccessPath accessPath
     ) throws StandardException {
 		/*
 		** If we are walking a non-covering index, then all predicates that
@@ -408,6 +410,8 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		*/
         originalRestrictionList.copyPredicatesToOtherList(requalificationRestrictionList);
         ConglomerateDescriptor cd = innerTable.getTrulyTheBestAccessPath().getConglomerateDescriptor();
+        Optimizer optimizer=accessPath.getOptimizer();
+        OptimizablePredicateList accessPathPreds = optimizer.getPredicateList();
 
 		/* For the inner table of a hash join, then divide up the predicates:
          *
@@ -429,7 +433,10 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		 */
 
         // Build the list to be applied when creating the hash table
-        originalRestrictionList.transferPredicates(storeRestrictionList, innerTable.getReferencedTableMap(), innerTable, joinedTableSet);
+        Optimizable baseTable = innerTable;
+        if (innerTable instanceof SingleChildResultSetNode)  // msirek-temp
+            baseTable = (Optimizable)((SingleChildResultSetNode) innerTable).getChildResult();
+        originalRestrictionList.transferPredicates(storeRestrictionList, baseTable.getReferencedTableMap(), baseTable, joinedTableSet);
 		/*
          * Eliminate any non-qualifiers that may have been pushed, but
          * are redundant and not useful for hash join.
@@ -460,6 +467,16 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		/* Copy the rest of the predicates to the non-store list */
         originalRestrictionList.copyPredicatesToOtherList(nonStoreRestrictionList);
 
+//        if (accessPathPreds != null)
+//            accessPathPreds.transferPredicates(nonStoreRestrictionList,
+//                                               innerTable.getReferencedTableMap(),
+//                                               innerTable);
+        if (accessPathPreds != null) {
+            //accessPathPreds.copyQualifiersToOtherList(nonStoreRestrictionList, innerTable); // msirek-temp
+            accessPathPreds.copyNonQualifiersToOtherList(extraJoinPredicates, innerTable);  // msirek-temp
+        }
+
+
 		/* If innerTable is ProjectRestrictNode, we need to use its child
 		 * to find hash key columns, this is because ProjectRestrictNode may
 		 * not have underlying node's every result column as result column,
@@ -477,7 +494,11 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             if (prn.getChildResult() instanceof Optimizable)
                 hashTableFor = (Optimizable) (prn.getChildResult());
         }
-        int[] hashKeyColumns = findHashKeyColumns(hashTableFor, cd, nonStoreRestrictionList);
+        int[] hashKeyColumns = findHashKeyColumns(innerTable, cd, nonStoreRestrictionList);
+        int[] extraKeyColumns = findHashKeyColumns(hashTableFor, cd, extraJoinPredicates);
+
+        if (hashKeyColumns == null)
+            innerTable.getTrulyTheBestAccessPath().setMissingHashKeyOK(true);  // msirek-temp
 
         if (hashKeyColumns == null) {
             if (!innerTable.getTrulyTheBestAccessPath().isMissingHashKeyOK()) {
@@ -495,12 +516,12 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
         innerTable.setHashKeyColumns(hashKeyColumns);
 
-        // Mark all of the predicates in the probe list as qualifiers
-        nonStoreRestrictionList.markAllPredicatesQualifiers();
-
         // The remaining logic deals with hash key columns, so exit if none were found.
-        if (hashKeyColumns.length == 0)
+        if (hashKeyColumns.length == 0) {
+//            if (accessPathPreds != null)
+//                accessPathPreds.removePredicatesFromOtherList(nonStoreRestrictionList);  // msirek-temp
             return;
+        }
 
         int[] conglomColumn = new int[hashKeyColumns.length];
         if (cd != null && cd.isIndex()) {
@@ -543,6 +564,17 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 nonStoreRestrictionList.putOptimizableEqualityPredicateFirst(innerTable, conglomColumn[index]);
             }
         }
+
+        nonStoreRestrictionList.putQualifiersFirst();
+
+//          if (accessPathPreds != null)
+//              accessPathPreds.copyNonQualifiersToOtherList(originalRestrictionList, innerTable);  // msirek-temp
+//        if (accessPathPreds != null)
+//                accessPathPreds.removePredicatesFromOtherList(nonStoreRestrictionList);  // msirek-temp
+
+        // Mark all of the predicates in the probe list as qualifiers
+        nonStoreRestrictionList.markAllPredicatesQualifiers();  // msirek-temp
+
     }
 
     /**
@@ -582,9 +614,16 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		 * an equijoin condition on it.  We do essentially the same
 		 * for heaps.  (From column 1 through column n.)
 		 */
+        Optimizable hashTableFor = innerTable;
+        if (innerTable instanceof ProjectRestrictNode) {
+            ProjectRestrictNode prn = (ProjectRestrictNode) innerTable;
+            if (prn.getChildResult() instanceof Optimizable)
+                hashTableFor = (Optimizable) (prn.getChildResult());
+        }
+
         int[] columns = null;
         if (cd == null) {
-            columns = new int[innerTable.getNumColumnsReturned()];
+            columns = new int[hashTableFor.getNumColumnsReturned()];
             for (int j = 0; j < columns.length; j++) {
                 columns[j] = j + 1;
             }
@@ -595,14 +634,25 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             }
         }
         else {
-            columns = new int[innerTable.getTableDescriptor().getNumberOfColumns()];
+            columns = new int[hashTableFor.getTableDescriptor().getNumberOfColumns()];
             for (int j = 0; j < columns.length; j++) {
                 columns[j] = j + 1;
             }
         }
 
-        // Build a Vector of all the hash key columns
         Vector hashKeyVector = new Vector();
+
+        // Look for a ROWID = ROWID join term.
+        // msirek-temp
+        if (innerTable instanceof ProjectRestrictNode) {
+            ProjectRestrictNode prn = (ProjectRestrictNode)innerTable;
+            int numColumns = prn.getResultColumns().size();
+            if (!hashKeyVector.contains(numColumns) &&
+                 predList.hasOptimizableEquijoin(innerTable, numColumns))
+                hashKeyVector.add(numColumns-1);
+        }
+
+        // Build a Vector of all the hash key columns
         if (cd != null && cd.isIndex() && cd.getIndexDescriptor().isOnExpression()) {
             IndexRowGenerator irg = cd.getIndexDescriptor();
             assert innerTable instanceof QueryTreeNode;
@@ -622,6 +672,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 }
             }
         }
+
 
         // Convert the Vector into an int[], if there are hash key columns
         if (!hashKeyVector.isEmpty()) {

@@ -892,18 +892,29 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             int[] leftJoinKeys = ((JoinOperation)context.getOperation()).getLeftHashKeys();
             assert rightJoinKeys!=null && leftJoinKeys!=null && rightJoinKeys.length == leftJoinKeys.length:"Join Keys Have Issues";
 
+
             SparkExpressionNode sparkJoinPred = op.getSparkJoinPredicate();
             if (sparkJoinPred != null) {
                 java.util.function.Function<String, DataType> convertStringToDataTypeFunction =
                      (String s) -> { return ParserUtils.getDataTypeFromString(s); };
                 expr = sparkJoinPred.getColumnExpression(leftDF, rightDF, convertStringToDataTypeFunction);
             }
-            else {
+            if (rightJoinKeys.length > 0) {
+                Column leftColExpressions[] = new Column[leftJoinKeys.length];
+                Column rightColExpressions[] = new Column[rightJoinKeys.length];
                 for (int i = 0; i < rightJoinKeys.length; i++) {
-                    Column joinEquality = (leftDF.col(ValueRow.getNamedColumn(leftJoinKeys[i]))
-                    .equalTo(rightDF.col(ValueRow.getNamedColumn(rightJoinKeys[i]))));
+                    Column leftColumn = leftDF.col(ValueRow.getNamedColumn(leftJoinKeys[i]));
+                    Column rightColumn = rightDF.col(ValueRow.getNamedColumn(rightJoinKeys[i]));
+                    Column joinEquality = leftColumn.equalTo(rightColumn);
                     expr = i != 0 ? expr.and(joinEquality) : joinEquality;
+                    leftColExpressions[i] = leftColumn;
+                    rightColExpressions[i] = rightColumn;
                 }
+                SpliceSpark.getSession().conf().set("spark.sql.shuffle.partitions", "500");   // msirek-temp
+//                if (leftColExpressions.length != 0)
+//                    leftDF = leftDF.repartition(2000, leftColExpressions);
+//                if (rightColExpressions.length != 0)
+//                    rightDF = rightDF.repartition(2000, rightColExpressions);
             }
             DataSet joinedSet;
 

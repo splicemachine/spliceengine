@@ -1183,7 +1183,8 @@ public class OptimizerImpl implements Optimizer{
         /*
         ** Don't consider non-feasible join strategies.
         */
-        if(!optimizable.feasibleJoinStrategy(predList,this,outerCost)){
+        if(//false &&  // msirek-temp
+           !optimizable.feasibleJoinStrategy(predList,this,outerCost)){
             tracer().trace(OptimizerFlag.INFEASIBLE_JOIN,0,0,0.0,accessPath.getJoinStrategy());
             return;
         }
@@ -2579,6 +2580,11 @@ public class OptimizerImpl implements Optimizer{
     @Override
     public boolean isForSpark() {
         return forSpark;
+    }
+
+    @Override
+    public OptimizablePredicateList getPredicateList() {
+        return predicateList;
     }
 
 

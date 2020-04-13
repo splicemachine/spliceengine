@@ -167,6 +167,14 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return rowId;
     }
 
+    public boolean hasRowID() {
+        if (andNode.getLeftOperand() instanceof BinaryRelationalOperatorNode) {
+            BinaryRelationalOperatorNode brn = (BinaryRelationalOperatorNode)andNode.getLeftOperand();
+            return brn.hasRowId();
+        }
+        return false;
+    }
+
     public void markRowId(){
         rowId=true;
     }
@@ -1173,7 +1181,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * not scoped; the caller can then make the calls to perform a
      * "normal" remap on this predicate.
      */
-    protected boolean remapScopedPred(){
+    protected boolean remapScopedPred() throws StandardException {
         if(!scoped)
             return false;
 

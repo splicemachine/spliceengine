@@ -404,8 +404,8 @@ public abstract class SingleChildResultSetNode extends FromTable{
     }
 
     @Override
-    public ResultSetNode changeAccessPath(JBitSet joinedTableSet) throws StandardException{
-        childResult=childResult.changeAccessPath(joinedTableSet);
+    public ResultSetNode changeAccessPath(JBitSet joinedTableSet, Optimizable sourceRelation) throws StandardException{
+        childResult=childResult.changeAccessPath(joinedTableSet, sourceRelation);  // (joinedTableSet, this) // msirek-temp
         return this;
     }
 

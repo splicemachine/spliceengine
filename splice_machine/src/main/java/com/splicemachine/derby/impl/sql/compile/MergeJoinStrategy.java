@@ -332,6 +332,8 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
 
                     int outerTableNum = outerColumnInfo.getFirst();
                     int outerColNum = outerColumnInfo.getSecond();
+                    if (true)
+                        return true;  // msirek-temp
                     if (innerColumnNumber == innerColumnPosition) {
                         innerColumns.set(i);
                         int rowOrdering = ascending ? RowOrdering.ASCENDING : RowOrdering.DESCENDING;
