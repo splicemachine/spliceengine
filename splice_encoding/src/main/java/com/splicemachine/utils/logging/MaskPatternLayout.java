@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 
 public class MaskPatternLayout extends PatternLayout {
 
-    private String maskString = "***MASKED SENSITIVE INFO***";
+    private String maskString = "********";
     private Pattern maskPattern = null;
     private Logger logger = Logger.getLogger(this.getClass());
 
