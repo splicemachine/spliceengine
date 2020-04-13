@@ -397,6 +397,9 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             switch(key){
                 case "joinStrategy":
                     userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
+                    if (userSpecifiedJoinStrategy.equals("CROSS")) {
+                        dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
+                    }
                     break;
                 case "useSpark":
                     dataSetProcessorType = dataSetProcessorType.combine(
