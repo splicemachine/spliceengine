@@ -649,6 +649,9 @@ public class FromBaseTable extends FromTable {
                 }
             }else if(key.equals("joinStrategy")){
                 userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
+                if (userSpecifiedJoinStrategy.equals("CROSS")) {
+                    dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
+                }
             }
             else if (key.equals("useSpark")) {
                 try {
