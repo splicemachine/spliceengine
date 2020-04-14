@@ -35,14 +35,10 @@ public class OlapPipelineFactory extends ChannelInitializer {
     private final ChannelInboundHandler cancelHandler;
     private final ChannelInboundHandler statusHandler;
 
-    private final ProtobufDecoder decoder;
-
     public OlapPipelineFactory(ChannelInboundHandler submitHandler, ChannelInboundHandler cancelHandler, ChannelInboundHandler statusHandler){
         this.submitHandler=submitHandler;
         this.cancelHandler=cancelHandler;
         this.statusHandler=statusHandler;
-
-        this.decoder = new ProtobufDecoder(OlapMessage.Command.getDefaultInstance(),buildExtensionRegistry());
     }
 
     private ExtensionRegistry buildExtensionRegistry(){
@@ -58,7 +54,7 @@ public class OlapPipelineFactory extends ChannelInitializer {
         SpliceLogUtils.trace(LOG, "Creating new channel pipeline...");
         ChannelPipeline pipeline = channel.pipeline();
         pipeline.addLast("frameDecoder",new LengthFieldBasedFrameDecoder(1<<30,0,4,0,4)); //max frame size is 1GB=2^30 bytes
-        pipeline.addLast("protobufDecoder",decoder);
+        pipeline.addLast("protobufDecoder", new ProtobufDecoder(OlapMessage.Command.getDefaultInstance(),buildExtensionRegistry()));
         pipeline.addLast("frameEncoder",new LengthFieldPrepender(4));
         pipeline.addLast("protobufEncoder",new ProtobufEncoder());
         pipeline.addLast("statusHandler", statusHandler);

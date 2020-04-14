@@ -114,6 +114,7 @@ public class OlapServer {
     }
 
     void stopServer() {
+        SpliceLogUtils.info(LOG, "Olap Server stopped at port " + port);
         try {
             this.channel.close();
         } catch (Exception e) {

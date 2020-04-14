@@ -26,11 +26,15 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.*;
 
+import static org.hamcrest.Matchers.*;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -127,7 +131,7 @@ public class OlapClientTest {
     public void concurrencyTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
-        final AtomicReferenceArray<DumbOlapResult> results = new AtomicReferenceArray<>(size);
+        final AtomicReferenceArray<Object> results = new AtomicReferenceArray<>(size);
         final Random rand = new Random(size);
         for (int i = 0; i < size; ++i) {
             final int j = i;
@@ -138,7 +142,7 @@ public class OlapClientTest {
                     try {
                         results.set(j, olapClient.execute(new DumbDistributedJob(sleep,j)));
                     } catch (IOException e) {
-                        results.set(j, null);
+                        results.set(j, e);
                     }catch(TimeoutException te){
                         Assert.fail("Timed out");
                     }
@@ -150,8 +154,13 @@ public class OlapClientTest {
             threads[i].join();
         }
         for (int i = 0; i < size; ++i) {
-            Assert.assertNotNull(results.get(i));
-            Assert.assertEquals(i, results.get(i).order);
+            Object result = results.get(i);
+            if (result instanceof Exception) {
+                throw (Exception) result;
+            }
+            Assert.assertThat(result, is(instanceOf(DumbOlapResult.class)));
+            DumbOlapResult dor = (DumbOlapResult) result;
+            Assert.assertEquals(i, dor.order);
         }
     }
 
@@ -187,10 +196,10 @@ public class OlapClientTest {
     }
 
     @Test
-    public void overflowTest() throws Exception {
+    public void overflowTest() throws Throwable {
         int size = 32;
         Thread[] threads = new Thread[size];
-        final AtomicReferenceArray<DumbOlapResult> results = new AtomicReferenceArray<>(size);
+        final AtomicReferenceArray<Object> results = new AtomicReferenceArray<>(size);
         final Random rand = new Random(size);
         for (int i = 0; i < size; ++i) {
             final int j = i;
@@ -201,7 +210,7 @@ public class OlapClientTest {
                     try {
                         results.set(j, olapClient.execute(new DumbDistributedJob(sleep,j)));
                     } catch (IOException e) {
-                        results.set(j, null);
+                        results.set(j, e);
                     }catch(TimeoutException te){
                         Assert.fail("Timed out");
                     }
@@ -213,24 +222,30 @@ public class OlapClientTest {
             threads[i].join();
         }
         for (int i = 0; i < size; ++i) {
-            Assert.assertNotNull(results.get(i));
-            Assert.assertEquals(i, results.get(i).order);
+            Object result = results.get(i);
+            if (result instanceof Throwable) {
+                throw (Throwable) result;
+            }
+            Assert.assertThat(result, is(instanceOf(DumbOlapResult.class)));
+            DumbOlapResult dor = (DumbOlapResult) result;
+            Assert.assertEquals(i, dor.order);
         }
     }
 
     @Test
     public void testServerFailureAfterSubmit() throws Exception{
-       /*
-        * Tests what would happen if the server went down after we had successfully submitted, but while
-        * we are waiting. Because this is inherently concurrent, we use multiple threads
-        */
+        /*
+         * Tests what would happen if the server went down after we had successfully submitted, but while
+         * we are waiting. Because this is inherently concurrent, we use multiple threads
+         */
+        AwaitableDistributedJob.latch = new CountDownLatch(1);
         final AtomicReferenceArray<DumbOlapResult> results = new AtomicReferenceArray<>(1);
         final AtomicReferenceArray<Throwable> errors = new AtomicReferenceArray<>(1);
         Thread t = new Thread(new Runnable(){
             @Override
             public void run(){
                 try{
-                    results.set(0, olapClient.execute(new DumbDistributedJob(10000,0)));
+                    results.set(0, olapClient.execute(new AwaitableDistributedJob(10000,0)));
                 }catch(IOException | TimeoutException e){
                     errors.set(0, e);
                     results.set(0, null);
@@ -239,7 +254,8 @@ public class OlapClientTest {
         });
         t.start();
 
-        Thread.sleep(1000);
+        AwaitableDistributedJob.latch.await();
+
         //shut down the server
         olapServer.stopServer();
 
@@ -258,9 +274,9 @@ public class OlapClientTest {
     @Test
     public void testOlapClientReconnectionAfterLongFailure() throws Exception {
         /*
-        * Tests what would happen if the server went down after we had successfully submitted, but while
-        * we are waiting. Because this is inherently concurrent, we use multiple threads
-        */
+         * Tests what would happen if the server went down after we had successfully submitted, but while
+         * we are waiting. Because this is inherently concurrent, we use multiple threads
+         */
         final AtomicReferenceArray<DumbOlapResult> results = new AtomicReferenceArray<>(1);
         final AtomicReferenceArray<Throwable> errors = new AtomicReferenceArray<>(1);
         Thread t = new Thread(new Runnable(){
@@ -323,19 +339,21 @@ public class OlapClientTest {
         assertEquals(4, result.order);
     }
 
-    @Test @Ignore("DB-9264")
+    @Test
     public void testOlapClientReconnectionAfterFailure() throws Exception{
-       /*
-        * Tests what would happen if the server went down after we had successfully submitted, but while
-        * we are waiting. Because this is inherently concurrent, we use multiple threads
-        */
+        /*
+         * Tests what would happen if the server went down after we had successfully submitted, but while
+         * we are waiting. Because this is inherently concurrent, we use multiple threads
+         */
+        AwaitableDistributedJob.latch = new CountDownLatch(1);
+
         final AtomicReferenceArray<DumbOlapResult> results = new AtomicReferenceArray<>(1);
         final AtomicReferenceArray<Throwable> errors = new AtomicReferenceArray<>(1);
         Thread t = new Thread(new Runnable(){
             @Override
             public void run(){
                 try{
-                    results.set(0, olapClient.execute(new DumbDistributedJob(100000,0)));
+                    results.set(0, olapClient.execute(new AwaitableDistributedJob(100000,0)));
                 }catch(IOException | TimeoutException e){
                     errors.set(0, e);
                     results.set(0, null);
@@ -344,7 +362,7 @@ public class OlapClientTest {
         });
         t.start();
 
-        Thread.sleep(1000);
+        AwaitableDistributedJob.latch.await(20, TimeUnit.SECONDS);
 
         failAndCreateServer();
 
@@ -387,16 +405,13 @@ public class OlapClientTest {
 
         @Override
         public Callable<Void> toCallable(final OlapStatus jobStatus,Clock clock,long clientTimeoutCheckIntervalMs){
-            return new Callable<Void>(){
-                @Override
-                public Void call() throws Exception{
-                    jobStatus.markRunning();
-                    LOG.trace("started job " + getUniqueName() + " with order " + order);
-                    Thread.sleep(sleep);
-                    LOG.trace("finished job " + getUniqueName() + " with order " + order);
-                    jobStatus.markCompleted(new DumbOlapResult(order));
-                    return null;
-                }
+            return () -> {
+                jobStatus.markRunning();
+                LOG.trace("started job " + getUniqueName() + " with order " + order);
+                Thread.sleep(sleep);
+                LOG.trace("finished job " + getUniqueName() + " with order " + order);
+                jobStatus.markCompleted(new DumbOlapResult(order));
+                return null;
             };
         }
 
@@ -404,7 +419,26 @@ public class OlapClientTest {
         public String getName(){
             return "DumbDistributedJob["+order+"]";
         }
+    }
 
+    private static class AwaitableDistributedJob extends DumbDistributedJob {
+        private static CountDownLatch latch = new CountDownLatch(1);
+
+        public AwaitableDistributedJob() {
+        }
+
+        public AwaitableDistributedJob(int sleep, int order) {
+            super(sleep, order);
+        }
+
+        @Override
+        public Callable<Void> toCallable(OlapStatus jobStatus, Clock clock, long clientTimeoutCheckIntervalMs) {
+            Callable<Void> dumb = super.toCallable(jobStatus, clock, clientTimeoutCheckIntervalMs);
+            return () -> {
+                latch.countDown();
+                return dumb.call();
+            };
+        }
     }
 
     private static class SameNameJob extends DumbDistributedJob {
@@ -476,11 +510,13 @@ public class OlapClientTest {
 
     private static void failServer() throws IOException {
         olapServer.stopServer();
+        LOG.trace("STOPPED Olap Server");
     }
 
     private static void recreateServer() throws IOException {
         Clock clock=new SystemClock();
         olapServer = new OlapServer(0,clock); // any port
         olapServer.startServer(HConfiguration.getConfiguration());
+        LOG.trace("STARTED Olap Server");
     }
 }

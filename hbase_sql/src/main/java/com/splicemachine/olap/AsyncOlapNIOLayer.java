@@ -40,9 +40,11 @@ import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -58,7 +60,6 @@ public class AsyncOlapNIOLayer implements JobExecutor{
     private final int maxRetries;
     private ChannelPool channelPool;
     private ScheduledExecutorService executorService;
-    private final ProtobufDecoder decoder=new ProtobufDecoder(OlapMessage.Response.getDefaultInstance(),buildExtensionRegistry());
     private final OlapServerProvider hostProvider;
     private final Object connectionLock = new Object();
     private final String queue;
@@ -112,10 +113,13 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 @Override
                 public void channelCreated(Channel channel) throws Exception {
                     ChannelPipeline p = channel.pipeline();
+                    // In theory both the Protobuf Encoder and Decoder are shareable, we could create a single instance
+                    // shared for all channels, but I ran into weird encoding exceptions
+                    // that looked like race conditions in OlapClientTest
                     p.addLast("frameEncoder", new LengthFieldPrepender(4));
                     p.addLast("protobufEncoder", new ProtobufEncoder());
                     p.addLast("frameDecoder", new LengthFieldBasedFrameDecoder(1 << 30, 0, 4, 0, 4));
-                    p.addLast("protobufDecoder", decoder);
+                    p.addLast("protobufDecoder", new ProtobufDecoder(OlapMessage.Response.getDefaultInstance(),buildExtensionRegistry()));
                 }
             });
             executorService = group;
@@ -129,11 +133,27 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         if (LOG.isTraceEnabled())
             LOG.trace("Submitting job request " + job.getUniqueName());
         connectIfNeeded();
-        synchronized (connectionLock) {
-            OlapFuture future = new OlapFuture(job);
-            future.doSubmit();
-            return future;
-        }
+        boolean retry = false;
+        do {
+            connectIfNeeded();
+            try {
+                synchronized (connectionLock) {
+                    OlapFuture future = new OlapFuture(job);
+                    future.doSubmit();
+                    return future;
+                }
+            } catch (Throwable ce) {
+                if (isConnectionException(ce)) {
+                    connected = false;
+                    // retry submission once if it's a connection exception
+                    if (!retry) {
+                        retry = true;
+                        continue;
+                    }
+                }
+                throw ce;
+            }
+        } while (true);
     }
 
     private void connectIfNeeded() throws IOException {
@@ -289,7 +309,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         void fail(Throwable cause){
             if (LOG.isTraceEnabled())
                 LOG.trace("Failed job "+ job.getUniqueName() + " due to " + cause);
-            if (cause instanceof SocketException || cause instanceof SocketTimeoutException) {
+            if (isConnectionException(cause)) {
                 connected = false;
             }
             this.cause=cause;
@@ -368,6 +388,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 LOG.trace("Submit command ");
             if(!channelFuture.isSuccess()){
                 olapFuture.fail(channelFuture.cause());
+                olapFuture.signal();
                 return;
             }
             final Channel c=channelFuture.getNow();
@@ -401,6 +422,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         public void operationComplete(Future<Channel> channelFuture) throws Exception{
             if(!channelFuture.isSuccess()){
                 olapFuture.fail(channelFuture.cause());
+                olapFuture.signal();
                 return;
             }
 
@@ -574,5 +596,22 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             channelPool.release(ctx.channel());
             future.signal();
         }
+    }
+
+
+    private static boolean isConnectionException(Throwable cause) {
+        if (cause instanceof ClosedChannelException ||
+                cause instanceof SocketException ||
+                cause instanceof SocketTimeoutException)
+            return true;
+
+        if (!(cause instanceof IOException))
+            return false;
+
+        String msg = cause.getMessage();
+        if (msg == null)
+            return false;
+
+        return msg.contains("Connection reset by peer");
     }
 }
