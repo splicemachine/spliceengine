@@ -113,7 +113,9 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     assert(newDF.count == 20)
   }
 
-  ignore("insertion with sampling") {  // DB-9395
+  test("insertion with sampling") {  // DB-9395
+    val userDir: String = System.getProperty("user.dir")
+    val dataDir = userDir+"/src/test/data/lineitem.csv";
     val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
     conn.createStatement().execute("create table TestContext.T(id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), c1 double, c2 double, c3 double, primary key(id))")
     conn.createStatement().execute("insert into TestContext.T(c1,c2,c3) values (100, 100, 100), (200, 200, 200), (300, 300, 300), (400, 400, 400)");
@@ -239,7 +241,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     assert(df.count == 1)
   }
 
-  ignore("bulkImportHFile") {  // DB-9394
+  test("bulkImportHFile") {  // DB-9394
     val bulkImportOptions = scala.collection.mutable.Map(
       "useSpark" -> "true",
       "skipSampling" -> "true"
@@ -261,7 +263,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     assert(newDF.count == 20)
   }
 
-  ignore("bulkImportHFile using rdd") {  // DB-9394
+  test("bulkImportHFile using rdd") {  // DB-9394
     val bulkImportOptions = scala.collection.mutable.Map(
       "useSpark" -> "true",
       "skipSampling" -> "true"
