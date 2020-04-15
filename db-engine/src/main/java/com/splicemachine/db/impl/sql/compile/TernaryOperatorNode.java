@@ -48,6 +48,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -65,6 +66,7 @@ import java.util.stream.Collectors;
  *
  */
 
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class TernaryOperatorNode extends OperatorNode
 {
     String        operator;
@@ -936,7 +938,7 @@ public class TernaryOperatorNode extends OperatorNode
             {
                 resultLen = ((ConstantNode)rightOperand).getValue().getInt();
                 isFixedLength = true;
-            } else if (leftOperand != null && leftOperand instanceof ConstantNode) {
+            } else if (leftOperand instanceof ConstantNode) {
                 int startPostion = ((ConstantNode)leftOperand).getValue().getInt();
                 resultLen = maximumWidth - startPostion + 1;
                 isFixedLength = true;

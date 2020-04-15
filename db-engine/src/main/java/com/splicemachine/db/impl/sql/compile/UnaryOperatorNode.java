@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -59,6 +60,7 @@ import java.util.List;
  *
  */
 
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class UnaryOperatorNode extends OperatorNode
 {
     String    operator;
@@ -139,6 +141,7 @@ public class UnaryOperatorNode extends OperatorNode
      *  retrieved.
      */
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "DB-9407")
     public void init(
                     Object    operand,
                     Object        operatorOrOpType,

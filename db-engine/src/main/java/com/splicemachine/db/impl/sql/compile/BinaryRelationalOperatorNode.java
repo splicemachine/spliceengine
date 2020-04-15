@@ -513,6 +513,7 @@ public class BinaryRelationalOperatorNode
             }
         }
 
+        assert otherSide != null;
         tablesReferenced=otherSide.getTablesReferenced();
 
         /* Return true if the table we're looking for is in the bit map */
@@ -1369,6 +1370,8 @@ public class BinaryRelationalOperatorNode
             case RelationalOperator.GREATER_THAN_RELOP:
                 mb.push(keyColumnOnLeft(optTable)?
                         Orderable.ORDER_OP_LESSOREQUALS:Orderable.ORDER_OP_LESSTHAN);
+            default:
+                assert false;
 
         }
     }
@@ -1392,6 +1395,8 @@ public class BinaryRelationalOperatorNode
             case RelationalOperator.GREATER_EQUALS_RELOP:
                 mb.push(keyColumnOnLeft(optTable));
                 break;
+            default:
+                assert false;
         }
 
     }

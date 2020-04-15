@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -46,6 +47,7 @@ import java.util.Vector;
  * This node describes a Generation Clause in a column definition.
  *
  */
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class GenerationClauseNode extends ValueNode
 {
     ///////////////////////////////////////////////////////////////////////////////////

@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -58,6 +59,7 @@ import java.util.List;
  *
  */
 
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class CastNode extends ValueNode
 {
     ValueNode            castOperand;
@@ -247,39 +249,35 @@ public class CastNode extends ValueNode
             DataTypeDescriptor opndType = castOperand.getTypeServices();
             int length = -1;
             TypeId srcTypeId = opndType.getTypeId();
-            if (opndType != null)
+            if (srcTypeId.isNumericTypeId())
             {
-                if (srcTypeId.isNumericTypeId())
-                {
-                    length = opndType.getPrecision() + 1; // 1 for the sign
-                    if (opndType.getScale() > 0)
-                        length += 1;               // 1 for the decimal .
+                length = opndType.getPrecision() + 1; // 1 for the sign
+                if (opndType.getScale() > 0)
+                    length += 1;               // 1 for the decimal .
 
-                }
-                /*
-                 * Derby-1132 : The length for the target type was calculated
-                 * incorrectly while Char & Varchar functions were used. Thus
-                 * adding the check for Char & Varchar and calculating the
-                 * length based on the operand type.
-                 */
-                else if(srcTypeId.isStringTypeId())
-                {
-                    length = opndType.getMaximumWidth();
+            }
+            /*
+             * Derby-1132 : The length for the target type was calculated
+             * incorrectly while Char & Varchar functions were used. Thus
+             * adding the check for Char & Varchar and calculating the
+             * length based on the operand type.
+             */
+            else if(srcTypeId.isStringTypeId())
+            {
+                length = opndType.getMaximumWidth();
 
-                    // Truncate the target type width to the max width of the
-                    // data type
-                    if (this.targetCharType == Types.CHAR)
-                        length = Math.min(length, Limits.DB2_CHAR_MAXWIDTH);
-                    else if (this.targetCharType == Types.VARCHAR)
-                        length = Math.min(length, Limits.DB2_VARCHAR_MAXWIDTH);
-                }
-                else
-                {
-                    TypeId typeid = opndType.getTypeId();
-                    if (length < 0)
-                        length = DataTypeUtilities.getColumnDisplaySize(typeid.getJDBCTypeId(),-1);
+                // Truncate the target type width to the max width of the
+                // data type
+                if (this.targetCharType == Types.CHAR)
+                    length = Math.min(length, Limits.DB2_CHAR_MAXWIDTH);
+                else if (this.targetCharType == Types.VARCHAR)
+                    length = Math.min(length, Limits.DB2_VARCHAR_MAXWIDTH);
+            }
+            else
+            {
+                TypeId typeid = opndType.getTypeId();
+                length = DataTypeUtilities.getColumnDisplaySize(typeid.getJDBCTypeId(),-1);
 
-                }
             }
             if (length < 0)
                 length = 1;  // same default as in parser
@@ -387,7 +385,8 @@ public class CastNode extends ValueNode
                             ((ConstantNode) castOperand).getValue(),
                             destJDBCTypeId);
                     break;
-
+                default:
+                    assert false;
             }
 
             // Return the new constant if the cast was performed
@@ -757,11 +756,10 @@ public class CastNode extends ValueNode
                 nodeType = C_NodeTypes.DOUBLE_CONSTANT_NODE;
                 constantObject = constantValue.getDouble();
                 break;
+
+            default:
+                return this;
         }
-
-        if (nodeType == -1)
-            return this;
-
 
         return (ValueNode) getNodeFactory().getNode(
                 nodeType,

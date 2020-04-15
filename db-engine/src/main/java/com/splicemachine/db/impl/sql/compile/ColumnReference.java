@@ -921,13 +921,6 @@ public class ColumnReference extends ValueNode {
 
         if (SanityManager.DEBUG)
         {
-            if (sourceRC == null)
-            {
-                SanityManager.THROWASSERT(
-                        "sourceRC is expected to be non-null for " +
-                                columnName);
-            }
-
             if ( ! sourceRC.isRedundant())
             {
                 SanityManager.THROWASSERT(
@@ -1335,7 +1328,7 @@ public class ColumnReference extends ValueNode {
      * is remapped multiple times.  This allows the CR to be UN-
      * remapped multiple times, as well.
      */
-    private class RemapInfo
+    private static class RemapInfo
     {
         int colNum;
         int tableNum;
