@@ -33,6 +33,7 @@ import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
 import com.splicemachine.timestamp.impl.TimestampServer;
 import com.splicemachine.timestamp.impl.TimestampServerHandler;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.TableDescriptor;
@@ -54,8 +55,10 @@ import java.util.*;
 public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, Coprocessor, Stoppable {
 
     private static final Logger LOG = Logger.getLogger(SpliceMasterObserver.class);
+    @SuppressFBWarnings(value = "MS_MUTABLE_ARRAY", justification = "Intentional")
     public static final byte[] INIT_TABLE = Bytes.toBytes("SPLICE_INIT");
     private TimestampServer timestampServer;
+    @SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "Intentional")
     private DatabaseLifecycleManager manager;
     private OlapServer olapServer;
     private ChoreService choreService;
@@ -148,6 +151,7 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
     }
 
     @Override
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", justification = "DB-9405")
     public void postStartMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
         try {
             boot(ctx.getEnvironment().getServerName());
@@ -170,6 +174,7 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
                                     HConfiguration.getConfiguration().getReplicationMonitorInterval());
                     choreService.scheduleChore(replicationMonitorChore);
                 }
+                // TODO fix race condition here DB-9405
                 SIDriver.driver().getExecutorService().submit(new SetReplicationRoleTask());
             }
         } catch (Throwable t) {
