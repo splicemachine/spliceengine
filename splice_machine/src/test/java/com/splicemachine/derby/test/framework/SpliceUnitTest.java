@@ -290,9 +290,28 @@ public class SpliceUnitTest {
 
 
     protected void queryDoesNotContainString(String query, String notContains,SpliceWatcher methodWatcher) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery(query);
-        while (resultSet.next())
-            Assert.assertFalse("failed query: " + query + " -> " + resultSet.getString(1), resultSet.getString(1).contains(notContains));
+        queryDoesNotContainString(query,new String[] {notContains}, methodWatcher, false);
+    }
+
+    protected void queryDoesNotContainString(String query, String[] notContains,SpliceWatcher methodWatcher, boolean caseInsensitive) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(query);
+            String matchString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            if (caseInsensitive)
+                matchString = matchString.toUpperCase();
+
+            for (String str: notContains) {
+                if (caseInsensitive)
+                    str = str.toUpperCase();
+                if (matchString.contains(str))
+                    fail("ResultSet should not contain string: " + str);
+            }
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
     }
 
     public static void rowsContainsQuery(String query, Contains mustContain, SpliceWatcher methodWatcher) throws Exception {

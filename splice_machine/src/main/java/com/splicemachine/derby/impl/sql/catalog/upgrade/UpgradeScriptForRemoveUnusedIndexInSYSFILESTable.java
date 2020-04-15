@@ -11,30 +11,23 @@
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
  */
-package com.splicemachine.derby.impl.storage;
 
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.stream.function.SplicePairFunction;
-import com.splicemachine.primitives.Bytes;
-import scala.Tuple2;
+package com.splicemachine.derby.impl.sql.catalog.upgrade;
+
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 
 /**
- * Created by jyuan on 2/6/18.
+ * Created by Changli on 03/17/2020
  */
-public class KeyByRowIdFunction <Op extends SpliceOperation> extends SplicePairFunction<SpliceOperation,ExecRow,String,ExecRow> {
-
-    @Override
-    public String genKey(ExecRow row) {
-        return Bytes.toHex(row.getKey());
-    }
-
-    public ExecRow genValue(ExecRow row) {
-        return row.getClone();
+public class UpgradeScriptForRemoveUnusedIndexInSYSFILESTable extends UpgradeScriptBase {
+    public UpgradeScriptForRemoveUnusedIndexInSYSFILESTable(SpliceDataDictionary sdd, TransactionController tc) {
+        super(sdd, tc);
     }
 
     @Override
-    public Tuple2<String, ExecRow> call(ExecRow execRow) throws Exception {
-        return new Tuple2(genKey(execRow), genValue(execRow));
+    protected void upgradeSystemTables() throws StandardException {
+        sdd.removeUnusedIndexInSysFiles(tc);
     }
 }

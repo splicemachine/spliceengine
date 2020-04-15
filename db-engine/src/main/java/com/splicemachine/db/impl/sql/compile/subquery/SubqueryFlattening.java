@@ -33,10 +33,7 @@ package com.splicemachine.db.impl.sql.compile.subquery;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
-import com.splicemachine.db.impl.sql.compile.CursorNode;
-import com.splicemachine.db.impl.sql.compile.InsertNode;
-import com.splicemachine.db.impl.sql.compile.SelectNode;
-import com.splicemachine.db.impl.sql.compile.StatementNode;
+import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
 import com.splicemachine.db.impl.sql.compile.subquery.exists.ExistsSubqueryFlatteningVisitor;
 import com.splicemachine.db.impl.sql.compile.subquery.ssq.ScalarSubqueryFlatteningVisitor;
@@ -58,6 +55,7 @@ public class SubqueryFlattening {
      * level node, probably a CursorNode.
      */
     public static void flatten(StatementNode statementNode) throws StandardException {
+        boolean flattenSSQForUpdate = !statementNode.getCompilerContext().isSSQFlatteningForUpdateDisabled();
 
         /*
          * Find all SelectNodes that have subqueries.
@@ -95,7 +93,7 @@ public class SubqueryFlattening {
                 selectNode.accept(aggregateFlatteningVisitor);
                 selectNode.accept(existsFlatteningVisitor);
                 // restrict the optimization for SELECT operation and INSERT operation (create table as, insert-select)
-                if (statementNode instanceof CursorNode || statementNode instanceof InsertNode)
+                if (statementNode instanceof CursorNode || statementNode instanceof InsertNode || flattenSSQForUpdate && (statementNode instanceof UpdateNode))
                     selectNode.accept(scalarSubqueryFlatteningVisitor);
             }
 

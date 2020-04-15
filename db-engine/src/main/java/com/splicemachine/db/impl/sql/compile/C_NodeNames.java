@@ -344,8 +344,6 @@ public interface C_NodeNames
 
     String TRUNC_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TruncateOperatorNode";
 
-    String BATCH_ONCE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.BatchOnceNode";
-
 	String CREATE_PIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CreatePinNode";
 
 	String DROP_PIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DropPinNode";

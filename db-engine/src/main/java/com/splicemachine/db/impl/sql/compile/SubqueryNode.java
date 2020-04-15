@@ -1246,30 +1246,13 @@ public class SubqueryNode extends ValueNode{
          *          Result Set is empty
          */
         if(subqueryType==EXPRESSION_SUBQUERY){
-            int cardinalityCheck;
-
-            /* No need to do sort if subquery began life as a distinct expression subquery.
-             * (We simply check for a single unique value at execution time.)
-             * No need for cardinality check if we know that underlying
-             * ResultSet can contain at most 1 row.
-             * RESOLVE - Not necessary if we know we
-             * are getting a single row because of a unique index.
-             */
-            if(distinctExpression){
-                cardinalityCheck=OnceResultSet.UNIQUE_CARDINALITY_CHECK;
-            }else if(resultSet.returnsAtMostOneRow()){
-                cardinalityCheck=OnceResultSet.NO_CARDINALITY_CHECK;
-            }else{
-                cardinalityCheck=OnceResultSet.DO_CARDINALITY_CHECK;
-            }
-
             /*  arg4: int - whether or not cardinality check is required
              *                DO_CARDINALITY_CHECK - required
              *                NO_CARDINALITY_CHECK - not required
              *                UNIQUE_CARDINALITY_CHECK - verify single
              *                                            unique value
              */
-            mb.push(cardinalityCheck);
+            mb.push(getCardinalityCheck());
             nargs=8;
 
         }else{
@@ -2665,5 +2648,22 @@ public class SubqueryNode extends ValueNode{
 
     public boolean isHintNotFlatten() {
         return hintNotFlatten;
+    }
+
+    public int getCardinalityCheck() throws StandardException {
+        /* No need to do sort if subquery began life as a distinct expression subquery.
+         * (We simply check for a single unique value at execution time.)
+         * No need for cardinality check if we know that underlying
+         * ResultSet can contain at most 1 row.
+         * RESOLVE - Not necessary if we know we
+         * are getting a single row because of a unique index.
+         */
+        if (distinctExpression) {
+            return OnceResultSet.UNIQUE_CARDINALITY_CHECK;
+        } else if(resultSet.returnsAtMostOneRow()) {
+            return OnceResultSet.NO_CARDINALITY_CHECK;
+        } else {
+            return OnceResultSet.DO_CARDINALITY_CHECK;
+        }
     }
 }

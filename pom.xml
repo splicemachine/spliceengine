@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>3.1.0.1952-SNAPSHOT</version>
+    <version>3.1.0.1955-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -73,6 +73,7 @@
         </excluded.categories>
         <failTasksRandomly>true</failTasksRandomly>
         <jacoco_out/>
+        <skipUT>false</skipUT>
         <!-- run chaos monkey -->
         <log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
         <olap.log4j.config.uri>file:${basedir}/src/main/resources/olap-log4j.properties</olap.log4j.config.uri>
@@ -564,6 +565,9 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.21.0</version>
+                    <configuration>
+                        <skip>${skipUT}</skip>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <!-- TODO: will need to use splice open source github repo -->

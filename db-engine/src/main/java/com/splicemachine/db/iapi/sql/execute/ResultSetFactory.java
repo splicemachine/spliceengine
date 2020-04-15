@@ -2128,23 +2128,13 @@ public interface ResultSetFactory {
 											String format,
 											int srcResultDescriptionSavedObjectNum) throws StandardException;
 	/**
-	 * Binary Export
+	 * Kafka Export
 	 */
 	NoPutResultSet getKafkaExportResultSet(NoPutResultSet source,
 											Activation activation,
 											int resultSetNumber,
 											String topicName,
 											int srcResultDescriptionSavedObjectNum) throws StandardException;
-    /**
-     * Batch Once
-     */
-	NoPutResultSet getBatchOnceResultSet(NoPutResultSet source,
-										 Activation activation,
-										 int resultSetNumber,
-										 NoPutResultSet subqueryResultSet,
-										 String updateResultSetFieldName,
-										 int sourceCorrelatedColumnItem,
-										 int subqueryCorrelatedColumnItem) throws StandardException;
 
 	/**
 	 * Recursive query
