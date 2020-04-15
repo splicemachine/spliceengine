@@ -317,29 +317,13 @@ public class OperatorToString {
                     String functionName = eon.sparkFunctionName();
 
                     // Splice extracts fractional seconds, but spark only extracts whole seconds.
-                    if (functionName.equals("SECOND")) {
+                    // Spark by default counts weeks starting on Sunday.
+                    if (functionName.equals("SECOND") || functionName.equals("WEEK")) {
                         throwNotImplementedError();
-                    } else if (functionName.equals("WEEK") || functionName.equals("WEEKDAY") || functionName.equals("WEEKDAYNAME")) {
-                        String parameter = "";
-                        boolean cast = false;
-                        switch (functionName) {
-                            case "WEEK":
-                                cast = true;
-                                parameter = "W";
-                                break;
-                            case "WEEKDAY":
-                                cast = true;
-                                parameter = "u";
-                                break;
-                            case "WEEKDAYNAME":
-                                parameter = "EEEE";
-                                break;
-                        }
-                        if (cast) {
-                            return format("cast(date_format(%s, \"%s\") as int) ", opToString2(uop.getOperand(), vars), parameter);
-                        } else {
-                            return format("date_format(%s, \"%s\") ", opToString2(uop.getOperand(), vars), parameter);
-                        }
+                    } else if (functionName.equals("WEEKDAY")) {
+                        return format("cast(date_format(%s, \"u\") as int) ", opToString2(uop.getOperand(), vars));
+                    } else if (functionName.equals("WEEKDAYNAME")) {
+                        return format("date_format(%s, \"EEEE\") ", opToString2(uop.getOperand(), vars));
                     } else {
                         return format("%s(%s) ", functionName, opToString2(uop.getOperand(), vars));
                     }
