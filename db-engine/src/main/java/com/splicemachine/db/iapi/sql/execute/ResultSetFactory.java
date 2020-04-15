@@ -2135,16 +2135,6 @@ public interface ResultSetFactory {
 											int resultSetNumber,
 											String topicName,
 											int srcResultDescriptionSavedObjectNum) throws StandardException;
-    /**
-     * Batch Once
-     */
-	NoPutResultSet getBatchOnceResultSet(NoPutResultSet source,
-										 Activation activation,
-										 int resultSetNumber,
-										 NoPutResultSet subqueryResultSet,
-										 String updateResultSetFieldName,
-										 int sourceCorrelatedColumnItem,
-										 int subqueryCorrelatedColumnItem) throws StandardException;
 
 	/**
 	 * Recursive query

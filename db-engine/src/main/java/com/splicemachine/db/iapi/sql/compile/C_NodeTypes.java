@@ -260,7 +260,6 @@ public interface C_NodeTypes
 
     int EXPORT_NODE = 250;
     int TRUNC_NODE = 251;
-    int BATCH_ONCE_NODE = 252;
     int FIRST_LAST_VALUE_FUNCTION_NODE = 253;
     int LEAD_LAG_FUNCTION_NODE = 254;
     int CREATE_PIN_NODE = 255;
