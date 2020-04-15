@@ -393,7 +393,6 @@ public class BinaryOperatorNode extends OperatorNode
         throws StandardException
     {
         // Check operand types.
-        TypeId leftOperandType = leftOperand.getTypeId();
         TypeId rightOperandType = rightOperand.getTypeId();
 
         // Left operand is query expression and must be a string

@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.Collections;
@@ -49,6 +50,7 @@ import java.util.List;
  * CURRENT_TIME, and CURRENT_TIMESTAMP operations.
  *
  */
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class CurrentDatetimeOperatorNode extends ValueNode {
 
     public static final int CURRENT_DATE = 0;
@@ -161,6 +163,8 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
             case CURRENT_TIMESTAMP:
                 acb.getCurrentTimestampExpression(mb);
                 break;
+            default:
+                assert false;
         }
 
         acb.generateDataValue(mb, getTypeCompiler(),
