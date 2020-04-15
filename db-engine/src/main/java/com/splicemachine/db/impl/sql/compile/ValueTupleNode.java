@@ -32,8 +32,18 @@ public class ValueTupleNode extends ValueNode {
     }
 
     @Override
-    public List getChildren() {
+    public List<? extends QueryTreeNode> getChildren() {
         return tuple;
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        return tuple.get(index);
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        tuple.set(index, (ValueNode) newValue);
     }
 
     @Override

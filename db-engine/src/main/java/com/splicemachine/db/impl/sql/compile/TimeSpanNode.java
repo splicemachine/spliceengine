@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -78,8 +79,20 @@ public class TimeSpanNode extends ValueNode
     }
 
     @Override
-    public List getChildren() {
-        return value.getChildren();
+    public List<? extends QueryTreeNode> getChildren() {
+        return Collections.singletonList(value);
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        assert index == 0;
+        return value;
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        assert index == 0;
+        value = (ValueNode) newValue;
     }
 
     public ValueNode getValue() {
