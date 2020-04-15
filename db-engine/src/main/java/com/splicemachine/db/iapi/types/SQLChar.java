@@ -2592,7 +2592,7 @@ public class SQLChar
          * We will return null, which is the only sensible thing to do.
          * (If user did not specify a length then length is not a user null.)
          */
-        if (this.isNull() || start.isNull() ||
+        if (this.isNull() || start == null || start.isNull() ||
                 (length != null && length.isNull()))
         {
             stringResult.setToNull();

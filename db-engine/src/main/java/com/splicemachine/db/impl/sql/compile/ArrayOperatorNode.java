@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -49,212 +50,208 @@ import java.util.List;
  */
 
 public class ArrayOperatorNode extends ValueNode {
-	public int extractField = -1;
-	public ValueNode operand;
+    public int extractField = -1;
+    public ValueNode operand;
 
-	/**
-	 * Initializer for a ExtractOperatorNode
-	 *
-	 * @param field   The field to extract
-	 * @param operand The operand
-	 */
-	public void init(Object field, Object operand) throws StandardException {
-		this.extractField = ((NumericConstantNode) field).value.getInt();
-		this.operand = (ValueNode) operand;
-	}
+    /**
+     * Initializer for a ExtractOperatorNode
+     *
+     * @param field   The field to extract
+     * @param operand The operand
+     */
+    public void init(Object field, Object operand) throws StandardException {
+        this.extractField = ((NumericConstantNode) field).value.getInt();
+        this.operand = (ValueNode) operand;
+    }
 
-	/**
-	 * Initializer for a ArrayNode
-	 *
-	 * @param functionName  Tells if the function was called with name COALESCE or with name VALUE
-	 * @param argumentsList The list of arguments to the coalesce/value function
-	 */
-	public void init(Object argumentsList) {
-	}
+    /**
+     * Initializer for a ArrayNode
+     *
+     * @param functionName  Tells if the function was called with name COALESCE or with name VALUE
+     * @param argumentsList The list of arguments to the coalesce/value function
+     */
+    public void init(Object argumentsList) {
+    }
 
-	/**
-	 * Binding this expression means setting the result DataTypeServices.
-	 * In this case, the result type is based on the rules in the table listed earlier.
-	 *
-	 * @param fromList        The FROM list for the statement.
-	 * @param subqueryList    The subquery list being built as we find SubqueryNodes.
-	 * @param aggregateVector The aggregate vector being built as we find AggregateNodes.
-	 * @throws StandardException Thrown on error
-	 * @return The new top of the expression tree.
-	 */
-	@Override
-	public ValueNode bindExpression(FromList fromList,
-									SubqueryList subqueryList,
-									List<AggregateNode> aggregateVector) throws StandardException {
-		//bind the operand
-		operand = operand.bindExpression(fromList, subqueryList, aggregateVector);
-		DataTypeDescriptor arrayDTD = operand.getTypeServices();
-		TypeDescriptorImpl typeDescriptor = (TypeDescriptorImpl) ((TypeDescriptorImpl) arrayDTD.getCatalogType()).getChildren()[0];
-		setType(new DataTypeDescriptor(
-				TypeId.getBuiltInTypeId(typeDescriptor.getTypeId().getJDBCTypeId()),
-				true
-		));
+    /**
+     * Binding this expression means setting the result DataTypeServices.
+     * In this case, the result type is based on the rules in the table listed earlier.
+     *
+     * @param fromList        The FROM list for the statement.
+     * @param subqueryList    The subquery list being built as we find SubqueryNodes.
+     * @param aggregateVector The aggregate vector being built as we find AggregateNodes.
+     * @throws StandardException Thrown on error
+     * @return The new top of the expression tree.
+     */
+    @Override
+    public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
+        //bind the operand
+        operand = operand.bindExpression(fromList, subqueryList, aggregateVector);
+        DataTypeDescriptor arrayDTD = operand.getTypeServices();
+        TypeDescriptorImpl typeDescriptor = (TypeDescriptorImpl) ((TypeDescriptorImpl) arrayDTD.getCatalogType()).getChildren()[0];
+        setType(new DataTypeDescriptor(
+                TypeId.getBuiltInTypeId(typeDescriptor.getTypeId().getJDBCTypeId()),
+                true
+        ));
 
-		return this;
-	}
+        return this;
+    }
 
-	/**
-	 * Do code generation for coalese/value
-	 *
-	 * @param acb The ExpressionClassBuilder for the class we're generating
-	 * @param mb  The method the expression will go into
-	 * @throws StandardException Thrown on error
-	 */
+    /**
+     * Do code generation for coalese/value
+     *
+     * @param acb The ExpressionClassBuilder for the class we're generating
+     * @param mb  The method the expression will go into
+     * @throws StandardException Thrown on error
+     */
 
-	public void generateExpression(ExpressionClassBuilder acb,
-								   MethodBuilder mb)
-			throws StandardException {
-
-
-		String resultTypeName = getTypeCompiler().interfaceName();
-
-		String receiverType = ArrayDataValue.class.getCanonicalName();
-		acb.generateNull(mb, getTypeCompiler(getTypeId()),
-				getTypeServices());
-		LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultTypeName);
-		mb.setField(field);
-		operand.generateExpression(acb, mb);
-		mb.cast(receiverType);
-
-		mb.push(extractField);
-		mb.getField(field);
-		mb.cast(DataValueDescriptor.class.getCanonicalName());
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, null,
-				"arrayElement", DataValueDescriptor.class.getCanonicalName(), 2);
-		mb.cast(resultTypeName);
-	}
-
-	/*
-		print the non-node subfields
-	 */
-	public String toString() {
-		if (SanityManager.DEBUG) {
-			return
-					"array: \n" +
-							"element: " + extractField;
-		} else {
-			return "";
-		}
-	}
-
-	/**
-	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
-	 * how tree printing is supposed to work.
-	 *
-	 * @param depth The depth of this node in the tree
-	 */
-
-	public void printSubNodes(int depth) {
-		if (SanityManager.DEBUG) {
-			super.printSubNodes(depth);
-			printLabel(depth, "array: " + extractField);
-		}
-	}
+    public void generateExpression(ExpressionClassBuilder acb,
+                                   MethodBuilder mb)
+            throws StandardException {
 
 
-	/**
-	 * {@inheritDoc}
-	 */
-	protected boolean isEquivalent(ValueNode o) throws StandardException {
-		if (!isSameNodeType(o)) {
-			return false;
-		}
+        String resultTypeName = getTypeCompiler().interfaceName();
 
-		ArrayOperatorNode other = (ArrayOperatorNode) o;
+        String receiverType = ArrayDataValue.class.getCanonicalName();
+        acb.generateNull(mb, getTypeCompiler(getTypeId()),
+                getTypeServices());
+        LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultTypeName);
+        mb.setField(field);
+        operand.generateExpression(acb, mb);
+        mb.cast(receiverType);
 
-		return operand.isEquivalent(other.operand);
+        mb.push(extractField);
+        mb.getField(field);
+        mb.cast(DataValueDescriptor.class.getCanonicalName());
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, null,
+                "arrayElement", DataValueDescriptor.class.getCanonicalName(), 2);
+        mb.cast(resultTypeName);
+    }
 
-	}
+    /*
+        print the non-node subfields
+     */
+    public String toString() {
+        if (SanityManager.DEBUG) {
+            return
+                    "array: \n" +
+                            "element: " + extractField;
+        } else {
+            return "";
+        }
+    }
 
-	/**
-	 * Accept the visitor for all visitable children of this node.
-	 *
-	 * @param v the visitor
-	 */
-	@Override
-	public void acceptChildren(Visitor v) throws StandardException {
-		super.acceptChildren(v);
-		if (operand != null)
-			operand = (ValueNode)operand.accept(v, this);
-	}
+    /**
+     * Prints the sub-nodes of this object.  See QueryTreeNode.java for
+     * how tree printing is supposed to work.
+     *
+     * @param depth The depth of this node in the tree
+     */
 
-	/**
-	 * Categorize this predicate.
-	 *
-	 * @see ValueNode#categorize(JBitSet, boolean)
-	 */
-	public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
-			throws StandardException {
-		return operand.categorize(referencedTabs, simplePredsOnly);
-	}
-
-	/**
-	 * Preprocess an expression tree.  We do a number of transformations
-	 * here (including subqueries, IN lists, LIKE and BETWEEN) plus
-	 * subquery flattening.
-	 * NOTE: This is done before the outer ResultSetNode is preprocessed.
-	 *
-	 * @throws StandardException Thrown on error
-	 * @param    numTables            Number of tables in the DML Statement
-	 * @param    outerFromList        FromList from outer query block
-	 * @param    outerSubqueryList    SubqueryList from outer query block
-	 * @param    outerPredicateList    PredicateList from outer query block
-	 * @return The modified expression
-	 */
-	public ValueNode preprocess(int numTables,
-								FromList outerFromList,
-								SubqueryList outerSubqueryList,
-								PredicateList outerPredicateList)
-			throws StandardException {
-		operand.preprocess(numTables, outerFromList, outerSubqueryList, outerPredicateList);
-		return this;
-	}
-
-	/**
-	 * Remap all the {@code ColumnReference}s in this tree to be clones of
-	 * the underlying expression.
-	 *
-	 * @return the remapped tree
-	 * @throws StandardException if an error occurs
-	 */
-	public ValueNode remapColumnReferencesToExpressions()
-			throws StandardException {
-		operand.remapColumnReferencesToExpressions();
-		return this;
-	}
-
-	public List getChildren() {
-		return new ArrayList<>();
-	}
+    public void printSubNodes(int depth) {
+        if (SanityManager.DEBUG) {
+            super.printSubNodes(depth);
+            printLabel(depth, "array: " + extractField);
+        }
+    }
 
 
-	@Override
-	public long nonZeroCardinality(long numberOfRows) throws StandardException {
-		return numberOfRows; // No Cardinality Estimte for now...
-	}
+    /**
+     * {@inheritDoc}
+     */
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
 
-	@Override
-	public List<ColumnReference> getHashableJoinColumnReference() {
-		return operand.getHashableJoinColumnReference();
-	}
+        ArrayOperatorNode other = (ArrayOperatorNode) o;
 
-	@Override
-	public boolean checkCRLevel(int level){
-		return operand.checkCRLevel(level);
-	}
+        return operand.isEquivalent(other.operand);
 
-	@Override
-	public void setHashableJoinColumnReference(ColumnReference cr) {
-		if (operand instanceof ColumnReference)
-			operand = cr;
-		else
-			operand.setHashableJoinColumnReference(cr);
-	}
+    }
 
+    /**
+     * Accept the visitor for all visitable children of this node.
+     *
+     * @param v the visitor
+     */
+    @Override
+    public void acceptChildren(Visitor v) throws StandardException {
+        super.acceptChildren(v);
+        if (operand != null)
+            operand = (ValueNode)operand.accept(v, this);
+    }
 
+    /**
+     * Categorize this predicate.
+     *
+     * @see ValueNode#categorize(JBitSet, boolean)
+     */
+    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
+            throws StandardException {
+        return operand.categorize(referencedTabs, simplePredsOnly);
+    }
+
+    /**
+     * Preprocess an expression tree.  We do a number of transformations
+     * here (including subqueries, IN lists, LIKE and BETWEEN) plus
+     * subquery flattening.
+     * NOTE: This is done before the outer ResultSetNode is preprocessed.
+     *
+     * @throws StandardException Thrown on error
+     * @param    numTables            Number of tables in the DML Statement
+     * @param    outerFromList        FromList from outer query block
+     * @param    outerSubqueryList    SubqueryList from outer query block
+     * @param    outerPredicateList    PredicateList from outer query block
+     * @return The modified expression
+     */
+    public ValueNode preprocess(int numTables,
+                                FromList outerFromList,
+                                SubqueryList outerSubqueryList,
+                                PredicateList outerPredicateList)
+            throws StandardException {
+        operand.preprocess(numTables, outerFromList, outerSubqueryList, outerPredicateList);
+        return this;
+    }
+
+    /**
+     * Remap all the {@code ColumnReference}s in this tree to be clones of
+     * the underlying expression.
+     *
+     * @return the remapped tree
+     * @throws StandardException if an error occurs
+     */
+    public ValueNode remapColumnReferencesToExpressions()
+            throws StandardException {
+        operand.remapColumnReferencesToExpressions();
+        return this;
+    }
+
+    public List<? extends QueryTreeNode> getChildren() {
+        return Collections.singletonList(operand);
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        assert index == 0;
+        return operand;
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        assert index == 0;
+        operand = (ValueNode) newValue;
+    }
+
+    @Override
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        return numberOfRows; // No Cardinality Estimte for now...
+    }
+
+    @Override
+    public boolean checkCRLevel(int level){
+        return operand.checkCRLevel(level);
+    }
 }
