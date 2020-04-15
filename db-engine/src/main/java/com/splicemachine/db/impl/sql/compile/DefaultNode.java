@@ -303,7 +303,19 @@ public  class DefaultNode extends ValueNode
         return this == other;
     }
 
-    public List getChildren() {
+    public List<? extends QueryTreeNode> getChildren() {
         return Collections.singletonList(defaultTree);
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        assert index == 0;
+        return defaultTree;
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        assert index == 0;
+        defaultTree = (ValueNode) newValue;
     }
 }

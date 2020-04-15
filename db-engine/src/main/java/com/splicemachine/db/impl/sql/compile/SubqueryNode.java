@@ -1528,8 +1528,8 @@ public class SubqueryNode extends ValueNode{
 
     @SuppressWarnings("unchecked")
     @Override
-    public List getChildren(){
-        LinkedList list = new LinkedList();
+    public List<? extends QueryTreeNode> getChildren(){
+        ArrayList<QueryTreeNode> list = new ArrayList();
         if(leftOperand!=null)
             list.add(leftOperand);
         if(parentComparisonOperator!=null)
@@ -1537,6 +1537,35 @@ public class SubqueryNode extends ValueNode{
         list.add(offset);
         list.add(fetchFirst);
         return list;
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        return getChildren().get(index);
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        QueryTreeNode child = getChild(index);
+        if (child == leftOperand) {
+            leftOperand = (ValueNode) newValue;
+        } else if (child == parentComparisonOperator) {
+            parentComparisonOperator = (BinaryComparisonOperatorNode) newValue;
+        } else if (child == offset) {
+            offset = (ValueNode) newValue;
+        } else if (child == fetchFirst) {
+            fetchFirst = (ValueNode) newValue;
+        }
+    }
+
+    @Override
+    public List<ColumnReference> getHashableJoinColumnReference() {
+        return null;
+    }
+
+    @Override
+    public void setHashableJoinColumnReference(ColumnReference cr) {
+        // Do nothing
     }
 
     /**
