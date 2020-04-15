@@ -42,6 +42,7 @@ import java.lang.reflect.Modifier;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.error.StandardException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Collections;
 import java.util.List;
@@ -53,6 +54,7 @@ import java.util.List;
  * that represents the ResultSet to be deleted or updated.
  */
 
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class CurrentRowLocationNode extends ValueNode
 {
     /**

@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A BaseColumnNode represents a column in a base table.  The parser generates a
@@ -51,6 +52,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
  *
  */
 
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class BaseColumnNode extends ValueNode
 {
     private String    columnName;

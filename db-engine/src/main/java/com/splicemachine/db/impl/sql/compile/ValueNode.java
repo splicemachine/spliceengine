@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 import java.util.Objects;
@@ -58,6 +59,7 @@ import java.util.stream.Collectors;
  *
  */
 
+@SuppressFBWarnings(value="HE_EQUALS_USE_HASHCODE", justification="DB-9277")
 public abstract class ValueNode extends QueryTreeNode implements ParentNode
 {
     /**

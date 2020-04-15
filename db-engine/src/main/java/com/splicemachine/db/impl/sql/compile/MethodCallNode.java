@@ -85,12 +85,6 @@ abstract class MethodCallNode extends JavaValueNode
     */
     boolean internalCall;
 
-    /**
-        For resolution of procedure INOUT/OUT parameters to the primitive
-        form, such as int[]. May be null.
-    */
-    private String[] procedurePrimitiveArrayType;
-
     // bound signature of arguments, stated in universal types (JSQLType)
     protected JSQLType[]                signature;
 
@@ -798,6 +792,8 @@ abstract class MethodCallNode extends JavaValueNode
                                         promoteName = returnTypeId.getCorrespondingJavaTypeName();
                                     }
                                     break;
+                                default:
+                                    // Nothing
                             }
                         }
                     }
@@ -1044,8 +1040,6 @@ abstract class MethodCallNode extends JavaValueNode
       */
     protected    boolean    someParametersAreNull()
     {
-        int        count = signature.length;
-
         for (JSQLType aSignature : signature) {
             if (aSignature == null) {
                 return true;
@@ -1176,25 +1170,16 @@ abstract class MethodCallNode extends JavaValueNode
                 {
                     case JSQLType.SQLTYPE:
 
-                        if ((procedurePrimitiveArrayType != null)
-                            && (i < procedurePrimitiveArrayType.length)
-                            && (procedurePrimitiveArrayType[i] != null)) {
+                        TypeId    ctid = mapToTypeID( jsqlType );
 
-                            primParmTypeNames[i] = procedurePrimitiveArrayType[i];
-
-                        } else {
-
-
-                            TypeId    ctid = mapToTypeID( jsqlType );
-
-                            if ((ctid.isNumericTypeId() && !ctid.isDecimalTypeId()) || ctid.isBooleanTypeId())
-                            {
-                                TypeCompiler tc = getTypeCompiler(ctid);
-                                primParmTypeNames[i] = tc.getCorrespondingPrimitiveTypeName();
-                                if ( castToPrimitiveAsNecessary) { methodParms[i].castToPrimitive(true); }
-                            }
-                            else { primParmTypeNames[i] = ctid.getCorrespondingJavaTypeName(); }
+                        assert ctid != null;
+                        if ((ctid.isNumericTypeId() && !ctid.isDecimalTypeId()) || ctid.isBooleanTypeId())
+                        {
+                            TypeCompiler tc = getTypeCompiler(ctid);
+                            primParmTypeNames[i] = tc.getCorrespondingPrimitiveTypeName();
+                            if ( castToPrimitiveAsNecessary) { methodParms[i].castToPrimitive(true); }
                         }
+                        else { primParmTypeNames[i] = ctid.getCorrespondingJavaTypeName(); }
 
                         break;
 
