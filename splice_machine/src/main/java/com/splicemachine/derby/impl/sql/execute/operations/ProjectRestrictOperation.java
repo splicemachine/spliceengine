@@ -105,7 +105,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		public String[] getExpressions() {
 		    return expressions;
         }
-
+		
 		@SuppressWarnings("UnusedDeclaration")
 		public ProjectRestrictOperation() { super(); }
 
