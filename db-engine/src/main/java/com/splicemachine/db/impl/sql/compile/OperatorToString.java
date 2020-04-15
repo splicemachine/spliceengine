@@ -321,18 +321,25 @@ public class OperatorToString {
                         throwNotImplementedError();
                     } else if (functionName.equals("WEEK") || functionName.equals("WEEKDAY") || functionName.equals("WEEKDAYNAME")) {
                         String parameter = "";
+                        boolean cast = false;
                         switch (functionName) {
                             case "WEEK":
+                                cast = true;
                                 parameter = "W";
                                 break;
                             case "WEEKDAY":
+                                cast = true;
                                 parameter = "u";
                                 break;
                             case "WEEKDAYNAME":
                                 parameter = "EEEE";
                                 break;
                         }
-                        return format("date_format(%s, \"\") ", opToString2(uop.getOperand(), vars), parameter);
+                        if (cast) {
+                            return format("cast(date_format(%s, \"%s\") as int) ", opToString2(uop.getOperand(), vars), parameter);
+                        } else {
+                            return format("date_format(%s, \"%s\") ", opToString2(uop.getOperand(), vars), parameter);
+                        }
                     } else {
                         return format("%s(%s) ", functionName, opToString2(uop.getOperand(), vars));
                     }

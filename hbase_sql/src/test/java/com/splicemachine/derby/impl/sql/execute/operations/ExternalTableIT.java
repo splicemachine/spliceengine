@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -32,6 +33,7 @@ import java.io.File;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -63,6 +65,38 @@ public class ExternalTableIT extends SpliceUnitTest{
             file.mkdir();
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    public void testNativeSparkExtractFunction() throws Exception {
+        try {
+            File tablePath = File.createTempFile("native-spark-table", ".tmp");
+            String path = tablePath.getAbsolutePath();
+            tablePath.delete();
+
+            methodWatcher.executeUpdate(String.format("create external table dates (d date) " +
+                    "STORED AS PARQUET LOCATION '%s'",path));
+            methodWatcher.executeUpdate("insert into dates values '1/1/2020', '6/6/1920', '10/10/1680', null");
+
+            for (String spark : ImmutableList.of("true", "false")) {
+                try (ResultSet rs = methodWatcher.executeQuery(
+                        "select d, extract(week from d), extract(weekday from d), extract(weekdayname from d) " +
+                                "from dates --splice-properties useSpark=" + spark + "\n" +
+                                "order by 1")) {
+                    String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+                    String expected =
+                            "D     |  2  |  3  |    4     |\n" +
+                            "-----------------------------------\n" +
+                            "1680-10-10 |  2  |  4  |Thursday  |\n" +
+                            "1920-06-06 |  2  |  7  | Sunday   |\n" +
+                            "2020-01-01 |  1  |  3  |Wednesday |\n" +
+                            "   NULL    |NULL |NULL |  NULL    |";
+                    assertEquals("Failed with spark=" + spark, expected, actual);
+                }
+            }
+        } finally {
+            methodWatcher.executeUpdate("drop table dates");
         }
     }
 
