@@ -18,10 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.NormalizeOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.utils.Pair;
 import org.apache.commons.collections.iterators.SingletonIterator;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -76,4 +73,6 @@ public class NormalizeFunction extends SpliceFlatMapFunction<NormalizeOperation,
             return new SingletonIterator(normalized.getClone());
         }else return Collections.<ExecRow>emptyList().iterator();
     }
+
+
 }
