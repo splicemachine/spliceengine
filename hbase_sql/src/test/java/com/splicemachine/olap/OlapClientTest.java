@@ -128,7 +128,7 @@ public class OlapClientTest {
     }
 
     @Test
-    public void concurrencyTest() throws Exception {
+    public void concurrencyTest() throws Throwable {
         int size = 32;
         Thread[] threads = new Thread[size];
         final AtomicReferenceArray<Object> results = new AtomicReferenceArray<>(size);
@@ -141,10 +141,8 @@ public class OlapClientTest {
                     int sleep = rand.nextInt(200);
                     try {
                         results.set(j, olapClient.execute(new DumbDistributedJob(sleep,j)));
-                    } catch (IOException e) {
-                        results.set(j, e);
-                    }catch(TimeoutException te){
-                        Assert.fail("Timed out");
+                    } catch (Throwable t) {
+                        results.set(j, t);
                     }
                 }
             };
@@ -155,8 +153,8 @@ public class OlapClientTest {
         }
         for (int i = 0; i < size; ++i) {
             Object result = results.get(i);
-            if (result instanceof Exception) {
-                throw (Exception) result;
+            if (result instanceof Throwable) {
+                throw (Throwable) result;
             }
             Assert.assertThat(result, is(instanceOf(DumbOlapResult.class)));
             DumbOlapResult dor = (DumbOlapResult) result;
@@ -209,10 +207,8 @@ public class OlapClientTest {
                     int sleep = rand.nextInt(5000);
                     try {
                         results.set(j, olapClient.execute(new DumbDistributedJob(sleep,j)));
-                    } catch (IOException e) {
-                        results.set(j, e);
-                    }catch(TimeoutException te){
-                        Assert.fail("Timed out");
+                    } catch (Throwable t) {
+                        results.set(j, t);
                     }
                 }
             };
