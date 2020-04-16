@@ -1370,6 +1370,7 @@ public class BinaryRelationalOperatorNode
             case RelationalOperator.GREATER_THAN_RELOP:
                 mb.push(keyColumnOnLeft(optTable)?
                         Orderable.ORDER_OP_LESSOREQUALS:Orderable.ORDER_OP_LESSTHAN);
+                break;
             default:
                 assert false;
 
