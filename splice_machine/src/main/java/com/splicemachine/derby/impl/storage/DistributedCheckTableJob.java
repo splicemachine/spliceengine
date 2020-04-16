@@ -39,6 +39,7 @@ public class DistributedCheckTableJob extends DistributedJob implements External
     String tableName;
     String jobGroup;
     List<DDLMessage.TentativeIndex> tentativeIndexList;
+    boolean fix;
 
     public DistributedCheckTableJob(){
     }
@@ -48,12 +49,14 @@ public class DistributedCheckTableJob extends DistributedJob implements External
                                     String schemaName,
                                     String tableName,
                                     List<DDLMessage.TentativeIndex> tentativeIndexList,
+                                    boolean fix,
                                     String jobGroup) {
         this.ah = ah;
         this.txn = txn;
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.tentativeIndexList = tentativeIndexList;
+        this.fix = fix;
         this.jobGroup = jobGroup;
     }
 
@@ -78,6 +81,7 @@ public class DistributedCheckTableJob extends DistributedJob implements External
             in.readFully(message);
             tentativeIndexList.add(DDLMessage.TentativeIndex.parseFrom(message));
         }
+        fix = in.readBoolean();
         jobGroup = in.readUTF();
     }
 
@@ -93,6 +97,7 @@ public class DistributedCheckTableJob extends DistributedJob implements External
             out.writeInt(message.length);
             out.write(message);
         }
+        out.writeBoolean(fix);
         out.writeUTF(jobGroup);
     }
 

@@ -70,7 +70,7 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
     private void init(ExecRow execRow) {
         transformer = new IndexTransformer(tentativeIndex);
         initialized = true;
-        indexRow = new ValueRow(execRow.nColumns());
+        indexRow = new ValueRow(projectedMapping.length);
     }
 
     @Override

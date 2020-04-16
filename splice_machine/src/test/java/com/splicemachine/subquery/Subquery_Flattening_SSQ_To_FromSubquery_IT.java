@@ -478,4 +478,21 @@ public class Subquery_Flattening_SSQ_To_FromSubquery_IT extends SpliceUnitTest {
 
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
+
+    @Test
+    public void testSSQflattenedToBaseTableWithCorrelationInSingleTableCondition() throws Exception {
+        /* test correlation in "a1<>2" where a1 is from the outer table */
+        String sql = "select d1, (select X.d2 from t2 as X, t2 as Y " +
+                        "where a1 = X.a2 and X.a2=Y.a2 and a1<>2 and X.b2<2) as D from t1";
+
+        String expected = "D1 |  D  |\n" +
+                "----------\n" +
+                " 1 |  1  |\n" +
+                "11 |  1  |\n" +
+                " 2 |NULL |\n" +
+                " 3 |NULL |\n" +
+                " 4 |NULL |";
+
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sql, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+    }
 }

@@ -154,6 +154,8 @@ public class ScalarSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
                 topSelectNode.getContextManager());
         fromSubquery.setTableNumber(topSelectNode.getCompilerContext().getNextTableNumber());
         fromSubquery.setFromSSQ(true);
+        // the fromSubquery's dependency map will be updated in the outer Select block to include all the non-SSQs
+        fromSubquery.setOuterJoinLevel(topSelectNode.getCompilerContext().getNextOJLevel());
 
         // for top 1 with no order by case, we need to flag the fromSubquery so that execution can return after getting the first
         // matching row
@@ -182,6 +184,8 @@ public class ScalarSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
         for (int i = 0; i < correlatedSubqueryPreds.size(); i++) {
             ValueNode pred = correlatedSubqueryPreds.get(i);
             pred.accept(scalarSubqueryCorrelatedPredicateVisitor);
+            /* set OuterJoinLevel for this condition */
+            pred.setOuterJoinLevel(fromSubquery.getOuterJoinLevel());
             /*
              * Finally add the predicate to the outer query.
              */

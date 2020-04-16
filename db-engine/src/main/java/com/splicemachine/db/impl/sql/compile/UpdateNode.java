@@ -533,7 +533,7 @@ public final class UpdateNode extends DMLModStatementNode
 
         ResultColumn rowIdColumn = targetTable.getRowIdColumn();
         if (rowIdColumn == null) {
-            rowLocationColumn =
+            rowIdColumn =
                     (ResultColumn) getNodeFactory().getNode(
                             C_NodeTypes.RESULT_COLUMN,
                             COLUMNNAME,
@@ -543,24 +543,26 @@ public final class UpdateNode extends DMLModStatementNode
                             false        /* Not nullable */
                     )
             );
-            rowLocationColumn.markGenerated();
+            rowIdColumn.markGenerated();
+            targetTable.setRowIdColumn(rowIdColumn);
+        } else {
+            rowIdColumn.setName(COLUMNNAME);
         }
-        else {
-            ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    rowIdColumn.getName(),
-                    null,
-                    getContextManager());
-            columnReference.setSource(rowIdColumn);
-            columnReference.setNestingLevel(targetTable.getLevel());
-            columnReference.setSourceLevel(targetTable.getLevel());
-            rowLocationColumn =
-                    (ResultColumn) getNodeFactory().getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            COLUMNNAME,
-                            columnReference,
-                            getContextManager());
-        }
+
+        ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
+                C_NodeTypes.COLUMN_REFERENCE,
+                rowIdColumn.getName(),
+                null,
+                getContextManager());
+        columnReference.setSource(rowIdColumn);
+        columnReference.setNestingLevel(targetTable.getLevel());
+        columnReference.setSourceLevel(targetTable.getLevel());
+        rowLocationColumn =
+                (ResultColumn) getNodeFactory().getNode(
+                        C_NodeTypes.RESULT_COLUMN,
+                        COLUMNNAME,
+                        columnReference,
+                        getContextManager());
 
         /* Append to the ResultColumnList */
         resultColumnList.addResultColumn(rowLocationColumn);
