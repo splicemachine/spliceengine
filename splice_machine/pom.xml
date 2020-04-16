@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2012 - 2019 Splice Machine, Inc.
+  ~ Copyright (c) 2012 - 2020 Splice Machine, Inc.
   ~
   ~ This file is part of Splice Machine.
   ~ Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -164,22 +164,6 @@
             <artifactId>db-testing</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_${scala.binary.version}</artifactId>
-<!--            <version>${kafka.version}</version>-->
-            <version>0.10.0-kafka-2.1.2</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>net.jpountz.lz4</groupId>
-                    <artifactId>lz4</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
     </dependencies>
     <build>
