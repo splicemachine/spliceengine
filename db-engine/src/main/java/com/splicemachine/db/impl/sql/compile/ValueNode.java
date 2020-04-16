@@ -1504,4 +1504,11 @@ public abstract class ValueNode extends QueryTreeNode
 		return (((long)resultColumn.getResultSetNumber()) << 32) | (resultColumn.getVirtualColumnId() & 0xffffffffL);
 	}
 
+	public int getOuterJoinLevel() {
+		return 0;
+	}
+
+	public void setOuterJoinLevel(int level) {
+		return;
+	}
 }

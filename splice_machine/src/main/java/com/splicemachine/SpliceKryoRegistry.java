@@ -55,7 +55,6 @@ import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
-import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
@@ -838,7 +837,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 //        instance.register(TentativeDropPKConstraintDesc.class,EXTERNALIZABLE_SERIALIZER,256);
         instance.register(TriggerExecutionStack.class,EXTERNALIZABLE_SERIALIZER,257);
         instance.register(TriggerExecutionContext.class,EXTERNALIZABLE_SERIALIZER,258);
-        instance.register(BatchOnceOperation.class,EXTERNALIZABLE_SERIALIZER,261);
         instance.register(ScrollInsensitiveOperation.class,EXTERNALIZABLE_SERIALIZER,263);
         instance.register(VTIOperation.class,EXTERNALIZABLE_SERIALIZER,264);
         instance.register(UDTAliasInfo.class,EXTERNALIZABLE_SERIALIZER,271);

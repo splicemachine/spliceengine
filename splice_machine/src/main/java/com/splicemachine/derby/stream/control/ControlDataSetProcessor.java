@@ -33,6 +33,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
@@ -381,8 +382,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
     
     @Override
-    public TableChecker getTableChecker(String schemaName, String tableName, DataSet table, KeyHashDecoder tableKeyDecoder, ExecRow tableKey) {
-        return new ControlTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey);
+    public TableChecker getTableChecker(String schemaName, String tableName, DataSet table,
+                                        KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix) {
+        return new ControlTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix);
     }
 
     // Operations specific to native spark explains
