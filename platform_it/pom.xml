@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1954-SNAPSHOT</version>
+        <version>3.1.0.1955-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -1149,18 +1149,10 @@
         <profile>
             <id>cdh6.3.0</id>
             <properties>
-                <extraDependency>splice_ee</extraDependency>
+                <extraDependency>splice_sentry</extraDependency>
                 <extraDependency2>splice_ee</extraDependency2>
                 <extraDependency3>splice_ee</extraDependency3>
             </properties>
-            <!--dependencies>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_sentry</artifactId>
-                    <version>${project.version}</version>
-                    <classifier>${envClassifier}</classifier>
-                </dependency>
-            </dependencies-->
         </profile>
         <profile>
             <id>dbaas</id>

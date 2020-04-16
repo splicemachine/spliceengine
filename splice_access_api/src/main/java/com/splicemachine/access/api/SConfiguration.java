@@ -265,8 +265,6 @@ public interface SConfiguration {
 
     boolean upgradeForced();
 
-    int getBatchOnceBatchSize();
-
     int getImportMaxQuotedColumnLines();
 
     int getIndexBatchSize();
