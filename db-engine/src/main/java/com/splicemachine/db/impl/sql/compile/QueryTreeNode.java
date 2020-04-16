@@ -695,6 +695,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         int constantNodeType = getConstantNodeType(type);
         if (constantNodeType == C_NodeTypes.USERTYPE_CONSTANT_NODE) {
             constantNode = (ConstantNode) getNodeFactory().getNode(constantNodeType, value, cm);
+            constantNode.setType(type.getNullabilityType(value.isNull()));
         } else {
             constantNode = (ConstantNode) getNodeFactory().getNode(constantNodeType, type.getTypeId(), cm);
             constantNode.setValue(value);

@@ -59,6 +59,7 @@ public class BinaryRelationalOperatorNode
         extends BinaryComparisonOperatorNode
         implements RelationalOperator{
     private int operatorType;
+    private int outerJoinLevel;
     /* RelationalOperator Interface */
 
     // Visitor for finding base tables beneath optimizables and column
@@ -2116,4 +2117,12 @@ public class BinaryRelationalOperatorNode
         }
         return ret;
     }
+
+     public int getOuterJoinLevel() {
+         return outerJoinLevel;
+     }
+
+     public void setOuterJoinLevel(int level) {
+         outerJoinLevel = level;
+     }
 }

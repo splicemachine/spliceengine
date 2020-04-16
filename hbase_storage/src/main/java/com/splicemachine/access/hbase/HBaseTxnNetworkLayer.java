@@ -46,7 +46,7 @@ public class HBaseTxnNetworkLayer extends SkeletonTxnNetworkLayer{
     @Override
     protected TxnMessage.TxnLifecycleService getLifecycleService(byte[] rowKey) throws IOException{
         TxnMessage.TxnLifecycleService service;
-        CoprocessorRpcChannel coprocessorRpcChannel = channelFactory.newChannel(table.getName(), rowKey);
+        CoprocessorRpcChannel coprocessorRpcChannel = channelFactory.newRetryableChannel(table.getName(), rowKey);
         try{
             service=ProtobufUtil.newServiceStub(TxnMessage.TxnLifecycleService.class,coprocessorRpcChannel);
         }catch(Exception e){

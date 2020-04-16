@@ -1337,6 +1337,17 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(checkTable);
 
+                    Procedure fixTable = Procedure.newBuilder().name("FIX_TABLE")
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .catalog("indexName")
+                            .varchar("outputFile", 32672)
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceTableAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(fixTable);
+
                     Procedure showCreateTable = Procedure.newBuilder().name("SHOW_CREATE_TABLE")
                             .numOutputParams(0)
                             .numResultSets(1)

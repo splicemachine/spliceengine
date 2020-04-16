@@ -3463,7 +3463,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      *
      * @throws StandardException Thrown on error
      */
-    void clearSPSPlans() throws StandardException{
+    public void clearSPSPlans() throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
         faultInTabInfo(ti);
 
@@ -3473,6 +3473,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         FormatableBitSet columnToUpdateSet=new FormatableBitSet(SYSSTATEMENTSRowFactory.SYSSTATEMENTS_COLUMN_COUNT);
         columnToUpdateSet.set(SYSSTATEMENTSRowFactory.SYSSTATEMENTS_VALID-1);
         columnToUpdateSet.set(SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE-1);
+
+        DataValueDescriptor[] rowTemplate =
+                new DataValueDescriptor[SYSSTATEMENTSRowFactory.SYSSTATEMENTS_COLUMN_COUNT];
 
         DataValueDescriptor[] replaceRow=
                 new DataValueDescriptor[SYSSTATEMENTSRowFactory.SYSSTATEMENTS_COLUMN_COUNT];
@@ -3497,7 +3500,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         null,
                         ScanController.NA);
 
-        while(sc.fetchNext(null)){
+        while(sc.fetchNext(rowTemplate)){
             /* Replace the column in the table */
             sc.replace(replaceRow,columnToUpdateSet);
         }
