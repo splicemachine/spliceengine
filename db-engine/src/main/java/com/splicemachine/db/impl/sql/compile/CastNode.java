@@ -386,7 +386,7 @@ public class CastNode extends ValueNode
                             destJDBCTypeId);
                     break;
                 default:
-                    assert false;
+                    break;
             }
 
             // Return the new constant if the cast was performed
