@@ -41,12 +41,12 @@ import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
-import org.apache.kafka.clients.consumer.CommitFailedException;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.serialization.IntegerDeserializer;
+//import org.apache.kafka.clients.consumer.CommitFailedException;
+//import org.apache.kafka.clients.consumer.ConsumerConfig;
+//import org.apache.kafka.clients.consumer.ConsumerRecords;
+//import org.apache.kafka.clients.consumer.ConsumerRecord;
+//import org.apache.kafka.clients.consumer.KafkaConsumer;
+//import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -425,42 +425,42 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
-        Properties props = new Properties();
-        props.put("bootstrap.servers", SIDriver.driver().getConfiguration().getKafkaBootstrapServers());
-        props.put("enable.auto.commit", false);
-        props.put("auto.commit.interval.ms", "1000");
-        props.put("session.timeout.ms", "30000");
-        props.put("auto.offset.reset", "latest");
-
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
-//        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
-        //ExternalizableDeserializer was implemented in package com.splicemachine.derby.stream.spark
-
-        KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
-        consumer.subscribe(Arrays.asList(topicName));
-
-        try {
-            ConsumerRecords<Integer, Externalizable> msgList = consumer.poll(1000);
-            for (ConsumerRecord<Integer, Externalizable> record : msgList) {
-                if (LOG.isInfoEnabled())
-                    LOG.info("KAFKA==receive: key = " + record.key() + ", value = " + record.value() + " offset===" + record.offset());
-            }
-
-            PairDataSet<Integer, InputStream> streamSet;
-
-            consumer.commitAsync();
-
-            Dataset<Row> table = null;
-        } catch (CommitFailedException e){
-            throw new StandardException();
-        }
-        finally {
-            try {
-                consumer.commitSync();
-            }finally {
-                consumer.close();
-            }
-        }
+//        Properties props = new Properties();
+//        props.put("bootstrap.servers", SIDriver.driver().getConfiguration().getKafkaBootstrapServers());
+//        props.put("enable.auto.commit", false);
+//        props.put("auto.commit.interval.ms", "1000");
+//        props.put("session.timeout.ms", "30000");
+//        props.put("auto.offset.reset", "latest");
+//
+//        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
+////        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
+//        //ExternalizableDeserializer was implemented in package com.splicemachine.derby.stream.spark
+//
+//        KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
+//        consumer.subscribe(Arrays.asList(topicName));
+//
+//        try {
+//            ConsumerRecords<Integer, Externalizable> msgList = consumer.poll(1000);
+//            for (ConsumerRecord<Integer, Externalizable> record : msgList) {
+//                if (LOG.isInfoEnabled())
+//                    LOG.info("KAFKA==receive: key = " + record.key() + ", value = " + record.value() + " offset===" + record.offset());
+//            }
+//
+//            PairDataSet<Integer, InputStream> streamSet;
+//
+//            consumer.commitAsync();
+//
+//            Dataset<Row> table = null;
+//        } catch (CommitFailedException e){
+//            throw new StandardException();
+//        }
+//        finally {
+//            try {
+//                consumer.commitSync();
+//            }finally {
+//                consumer.close();
+//            }
+//        }
         throw new UnsupportedOperationException();
     }
 }
