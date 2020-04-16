@@ -37,8 +37,7 @@ public class UpgradeScriptForTriggerMultipleStatements extends UpgradeScriptBase
             // conglomerate descriptor.
             if (heapCC instanceof HBaseController) {
                 HBaseController hCC = (HBaseController)heapCC;
-                if (hCC.getConglomerate().getFormat_ids().length >=
-                    SYSTRIGGERSRowFactory.SYSTRIGGERS_COLUMN_COUNT) {
+                if (hCC.getConglomerate().getFormat_ids().length >= 20) {
                     return;
                 }
             }
