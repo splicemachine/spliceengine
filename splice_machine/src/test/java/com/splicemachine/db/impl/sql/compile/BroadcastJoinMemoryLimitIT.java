@@ -18,10 +18,8 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -34,7 +32,6 @@ import static com.splicemachine.test_tools.Rows.rows;
 /**
  * Created by yxia on 5/12/17.
  */
-@Category({SerialTest.class})
 public class BroadcastJoinMemoryLimitIT extends SpliceUnitTest {
     public static final String CLASS_NAME = BroadcastJoinMemoryLimitIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);

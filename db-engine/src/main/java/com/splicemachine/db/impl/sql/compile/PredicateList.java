@@ -1646,6 +1646,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     newPred=(Predicate)getNodeFactory().getNode(C_NodeTypes.PREDICATE,
                               firstAndInProbeSet != null ? firstAndInProbeSet : thisAnd,
                               newJBitSet, contextManager);
+                    newPred.setOuterJoinLevel(thisAnd.getLeftOperand().getOuterJoinLevel());
                     addPredicate(newPred);
     
                     firstAndInProbeSet = null;
@@ -1659,6 +1660,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                   /* Add the last top AndNode to the PredicateList */
             newJBitSet=new JBitSet(numTables);
             newPred=(Predicate)getNodeFactory().getNode( C_NodeTypes.PREDICATE, topAnd, newJBitSet, contextManager);
+            newPred.setOuterJoinLevel(topAnd.getLeftOperand().getOuterJoinLevel());
             addPredicate(newPred);
         }
     }
