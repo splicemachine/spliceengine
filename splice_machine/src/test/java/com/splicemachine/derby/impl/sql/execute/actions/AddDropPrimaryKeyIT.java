@@ -5,10 +5,8 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -21,7 +19,6 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by yxia on 8/21/18.
  */
-@Category(value = {SerialTest.class})
 public class AddDropPrimaryKeyIT extends SpliceUnitTest {
     public  static final String CLASS_NAME = AddDropPrimaryKeyIT.class.getSimpleName().toUpperCase();
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
