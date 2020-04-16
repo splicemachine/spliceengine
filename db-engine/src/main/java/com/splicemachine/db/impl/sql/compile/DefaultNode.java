@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DefaultDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.catalog.types.DefaultInfoImpl;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Collections;
 import java.util.List;
@@ -50,6 +51,7 @@ import java.util.List;
 /**
  * DefaultNode represents a column/parameter default.
  */
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public  class DefaultNode extends ValueNode
 {
     private String        columnName;
@@ -303,7 +305,19 @@ public  class DefaultNode extends ValueNode
         return this == other;
     }
 
-    public List getChildren() {
+    public List<? extends QueryTreeNode> getChildren() {
         return Collections.singletonList(defaultTree);
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        assert index == 0;
+        return defaultTree;
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        assert index == 0;
+        defaultTree = (ValueNode) newValue;
     }
 }

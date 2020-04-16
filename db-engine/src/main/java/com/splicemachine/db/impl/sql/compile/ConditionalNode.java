@@ -57,7 +57,7 @@ import java.util.List;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="Tracked by DB-9277")
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class ConditionalNode extends ValueNode
 {
     ValueNode        testCondition;
@@ -735,13 +735,31 @@ public class ConditionalNode extends ValueNode
         return false;
     }
 
-    public List getChildren() {
-        List nodes = new LinkedList();
+    public List<? extends QueryTreeNode> getChildren() {
+        List<QueryTreeNode> nodes = new LinkedList<>();
         nodes.add(testCondition);
 
         nodes.addAll(thenElseList.getNodes());
 
         return nodes;
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        if (index == 0) {
+            return testCondition;
+        } else {
+            return thenElseList.elementAt(index - 1);
+        }
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        if (index == 0) {
+            testCondition = (ValueNode) newValue;
+        } else {
+            thenElseList.setElementAt(newValue, index - 1);
+        }
     }
 
     @Override
@@ -764,62 +782,5 @@ public class ConditionalNode extends ValueNode
             return false;
 
         return true;
-    }
-
-    @Override
-    public List<ColumnReference> getHashableJoinColumnReference() {
-        List<ColumnReference> result = new ArrayList<>();
-        List<ColumnReference> fetched = testCondition.getHashableJoinColumnReference();
-        if (fetched != null) {
-            result.addAll(fetched);
-        }
-        for (int i = 0; i < thenElseList.size(); ++i) {
-            fetched = thenElseList.elementAt(i).getHashableJoinColumnReference();
-            if (fetched != null) {
-                result.addAll(fetched);
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public void setHashableJoinColumnReference(ColumnReference cr) {
-        ArrayList<List<ColumnReference>> columnReferences = new ArrayList<>(1 + thenElseList.size());
-        columnReferences.add(testCondition.getHashableJoinColumnReference());
-        for (int i = 0; i < thenElseList.size(); ++i) {
-            columnReferences.add(thenElseList.elementAt(i).getHashableJoinColumnReference());
-        }
-
-        // We can only set iff there is only one list with exactly one column reference in it
-        int indexOfListWithOneColumnReference = -1;
-        for (int i = 0; i < columnReferences.size(); ++i) {
-            if (columnReferences.get(i) == null) {
-                continue;
-            }
-            int columnReferenceCount = columnReferences.get(i).size();
-            if (columnReferenceCount > 1) {
-                return; // We do not handle multiple column references in hash join // JIRA DB-9274
-            }
-            if (columnReferenceCount == 1 && indexOfListWithOneColumnReference != -1) {
-                return; // We do not handle referencing columns in multiple places in hash join // JIRA DB-9278
-            }
-            if (columnReferenceCount == 1) {
-                indexOfListWithOneColumnReference = i;
-            }
-        }
-
-        if (indexOfListWithOneColumnReference == 0) {
-            if (testCondition instanceof ColumnReference) {
-                testCondition = cr;
-            } else {
-                testCondition.setHashableJoinColumnReference(cr);
-            }
-        } else {
-            if (thenElseList.elementAt(indexOfListWithOneColumnReference - 1) instanceof ColumnReference) {
-                thenElseList.setElementAt(cr, indexOfListWithOneColumnReference - 1);
-            } else {
-                thenElseList.elementAt(indexOfListWithOneColumnReference - 1).setHashableJoinColumnReference(cr);
-            }
-        }
     }
 }
