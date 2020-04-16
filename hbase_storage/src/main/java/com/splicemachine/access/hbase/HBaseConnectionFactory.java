@@ -61,7 +61,7 @@ public class HBaseConnectionFactory{
             Configuration config = (Configuration) configuration.getConfigSource().unwrapDelegate();
             this.connection= ConnectionFactory.createConnection(config);
             Configuration clonedConfig = new Configuration(config);
-            clonedConfig.setInt("hbase.client.retries.number",1);
+            clonedConfig.setInt("hbase.client.retries.number",0);
             this.noRetryConnection=ConnectionFactory.createConnection(clonedConfig);
         }catch(IOException ioe){
             throw new RuntimeException(ioe);

@@ -48,6 +48,7 @@ import com.splicemachine.db.impl.ast.ColumnCollectingVisitor;
 import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
 import org.spark_project.guava.base.Predicates;
 
+import java.sql.Types;
 import java.util.*;
 
 /**
@@ -986,7 +987,7 @@ public class SelectNode extends ResultSetNode{
          * semantic check at run time, so they could be expensive.
          * Set their dependencyMap so that they can be joined last.
          */
-        fromList.setDependencyMapForSSQ(numTables);
+        fromList.moveSSQAndSetDependencyMap(numTables);
 
         /* A valid group by without any aggregates or a having clause
          * is equivalent to a distinct without the group by.  We do the transformation
@@ -1891,6 +1892,9 @@ public class SelectNode extends ResultSetNode{
      */
     @Override
     public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
+        if (optimizer == null)
+            return new CostEstimateImpl();
+
         return optimizer.getFinalCost();
     }
 
@@ -2577,7 +2581,15 @@ public class SelectNode extends ResultSetNode{
             ResultColumn rc = rowRCL.elementAt(i);
             if (rc.getTypeId() == null)
                 throw StandardException.newException("Type in Result Column is not specified");
-            rc.setExpression(getNullNode(rc.getTypeServices()));
+            if (rc.getTypeId().getJDBCTypeId() == Types.REF) {
+                ValueNode rowLocationNode = (ValueNode) getNodeFactory().getNode(
+                        C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
+                        getContextManager());
+                rc.setExpression(rowLocationNode);
+
+            } else {
+                rc.setExpression(getNullNode(rc.getTypeServices()));
+            }
         }
 
         // Manufacture a RowResultSetNode

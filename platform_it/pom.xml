@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1951-SNAPSHOT</version>
+        <version>3.1.0.1955-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -79,6 +79,20 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_storage</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}-tests</classifier>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_spark</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_spark</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}-tests</classifier>
             <type>test-jar</type>
@@ -280,6 +294,20 @@
             </exclusions>
         </dependency>
         <dependency>
+            <!-- com.splicemachine.spark.splicemachine.SparkStreamingIT -->
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-streaming_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Scala dependencies -->
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.binary.version}</artifactId>
+            <version>2.2.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.directory.server</groupId>
             <artifactId>apacheds-core-api</artifactId>
             <version>2.0.0-M15</version>
@@ -439,6 +467,24 @@
                             <systemPropertyVariables>
                                 <splice.schemaCleanup>async</splice.schemaCleanup>
                             </systemPropertyVariables>
+                        </configuration>
+                    </execution>
+                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: NSDS -->
+                    <execution>
+                        <id>integration-tests-nsds</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <dependenciesToScan>
+                                <dependency>com.splicemachine:splice_spark</dependency>
+                            </dependenciesToScan>
+                            <argLine>-Xmx2g -Xms64m -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ ${hbase.rootdir}</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <includes>
+                                <include>com/splicemachine/spark/splicemachine/**/*IT.java</include>
+                            </includes>
                         </configuration>
                     </execution>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
@@ -1103,18 +1149,10 @@
         <profile>
             <id>cdh6.3.0</id>
             <properties>
-                <extraDependency>splice_ee</extraDependency>
+                <extraDependency>splice_sentry</extraDependency>
                 <extraDependency2>splice_ee</extraDependency2>
                 <extraDependency3>splice_ee</extraDependency3>
             </properties>
-            <!--dependencies>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_sentry</artifactId>
-                    <version>${project.version}</version>
-                    <classifier>${envClassifier}</classifier>
-                </dependency>
-            </dependencies-->
         </profile>
         <profile>
             <id>dbaas</id>

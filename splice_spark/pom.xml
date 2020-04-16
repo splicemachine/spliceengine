@@ -17,79 +17,22 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1951-SNAPSHOT</version>
+        <version>3.1.0.1955-SNAPSHOT</version>
     </parent>
     <artifactId>splice_spark</artifactId>
     <name>Splicemachine Spark Bindings</name>
-    <properties>
-        <!--Skip server startup-->
-        <scala.version>2.11.6</scala.version>
-        <server.skip.start>skipServerStart</server.skip.start>
-        <!--Ant task to run shell scripts-->
-	<skipTests>${maven.skip.tests}</skipTests>
-        <shell.command>/bin/bash</shell.command>
-        <start.script>${project.basedir}/../platform_it/src/test/bin/start-splice-its</start.script>
-        <stop.script>${project.basedir}/../platform_it/src/test/bin/stop-splice-its</stop.script>
-        <ee_out/>
-    </properties>
     <dependencies>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <!-- make sure wrong scala version is not pulled in -->
-                    <groupId>org.scala-lang</groupId>
-                    <artifactId>scala-library</artifactId>
-                </exclusion>
-                <exclusion>
-                    <!-- make sure wrong scala version is not pulled in -->
-                    <groupId>org.scala-lang</groupId>
-                    <artifactId>scalap</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hbase</groupId>
-            <artifactId>hbase-mapreduce</artifactId>
-            <version>${hbase.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-sql_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
-            <!--scope>provided</scope-->
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.orc</groupId>
-                    <artifactId>orc-core</artifactId>
-                </exclusion>
-            </exclusions>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-yarn_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.sun.jersey</groupId>
-                    <artifactId>jersey-core</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
@@ -187,21 +130,7 @@
                     <artifactId>hive-common</artifactId>
                     <groupId>org.apache.hive</groupId>
                 </exclusion>
-                <exclusion>
-                    <groupId>com.sun.jersey</groupId>
-                    <artifactId>jersey-server</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.sun.jersey</groupId>
-                    <artifactId>jersey-core</artifactId>
-                </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_storage</artifactId>
-            <version>${project.version}</version>
-            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -233,21 +162,27 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_pipeline</artifactId>
-            <version>${project.version}</version>
-            <classifier>${envClassifier}</classifier>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jboss.netty</groupId>
-                    <artifactId>netty</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
             <groupId>org.scalamock</groupId>
             <artifactId>scalamock-scalatest-support_${scala.binary.version}</artifactId>
             <version>3.1.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-exec</artifactId>
+            <version>${hive.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-mapreduce</artifactId>
+            <version>${hbase.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                </exclusion>
+            </exclusions>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -259,32 +194,32 @@
                 <version>1.5.0.Final</version>
             </extension>
         </extensions>
-	<plugins>
-		<plugin>
-			<groupId>org.apache.maven.plugins</groupId>
-			<artifactId>maven-site-plugin</artifactId>
-			<version>3.0</version>
-			<configuration>
-				<reportPlugins>
-					<plugin>
-						<artifactId>maven-project-info-reports-plugin</artifactId>
-						<version>2.2</version>
-					</plugin>
-					<plugin>
-						<groupId>net.alchim31.maven</groupId>
-						<artifactId>scala-maven-plugin</artifactId>
-						<version>3.4.2</version>
-						<configuration>
-							<jvmArgs>
-								<jvmArg>-Xms64m</jvmArg>
-								<jvmArg>-Xmx1024m</jvmArg>
-							</jvmArgs>
-						</configuration>
-					</plugin>
-				</reportPlugins>
-			</configuration>
-		</plugin>
-		<plugin>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.0</version>
+                <configuration>
+                    <reportPlugins>
+                        <plugin>
+                            <artifactId>maven-project-info-reports-plugin</artifactId>
+                            <version>2.2</version>
+                        </plugin>
+                        <plugin>
+                            <groupId>net.alchim31.maven</groupId>
+                            <artifactId>scala-maven-plugin</artifactId>
+                            <version>3.4.2</version>
+                            <configuration>
+                                <jvmArgs>
+                                    <jvmArg>-Xms64m</jvmArg>
+                                    <jvmArg>-Xmx1024m</jvmArg>
+                                </jvmArgs>
+                            </configuration>
+                        </plugin>
+                    </reportPlugins>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
@@ -313,89 +248,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-			<argLine>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ -Dhbase.rootdir=${project.build.directory}/../../platform_it/target/hbase</argLine>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>############### start-splice-its ###############</id>
-                        <phase>process-test-classes</phase>
-                        <configuration>
-                            <skip>${skipTests}</skip>
-                            <target name="StartSpliceServer" unless="${server.skip.start}">
-                                <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath"/>
-                                <if>
-                                    <istrue value="${failTasksRandomly}"/>
-                                    <!-- run with chaos monkey (default) -->
-                                    <then>
-                                        <exec executable="${shell.command}" dir="${basedir}/../platform_it" spawn="false">
-                                            <arg value="${start.script}"/>
-                                            <arg value="-c"/>
-                                            <arg value="-p ${envClassifier},${envHbase}${ee_out}"/>
-                                        </exec>
-                                    </then>
-                                    <else>
-                                        <!-- chaos monkey overridden: -DfailTasksRandomly=false -->
-                                        <exec executable="${shell.command}" dir="${basedir}/../platform_it" spawn="false">
-                                            <arg value="${start.script}"/>
-                                            <arg value="-p ${envClassifier},${envHbase}${ee_out}"/>
-                                        </exec>
-                                    </else>
-                                </if>
-                                <property name="classpath.test" refid="maven.plugin.classpath"/>
-                                <!--suppress MavenModelInspection -->
-                                <java classname="com.splicemachine.test.SpliceTestPlatformWait" classpath="${classpath.test}" spawn="false">
-                                    <arg value="localhost"/>
-                                    <arg value="1527"/>
-                                </java>
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>############### stop-splice-its ###############</id>
-                        <phase>post-integration-test</phase>
-                        <configuration>
-                            <skip>${skipTests}</skip>
-                            <target name="StopSpliceServer" unless="${server.skip.start}">
-                                <exec executable="${shell.command}" dir="${basedir}/../platform_it" spawn="false">
-                                    <arg value="${stop.script}"/>
-                                </exec>
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>ant-contrib</groupId>
-                        <artifactId>ant-contrib</artifactId>
-                        <version>1.0b3</version>
-                        <exclusions>
-                            <exclusion>
-                                <groupId>ant</groupId>
-                                <artifactId>ant</artifactId>
-                            </exclusion>
-                        </exclusions>
-                    </dependency>
-                    <dependency>
-                        <groupId>com.splicemachine</groupId>
-                        <artifactId>splice_machine</artifactId>
-                        <version>${project.version}</version>
-                        <classifier>tests</classifier>
-                    </dependency>
-                </dependencies>
             </plugin>
             <!-- http://stackoverflow.com/questions/270445 -->
             <plugin>

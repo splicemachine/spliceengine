@@ -591,6 +591,20 @@ public class GenericStatement implements Statement{
                 }
                 cc.setSparkVersion(sparkVersion);
             }
+
+            String ssqFlatteningForUpdateDisabledString =
+                    PropertyUtil.getCachedDatabaseProperty(lcc, Property.SSQ_FLATTENING_FOR_UPDATE_DISABLED);
+            boolean ssqFlatteningForUpdateDisabled = CompilerContext.DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED;
+            try {
+                if (ssqFlatteningForUpdateDisabledString != null)
+                    ssqFlatteningForUpdateDisabled =
+                            Boolean.valueOf(ssqFlatteningForUpdateDisabledString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setSSQFlatteningForUpdateDisabled(ssqFlatteningForUpdateDisabled);
+
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){
             if(foundInCache)

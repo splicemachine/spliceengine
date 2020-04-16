@@ -68,12 +68,6 @@ public class SpliceAdminIT extends SpliceUnitTest{
         tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
     }
 
-    @AfterClass
-    public static void cleanup() throws Exception {
-        spliceClassWatcher.execute("call SYSCS_UTIL.SYSCS_DROP_USER('testuser1')");
-        spliceClassWatcher.execute("call SYSCS_UTIL.SYSCS_DROP_USER('testuser2')");
-    }
-
     private static final String SQL = "\tsum(l_extendedprice* (1 - l_discount)) as revenue\n" +
             "from\n" +
             "\tlineitem,\n" +
@@ -504,6 +498,9 @@ public class SpliceAdminIT extends SpliceUnitTest{
 
         // The user should be able to execute again
         userConnection.execute("call syscs_util.syscs_get_running_operations()");
+
+        // Cleanup
+        spliceClassWatcher.execute("call SYSCS_UTIL.SYSCS_DROP_USER('testuser1')");
     }
 
     @Test
@@ -525,5 +522,8 @@ public class SpliceAdminIT extends SpliceUnitTest{
 
         // The user should be able to execute again
         userConnection.execute("call syscs_util.syscs_get_running_operations()");
+
+        // Cleanup
+        spliceClassWatcher.execute("call SYSCS_UTIL.SYSCS_DROP_USER('testuser2')");
     }
 }

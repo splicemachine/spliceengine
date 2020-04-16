@@ -17,7 +17,6 @@ package com.splicemachine.si.impl.txn;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.txn.AbstractTxnView;
 import com.splicemachine.utils.ByteSlice;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -69,6 +68,11 @@ public class DDLTxnView extends AbstractTxnView {
     @Override public long getGlobalCommitTimestamp() { return txn.getGlobalCommitTimestamp(); }
     @Override public Iterator<ByteSlice> getDestinationTables() { return txn.getDestinationTables(); }
     @Override public boolean descendsFrom(TxnView potentialParent) { return txn.descendsFrom(potentialParent); }
+
+    @Override
+    public boolean hasActiveWriteableOrRolledBackTransactionInLineage(TxnView ancestor, boolean checkForRollbackOnly) {
+        return txn.hasActiveWriteableOrRolledBackTransactionInLineage(ancestor, checkForRollbackOnly);
+    }
 
     @Override
     public boolean canSee(TxnView otherTxn) {
@@ -125,8 +129,13 @@ public class DDLTxnView extends AbstractTxnView {
         }
 
         if(otherTxn.descendsFrom(this)){
-            //we are an ancestor, so use READ_COMMITTED/READ_UNCOMMITTED semantics
+            // We are an ancestor, so use READ_COMMITTED semantics,
+            // unless there is an active writeable transaction or rolled back
+            // transaction in the lineage.
             Txn.IsolationLevel level = isolationLevel;
+            if (otherTxn.hasActiveWriteableOrRolledBackTransactionInLineage(this,
+                              level == Txn.IsolationLevel.READ_UNCOMMITTED))
+                return false;
             if(level== Txn.IsolationLevel.SNAPSHOT_ISOLATION)
                 level = Txn.IsolationLevel.READ_COMMITTED;
 

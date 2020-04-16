@@ -36,7 +36,7 @@ node('splice-standalone') {
         try{
             checkout([  
                 $class: 'GitSCM', 
-                branches: [[name: 'refs/remotes/origin/${BRANCH_NAME}']], 
+                branches: [[name: source_branch]],
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
                 submoduleCfg: [], 
@@ -59,7 +59,7 @@ node('splice-standalone') {
             }
             checkout([  
                 $class: 'GitSCM', 
-                branches: [[name: 'refs/remotes/origin/'+branch]], 
+                branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
                 submoduleCfg: [], 
@@ -110,7 +110,7 @@ node('splice-standalone') {
                         platforms = "cdh6.3.0"
                         branch = "branch-3.0"
                     } else {
-                        platforms = "cdh5.14.2"
+                        platforms = "cdh6.3.0"
                         branch = "master"
             }
 
