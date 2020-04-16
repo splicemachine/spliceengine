@@ -31,4 +31,4 @@ public class NullMemoryManager extends MemoryManager {
 
     @Override
     public void addedRow(int rows) {}
-}
+} 
