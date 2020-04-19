@@ -191,21 +191,19 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
             return false;
         }
 
-    // Cross join can't handle IndexLookups on the inner table currently because
+        // Cross join can't handle IndexLookups on the inner table currently because
         // the join predicates get mapped to the IndexScan instead of the CrossJoin.
         // Broadcast join has a similar restriction.
-    if (JoinStrategyUtil.isNonCoveringIndex(innerTable))
-            return false;
+        if (JoinStrategyUtil.isNonCoveringIndex(innerTable))
+                return false;
         
-        boolean isSpark = false;
-        boolean isOneRow = false;
-        if (innerTable instanceof FromBaseTable) {
-            isSpark = optimizer.isForSpark();
-            isOneRow = ((FromBaseTable) innerTable).isOneRowResultSet();
-        }
+        boolean isSpark = optimizer.isForSpark();
+        AccessPath currentAccessPath = innerTable.getCurrentAccessPath();
+        boolean isHinted = currentAccessPath.isHintedJoinStrategy();
+
         // Only use cross join when it is inner join
         // Only use cross join when it is on Spark
-        return !outerCost.isOuterJoin() && (isSpark) && !isOneRow;
+        return !outerCost.isOuterJoin() && isSpark && (innerTable instanceof FromBaseTable || isHinted);
     }
 
     @Override
