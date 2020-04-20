@@ -18,14 +18,12 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import org.apache.commons.io.FileUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.io.File;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -47,16 +45,11 @@ public class ExternalTablePartitionIT {
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher);
 
+    // this will cleanup all files created in the dir getExternalResourceDirectory()
+    // (if you insert into external tables, you create files)
     @BeforeClass
     public static void cleanoutDirectory() {
-        try {
-            File file = new File(getExternalResourceDirectory());
-            if (file.exists())
-                FileUtils.deleteDirectory(new File(getExternalResourceDirectory()));
-            file.mkdir();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        SpliceUnitTest.clearDirectory( getExternalResourceDirectory() );
     }
 
     @Test
@@ -1315,10 +1308,10 @@ public class ExternalTablePartitionIT {
     }
 
 
+    // e.g. GITROOT/platform_it/target/external when running cdh6.3.0
     public static String getExternalResourceDirectory() {
-        return SpliceUnitTest.getHBaseDirectory()+"/target/external/";
+        return SpliceUnitTest.getExternalResourceDirectory();
     }
-
 
     private int getNumberOfFiles(String dirPath) {
         int count = 0;
@@ -1341,9 +1334,10 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testInsertionToHiveParquetData() throws Exception {
+        String tmp = SpliceUnitTest.getExternalResourceDirectoryAsCopy( "pt_parquet" );
         methodWatcher.executeUpdate(
-                String.format("create external table pt_parquet(col1 varchar(10), col2 int, col3 char(2)) partitioned by (col3) stored as parquet location '%s'",
-                        SpliceUnitTest.getResourceDirectory() + "pt_parquet"));
+                String.format("create external table pt_parquet(col1 varchar(10), col2 int, col3 char(2)) " +
+                        "partitioned by (col3) stored as parquet location '%s'", tmp));
         methodWatcher.execute("insert into pt_parquet values ('Kate', 19, 'HI')");
         ResultSet rs = methodWatcher.executeQuery("select * from pt_parquet order by 1");
         String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
@@ -1357,9 +1351,10 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testInsertionToHiveAvroData() throws Exception {
-        methodWatcher.executeUpdate(
-                String.format("create external table pt_avro(col1 varchar(10), col2 int, col3 char(2)) partitioned by (col3) stored as avro location '%s'",
-                        SpliceUnitTest.getResourceDirectory() + "pt_avro"));
+        String tmp = SpliceUnitTest.getExternalResourceDirectoryAsCopy( "pt_avro" );
+        methodWatcher.executeUpdate( String.format(
+                "create external table pt_avro(col1 varchar(10), col2 int, col3 char(2)) " +
+                        "partitioned by (col3) stored as avro location '%s'", tmp) );
         methodWatcher.execute("insert into pt_avro values ('Kate', 19, 'HI')");
         ResultSet rs = methodWatcher.executeQuery("select * from pt_avro order by 1");
         String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);

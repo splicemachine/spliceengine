@@ -54,18 +54,12 @@ public class ExternalTableIT extends SpliceUnitTest{
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher);
 
+    // this will cleanup all files created in the dir getExternalResourceDirectory()
+    // (if you insert into external tables, you create files)
     @BeforeClass
     public static void cleanoutDirectory() {
-        try {
-            File file = new File(getExternalResourceDirectory());
-            if (file.exists())
-                FileUtils.deleteDirectory(new File(getExternalResourceDirectory()));
-            file.mkdir();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        SpliceUnitTest.clearDirectory( getExternalResourceDirectory() );
     }
-
 
     @Test
     public void testInvalidSyntaxParquet() throws Exception {
@@ -2650,9 +2644,9 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testReadWriteAvroFromHive() throws Exception {
-
+        String path = SpliceUnitTest.getExternalResourceDirectoryAsCopy( "t_avro" );
         methodWatcher.execute(String.format("create external table t_avro (col1 varchar(30), col2 int)" +
-                " STORED AS AVRO LOCATION '%s'", getResourceDirectory() + "t_avro"));
+                " STORED AS AVRO LOCATION '%s'", path ));
 
         methodWatcher.execute("insert into t_avro values ('John', 18)");
         ResultSet rs = methodWatcher.executeQuery("select * from t_avro order by 1");
@@ -2669,8 +2663,9 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testNumericType() throws Exception {
+        String path = getExternalResourceDirectory() + "t_num"; // = "empty" table
         methodWatcher.execute(String.format("create external table t_num (col1 NUMERIC(23,2), col2 bigint)" +
-                " STORED AS PARQUET LOCATION '%s'", getResourceDirectory() + "t_num"));
+                " STORED AS PARQUET LOCATION '%s'", path));
         methodWatcher.execute("insert into t_num values (100.23456, 1)");
         ResultSet rs = methodWatcher.executeQuery("select * from t_num order by 1");
         String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
