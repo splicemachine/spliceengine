@@ -201,8 +201,9 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
 
     @Override
     public TableChecker getTableChecker(String schemaName, String tableName, DataSet tableDataSet,
-                                        KeyHashDecoder decoder, ExecRow key, TxnView txn,  boolean fix) {
-        return delegate.getTableChecker(schemaName, tableName, tableDataSet, decoder, key, txn, fix);
+                                        KeyHashDecoder decoder, ExecRow key, TxnView txn,  boolean fix,
+                                        int[] baseColumnMap) {
+        return delegate.getTableChecker(schemaName, tableName, tableDataSet, decoder, key, txn, fix, baseColumnMap);
     }
 
     // Operations specific to native spark explains
