@@ -268,7 +268,7 @@ public interface DataSetProcessor {
     Boolean isCached(long conglomerateId) throws StandardException;
 
     TableChecker getTableChecker(String schemaName, String tableName, DataSet tableDataSet, KeyHashDecoder decoder,
-                                 ExecRow key, TxnView txn, boolean fix);
+                                 ExecRow key, TxnView txn, boolean fix, int[] baseColumnMap);
 
     // Operations related to spark explain ->
     boolean isSparkExplain();
