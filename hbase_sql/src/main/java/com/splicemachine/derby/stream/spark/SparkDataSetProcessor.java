@@ -49,6 +49,7 @@ import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.IndentedString;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -78,6 +79,7 @@ import java.util.*;
  */
 public class SparkDataSetProcessor implements DistributedDataSetProcessor, Serializable {
     private static final long serialVersionUID = 9152794997108375878L;
+
     private long failBadRecordCount = -1;
     private boolean permissive;
     private String statusDirectory;
@@ -191,7 +193,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return operationContext;
     }
 
-
+    @SuppressFBWarnings(value = "NP_LOAD_OF_KNOWN_NULL_VALUE",justification = "Intentional")
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
         BroadcastedActivation ba = activation != null ? broadcastedActivation : null;
@@ -442,6 +444,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         throw e;
     }
 
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH",justification = "Intentional")
     @Override
     public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException {
         StructType schema = null;
@@ -876,8 +879,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public TableChecker getTableChecker(String schemaName, String tableName, DataSet table,
-                                        KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix) {
-        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix);
+                                        KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix,
+                                        int[] baseColumnMap) {
+        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix, baseColumnMap);
     }
 
     @Override
