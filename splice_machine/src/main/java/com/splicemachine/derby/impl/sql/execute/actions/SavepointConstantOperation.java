@@ -22,8 +22,8 @@ import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 /**
- *	This class  describes actions that are ALWAYS performed for a
- *	Savepoint (rollback, release and set savepoint) Statement at Execution time.
+ *    This class  describes actions that are ALWAYS performed for a
+ *    Savepoint (rollback, release and set savepoint) Statement at Execution time.
  */
 
 public class SavepointConstantOperation extends DDLConstantOperation {
@@ -44,21 +44,21 @@ public class SavepointConstantOperation extends DDLConstantOperation {
             throw new IllegalArgumentException("Unknown code for SavepointType : " + code);
         }
     }
-	private final String savepointName; //name of the savepoint
-	private final SavepointType	savepointStatementType; //Type of savepoint statement ie rollback, release or set savepoint
-	/**
-	 *	Make the ConstantAction for a set savepoint, rollback or release statement.
-	 *
-	 *  @param savepointName	Name of the savepoint.
-	 *  @param savepointStatementType	set savepoint, rollback savepoint or release savepoint
-	 */
-	public SavepointConstantOperation(String savepointName, int savepointStatementType) {
-		this.savepointName = savepointName;
-		this.savepointStatementType = SavepointType.forCode(savepointStatementType);
-	}
+    private final String savepointName; //name of the savepoint
+    private final SavepointType    savepointStatementType; //Type of savepoint statement ie rollback, release or set savepoint
+    /**
+     *    Make the ConstantAction for a set savepoint, rollback or release statement.
+     *
+     *  @param savepointName    Name of the savepoint.
+     *  @param savepointStatementType    set savepoint, rollback savepoint or release savepoint
+     */
+    public SavepointConstantOperation(String savepointName, int savepointStatementType) {
+        this.savepointName = savepointName;
+        this.savepointStatementType = SavepointType.forCode(savepointStatementType);
+    }
 
-	// OBJECT METHODS
-	public	String	toString() {
+    // OBJECT METHODS
+    public    String    toString() {
     switch(savepointStatementType){
         case CREATE:
             return constructToString("SAVEPOINT ",savepointName);
@@ -67,14 +67,14 @@ public class SavepointConstantOperation extends DDLConstantOperation {
         default:
             return constructToString("RELEASE TO SAVEPOINT",savepointName);
     }
-	}
+    }
 
     /**
-     *	This is the guts of the Execution-time logic for CREATE TABLE.
+     *    This is the guts of the Execution-time logic for CREATE TABLE.
      *
-     *	@see ConstantAction#executeConstantAction
+     *    @see ConstantAction#executeConstantAction
      *
-     * @exception StandardException		Thrown on failure
+     * @exception StandardException        Thrown on failure
      */
     public void executeConstantAction( Activation activation ) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();

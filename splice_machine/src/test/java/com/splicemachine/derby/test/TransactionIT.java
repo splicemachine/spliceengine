@@ -57,16 +57,16 @@ public class TransactionIT extends SpliceUnitTest {
     private static final String TABLE_NAME_18 = "R";
     private static final String TABLE_NAME_19 = "S";
 
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     public String getTableReference(String tableName) {
         return CLASS_NAME + "." + tableName;
     }
 
     @ClassRule
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher);
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+        .around(spliceSchemaWatcher);
+    
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     private TableDAO tableDAO;
     
@@ -75,53 +75,53 @@ public class TransactionIT extends SpliceUnitTest {
         tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
     }
     
-	@Test
-	public void testPreparedStatementAutoCommitOn() throws Exception {
-		tableDAO.drop(CLASS_NAME, TABLE_NAME_1);
-		methodWatcher.setAutoCommit(true);
-		Statement s = methodWatcher.getStatement();
-		s.execute(format("create table %s (i int, j varchar(10))", this.getTableReference(TABLE_NAME_1)));
-		PreparedStatement psc = methodWatcher.prepareStatement(format("insert into %s values (?,?)",this.getTableReference(TABLE_NAME_1)));
-		for (int i =0; i< 2; i++) {
-			psc.setInt(1, i);
-			psc.setString(2, "i");
-			psc.executeUpdate();
-		}
-		ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s", this.getTableReference(TABLE_NAME_1)));
-		rs.next();
-		Assert.assertEquals(2, rs.getInt(1));	
-	}
-	
-	@Test
-	public void testPreparedStatementAutoCommitOff() throws Exception {
-		tableDAO.drop(CLASS_NAME, TABLE_NAME_2);
-		methodWatcher.setAutoCommit(false);
-		Statement s = methodWatcher.getStatement();
-		s.execute(format("create table %s (i int, j varchar(10))", this.getTableReference(TABLE_NAME_2)));
-		methodWatcher.commit();
-		PreparedStatement psc = methodWatcher.prepareStatement(format("insert into %s values (?,?)",this.getTableReference(TABLE_NAME_2)));
-		for (int i =0; i< 2; i++) {
-			psc.setInt(1, i);
-			psc.setString(2, "i");
-			psc.executeUpdate();
-		}
-		methodWatcher.commit();
-		ResultSet rs = s.executeQuery(format("select count(*) from %s",this.getTableReference(TABLE_NAME_2)));
-		rs.next();
-		Assert.assertEquals(2, rs.getInt(1));	
-		methodWatcher.commit();
-	}
+    @Test
+    public void testPreparedStatementAutoCommitOn() throws Exception {
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_1);
+        methodWatcher.setAutoCommit(true);
+        Statement s = methodWatcher.getStatement();
+        s.execute(format("create table %s (i int, j varchar(10))", this.getTableReference(TABLE_NAME_1)));
+        PreparedStatement psc = methodWatcher.prepareStatement(format("insert into %s values (?,?)",this.getTableReference(TABLE_NAME_1)));
+        for (int i =0; i< 2; i++) {
+            psc.setInt(1, i);
+            psc.setString(2, "i");
+            psc.executeUpdate();
+        }
+        ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s", this.getTableReference(TABLE_NAME_1)));
+        rs.next();
+        Assert.assertEquals(2, rs.getInt(1));    
+    }
+    
+    @Test
+    public void testPreparedStatementAutoCommitOff() throws Exception {
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_2);
+        methodWatcher.setAutoCommit(false);
+        Statement s = methodWatcher.getStatement();
+        s.execute(format("create table %s (i int, j varchar(10))", this.getTableReference(TABLE_NAME_2)));
+        methodWatcher.commit();
+        PreparedStatement psc = methodWatcher.prepareStatement(format("insert into %s values (?,?)",this.getTableReference(TABLE_NAME_2)));
+        for (int i =0; i< 2; i++) {
+            psc.setInt(1, i);
+            psc.setString(2, "i");
+            psc.executeUpdate();
+        }
+        methodWatcher.commit();
+        ResultSet rs = s.executeQuery(format("select count(*) from %s",this.getTableReference(TABLE_NAME_2)));
+        rs.next();
+        Assert.assertEquals(2, rs.getInt(1));    
+        methodWatcher.commit();
+    }
 
     /*
         This test is specifically testing for the ability to drop a table in a transaction,
         which requires transactional DDL and needs to be revisited once we support it.
      */
-	@Test
-	public void testCreateDrop() throws Exception {
-		tableDAO.drop(CLASS_NAME, TABLE_NAME_3);
-		methodWatcher.setAutoCommit(false);
-		Statement s = methodWatcher.getStatement();
-		s.execute(format("create table %s (i int, j varchar(10))", this.getTableReference(TABLE_NAME_3)));
+    @Test
+    public void testCreateDrop() throws Exception {
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_3);
+        methodWatcher.setAutoCommit(false);
+        Statement s = methodWatcher.getStatement();
+        s.execute(format("create table %s (i int, j varchar(10))", this.getTableReference(TABLE_NAME_3)));
 
         methodWatcher.commit();
 
@@ -130,50 +130,50 @@ public class TransactionIT extends SpliceUnitTest {
         methodWatcher.commit();
 
         ResultSet rs = methodWatcher.createConnection().getMetaData().getTables(null, CLASS_NAME, TABLE_NAME_3, null);
-		if (rs.next())
-			Assert.assertTrue("The rolled back table exists in the dictionary!",false);
-	}
+        if (rs.next())
+            Assert.assertTrue("The rolled back table exists in the dictionary!",false);
+    }
 
-	@Test
-	public void testCommitCreate() throws Exception { // TODO What is it that we are testing?
-		tableDAO.drop(CLASS_NAME, TABLE_NAME_4);
-		methodWatcher.setAutoCommit(false);
-		Statement s = methodWatcher.getStatement();
-		s.execute(format("create table %s (num int, addr varchar(50), zip char(5))",this.getTableReference(TABLE_NAME_4)));
-		methodWatcher.commit();
-		ResultSet rs = methodWatcher.createConnection().getMetaData().getTables(null, CLASS_NAME, TABLE_NAME_4, null);
-		if (!rs.next())
-			Assert.assertTrue("The table does not exist in the dictionary!",false);
-	}	
-	
-	@Test
-	public void testCommitNonCommitInsert() throws Exception {
-			tableDAO.drop(CLASS_NAME, TABLE_NAME_5);
-			methodWatcher.setAutoCommit(false);
-			Statement s = methodWatcher.getStatement();
-			s.execute(format("create table %s (num int, addr varchar(50), zip char(5))", this.getTableReference(TABLE_NAME_5)));
+    @Test
+    public void testCommitCreate() throws Exception { // TODO What is it that we are testing?
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_4);
+        methodWatcher.setAutoCommit(false);
+        Statement s = methodWatcher.getStatement();
+        s.execute(format("create table %s (num int, addr varchar(50), zip char(5))",this.getTableReference(TABLE_NAME_4)));
+        methodWatcher.commit();
+        ResultSet rs = methodWatcher.createConnection().getMetaData().getTables(null, CLASS_NAME, TABLE_NAME_4, null);
+        if (!rs.next())
+            Assert.assertTrue("The table does not exist in the dictionary!",false);
+    }    
+    
+    @Test
+    public void testCommitNonCommitInsert() throws Exception {
+            tableDAO.drop(CLASS_NAME, TABLE_NAME_5);
+            methodWatcher.setAutoCommit(false);
+            Statement s = methodWatcher.getStatement();
+            s.execute(format("create table %s (num int, addr varchar(50), zip char(5))", this.getTableReference(TABLE_NAME_5)));
 
             methodWatcher.commit();
 
             s.execute(format("insert into %s values(100, '100: 101 Califronia St', '94114')",this.getTableReference(TABLE_NAME_5)));
-			s.execute(format("insert into %s values(200, '200: 908 Glade Ct.', '94509')",this.getTableReference(TABLE_NAME_5)));
-			s.execute(format("insert into %s values(300, '300: my addr', '34166')",this.getTableReference(TABLE_NAME_5)));
-			s.execute(format("insert into %s values(400, '400: 182 Second St.', '94114')",this.getTableReference(TABLE_NAME_5)));
-			s.execute(format("insert into %s(num) values(500)",this.getTableReference(TABLE_NAME_5)));
-			s.execute(format("insert into %s values(600, 'new addr', '34166')",this.getTableReference(TABLE_NAME_5)));
-			methodWatcher.commit();
-			s.execute(format("insert into %s(num) values(700)",this.getTableReference(TABLE_NAME_5)));			
-			ResultSet rs = s.executeQuery(format("select * from %s",this.getTableReference(TABLE_NAME_5)));
-			int i = 0;
-			while (rs.next()) {
-				i++;
-			}	
-			Assert.assertEquals(7, i);					
-	}
+            s.execute(format("insert into %s values(200, '200: 908 Glade Ct.', '94509')",this.getTableReference(TABLE_NAME_5)));
+            s.execute(format("insert into %s values(300, '300: my addr', '34166')",this.getTableReference(TABLE_NAME_5)));
+            s.execute(format("insert into %s values(400, '400: 182 Second St.', '94114')",this.getTableReference(TABLE_NAME_5)));
+            s.execute(format("insert into %s(num) values(500)",this.getTableReference(TABLE_NAME_5)));
+            s.execute(format("insert into %s values(600, 'new addr', '34166')",this.getTableReference(TABLE_NAME_5)));
+            methodWatcher.commit();
+            s.execute(format("insert into %s(num) values(700)",this.getTableReference(TABLE_NAME_5)));            
+            ResultSet rs = s.executeQuery(format("select * from %s",this.getTableReference(TABLE_NAME_5)));
+            int i = 0;
+            while (rs.next()) {
+                i++;
+            }    
+            Assert.assertEquals(7, i);                    
+    }
 
     @Test
     public void testTransactionDDLCommitNonCommitInsert() throws Exception {
-		tableDAO.drop(CLASS_NAME, TABLE_NAME_6);
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_6);
         methodWatcher.setAutoCommit(false);
         Statement s = methodWatcher.getStatement();
         s.execute(format("create table %s (num int, addr varchar(50), zip char(5))", this.getTableReference(TABLE_NAME_6)));
@@ -195,18 +195,18 @@ public class TransactionIT extends SpliceUnitTest {
 
 
     @Test(expected=SQLException.class)
-	public void testRollbackCreate() throws Exception { 
-		tableDAO.drop(CLASS_NAME, TABLE_NAME_7);
+    public void testRollbackCreate() throws Exception { 
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_7);
 
-			methodWatcher.setAutoCommit(false);
-			Statement s = methodWatcher.getStatement();
-			s.execute(format("create table %s (num int)",this.getTableReference(TABLE_NAME_7)));
-			methodWatcher.rollback();
-			ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, CLASS_NAME, TABLE_NAME_7, null);
-			if (rs.next())
-				Assert.assertTrue("The rolled back table exists in the dictionary!",false);
-			s.execute(format("insert into %s values(100)",this.getTableReference(TABLE_NAME_7)));
-	}
+            methodWatcher.setAutoCommit(false);
+            Statement s = methodWatcher.getStatement();
+            s.execute(format("create table %s (num int)",this.getTableReference(TABLE_NAME_7)));
+            methodWatcher.rollback();
+            ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getTables(null, CLASS_NAME, TABLE_NAME_7, null);
+            if (rs.next())
+                Assert.assertTrue("The rolled back table exists in the dictionary!",false);
+            s.execute(format("insert into %s values(100)",this.getTableReference(TABLE_NAME_7)));
+    }
 
     @Test
     public void testUpdateRollback() throws Exception {
@@ -311,45 +311,45 @@ public class TransactionIT extends SpliceUnitTest {
     }
 
     @Test
-	public void testTransactionalSelectString() throws Exception {	
-		tableDAO.drop(CLASS_NAME, TABLE_NAME_11);
-		methodWatcher.setAutoCommit(false);
-		Statement s = methodWatcher.getStatement();
-		s.execute(format("create table %s (name varchar(40), empId int)",this.getTableReference(TABLE_NAME_11)));
+    public void testTransactionalSelectString() throws Exception {    
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_11);
+        methodWatcher.setAutoCommit(false);
+        Statement s = methodWatcher.getStatement();
+        s.execute(format("create table %s (name varchar(40), empId int)",this.getTableReference(TABLE_NAME_11)));
 
         methodWatcher.commit();
 
         s.execute(format("insert into %s values('Mulgrew, Kate', 1)",this.getTableReference(TABLE_NAME_11)));
-		s.execute(format("insert into %s values('Shatner, William', 2)",this.getTableReference(TABLE_NAME_11)));
-		s.execute(format("insert into %s values('Nimoy, Leonard', 3)",this.getTableReference(TABLE_NAME_11)));
-		s.execute(format("insert into %s values('Stewart, Patrick', 4)",this.getTableReference(TABLE_NAME_11)));
-		s.execute(format("insert into %s values('Spiner, Brent', 5)",this.getTableReference(TABLE_NAME_11)));
-		s.execute(format("insert into %s values('Duncan, Rebort', 6)",this.getTableReference(TABLE_NAME_11)));
-		s.execute(format("insert into %s values('Nimoy, Leonard', 7)",this.getTableReference(TABLE_NAME_11)));
-		s.execute(format("insert into %s values('Ryan, Jeri', 8)",this.getTableReference(TABLE_NAME_11)));	
-		methodWatcher.commit();
-		s.execute(format("insert into %s values('Noncommitted, Noncommitted', 9)",this.getTableReference(TABLE_NAME_11)));
-		ResultSet rs = s.executeQuery(format("select name from %S",this.getTableReference(TABLE_NAME_11)));
-		
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			Assert.assertNotNull(rs.getString(1));
-		}	
-		Assert.assertEquals(9, j);
-		methodWatcher.rollback();	
-		rs = s.executeQuery(format("select name from %s",this.getTableReference(TABLE_NAME_11)));
-		j = 0;
-		while (rs.next()) {
-			j++;
-			Assert.assertNotNull(rs.getString(1));
-		}	
-		Assert.assertEquals(8, j);
-	}
+        s.execute(format("insert into %s values('Shatner, William', 2)",this.getTableReference(TABLE_NAME_11)));
+        s.execute(format("insert into %s values('Nimoy, Leonard', 3)",this.getTableReference(TABLE_NAME_11)));
+        s.execute(format("insert into %s values('Stewart, Patrick', 4)",this.getTableReference(TABLE_NAME_11)));
+        s.execute(format("insert into %s values('Spiner, Brent', 5)",this.getTableReference(TABLE_NAME_11)));
+        s.execute(format("insert into %s values('Duncan, Rebort', 6)",this.getTableReference(TABLE_NAME_11)));
+        s.execute(format("insert into %s values('Nimoy, Leonard', 7)",this.getTableReference(TABLE_NAME_11)));
+        s.execute(format("insert into %s values('Ryan, Jeri', 8)",this.getTableReference(TABLE_NAME_11)));    
+        methodWatcher.commit();
+        s.execute(format("insert into %s values('Noncommitted, Noncommitted', 9)",this.getTableReference(TABLE_NAME_11)));
+        ResultSet rs = s.executeQuery(format("select name from %S",this.getTableReference(TABLE_NAME_11)));
+        
+        int j = 0;
+        while (rs.next()) {
+            j++;
+            Assert.assertNotNull(rs.getString(1));
+        }    
+        Assert.assertEquals(9, j);
+        methodWatcher.rollback();    
+        rs = s.executeQuery(format("select name from %s",this.getTableReference(TABLE_NAME_11)));
+        j = 0;
+        while (rs.next()) {
+            j++;
+            Assert.assertNotNull(rs.getString(1));
+        }    
+        Assert.assertEquals(8, j);
+    }
 
     @Test
     public void testTransactionaDDLlSelectString() throws Exception {
-		tableDAO.drop(CLASS_NAME, TABLE_NAME_12);
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_12);
         methodWatcher.setAutoCommit(false);
         Statement s = methodWatcher.getStatement();
         s.execute(format("create table %s (name varchar(40), empId int)",this.getTableReference(TABLE_NAME_12)));
@@ -382,62 +382,62 @@ public class TransactionIT extends SpliceUnitTest {
     }
 
     @Test
-	public void testTransactionalDDLSinkOperationResultSets() throws Exception {
-		tableDAO.drop(CLASS_NAME, TABLE_NAME_13);
-			methodWatcher.setAutoCommit(false);
+    public void testTransactionalDDLSinkOperationResultSets() throws Exception {
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_13);
+            methodWatcher.setAutoCommit(false);
             Statement s = methodWatcher.getStatement();
 
             s.execute(format("create table %s (name varchar(40), empId int)",this.getTableReference(TABLE_NAME_13)));
-			s.execute(format("insert into %s values('Mulgrew, Kate', 1)",this.getTableReference(TABLE_NAME_13)));
-			s.execute(format("insert into %s values('Shatner, William', 2)",this.getTableReference(TABLE_NAME_13)));
-			s.execute(format("insert into %s values('Nimoy, Leonard', 3)",this.getTableReference(TABLE_NAME_13)));
-			s.execute(format("insert into %s values('Stewart, Patrick', 4)",this.getTableReference(TABLE_NAME_13)));
-			s.execute(format("insert into %s values('Spiner, Brent', 5)",this.getTableReference(TABLE_NAME_13)));
-			s.execute(format("insert into %s values('Duncan, Rebort', 6)",this.getTableReference(TABLE_NAME_13)));
-			s.execute(format("insert into %s values('Nimoy, Leonard', 7)",this.getTableReference(TABLE_NAME_13)));
-			s.execute(format("insert into %s values('Ryan, Jeri', 8)",this.getTableReference(TABLE_NAME_13)));
-			methodWatcher.commit();
-			s = methodWatcher.getStatement();
-			s.execute(format("insert into %s values('Noncommitted, Noncommitted', 9)", this.getTableReference(TABLE_NAME_13)));
-			ResultSet rs = s.executeQuery(format("select distinct name from %s",this.getTableReference(TABLE_NAME_13)));
-			int j = 0;
-			while (rs.next()) {
-				j++;
-				Assert.assertNotNull(rs.getString(1));
-			}	
-			Assert.assertEquals(8, j);
-			s.execute(format("insert into %s values('Nimoy, Leonard', 10)",this.getTableReference(TABLE_NAME_13)));
-			rs = s.executeQuery(format("select name, count(empId) from %s group by name",this.getTableReference(TABLE_NAME_13)));
-			j = 0;
-			while (rs.next()) {
-				j++;
-				Assert.assertNotNull(rs.getString(1));
-				if ("Nimoy, Leonard".equals(rs.getString(1)))
-					Assert.assertEquals(3, rs.getInt(2));
-			}	
-			Assert.assertEquals(8, j);
-			methodWatcher.rollback();			
-			rs = methodWatcher.executeQuery(format("select distinct name from %s",this.getTableReference(TABLE_NAME_13)));
-			j = 0;
-			while (rs.next()) {
-				j++;
-				Assert.assertNotNull(rs.getString(1));
-			}	
-			Assert.assertEquals(7, j);			
-			rs = s.executeQuery(format("select name, count(empId) from %s group by name", this.getTableReference(TABLE_NAME_13)));
-			j = 0;
-			while (rs.next()) {
-				j++;
-				Assert.assertNotNull(rs.getString(1));
-				if ("Nimoy, Leonard".equals(rs.getString(1)))
-					Assert.assertEquals(2, rs.getInt(2));
-			}	
-			Assert.assertEquals(7, j);
-	}
+            s.execute(format("insert into %s values('Mulgrew, Kate', 1)",this.getTableReference(TABLE_NAME_13)));
+            s.execute(format("insert into %s values('Shatner, William', 2)",this.getTableReference(TABLE_NAME_13)));
+            s.execute(format("insert into %s values('Nimoy, Leonard', 3)",this.getTableReference(TABLE_NAME_13)));
+            s.execute(format("insert into %s values('Stewart, Patrick', 4)",this.getTableReference(TABLE_NAME_13)));
+            s.execute(format("insert into %s values('Spiner, Brent', 5)",this.getTableReference(TABLE_NAME_13)));
+            s.execute(format("insert into %s values('Duncan, Rebort', 6)",this.getTableReference(TABLE_NAME_13)));
+            s.execute(format("insert into %s values('Nimoy, Leonard', 7)",this.getTableReference(TABLE_NAME_13)));
+            s.execute(format("insert into %s values('Ryan, Jeri', 8)",this.getTableReference(TABLE_NAME_13)));
+            methodWatcher.commit();
+            s = methodWatcher.getStatement();
+            s.execute(format("insert into %s values('Noncommitted, Noncommitted', 9)", this.getTableReference(TABLE_NAME_13)));
+            ResultSet rs = s.executeQuery(format("select distinct name from %s",this.getTableReference(TABLE_NAME_13)));
+            int j = 0;
+            while (rs.next()) {
+                j++;
+                Assert.assertNotNull(rs.getString(1));
+            }    
+            Assert.assertEquals(8, j);
+            s.execute(format("insert into %s values('Nimoy, Leonard', 10)",this.getTableReference(TABLE_NAME_13)));
+            rs = s.executeQuery(format("select name, count(empId) from %s group by name",this.getTableReference(TABLE_NAME_13)));
+            j = 0;
+            while (rs.next()) {
+                j++;
+                Assert.assertNotNull(rs.getString(1));
+                if ("Nimoy, Leonard".equals(rs.getString(1)))
+                    Assert.assertEquals(3, rs.getInt(2));
+            }    
+            Assert.assertEquals(8, j);
+            methodWatcher.rollback();            
+            rs = methodWatcher.executeQuery(format("select distinct name from %s",this.getTableReference(TABLE_NAME_13)));
+            j = 0;
+            while (rs.next()) {
+                j++;
+                Assert.assertNotNull(rs.getString(1));
+            }    
+            Assert.assertEquals(7, j);            
+            rs = s.executeQuery(format("select name, count(empId) from %s group by name", this.getTableReference(TABLE_NAME_13)));
+            j = 0;
+            while (rs.next()) {
+                j++;
+                Assert.assertNotNull(rs.getString(1));
+                if ("Nimoy, Leonard".equals(rs.getString(1)))
+                    Assert.assertEquals(2, rs.getInt(2));
+            }    
+            Assert.assertEquals(7, j);
+    }
 
     @Test
     public void testTransactionalSinkOperationResultSets() throws Exception {
-		tableDAO.drop(CLASS_NAME, TABLE_NAME_14);
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_14);
         methodWatcher.setAutoCommit(false);
         Statement s = methodWatcher.getStatement();
 
@@ -496,26 +496,26 @@ public class TransactionIT extends SpliceUnitTest {
         Assert.assertEquals(7, j);
     }
 
-	@Test
-	public void testTrasactionalDDLFailedInsert() throws Exception {
-		tableDAO.drop(CLASS_NAME, TABLE_NAME_15);
-		try {
-			methodWatcher.setAutoCommit(false);
-			Statement s = methodWatcher.getStatement();
-			s.execute(format("create table %s(num int, addr varchar(50), zip char(5))",this.getTableReference(TABLE_NAME_15)));	
-			s.execute(format("insert into %s values(100, '100F: 101 Califronia St', '94114')",this.getTableReference(TABLE_NAME_15)));
-			s.execute(format("insert into %s values(200, '200F: 908 Glade Ct.', '94509')",this.getTableReference(TABLE_NAME_15)));
-			s.execute(format("insert into %s values(300, '300F: my addr', '34166')",this.getTableReference(TABLE_NAME_15)));
-			s.execute(format("insert into %s values(400, '400F: 182 Second St.', '94114')",this.getTableReference(TABLE_NAME_15)));
-			s.execute(format("insert into %s(num) values('500c')",this.getTableReference(TABLE_NAME_15)));
-		} catch (SQLException e) {
-			methodWatcher.rollback();
-		}
-	}
+    @Test
+    public void testTrasactionalDDLFailedInsert() throws Exception {
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_15);
+        try {
+            methodWatcher.setAutoCommit(false);
+            Statement s = methodWatcher.getStatement();
+            s.execute(format("create table %s(num int, addr varchar(50), zip char(5))",this.getTableReference(TABLE_NAME_15)));    
+            s.execute(format("insert into %s values(100, '100F: 101 Califronia St', '94114')",this.getTableReference(TABLE_NAME_15)));
+            s.execute(format("insert into %s values(200, '200F: 908 Glade Ct.', '94509')",this.getTableReference(TABLE_NAME_15)));
+            s.execute(format("insert into %s values(300, '300F: my addr', '34166')",this.getTableReference(TABLE_NAME_15)));
+            s.execute(format("insert into %s values(400, '400F: 182 Second St.', '94114')",this.getTableReference(TABLE_NAME_15)));
+            s.execute(format("insert into %s(num) values('500c')",this.getTableReference(TABLE_NAME_15)));
+        } catch (SQLException e) {
+            methodWatcher.rollback();
+        }
+    }
 
     @Test
     public void testFailedInsert() throws Exception {
-		tableDAO.drop(CLASS_NAME, TABLE_NAME_16);
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_16);
         try {
             methodWatcher.setAutoCommit(false);
             Statement s = methodWatcher.getStatement();
@@ -534,28 +534,28 @@ public class TransactionIT extends SpliceUnitTest {
     }
 
     @Test
-	public void testAlterTableTrasactionalDDLAddColumn() throws Exception {
-		tableDAO.drop(CLASS_NAME, TABLE_NAME_17);
-			methodWatcher.setAutoCommit(false);
-			Statement s = methodWatcher.getStatement();
-			s.execute(format("create table %s(num int, addr varchar(50), zip char(5))",this.getTableReference(TABLE_NAME_17)));	
-			s.execute(format("insert into %s values(100, '100F: 101 Califronia St', '94114')",this.getTableReference(TABLE_NAME_17)));
-			s.execute(format("insert into %s values(200, '200F: 908 Glade Ct.', '94509')",this.getTableReference(TABLE_NAME_17)));
-			s.execute(format("insert into %s values(300, '300F: my addr', '34166')",this.getTableReference(TABLE_NAME_17)));
-			s.execute(format("insert into %s values(400, '400F: 182 Second St.', '94114')",this.getTableReference(TABLE_NAME_17)));
-			s.execute(format("insert into %s(num) values(500)",this.getTableReference(TABLE_NAME_17)));
-			methodWatcher.commit();
-			s.execute(format("Alter table %s add column salary float default 0.0",this.getTableReference(TABLE_NAME_17)));	
-			s.execute(format("update %s set salary=1000.0 where zip='94114'",this.getTableReference(TABLE_NAME_17)));	
-			s.execute(format("update %s set salary=5000.85 where zip='94509'",this.getTableReference(TABLE_NAME_17)));	
-			ResultSet rs = s.executeQuery(format("select zip, salary from %s where salary > 0",this.getTableReference(TABLE_NAME_17)));
-			int count = 0;
-			while (rs.next()) {
-				count++;
-				Assert.assertNotNull("Salary is null!",rs.getFloat(2));
-			}
-			Assert.assertEquals("Salary Cannot Be Queried after added!", 3,count);
-	}
+    public void testAlterTableTrasactionalDDLAddColumn() throws Exception {
+        tableDAO.drop(CLASS_NAME, TABLE_NAME_17);
+            methodWatcher.setAutoCommit(false);
+            Statement s = methodWatcher.getStatement();
+            s.execute(format("create table %s(num int, addr varchar(50), zip char(5))",this.getTableReference(TABLE_NAME_17)));    
+            s.execute(format("insert into %s values(100, '100F: 101 Califronia St', '94114')",this.getTableReference(TABLE_NAME_17)));
+            s.execute(format("insert into %s values(200, '200F: 908 Glade Ct.', '94509')",this.getTableReference(TABLE_NAME_17)));
+            s.execute(format("insert into %s values(300, '300F: my addr', '34166')",this.getTableReference(TABLE_NAME_17)));
+            s.execute(format("insert into %s values(400, '400F: 182 Second St.', '94114')",this.getTableReference(TABLE_NAME_17)));
+            s.execute(format("insert into %s(num) values(500)",this.getTableReference(TABLE_NAME_17)));
+            methodWatcher.commit();
+            s.execute(format("Alter table %s add column salary float default 0.0",this.getTableReference(TABLE_NAME_17)));    
+            s.execute(format("update %s set salary=1000.0 where zip='94114'",this.getTableReference(TABLE_NAME_17)));    
+            s.execute(format("update %s set salary=5000.85 where zip='94509'",this.getTableReference(TABLE_NAME_17)));    
+            ResultSet rs = s.executeQuery(format("select zip, salary from %s where salary > 0",this.getTableReference(TABLE_NAME_17)));
+            int count = 0;
+            while (rs.next()) {
+                count++;
+                Assert.assertNotNull("Salary is null!",rs.getFloat(2));
+            }
+            Assert.assertEquals("Salary Cannot Be Queried after added!", 3,count);
+    }
 
 
     @Test

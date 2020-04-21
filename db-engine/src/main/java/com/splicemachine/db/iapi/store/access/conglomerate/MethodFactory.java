@@ -44,43 +44,43 @@ import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 
 public interface MethodFactory extends ModuleSupportable
 {
-	/**
-	Used to identify this interface when finding it with the Monitor.
-	**/
-	String MODULE =
-	  "com.splicemachine.db.iapi.store.access.conglomerate.MethodFactory";
+    /**
+    Used to identify this interface when finding it with the Monitor.
+    **/
+    String MODULE =
+      "com.splicemachine.db.iapi.store.access.conglomerate.MethodFactory";
 
-	/**
-	Return the default properties for this access method.
-	**/
-	Properties defaultProperties();
+    /**
+    Return the default properties for this access method.
+    **/
+    Properties defaultProperties();
 
-	/**
-	Return whether this access method implements the implementation
-	type given in the argument string.
-	**/
-	boolean supportsImplementation(String implementationId);
+    /**
+    Return whether this access method implements the implementation
+    type given in the argument string.
+    **/
+    boolean supportsImplementation(String implementationId);
 
-	/**
-	Return the primary implementation type for this access method.
-	Although an access method may implement more than one implementation
-	type, this is the expected one.  The access manager will put the
-	primary implementation type in a hash table for fast access.
-	**/
-	String primaryImplementationType();
+    /**
+    Return the primary implementation type for this access method.
+    Although an access method may implement more than one implementation
+    type, this is the expected one.  The access manager will put the
+    primary implementation type in a hash table for fast access.
+    **/
+    String primaryImplementationType();
 
-	/**
-	Return whether this access method supports the format supplied in
-	the argument.
-	**/
-	boolean supportsFormat(UUID formatid);
+    /**
+    Return whether this access method supports the format supplied in
+    the argument.
+    **/
+    boolean supportsFormat(UUID formatid);
 
-	/**
-	Return the primary format that this access method supports.
-	Although an access method may support more than one format, this
-	is the usual one.  the access manager will put the primary format
-	in a hash table for fast access to the appropriate method.
-	**/
-	UUID primaryFormat();
+    /**
+    Return the primary format that this access method supports.
+    Although an access method may support more than one format, this
+    is the usual one.  the access manager will put the primary format
+    in a hash table for fast access to the appropriate method.
+    **/
+    UUID primaryFormat();
 }
 

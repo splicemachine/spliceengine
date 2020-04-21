@@ -99,12 +99,12 @@ public class GroupByList extends OrderedColumnList{
                         getContextManager());
         int size=size();
 
-		/* Only 32677 columns allowed in GROUP BY clause */
+        /* Only 32677 columns allowed in GROUP BY clause */
         if(size>Limits.DB2_MAX_ELEMENTS_IN_GROUP_BY){
             throw StandardException.newException(SQLState.LANG_TOO_MANY_ELEMENTS);
         }
 
-		/* Bind the grouping column */
+        /* Bind the grouping column */
         for(int index=0;index<size;index++){
             GroupByColumn groupByCol=(GroupByColumn)elementAt(index);
             if (OrderByColumn.isReferedColByNum(groupByCol.getColumnExpression())) {
@@ -112,10 +112,10 @@ public class GroupByList extends OrderedColumnList{
                 int columnPosition = (Integer) groupByCol.getColumnExpression().getConstantValueAsObject();
                 ResultColumn resultCol = targetCols.getResultColumn(columnPosition);
 
-			    /* Column is out of range if either a) resultCol is null, OR
-			     * b) resultCol points to a column that is not visible to the
-			     * user (i.e. it was generated internally).
-			    */
+                /* Column is out of range if either a) resultCol is null, OR
+                 * b) resultCol points to a column that is not visible to the
+                 * user (i.e. it was generated internally).
+                */
                 if ((resultCol == null) ||
                         (resultCol.getColumnPosition() > targetCols.visibleSize()))
                 {
@@ -146,7 +146,7 @@ public class GroupByList extends OrderedColumnList{
                     dummySubqueryList,aggregateVector);
         }
 
-		/* Verify that no subqueries got added to the dummy list */
+        /* Verify that no subqueries got added to the dummy list */
         if(SanityManager.DEBUG){
             SanityManager.ASSERT(dummySubqueryList.isEmpty(),
                     "dummySubqueryList.size() is expected to be 0");
@@ -294,7 +294,7 @@ public class GroupByList extends OrderedColumnList{
         GroupByColumn gbc;
         int size=size();
 
-		/* This method is called when flattening a FromTable. */
+        /* This method is called when flattening a FromTable. */
         // gd this is pulling in a patch from Derby 10.11 see JIRA issue DERBY-5313
         for(int index=0;index<size;index++){
             gbc=(GroupByColumn)elementAt(index);

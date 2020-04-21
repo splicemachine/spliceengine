@@ -50,20 +50,20 @@ public class ZkTimestampSource implements TimestampSource {
     }
     
     private void initialize(SConfiguration config) {
-    	// We synchronize because we only want one instance of TimestampClient
-    	// per region server, each of which handles multiple concurrent requests.
-    	// Should be fine since synchronization occurs on the server.
-    	synchronized(this) {
-    		if (_tc == null) {
+        // We synchronize because we only want one instance of TimestampClient
+        // per region server, each of which handles multiple concurrent requests.
+        // Should be fine since synchronization occurs on the server.
+        synchronized(this) {
+            if (_tc == null) {
                 rootZkPath = config.getSpliceRootPath();
                 int timeout = config.getTimestampClientWaitTime();
                 int timestampPort = config.getTimestampServerBindPort();
-		    	LOG.info("Creating the TimestampClient...");
+                LOG.info("Creating the TimestampClient...");
                 HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
                 _tc = new TimestampClient(timeout,
                         new HBaseTimestampHostProvider(hbcf,timestampPort));
-    		}
-    	}
+            }
+        }
     }
     
     protected TimestampClient getTimestampClient() {
@@ -71,7 +71,7 @@ public class ZkTimestampSource implements TimestampSource {
             LOG.error("The timestamp source has been closed.");
             throw new RuntimeException("The timestamp source has been closed.");
         }
-    	return _tc;
+        return _tc;
     }
 
     @Override
@@ -103,15 +103,15 @@ public class ZkTimestampSource implements TimestampSource {
     @Override
     public long nextTimestamp() {
 
-		TimestampClient client = getTimestampClient();
-				
-		long nextTimestamp;
-		try {
-			nextTimestamp = client.getNextTimestamp();
-		} catch (Exception e) {
+        TimestampClient client = getTimestampClient();
+                
+        long nextTimestamp;
+        try {
+            nextTimestamp = client.getNextTimestamp();
+        } catch (Exception e) {
             LOG.warn("Unable to fetch new timestamp, will retry", e);
             
-		    // In case of error we are going to reconnect, so we can retry once more and see if we are lucky...
+            // In case of error we are going to reconnect, so we can retry once more and see if we are lucky...
             try {
                 Thread.sleep(100);
                 
@@ -120,16 +120,16 @@ public class ZkTimestampSource implements TimestampSource {
                 LOG.error("Unable to fetch new timestamp", e2);
                 throw new RuntimeException("Unable to fetch new timestamp", e2);
             }
-		}
+        }
 
-		SpliceLogUtils.debug(LOG, "Next timestamp: %s", nextTimestamp);
-		
-		return nextTimestamp;
-	}
+        SpliceLogUtils.debug(LOG, "Next timestamp: %s", nextTimestamp);
+        
+        return nextTimestamp;
+    }
 
-	// The following two are same as ZooKeeperStatTimestampSource,
-	// and can probably stay this way.
-	
+    // The following two are same as ZooKeeperStatTimestampSource,
+    // and can probably stay this way.
+    
     @Override
     public void rememberTimestamp(long timestamp) {
         byte[] data = Bytes.toBytes(timestamp);

@@ -95,7 +95,7 @@ public interface XMLDataValue extends DataValueDescriptor
      * @exception StandardException Thrown on error
      */
     BooleanDataValue XMLExists(SqlXmlUtil sqlxUtil)
-		throws StandardException;
+        throws StandardException;
 
     /**
      * Evaluate the XML query expression contained within the received
@@ -115,7 +115,7 @@ public interface XMLDataValue extends DataValueDescriptor
      *  StandardException by the caller).
      */
     XMLDataValue XMLQuery(SqlXmlUtil sqlxUtil, XMLDataValue result)
-		throws StandardException;
+        throws StandardException;
 
     /* ****
      * Helper classes and methods.

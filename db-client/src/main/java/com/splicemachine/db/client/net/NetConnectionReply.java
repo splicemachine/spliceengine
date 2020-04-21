@@ -549,9 +549,9 @@ public class NetConnectionReply extends Reply
         
         //Check if the SQLCARD has null SQLException
         if(netSqlca.getSqlErrmc() == null)
-        	netConnection.setConnectionNull(true);
+            netConnection.setConnectionNull(true);
         else
-        	netConnection.completeSqlca(netSqlca);
+            netConnection.completeSqlca(netSqlca);
     }
 
 

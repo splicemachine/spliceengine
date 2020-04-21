@@ -37,86 +37,86 @@ import java.sql.SQLException;
 public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
     private static final Logger LOG = Logger.getLogger(SpliceMemstoreKeyValueScannerIT.class);
     protected static String SCHEMA_NAME=SpliceMemstoreKeyValueScannerIT.class.getSimpleName();
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
-	protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SCHEMA_NAME,"(col1 int, col2 varchar(56), primary key (col1))");
-	
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcherA)
-		.around(new SpliceDataWatcher(){
-			@Override
-			protected void starting(Description description) {
-				try {
-					spliceClassWatcher.setAutoCommit(false);
-					for (int i = 0; i< 500; i++) {
-						if (i%10 != 0)
-							continue;							
-						PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ SCHEMA_NAME+ ".A (col1,col2) values (?,?)");
-						psA.setInt(1,i);
-						psA.setString(2, "dataset"+i);
-						psA.executeUpdate();
-						if (i==250)
-							flushTable(SCHEMA_NAME+".A");
-					}
-					
-					for (int i = 0; i< 500; i++) {
-						if (i%10 == 0) {
-							PreparedStatement psA = spliceClassWatcher.prepareStatement("update "+ SCHEMA_NAME+ ".A set col2 = ? where col1 = ?");
-							psA.setString(1, "datasetupdate"+i);
-							psA.setInt(2,i);
-							psA.executeUpdate();
-						} else {
-							PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ SCHEMA_NAME+ ".A (col1,col2) values (?,?)");
-							psA.setInt(1,i);
-							psA.setString(2, "dataset"+i);
-							psA.executeUpdate();
-						}
-					}
-					spliceClassWatcher.commit();
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-				finally {
-					spliceClassWatcher.closeAll();
-				}
-			}
-			
-		});
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SCHEMA_NAME,"(col1 int, col2 varchar(56), primary key (col1))");
+    
+    @ClassRule 
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+        .around(spliceSchemaWatcher)
+        .around(spliceTableWatcherA)
+        .around(new SpliceDataWatcher(){
+            @Override
+            protected void starting(Description description) {
+                try {
+                    spliceClassWatcher.setAutoCommit(false);
+                    for (int i = 0; i< 500; i++) {
+                        if (i%10 != 0)
+                            continue;                            
+                        PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ SCHEMA_NAME+ ".A (col1,col2) values (?,?)");
+                        psA.setInt(1,i);
+                        psA.setString(2, "dataset"+i);
+                        psA.executeUpdate();
+                        if (i==250)
+                            flushTable(SCHEMA_NAME+".A");
+                    }
+                    
+                    for (int i = 0; i< 500; i++) {
+                        if (i%10 == 0) {
+                            PreparedStatement psA = spliceClassWatcher.prepareStatement("update "+ SCHEMA_NAME+ ".A set col2 = ? where col1 = ?");
+                            psA.setString(1, "datasetupdate"+i);
+                            psA.setInt(2,i);
+                            psA.executeUpdate();
+                        } else {
+                            PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ SCHEMA_NAME+ ".A (col1,col2) values (?,?)");
+                            psA.setInt(1,i);
+                            psA.setString(2, "dataset"+i);
+                            psA.executeUpdate();
+                        }
+                    }
+                    spliceClassWatcher.commit();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                finally {
+                    spliceClassWatcher.closeAll();
+                }
+            }
+            
+        });
+    
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-	@Test
-	@Ignore
-	public void testFlushHandling() throws SQLException, IOException, InterruptedException {
-    	int i = 0;
-		ResultScanner rs = null;
-		try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
-				TableName tableName = TableName.valueOf(sqlUtil.getConglomID(SCHEMA_NAME+".A"));
-	    	Table table = connection.getTable(tableName);
-	    	Scan scan = new Scan();
-	    	scan.setCaching(50);
-	    	scan.setBatch(50);
-	    	scan.setMaxVersions();
-	    	scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);
-	    	rs = table.getScanner(scan);
-	    	Result result;
-	    	boolean flush = false;
-	    	while (  ((result = rs.next()) != null) && !result.isEmpty() && !flush) {
-	    		i++;
-//	    		if (i ==1)
-//	    			Assert.assertTrue("First Row Beginning Marker Missing",impl.getDataLib().singleMatchingFamily(impl.getDataLib().getDataFromResult(result)[0], MRConstants.HOLD));
-//	    		System.out.println(i + " --> " + result);
-//	    		flush = impl.getDataLib().singleMatchingFamily(impl.getDataLib().getDataFromResult(result)[0], MRConstants.FLUSH);
-	    		if (i == 201)
-	    			Assert.assertTrue("201 Should be a Flush...", flush);
-		    	if (i==200)
-		    		flushTable(SCHEMA_NAME+".A");
-	    	}	    	
-		} finally {
-			if (rs != null)
-			rs.close();
-		}
-	}
+    @Test
+    @Ignore
+    public void testFlushHandling() throws SQLException, IOException, InterruptedException {
+        int i = 0;
+        ResultScanner rs = null;
+        try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
+                TableName tableName = TableName.valueOf(sqlUtil.getConglomID(SCHEMA_NAME+".A"));
+            Table table = connection.getTable(tableName);
+            Scan scan = new Scan();
+            scan.setCaching(50);
+            scan.setBatch(50);
+            scan.setMaxVersions();
+            scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);
+            rs = table.getScanner(scan);
+            Result result;
+            boolean flush = false;
+            while (  ((result = rs.next()) != null) && !result.isEmpty() && !flush) {
+                i++;
+//                if (i ==1)
+//                    Assert.assertTrue("First Row Beginning Marker Missing",impl.getDataLib().singleMatchingFamily(impl.getDataLib().getDataFromResult(result)[0], MRConstants.HOLD));
+//                System.out.println(i + " --> " + result);
+//                flush = impl.getDataLib().singleMatchingFamily(impl.getDataLib().getDataFromResult(result)[0], MRConstants.FLUSH);
+                if (i == 201)
+                    Assert.assertTrue("201 Should be a Flush...", flush);
+                if (i==200)
+                    flushTable(SCHEMA_NAME+".A");
+            }            
+        } finally {
+            if (rs != null)
+            rs.close();
+        }
+    }
 }

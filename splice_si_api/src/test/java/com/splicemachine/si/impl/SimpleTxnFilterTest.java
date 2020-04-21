@@ -131,13 +131,13 @@ public class SimpleTxnFilterTest{
     }
 
 
-	/*Tests that Read-Resolution doesn't happen with active transactions*/
+    /*Tests that Read-Resolution doesn't happen with active transactions*/
 
     @Test
     public void testWillNotReadResolveActiveTransaction() throws Exception{
         /*
          * Tests that data written by an active transaction will not read-resolve
-		 */
+         */
         TxnSupplier baseStore=txnSupplier;
 
         Txn active=new WritableTxn(0x200l,0x200l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),false,exceptionFactory);
@@ -148,10 +148,10 @@ public class SimpleTxnFilterTest{
 
     @Test
     public void testWillNotReadResolveActiveTransactionWithCommittedDependentChild() throws Exception{
-		/*
-		 * Tests that data written by an active transaction will not read-resolve, even if
-		 * it was written by a child transaction which was committed.
-		 */
+        /*
+         * Tests that data written by an active transaction will not read-resolve, even if
+         * it was written by a child transaction which was committed.
+         */
         TxnSupplier baseStore=txnSupplier;
 
         TxnView active=new WritableTxn(0x200l,0x200l,null,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),false,exceptionFactory);
@@ -165,9 +165,9 @@ public class SimpleTxnFilterTest{
     /*Tests for Read-Resolution of Committed transactions*/
     @Test
     public void testWillReadResolveCommittedTransaction() throws Exception{
-		/*
-		 * Tests that data written by a committed transaction will read-resolve
-		 */
+        /*
+         * Tests that data written by a committed transaction will read-resolve
+         */
         TxnSupplier baseStore=txnStore;
 
         Txn committed = txnLifecycleManager.beginTransaction(Bytes.toBytes("table"));
@@ -178,10 +178,10 @@ public class SimpleTxnFilterTest{
 
     @Test
     public void testWillReadResolveCommittedDependentChildTransaction() throws Exception{
-		/*
-		 * Tests that data written by a committed transaction will read-resolve a transaction
-		 * as committed if its parent is committed
-		 */
+        /*
+         * Tests that data written by a committed transaction will read-resolve a transaction
+         * as committed if its parent is committed
+         */
         TxnSupplier baseStore=txnStore;
 
         Txn parentTxn=txnLifecycleManager.beginTransaction(Bytes.toBytes("table"));
@@ -194,10 +194,10 @@ public class SimpleTxnFilterTest{
 
     @Test
     public void testWillReadResolveActiveDependentChildOfCommittedParent() throws Exception{
-		/*
-		 * Tests that data written by a dependent child transaction will
-		 * read-resolve as committed if its parent is committed and it is NOT rolled back
-		 */
+        /*
+         * Tests that data written by a dependent child transaction will
+         * read-resolve as committed if its parent is committed and it is NOT rolled back
+         */
         TxnSupplier baseStore=txnSupplier;
 
         TxnView parentTxn = TxnTestUtils.getMockCommittedTxn(0x200l,0x500l);
@@ -211,9 +211,9 @@ public class SimpleTxnFilterTest{
     /*Tests around read-resolution of rolled back transactions*/
     @Test
     public void testWillReadResolveRolledBackTransaction() throws Exception{
-		/*
-		 * Tests that data written by a rolled-back transaction will read-resolve as rolled back.
-		 */
+        /*
+         * Tests that data written by a rolled-back transaction will read-resolve as rolled back.
+         */
         TxnSupplier baseStore=txnSupplier;
 
         TxnView rolledBackTxn = TxnTestUtils.getMockRolledBackTxn(0x100l);
@@ -225,10 +225,10 @@ public class SimpleTxnFilterTest{
 
     @Test
     public void testWillReadResolveActiveDependentChildOfRolledBackParent() throws Exception{
-		/*
-		 * Tests that data written by a dependent child transaction will be rolled back if
-		 * the parent has been rolled back, if the child itself is still active
-		 */
+        /*
+         * Tests that data written by a dependent child transaction will be rolled back if
+         * the parent has been rolled back, if the child itself is still active
+         */
         TxnSupplier baseStore=txnSupplier;
 
         TxnView parenTxn = TxnTestUtils.getMockRolledBackTxn(0x100l);
@@ -242,10 +242,10 @@ public class SimpleTxnFilterTest{
 
     @Test
     public void testWillReadResolveDependentChildOfRolledBackParent() throws Exception{
-		/*
-		 * Tests that data written by a dependent child transaction will be rolled back if
-		 * the parent has been rolled back, even if the child itself has committed
-		 */
+        /*
+         * Tests that data written by a dependent child transaction will be rolled back if
+         * the parent has been rolled back, even if the child itself has committed
+         */
         TxnSupplier baseStore=txnSupplier;
 
         TxnView parenTxn = TxnTestUtils.getMockRolledBackTxn(0x100l);
@@ -258,10 +258,10 @@ public class SimpleTxnFilterTest{
 
     @Test
     public void testWillReadResolveRolledBackDependentChildTransaction() throws Exception{
-		/*
-		 * Tests that data written by a rolled-back transaction will read-resolve as rolled back,
-		 * even if that transaction is the child of a transaction which has been committed
-		 */
+        /*
+         * Tests that data written by a rolled-back transaction will read-resolve as rolled back,
+         * even if that transaction is the child of a transaction which has been committed
+         */
         TxnSupplier baseStore=txnSupplier;
 
         TxnView parenTxn = TxnTestUtils.getMockCommittedTxn(0x100l,0x300l);

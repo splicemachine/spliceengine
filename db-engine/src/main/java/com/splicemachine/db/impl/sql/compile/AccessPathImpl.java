@@ -69,9 +69,9 @@ class AccessPathImpl implements AccessPath{
     @Override
     public void setCostEstimate(CostEstimate costEstimate){
         /*
-		** CostEstimates are mutable, so keep the best cost estimate in
-		** a copy.
-		*/
+        ** CostEstimates are mutable, so keep the best cost estimate in
+        ** a copy.
+        */
         if(this.costEstimate==null){
             if(costEstimate!=null){
                 this.costEstimate=costEstimate.cloneMe();

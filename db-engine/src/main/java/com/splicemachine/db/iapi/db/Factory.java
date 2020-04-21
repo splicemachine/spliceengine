@@ -47,20 +47,20 @@ import java.sql.SQLException;
  *  <LI>
  *  Within a SQL statement.
  *  <PRE>
- *		-- checkpoint the database
- *		CALL com.splicemachine.db.iapi.db.Factory::
- *				getDatabaseOfConnection().checkpoint();
+ *        -- checkpoint the database
+ *        CALL com.splicemachine.db.iapi.db.Factory::
+ *                getDatabaseOfConnection().checkpoint();
  *  </PRE>
  *  <LI>
  *  In a server-side JDBC method.
  *  <PRE>
- *		import com.splicemachine.db.iapi.db.*;
+ *        import com.splicemachine.db.iapi.db.*;
  *
- *		...
+ *        ...
  *
- *	// checkpoint the database
- *	    Database db = Factory.getDatabaseOfConnection();
- *		db.checkpoint();
+ *    // checkpoint the database
+ *        Database db = Factory.getDatabaseOfConnection();
+ *        db.checkpoint();
  *
  *  </PRE>
  *  </OL>
@@ -72,33 +72,33 @@ public class Factory
 {
 
 
-	/**
-	<P>
-	Returns the Database object associated with the current connection.
-		@exception SQLException Not in a connection context.
-	**/
-	public static com.splicemachine.db.database.Database getDatabaseOfConnection()
-		throws SQLException
-	{
-		// Get the current language connection context.  This is associated
-		// with the current database.
-		LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-		return lcc.getDatabase();
-	}
+    /**
+    <P>
+    Returns the Database object associated with the current connection.
+        @exception SQLException Not in a connection context.
+    **/
+    public static com.splicemachine.db.database.Database getDatabaseOfConnection()
+        throws SQLException
+    {
+        // Get the current language connection context.  This is associated
+        // with the current database.
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        return lcc.getDatabase();
+    }
 
-	/** 
-	 * Get the TriggerExecutionContext for the current connection
-	 * of the connection.
-	 *
-	 * @return the TriggerExecutionContext if called from the context
-	 * of a trigger; otherwise, null.
+    /** 
+     * Get the TriggerExecutionContext for the current connection
+     * of the connection.
+     *
+     * @return the TriggerExecutionContext if called from the context
+     * of a trigger; otherwise, null.
 
-		@exception SQLException Not in a connection or trigger context.
-	 */
-	public static TriggerExecutionContext getTriggerExecutionContext()
-		throws SQLException
-	{
-		LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-		return lcc.getTriggerExecutionContext();
-	}
+        @exception SQLException Not in a connection or trigger context.
+     */
+    public static TriggerExecutionContext getTriggerExecutionContext()
+        throws SQLException
+    {
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        return lcc.getTriggerExecutionContext();
+    }
 }

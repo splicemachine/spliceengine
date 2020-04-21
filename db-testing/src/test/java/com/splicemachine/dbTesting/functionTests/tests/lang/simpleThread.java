@@ -39,7 +39,7 @@ import java.sql.ResultSetMetaData;
 import com.splicemachine.db.tools.ij;
 
 /*
-	This is from a bug found by a beta customer.
+    This is from a bug found by a beta customer.
  */
 public class simpleThread extends Thread {
 
@@ -61,8 +61,8 @@ public class simpleThread extends Thread {
         }
 
         public void run() {
-				int rows = 0;
-				boolean caught = false;
+                int rows = 0;
+                boolean caught = false;
                 try {
                         Thread.currentThread().sleep(_wait);
                         Connection conn = GetConnection();
@@ -72,7 +72,7 @@ public class simpleThread extends Thread {
                         ResultSetMetaData rsmd = rs.getMetaData();
                         //int cols = rsmd.getColumnCount();
                         while(rs.next()) {
-							rows++;
+                            rows++;
                                 //System.out.print(_myCount + ":");
                                 //for( int x=0;x<cols;x++) {
                                  //       String s = rs.getString(x+1);
@@ -84,26 +84,26 @@ public class simpleThread extends Thread {
                         stmt.close();
                         ReturnConnection(conn);
                 } catch (Exception ex) {
-					// we expect some threads to get exceptions
-					caught = true;
+                    // we expect some threads to get exceptions
+                    caught = true;
                 }
-				if (rows == 3 || caught)
-				{
-					//System.out.println("This thread's okay!");
-			    }
-				else
-				{
-					System.out.println("FAIL: thread "+_myCount+" only got "+rows+" rows and caught was "+caught);
-		        }
+                if (rows == 3 || caught)
+                {
+                    //System.out.println("This thread's okay!");
+                }
+                else
+                {
+                    System.out.println("FAIL: thread "+_myCount+" only got "+rows+" rows and caught was "+caught);
+                }
         }
 
 
         public simpleThread(String argv[]) throws Exception {
             
-			ij.getPropertyArg(argv);
-			_connection = ij.startJBMS();
+            ij.getPropertyArg(argv);
+            _connection = ij.startJBMS();
 
-			Connection conn = GetConnection();
+            Connection conn = GetConnection();
 
             Statement stmt = conn.createStatement();
 

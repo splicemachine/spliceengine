@@ -127,39 +127,39 @@ public class TriggerTest extends BaseJDBCTestCase {
     {
         Statement s = createStatement();
         s.executeUpdate("CREATE TABLE TestAlterTable( " +
-        		"element_id INTEGER NOT NULL, "+
-        		"altered_id VARCHAR(30) NOT NULL, "+
-        		"counter SMALLINT NOT NULL DEFAULT 0, "+
-        		"timets TIMESTAMP NOT NULL)");
+                "element_id INTEGER NOT NULL, "+
+                "altered_id VARCHAR(30) NOT NULL, "+
+                "counter SMALLINT NOT NULL DEFAULT 0, "+
+                "timets TIMESTAMP NOT NULL)");
         s.executeUpdate("CREATE TRIGGER mytrig "+
-        		"AFTER UPDATE ON TestAlterTable "+
-        		"REFERENCING NEW AS newt OLD AS oldt "+
-        		"FOR EACH ROW MODE DB2SQL "+
-        		"  UPDATE TestAlterTable set "+
-        		"  TestAlterTable.counter = CASE WHEN "+
-        		"  (oldt.counter < 32767) THEN (oldt.counter + 1) ELSE 1 END "+
-        		"  WHERE ((newt.counter is null) or "+
-        		"  (oldt.counter = newt.counter)) " +
-        		"  AND newt.element_id = TestAlterTable.element_id "+
-        		"  AND newt.altered_id = TestAlterTable.altered_id");
+                "AFTER UPDATE ON TestAlterTable "+
+                "REFERENCING NEW AS newt OLD AS oldt "+
+                "FOR EACH ROW MODE DB2SQL "+
+                "  UPDATE TestAlterTable set "+
+                "  TestAlterTable.counter = CASE WHEN "+
+                "  (oldt.counter < 32767) THEN (oldt.counter + 1) ELSE 1 END "+
+                "  WHERE ((newt.counter is null) or "+
+                "  (oldt.counter = newt.counter)) " +
+                "  AND newt.element_id = TestAlterTable.element_id "+
+                "  AND newt.altered_id = TestAlterTable.altered_id");
         s.executeUpdate("ALTER TABLE TestAlterTable ALTER altered_id "+
-        		"SET DATA TYPE VARCHAR(64)");
+                "SET DATA TYPE VARCHAR(64)");
         s.executeUpdate("insert into TestAlterTable values (99, "+
-        		"'012345678901234567890123456789001234567890',"+
-        		"1,CURRENT_TIMESTAMP)");
+                "'012345678901234567890123456789001234567890',"+
+                "1,CURRENT_TIMESTAMP)");
 
         ResultSet rs = s.executeQuery("SELECT element_id, counter "+
-        		"FROM TestAlterTable");
+                "FROM TestAlterTable");
         JDBC.assertFullResultSet(rs, 
-        		new String[][] {{"99", "1"}});
+                new String[][] {{"99", "1"}});
         
         s.executeUpdate("update TestAlterTable "+
-        		"set timets = CURRENT_TIMESTAMP "+
-        		"where ELEMENT_ID = 99");
+                "set timets = CURRENT_TIMESTAMP "+
+                "where ELEMENT_ID = 99");
         rs = s.executeQuery("SELECT element_id, counter "+
-        		"FROM TestAlterTable");
+                "FROM TestAlterTable");
         JDBC.assertFullResultSet(rs, 
-        		new String[][] {{"99", "2"}});
+                new String[][] {{"99", "2"}});
 
         s.executeUpdate("DROP TABLE TestAlterTable");
     }
@@ -468,9 +468,9 @@ public class TriggerTest extends BaseJDBCTestCase {
     {
         Statement s = createStatement();
         
-    	String sql = " CREATE TABLE TRADE(ID INT PRIMARY KEY GENERATED "+
-    	"BY DEFAULT AS IDENTITY (START WITH 1000), BUYID INT NOT NULL," +
-    	"QTY FLOAT(2) NOT NULL)";
+        String sql = " CREATE TABLE TRADE(ID INT PRIMARY KEY GENERATED "+
+        "BY DEFAULT AS IDENTITY (START WITH 1000), BUYID INT NOT NULL," +
+        "QTY FLOAT(2) NOT NULL)";
         s.executeUpdate(sql);
 
         sql = "CREATE TABLE TOTAL(BUYID INT NOT NULL, TOTALQTY FLOAT(2) NOT NULL)";
@@ -513,8 +513,8 @@ public class TriggerTest extends BaseJDBCTestCase {
         //has been written to handle this mismatch of column numbering
         //between trigger table and trigger runtime resultset
         s.executeUpdate("CREATE TRIGGER tr1 AFTER UPDATE OF c12 ON table1 " +
-        		" REFERENCING OLD AS oldt NEW AS newt" +
-        		" FOR EACH ROW UPDATE table2 SET c24=oldt.c14");
+                " REFERENCING OLD AS oldt NEW AS newt" +
+                " FOR EACH ROW UPDATE table2 SET c24=oldt.c14");
         commit();      
 
         s.executeUpdate("update table1 set c12 = -9 where c11=1");
@@ -527,27 +527,27 @@ public class TriggerTest extends BaseJDBCTestCase {
         //couple negative test
         //give invalid column in trigger column
         String triggerStmt = "CREATE TRIGGER tr1 AFTER UPDATE OF c12xxx ON table1 " +
-        		" REFERENCING OLD AS oldt NEW AS newt" +
-        		" FOR EACH ROW UPDATE table2 SET c24=oldt.c14";
+                " REFERENCING OLD AS oldt NEW AS newt" +
+                " FOR EACH ROW UPDATE table2 SET c24=oldt.c14";
         assertStatementError("42X14", s, triggerStmt);
         
         //give invalid column in trigger action
         triggerStmt = "CREATE TRIGGER tr1 AFTER UPDATE OF c12 ON table1 " +
-		" REFERENCING OLD AS oldt NEW AS newt" +
-		" FOR EACH ROW UPDATE table2 SET c24=oldt.c14xxx";
+        " REFERENCING OLD AS oldt NEW AS newt" +
+        " FOR EACH ROW UPDATE table2 SET c24=oldt.c14xxx";
         assertStatementError("42X04", s, triggerStmt);
         
         //Test case involving before and after values of LOB columns
         s.executeUpdate("create table derby1482_lob1 (str1 Varchar(80), " +
-        		"c_lob CLOB(50M))");
+                "c_lob CLOB(50M))");
         s.executeUpdate("create table derby1482_lob1_log(oldvalue CLOB(50M), " +
-        		"newvalue  CLOB(50M), " +
-        		"chng_time timestamp default current_timestamp)");
+                "newvalue  CLOB(50M), " +
+                "chng_time timestamp default current_timestamp)");
         s.executeUpdate("create trigger tr1_derby1482_lob1 after update of c_lob " +
-        		"on derby1482_lob1 REFERENCING OLD AS old NEW AS new " +
-        		"FOR EACH ROW MODE DB2SQL "+
-        		"insert into derby1482_lob1_log(oldvalue, newvalue) values " +
-        		"(old.c_lob, new.c_lob)");
+                "on derby1482_lob1 REFERENCING OLD AS old NEW AS new " +
+                "FOR EACH ROW MODE DB2SQL "+
+                "insert into derby1482_lob1_log(oldvalue, newvalue) values " +
+                "(old.c_lob, new.c_lob)");
         s.executeUpdate("INSERT INTO derby1482_lob1 VALUES ('1',null)");
         s.executeUpdate("update derby1482_lob1 set c_lob = null");
         rs = s.executeQuery("SELECT oldvalue, newvalue FROM derby1482_lob1_log");
@@ -558,9 +558,9 @@ public class TriggerTest extends BaseJDBCTestCase {
         s.executeUpdate("create table derby1482_selfUpdate (i int, j int)");
         s.executeUpdate("insert into derby1482_selfUpdate values (1,10)");
         s.executeUpdate("create trigger tr_derby1482_selfUpdate " + 
-        		"after update of i on derby1482_selfUpdate " +
-        		"referencing old as old for each row " +
-        		"update derby1482_selfUpdate set j = old.j+1");
+                "after update of i on derby1482_selfUpdate " +
+                "referencing old as old for each row " +
+                "update derby1482_selfUpdate set j = old.j+1");
         s.executeUpdate("update derby1482_selfUpdate set i=i+1");
         rs = s.executeQuery("SELECT * FROM derby1482_selfUpdate");
         result = new String [][] {{"2","11"}};
@@ -569,17 +569,17 @@ public class TriggerTest extends BaseJDBCTestCase {
         //Test case where trigger definition uses REFERENCING clause but does
         //not use those columns in trigger action
         s.executeUpdate("create table t1_noTriggerActionColumn "+
-        		"(id int, status smallint)");
+                "(id int, status smallint)");
         s.executeUpdate("insert into t1_noTriggerActionColumn values(11,1)");
         s.executeUpdate("create table t2_noTriggerActionColumn " +
-        		"(id int, updates int default 0)");
+                "(id int, updates int default 0)");
         s.executeUpdate("insert into t2_noTriggerActionColumn values(1,1)");
         s.executeUpdate("create trigger tr1_noTriggerActionColumn " +
-        		"after update of status on t1_noTriggerActionColumn " +
-        		"referencing new as n_row for each row " +
-        		"update t2_noTriggerActionColumn set " +
-        		"updates = updates + 1 " +
-        		"where t2_noTriggerActionColumn.id = 1");
+                "after update of status on t1_noTriggerActionColumn " +
+                "referencing new as n_row for each row " +
+                "update t2_noTriggerActionColumn set " +
+                "updates = updates + 1 " +
+                "where t2_noTriggerActionColumn.id = 1");
         s.executeUpdate("update t1_noTriggerActionColumn set status=-1");
         rs =s.executeQuery("SELECT * FROM t2_noTriggerActionColumn");
         result = new String [][] {{"1","2"}};
@@ -593,9 +593,9 @@ public class TriggerTest extends BaseJDBCTestCase {
         s.executeUpdate("CREATE TABLE T1 (A1 int)");
         s.executeUpdate("CREATE TABLE T2 (B1 int, B2 int, B3 int)");
         s.executeUpdate("CREATE TRIGGER t2UpdateTrigger "+
-        		"after UPDATE of b1 on t2 " +
-        		"referencing new row as nr for each ROW " +
-        		"insert into t1 values ( nr.b3 ) ");
+                "after UPDATE of b1 on t2 " +
+                "referencing new row as nr for each ROW " +
+                "insert into t1 values ( nr.b3 ) ");
         s.executeUpdate("INSERT INTO T2 VALUES(0,0,0)");
         s.executeUpdate("update t2 set b1 = 100 , b2 = 1");
         ResultSet rs =s.executeQuery("SELECT * FROM T1");
@@ -604,9 +604,9 @@ public class TriggerTest extends BaseJDBCTestCase {
         s.executeUpdate("CREATE TABLE T3 (A1 int)");
         s.executeUpdate("CREATE TABLE T4 (B1 int, B2 int, B3 int)");
         s.executeUpdate("CREATE TRIGGER t4UpdateTrigger "+
-        		"after UPDATE of b1 on t4 " +
-        		"referencing new table as nt for each STATEMENT " +
-        		"insert into t3 select b3 from nt");
+                "after UPDATE of b1 on t4 " +
+                "referencing new table as nt for each STATEMENT " +
+                "insert into t3 select b3 from nt");
         s.executeUpdate("INSERT INTO T4 VALUES(0,0,0)");
         s.executeUpdate("update t4 set b1 = 100 , b2 = 1");
         rs =s.executeQuery("SELECT * FROM T3");
@@ -622,7 +622,7 @@ public class TriggerTest extends BaseJDBCTestCase {
      */
     public void testClobInTriggerTable() throws SQLException, IOException
     {
-    	testClobInTriggerTable(1024);
+        testClobInTriggerTable(1024);
         testClobInTriggerTable(16384);
          
         testClobInTriggerTable(1024 *32 -1);
@@ -648,9 +648,9 @@ public class TriggerTest extends BaseJDBCTestCase {
         CharAlphabet a1 = CharAlphabet.singleChar('a');
         // Alphabet used when updating a CLOB.
         CharAlphabet a2 = CharAlphabet.singleChar('b');
-    	
-    	// --- add a clob
-    	String trig = " create trigger t_lob1 after update of str1 on lob1 ";
+        
+        // --- add a clob
+        String trig = " create trigger t_lob1 after update of str1 on lob1 ";
         trig = trig + " REFERENCING OLD AS old NEW AS new FOR EACH ROW MODE DB2SQL ";
         trig = trig + " insert into t_lob1_log(oldvalue, newvalue) values (old.str1, new.str1)";
 
@@ -771,7 +771,7 @@ public class TriggerTest extends BaseJDBCTestCase {
      */
     public void testBlobInTriggerTable() throws SQLException, IOException
     {        
-    	testBlobInTriggerTable(1024);
+        testBlobInTriggerTable(1024);
         testBlobInTriggerTable(16384);
          
         testBlobInTriggerTable(1024 *32 -1);
@@ -811,7 +811,7 @@ public class TriggerTest extends BaseJDBCTestCase {
         s.executeUpdate(trig);
         commit();      
 
-    	// --- add a blob
+        // --- add a blob
         PreparedStatement ps = prepareStatement("INSERT INTO LOB1 VALUES (?, ?, ?)");
         
         ps.setString(1, blobSize +"");
@@ -928,12 +928,12 @@ public class TriggerTest extends BaseJDBCTestCase {
         // Alphabet used when updating a CLOB.
         CharAlphabet a2 = CharAlphabet.singleChar('b');
 
-    	Connection conn = getConnection();
-    	Statement s = createStatement();
-    	String trig = " create trigger t_lob1 after update of str1 on lob1 ";
-    	trig = trig + " REFERENCING OLD AS old NEW AS new FOR EACH ROW MODE DB2SQL ";
-    	trig = trig + " insert into t_lob1_log(oldvalue, newvalue) values (old.str1, new.str1)";
-    	s.executeUpdate("create table LOB1 (str1 Varchar(80), C_lob CLOB(50M))");
+        Connection conn = getConnection();
+        Statement s = createStatement();
+        String trig = " create trigger t_lob1 after update of str1 on lob1 ";
+        trig = trig + " REFERENCING OLD AS old NEW AS new FOR EACH ROW MODE DB2SQL ";
+        trig = trig + " insert into t_lob1_log(oldvalue, newvalue) values (old.str1, new.str1)";
+        s.executeUpdate("create table LOB1 (str1 Varchar(80), C_lob CLOB(50M))");
         s.executeUpdate("create table t_lob1_log(oldvalue varchar(80), newvalue varchar(80), chng_time timestamp default current_timestamp)");
         s.executeUpdate(trig);
         conn.commit();
@@ -954,7 +954,7 @@ public class TriggerTest extends BaseJDBCTestCase {
                 new LoopingAlphabetReader(clobSize, a2), clobSize);
         ps2.executeUpdate();
         conn.commit();
-        // 	--- reading the clob make sure it was updated
+        //     --- reading the clob make sure it was updated
         ResultSet rs = s.executeQuery("SELECT * FROM LOB1 where str1 = '" + clobSize + "'");
         rs.next();
         
@@ -964,7 +964,7 @@ public class TriggerTest extends BaseJDBCTestCase {
         s.executeUpdate("drop table lob1");
         s.executeUpdate("drop table t_lob1_log");
         
-	  
+      
     }
 
     /**

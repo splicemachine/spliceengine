@@ -49,39 +49,39 @@ abstract class SystemAggregator implements ExecAggregator
     protected boolean eliminatedNulls;
 
 
-	public boolean didEliminateNulls() {
-		return eliminatedNulls;
-	}
+    public boolean didEliminateNulls() {
+        return eliminatedNulls;
+    }
 
-	public void accumulate(DataValueDescriptor addend, Object ga) 
-		throws StandardException
-	{
-		if ((addend == null) || addend.isNull()) {
-			eliminatedNulls = true;
-			return;
-		}
+    public void accumulate(DataValueDescriptor addend, Object ga) 
+        throws StandardException
+    {
+        if ((addend == null) || addend.isNull()) {
+            eliminatedNulls = true;
+            return;
+        }
 
-		this.accumulate(addend);
-	}
+        this.accumulate(addend);
+    }
 
-	protected abstract void accumulate(DataValueDescriptor addend)
-		throws StandardException;
-	/////////////////////////////////////////////////////////////
-	// 
-	// EXTERNALIZABLE INTERFACE
-	// 
-	/////////////////////////////////////////////////////////////
+    protected abstract void accumulate(DataValueDescriptor addend)
+        throws StandardException;
+    /////////////////////////////////////////////////////////////
+    // 
+    // EXTERNALIZABLE INTERFACE
+    // 
+    /////////////////////////////////////////////////////////////
 
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		out.writeBoolean(eliminatedNulls);
-	}
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeBoolean(eliminatedNulls);
+    }
 
-	public void readExternal(ObjectInput in) 
-		throws IOException, ClassNotFoundException
-	{
-		eliminatedNulls = in.readBoolean();
-	}
+    public void readExternal(ObjectInput in) 
+        throws IOException, ClassNotFoundException
+    {
+        eliminatedNulls = in.readBoolean();
+    }
         public String toString()
         {
             try
@@ -94,8 +94,8 @@ abstract class SystemAggregator implements ExecAggregator
             }
         }
 
-	@Override
-	public boolean isUserDefinedAggregator() {
-		return false;
-	}
+    @Override
+    public boolean isUserDefinedAggregator() {
+        return false;
+    }
 }

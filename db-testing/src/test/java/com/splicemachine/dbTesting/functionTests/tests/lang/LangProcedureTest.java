@@ -830,9 +830,9 @@ public class LangProcedureTest extends BaseJDBCTestCase {
             //is returned because the other one was closed as a result of 
             //rollback.
             s.execute("create procedure procWithRollbackAnd2Resulsets"+
-            		"(p1 int) parameter style JAVA READS SQL DATA dynamic "+
-            		"result sets 2 language java external name "+
-            		"'com.splicemachine.dbTesting.functionTests.tests.lang.LangProcedureTest.rollbackInsideProcWith2ResultSets'");
+                    "(p1 int) parameter style JAVA READS SQL DATA dynamic "+
+                    "result sets 2 language java external name "+
+                    "'com.splicemachine.dbTesting.functionTests.tests.lang.LangProcedureTest.rollbackInsideProcWith2ResultSets'");
             drs1 = prepareCall("CALL procWithRollbackAnd2Resulsets(3)");
             drs1.execute();
             rs = drs1.getResultSet();
@@ -848,10 +848,10 @@ public class LangProcedureTest extends BaseJDBCTestCase {
             //running into locking issues.
             s
             .execute("create procedure insertCausingRollback"+
-            		"(p1 int, p2 CHAR(20))  MODIFIES SQL DATA "+
-            		"dynamic result sets 1 language java external "+
-            		"name 'com.splicemachine.dbTesting.functionTests.tests.lang.LangProcedureTest.insertCausingRollback' "+
-            		"parameter style java");
+                    "(p1 int, p2 CHAR(20))  MODIFIES SQL DATA "+
+                    "dynamic result sets 1 language java external "+
+                    "name 'com.splicemachine.dbTesting.functionTests.tests.lang.LangProcedureTest.insertCausingRollback' "+
+                    "parameter style java");
             s.executeUpdate("CREATE TABLE DELLATER3(c31 int)");
             s.executeUpdate("INSERT INTO DELLATER3 VALUES(1),(2),(3),(4)");
             conn.commit();
@@ -1176,9 +1176,9 @@ public class LangProcedureTest extends BaseJDBCTestCase {
     public static void rollbackInsideProc(int p1, ResultSet[] data) 
     throws SQLException {
         Connection conn = DriverManager.getConnection(
-        		"jdbc:default:connection");
+                "jdbc:default:connection");
         PreparedStatement ps = conn.prepareStatement(
-        		"select * from dellater1 where i = ?");
+                "select * from dellater1 where i = ?");
         ps.setInt(1, p1);
         data[0] = ps.executeQuery();
         conn.rollback();
@@ -1198,18 +1198,18 @@ public class LangProcedureTest extends BaseJDBCTestCase {
      * @throws SQLException
      */
     public static void rollbackInsideProcWith2ResultSets(int p1, 
-    		ResultSet[] data1,
+            ResultSet[] data1,
             ResultSet[] data2) 
     throws SQLException {
         Connection conn = DriverManager.getConnection(
-        		"jdbc:default:connection");
+                "jdbc:default:connection");
         PreparedStatement ps = conn.prepareStatement(
-        		"select * from t1 where i = ?");
+                "select * from t1 where i = ?");
         ps.setInt(1, p1);
         data1[0] = ps.executeQuery();
         conn.rollback();
         ps = conn.prepareStatement(
-        		"select * from dellater1 where i = ?");
+                "select * from dellater1 where i = ?");
         ps.setInt(1, p1);
         data2[0] = ps.executeQuery();
         conn.close();
@@ -1236,14 +1236,14 @@ public class LangProcedureTest extends BaseJDBCTestCase {
         //is no SQL exception thrown inside of this procedure. An exception 
         //will cause Derby to close this resultset).
         PreparedStatement ps = conn.prepareStatement(
-        		"select * from dellater2 where c11 = ?");
+                "select * from dellater2 where c11 = ?");
         ps.setInt(1, p1);
         data[0] = ps.executeQuery();
         
         //The resultset created here has the lifetime of this procedure
         //and is not available to the caller of the procedure.
         PreparedStatement ps1 = conn.prepareStatement(
-        		"select * from dellater3 where c31 = ?");
+                "select * from dellater3 where c31 = ?");
         ps1.setInt(1, p1);
         ps1.executeQuery();
         

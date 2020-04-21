@@ -60,203 +60,203 @@ public class LogChecksumSetup{
 
 
 
-	LogChecksumSetup()
-	{
+    LogChecksumSetup()
+    {
 
-	}
-	
-	/**
-	 * Insert some rows into the table and corrupt the log for the last row,
-	 * so when we recover , there should be one row less even though we committed.
-	 */
-	void insertAndCorrupt(Connection conn, int rowCount) throws SQLException {
+    }
+    
+    /**
+     * Insert some rows into the table and corrupt the log for the last row,
+     * so when we recover , there should be one row less even though we committed.
+     */
+    void insertAndCorrupt(Connection conn, int rowCount) throws SQLException {
 
-		PreparedStatement ps = conn.prepareStatement("INSERT INTO " + 
-													 "T1" + 
-													 " VALUES(?,?,?)");
+        PreparedStatement ps = conn.prepareStatement("INSERT INTO " + 
+                                                     "T1" + 
+                                                     " VALUES(?,?,?)");
 
-		java.util.Random r = new java.util.Random();
-		CRC32 checksum = new CRC32(); // holder for the checksum
-		boolean corrupt = false;
-		for (int i = 0; i < rowCount; i++) {
-			
-			//setup last row for log corruption
-			if (i == (rowCount -1 ))
-			{
-				// Note: offset/len for corruption  here refers to 
-				// the actual log write request
-				// that is being done for this insert. 
-				setupLogCorruption(50, 10);
-				corrupt = true;
-			}
-			ps.setInt(1, i); // ID
-			byte[] dataBytes  = generateBinaryData(r, 90000 , 1000 * i);
-			ps.setBytes(2, dataBytes); 
-			//calculate checksum for blob data 
-			checksum.update(dataBytes, 0, dataBytes.length);
-			checksum.reset();
-			checksum.update(dataBytes, 0, dataBytes.length);
-			ps.setLong(3, checksum.getValue());
-			ps.executeUpdate();
-			conn.commit();
-		}
-	}
+        java.util.Random r = new java.util.Random();
+        CRC32 checksum = new CRC32(); // holder for the checksum
+        boolean corrupt = false;
+        for (int i = 0; i < rowCount; i++) {
+            
+            //setup last row for log corruption
+            if (i == (rowCount -1 ))
+            {
+                // Note: offset/len for corruption  here refers to 
+                // the actual log write request
+                // that is being done for this insert. 
+                setupLogCorruption(50, 10);
+                corrupt = true;
+            }
+            ps.setInt(1, i); // ID
+            byte[] dataBytes  = generateBinaryData(r, 90000 , 1000 * i);
+            ps.setBytes(2, dataBytes); 
+            //calculate checksum for blob data 
+            checksum.update(dataBytes, 0, dataBytes.length);
+            checksum.reset();
+            checksum.update(dataBytes, 0, dataBytes.length);
+            ps.setLong(3, checksum.getValue());
+            ps.executeUpdate();
+            conn.commit();
+        }
+    }
 
-		
-	/**
-	 * update some rows in the table and corrupt the log for the last row,
-	 * so when we recover , All checsum should be correct because corrupted 
-	 * log transaction should been rolled back.
-	 */
+        
+    /**
+     * update some rows in the table and corrupt the log for the last row,
+     * so when we recover , All checsum should be correct because corrupted 
+     * log transaction should been rolled back.
+     */
 
-	void updateAndCorrupt(Connection conn, int rowCount) throws SQLException{
+    void updateAndCorrupt(Connection conn, int rowCount) throws SQLException{
 
-		PreparedStatement ps = conn.prepareStatement("update " + "T1" + 
-													 " SET " +
-													 "DATA=?, DATACHECKSUM=? where ID=?");
-		
-		java.util.Random r = new java.util.Random();
-		CRC32 checksum = new CRC32(); // holder for the checksum
-		int updateCount = 0;
-		boolean corrupt = false;
-		for (int i = 0; i < rowCount; i++) {
-			
-			//setup last row for log corruption
-			if (i == (rowCount -1 ))
-			{
-				// Note: offset/len for corruption  here refers to 
-				// the actual log write request
-				// that is being done for this insert. 
-				setupLogCorruption(50, 10);
-				corrupt = true;
-			}
-			byte[] dataBytes  = generateBinaryData(r, 1234 , 5000 * i);
-			ps.setBytes(1, dataBytes); 
+        PreparedStatement ps = conn.prepareStatement("update " + "T1" + 
+                                                     " SET " +
+                                                     "DATA=?, DATACHECKSUM=? where ID=?");
+        
+        java.util.Random r = new java.util.Random();
+        CRC32 checksum = new CRC32(); // holder for the checksum
+        int updateCount = 0;
+        boolean corrupt = false;
+        for (int i = 0; i < rowCount; i++) {
+            
+            //setup last row for log corruption
+            if (i == (rowCount -1 ))
+            {
+                // Note: offset/len for corruption  here refers to 
+                // the actual log write request
+                // that is being done for this insert. 
+                setupLogCorruption(50, 10);
+                corrupt = true;
+            }
+            byte[] dataBytes  = generateBinaryData(r, 1234 , 5000 * i);
+            ps.setBytes(1, dataBytes); 
 
-			// calculate checksum for blob data 
-			checksum.update(dataBytes, 0, dataBytes.length);
-			checksum.reset();
-			checksum.update(dataBytes, 0, dataBytes.length);
+            // calculate checksum for blob data 
+            checksum.update(dataBytes, 0, dataBytes.length);
+            checksum.reset();
+            checksum.update(dataBytes, 0, dataBytes.length);
 
-			ps.setLong(2, checksum.getValue());
-			ps.setInt(3, i); // ID
-			updateCount +=  ps.executeUpdate();
-			conn.commit();
-		}
-	}
+            ps.setLong(2, checksum.getValue());
+            ps.setInt(3, i); // ID
+            updateCount +=  ps.executeUpdate();
+            conn.commit();
+        }
+    }
 
 
-	/*
-	 * read the data from the table and verify the blob data using the 
-	 * checksum and make sure that expected number rows exist in the table. 
-	 * 
-	 */
-	void verifyData(Connection conn, int expectedRowCount) throws SQLException {
-		
-		Statement s = conn.createStatement();
-		CRC32 checksum = new CRC32(); // holder for the checksum
-		
-		ResultSet rs = s.executeQuery("SELECT DATA , DATACHECKSUM, ID FROM "
-									  + "T1" );
-		int count = 0;
-		while(rs.next())
-		{
-			byte[] dataBytes = rs.getBytes(1);
-			long ckmRead = rs.getLong(2);
-			int id = rs.getInt(3);
+    /*
+     * read the data from the table and verify the blob data using the 
+     * checksum and make sure that expected number rows exist in the table. 
+     * 
+     */
+    void verifyData(Connection conn, int expectedRowCount) throws SQLException {
+        
+        Statement s = conn.createStatement();
+        CRC32 checksum = new CRC32(); // holder for the checksum
+        
+        ResultSet rs = s.executeQuery("SELECT DATA , DATACHECKSUM, ID FROM "
+                                      + "T1" );
+        int count = 0;
+        while(rs.next())
+        {
+            byte[] dataBytes = rs.getBytes(1);
+            long ckmRead = rs.getLong(2);
+            int id = rs.getInt(3);
 
-			checksum.reset();
-			checksum.update(dataBytes, 0, dataBytes.length);
+            checksum.reset();
+            checksum.update(dataBytes, 0, dataBytes.length);
 
-			if(checksum.getValue() != ckmRead )
-			{
-				logMessage("CHECKSUMs ARE NOT MATCHING");
-				logMessage("ID=" + id + " Checksum From DB:" + ckmRead);
-				logMessage("Recalcaulted sum :" + checksum.getValue());
-				logMessage("Length of Data:" +  dataBytes.length);
-			}
-			
-			count++;
-		}
-		conn.commit();
+            if(checksum.getValue() != ckmRead )
+            {
+                logMessage("CHECKSUMs ARE NOT MATCHING");
+                logMessage("ID=" + id + " Checksum From DB:" + ckmRead);
+                logMessage("Recalcaulted sum :" + checksum.getValue());
+                logMessage("Length of Data:" +  dataBytes.length);
+            }
+            
+            count++;
+        }
+        conn.commit();
 
-		if(count != expectedRowCount)
-		{
-			logMessage("Expected Number Of Rows (" + 
-					   expectedRowCount + ")" +  "!="  + 
-					   "No Of rows in the Table(" + 
-					   count + ")");
-		}
-	}
+        if(count != expectedRowCount)
+        {
+            logMessage("Expected Number Of Rows (" + 
+                       expectedRowCount + ")" +  "!="  + 
+                       "No Of rows in the Table(" + 
+                       count + ")");
+        }
+    }
 
-	/* 
-	 * create the tables that are used by this test.
-	 */
-	private  void createTable(Connection conn) throws SQLException {
+    /* 
+     * create the tables that are used by this test.
+     */
+    private  void createTable(Connection conn) throws SQLException {
 
-		Statement s = conn.createStatement();
-		s.executeUpdate("CREATE TABLE " + "T1" + "(ID INT," +
-						"DATA BLOB(300000),"+ 
-						"DATACHECKSUM BIGINT)");
-		conn.commit();
-		s.close();
-	}
+        Statement s = conn.createStatement();
+        s.executeUpdate("CREATE TABLE " + "T1" + "(ID INT," +
+                        "DATA BLOB(300000),"+ 
+                        "DATACHECKSUM BIGINT)");
+        conn.commit();
+        s.close();
+    }
 
-	/*
-	 * Log is corrupted using the corrupt storage factory. 
-	 * setup offset/length where we want the transaction 
-	 * log to be corrupted. Transaction tat the corruption 
-	 * is simulated  on should be rolled back because the log check
-	 * should identify that the writes were incomplete.  
-	 */
-	private void setupLogCorruption(int off , int len)
-	{
+    /*
+     * Log is corrupted using the corrupt storage factory. 
+     * setup offset/length where we want the transaction 
+     * log to be corrupted. Transaction tat the corruption 
+     * is simulated  on should be rolled back because the log check
+     * should identify that the writes were incomplete.  
+     */
+    private void setupLogCorruption(int off , int len)
+    {
         throw new UnsupportedOperationException("splice");
-	}
+    }
 
 
-	/*
-	 * utility routine to generate random byte array of data.
-	 */
-	private  byte[] generateBinaryData(java.util.Random r, 
-											 int factor,
-											 int size)	{
-		
-		ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
-		try{
-			DataOutputStream daos = new DataOutputStream(baos);
-			for(int i = 0 ; i < size ; i++)
-			{
-				int p = r.nextInt() % factor;
-				if (p < 0)
-					p = p * -1;
-				daos.writeInt(p);
-			}
-			
-		}catch(IOException ie) 
-		{
-			logMessage(ie.getMessage()) ;
-		}
-		return baos.toByteArray();
-	}
+    /*
+     * utility routine to generate random byte array of data.
+     */
+    private  byte[] generateBinaryData(java.util.Random r, 
+                                             int factor,
+                                             int size)    {
+        
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
+        try{
+            DataOutputStream daos = new DataOutputStream(baos);
+            for(int i = 0 ; i < size ; i++)
+            {
+                int p = r.nextInt() % factor;
+                if (p < 0)
+                    p = p * -1;
+                daos.writeInt(p);
+            }
+            
+        }catch(IOException ie) 
+        {
+            logMessage(ie.getMessage()) ;
+        }
+        return baos.toByteArray();
+    }
 
 
-	private void runTest(Connection conn) throws SQLException
-	{
-		logMessage("Begin LogCheckum Setup Test");
-		createTable(conn);
-		insertAndCorrupt(conn, 11);
-		logMessage("End LogChecksum Setup Test");
-	}
-	
+    private void runTest(Connection conn) throws SQLException
+    {
+        logMessage("Begin LogCheckum Setup Test");
+        createTable(conn);
+        insertAndCorrupt(conn, 11);
+        logMessage("End LogChecksum Setup Test");
+    }
+    
     void logMessage(String   str)
     {
         System.out.println(str);
     }
 
-	public static void main(String[] argv) throws Throwable {
+    public static void main(String[] argv) throws Throwable {
         LogChecksumSetup lctest = new LogChecksumSetup();
-   		ij.getPropertyArg(argv); 
+           ij.getPropertyArg(argv); 
         Connection conn = ij.startJBMS();
         conn.setAutoCommit(false);
 
@@ -264,9 +264,9 @@ public class LogChecksumSetup{
             lctest.runTest(conn);
         }
         catch (SQLException sqle) {
-			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
-			sqle.printStackTrace(System.out);
-		}
+            sqle.printStackTrace(System.out);
+        }
     }
 }

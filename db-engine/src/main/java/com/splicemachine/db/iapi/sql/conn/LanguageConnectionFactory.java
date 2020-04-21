@@ -78,110 +78,110 @@ import java.util.Properties;
  *
  */
 public interface LanguageConnectionFactory {
-	/**
-		Used to locate this factory by the Monitor basic service.
-		There needs to be a language factory per database.
-	 */
-	String MODULE = "com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory";
+    /**
+        Used to locate this factory by the Monitor basic service.
+        There needs to be a language factory per database.
+     */
+    String MODULE = "com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory";
 
 
-	/**
-		Get a Statement
-		@param compilationSchema schema
-		@param statementText the text for the statement
-		@param forReadOnly true if concurrency mode is CONCUR_READ_ONLY
-	    @param lcc the language connection context where the statement is created/submitted
-		@return	The Statement
-	 */
-	Statement getStatement(SchemaDescriptor compilationSchema, String statementText, boolean forReadOnly,
-						   LanguageConnectionContext lcc) throws StandardException;
+    /**
+        Get a Statement
+        @param compilationSchema schema
+        @param statementText the text for the statement
+        @param forReadOnly true if concurrency mode is CONCUR_READ_ONLY
+        @param lcc the language connection context where the statement is created/submitted
+        @return    The Statement
+     */
+    Statement getStatement(SchemaDescriptor compilationSchema, String statementText, boolean forReadOnly,
+                           LanguageConnectionContext lcc) throws StandardException;
 
-	/**
-		Get a new LanguageConnectionContext. this holds things
-		we want to remember about activity in the language system,
-		where this factory holds things that are pretty stable,
-		like other factories.
-		<p>
-		The returned LanguageConnectionContext is intended for use
-		only by the connection that requested it.
+    /**
+        Get a new LanguageConnectionContext. this holds things
+        we want to remember about activity in the language system,
+        where this factory holds things that are pretty stable,
+        like other factories.
+        <p>
+        The returned LanguageConnectionContext is intended for use
+        only by the connection that requested it.
 
-		@return a language connection context for the context stack.
-		@exception StandardException the usual
-	 */
-	LanguageConnectionContext
-	newLanguageConnectionContext(ContextManager cm,
-								TransactionController tc,
-								LanguageFactory lf,
-								Database db,
-								String userName,
-								List<String> groupuserlist,
-								String drdaID,
-								String dbname,
-								String rdbIntTkn,
+        @return a language connection context for the context stack.
+        @exception StandardException the usual
+     */
+    LanguageConnectionContext
+    newLanguageConnectionContext(ContextManager cm,
+                                TransactionController tc,
+                                LanguageFactory lf,
+                                Database db,
+                                String userName,
+                                List<String> groupuserlist,
+                                String drdaID,
+                                String dbname,
+                                String rdbIntTkn,
                                 DataSetProcessorType type,
-								boolean skipStats,
-								double defaultSelectivityFactor,
-								String ipAddress,
+                                boolean skipStats,
+                                double defaultSelectivityFactor,
+                                String ipAddress,
                                 String defaultSchema,
                                 Properties sessionProperties)
 
-		throws StandardException;
+        throws StandardException;
 
-	/**
-		Get the UUIDFactory to use with this language connection
-	 */
-	UUIDFactory	getUUIDFactory();
-
-	/**
-		Get the ClassFactory to use with this language connection
-	 */
-	ClassFactory	getClassFactory();
-
-	/**
-		Get the JavaFactory to use with this language connection
-	 */
-	JavaFactory	getJavaFactory();
-
-	/**
-		Get the NodeFactory to use with this language connection
-	 */
-	NodeFactory	getNodeFactory();
-
-	/**
-		Get the ExecutionFactory to use with this language connection
-	 */
-	ExecutionFactory	getExecutionFactory();
-
-	/**
-		Get the PropertyFactory to use with this language connection
-	 */
-	PropertyFactory	getPropertyFactory();
-
-	/**
-	 *
-	 * GetAuthorizationFactory
-	 *
-	 * @return
+    /**
+        Get the UUIDFactory to use with this language connection
      */
-	AuthorizationFactory getAuthorizationFactory();
+    UUIDFactory    getUUIDFactory();
 
-	/**
-		Get the OptimizerFactory to use with this language connection
-	 */
-	OptimizerFactory	getOptimizerFactory();
+    /**
+        Get the ClassFactory to use with this language connection
+     */
+    ClassFactory    getClassFactory();
 
-	/**
-		Get the TypeCompilerFactory to use with this language connection
-	 */
-	TypeCompilerFactory getTypeCompilerFactory();
+    /**
+        Get the JavaFactory to use with this language connection
+     */
+    JavaFactory    getJavaFactory();
 
-	/**
-		Get the DataValueFactory to use with this language connection
-		This is expected to get stuffed into the language connection
-		context and accessed from there.
+    /**
+        Get the NodeFactory to use with this language connection
+     */
+    NodeFactory    getNodeFactory();
 
-	 */
-	DataValueFactory		getDataValueFactory();
+    /**
+        Get the ExecutionFactory to use with this language connection
+     */
+    ExecutionFactory    getExecutionFactory();
+
+    /**
+        Get the PropertyFactory to use with this language connection
+     */
+    PropertyFactory    getPropertyFactory();
+
+    /**
+     *
+     * GetAuthorizationFactory
+     *
+     * @return
+     */
+    AuthorizationFactory getAuthorizationFactory();
+
+    /**
+        Get the OptimizerFactory to use with this language connection
+     */
+    OptimizerFactory    getOptimizerFactory();
+
+    /**
+        Get the TypeCompilerFactory to use with this language connection
+     */
+    TypeCompilerFactory getTypeCompilerFactory();
+
+    /**
+        Get the DataValueFactory to use with this language connection
+        This is expected to get stuffed into the language connection
+        context and accessed from there.
+
+     */
+    DataValueFactory        getDataValueFactory();
 
 
 

@@ -42,41 +42,41 @@ import java.util.Properties;
 import java.io.PrintStream;
 
 /**
-	A class to boot a Derby system that includes a JDBC driver.
-	Should be used indirectly through JDBCDriver or JDBCServletBoot
-	or any other useful booting mechanism that comes along.
+    A class to boot a Derby system that includes a JDBC driver.
+    Should be used indirectly through JDBCDriver or JDBCServletBoot
+    or any other useful booting mechanism that comes along.
 */
 public class JDBCBoot {
 
-	private Properties bootProperties;
+    private Properties bootProperties;
 
     private static final String NETWORK_SERVER_AUTOSTART_CLASS_NAME = "com.splicemachine.db.iapi.jdbc.DRDAServerStarter";
 
-	public JDBCBoot() {
-		bootProperties = new Properties();
-	}
+    public JDBCBoot() {
+        bootProperties = new Properties();
+    }
 
-	void addProperty(String name, String value) {
-		bootProperties.put(name, value);
-	}
+    void addProperty(String name, String value) {
+        bootProperties.put(name, value);
+    }
 
-	/**
-		Boot a system requesting a JDBC driver but only if there is
-		no current JDBC driver that is handling the required protocol.
+    /**
+        Boot a system requesting a JDBC driver but only if there is
+        no current JDBC driver that is handling the required protocol.
 
-	*/
-	public void boot(String protocol, PrintStream logging) {
+    */
+    public void boot(String protocol, PrintStream logging) {
 
-		if (InternalDriver.activeDriver() == null)
-		{
+        if (InternalDriver.activeDriver() == null)
+        {
 
-			// request that the InternalDriver (JDBC) service and the
-			// authentication service be started.
-			//
-			addProperty("derby.service.jdbc", "com.splicemachine.db.jdbc.InternalDriver");
-			addProperty("derby.service.authentication", AuthenticationService.MODULE);
+            // request that the InternalDriver (JDBC) service and the
+            // authentication service be started.
+            //
+            addProperty("derby.service.jdbc", "com.splicemachine.db.jdbc.InternalDriver");
+            addProperty("derby.service.authentication", AuthenticationService.MODULE);
 
-			Monitor.startMonitor(bootProperties, logging);
+            Monitor.startMonitor(bootProperties, logging);
 
             /* The network server starter module is started differently from other modules because
              * 1. its start is conditional, depending on a system property, and PropertyUtil.getSystemProperty
@@ -97,6 +97,6 @@ public class JDBCBoot {
                                             se.getMessage());
                 }
             }
-		}
-	}
+        }
+    }
 }

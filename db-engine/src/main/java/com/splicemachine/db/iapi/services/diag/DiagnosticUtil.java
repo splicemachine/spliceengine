@@ -66,13 +66,13 @@ public class DiagnosticUtil
      * Given an object this routine will determine the classname of the object
      * and then try to instantiate a new instance of the diagnostic object
      * for this class by prepending on "D_" to the last element of theclassname.
-	   If no matching class is found then the same lookup is made on the super-class
-	   of the object, looking all the way up the hierachy until a diagnostic class
-	   is found.
-	 * <BR>
-	   This routine will call "init(ref)" on the new instance and then return the new instance.
+       If no matching class is found then the same lookup is made on the super-class
+       of the object, looking all the way up the hierachy until a diagnostic class
+       is found.
+     * <BR>
+       This routine will call "init(ref)" on the new instance and then return the new instance.
      *
-	 * @return A new instance of the diagnostic object for input object, or
+     * @return A new instance of the diagnostic object for input object, or
      *         null if one could not be found for some reason.
      *
      * @param ref   The object which to build the diagnostic object for.
@@ -81,42 +81,42 @@ public class DiagnosticUtil
     {
         Class refClass = ref.getClass();
 
-		for (;;) {
-			try 
-			{
-				String className = refClass.getName();
-				int lastDot = className.lastIndexOf('.') + 1;
-				String          diagClassName = 
-					className.substring(0, lastDot) + 
-					"D_" + className.substring(lastDot);
+        for (;;) {
+            try 
+            {
+                String className = refClass.getName();
+                int lastDot = className.lastIndexOf('.') + 1;
+                String          diagClassName = 
+                    className.substring(0, lastDot) + 
+                    "D_" + className.substring(lastDot);
 
-				Class diagClass;
-				
-				try {
-					diagClass = Class.forName(diagClassName);
-				} catch (ClassNotFoundException cnfe) {
+                Class diagClass;
+                
+                try {
+                    diagClass = Class.forName(diagClassName);
+                } catch (ClassNotFoundException cnfe) {
 
-					// try the super-class of the object
-					refClass = refClass.getSuperclass();
-					if (refClass == null)
-						return null;
+                    // try the super-class of the object
+                    refClass = refClass.getSuperclass();
+                    if (refClass == null)
+                        return null;
 
-					continue;
-				}
+                    continue;
+                }
 
 
-				Diagnosticable diag_obj = (Diagnosticable) diagClass.newInstance();
+                Diagnosticable diag_obj = (Diagnosticable) diagClass.newInstance();
 
-				diag_obj.init(ref);
+                diag_obj.init(ref);
 
-				return diag_obj;
-			}
-			catch (Exception e)
-			{
-				return null;
-			}
-		}
-	}
+                return diag_obj;
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
+        }
+    }
 
     /**
      * Return a diagnostic string associated with an object.
@@ -130,7 +130,7 @@ public class DiagnosticUtil
      *
      * <p>
      *
-	 * @return The string describing the class input.
+     * @return The string describing the class input.
      *
      * @param obj The object to print out.
      *
@@ -139,7 +139,7 @@ public class DiagnosticUtil
     {
         String ret_string = null;
 
-		if (obj == null) return "null";
+        if (obj == null) return "null";
         
         try 
         {

@@ -124,8 +124,8 @@ public class RegionTxnStore implements TxnPartition{
         get.addColumn(FAMILY,destTableQualifier);
         /*
          * We only need to check the new transaction format, because we will never attempt to elevate
-		 * a transaction created using the old transaction format.
-		 */
+         * a transaction created using the old transaction format.
+         */
 
         Result result=region.get(get);
         //should never happen, this is in place to protect against programmer error
@@ -380,19 +380,19 @@ public class RegionTxnStore implements TxnPartition{
     }
 
     /******************************************************************************************************************/
-	/*private helper methods*/
+    /*private helper methods*/
 
     //easy reference for code clarity
     private static final byte[] FAMILY=SIConstants.DEFAULT_FAMILY_BYTES;
 
 
     private Scan setupScanOnRange(long afterTs,long beforeTs){
-			  /*
-			   * Get the bucket id for the region.
-			   *
-			   * The way the transaction table is built, a region may have an empty start
-			   * OR an empty end, but will never have both
-			   */
+              /*
+               * Get the bucket id for the region.
+               *
+               * The way the transaction table is built, a region may have an empty start
+               * OR an empty end, but will never have both
+               */
         byte[] startKey=Bytes.toBytes(afterTs);
         byte[] stopKey = Bytes.toBytes(beforeTs+1);
 

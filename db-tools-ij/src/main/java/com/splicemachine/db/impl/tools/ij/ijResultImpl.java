@@ -45,50 +45,50 @@ import java.util.List;
  *
  */
 abstract class ijResultImpl implements ijResult {
-	public boolean isConnection() { return false; }
-	public boolean isStatement() { return false; }
-	public boolean isResultSet() throws SQLException { return false; }
-	public boolean isUpdateCount() throws SQLException { return false; }
-	public boolean isNextRowOfResultSet() { return false; }
-	public boolean isVector() { return false; }
-	public boolean isMulti() { return false; }
-	public boolean isException() { return false; }
-	public boolean isMultipleResultSetResult(){ return false; }
-	public boolean isUnsupportedCommand() { return false; }
-	public boolean hasWarnings() throws SQLException { return getSQLWarnings()!=null; }
+    public boolean isConnection() { return false; }
+    public boolean isStatement() { return false; }
+    public boolean isResultSet() throws SQLException { return false; }
+    public boolean isUpdateCount() throws SQLException { return false; }
+    public boolean isNextRowOfResultSet() { return false; }
+    public boolean isVector() { return false; }
+    public boolean isMulti() { return false; }
+    public boolean isException() { return false; }
+    public boolean isMultipleResultSetResult(){ return false; }
+    public boolean isUnsupportedCommand() { return false; }
+    public boolean hasWarnings() throws SQLException { return getSQLWarnings()!=null; }
 
-	public Connection getConnection() { return null; }
-	public Statement getStatement() { return null; }
-	public int getUpdateCount() throws SQLException { return -1; }
-	public ResultSet getResultSet() throws SQLException { return null; }
-	public List getMultipleResultSets() { return null; }
-	public ResultSet getNextRowOfResultSet() { return null; }
-	public Vector getVector() { return null; }
-	public SQLException getException() { return null; }
+    public Connection getConnection() { return null; }
+    public Statement getStatement() { return null; }
+    public int getUpdateCount() throws SQLException { return -1; }
+    public ResultSet getResultSet() throws SQLException { return null; }
+    public List getMultipleResultSets() { return null; }
+    public ResultSet getNextRowOfResultSet() { return null; }
+    public Vector getVector() { return null; }
+    public SQLException getException() { return null; }
 
-	public int[] getColumnDisplayList() { return null; }
-	public int[] getColumnWidthList() { return null; }
+    public int[] getColumnDisplayList() { return null; }
+    public int[] getColumnWidthList() { return null; }
 
-	public void closeStatement() throws SQLException { }
+    public void closeStatement() throws SQLException { }
 
-	public abstract SQLWarning getSQLWarnings() throws SQLException;
-	public abstract void clearSQLWarnings() throws SQLException;
+    public abstract SQLWarning getSQLWarnings() throws SQLException;
+    public abstract void clearSQLWarnings() throws SQLException;
 
 
-	public String toString() {
-		if (isConnection()) return LocalizedResource.getMessage("IJ_Con0",getConnection().toString());
-		if (isStatement()) return LocalizedResource.getMessage("IJ_Stm0",getStatement().toString());
-		if (isNextRowOfResultSet()) return LocalizedResource.getMessage("IJ_Row0",getNextRowOfResultSet().toString());
-		if (isVector()) return LocalizedResource.getMessage("IJ_Vec0",getVector().toString());
-		if (isMulti()) return LocalizedResource.getMessage("IJ_Mul0",getVector().toString());
-		if (isException()) return LocalizedResource.getMessage("IJ_Exc0",getException().toString());
-		if (isMultipleResultSetResult())
-			return LocalizedResource.getMessage("IJ_MRS0",
-										getMultipleResultSets().toString());
-		try {
-			if (isResultSet()) return LocalizedResource.getMessage("IJ_Rse0",getStatement().toString());
-		} catch(SQLException se) {
-		}
-		return LocalizedResource.getMessage("IJ_Unkn0",this.getClass().getName());
-	}
+    public String toString() {
+        if (isConnection()) return LocalizedResource.getMessage("IJ_Con0",getConnection().toString());
+        if (isStatement()) return LocalizedResource.getMessage("IJ_Stm0",getStatement().toString());
+        if (isNextRowOfResultSet()) return LocalizedResource.getMessage("IJ_Row0",getNextRowOfResultSet().toString());
+        if (isVector()) return LocalizedResource.getMessage("IJ_Vec0",getVector().toString());
+        if (isMulti()) return LocalizedResource.getMessage("IJ_Mul0",getVector().toString());
+        if (isException()) return LocalizedResource.getMessage("IJ_Exc0",getException().toString());
+        if (isMultipleResultSetResult())
+            return LocalizedResource.getMessage("IJ_MRS0",
+                                        getMultipleResultSets().toString());
+        try {
+            if (isResultSet()) return LocalizedResource.getMessage("IJ_Rse0",getStatement().toString());
+        } catch(SQLException se) {
+        }
+        return LocalizedResource.getMessage("IJ_Unkn0",this.getClass().getName());
+    }
 }

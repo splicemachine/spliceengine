@@ -28,12 +28,12 @@ import java.io.IOException;
  */
 public interface DataHash<T> extends Closeable {
 
-		void setRow(T rowToEncode);
+        void setRow(T rowToEncode);
 
-		/**
-		 * @return the byte encoding for the hash;
-		 */
-		byte[] encode() throws StandardException, IOException;
+        /**
+         * @return the byte encoding for the hash;
+         */
+        byte[] encode() throws StandardException, IOException;
 
-		KeyHashDecoder getDecoder();
+        KeyHashDecoder getDecoder();
 }

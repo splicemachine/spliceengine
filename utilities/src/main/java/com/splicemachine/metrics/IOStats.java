@@ -20,5 +20,5 @@ package com.splicemachine.metrics;
  */
 public interface IOStats extends Stats{
 
-		long bytesSeen();
+        long bytesSeen();
 }

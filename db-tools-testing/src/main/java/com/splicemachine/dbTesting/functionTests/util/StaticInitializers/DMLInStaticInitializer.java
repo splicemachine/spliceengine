@@ -40,57 +40,57 @@ import java.sql.SQLException;
 public class DMLInStaticInitializer
 {
 
-	/* This is the method that is invoked from the outer query */
-	public static int getANumber()
-	{
-		return 1;
-	}
+    /* This is the method that is invoked from the outer query */
+    public static int getANumber()
+    {
+        return 1;
+    }
 
-	static
-	{
-		/* Execute a DML statement from within the static initializer */
-		doADMLStatement();
-	}
+    static
+    {
+        /* Execute a DML statement from within the static initializer */
+        doADMLStatement();
+    }
 
-	private static void doADMLStatement()
-	{
-		ResultSet rs = null;
+    private static void doADMLStatement()
+    {
+        ResultSet rs = null;
 
-		try
-		{
-			int	value;
+        try
+        {
+            int    value;
 
-			/* Connect to the database */
-			Statement s = DriverManager.getConnection(
-						"jdbc:default:connection").createStatement();
+            /* Connect to the database */
+            Statement s = DriverManager.getConnection(
+                        "jdbc:default:connection").createStatement();
 
-			/* Execute a DML statement.  This depends on t1 existing. */
-			rs = s.executeQuery("SELECT s FROM t1");
+            /* Execute a DML statement.  This depends on t1 existing. */
+            rs = s.executeQuery("SELECT s FROM t1");
 
-			if (rs.next())
-			{
-				System.out.println("Value of t1.s is " + rs.getShort(1));
-			}
-		}
-		catch (SQLException se)
-		{
-			if (!se.getSQLState().equals("38001")){
-				throw new ExceptionInInitializerError(se);
-			}
-		}
-		finally
-		{
-			try
-			{
-				if (rs != null)
-					rs.close();
-			}
-			catch (SQLException se)
-			{
-				if (!se.getSQLState().equals("38001")) {
-					throw new ExceptionInInitializerError(se);
-				}
-			}
-		}
-	}
+            if (rs.next())
+            {
+                System.out.println("Value of t1.s is " + rs.getShort(1));
+            }
+        }
+        catch (SQLException se)
+        {
+            if (!se.getSQLState().equals("38001")){
+                throw new ExceptionInInitializerError(se);
+            }
+        }
+        finally
+        {
+            try
+            {
+                if (rs != null)
+                    rs.close();
+            }
+            catch (SQLException se)
+            {
+                if (!se.getSQLState().equals("38001")) {
+                    throw new ExceptionInInitializerError(se);
+                }
+            }
+        }
+    }
 }

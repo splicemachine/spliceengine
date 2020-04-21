@@ -44,9 +44,9 @@ import java.util.Properties;
 
 public interface Diagnosticable
 {
-	/*
-	** Methods of Diagnosticable
-	*/
+    /*
+    ** Methods of Diagnosticable
+    */
     void init(Object obj);
 
     /**
@@ -60,7 +60,7 @@ public interface Diagnosticable
      * diagnostic information you would like to provide.
      * <p>
      *
-	 * @return A string with diagnostic information about the object.
+     * @return A string with diagnostic information about the object.
      *
      * @exception StandardException  Standard Derby exception policy
      **/

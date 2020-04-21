@@ -64,7 +64,7 @@ public class SYSDUMMY1RowFactory extends CatalogRowFactory
         };
 
     /*
-     *	CONSTRUCTORS
+     *    CONSTRUCTORS
      */
     public SYSDUMMY1RowFactory(UUIDFactory uuidf,
                                ExecutionFactory ef,
@@ -81,7 +81,7 @@ public class SYSDUMMY1RowFactory extends CatalogRowFactory
      * Make a SYSDUMMY1 row
      *
      *
-     * @return	Row suitable for inserting into SYSSTATISTICS.
+     * @return    Row suitable for inserting into SYSSTATISTICS.
      *
      * @exception   StandardException thrown on failure
      */
@@ -96,9 +96,9 @@ public class SYSDUMMY1RowFactory extends CatalogRowFactory
     }
 
     public TupleDescriptor buildDescriptor(
-        ExecRow 			row,
+        ExecRow             row,
         TupleDescriptor    parentDesc,
-        DataDictionary 	dd)
+        DataDictionary     dd)
         throws StandardException
 
     {

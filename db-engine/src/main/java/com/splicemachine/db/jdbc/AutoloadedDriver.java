@@ -51,32 +51,32 @@ import com.splicemachine.db.impl.jdbc.Util;
    Instead, the engine boots lazily when you ask for a
    Connection. Alternatively, you can force the engine to boot as follows:
 
-   	 <PRE>
-	 Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
+        <PRE>
+     Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
 
-	 // or
+     // or
 
      new com.splicemachine.db.jdbc.EmbeddedDriver();
 
     
-	</PRE>
+    </PRE>
 */
 public class AutoloadedDriver implements Driver {
-	// This flag is set if the engine is forcibly brought down.
-	private	static	boolean	_engineForcedDown = false;
-	
+    // This flag is set if the engine is forcibly brought down.
+    private    static    boolean    _engineForcedDown = false;
+    
 
     // This is the driver that memorizes the autoloadeddriver (DERBY-2905)
     private static Driver _autoloadedDriver;
 
-	//
-	// This is the driver that's specific to the JDBC level we're running at.
-	// It's the module which boots the whole Derby engine.
-	//
-	private	static	Driver	_driverModule;
-	
-	static
-	{
+    //
+    // This is the driver that's specific to the JDBC level we're running at.
+    // It's the module which boots the whole Derby engine.
+    //
+    private    static    Driver    _driverModule;
+    
+    static
+    {
         try {
             //
             // We'd rather load this slightly more capable driver.
@@ -89,148 +89,148 @@ public class AutoloadedDriver implements Driver {
         {
             registerMe( new AutoloadedDriver() );
         }
-	}
+    }
 
-	protected static void   registerMe( AutoloadedDriver me )
-	{
-		try {
+    protected static void   registerMe( AutoloadedDriver me )
+    {
+        try {
             _autoloadedDriver = me;
             DriverManager.registerDriver( _autoloadedDriver );
-		}
-		catch (SQLException se)
-		{
-			String	message = MessageService.getTextMessage
-				(MessageId.JDBC_DRIVER_REGISTER_ERROR, se.getMessage() );
+        }
+        catch (SQLException se)
+        {
+            String    message = MessageService.getTextMessage
+                (MessageId.JDBC_DRIVER_REGISTER_ERROR, se.getMessage() );
 
-			throw new IllegalStateException( message );
-		}
-	}
+            throw new IllegalStateException( message );
+        }
+    }
 
-	/*
-	** Methods from java.sql.Driver.
-	*/
-	/**
-		Accept anything that starts with <CODE>jdbc:splice:</CODE>.
-		@exception SQLException if a database-access error occurs.
+    /*
+    ** Methods from java.sql.Driver.
+    */
+    /**
+        Accept anything that starts with <CODE>jdbc:splice:</CODE>.
+        @exception SQLException if a database-access error occurs.
     @see java.sql.Driver
-	*/
-	public boolean acceptsURL(String url) throws SQLException {
+    */
+    public boolean acceptsURL(String url) throws SQLException {
 
-		//
-		// We don't want to accidentally boot the engine just because
-		// the application is looking for a connection from some other
-		// driver.
-		//
-		return !_engineForcedDown && InternalDriver.embeddedDriverAcceptsURL(url);
-	}
+        //
+        // We don't want to accidentally boot the engine just because
+        // the application is looking for a connection from some other
+        // driver.
+        //
+        return !_engineForcedDown && InternalDriver.embeddedDriverAcceptsURL(url);
+    }
 
    
-	/**
-		Connect to the URL if possible
-		@exception SQLException illegal url or problem with connectiong
+    /**
+        Connect to the URL if possible
+        @exception SQLException illegal url or problem with connectiong
     @see java.sql.Driver
   */
-	public Connection connect(String url, Properties info)
-		throws SQLException
-	{
-		//
-		// This pretty piece of logic compensates for the following behavior
-		// of the DriverManager: When asked to get a Connection, the
-		// DriverManager cycles through all of its autoloaded drivers, looking
-		// for one which will return a Connection. Without this pretty logic,
-		// the embedded driver module will be booted by any request for
-		// a connection which cannot be satisfied by drivers ahead of us
-		// in the list.
-		if (!InternalDriver.embeddedDriverAcceptsURL(url)) { return null; }
+    public Connection connect(String url, Properties info)
+        throws SQLException
+    {
+        //
+        // This pretty piece of logic compensates for the following behavior
+        // of the DriverManager: When asked to get a Connection, the
+        // DriverManager cycles through all of its autoloaded drivers, looking
+        // for one which will return a Connection. Without this pretty logic,
+        // the embedded driver module will be booted by any request for
+        // a connection which cannot be satisfied by drivers ahead of us
+        // in the list.
+        if (!InternalDriver.embeddedDriverAcceptsURL(url)) { return null; }
 
-		return getDriverModule().connect(url, info);
-	}
+        return getDriverModule().connect(url, info);
+    }
 
   /**
    * Returns an array of DriverPropertyInfo objects describing possible properties.
     @exception SQLException if a database-access error occurs.
     @see java.sql.Driver
    */
-	public  DriverPropertyInfo[] getPropertyInfo(String url, Properties info)
-		throws SQLException
-	{
-		return getDriverModule().getPropertyInfo(url, info);
-	}
+    public  DriverPropertyInfo[] getPropertyInfo(String url, Properties info)
+        throws SQLException
+    {
+        return getDriverModule().getPropertyInfo(url, info);
+    }
 
     /**
      * Returns the driver's major version number. 
      @see java.sql.Driver
      */
-	public int getMajorVersion() {
-		try {
-			return (getDriverModule().getMajorVersion());
-		}
-		catch (SQLException se) {
-			return 0;
-		}
-	}
+    public int getMajorVersion() {
+        try {
+            return (getDriverModule().getMajorVersion());
+        }
+        catch (SQLException se) {
+            return 0;
+        }
+    }
     /**
      * Returns the driver's minor version number.
      @see java.sql.Driver
      */
-	public int getMinorVersion() {
-		try {
-			return (getDriverModule().getMinorVersion());
-		}
-		catch (SQLException se) {
-			return 0;
-		}
-	}
+    public int getMinorVersion() {
+        try {
+            return (getDriverModule().getMinorVersion());
+        }
+        catch (SQLException se) {
+            return 0;
+        }
+    }
 
   /**
    * Report whether the Driver is a genuine JDBC COMPLIANT (tm) driver.
      @see java.sql.Driver
    */
-	public boolean jdbcCompliant() {
-		try {
-			return (getDriverModule().jdbcCompliant());
-		}
-		catch (SQLException se) {
-			return false;
-		}
-	}
+    public boolean jdbcCompliant() {
+        try {
+            return (getDriverModule().jdbcCompliant());
+        }
+        catch (SQLException se) {
+            return false;
+        }
+    }
 
-//	@Override
-	public Logger getParentLogger() throws SQLFeatureNotSupportedException{
-		throw new SQLFeatureNotSupportedException();
-	}
-	///////////////////////////////////////////////////////////////////////
-	//
-	// Support for booting and shutting down the engine.
-	//
-	///////////////////////////////////////////////////////////////////////
+//    @Override
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException{
+        throw new SQLFeatureNotSupportedException();
+    }
+    ///////////////////////////////////////////////////////////////////////
+    //
+    // Support for booting and shutting down the engine.
+    //
+    ///////////////////////////////////////////////////////////////////////
 
-	/*
-	** Retrieve the driver which is specific to our JDBC level.
-	** We defer real work to this specific driver.
-	*/
-	static	Driver getDriverModule() throws SQLException {
+    /*
+    ** Retrieve the driver which is specific to our JDBC level.
+    ** We defer real work to this specific driver.
+    */
+    static    Driver getDriverModule() throws SQLException {
 
-		if ( _engineForcedDown && (_autoloadedDriver == null))
-		{
-			// Driver not registered
+        if ( _engineForcedDown && (_autoloadedDriver == null))
+        {
+            // Driver not registered
             throw Util.generateCsSQLException( SQLState.CORE_JDBC_DRIVER_UNREGISTERED );
-		}
+        }
 
-		if ( !isBooted() ) { EmbeddedDriver.boot(); }
+        if ( !isBooted() ) { EmbeddedDriver.boot(); }
 
-		return _driverModule;
-	}
-	
-	/**
-	** Record which driver module actually booted.
-	*  @param driver the driver register to DriverManager is not AutoloadedDriver
-	**/
-	static	void	registerDriverModule( Driver driver )
-	{
-		_driverModule = driver;
-		_engineForcedDown = false;
-		
+        return _driverModule;
+    }
+    
+    /**
+    ** Record which driver module actually booted.
+    *  @param driver the driver register to DriverManager is not AutoloadedDriver
+    **/
+    static    void    registerDriverModule( Driver driver )
+    {
+        _driverModule = driver;
+        _engineForcedDown = false;
+        
         try {
             if (_autoloadedDriver == null) {
                 //Support JDBC 4 or higher (DERBY-2905)
@@ -241,16 +241,16 @@ public class AutoloadedDriver implements Driver {
             if (SanityManager.DEBUG)
                 SanityManager.THROWASSERT(e);
         }
-	}
-	
-	/**
-	** Unregister the driver and the AutoloadedDriver if exists. 
-	*  This happens when the engine is forcibly shut down.
-	*  
-	**/
-	static	void	unregisterDriverModule()
-	{
-		_engineForcedDown = true;
+    }
+    
+    /**
+    ** Unregister the driver and the AutoloadedDriver if exists. 
+    *  This happens when the engine is forcibly shut down.
+    *  
+    **/
+    static    void    unregisterDriverModule()
+    {
+        _engineForcedDown = true;
         try {
             // deregister is false if user set deregister=false attribute (DERBY-2905)
             if (InternalDriver.getDeregister() && _autoloadedDriver != null) {
@@ -266,17 +266,17 @@ public class AutoloadedDriver implements Driver {
             if (SanityManager.DEBUG)
                 SanityManager.THROWASSERT(e);
         }
-	}
-	
+    }
+    
 
-	/*
-	** Return true if the engine has been booted.
-	*/
-	public static	boolean	isBooted()
-	{
-		return ( _driverModule != null );
-	}
-	
+    /*
+    ** Return true if the engine has been booted.
+    */
+    public static    boolean    isBooted()
+    {
+        return ( _driverModule != null );
+    }
+    
     /**
      * load slightly more capable driver if possible.
      * But if the vm level doesn't support it, then we fall

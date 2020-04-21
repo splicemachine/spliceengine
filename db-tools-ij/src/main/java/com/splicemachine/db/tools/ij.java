@@ -45,23 +45,23 @@ import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 
 /**
-	
-	ij is Derby's interactive JDBC scripting tool.
-	It is a simple utility for running scripts against a Derby database.
-	You can also use it interactively to run ad hoc queries.
-	ij provides several commands for ease in accessing a variety of JDBC features.
-	<P>
+    
+    ij is Derby's interactive JDBC scripting tool.
+    It is a simple utility for running scripts against a Derby database.
+    You can also use it interactively to run ad hoc queries.
+    ij provides several commands for ease in accessing a variety of JDBC features.
+    <P>
 
-	To run from the command line enter the following:
-	<p>
-	java [options] com.splicemachine.db.tools.ij [arguments]
-	<P>
-	ij is can also be used with any database server that supports a JDBC driver.
+    To run from the command line enter the following:
+    <p>
+    java [options] com.splicemachine.db.tools.ij [arguments]
+    <P>
+    ij is can also be used with any database server that supports a JDBC driver.
 */
 public class ij {
 
   /**
-  	@exception IOException thrown if cannot access input or output files.
+      @exception IOException thrown if cannot access input or output files.
    */
   static public void main(String[] args) throws IOException {
       Main.main(args);
@@ -81,14 +81,14 @@ public class ij {
    * @throws UnsupportedEncodingException
    */
   public static int runScript(
-		  Connection conn,
-		  InputStream sqlIn,
-		  String inputEncoding,
-		  OutputStream sqlOut,
-		  String outputEncoding)
-		  throws UnsupportedEncodingException
+          Connection conn,
+          InputStream sqlIn,
+          String inputEncoding,
+          OutputStream sqlOut,
+          String outputEncoding)
+          throws UnsupportedEncodingException
   {
-	  return ij.runScript(conn, sqlIn, inputEncoding, sqlOut, outputEncoding,false);
+      return ij.runScript(conn, sqlIn, inputEncoding, sqlOut, outputEncoding,false);
   }
 
     /**
@@ -106,13 +106,13 @@ public class ij {
     * @throws UnsupportedEncodingException
     */
     public static int runScript(
-		  Connection conn,
-		  InputStream sqlIn,
-		  String inputEncoding,
-		  OutputStream sqlOut,
-		  String outputEncoding,
+          Connection conn,
+          InputStream sqlIn,
+          String inputEncoding,
+          OutputStream sqlOut,
+          String outputEncoding,
           boolean loadSystemProperties)
-		  throws UnsupportedEncodingException
+          throws UnsupportedEncodingException
     {
         LocalizedOutput lo =
           outputEncoding == null ?
@@ -137,17 +137,17 @@ public class ij {
   
   public static String getArg(String param, String[] args)
   {
-	  return com.splicemachine.db.impl.tools.ij.util.getArg(param, args);
+      return com.splicemachine.db.impl.tools.ij.util.getArg(param, args);
   }
 
   public static void getPropertyArg(String[] args) throws IOException
   {
-	  com.splicemachine.db.impl.tools.ij.util.getPropertyArg(args);
+      com.splicemachine.db.impl.tools.ij.util.getPropertyArg(args);
   }
 
   public static java.sql.Connection startJBMS()
-	  throws java.sql.SQLException, IllegalAccessException, ClassNotFoundException, InstantiationException
-  {			
-		return com.splicemachine.db.impl.tools.ij.util.startJBMS();
+      throws java.sql.SQLException, IllegalAccessException, ClassNotFoundException, InstantiationException
+  {            
+        return com.splicemachine.db.impl.tools.ij.util.startJBMS();
   }
 }

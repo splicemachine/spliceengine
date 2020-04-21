@@ -109,10 +109,10 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
                 .create();
 
         String sqlText = "insert into ts_bigint select * from ts_bigint";
-		spliceClassWatcher.executeUpdate(sqlText);
-		spliceClassWatcher.executeUpdate(sqlText);
-		spliceClassWatcher.executeUpdate(sqlText);
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
 
         new TableCreator(conn)
                 .withCreate("create table ts_bigint2 (b bigint, c int)")
@@ -128,12 +128,12 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
                 .create();
 
         sqlText = "insert into ts_bigint2 select * from ts_bigint2";
-		spliceClassWatcher.executeUpdate(sqlText);
-		spliceClassWatcher.executeUpdate(sqlText);
-		spliceClassWatcher.executeUpdate(sqlText);
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
 
-		// For testing merge of aggregation results.
+        // For testing merge of aggregation results.
         new TableCreator(conn)
                 .withCreate("create table ts_bigint3 (b bigint, c int, primary key(c))")
                 .withInsert("insert into ts_bigint3 values(?, ?)")
@@ -144,46 +144,46 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
         sqlText = "insert into ts_bigint3 select b, c+1 from ts_bigint3";
         spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+2 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+4 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+8 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+16 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+32 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+64 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+128 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+256 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+512 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
-		// 1K rows have been inserted
+        spliceClassWatcher.executeUpdate(sqlText);
+        // 1K rows have been inserted
 
         sqlText = "insert into ts_bigint3 select b, c+1024 from ts_bigint3";
         spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+2048 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+4096 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+8192 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+16384 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+32768 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+65536 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+131072 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select b, c+262144 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
         sqlText = "insert into ts_bigint3 select 10000000000000000, c+524288 from ts_bigint3";
-		spliceClassWatcher.executeUpdate(sqlText);
-		// 1M rows have been inserted
+        spliceClassWatcher.executeUpdate(sqlText);
+        // 1M rows have been inserted
 
         new TableCreator(conn)
         .withCreate("create table MY_TABLE\n" +
@@ -252,8 +252,8 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
                 .create();
 
         sqlText = "insert into ts_decimal3 select * from ts_decimal2";
-		spliceClassWatcher.executeUpdate(sqlText);
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
 
         new TableCreator(conn)
                 .withCreate("create table ts_float (f1 float(40), f2 float(45))")

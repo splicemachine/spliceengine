@@ -55,10 +55,10 @@ import java.util.List;
 
 public class SYSCOLPERMSRowFactory extends PermissionsCatalogRowFactory
 {
-	static final String TABLENAME_STRING = "SYSCOLPERMS";
+    static final String TABLENAME_STRING = "SYSCOLPERMS";
 
     // Column numbers for the SYSCOLPERMS table. 1 based
-	private static final int COLPERMSID_COL_NUM = 1;
+    private static final int COLPERMSID_COL_NUM = 1;
     private static final int GRANTEE_COL_NUM = 2;
     private static final int GRANTOR_COL_NUM = 3;
     private static final int TABLEID_COL_NUM = 4;
@@ -70,36 +70,36 @@ public class SYSCOLPERMSRowFactory extends PermissionsCatalogRowFactory
     static final int COLPERMSID_INDEX_NUM = 1;
     static final int TABLEID_INDEX_NUM = 2;
     protected static final int TOTAL_NUM_OF_INDEXES = 3;
-	private static final int[][] indexColumnPositions = 
-	{ 
-		{ GRANTEE_COL_NUM, TABLEID_COL_NUM, TYPE_COL_NUM, GRANTOR_COL_NUM},
-		{ COLPERMSID_COL_NUM },
-		{ TABLEID_COL_NUM }
-	};
+    private static final int[][] indexColumnPositions = 
+    { 
+        { GRANTEE_COL_NUM, TABLEID_COL_NUM, TYPE_COL_NUM, GRANTOR_COL_NUM},
+        { COLPERMSID_COL_NUM },
+        { TABLEID_COL_NUM }
+    };
 
     public static final int
         GRANTEE_COL_NUM_IN_GRANTEE_TABLE_TYPE_GRANTOR_INDEX = 1;
 
     private static final boolean[] indexUniqueness = { true, true, false};
 
-    private	static final String[] uuids =
+    private    static final String[] uuids =
     {
         "286cc01e-0103-0e39-b8e7-00000010f010" // catalog UUID
-		,"6074401f-0103-0e39-b8e7-00000010f010"	// heap UUID
-		,"787c0020-0103-0e39-b8e7-00000010f010"	// index1
-		,"c9a3808d-010c-42a2-ae15-0000000f67f8" //index2
-		,"80220011-010c-bc85-060d-000000109ab8" //index3
+        ,"6074401f-0103-0e39-b8e7-00000010f010"    // heap UUID
+        ,"787c0020-0103-0e39-b8e7-00000010f010"    // index1
+        ,"c9a3808d-010c-42a2-ae15-0000000f67f8" //index2
+        ,"80220011-010c-bc85-060d-000000109ab8" //index3
     };
 
     public SYSCOLPERMSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
-	{
-		super(uuidf,ef,dvf);
-		initInfo(COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, indexUniqueness, uuids);
-	}
+    {
+        super(uuidf,ef,dvf);
+        initInfo(COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, indexUniqueness, uuids);
+    }
 
-	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException
-	{
-        UUID						oid;
+    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException
+    {
+        UUID                        oid;
         String colPermID = null;
         DataValueDescriptor grantee = null;
         DataValueDescriptor grantor = null;
@@ -118,8 +118,8 @@ public class SYSCOLPERMSRowFactory extends PermissionsCatalogRowFactory
             oid = cpd.getUUID();
             if ( oid == null )
             {
-            	oid = getUUIDFactory().createUUID();
-            	cpd.setUUID(oid);           
+                oid = getUUIDFactory().createUUID();
+                cpd.setUUID(oid);           
             }
             colPermID = oid.toString();
             grantee = getAuthorizationID( cpd.getGrantee());
@@ -138,11 +138,11 @@ public class SYSCOLPERMSRowFactory extends PermissionsCatalogRowFactory
         return row;
     } // end of makeRow
 
-	/** builds a tuple descriptor from a row */
-	public TupleDescriptor buildDescriptor(ExecRow row,
+    /** builds a tuple descriptor from a row */
+    public TupleDescriptor buildDescriptor(ExecRow row,
                                            TupleDescriptor parentTuple,
-                                           DataDictionary	dataDictionary)
-		throws StandardException
+                                           DataDictionary    dataDictionary)
+        throws StandardException
     {
         if( SanityManager.DEBUG)
             SanityManager.ASSERT( row.nColumns() == COLUMN_COUNT,
@@ -161,7 +161,7 @@ public class SYSCOLPERMSRowFactory extends PermissionsCatalogRowFactory
                                   "Invalid type passed to SYSCOLPERMSRowFactory.buildDescriptor");
 
         ColPermsDescriptor colPermsDesc =
-	        new ColPermsDescriptor( dataDictionary, 
+            new ColPermsDescriptor( dataDictionary, 
                     getAuthorizationID( row, GRANTEE_COL_NUM),
                     getAuthorizationID( row, GRANTOR_COL_NUM),
                     tableUUID, type, columns);
@@ -169,7 +169,7 @@ public class SYSCOLPERMSRowFactory extends PermissionsCatalogRowFactory
         return colPermsDesc;
     } // end of buildDescriptor
 
-	/** builds a column list for the catalog */
+    /** builds a column list for the catalog */
     public SystemColumn[] buildColumnList()
         throws StandardException
     {
@@ -184,12 +184,12 @@ public class SYSCOLPERMSRowFactory extends PermissionsCatalogRowFactory
         };
     }
 
-	/**
-	 * builds an index key row for a given index number.
-	 */
-  	public ExecIndexRow buildIndexKeyRow( int indexNumber,
+    /**
+     * builds an index key row for a given index number.
+     */
+      public ExecIndexRow buildIndexKeyRow( int indexNumber,
                                           PermissionsDescriptor perm) 
-  		throws StandardException
+          throws StandardException
     {
         ExecIndexRow row = null;
         
@@ -310,9 +310,9 @@ public class SYSCOLPERMSRowFactory extends PermissionsCatalogRowFactory
         return 0; // no change
     } // end of removePermissions
     
-	/** 
-	 * @see PermissionsCatalogRowFactory#setUUIDOfThePassedDescriptor
-	 */
+    /** 
+     * @see PermissionsCatalogRowFactory#setUUIDOfThePassedDescriptor
+     */
     public void setUUIDOfThePassedDescriptor(ExecRow row, PermissionsDescriptor perm)
     throws StandardException
     {

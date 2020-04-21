@@ -163,14 +163,14 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
      * statement that requires a backing index.
      */
     private boolean         forCreateTable;
-    private boolean			unique;
-    private boolean			uniqueWithDuplicateNulls;
-    private String			indexType;
-    private String[]		columnNames;
-    private boolean[]		isAscending;
-    private boolean			isConstraint;
-    private UUID			conglomerateUUID;
-    private Properties		properties;
+    private boolean            unique;
+    private boolean            uniqueWithDuplicateNulls;
+    private String            indexType;
+    private String[]        columnNames;
+    private boolean[]        isAscending;
+    private boolean            isConstraint;
+    private UUID            conglomerateUUID;
+    private Properties        properties;
     private ExecRow         indexTemplateRow;
     private boolean         excludeNulls;
     private boolean         excludeDefaults;
@@ -210,50 +210,50 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     // CONSTRUCTORS
     public CreateIndexConstantOperation(){}
     /**
-     * 	Make the ConstantAction to create an index.
+     *     Make the ConstantAction to create an index.
      *
      * @param forCreateTable                Being executed within a CREATE TABLE
      *                                      statement
-     * @param unique		                True means it will be a unique index
+     * @param unique                        True means it will be a unique index
      * @param uniqueWithDuplicateNulls      True means index check and disallow
      *                                      any duplicate key if key has no
      *                                      column with a null value.  If any
      *                                      column in the key has a null value,
      *                                      no checking is done and insert will
      *                                      always succeed.
-     * @param indexType	                    type of index (BTREE, for example)
-     * @param schemaName	                schema that table (and index)
+     * @param indexType                        type of index (BTREE, for example)
+     * @param schemaName                    schema that table (and index)
      *                                      lives in.
-     * @param indexName	                    Name of the index
-     * @param tableName	                    Name of table the index will be on
-     * @param tableId		                UUID of table
-     * @param columnNames	                Names of the columns in the index,
+     * @param indexName                        Name of the index
+     * @param tableName                        Name of table the index will be on
+     * @param tableId                        UUID of table
+     * @param columnNames                    Names of the columns in the index,
      *                                      in order
-     * @param isAscending	                Array of booleans telling asc/desc
+     * @param isAscending                    Array of booleans telling asc/desc
      *                                      on each column
-     * @param isConstraint	                TRUE if index is backing up a
+     * @param isConstraint                    TRUE if index is backing up a
      *                                      constraint, else FALSE
-     * @param conglomerateUUID	            ID of conglomerate
-     * @param properties	                The optional properties list
+     * @param conglomerateUUID                ID of conglomerate
+     * @param properties                    The optional properties list
      *                                      associated with the index.
      */
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public CreateIndexConstantOperation(
             boolean         forCreateTable,
-            boolean			unique,
-            boolean			uniqueWithDuplicateNulls,
-            String			indexType,
-            String			schemaName,
-            String			indexName,
-            String			tableName,
-            UUID			tableId,
-            String[]		columnNames,
-            boolean[]		isAscending,
-            boolean			isConstraint,
-            UUID			conglomerateUUID,
-            boolean 		excludeNulls,
-            boolean			excludeDefaults,
+            boolean            unique,
+            boolean            uniqueWithDuplicateNulls,
+            String            indexType,
+            String            schemaName,
+            String            indexName,
+            String            tableName,
+            UUID            tableId,
+            String[]        columnNames,
+            boolean[]        isAscending,
+            boolean            isConstraint,
+            UUID            conglomerateUUID,
+            boolean         excludeNulls,
+            boolean            excludeDefaults,
             boolean         preSplit,
             boolean         isLogicalKey,
             boolean         sampling,
@@ -265,7 +265,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             String          timestampFormat,
             String          dateFormat,
             String          timeFormat,
-            Properties		properties) {
+            Properties        properties) {
         super(tableId, indexName, tableName, schemaName);
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for table %s.%s with index named %s for columns %s",schemaName,tableName,indexName,Arrays.toString(columnNames));
         this.forCreateTable             = forCreateTable;
@@ -317,17 +317,17 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for conglomerate {%s} and table {%s} with properties {%s}", srcCD,td,properties);
         this.forCreateTable = false;
 
-		/* We get here when a conglomerate has been dropped and we
-		 * need to create (or find) another one to fill its place.
-		 * At this point the received conglomerate descriptor still
-		 * references the old (dropped) conglomerate, so we can
-		 * pull the conglomerate number from there.
-		 */
+        /* We get here when a conglomerate has been dropped and we
+         * need to create (or find) another one to fill its place.
+         * At this point the received conglomerate descriptor still
+         * references the old (dropped) conglomerate, so we can
+         * pull the conglomerate number from there.
+         */
         this.droppedConglomNum = srcCD.getConglomerateNumber();
 
-		/* Plug in the rest of the information from the received
-		 * descriptors.
-		 */
+        /* Plug in the rest of the information from the received
+         * descriptors.
+         */
         IndexRowGenerator irg = srcCD.getIndexDescriptor();
         this.unique = irg.isUnique();
         this.uniqueWithDuplicateNulls = irg.isUniqueWithDuplicateNulls();
@@ -341,11 +341,11 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.excludeNulls = irg.excludeNulls();
         this.excludeDefaults = irg.excludeDefaults();
 
-		/* The ConglomerateDescriptor may not know the names of
-		 * the columns it includes.  If that's true (which seems
-		 * to be the more common case) then we have to build the
-		 * list of ColumnNames ourselves.
-		 */
+        /* The ConglomerateDescriptor may not know the names of
+         * the columns it includes.  If that's true (which seems
+         * to be the more common case) then we have to build the
+         * list of ColumnNames ourselves.
+         */
         if (columnNames == null) {
             int [] baseCols = irg.baseColumnPositions();
             columnNames = new String[baseCols.length];
@@ -358,12 +358,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
 
 
-    public	String	toString() {
+    public    String    toString() {
         return "CREATE INDEX " + indexName;
     }
 
     /**
-     *	This is the guts of the Execution-time logic for
+     *    This is the guts of the Execution-time logic for
      *  creating an index.
      *
      *  <P>
@@ -375,9 +375,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
      *
      *  @see ConglomerateDescriptor
      *  @see SchemaDescriptor
-     *	@see ConstantAction#executeConstantAction
+     *    @see ConstantAction#executeConstantAction
      *
-     * @exception StandardException		Thrown on failure
+     * @exception StandardException        Thrown on failure
      */
     public void executeConstantAction( Activation activation ) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeConstantActivation with activation %s",activation);
@@ -418,8 +418,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             SpliceLogUtils.trace(LOG, "Translation Base Column Names");
             // Translate the base column names to column positions
-            IndexRowGenerator			indexRowGenerator = null;
-            int[]	baseColumnPositions = new int[columnNames.length];
+            IndexRowGenerator            indexRowGenerator = null;
+            int[]    baseColumnPositions = new int[columnNames.length];
             int maxBaseColumnPosition = td.getBaseColumnPositions(lcc, baseColumnPositions, columnNames);
 
             /* The code below tries to determine if the index that we're about
@@ -578,7 +578,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             // Fill the partial row with nulls of the correct type
             ColumnDescriptorList cdl = td.getColumnDescriptorList();
-            int	cdlSize = cdl.size();
+            int    cdlSize = cdl.size();
             DataValueDescriptor defaultValue = null;
             ExecRow defaultRow = new ValueRow(cdlSize);
             for (int index = 0, numSet = 0; index < cdlSize; index++) {
@@ -743,7 +743,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
          * Note that this only works with "BTREE" indices--In Splice language, that
          * is the default "dense, remote" index
          */
-        Properties	indexProperties;
+        Properties    indexProperties;
 
         if (properties != null) {
             indexProperties = properties;

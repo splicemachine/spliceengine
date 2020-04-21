@@ -121,9 +121,9 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
             if(endOfLineReached){
                 if(TokenizerState.NORMAL.equals(state)){
                     /*
-					 * Newline. Add any required spaces (if surrounding spaces don't need quotes) and return (we've read
-					 * a line!).
-					 */
+                     * Newline. Add any required spaces (if surrounding spaces don't need quotes) and return (we've read
+                     * a line!).
+                     */
                     if(!surroundingSpacesNeedQuotes){
                         appendSpaces(currentColumn,potentialSpaces);
                     }
@@ -132,23 +132,23 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
                     wasQuoted = false;
                     return true;
                 }else{
-					/*
-					 * Newline. Doesn't count as newline while in QUOTESCOPE. Add the newline char, reset the charIndex
-					 * (will update to 0 for next iteration), read in the next line, then then continue to next
-					 * character.
-					 */
+                    /*
+                     * Newline. Doesn't count as newline while in QUOTESCOPE. Add the newline char, reset the charIndex
+                     * (will update to 0 for next iteration), read in the next line, then then continue to next
+                     * character.
+                     */
                     currentColumn.append(NEWLINE);
                     currentRow.append(NEWLINE); // specific line terminator lost, \n will have to suffice
 
                     charIndex=0;
 
                     if(maxLinesPerRow>0 && getLineNumber()-quoteScopeStartingLine+1>=maxLinesPerRow){
-						/*
-						 * The quoted section that is being parsed spans too many lines, so to avoid excessive memory
-						 * usage parsing something that is probably human error anyways, throw an exception. If each
-						 * row is suppose to be a single line and this has been exceeded, throw a more descriptive
-						 * exception
-						 */
+                        /*
+                         * The quoted section that is being parsed spans too many lines, so to avoid excessive memory
+                         * usage parsing something that is probably human error anyways, throw an exception. If each
+                         * row is suppose to be a single line and this has been exceeded, throw a more descriptive
+                         * exception
+                         */
                         String msg=maxLinesPerRow==1?
                                 String.format("unexpected end of line while reading quoted column on line %d",
                                         getLineNumber()):
@@ -176,9 +176,9 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
 
             if(TokenizerState.NORMAL.equals(state)){
                 if(c==delimeterChar){
-					/*
-					 * Delimiter. Save the column (trim trailing space if required) then continue to next character.
-					 */
+                    /*
+                     * Delimiter. Save the column (trim trailing space if required) then continue to next character.
+                     */
                     if(!surroundingSpacesNeedQuotes){
                         appendSpaces(currentColumn,potentialSpaces);
                     }
@@ -190,15 +190,15 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
                     }
                     wasQuoted = false;
                 }else if(c==SPACE){
-					/*
-					 * Space. Remember it, then continue to next character.
-					 */
+                    /*
+                     * Space. Remember it, then continue to next character.
+                     */
                     potentialSpaces++;
 
                 }else if(c==quoteChar){
-					/*
-					 * A single quote ("). Update to QUOTESCOPE (but don't save quote), then continue to next character.
-					 */
+                    /*
+                     * A single quote ("). Update to QUOTESCOPE (but don't save quote), then continue to next character.
+                     */
                     state=TokenizerState.QUOTE_MODE;
                     wasQuoted = true;
                     quoteScopeStartingLine=getLineNumber();
@@ -210,10 +210,10 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
                     potentialSpaces=0;
 
                 }else{
-					/*
-					 * Just a normal character. Add any required spaces (but trim any leading spaces if surrounding
-					 * spaces need quotes), add the character, then continue to next character.
-					 */
+                    /*
+                     * Just a normal character. Add any required spaces (but trim any leading spaces if surrounding
+                     * spaces need quotes), add the character, then continue to next character.
+                     */
                     if(!surroundingSpacesNeedQuotes || currentColumn.length()>0){
                         appendSpaces(currentColumn,potentialSpaces);
                     }
@@ -223,33 +223,33 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
                 }
 
             }else{
-				/*
-				 * QUOTE_MODE (within quotes).
-				 */
+                /*
+                 * QUOTE_MODE (within quotes).
+                 */
                 if(c==quoteChar){
                     int nextCharIndex=charIndex+1;
                     boolean availableCharacters=nextCharIndex<line.length();
                     boolean nextCharIsQuote=availableCharacters && line.charAt(nextCharIndex)==quoteChar;
                     if(nextCharIsQuote){
-						/*
-						 * An escaped quote (""). Add a single quote, then move the cursor so the next iteration of the
-						 * loop will read the character following the escaped quote.
-						 */
+                        /*
+                         * An escaped quote (""). Add a single quote, then move the cursor so the next iteration of the
+                         * loop will read the character following the escaped quote.
+                         */
                         currentColumn.append(c);
                         charIndex++;
 
                     }else{
-						/*
-						 * A single quote ("). Update to NORMAL (but don't save quote), then continue to next character.
-						 */
+                        /*
+                         * A single quote ("). Update to NORMAL (but don't save quote), then continue to next character.
+                         */
                         state=TokenizerState.NORMAL;
                         quoteScopeStartingLine=-1; // reset ready for next multi-line cell
                     }
                 }else{
-					/*
-					 * Just a normal character, delimiter (they don't count in QUOTESCOPE) or space. Add the character,
-					 * then continue to next character.
-					 */
+                    /*
+                     * Just a normal character, delimiter (they don't count in QUOTESCOPE) or space. Add the character,
+                     * then continue to next character.
+                     */
                     currentColumn.append(c);
                 }
             }

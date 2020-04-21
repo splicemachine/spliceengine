@@ -53,62 +53,62 @@ import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.Function
  */
 public class WindowFunctionInfo implements Formatable
 {
-	/********************************************************
-	**
-	**	This class implements Formatable. That means that it
-	**	can write itself to and from a formatted stream. If
-	**	you add more fields to this class, make sure that you
-	**	also write/read them with the writeExternal()/readExternal()
-	**	methods.
-	**
-	**	If, inbetween releases, you add more fields to this class,
-	**	then you should bump the version number emitted by the getTypeFormatId()
-	**	method.  OR, since this is something that is used
-	**	in stored prepared statements, it is ok to change it
-	**	if you make sure that stored prepared statements are
-	**	invalidated across releases.
-	**
-	********************************************************/
+    /********************************************************
+    **
+    **    This class implements Formatable. That means that it
+    **    can write itself to and from a formatted stream. If
+    **    you add more fields to this class, make sure that you
+    **    also write/read them with the writeExternal()/readExternal()
+    **    methods.
+    **
+    **    If, inbetween releases, you add more fields to this class,
+    **    then you should bump the version number emitted by the getTypeFormatId()
+    **    method.  OR, since this is something that is used
+    **    in stored prepared statements, it is ok to change it
+    **    if you make sure that stored prepared statements are
+    **    invalidated across releases.
+    **
+    ********************************************************/
 
-	/*
-	** See the constructor for the meaning of these fields
-	*/
-	String	functionName;
-	int[] operandColNums;
-	int		outputColumn;
-	int		aggregatorColumn;
-	String	functionClassName;
-	ResultDescription resultDescription;
+    /*
+    ** See the constructor for the meaning of these fields
+    */
+    String    functionName;
+    int[] operandColNums;
+    int        outputColumn;
+    int        aggregatorColumn;
+    String    functionClassName;
+    ResultDescription resultDescription;
     FormatableArrayHolder partitionInfo;
     FormatableArrayHolder orderByInfo;
     FormatableArrayHolder keyInfo;
     FormatableHashtable frameInfo;
     FormatableHashtable functionSpecificArgs;
-	FunctionType type;
+    FunctionType type;
 
     /**
-	 * Niladic constructor for Formattable
-	 */
-	public WindowFunctionInfo() {}
+     * Niladic constructor for Formattable
+     */
+    public WindowFunctionInfo() {}
 
     /**
-	 * Consructor
-	 *
-	 * @param functionName	the name of the window function.  Not
- 	 *		actually used anywhere except diagnostics.  Should
-	 *		be the names as found in the language (e.g. RANK).
-	 * @param functionClassName	the name of the class
-	 *		used to process this function.  Function class expected
-	 *		to have a no-arg constructor and implement
-	 *		WindowFunction.
-	 * @param operandColNumns the function operand column numbers
-	 * @param outputColNum	the output column number
-	 * @param aggregatorColNum the column number in which the window function class is stored.
-	 * @param resultDescription	the result description
-	 *
-	 */
-	public WindowFunctionInfo(String functionName,
-							  FunctionType type,
+     * Consructor
+     *
+     * @param functionName    the name of the window function.  Not
+      *        actually used anywhere except diagnostics.  Should
+     *        be the names as found in the language (e.g. RANK).
+     * @param functionClassName    the name of the class
+     *        used to process this function.  Function class expected
+     *        to have a no-arg constructor and implement
+     *        WindowFunction.
+     * @param operandColNumns the function operand column numbers
+     * @param outputColNum    the output column number
+     * @param aggregatorColNum the column number in which the window function class is stored.
+     * @param resultDescription    the result description
+     *
+     */
+    public WindowFunctionInfo(String functionName,
+                              FunctionType type,
                               String functionClassName,
                               int[] operandColNumns,
                               int outputColNum,
@@ -119,85 +119,85 @@ public class WindowFunctionInfo implements Formatable
                               FormatableArrayHolder keyInfo,
                               FormatableHashtable frameInfo,
                               FormatableHashtable functionSpecificArgs) {
-		this.functionName	= functionName;
-		this.type = type;
-		this.functionClassName = functionClassName;
-		this.operandColNums = operandColNumns;
-		this.outputColumn	= outputColNum;
-		this.aggregatorColumn = aggregatorColNum;
-		this.resultDescription = resultDescription;
+        this.functionName    = functionName;
+        this.type = type;
+        this.functionClassName = functionClassName;
+        this.operandColNums = operandColNumns;
+        this.outputColumn    = outputColNum;
+        this.aggregatorColumn = aggregatorColNum;
+        this.resultDescription = resultDescription;
         this.partitionInfo = partitionInfo;
         this.orderByInfo = orderByInfo;
         this.keyInfo = keyInfo;
         this.frameInfo = frameInfo;
         this.functionSpecificArgs = functionSpecificArgs;
-	}
+    }
 
-	/**
-	 * Get the name of the function (e.g. MAX)
-	 *
-	 * @return the function name
-	 */
-	public String getFunctionName()
-	{
-		return functionName;
-	}
+    /**
+     * Get the name of the function (e.g. MAX)
+     *
+     * @return the function name
+     */
+    public String getFunctionName()
+    {
+        return functionName;
+    }
 
-	/**
-	 * Get the name of the class that implements the user
-	 * aggregator for this class.
-	 *
-	 * @return the window function class name
-	 */
-	public String getWindowFunctionClassName()
-	{
-		return functionClassName;
-	}
+    /**
+     * Get the name of the class that implements the user
+     * aggregator for this class.
+     *
+     * @return the window function class name
+     */
+    public String getWindowFunctionClassName()
+    {
+        return functionClassName;
+    }
 
 
-	/**
-	 * Get the column number for the aggregator
-	 * column.
-	 *
-	 * @return the window function colid
-	 */
-	public int getWindowFunctionColNum()
-	{
-		return aggregatorColumn;
-	}
+    /**
+     * Get the column number for the aggregator
+     * column.
+     *
+     * @return the window function colid
+     */
+    public int getWindowFunctionColNum()
+    {
+        return aggregatorColumn;
+    }
 
-	/**
-	 * Get the column numbers for the input
-	 * (addend) columns.
-	 *
-	 * @return the colids
-	 */
-	public int[] getInputColNums()
-	{
-		return operandColNums;
-	}
+    /**
+     * Get the column numbers for the input
+     * (addend) columns.
+     *
+     * @return the colids
+     */
+    public int[] getInputColNums()
+    {
+        return operandColNums;
+    }
 
-	/**
-	 * Get the column number for the output
-	 * (result) column.
-	 *
-	 * @return the output colid
-	 */
-	public int getOutputColNum()
-	{
-		return outputColumn;
-	}
+    /**
+     * Get the column number for the output
+     * (result) column.
+     *
+     * @return the output colid
+     */
+    public int getOutputColNum()
+    {
+        return outputColumn;
+    }
 
-	/**
-	 * Get the result description for the input value
-	 * to this aggregate.
-	 *
-	 * @return the resultDescription
-	 */
-	public ResultDescription getResultDescription()
-	{
-		return resultDescription;
-	}
+    /**
+     * Get the result description for the input value
+     * to this aggregate.
+     *
+     * @return the resultDescription
+     */
+    public ResultDescription getResultDescription()
+    {
+        return resultDescription;
+    }
 
     public ColumnOrdering[] getPartitionInfo() {
         ColumnOrdering[] partition = null;
@@ -259,7 +259,7 @@ public class WindowFunctionInfo implements Formatable
             "ResultCol: " + outputColumn + "<br/>" +
             "OperandCols: " + arrayToString(operandColNums) + "<br/>" +
             "FunctionColNum: " + aggregatorColumn + "<br/>";
-	}
+    }
 
     private static String arrayToString(int[] cols) {
         StringBuilder buf = new StringBuilder();
@@ -286,78 +286,78 @@ public class WindowFunctionInfo implements Formatable
 
 
     //////////////////////////////////////////////
-	//
-	// FORMATABLE
-	//
-	//////////////////////////////////////////////
-	/**
-	 * Write this object out
-	 *
-	 * @param out write bytes here
-	 *
- 	 * @exception java.io.IOException thrown on error
-	 */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		out.writeObject(functionName);
+    //
+    // FORMATABLE
+    //
+    //////////////////////////////////////////////
+    /**
+     * Write this object out
+     *
+     * @param out write bytes here
+     *
+      * @exception java.io.IOException thrown on error
+     */
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeObject(functionName);
         int length = operandColNums.length;
         out.writeInt( length );
         for (int inputColumn : operandColNums) { out.writeInt(inputColumn); }
 
-		out.writeInt(outputColumn);
-		out.writeInt(aggregatorColumn);
-		out.writeObject(functionClassName);
-		out.writeObject(type.toString());
-		out.writeObject(resultDescription);
+        out.writeInt(outputColumn);
+        out.writeInt(aggregatorColumn);
+        out.writeObject(functionClassName);
+        out.writeObject(type.toString());
+        out.writeObject(resultDescription);
         out.writeObject(partitionInfo);
         out.writeObject(orderByInfo);
         out.writeObject(keyInfo);
         out.writeObject(frameInfo);
         out.writeObject(functionSpecificArgs);
-	}
+    }
 
-	/**
-	 * Read this object from a stream of stored objects.
-	 *
-	 * @param in read this.
-	 *
-	 * @exception java.io.IOException					thrown on error
-	 * @exception ClassNotFoundException		thrown on error
-	 */
-	public void readExternal(ObjectInput in)
-		throws IOException, ClassNotFoundException
-	{
-		functionName = (String)in.readObject();
+    /**
+     * Read this object from a stream of stored objects.
+     *
+     * @param in read this.
+     *
+     * @exception java.io.IOException                    thrown on error
+     * @exception ClassNotFoundException        thrown on error
+     */
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    {
+        functionName = (String)in.readObject();
         int length = in.readInt();
         operandColNums = new int[ length ];
         for ( int i = 0; i < length; i++ ) { operandColNums[ i ] = in.readInt(); }
 
         outputColumn = in.readInt();
-		aggregatorColumn = in.readInt();
-		functionClassName = (String)in.readObject();
-		type = FunctionType.valueOf((String)in.readObject());
-		resultDescription = (ResultDescription)in.readObject();
+        aggregatorColumn = in.readInt();
+        functionClassName = (String)in.readObject();
+        type = FunctionType.valueOf((String)in.readObject());
+        resultDescription = (ResultDescription)in.readObject();
         partitionInfo = (FormatableArrayHolder) in.readObject();
         orderByInfo = (FormatableArrayHolder) in.readObject();
         keyInfo = (FormatableArrayHolder) in.readObject();
         frameInfo = (FormatableHashtable) in.readObject();
         functionSpecificArgs = (FormatableHashtable) in.readObject();
-	}
-	
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public int	getTypeFormatId()	{ return StoredFormatIds.WINDOW_FUNCTION_INFO_V01_ID; }
+    }
+    
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public int    getTypeFormatId()    { return StoredFormatIds.WINDOW_FUNCTION_INFO_V01_ID; }
 
-	/**
-	 * This is the type of window functions
-	 * example : SUM, AVG
-	 * @return
-	 */
+    /**
+     * This is the type of window functions
+     * example : SUM, AVG
+     * @return
+     */
 
-	public FunctionType getType() {
-		return type;
-	}
+    public FunctionType getType() {
+        return type;
+    }
 }

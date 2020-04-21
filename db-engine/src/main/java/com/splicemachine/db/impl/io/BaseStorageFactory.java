@@ -280,15 +280,15 @@ abstract class BaseStorageFactory implements StorageFactory
         tempDirPath = tempDir.getPath();
     } // end of createTempDir
 
-	private String readOnlyTempRoot() throws java.io.IOException
+    private String readOnlyTempRoot() throws java.io.IOException
     {
-		// return the system temp dir by creating a temp file
-		// and finding its parent.
-		File temp = File.createTempFile("derby", "tmp");
-		String parent = temp.getParent();
-		temp.delete();
-		return parent;
-	}
+        // return the system temp dir by creating a temp file
+        // and finding its parent.
+        File temp = File.createTempFile("derby", "tmp");
+        String parent = temp.getParent();
+        temp.delete();
+        return parent;
+    }
 
     public int getStorageFactoryVersion()
     {

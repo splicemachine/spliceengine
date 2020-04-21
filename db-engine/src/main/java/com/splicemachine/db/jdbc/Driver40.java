@@ -82,15 +82,15 @@ public class Driver40 extends Driver30 {
      * 
      */
     public java.sql.Statement newEmbedStatement(
-				EmbedConnection conn,
-				boolean forMetaData,
-				int resultSetType,
-				int resultSetConcurrency,
-				int resultSetHoldability)
-	{
-		return new EmbedStatement40(conn, forMetaData, resultSetType, resultSetConcurrency,
-		resultSetHoldability);
-	}
+                EmbedConnection conn,
+                boolean forMetaData,
+                int resultSetType,
+                int resultSetConcurrency,
+                int resultSetHoldability)
+    {
+        return new EmbedStatement40(conn, forMetaData, resultSetType, resultSetConcurrency,
+        resultSetHoldability);
+    }
     
     public PreparedStatement
         newEmbedPreparedStatement(
@@ -145,7 +145,7 @@ public class Driver40 extends Driver30 {
      * @see InternalDriver#boot
      */
 
-	public void boot(boolean create, Properties properties) 
+    public void boot(boolean create, Properties properties) 
           throws StandardException {
         Util.setExceptionFactory (new SQLExceptionFactory40 ());
         super.boot (create, properties);
@@ -153,7 +153,7 @@ public class Driver40 extends Driver30 {
 
     public DatabaseMetaData newEmbedDatabaseMetaData(EmbedConnection conn, String dbname) 
         throws SQLException {
-		return new EmbedDatabaseMetaData40(conn,dbname);
+        return new EmbedDatabaseMetaData40(conn,dbname);
     }
     
         /**

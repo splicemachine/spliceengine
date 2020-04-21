@@ -48,42 +48,42 @@ import com.splicemachine.db.iapi.error.StandardException;
 public interface Parser
 {
 
-	/**
-	 * Parses the given statement and returns a query tree. The query tree
-	 * at this point is a simple syntactic translation of the statement.
-	 * No binding will have taken place, and no decisions will have been
-	 * made regarding processing strategy.
-	 *
-	 * @param statementSQLText	The Statement to parse.
-	 * @param paramDefaults	Parameter defaults
-	 * @return	A new QueryTree representing the syntax of the Statement
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	Visitable parseStatement(String statementSQLText,
-							 Object[] paramDefaults)
-		throws StandardException;
+    /**
+     * Parses the given statement and returns a query tree. The query tree
+     * at this point is a simple syntactic translation of the statement.
+     * No binding will have taken place, and no decisions will have been
+     * made regarding processing strategy.
+     *
+     * @param statementSQLText    The Statement to parse.
+     * @param paramDefaults    Parameter defaults
+     * @return    A new QueryTree representing the syntax of the Statement
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    Visitable parseStatement(String statementSQLText,
+                             Object[] paramDefaults)
+        throws StandardException;
 
 
-	Visitable parseStatement(String statementSQLText)
-		throws StandardException;
+    Visitable parseStatement(String statementSQLText)
+        throws StandardException;
 
-	/**
-	* Parse an SQL fragment that represents a {@code <search condition>}.
-	*
-	* @param sqlFragment the SQL fragment to parse
-	* @return a parse tree representing the search condition
-	* @throws StandardException if the SQL fragment could not be parsed
-	*/
-	Visitable parseSearchCondition(String sqlFragment)
-		throws StandardException;
+    /**
+    * Parse an SQL fragment that represents a {@code <search condition>}.
+    *
+    * @param sqlFragment the SQL fragment to parse
+    * @return a parse tree representing the search condition
+    * @throws StandardException if the SQL fragment could not be parsed
+    */
+    Visitable parseSearchCondition(String sqlFragment)
+        throws StandardException;
 
-	/**
-	 * Returns the current SQL text string that is being parsed.
-	 *
-	 * @return	Current SQL text string.
-	 *
-	 */
-	String		getSQLtext();
+    /**
+     * Returns the current SQL text string that is being parsed.
+     *
+     * @return    Current SQL text string.
+     *
+     */
+    String        getSQLtext();
 
 }

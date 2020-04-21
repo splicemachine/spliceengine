@@ -154,10 +154,10 @@ public class SpliceScan implements ScanManager, LazyScan{
     private boolean isSameStartStop(DataValueDescriptor[] startKeyValue,int startSearchOperator,DataValueDescriptor[] stopKeyValue,int stopSearchOperator) throws StandardException{
                 /*
                  * Determine if the start and stop operators are actually, in fact the same.
-				 *
-				 * This assumes that the start and stop key operators are actually of the same type. While
-				 * I don't think that this is a bad assumption, I suppose it could be in some circumstances.
-				 */
+                 *
+                 * This assumes that the start and stop key operators are actually of the same type. While
+                 * I don't think that this is a bad assumption, I suppose it could be in some circumstances.
+                 */
         if(startSearchOperator!=stopSearchOperator) return false;
 
         if(startKeyValue==null){
@@ -291,7 +291,7 @@ public class SpliceScan implements ScanManager, LazyScan{
 
     public int fetchNextGroup(DataValueDescriptor[][] row_array,RowLocation[] oldrowloc_array,RowLocation[] newrowloc_array) throws StandardException{
         throw new RuntimeException("Not Implemented");
-        //	return 0;
+        //    return 0;
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
@@ -363,7 +363,7 @@ public class SpliceScan implements ScanManager, LazyScan{
 
             table.put(put);
 
-//			table.put(Puts.buildInsert(currentRowLocation.getByteCopy(), row, validColumns, transID));
+//            table.put(Puts.buildInsert(currentRowLocation.getByteCopy(), row, validColumns, transID));
             return true;
         }catch(Exception e){
             throw StandardException.newException("Error during replace ", e);

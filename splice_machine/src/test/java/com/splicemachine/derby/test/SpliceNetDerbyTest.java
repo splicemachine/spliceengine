@@ -29,14 +29,14 @@ import org.junit.Ignore;
 
 @Ignore
 public class SpliceNetDerbyTest {
-	private static final Logger LOG = Logger.getLogger(SpliceNetDerbyTest.class);
+    private static final Logger LOG = Logger.getLogger(SpliceNetDerbyTest.class);
     protected static String framework = "client";
     protected static String driver = "com.splicemachine.db.jdbc.ClientDriver";
     protected static String protocol = "jdbc:splice://localhost:1527/";
     protected static Properties props = new Properties();
-	protected static Connection conn = null;
-	protected static List<Statement> statements = new ArrayList<Statement>();
-	
+    protected static Connection conn = null;
+    protected static List<Statement> statements = new ArrayList<Statement>();
+    
     protected static void loadDriver() {
         try {
             Class.forName(driver).newInstance();
@@ -70,67 +70,67 @@ public class SpliceNetDerbyTest {
         loadDriver();
         conn = DriverManager.getConnection(protocol + "splicedb;create=true", props);
     }
-	
-	public static void stopConnection() throws SQLException {
-	    //Connection
-	    try {
-	        if (conn != null) {
-	            conn.close();
-	            conn = null;
-	        }
-	    } catch (SQLException sqle) {
-	        printSQLException(sqle);
-	    }		
-	}
+    
+    public static void stopConnection() throws SQLException {
+        //Connection
+        try {
+            if (conn != null) {
+                conn.close();
+                conn = null;
+            }
+        } catch (SQLException sqle) {
+            printSQLException(sqle);
+        }        
+    }
 
     
-	public static ResultSet executeQuery (String sql) {
+    public static ResultSet executeQuery (String sql) {
         try {
-        	Statement s = conn.createStatement();
-        	statements.add(s);
-        	return s.executeQuery(sql);
+            Statement s = conn.createStatement();
+            statements.add(s);
+            return s.executeQuery(sql);
         } catch (SQLException sqle) {
-        	sqle.printStackTrace();
+            sqle.printStackTrace();
             printSQLException(sqle);
         }
         return null;
 }
 
-	public static void executeStatement (String sql) throws SQLException {
-		Statement s = null;
+    public static void executeStatement (String sql) throws SQLException {
+        Statement s = null;
         try {
             s = conn.createStatement();
             statements.add(s);
             s.execute(sql);
         } catch (SQLException sqle) {
-        	sqle.printStackTrace();
+            sqle.printStackTrace();
             printSQLException(sqle);
         } finally {
-        	if (s!= null)
-        		s.close();
+            if (s!= null)
+                s.close();
         }
      }
 
-	protected static void closeStatements () throws SQLException {
-		for (Statement statement: statements) 
-			statement.close();
+    protected static void closeStatements () throws SQLException {
+        for (Statement statement: statements) 
+            statement.close();
      }
 
-	protected static void dropTable(String tableName) throws SQLException {	
-		Statement s = null;
-		try {
-			conn.setAutoCommit(true);
-			s = conn.createStatement();
-			s.execute("drop table "+tableName);
-		} catch (SQLException e) {
-			LOG.error("error on drop table-"+tableName+": "+e.getMessage(), e);
-		} finally {
-			try {
-				if (s != null)
-					s.close();
-			} catch (SQLException e) {
-				//no need to print out
-			}
-		}		
-	}
+    protected static void dropTable(String tableName) throws SQLException {    
+        Statement s = null;
+        try {
+            conn.setAutoCommit(true);
+            s = conn.createStatement();
+            s.execute("drop table "+tableName);
+        } catch (SQLException e) {
+            LOG.error("error on drop table-"+tableName+": "+e.getMessage(), e);
+        } finally {
+            try {
+                if (s != null)
+                    s.close();
+            } catch (SQLException e) {
+                //no need to print out
+            }
+        }        
+    }
 }

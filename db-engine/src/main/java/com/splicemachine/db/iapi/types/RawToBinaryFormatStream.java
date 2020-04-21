@@ -41,9 +41,9 @@ import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 /**
-	Stream that takes a raw input stream and converts it
-	to the on-disk format of the binary types by prepending the
-	length of the value.
+    Stream that takes a raw input stream and converts it
+    to the on-disk format of the binary types by prepending the
+    length of the value.
     <P>
     If the length of the stream is known then it is encoded
     as the first bytes in the stream in the defined format.
@@ -62,7 +62,7 @@ public final class RawToBinaryFormatStream extends LimitInputStream {
      * Number of bytes of length encoding.
      * 
      */
-	private int encodedOffset;
+    private int encodedOffset;
     
     /**
      * Encoding of the length in bytes which will be
@@ -173,45 +173,45 @@ public final class RawToBinaryFormatStream extends LimitInputStream {
         setLimit(maximumLength);
     }
 
-	/**
-		Read from the wrapped stream prepending the intial bytes if needed.
+    /**
+        Read from the wrapped stream prepending the intial bytes if needed.
         If stream has been read, and eof reached, in that case any subsequent
         read will throw an EOFException
-	*/
-	public int read() throws IOException {
+    */
+    public int read() throws IOException {
 
         if ( eof )
             throw new EOFException(MessageService.getTextMessage
                         (SQLState.STREAM_EOF));
         
-		if (encodedOffset < encodedLength.length) {
+        if (encodedOffset < encodedLength.length) {
             return encodedLength[encodedOffset++] & 0xff;
- 		}
+         }
 
-		int ret = super.read();
+        int ret = super.read();
 
-		if (ret == -1)
-			checkSufficientData();
+        if (ret == -1)
+            checkSufficientData();
 
-		return ret;
-	}
+        return ret;
+    }
 
-	/**
-		JDBC 3.0 (from tutorial book) requires that an
-		input stream has the correct number of bytes in
-		the stream.
-	*/
-	private void checkSufficientData() throws IOException
-	{
+    /**
+        JDBC 3.0 (from tutorial book) requires that an
+        input stream has the correct number of bytes in
+        the stream.
+    */
+    private void checkSufficientData() throws IOException
+    {
         // if we reached here, then read call returned -1, and we 
         // have already reached the end of stream, so set eof=true
         // so that subsequent reads on this stream will return an 
         // EOFException
         eof = true;
-		if (!limitInPlace)
+        if (!limitInPlace)
         return;
 
-		int remainingBytes = clearLimit();
+        int remainingBytes = clearLimit();
 
         if (length > -1 && remainingBytes > 0) {
             throw new DerbyIOException(
@@ -220,18 +220,18 @@ public final class RawToBinaryFormatStream extends LimitInputStream {
                         SQLState.SET_STREAM_INEXACT_LENGTH_DATA);
         }
 
-		// if we had a limit try reading one more byte.
-		// JDBC 3.0 states the stream muct have the correct number of characters in it.
-		if (remainingBytes == 0) {
-			int c;
-			try
-			{
-				c = super.read();
-			}
-			catch (IOException ioe) {
-				c = -1;
-			}
-			if (c != -1) {
+        // if we had a limit try reading one more byte.
+        // JDBC 3.0 states the stream muct have the correct number of characters in it.
+        if (remainingBytes == 0) {
+            int c;
+            try
+            {
+                c = super.read();
+            }
+            catch (IOException ioe) {
+                c = -1;
+            }
+            if (c != -1) {
                 if (length > -1) {
                     // Stream is not capped, and should have matched the
                     // specified length.
@@ -250,47 +250,47 @@ public final class RawToBinaryFormatStream extends LimitInputStream {
                             SQLState.LANG_STRING_TRUNCATION);
                 }
             }
-		}
-	}
+        }
+    }
 
-	/**
-		Read from the wrapped stream prepending the intial bytes if needed.
+    /**
+        Read from the wrapped stream prepending the intial bytes if needed.
         If stream has been read, and eof reached, in that case any subsequent
         read will throw an EOFException
-	*/
-	public int read(byte b[], int off, int len) throws IOException {
+    */
+    public int read(byte b[], int off, int len) throws IOException {
   
         if ( eof )
             throw new EOFException(MessageService.getTextMessage(SQLState.STREAM_EOF));
 
-		int elen = encodedLength.length - encodedOffset;
+        int elen = encodedLength.length - encodedOffset;
 
-		if (elen != 0) {
-			if (len < elen)
-				elen = len;
+        if (elen != 0) {
+            if (len < elen)
+                elen = len;
             System.arraycopy(encodedLength, encodedOffset,
                     b, off, elen);
 
             encodedOffset += elen;
 
-			off += elen;
-			len -= elen;
+            off += elen;
+            len -= elen;
             
             if (len == 0)
                 return elen;
-		}
+        }
 
-		int realRead = super.read(b, off, len);
+        int realRead = super.read(b, off, len);
 
-		if (realRead < 0)
-		{
-			if (elen != 0)
-				return elen;
+        if (realRead < 0)
+        {
+            if (elen != 0)
+                return elen;
 
-			checkSufficientData();
-			return realRead;
-		}
+            checkSufficientData();
+            return realRead;
+        }
 
-		return elen + realRead;
-	}
+        return elen + realRead;
+    }
 }

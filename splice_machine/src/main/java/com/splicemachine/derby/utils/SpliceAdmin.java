@@ -895,12 +895,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
             // Describe the format of the input rows (ExecRow).
             //
             // Columns of "virtual" row:
-            //   STMTNAME				VARCHAR
-            //   TYPE					CHAR
-            //   VALID					BOOLEAN
-            //   LASTCOMPILED			TIMESTAMP
-            //   INITIALLY_COMPILABLE	BOOLEAN
-            //   CONSTANTSTATE			BLOB --> VARCHAR showing existence of plan
+            //   STMTNAME                VARCHAR
+            //   TYPE                    CHAR
+            //   VALID                    BOOLEAN
+            //   LASTCOMPILED            TIMESTAMP
+            //   INITIALLY_COMPILABLE    BOOLEAN
+            //   CONSTANTSTATE            BLOB --> VARCHAR showing existence of plan
             DataValueDescriptor[] dvds= {
                     new SQLVarchar(),
                     new SQLChar(),
@@ -972,9 +972,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
             // Describe the format of the input rows (ExecRow).
             //
             // Columns of "virtual" row:
-            //   KEY			VARCHAR
-            //   VALUE			VARCHAR
-            //   TYPE			VARCHAR (JVM, SERVICE, DATABASE, APP)
+            //   KEY            VARCHAR
+            //   VALUE            VARCHAR
+            //   TYPE            VARCHAR (JVM, SERVICE, DATABASE, APP)
             DataValueDescriptor[] dvds= {
                     new SQLVarchar(),
                     new SQLVarchar(),
@@ -1142,9 +1142,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
                 /*
                  * An index conglomerate id can be returned by the query before the main table one is,
-				 * but it should ALWAYS have a higher conglomerate id, so if we sort the congloms,
-				 * we should return the main table before any of its indices.
-				 */
+                 * but it should ALWAYS have a higher conglomerate id, so if we sort the congloms,
+                 * we should return the main table before any of its indices.
+                 */
         Arrays.sort(congloms);
         return congloms;
     }

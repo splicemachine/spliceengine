@@ -59,10 +59,10 @@ public class D_T_DiagTestClass1 extends DiagnosticableGeneric
      * diagnostic information you would like to provide.
      * <p>
      *
-	 * @return A string with diagnostic information about the object.
+     * @return A string with diagnostic information about the object.
      *
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     public String diag()
         throws StandardException

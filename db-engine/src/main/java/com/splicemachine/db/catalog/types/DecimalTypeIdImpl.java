@@ -38,65 +38,65 @@ import java.sql.Types;
 
 public class DecimalTypeIdImpl extends BaseTypeIdImpl
 {
-	/**
-	 * Public niladic constructor. Needed for Serializable interface to work.
-	 *
-	 */
-	public	DecimalTypeIdImpl() { super(); }
+    /**
+     * Public niladic constructor. Needed for Serializable interface to work.
+     *
+     */
+    public    DecimalTypeIdImpl() { super(); }
 
-	/* this class is needed because writeexternal for this class stores
-	   extra information; when the object is sent over the wire the niladic
-	   constructor is first called and then we call the readExternal method. 
-	   the readExternal needs to know the formatId atleast for decimal types
-	   to read the extra information.
-	*/
-	public DecimalTypeIdImpl(boolean isNumeric) 
-	{
-		super(StoredFormatIds.DECIMAL_TYPE_ID_IMPL);
+    /* this class is needed because writeexternal for this class stores
+       extra information; when the object is sent over the wire the niladic
+       constructor is first called and then we call the readExternal method. 
+       the readExternal needs to know the formatId atleast for decimal types
+       to read the extra information.
+    */
+    public DecimalTypeIdImpl(boolean isNumeric) 
+    {
+        super(StoredFormatIds.DECIMAL_TYPE_ID_IMPL);
         if (isNumeric)
             setNumericType();
-	}
-	
-	/**
-	 * Read this object from a stream of stored objects.
-	 *
-	 * @param in read this.
-	 *
-	 * @exception IOException					thrown on error
-	 * @exception ClassNotFoundException		thrown on error
-	 */
-	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
-		boolean isNumeric = in.readBoolean();
+    }
+    
+    /**
+     * Read this object from a stream of stored objects.
+     *
+     * @param in read this.
+     *
+     * @exception IOException                    thrown on error
+     * @exception ClassNotFoundException        thrown on error
+     */
+    public void readExternal( ObjectInput in )
+         throws IOException, ClassNotFoundException
+    {
+        boolean isNumeric = in.readBoolean();
 
-		super.readExternal(in);
+        super.readExternal(in);
 
-		if (isNumeric)
-		{
-			setNumericType();
-		}
+        if (isNumeric)
+        {
+            setNumericType();
+        }
 
-	}
+    }
 
-	/**
-	 * Write this object to a stream of stored objects.
-	 *
-	 * @param out write bytes here.
-	 *
-	 * @exception IOException		thrown on error
-	 */
-	public void writeExternal( ObjectOutput out )
-		 throws IOException
-	{
-		out.writeBoolean(getJDBCTypeId() == Types.NUMERIC);
+    /**
+     * Write this object to a stream of stored objects.
+     *
+     * @param out write bytes here.
+     *
+     * @exception IOException        thrown on error
+     */
+    public void writeExternal( ObjectOutput out )
+         throws IOException
+    {
+        out.writeBoolean(getJDBCTypeId() == Types.NUMERIC);
 
-		super.writeExternal(out);
-	}
+        super.writeExternal(out);
+    }
 
-	private void setNumericType()
-	{
-		unqualifiedName = "NUMERIC";
-		JDBCTypeId = Types.NUMERIC;
-	}
+    private void setNumericType()
+    {
+        unqualifiedName = "NUMERIC";
+        JDBCTypeId = Types.NUMERIC;
+    }
 }

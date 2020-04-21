@@ -35,45 +35,45 @@ import com.splicemachine.dbTesting.functionTests.tests.tools.dblook_test;
 
 public class dblook_test_net extends dblook_test {
 
-	// This test runs dblook on a test database using
-	// a connection to the Network Server.
+    // This test runs dblook on a test database using
+    // a connection to the Network Server.
 
-	public static void main (String [] args) {
+    public static void main (String [] args) {
 
-		System.out.println("\n-= Start dblook (net server) Test. =-");
-		separator = System.getProperty("file.separator");
-		testDirectory = "dblook_test_net/";
-		new dblook_test_net().doTest();
-		System.out.println("\n[ Done. ]\n");
-		renameDbLookLog("dblook_test_net");
+        System.out.println("\n-= Start dblook (net server) Test. =-");
+        separator = System.getProperty("file.separator");
+        testDirectory = "dblook_test_net/";
+        new dblook_test_net().doTest();
+        System.out.println("\n[ Done. ]\n");
+        renameDbLookLog("dblook_test_net");
 
-	}
+    }
 
-	/* **********************************************
-	 * doTest
-	 * Run a test of the dblook utility using
-	 * Network Server.
-	 ****/
+    /* **********************************************
+     * doTest
+     * Run a test of the dblook utility using
+     * Network Server.
+     ****/
 
-	protected void doTest() {
+    protected void doTest() {
 
-		try {
+        try {
 
-			createTestDatabase(dbCreationScript_1);
+            createTestDatabase(dbCreationScript_1);
 
-			// Don't let error stream ruin the diff.
-			System.err.close();
+            // Don't let error stream ruin the diff.
+            System.err.close();
 
-			// The only test we need to run is the one for
-			// Network Server; see functionTests/tools/
-			// dblook_test.java.
-			runTest(3, testDBName, testDBName + "_new");
+            // The only test we need to run is the one for
+            // Network Server; see functionTests/tools/
+            // dblook_test.java.
+            runTest(3, testDBName, testDBName + "_new");
 
-		} catch (Exception e) {
-			System.out.println("-=- FAILED: to complete the test:");
-			e.printStackTrace();
-		}
+        } catch (Exception e) {
+            System.out.println("-=- FAILED: to complete the test:");
+            e.printStackTrace();
+        }
 
-	}
+    }
 
 }

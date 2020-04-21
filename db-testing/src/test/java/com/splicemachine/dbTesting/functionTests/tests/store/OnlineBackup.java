@@ -45,30 +45,30 @@ import com.splicemachine.dbTesting.functionTests.util.TestUtil;
 
 public class OnlineBackup implements Runnable{
 
-	private String dbName; // name of the database to backup
-	private boolean beginBackup = false;
-	private boolean endBackup = false;
+    private String dbName; // name of the database to backup
+    private boolean beginBackup = false;
+    private boolean endBackup = false;
     private boolean backupFailed = false;
     private Throwable backupError = null;
     private String backupPath;
 
-	OnlineBackup(String dbName, String backupPath) {
-		this.dbName = dbName;
+    OnlineBackup(String dbName, String backupPath) {
+        this.dbName = dbName;
         this.backupPath = backupPath;
-	}
+    }
 
-	/**
-	 * implementation of run() method in the Runnable interface, which
-	 * is invoked when a thread is started using this class object. 
-	 * 
-	 *  Performs online backup. 
-	 * 
-	 */
-	public void run()	{
+    /**
+     * implementation of run() method in the Runnable interface, which
+     * is invoked when a thread is started using this class object. 
+     * 
+     *  Performs online backup. 
+     * 
+     */
+    public void run()    {
         backupFailed = false;
-		try {
-			performBackup();
-		} catch (Throwable error) {
+        try {
+            performBackup();
+        } catch (Throwable error) {
             synchronized(this) {
                 // inform threads that may be waiting for backup to 
                 // start/end that it failed. 
@@ -76,69 +76,69 @@ public class OnlineBackup implements Runnable{
                 backupError = error;
                 notifyAll();
             }
-			com.splicemachine.db.tools.JDBCDisplayUtil.ShowException(System.out, error);
-			error.printStackTrace(System.out);
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowException(System.out, error);
+            error.printStackTrace(System.out);
         }
-	}
+    }
 
-	/**
-	 * Backup the database
-	 */
-	void performBackup() throws SQLException {
-		Connection conn = TestUtil.getConnection(dbName , "");
-		CallableStatement backupStmt = 	
-			conn.prepareCall("CALL SYSCS_UTIL.SYSCS_BACKUP_DATABASE(?)");
-		backupStmt.setString(1, backupPath);
-			
-		synchronized(this)	{
-			beginBackup = true;
-			endBackup = false;
-			notifyAll();
-		}
+    /**
+     * Backup the database
+     */
+    void performBackup() throws SQLException {
+        Connection conn = TestUtil.getConnection(dbName , "");
+        CallableStatement backupStmt =     
+            conn.prepareCall("CALL SYSCS_UTIL.SYSCS_BACKUP_DATABASE(?)");
+        backupStmt.setString(1, backupPath);
+            
+        synchronized(this)    {
+            beginBackup = true;
+            endBackup = false;
+            notifyAll();
+        }
 
-		backupStmt.execute();
-		backupStmt.close();
-		conn.close();
+        backupStmt.execute();
+        backupStmt.close();
+        conn.close();
 
-		synchronized(this)	{
-			beginBackup = false;
-			endBackup = true;
-			notifyAll();
-		}
-	}
+        synchronized(this)    {
+            beginBackup = false;
+            endBackup = true;
+            notifyAll();
+        }
+    }
 
-	/**
-	 * Wait for the backup to start.
-	 */
+    /**
+     * Wait for the backup to start.
+     */
 
-	public void waitForBackupToBegin() throws Exception{
-		synchronized(this) {
-			//wait for backup to begin
-			while (!beginBackup) {
+    public void waitForBackupToBegin() throws Exception{
+        synchronized(this) {
+            //wait for backup to begin
+            while (!beginBackup) {
                 // if the backup failed for some reason throw error, don't go
                 // into wait state.
                 if (backupFailed)
                     throw new Exception("BACKUP FAILED:" + 
                                         backupError.getMessage());
                 else
-					wait();
-			}
-		}
-	}
-	
-	/*
-	 * Wait for the backup to finish.
-	 */
-	public void waitForBackupToEnd() throws Exception{
-		synchronized(this) {
-			if (!endBackup) {
-				// check if a backup has actually started by the test
-				if (!beginBackup) {
-					System.out.println("BACKUP IS NOT STARTED BY THE TEST YET");	
-				} else {
+                    wait();
+            }
+        }
+    }
+    
+    /*
+     * Wait for the backup to finish.
+     */
+    public void waitForBackupToEnd() throws Exception{
+        synchronized(this) {
+            if (!endBackup) {
+                // check if a backup has actually started by the test
+                if (!beginBackup) {
+                    System.out.println("BACKUP IS NOT STARTED BY THE TEST YET");    
+                } else {
 
-					//wait for backup to finish
-					while (!endBackup) 
+                    //wait for backup to finish
+                    while (!endBackup) 
                     {
                         // if the backup failed for some reason throw error, don't go
                         // into wait state.
@@ -147,28 +147,28 @@ public class OnlineBackup implements Runnable{
                                                 backupError.getMessage());
                         else
                             wait();
-					}
-				}
-			}
+                    }
+                }
+            }
 
-		}
-	}
+        }
+    }
 
-	/**
-	 * Check if backup is running ?
-	 * @return     <tt>true</tt> if backup is running.
-	 *             <tt>false</tt> otherwise.
-	 */
-	public synchronized boolean isRunning() {
-		return beginBackup;
-	}
-	
-	/**
-	 * Create a new database from the backup copy taken earlier.
-	 * @param  newDbName   name of the database to be created.
-	 */
-	public void createFromBackup(String newDbName) throws SQLException {
-		
+    /**
+     * Check if backup is running ?
+     * @return     <tt>true</tt> if backup is running.
+     *             <tt>false</tt> otherwise.
+     */
+    public synchronized boolean isRunning() {
+        return beginBackup;
+    }
+    
+    /**
+     * Create a new database from the backup copy taken earlier.
+     * @param  newDbName   name of the database to be created.
+     */
+    public void createFromBackup(String newDbName) throws SQLException {
+        
         Connection conn = TestUtil.getConnection(newDbName,  
                                         "createFrom=" +
                                         backupPath + "/" + 
@@ -177,7 +177,7 @@ public class OnlineBackup implements Runnable{
         
     }
 
-	
+    
     /**
      * Restore the  database from the backup copy taken earlier.
      */
@@ -188,6 +188,6 @@ public class OnlineBackup implements Runnable{
                                         backupPath + "/" + 
                                         dbName);
 
-		conn.close();
+        conn.close();
     }
 }

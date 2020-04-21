@@ -47,55 +47,55 @@ import com.splicemachine.db.iapi.error.StandardException;
  */
 public class DropTriggerNode extends DDLStatementNode
 {
-	private TableDescriptor td;
+    private TableDescriptor td;
 
-	public String statementToString()
-	{
-		return "DROP TRIGGER";
-	}
+    public String statementToString()
+    {
+        return "DROP TRIGGER";
+    }
 
-	/**
-	 * Bind this DropTriggerNode.  This means looking up the trigger,
-	 * verifying it exists and getting its table uuid.
-	 *
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void bindStatement() throws StandardException
-	{
-		CompilerContext			cc = getCompilerContext();
-		DataDictionary			dd = getDataDictionary();
+    /**
+     * Bind this DropTriggerNode.  This means looking up the trigger,
+     * verifying it exists and getting its table uuid.
+     *
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void bindStatement() throws StandardException
+    {
+        CompilerContext            cc = getCompilerContext();
+        DataDictionary            dd = getDataDictionary();
 
-		SchemaDescriptor sd = getSchemaDescriptor();
+        SchemaDescriptor sd = getSchemaDescriptor();
 
-		TriggerDescriptor triggerDescriptor = null;
-		
-		if (sd.getUUID() != null)
-			triggerDescriptor = dd.getTriggerDescriptor(getRelativeName(), sd);
+        TriggerDescriptor triggerDescriptor = null;
+        
+        if (sd.getUUID() != null)
+            triggerDescriptor = dd.getTriggerDescriptor(getRelativeName(), sd);
 
-		if (triggerDescriptor == null)
-		{
-			throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND, "TRIGGER", getFullName());
-		}
+        if (triggerDescriptor == null)
+        {
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND, "TRIGGER", getFullName());
+        }
 
-		/* Get the table descriptor */
-		td = triggerDescriptor.getTableDescriptor();
-		cc.createDependency(td);
-		cc.createDependency(triggerDescriptor);
-	}
+        /* Get the table descriptor */
+        td = triggerDescriptor.getTableDescriptor();
+        cc.createDependency(td);
+        cc.createDependency(triggerDescriptor);
+    }
 
-	// inherit generate() method from DDLStatementNode
+    // inherit generate() method from DDLStatementNode
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public ConstantAction	makeConstantAction() throws StandardException
-	{
-		return	getGenericConstantActionFactory().getDropTriggerConstantAction(
-										 	getSchemaDescriptor(),
-											getRelativeName(),
-											td.getUUID());
-	}
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public ConstantAction    makeConstantAction() throws StandardException
+    {
+        return    getGenericConstantActionFactory().getDropTriggerConstantAction(
+                                             getSchemaDescriptor(),
+                                            getRelativeName(),
+                                            td.getUUID());
+    }
 }

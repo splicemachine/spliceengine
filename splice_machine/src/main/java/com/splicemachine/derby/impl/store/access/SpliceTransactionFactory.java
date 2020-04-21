@@ -174,15 +174,15 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
         try{
             TxnLifecycleManager lifecycleManager=SIDriver.driver().lifecycleManager();
             /*
-			 * All transactions start as read only.
-			 *
-			 * If parentTxn!=null, then this will create a read-only child transaction (which is essentially
-			 * a duplicate of the parent transaction); this requires no network calls immediately, but will require
-			 * 2 network calls when elevateTransaction() is called.
-			 *
-			 * if parentTxn==null, then this will make a call to the timestamp source to generate a begin timestamp
-			 * for a read-only transaction; this requires a single network call.
-			 */
+             * All transactions start as read only.
+             *
+             * If parentTxn!=null, then this will create a read-only child transaction (which is essentially
+             * a duplicate of the parent transaction); this requires no network calls immediately, but will require
+             * 2 network calls when elevateTransaction() is called.
+             *
+             * if parentTxn==null, then this will make a call to the timestamp source to generate a begin timestamp
+             * for a read-only transaction; this requires a single network call.
+             */
             Txn txn=lifecycleManager.beginChildTransaction(parentTxn,Txn.IsolationLevel.SNAPSHOT_ISOLATION,additive,null);
             SpliceTransaction trans=new SpliceTransaction(NoLockSpace.INSTANCE,this,dataValueFactory,transName,txn);
             trans.setTransactionName(transName);

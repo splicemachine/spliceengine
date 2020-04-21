@@ -37,7 +37,7 @@ import com.splicemachine.db.iapi.services.info.ProductVersionHolder;
 
 public class ZipInfoProperties // extends Properties
 {
-	private final ProductVersionHolder	version;
+    private final ProductVersionHolder    version;
     /**
         full path to zip (or expanded zip)
         C:/db/lib/tools.zip
@@ -48,40 +48,40 @@ public class ZipInfoProperties // extends Properties
      */
     private  String location;
 
-	ZipInfoProperties(ProductVersionHolder version) {
-		this.version = version;
-	}
+    ZipInfoProperties(ProductVersionHolder version) {
+        this.version = version;
+    }
 
-	/**
-		Method to get only the "interesting" pieces of information
+    /**
+        Method to get only the "interesting" pieces of information
         for the customer, namely the version number (2.0.1) and
-		the beta status and the build number
-		@return a value for displaying to the user via Sysinfo
+        the beta status and the build number
+        @return a value for displaying to the user via Sysinfo
     */
     public String getVersionBuildInfo()
     {
         if (version == null)
-		{
-			return Main.getTextMessage ("SIF04.C");
-		}
+        {
+            return Main.getTextMessage ("SIF04.C");
+        }
 
-		if ("DRDA:jcc".equals(version.getProductTechnologyName()))
-			return version.getSimpleVersionString() + " - (" + version.getBuildNumber() + ")";
+        if ("DRDA:jcc".equals(version.getProductTechnologyName()))
+            return version.getSimpleVersionString() + " - (" + version.getBuildNumber() + ")";
 
-		return version.getVersionBuildString(true);
+        return version.getVersionBuildString(true);
 
     }
 
     public String getLocation()
     {
-		if (location == null)
-			return Main.getTextMessage ("SIF01.H");
+        if (location == null)
+            return Main.getTextMessage ("SIF01.H");
         return location;
     }
 
-	void setLocation(String location) {
-		this.location = location;
-	}
+    void setLocation(String location) {
+        this.location = location;
+    }
 
 
 

@@ -44,58 +44,58 @@ import com.splicemachine.db.iapi.services.loader.ClassInfo;
 
 
 public abstract class LoadedGeneratedClass
-	implements GeneratedClass
+    implements GeneratedClass
 {
 
-	/*
-	** Fields
-	*/
+    /*
+    ** Fields
+    */
 
-	private final ClassInfo	ci;
-	private final int classLoaderVersion;
+    private final ClassInfo    ci;
+    private final int classLoaderVersion;
 
-	/*
-	**	Constructor
-	*/
+    /*
+    **    Constructor
+    */
 
-	public LoadedGeneratedClass(ClassFactory cf, Class jvmClass) {
-		ci = new ClassInfo(jvmClass);
-		classLoaderVersion = cf.getClassLoaderVersion();
-	}
+    public LoadedGeneratedClass(ClassFactory cf, Class jvmClass) {
+        ci = new ClassInfo(jvmClass);
+        classLoaderVersion = cf.getClassLoaderVersion();
+    }
 
-	/*
-	** Public methods from Generated Class
-	*/
+    /*
+    ** Public methods from Generated Class
+    */
 
-	public String getName() {
-		return ci.getClassName();
-	}
+    public String getName() {
+        return ci.getClassName();
+    }
 
-	public Object newInstance(Context context) throws StandardException	{
+    public Object newInstance(Context context) throws StandardException    {
 
-		Throwable t;
-		try {
-			GeneratedByteCode ni =  (GeneratedByteCode) ci.getNewInstance();
-			ni.initFromContext(context);
-			ni.setGC(this);
-			ni.postConstructor();
-			return ni;
+        Throwable t;
+        try {
+            GeneratedByteCode ni =  (GeneratedByteCode) ci.getNewInstance();
+            ni.initFromContext(context);
+            ni.setGC(this);
+            ni.postConstructor();
+            return ni;
 
-		} catch (InstantiationException | LinkageError | java.lang.reflect.InvocationTargetException | IllegalAccessException ie) {
-			t = ie;
-		}
+        } catch (InstantiationException | LinkageError | java.lang.reflect.InvocationTargetException | IllegalAccessException ie) {
+            t = ie;
+        }
 
         throw StandardException.newException(SQLState.GENERATED_CLASS_INSTANCE_ERROR, t, getName());
-	}
+    }
 
-	public final int getClassLoaderVersion() {
-		return classLoaderVersion;
-	}
+    public final int getClassLoaderVersion() {
+        return classLoaderVersion;
+    }
 
-	/*
-	** Methods for subclass
-	*/
-	protected Class getJVMClass() {
-		return ci.getClassObject();
-	}
+    /*
+    ** Methods for subclass
+    */
+    protected Class getJVMClass() {
+        return ci.getClassObject();
+    }
 }

@@ -41,41 +41,41 @@ import java.io.IOException;
 
 /**
  *
- *	This class implements Formatable. That means that it
- *	can write itself to and from a formatted stream. If
- *	you add more fields to this class, make sure that you
- *	also write/read them with the writeExternal()/readExternal()
- *	methods.
+ *    This class implements Formatable. That means that it
+ *    can write itself to and from a formatted stream. If
+ *    you add more fields to this class, make sure that you
+ *    also write/read them with the writeExternal()/readExternal()
+ *    methods.
  *
- *	If, inbetween releases, you add more fields to this class,
- *	then you should bump the version number emitted by the getTypeFormatId()
- *	method.
+ *    If, inbetween releases, you add more fields to this class,
+ *    then you should bump the version number emitted by the getTypeFormatId()
+ *    method.
  *
  * @see com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator
  *
  */
 public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
-	private boolean		isUnique;
-	private int[]		baseColumnPositions;
-	private boolean[]	isAscending;
-	private int			numberOfOrderedColumns;
-	private String		indexType;
-	//attribute to indicate the indicates allows duplicate only in
-	//case of non null keys. This attribute has no effect if the isUnique
+    private boolean        isUnique;
+    private int[]        baseColumnPositions;
+    private boolean[]    isAscending;
+    private int            numberOfOrderedColumns;
+    private String        indexType;
+    //attribute to indicate the indicates allows duplicate only in
+    //case of non null keys. This attribute has no effect if the isUnique
     //is true. If isUnique is false and isUniqueWithDuplicateNulls is set 
     //to true the index will allow duplicate nulls but for non null keys 
     //will act like a unique index.
-	private boolean     isUniqueWithDuplicateNulls;
-	private boolean 	excludeNulls;
-	private boolean 	excludeDefaults;
+    private boolean     isUniqueWithDuplicateNulls;
+    private boolean     excludeNulls;
+    private boolean     excludeDefaults;
 
 
 
-	/**
+    /**
      * Constructor for an IndexDescriptorImpl
      * 
-     * @param indexType		The type of index
-     * @param isUnique		True means the index is unique
+     * @param indexType        The type of index
+     * @param isUnique        True means the index is unique
      * @param isUniqueWithDuplicateNulls True means the index will be unique
      *                              for non null values but duplicate nulls
      *                              will be allowed.
@@ -84,133 +84,133 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
      *                              isUniqueWithDuplicateNulls is set to true the
      *                              index will allow duplicate nulls but for
      *                              non null keys will act like a unique index.
-     * @param baseColumnPositions	An array of column positions in the base
-     * 								table.  Each index column corresponds to a
-     * 								column position in the base table.
-     * @param isAscending	An array of booleans telling asc/desc on each
-     * 						column.
-     * @param numberOfOrderedColumns	In the future, it will be possible
-     * 									to store non-ordered columns in an
-     * 									index.  These will be useful for
-     * 									covered queries.
+     * @param baseColumnPositions    An array of column positions in the base
+     *                                 table.  Each index column corresponds to a
+     *                                 column position in the base table.
+     * @param isAscending    An array of booleans telling asc/desc on each
+     *                         column.
+     * @param numberOfOrderedColumns    In the future, it will be possible
+     *                                     to store non-ordered columns in an
+     *                                     index.  These will be useful for
+     *                                     covered queries.
      */
-	public IndexDescriptorImpl(String indexType,
-								boolean isUnique,
-								boolean isUniqueWithDuplicateNulls,
-								int[] baseColumnPositions,
-								boolean[] isAscending,
-								int numberOfOrderedColumns,
-							   boolean excludeNulls,
-							   boolean excludeDefaults
-							   )
-	{
-		this.indexType = indexType;
-		this.isUnique = isUnique;
-		this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
-		this.baseColumnPositions = baseColumnPositions;
-		this.isAscending = isAscending;
-		this.numberOfOrderedColumns = numberOfOrderedColumns;
-		this.excludeNulls = excludeNulls;
-		this.excludeDefaults = excludeDefaults;
-	}
+    public IndexDescriptorImpl(String indexType,
+                                boolean isUnique,
+                                boolean isUniqueWithDuplicateNulls,
+                                int[] baseColumnPositions,
+                                boolean[] isAscending,
+                                int numberOfOrderedColumns,
+                               boolean excludeNulls,
+                               boolean excludeDefaults
+                               )
+    {
+        this.indexType = indexType;
+        this.isUnique = isUnique;
+        this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
+        this.baseColumnPositions = baseColumnPositions;
+        this.isAscending = isAscending;
+        this.numberOfOrderedColumns = numberOfOrderedColumns;
+        this.excludeNulls = excludeNulls;
+        this.excludeDefaults = excludeDefaults;
+    }
 
-	/** Zero-argument constructor for Formatable interface */
-	public IndexDescriptorImpl()
-	{
-	}
+    /** Zero-argument constructor for Formatable interface */
+    public IndexDescriptorImpl()
+    {
+    }
 
-	/**
+    /**
      * 
      * 
      * @see IndexDescriptor#isUniqueWithDuplicateNulls
      */
-	public boolean isUniqueWithDuplicateNulls()
-	{
-		return isUniqueWithDuplicateNulls;
-	}
-
-	/** @see IndexDescriptor#isUnique */
-	public boolean isUnique()
-	{
-		return isUnique;
-	}
-
-	/** @see IndexDescriptor#baseColumnPositions */
-	public int[] baseColumnPositions()
-	{
-		return baseColumnPositions;
-	}
-
-	/** @see IndexDescriptor#getKeyColumnPosition */
-	public int getKeyColumnPosition(int heapColumnPosition)
-	{
-		/* Return 0 if column is not in the key */
-		int keyPosition = 0;
-
-		for (int index = 0; index < baseColumnPositions.length; index++)
-		{
-			/* Return 1-based key column position if column is in the key */
-			if (baseColumnPositions[index] == heapColumnPosition)
-			{
-				keyPosition = index + 1;
-				break;
-			}
-		}
-
-		return keyPosition;
-	}
-
-	/** @see IndexDescriptor#numberOfOrderedColumns */
-	public int numberOfOrderedColumns()
-	{
-		return numberOfOrderedColumns;
-	}
-
-	/** @see IndexDescriptor#indexType */
-	public String indexType()
-	{
-		return indexType;
-	}
-
-	/** @see IndexDescriptor#isAscending */
-	public boolean isAscending(Integer keyColumnPosition) {
-		int i = keyColumnPosition.intValue() - 1;
-		if (i < 0 || i >= baseColumnPositions.length)
-			return false;
-		return isAscending[i];
+    public boolean isUniqueWithDuplicateNulls()
+    {
+        return isUniqueWithDuplicateNulls;
     }
 
-	/** @see IndexDescriptor#isDescending */
-	public boolean			isDescending(Integer keyColumnPosition) {
-		int i = keyColumnPosition.intValue() - 1;
-		if (i < 0 || i >= baseColumnPositions.length)
-			return false;
-		return ! isAscending[i];
+    /** @see IndexDescriptor#isUnique */
+    public boolean isUnique()
+    {
+        return isUnique;
     }
 
-	/** @see IndexDescriptor#isAscending */
-	public boolean[]		isAscending()
-	{
-		return isAscending;
-	}
+    /** @see IndexDescriptor#baseColumnPositions */
+    public int[] baseColumnPositions()
+    {
+        return baseColumnPositions;
+    }
 
-	/** @see IndexDescriptor#setBaseColumnPositions */
-	public void		setBaseColumnPositions(int[] baseColumnPositions)
-	{
-		this.baseColumnPositions = baseColumnPositions;
-	}
+    /** @see IndexDescriptor#getKeyColumnPosition */
+    public int getKeyColumnPosition(int heapColumnPosition)
+    {
+        /* Return 0 if column is not in the key */
+        int keyPosition = 0;
 
-	/** @see IndexDescriptor#setIsAscending */
-	public void		setIsAscending(boolean[] isAscending)
-	{
-		this.isAscending = isAscending;
-	}
+        for (int index = 0; index < baseColumnPositions.length; index++)
+        {
+            /* Return 1-based key column position if column is in the key */
+            if (baseColumnPositions[index] == heapColumnPosition)
+            {
+                keyPosition = index + 1;
+                break;
+            }
+        }
 
-	/** @see IndexDescriptor#setNumberOfOrderedColumns */
-	public void		setNumberOfOrderedColumns(int numberOfOrderedColumns)
-	{
-		this.numberOfOrderedColumns = numberOfOrderedColumns;
-	}
+        return keyPosition;
+    }
+
+    /** @see IndexDescriptor#numberOfOrderedColumns */
+    public int numberOfOrderedColumns()
+    {
+        return numberOfOrderedColumns;
+    }
+
+    /** @see IndexDescriptor#indexType */
+    public String indexType()
+    {
+        return indexType;
+    }
+
+    /** @see IndexDescriptor#isAscending */
+    public boolean isAscending(Integer keyColumnPosition) {
+        int i = keyColumnPosition.intValue() - 1;
+        if (i < 0 || i >= baseColumnPositions.length)
+            return false;
+        return isAscending[i];
+    }
+
+    /** @see IndexDescriptor#isDescending */
+    public boolean            isDescending(Integer keyColumnPosition) {
+        int i = keyColumnPosition.intValue() - 1;
+        if (i < 0 || i >= baseColumnPositions.length)
+            return false;
+        return ! isAscending[i];
+    }
+
+    /** @see IndexDescriptor#isAscending */
+    public boolean[]        isAscending()
+    {
+        return isAscending;
+    }
+
+    /** @see IndexDescriptor#setBaseColumnPositions */
+    public void        setBaseColumnPositions(int[] baseColumnPositions)
+    {
+        this.baseColumnPositions = baseColumnPositions;
+    }
+
+    /** @see IndexDescriptor#setIsAscending */
+    public void        setIsAscending(boolean[] isAscending)
+    {
+        this.isAscending = isAscending;
+    }
+
+    /** @see IndexDescriptor#setNumberOfOrderedColumns */
+    public void        setNumberOfOrderedColumns(int numberOfOrderedColumns)
+    {
+        this.numberOfOrderedColumns = numberOfOrderedColumns;
+    }
 
     /**
      *
@@ -223,50 +223,50 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         return indexType != null && indexType().contains("PRIMARY");
     }
 
-	public String toString()
-	{
-		StringBuilder sb = new StringBuilder(60);
+    public String toString()
+    {
+        StringBuilder sb = new StringBuilder(60);
 
-		if (isUnique)
-			sb.append("UNIQUE ");
-		else if (isUniqueWithDuplicateNulls)
-			sb.append ("UNIQUE WITH DUPLICATE NULLS");
+        if (isUnique)
+            sb.append("UNIQUE ");
+        else if (isUniqueWithDuplicateNulls)
+            sb.append ("UNIQUE WITH DUPLICATE NULLS");
 
-		sb.append(indexType);
+        sb.append(indexType);
 
-		sb.append(" (");
+        sb.append(" (");
 
 
-		for (int i = 0; i < baseColumnPositions.length; i++)
-		{
-			if (i > 0)
-				sb.append(", ");
-			sb.append(baseColumnPositions[i]);
-			if (! isAscending[i])
-				sb.append(" DESC");
-		}
+        for (int i = 0; i < baseColumnPositions.length; i++)
+        {
+            if (i > 0)
+                sb.append(", ");
+            sb.append(baseColumnPositions[i]);
+            if (! isAscending[i])
+                sb.append(" DESC");
+        }
 
-		sb.append(")");
+        sb.append(")");
 
-		if (excludeNulls) {
-			sb.append(" EXCL NULLS");
-		}
+        if (excludeNulls) {
+            sb.append(" EXCL NULLS");
+        }
 
-		if (excludeDefaults) {
-			sb.append(" EXCL DEFAULTS");
-		}
+        if (excludeDefaults) {
+            sb.append(" EXCL DEFAULTS");
+        }
 
-		return sb.toString();
-	}
+        return sb.toString();
+    }
 
-	/* Externalizable interface */
+    /* Externalizable interface */
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on read error
-	 */
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    /**
+     * @see java.io.Externalizable#readExternal
+     *
+     * @exception IOException    Thrown on read error
+     */
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         FormatableHashtable fh = (FormatableHashtable) in.readObject();
         isUnique = fh.getBoolean("isUnique");
         int bcpLength = fh.getInt("keyLength");
@@ -281,67 +281,67 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         //isUniqueWithDuplicateNulls attribute won't be present if the index
         //was created in older versions
         isUniqueWithDuplicateNulls = fh.containsKey("isUniqueWithDuplicateNulls") && fh.getBoolean("isUniqueWithDuplicateNulls");
-		excludeNulls = fh.containsKey("excludeNulls") && fh.getBoolean("excludeNulls");
-		excludeDefaults = fh.containsKey("excludeDefaults") && fh.getBoolean("excludeDefaults");
+        excludeNulls = fh.containsKey("excludeNulls") && fh.getBoolean("excludeNulls");
+        excludeDefaults = fh.containsKey("excludeDefaults") && fh.getBoolean("excludeDefaults");
     }
 
-	/**
-	 * @see java.io.Externalizable#writeExternal
-	 *
-	 * @exception IOException	Thrown on write error
-	 */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		FormatableHashtable fh = new FormatableHashtable();
-		fh.putBoolean("isUnique", isUnique);
-		fh.putInt("keyLength", baseColumnPositions.length);
-		for (int i = 0; i < baseColumnPositions.length; i++)
-		{
-			fh.putInt("bcp" + i, baseColumnPositions[i]);
-			fh.putBoolean("isAsc" + i, isAscending[i]);
-		}
-		fh.putInt("orderedColumns", numberOfOrderedColumns);
-		fh.put("indexType", indexType);
-		//write the new attribut older versions will simply ignore it
-		fh.putBoolean("isUniqueWithDuplicateNulls", 
+    /**
+     * @see java.io.Externalizable#writeExternal
+     *
+     * @exception IOException    Thrown on write error
+     */
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        FormatableHashtable fh = new FormatableHashtable();
+        fh.putBoolean("isUnique", isUnique);
+        fh.putInt("keyLength", baseColumnPositions.length);
+        for (int i = 0; i < baseColumnPositions.length; i++)
+        {
+            fh.putInt("bcp" + i, baseColumnPositions[i]);
+            fh.putBoolean("isAsc" + i, isAscending[i]);
+        }
+        fh.putInt("orderedColumns", numberOfOrderedColumns);
+        fh.put("indexType", indexType);
+        //write the new attribut older versions will simply ignore it
+        fh.putBoolean("isUniqueWithDuplicateNulls", 
                                         isUniqueWithDuplicateNulls);
-		fh.putBoolean("excludeNulls",
-				excludeNulls);
-		fh.putBoolean("excludeDefaults",
-				excludeDefaults);
+        fh.putBoolean("excludeNulls",
+                excludeNulls);
+        fh.putBoolean("excludeDefaults",
+                excludeDefaults);
 
         out.writeObject(fh);
-	}
+    }
 
-	/* TypedFormat interface */
-	public int getTypeFormatId()
-	{
-		return StoredFormatIds.INDEX_DESCRIPTOR_IMPL_V02_ID;
-	}
+    /* TypedFormat interface */
+    public int getTypeFormatId()
+    {
+        return StoredFormatIds.INDEX_DESCRIPTOR_IMPL_V02_ID;
+    }
 
-	/**
-	 * Test for value equality
-	 *
-	 * @param other		The other indexrowgenerator to compare this one with
-	 *
-	 * @return	true if this indexrowgenerator has the same value as other
-	 */
+    /**
+     * Test for value equality
+     *
+     * @param other        The other indexrowgenerator to compare this one with
+     *
+     * @return    true if this indexrowgenerator has the same value as other
+     */
 
-	public boolean equals(Object other)
-	{
-		/* Assume not equal until we know otherwise */
-		boolean retval = false;
+    public boolean equals(Object other)
+    {
+        /* Assume not equal until we know otherwise */
+        boolean retval = false;
 
-		/* Equal only if comparing the same class */
-		if (other instanceof IndexDescriptorImpl)
-		{
-			IndexDescriptorImpl id = (IndexDescriptorImpl) other;
+        /* Equal only if comparing the same class */
+        if (other instanceof IndexDescriptorImpl)
+        {
+            IndexDescriptorImpl id = (IndexDescriptorImpl) other;
 
-			/*
-			** Check all the fields for equality except for the array
-			** elements (this is hardest, so save for last)
-			*/
-			if ((id.isUnique == this.isUnique)       &&
+            /*
+            ** Check all the fields for equality except for the array
+            ** elements (this is hardest, so save for last)
+            */
+            if ((id.isUnique == this.isUnique)       &&
                 (id.isUniqueWithDuplicateNulls == 
                     this.isUniqueWithDuplicateNulls) &&
                 (id.baseColumnPositions.length ==
@@ -349,54 +349,54 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
                 (id.numberOfOrderedColumns     == 
                     this.numberOfOrderedColumns)     &&
                 (id.indexType.equals(this.indexType)))
-			{
-				/*
-				** Everything but array elements known to be true -
-				** Assume equal, and check whether array elements are equal.
-				*/
-				retval = true;
+            {
+                /*
+                ** Everything but array elements known to be true -
+                ** Assume equal, and check whether array elements are equal.
+                */
+                retval = true;
 
-				for (int i = 0; i < this.baseColumnPositions.length; i++)
-				{
-					/* If any array element is not equal, return false */
-					if ((id.baseColumnPositions[i] !=
-						 this.baseColumnPositions[i]) || 
+                for (int i = 0; i < this.baseColumnPositions.length; i++)
+                {
+                    /* If any array element is not equal, return false */
+                    if ((id.baseColumnPositions[i] !=
+                         this.baseColumnPositions[i]) || 
                         (id.isAscending[i] != this.isAscending[i]))
-					{
-						retval = false;
-						break;
-					}
-				}
-			}
-		}
+                    {
+                        retval = false;
+                        break;
+                    }
+                }
+            }
+        }
 
-		return retval;
-	}
+        return retval;
+    }
 
-	/**
-	  @see java.lang.Object#hashCode
-	  */
-	public int hashCode()
-	{
-		int	retval;
+    /**
+      @see java.lang.Object#hashCode
+      */
+    public int hashCode()
+    {
+        int    retval;
 
-		retval = isUnique ? 1 : 2;
-		retval *= numberOfOrderedColumns;
+        retval = isUnique ? 1 : 2;
+        retval *= numberOfOrderedColumns;
         for (int baseColumnPosition : baseColumnPositions) {
             retval *= baseColumnPosition;
         }
-		retval *= indexType.hashCode();
+        retval *= indexType.hashCode();
 
-		return retval;
-	}
+        return retval;
+    }
 
-	@Override
-	public boolean excludeNulls() {
-		return excludeNulls;
-	}
+    @Override
+    public boolean excludeNulls() {
+        return excludeNulls;
+    }
 
-	@Override
-	public boolean excludeDefaults() {
-		return excludeDefaults;
-	}
+    @Override
+    public boolean excludeDefaults() {
+        return excludeDefaults;
+    }
 }

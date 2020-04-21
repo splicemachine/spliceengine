@@ -40,23 +40,23 @@ import static com.splicemachine.db.iapi.types.DataTypeDescriptor.getBuiltInDataT
  * @author Scott Fines
  */
 public class SpliceGenericAggregator implements Serializable{
-	private static final long serialVersionUID = 1l;
-	private AggregatorInfo aggInfo;
-	final int aggregatorColumnId;
-	private final int inputColumnId;
-	private final int resultColumnId;
-	
-	private transient final ClassFactory cf;
-	
-	protected ExecAggregator cachedAggregator;
+    private static final long serialVersionUID = 1l;
+    private AggregatorInfo aggInfo;
+    final int aggregatorColumnId;
+    private final int inputColumnId;
+    private final int resultColumnId;
+    
+    private transient final ClassFactory cf;
+    
+    protected ExecAggregator cachedAggregator;
 
-	public SpliceGenericAggregator(AggregatorInfo aggInfo, ClassFactory cf) {
-		this.aggInfo = aggInfo;
-		this.cf = cf;
-		this.aggregatorColumnId = aggInfo.getAggregatorColNum()+1;
-		this.inputColumnId = aggInfo.getInputColNum()+1;
-		this.resultColumnId = aggInfo.getOutputColNum()+1;
-	}
+    public SpliceGenericAggregator(AggregatorInfo aggInfo, ClassFactory cf) {
+        this.aggInfo = aggInfo;
+        this.cf = cf;
+        this.aggregatorColumnId = aggInfo.getAggregatorColNum()+1;
+        this.inputColumnId = aggInfo.getInputColNum()+1;
+        this.resultColumnId = aggInfo.getOutputColNum()+1;
+    }
 
     public SpliceGenericAggregator(ExecAggregator cachedAggregator,
                             int aggregatorColumnId,
@@ -70,41 +70,41 @@ public class SpliceGenericAggregator implements Serializable{
         this.inputColumnId = inputColumnId;
         this.resultColumnId = resultColumnId;
     }
-	
-	public AggregatorInfo getAggregatorInfo(){
-		return this.aggInfo;
-	}
+    
+    public AggregatorInfo getAggregatorInfo(){
+        return this.aggInfo;
+    }
 
     public void setAggInfo(AggregatorInfo aggInfo) {
         this.aggInfo = aggInfo;
     }
 
     public void initializeAndAccumulateIfNeeded(ExecRow nextRow,ExecRow accumulatorRow) throws StandardException {
-		DataValueDescriptor nextCol = nextRow.getColumn(inputColumnId);
-		DataValueDescriptor aggCol = accumulatorRow.getColumn(aggregatorColumnId);
-		initializeAndAccumulateIfNeeded(nextCol,aggCol);
-	}
+        DataValueDescriptor nextCol = nextRow.getColumn(inputColumnId);
+        DataValueDescriptor aggCol = accumulatorRow.getColumn(aggregatorColumnId);
+        initializeAndAccumulateIfNeeded(nextCol,aggCol);
+    }
 
     
     public void accumulate(ExecRow nextRow,ExecRow accumulatorRow) throws StandardException {
-		DataValueDescriptor nextCol = nextRow.getColumn(inputColumnId);
-		DataValueDescriptor aggCol = accumulatorRow.getColumn(aggregatorColumnId);
-		accumulate(nextCol,aggCol);
-	}
+        DataValueDescriptor nextCol = nextRow.getColumn(inputColumnId);
+        DataValueDescriptor aggCol = accumulatorRow.getColumn(aggregatorColumnId);
+        accumulate(nextCol,aggCol);
+    }
 
-	public void merge(ExecRow inputRow, ExecRow mergeRow) throws StandardException {
-		DataValueDescriptor mergeCol = mergeRow.getColumn(aggregatorColumnId);
-		DataValueDescriptor inputCol = inputRow.getColumn(aggregatorColumnId);
-		merge(inputCol,mergeCol);
-	}
-	
-	public boolean isDistinct(){
-		return aggInfo.isDistinct();
-	}
-	
-	public DataValueDescriptor getInputColumnValue(ExecRow row) throws StandardException{
-		return row.getColumn(inputColumnId); 
-	}
+    public void merge(ExecRow inputRow, ExecRow mergeRow) throws StandardException {
+        DataValueDescriptor mergeCol = mergeRow.getColumn(aggregatorColumnId);
+        DataValueDescriptor inputCol = inputRow.getColumn(aggregatorColumnId);
+        merge(inputCol,mergeCol);
+    }
+    
+    public boolean isDistinct(){
+        return aggInfo.isDistinct();
+    }
+    
+    public DataValueDescriptor getInputColumnValue(ExecRow row) throws StandardException{
+        return row.getColumn(inputColumnId); 
+    }
 
     public DataValueDescriptor getResultColumnValue(ExecRow row) throws StandardException{
         return row.getColumn(aggInfo.getOutputColNum()+1);
@@ -113,9 +113,9 @@ public class SpliceGenericAggregator implements Serializable{
     private ExecAggregator upgradeExecAggregator(ExecAggregator ua,
                                                  DataValueDescriptor aggCol,
                                                  StandardException e) throws StandardException {
-	    // Only upgrade aggregator for overflow errors.
-	    if (e != null && e.getSQLState() != SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE)
-	        throw e;
+        // Only upgrade aggregator for overflow errors.
+        if (e != null && e.getSQLState() != SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE)
+            throw e;
 
         if (ua instanceof LongBufferedSumAggregator) {
             LongBufferedSumAggregator lbsa = (LongBufferedSumAggregator) ua;
@@ -140,29 +140,29 @@ public class SpliceGenericAggregator implements Serializable{
     }
 
 
-	public boolean finish(ExecRow row) throws StandardException{
-		DataValueDescriptor outputCol = row.getColumn(resultColumnId);
-		DataValueDescriptor aggCol = row.getColumn(aggregatorColumnId);
-		
-		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
-		if(ua ==null|| (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null))
-			ua = getAggregatorInstance(row.getColumn(this.inputColumnId).getTypeFormatId());
-		
-		DataValueDescriptor result = null;
+    public boolean finish(ExecRow row) throws StandardException{
+        DataValueDescriptor outputCol = row.getColumn(resultColumnId);
+        DataValueDescriptor aggCol = row.getColumn(aggregatorColumnId);
+        
+        ExecAggregator ua = (ExecAggregator)aggCol.getObject();
+        if(ua ==null|| (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null))
+            ua = getAggregatorInstance(row.getColumn(this.inputColumnId).getTypeFormatId());
+        
+        DataValueDescriptor result = null;
         try {
-		    result = ua.getResult();
+            result = ua.getResult();
         }
         catch (StandardException e) {
             ua = upgradeExecAggregator(ua, aggCol, e);
             result = ua.getResult();
         }
         if (result == null)
-			outputCol.setToNull();
+            outputCol.setToNull();
         else {
-			// Cast the result to the compile-time determined data type,
-			// including precision and scale, only if there is a data type
-			// mismatch, so we can avoid unnecessary overflow errors.
-			// Otherwise, just use the exact result DVD directly.
+            // Cast the result to the compile-time determined data type,
+            // including precision and scale, only if there is a data type
+            // mismatch, so we can avoid unnecessary overflow errors.
+            // Otherwise, just use the exact result DVD directly.
             if (outputCol.getTypeFormatId() != result.getTypeFormatId())
                 outputCol.setValue(result);
             else
@@ -170,10 +170,10 @@ public class SpliceGenericAggregator implements Serializable{
         }
         return ua.didEliminateNulls();
     }
-	
-	public void merge(Storable aggregatedIn,Storable aggregatedOut) throws StandardException {
-		ExecAggregator uaIn = (ExecAggregator)(((UserDataValue)aggregatedIn).getObject());
-		ExecAggregator uaOut = (ExecAggregator)(((UserDataValue)aggregatedOut).getObject());
+    
+    public void merge(Storable aggregatedIn,Storable aggregatedOut) throws StandardException {
+        ExecAggregator uaIn = (ExecAggregator)(((UserDataValue)aggregatedIn).getObject());
+        ExecAggregator uaOut = (ExecAggregator)(((UserDataValue)aggregatedOut).getObject());
 
         // If one or the other of the two aggregate results was upgraded, we need to
         // upgrade the other now to be compatible.
@@ -185,7 +185,7 @@ public class SpliceGenericAggregator implements Serializable{
             uaOut = upgradeExecAggregator(uaOut, (DataValueDescriptor)aggregatedOut, null);
         }
         try {
-		    uaOut.merge(uaIn);
+            uaOut.merge(uaIn);
         }
         catch (StandardException e) {
             uaIn = upgradeExecAggregator(uaIn, (DataValueDescriptor)aggregatedIn, e);
@@ -193,7 +193,7 @@ public class SpliceGenericAggregator implements Serializable{
             uaOut.merge(uaIn);
         }
 
-	}
+    }
 
     public boolean initialize(ExecRow row) throws StandardException {
         UserDataValue aggColumn = (UserDataValue) row.getColumn(aggregatorColumnId);
@@ -211,20 +211,20 @@ public class SpliceGenericAggregator implements Serializable{
         UserDataValue aggColumn = (UserDataValue)row.getColumn(aggregatorColumnId);
 
         ExecAggregator ua = (ExecAggregator)aggColumn.getObject();
-		if (ua == null || (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null)) {
-			return false;
-		}
+        if (ua == null || (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null)) {
+            return false;
+        }
 
-		return true;
+        return true;
     }
     
-	public void accumulate(DataValueDescriptor inputCol,DataValueDescriptor aggCol) 
-																throws StandardException {
-		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
-		if(ua == null || (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null)){
-			ua = getAggregatorInstance(inputCol.getTypeFormatId());
-			aggCol.setValue(ua);
-		}
+    public void accumulate(DataValueDescriptor inputCol,DataValueDescriptor aggCol) 
+                                                                throws StandardException {
+        ExecAggregator ua = (ExecAggregator)aggCol.getObject();
+        if(ua == null || (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null)){
+            ua = getAggregatorInstance(inputCol.getTypeFormatId());
+            aggCol.setValue(ua);
+        }
 
         try {
             ua.accumulate(inputCol,this);
@@ -235,11 +235,11 @@ public class SpliceGenericAggregator implements Serializable{
         }
     }
 
-	public void initializeAndAccumulateIfNeeded(DataValueDescriptor inputCol,DataValueDescriptor aggCol) throws StandardException{
-		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
-		if(ua == null || (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null)){
-			ua = getAggregatorInstance(inputCol.getTypeFormatId());
-			aggCol.setValue(ua);
+    public void initializeAndAccumulateIfNeeded(DataValueDescriptor inputCol,DataValueDescriptor aggCol) throws StandardException{
+        ExecAggregator ua = (ExecAggregator)aggCol.getObject();
+        if(ua == null || (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null)){
+            ua = getAggregatorInstance(inputCol.getTypeFormatId());
+            aggCol.setValue(ua);
             try {
                 ua.accumulate(inputCol,this);
             }
@@ -247,18 +247,18 @@ public class SpliceGenericAggregator implements Serializable{
                 ua = upgradeExecAggregator(ua, aggCol, e);
                 ua.accumulate(inputCol,this);
             }
-		}
-	}
+        }
+    }
 
-	
-	public ExecAggregator getAggregatorInstance(int typeFormatId) throws StandardException {
-		ExecAggregator aggInstance;
-		if(cachedAggregator == null){
-			try{
-				Class aggClass = cf.loadApplicationClass(aggInfo.getAggregatorClassName());
-				Object agg = aggClass.newInstance();
-				aggInstance = (ExecAggregator)agg;
-				DataTypeDescriptor dtd = aggInfo.getResultDescription().getColumnInfo()[ 0 ].getType();
+    
+    public ExecAggregator getAggregatorInstance(int typeFormatId) throws StandardException {
+        ExecAggregator aggInstance;
+        if(cachedAggregator == null){
+            try{
+                Class aggClass = cf.loadApplicationClass(aggInfo.getAggregatorClassName());
+                Object agg = aggClass.newInstance();
+                aggInstance = (ExecAggregator)agg;
+                DataTypeDescriptor dtd = aggInfo.getResultDescription().getColumnInfo()[ 0 ].getType();
 
                                 // BIGINT aggregation writes the final result to a data type of DEC(31,1), but it is
                                 // faster to aggregate longs until we overflow, so do not use the result data type
@@ -276,14 +276,14 @@ public class SpliceGenericAggregator implements Serializable{
                                         aggInfo.getParam()
                                 );
                                 cachedAggregator = aggInstance;
-			}catch(Exception e){
-				throw StandardException.unexpectedUserException(e);
-			}
-		}else {
-			aggInstance = cachedAggregator.newAggregator();
-		}
-		return aggInstance;
-	}
+            }catch(Exception e){
+                throw StandardException.unexpectedUserException(e);
+            }
+        }else {
+            aggInstance = cachedAggregator.newAggregator();
+        }
+        return aggInstance;
+    }
 
     public void setResultColumn(ExecRow row,DataValueDescriptor result) {
         row.setColumn(resultColumnId,result);
@@ -297,5 +297,5 @@ public class SpliceGenericAggregator implements Serializable{
         return aggregatorColumnId;
     }
 
-	public int getInputColumnId() { return inputColumnId; }
+    public int getInputColumnId() { return inputColumnId; }
 }

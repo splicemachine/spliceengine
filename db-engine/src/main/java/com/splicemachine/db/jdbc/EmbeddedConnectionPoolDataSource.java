@@ -37,69 +37,69 @@ import java.sql.SQLException;
 import javax.sql.PooledConnection;
 
 /** 
-	EmbeddedConnectionPoolDataSource is Derby's ConnectionPoolDataSource
-	implementation for the JDBC3.0 environment.
-	
+    EmbeddedConnectionPoolDataSource is Derby's ConnectionPoolDataSource
+    implementation for the JDBC3.0 environment.
+    
 
-	<P>A ConnectionPoolDataSource is a factory for PooledConnection
-	objects. An object that implements this interface will typically be
-	registered with a JNDI service.
-	<P>
-	EmbeddedConnectionPoolDataSource automatically supports the correct JDBC specification version
-	for the Java Virtual Machine's environment.
-	<UL>
-	<LI> JDBC 3.0 - Java 2 - JDK 1.4, J2SE 5.0
-	</UL>
+    <P>A ConnectionPoolDataSource is a factory for PooledConnection
+    objects. An object that implements this interface will typically be
+    registered with a JNDI service.
+    <P>
+    EmbeddedConnectionPoolDataSource automatically supports the correct JDBC specification version
+    for the Java Virtual Machine's environment.
+    <UL>
+    <LI> JDBC 3.0 - Java 2 - JDK 1.4, J2SE 5.0
+    </UL>
 
-	<P>EmbeddedConnectionPoolDataSource is serializable and referenceable.
+    <P>EmbeddedConnectionPoolDataSource is serializable and referenceable.
 
-	<P>See EmbeddedDataSource for DataSource properties.
+    <P>See EmbeddedDataSource for DataSource properties.
 
  */
 public class EmbeddedConnectionPoolDataSource extends EmbeddedDataSource
-		implements	javax.sql.ConnectionPoolDataSource
+        implements    javax.sql.ConnectionPoolDataSource
 {
 
-	private static final long serialVersionUID = 7852784308039674160L;
+    private static final long serialVersionUID = 7852784308039674160L;
 
-	/**
-		No-arg constructor.
-	 */
-	public EmbeddedConnectionPoolDataSource() {
-		super();
-	}
+    /**
+        No-arg constructor.
+     */
+    public EmbeddedConnectionPoolDataSource() {
+        super();
+    }
 
-	/*
-	 * ConnectionPoolDataSource methods
-	 */
+    /*
+     * ConnectionPoolDataSource methods
+     */
 
-	/**
-		Attempt to establish a database connection.
+    /**
+        Attempt to establish a database connection.
 
-		@return a Connection to the database
+        @return a Connection to the database
 
-		@exception SQLException if a database-access error occurs.
-	*/
-	public final PooledConnection getPooledConnection() throws SQLException { 
-		return createPooledConnection (getUser(), getPassword(), false);
-	}
+        @exception SQLException if a database-access error occurs.
+    */
+    public final PooledConnection getPooledConnection() throws SQLException { 
+        return createPooledConnection (getUser(), getPassword(), false);
+    }
 
-	/**
-		Attempt to establish a database connection.
+    /**
+        Attempt to establish a database connection.
 
-		@param username the database user on whose behalf the Connection is being made
-		@param password the user's password
+        @param username the database user on whose behalf the Connection is being made
+        @param password the user's password
 
-		@return a Connection to the database
+        @return a Connection to the database
 
-		@exception SQLException if a database-access error occurs.
-	*/
-	public final PooledConnection getPooledConnection(String username, 
-												String password)
-		 throws SQLException
-	{
-		return createPooledConnection (username, password, true);
-	}
+        @exception SQLException if a database-access error occurs.
+    */
+    public final PooledConnection getPooledConnection(String username, 
+                                                String password)
+         throws SQLException
+    {
+        return createPooledConnection (username, password, true);
+    }
         
     /**
      * Create and return an EmbedPooledConnection from this instance

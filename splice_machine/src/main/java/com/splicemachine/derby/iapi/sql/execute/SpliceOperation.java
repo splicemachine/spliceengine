@@ -185,54 +185,54 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      */
     void setCurrentRow(ExecRow row);
 
-	/**
-	 * Initializes the node with the statement and the language context from the SpliceEngine.
-	 * 
-	 * @throws StandardException
-	 */
+    /**
+     * Initializes the node with the statement and the language context from the SpliceEngine.
+     * 
+     * @throws StandardException
+     */
     void init(SpliceOperationContext context) throws IOException, StandardException;
 
-	/**
-	 * 
-	 * Gets the left Operation for a Operation.  They can be named different things in different operations (Source, LeftResultSet, etc.).  
-	 * This gives a simple method to retrieve that operation.  This needs to be implemented in each operation.
-	 *
-	 * @return
-	 */
+    /**
+     * 
+     * Gets the left Operation for a Operation.  They can be named different things in different operations (Source, LeftResultSet, etc.).  
+     * This gives a simple method to retrieve that operation.  This needs to be implemented in each operation.
+     *
+     * @return
+     */
     SpliceOperation getLeftOperation();
-	/**
-	 *
-	 * Recursively generates the left operation stack.  This method is implemented properly as long as you inherit from
-	 * the SpliceBaseOperation.
-	 *
-	 * @return
-	 */
+    /**
+     *
+     * Recursively generates the left operation stack.  This method is implemented properly as long as you inherit from
+     * the SpliceBaseOperation.
+     *
+     * @return
+     */
     void generateLeftOperationStack(List<SpliceOperation> operations);
 
-	/**
-	 * 
-	 * Gets the right Operation for a Operation.  They can be named different things in different operations (Source, LeftResultSet, etc.).  
-	 * This gives a simple method to retrieve that operation.  This needs to be implemented in each operation.
-	 * 
-	 * @return
-	 */
+    /**
+     * 
+     * Gets the right Operation for a Operation.  They can be named different things in different operations (Source, LeftResultSet, etc.).  
+     * This gives a simple method to retrieve that operation.  This needs to be implemented in each operation.
+     * 
+     * @return
+     */
     SpliceOperation getRightOperation();
-	/**
-	 * 
-	 * Recursively generates the left operation stack.  This method is implemented properly as long as you inherit from
-	 * the SpliceBaseOperation.
-	 * 
-	 * @return
-	 */
+    /**
+     * 
+     * Recursively generates the left operation stack.  This method is implemented properly as long as you inherit from
+     * the SpliceBaseOperation.
+     * 
+     * @return
+     */
     void generateRightOperationStack(boolean initial,List<SpliceOperation> operations);
 
-	/**
-	 * 
-	 * The outgoing field definition of the record.  Do we need incoming as well?
-	 * 
-	 * @return
-	 * @throws StandardException 
-	 */
+    /**
+     * 
+     * The outgoing field definition of the record.  Do we need incoming as well?
+     * 
+     * @return
+     * @throws StandardException 
+     */
 
     ExecRow getExecRowDefinition() throws StandardException;
 
@@ -277,7 +277,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
       * @param activation
      * @throws StandardException
      */
-	void setActivation(Activation activation) throws StandardException;
+    void setActivation(Activation activation) throws StandardException;
 
     /**
      *

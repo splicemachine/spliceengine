@@ -47,95 +47,95 @@ import java.text.RuleBasedCollator;
  * implemented here.
  */
 public class SQLVarchar
-	extends SQLChar
+    extends SQLChar
 {
 
-	/*
-	 * DataValueDescriptor interface.
-	 *
-	 */
+    /*
+     * DataValueDescriptor interface.
+     *
+     */
 
-	public String getTypeName()
-	{
-		return TypeId.VARCHAR_NAME;
-	}
+    public String getTypeName()
+    {
+        return TypeId.VARCHAR_NAME;
+    }
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
 
     /** @see DataValueDescriptor#cloneValue */
     public DataValueDescriptor cloneValue(boolean forceMaterialization)
-	{
-		try
-		{
-			SQLVarchar ret = new SQLVarchar(getString());
-			ret.setSqlCharSize(super.getSqlCharSize());
-			return ret;
-		}
-		catch (StandardException se)
-		{
-			if (SanityManager.DEBUG)
-				SanityManager.THROWASSERT("Unexpected exception", se);
-			return null;
-		}
-	}
+    {
+        try
+        {
+            SQLVarchar ret = new SQLVarchar(getString());
+            ret.setSqlCharSize(super.getSqlCharSize());
+            return ret;
+        }
+        catch (StandardException se)
+        {
+            if (SanityManager.DEBUG)
+                SanityManager.THROWASSERT("Unexpected exception", se);
+            return null;
+        }
+    }
 
-	/**
-	 * @see DataValueDescriptor#getNewNull
-	 *
-	 */
-	public DataValueDescriptor getNewNull()
-	{
-		return new SQLVarchar();
-	}
+    /**
+     * @see DataValueDescriptor#getNewNull
+     *
+     */
+    public DataValueDescriptor getNewNull()
+    {
+        return new SQLVarchar();
+    }
 
-	/** @see StringDataValue#getValue(RuleBasedCollator) */
-	public StringDataValue getValue(RuleBasedCollator collatorForComparison)
-	{
-		if (collatorForComparison == null)
-		{//null collatorForComparison means use UCS_BASIC for collation
-		    return this;
-		} else {
-			//non-null collatorForComparison means use collator sensitive
-			//implementation of SQLVarchar
-		     CollatorSQLVarchar s = new CollatorSQLVarchar(collatorForComparison);
-		     s.copyState(this);
-		     return s;
-		}
-	}
+    /** @see StringDataValue#getValue(RuleBasedCollator) */
+    public StringDataValue getValue(RuleBasedCollator collatorForComparison)
+    {
+        if (collatorForComparison == null)
+        {//null collatorForComparison means use UCS_BASIC for collation
+            return this;
+        } else {
+            //non-null collatorForComparison means use collator sensitive
+            //implementation of SQLVarchar
+             CollatorSQLVarchar s = new CollatorSQLVarchar(collatorForComparison);
+             s.copyState(this);
+             return s;
+        }
+    }
 
 
-	/*
-	 * Storable interface, implies Externalizable, TypedFormat
-	 */
+    /*
+     * Storable interface, implies Externalizable, TypedFormat
+     */
 
-	/**
-		Return my format identifier.
+    /**
+        Return my format identifier.
 
-		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
-	public int getTypeFormatId() {
-		return StoredFormatIds.SQL_VARCHAR_ID;
-	}
+        @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
+    */
+    public int getTypeFormatId() {
+        return StoredFormatIds.SQL_VARCHAR_ID;
+    }
 
-	/*
-	 * constructors
-	 */
+    /*
+     * constructors
+     */
 
-	public SQLVarchar()
-	{
-	}
+    public SQLVarchar()
+    {
+    }
 
-	public SQLVarchar(String val)
-	{
-		super(val);
-	}
+    public SQLVarchar(String val)
+    {
+        super(val);
+    }
 
-	public SQLVarchar(Clob val)
-	{
-		super(val);
-	}
+    public SQLVarchar(Clob val)
+    {
+        super(val);
+    }
 
     /**
      * <p>
@@ -147,70 +147,70 @@ public class SQLVarchar
      */
     public SQLVarchar( char[] val ) { super( val ); }
 
-	/**
-	 * Normalization method - this method may be called when putting
-	 * a value into a SQLVarchar, for example, when inserting into a SQLVarchar
-	 * column.  See NormalizeResultSet in execution.
-	 *
-	 * @param desiredType	The type to normalize the source column to
-	 * @param source		The value to normalize
-	 *
-	 *
-	 * @exception StandardException				Thrown for null into
-	 *											non-nullable column, and for
-	 *											truncation error
-	 */
+    /**
+     * Normalization method - this method may be called when putting
+     * a value into a SQLVarchar, for example, when inserting into a SQLVarchar
+     * column.  See NormalizeResultSet in execution.
+     *
+     * @param desiredType    The type to normalize the source column to
+     * @param source        The value to normalize
+     *
+     *
+     * @exception StandardException                Thrown for null into
+     *                                            non-nullable column, and for
+     *                                            truncation error
+     */
 
-	public void normalize(
-				DataTypeDescriptor desiredType,
-				DataValueDescriptor source)
-					throws StandardException
-	{
-		normalize(desiredType, source.getString());
-	}
+    public void normalize(
+                DataTypeDescriptor desiredType,
+                DataValueDescriptor source)
+                    throws StandardException
+    {
+        normalize(desiredType, source.getString());
+    }
 
-	protected void normalize(DataTypeDescriptor desiredType, String sourceValue)
-		throws StandardException
-	{
+    protected void normalize(DataTypeDescriptor desiredType, String sourceValue)
+        throws StandardException
+    {
 
-		int			desiredWidth = desiredType.getMaximumWidth();
+        int            desiredWidth = desiredType.getMaximumWidth();
 
-		int sourceWidth = sourceValue.length();
+        int sourceWidth = sourceValue.length();
 
-		/*
-		** If the input is already the right length, no normalization is
-		** necessary.
-		**
-		** It's OK for a Varchar value to be shorter than the desired width.
-		** This can happen, for example, if you insert a 3-character Varchar
-		** value into a 10-character Varchar column.  Just return the value
-		** in this case.
-		*/
+        /*
+        ** If the input is already the right length, no normalization is
+        ** necessary.
+        **
+        ** It's OK for a Varchar value to be shorter than the desired width.
+        ** This can happen, for example, if you insert a 3-character Varchar
+        ** value into a 10-character Varchar column.  Just return the value
+        ** in this case.
+        */
 
-		if (sourceWidth > desiredWidth) {
+        if (sourceWidth > desiredWidth) {
 
-			hasNonBlankChars(sourceValue, desiredWidth, sourceWidth);
+            hasNonBlankChars(sourceValue, desiredWidth, sourceWidth);
 
-			/*
-			** No non-blank characters will be truncated.  Truncate the blanks
-			** to the desired width.
-			*/
-			sourceValue = sourceValue.substring(0, desiredWidth);
-		}
+            /*
+            ** No non-blank characters will be truncated.  Truncate the blanks
+            ** to the desired width.
+            */
+            sourceValue = sourceValue.substring(0, desiredWidth);
+        }
 
-		setValue(sourceValue);
-	}
+        setValue(sourceValue);
+    }
 
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
 
-	/* @see DataValueDescriptor#typePrecedence */
-	public int typePrecedence()
-	{
-		return TypeId.VARCHAR_PRECEDENCE;
-	}
+    /* @see DataValueDescriptor#typePrecedence */
+    public int typePrecedence()
+    {
+        return TypeId.VARCHAR_PRECEDENCE;
+    }
 
     /**
      * returns the reasonable minimum amount by
@@ -226,7 +226,7 @@ public class SQLVarchar
     }
 
     public Format getFormat() {
-    	return Format.VARCHAR;
+        return Format.VARCHAR;
     }
 
 
@@ -414,9 +414,9 @@ public class SQLVarchar
 
     /* Compared to SQLChar, SQLVarchar honors the trailing space of a string */
     @Override
-	public int hashCode()
-	{
-		return super.hashCode();
-	}
+    public int hashCode()
+    {
+        return super.hashCode();
+    }
 
 }

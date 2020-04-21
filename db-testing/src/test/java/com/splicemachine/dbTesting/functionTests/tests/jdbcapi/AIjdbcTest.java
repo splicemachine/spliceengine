@@ -47,84 +47,84 @@ import com.splicemachine.dbTesting.junit.TestConfiguration;
  */
 public class AIjdbcTest extends BaseJDBCTestCase {
 
-	/**
-	 * Basic constructor.
-	 */
-	public AIjdbcTest(String name) {
-		super(name);
-	}
-	
-	/**
-	 * Returns the implemented tests.
-	 * 
-	 * @return An instance of <code>Test</code> with the implemented tests to
-	 *         run.
-	 */
-	public static Test suite() {
-		return new CleanDatabaseTestSetup(TestConfiguration.defaultSuite(AIjdbcTest.class, false)) {
-			protected void decorateSQL(Statement stmt) throws SQLException {
-				stmt.execute("create table tab1 (x int, y int generated always as identity,z char(2))");
-				stmt.execute("create view tab1_view (a,b) as select y,y+1 from tab1");
-			}
-		};
-	}
-	
-	/**
-	 * Sets the auto commit to false.
-	 */
-	protected void initializeConnection(Connection conn) throws SQLException {
-		conn.setAutoCommit(false);
-	}
-	
-	/**
-	 * Select from base table.
-	 * 
-	 * @throws SQLException
-	 */
-	public void testSelect() throws SQLException {
-		Statement s = createStatement();
-		ResultSet rs;
-		ResultSetMetaData rsmd;
-		
-		rs = s.executeQuery("select x,z from tab1");
-		rsmd = rs.getMetaData();
-		
-		assertFalse("Column count doesn't match.", rsmd.getColumnCount() != 2);
-		assertFalse("Column 1 is NOT ai.", rsmd.isAutoIncrement(1));
-		assertFalse("Column 2 is NOT ai.", rsmd.isAutoIncrement(2));
-		
-		rs.close();
-		
-		rs = s.executeQuery("select y, x,z from tab1");
-		rsmd = rs.getMetaData();
-		
-		assertFalse("Column count doesn't match.", rsmd.getColumnCount() != 3);
-		assertFalse("Column 1 IS ai.", !rsmd.isAutoIncrement(1));
-		assertFalse("Column 2 is NOT ai.", rsmd.isAutoIncrement(2));
-		assertFalse("Column 3 is NOT ai.", rsmd.isAutoIncrement(3));
-		
-		rs.close();
-		s.close();
-	}
+    /**
+     * Basic constructor.
+     */
+    public AIjdbcTest(String name) {
+        super(name);
+    }
+    
+    /**
+     * Returns the implemented tests.
+     * 
+     * @return An instance of <code>Test</code> with the implemented tests to
+     *         run.
+     */
+    public static Test suite() {
+        return new CleanDatabaseTestSetup(TestConfiguration.defaultSuite(AIjdbcTest.class, false)) {
+            protected void decorateSQL(Statement stmt) throws SQLException {
+                stmt.execute("create table tab1 (x int, y int generated always as identity,z char(2))");
+                stmt.execute("create view tab1_view (a,b) as select y,y+1 from tab1");
+            }
+        };
+    }
+    
+    /**
+     * Sets the auto commit to false.
+     */
+    protected void initializeConnection(Connection conn) throws SQLException {
+        conn.setAutoCommit(false);
+    }
+    
+    /**
+     * Select from base table.
+     * 
+     * @throws SQLException
+     */
+    public void testSelect() throws SQLException {
+        Statement s = createStatement();
+        ResultSet rs;
+        ResultSetMetaData rsmd;
+        
+        rs = s.executeQuery("select x,z from tab1");
+        rsmd = rs.getMetaData();
+        
+        assertFalse("Column count doesn't match.", rsmd.getColumnCount() != 2);
+        assertFalse("Column 1 is NOT ai.", rsmd.isAutoIncrement(1));
+        assertFalse("Column 2 is NOT ai.", rsmd.isAutoIncrement(2));
+        
+        rs.close();
+        
+        rs = s.executeQuery("select y, x,z from tab1");
+        rsmd = rs.getMetaData();
+        
+        assertFalse("Column count doesn't match.", rsmd.getColumnCount() != 3);
+        assertFalse("Column 1 IS ai.", !rsmd.isAutoIncrement(1));
+        assertFalse("Column 2 is NOT ai.", rsmd.isAutoIncrement(2));
+        assertFalse("Column 3 is NOT ai.", rsmd.isAutoIncrement(3));
+        
+        rs.close();
+        s.close();
+    }
 
-	/**
-	 * Select from view.
-	 * 
-	 * @throws SQLException
-	 */
-	public void testSelectView() throws SQLException {
-		Statement s = createStatement();
-		ResultSet rs;
-		ResultSetMetaData rsmd;
-		
-		rs = s.executeQuery("select * from tab1_view");
-		rsmd = rs.getMetaData();
-		
-		assertFalse("Column count doesn't match.", rsmd.getColumnCount() != 2);
-		assertFalse("Column 1 IS ai.", !rsmd.isAutoIncrement(1));
-		assertFalse("Column 1 is NOT ai.", rsmd.isAutoIncrement(2));
-		
-		rs.close();
-		s.close();
-	}
+    /**
+     * Select from view.
+     * 
+     * @throws SQLException
+     */
+    public void testSelectView() throws SQLException {
+        Statement s = createStatement();
+        ResultSet rs;
+        ResultSetMetaData rsmd;
+        
+        rs = s.executeQuery("select * from tab1_view");
+        rsmd = rs.getMetaData();
+        
+        assertFalse("Column count doesn't match.", rsmd.getColumnCount() != 2);
+        assertFalse("Column 1 IS ai.", !rsmd.isAutoIncrement(1));
+        assertFalse("Column 1 is NOT ai.", rsmd.isAutoIncrement(2));
+        
+        rs.close();
+        s.close();
+    }
 }

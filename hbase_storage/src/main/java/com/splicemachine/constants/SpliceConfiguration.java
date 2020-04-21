@@ -29,19 +29,19 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
  */
 public class SpliceConfiguration {
 
-	private static void addSpliceResources(Configuration c){
-		c.addResource("splice-site.xml");
-	}
+    private static void addSpliceResources(Configuration c){
+        c.addResource("splice-site.xml");
+    }
 
-	public static Configuration create(){
-		Configuration conf = HBaseConfiguration.create();
-		addSpliceResources(conf);
+    public static Configuration create(){
+        Configuration conf = HBaseConfiguration.create();
+        addSpliceResources(conf);
                 return conf;
-	}
+    }
 
-	public static Configuration create(Configuration other){
-		Configuration conf = create();
-		HBaseConfiguration.merge(conf, other);
-		return conf;
-	}
+    public static Configuration create(Configuration other){
+        Configuration conf = create();
+        HBaseConfiguration.merge(conf, other);
+        return conf;
+    }
 }

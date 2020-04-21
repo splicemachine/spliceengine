@@ -37,79 +37,79 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
 
 /**
-	Basic implementation of ExecIndexRow.
+    Basic implementation of ExecIndexRow.
 
  */
 public class IndexRow extends ValueRow implements ExecIndexRow
 {
-	///////////////////////////////////////////////////////////////////////
-	//
-	//	STATE
-	//
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    //
+    //    STATE
+    //
+    ///////////////////////////////////////////////////////////////////////
 
 
-	private boolean[]	orderedNulls;
+    private boolean[]    orderedNulls;
 
-	///////////////////////////////////////////////////////////////////////
-	//
-	//	CONSTRUCTORS
-	//
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    //
+    //    CONSTRUCTORS
+    //
+    ///////////////////////////////////////////////////////////////////////
 
-	public IndexRow() {
+    public IndexRow() {
 
-	}
+    }
 
-	public IndexRow(int ncols) {
-					this(ncols,new boolean[ncols]);
-	}
+    public IndexRow(int ncols) {
+                    this(ncols,new boolean[ncols]);
+    }
 
-	public static IndexRow createRaw(int ncols){
-					return new IndexRow(ncols,null);
-	}
+    public static IndexRow createRaw(int ncols){
+                    return new IndexRow(ncols,null);
+    }
 
-	private IndexRow(int ncols, boolean[] orderedNulls){
-					super(ncols);
-					this.orderedNulls = orderedNulls;
-	}
+    private IndexRow(int ncols, boolean[] orderedNulls){
+                    super(ncols);
+                    this.orderedNulls = orderedNulls;
+    }
 
-	///////////////////////////////////////////////////////////////////////
-	//
-	//	EXECINDEXROW INTERFACE
-	//
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    //
+    //    EXECINDEXROW INTERFACE
+    //
+    ///////////////////////////////////////////////////////////////////////
 
-	/* Column positions are one-based, arrays are zero-based */
-	public void orderedNulls(int columnPosition) {
-		orderedNulls[columnPosition] = true;
-	}
+    /* Column positions are one-based, arrays are zero-based */
+    public void orderedNulls(int columnPosition) {
+        orderedNulls[columnPosition] = true;
+    }
 
-	public boolean areNullsOrdered(int columnPosition) {
-		return orderedNulls[columnPosition];
-	}
+    public boolean areNullsOrdered(int columnPosition) {
+        return orderedNulls[columnPosition];
+    }
 
-	public boolean[] getOrderedNulls(){
-					return orderedNulls;
-	}
+    public boolean[] getOrderedNulls(){
+                    return orderedNulls;
+    }
 
-	public void setOrderedNulls(boolean[] orderedNulls){
-					this.orderedNulls = orderedNulls;
-	}
+    public void setOrderedNulls(boolean[] orderedNulls){
+                    this.orderedNulls = orderedNulls;
+    }
 
-	/**
-	 * Turn the ExecRow into an ExecIndexRow.
-	 */
-	public void execRowToExecIndexRow(ExecRow valueRow)
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.THROWASSERT(
-				"execRowToExecIndexRow() not expected to be called for IndexRow");
-		}
-	}
+    /**
+     * Turn the ExecRow into an ExecIndexRow.
+     */
+    public void execRowToExecIndexRow(ExecRow valueRow)
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.THROWASSERT(
+                "execRowToExecIndexRow() not expected to be called for IndexRow");
+        }
+    }
 
-	public ValueRow cloneMe() {
-		return new IndexRow(nColumns());
-	}
+    public ValueRow cloneMe() {
+        return new IndexRow(nColumns());
+    }
 }

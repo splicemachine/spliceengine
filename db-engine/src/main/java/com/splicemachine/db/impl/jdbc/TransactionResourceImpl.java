@@ -53,20 +53,20 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- *	An instance of a TransactionResourceImpl is a bundle of things that
- *	connects a connection to the database - it is the transaction "context" in
- *	a generic sense.  It is also the object of synchronization used by the
- *	connection object to make sure only one thread is accessing the underlying
- *	transaction and context.
+ *    An instance of a TransactionResourceImpl is a bundle of things that
+ *    connects a connection to the database - it is the transaction "context" in
+ *    a generic sense.  It is also the object of synchronization used by the
+ *    connection object to make sure only one thread is accessing the underlying
+ *    transaction and context.
  *
  *  <P>TransactionResourceImpl not only serves as a transaction "context", it
- *	also takes care of: <OL>
- *	<LI>context management: the pushing and popping of the context manager in
- *		and out of the global context service</LI>
- *	<LI>transaction demarcation: all calls to commit/abort/prepare/close a
- *		transaction must route thru the transaction resource.
- *	<LI>error handling</LI>
- *	</OL>
+ *    also takes care of: <OL>
+ *    <LI>context management: the pushing and popping of the context manager in
+ *        and out of the global context service</LI>
+ *    <LI>transaction demarcation: all calls to commit/abort/prepare/close a
+ *        transaction must route thru the transaction resource.
+ *    <LI>error handling</LI>
+ *    </OL>
  *
  *  <P>The only connection that have access to the TransactionResource is the
  *  root connection, all other nested connections (called proxyConnection)
@@ -76,10 +76,10 @@ import java.util.Properties;
  *  A proxyConnection is not detachable and can itself be a XA connection -
  *  although an XATransaction may start nested local (proxy) connections.
  *
- *	<P> this is an example of how all the objects in this package relate to each
- *		other.  In this example, the connection is nested 3 deep.  
- *		DetachableConnection.  
- *	<P><PRE>
+ *    <P> this is an example of how all the objects in this package relate to each
+ *        other.  In this example, the connection is nested 3 deep.  
+ *        DetachableConnection.  
+ *    <P><PRE>
  *
  *      lcc  cm   database  jdbcDriver
  *       ^    ^    ^         ^ 
@@ -364,11 +364,11 @@ public final class TransactionResourceImpl
             if (SanityManager.DEBUG)
                 SanityManager.ASSERT(thrownException != null);
 
-			/*
-				just pass SQL exceptions right back. We assume that JDBC driver
-				code has cleaned up sufficiently. Not passing them through would mean
-				that all cleanupOnError methods would require knowledge of Utils.
-			 */
+            /*
+                just pass SQL exceptions right back. We assume that JDBC driver
+                code has cleaned up sufficiently. Not passing them through would mean
+                that all cleanupOnError methods would require knowledge of Utils.
+             */
             if (thrownException instanceof SQLException) {
 
                 InterruptStatus.restoreIntrFlagIfSeen();
@@ -426,12 +426,12 @@ public final class TransactionResourceImpl
 
             InterruptStatus.restoreIntrFlagIfSeen();
 
-			/*
-			   We'd rather throw the Throwable,
-			   but then javac complains...
-			   We assume if we are in this degenerate
-			   case that it is actually a java exception
-			 */
+            /*
+               We'd rather throw the Throwable,
+               but then javac complains...
+               We assume if we are in this degenerate
+               case that it is actually a java exception
+             */
             throw wrapInSQLException(t);
             //throw t;
         }

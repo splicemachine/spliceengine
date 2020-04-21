@@ -34,13 +34,13 @@ package com.splicemachine.db.iapi.services.io;
 import java.io.ObjectInput;
 
 /**
-	Limit and ObjectInput capabilities.
+    Limit and ObjectInput capabilities.
 
-	Combin
+    Combin
  */
 public interface ErrorObjectInput extends ObjectInput, ErrorInfo
 {
-	String getErrorInfo();
+    String getErrorInfo();
 
     Exception getNestedException();
 

@@ -47,29 +47,29 @@ public class Splice_DD_Version extends DD_Version {
     }
 
     public Splice_DD_Version (DataDictionaryImpl bootingDictionary, String versionString) throws StandardException {
-    	if (versionString.matches("\\d(\\.\\d)?(\\.\\d)?(\\.\\d+)?")) {
+        if (versionString.matches("\\d(\\.\\d)?(\\.\\d)?(\\.\\d+)?")) {
             this.majorVersionNumber = 0;
             this.minorVersionNumber = 0;
             this.patchVersionNumber = 0;
             this.sprintVersionNumber = 0;
-    		String[] versionArray = versionString.split("\\.");
-    		if (versionArray.length > 0) {
-    			this.majorVersionNumber = Integer.parseInt(versionArray[0]);
-    			if (versionArray.length > 1) {
-    				this.minorVersionNumber = Integer.parseInt(versionArray[1]);
-    				if (versionArray.length > 2) {
-    					this.patchVersionNumber = Integer.parseInt(versionArray[2]);
+            String[] versionArray = versionString.split("\\.");
+            if (versionArray.length > 0) {
+                this.majorVersionNumber = Integer.parseInt(versionArray[0]);
+                if (versionArray.length > 1) {
+                    this.minorVersionNumber = Integer.parseInt(versionArray[1]);
+                    if (versionArray.length > 2) {
+                        this.patchVersionNumber = Integer.parseInt(versionArray[2]);
                         if (versionArray.length > 3) {
                             this.sprintVersionNumber = Integer.parseInt(versionArray[3]);
                         }
-    				}
-    			}
-    		}
-    		this.bootingDictionary = bootingDictionary;
-    	} else {
-    		// Bad version string...
-    		throw StandardException.newException(String.format("Version string does not match \"major.minor.patch\" pattern: %s", versionString));
-    	}
+                    }
+                }
+            }
+            this.bootingDictionary = bootingDictionary;
+        } else {
+            // Bad version string...
+            throw StandardException.newException(String.format("Version string does not match \"major.minor.patch\" pattern: %s", versionString));
+        }
     }
 
     public int getMajorVersionNumber() {

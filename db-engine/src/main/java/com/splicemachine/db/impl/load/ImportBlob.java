@@ -51,8 +51,8 @@ import java.io.InputStream;
 class ImportBlob implements java.sql.Blob {
 
     private ImportLobFile lobFile;
-	private long blobPosition;
-	private long blobLength;
+    private long blobPosition;
+    private long blobLength;
     private byte[] blobData = null;
 
 
@@ -64,11 +64,11 @@ class ImportBlob implements java.sql.Blob {
      * @param length   length of this blob object data. 
      */
     public ImportBlob(ImportLobFile lobFile, long position, long length) 
-	{
-		this.lobFile = lobFile;
-		this.blobPosition = position;
-		this.blobLength = length;
-	}
+    {
+        this.lobFile = lobFile;
+        this.blobPosition = position;
+        this.blobLength = length;
+    }
 
 
     /**
@@ -87,9 +87,9 @@ class ImportBlob implements java.sql.Blob {
    * @return length of the <code>BLOB</code> in bytes
    * @exception SQLException on any error.
    */
-	public long length() throws SQLException {
-		return blobLength;
-	}
+    public long length() throws SQLException {
+        return blobLength;
+    }
 
 
     /**
@@ -100,9 +100,9 @@ class ImportBlob implements java.sql.Blob {
      * @exception SQLException if any error occurs while setting up 
      *                         this blob data in the import file as stream. 
      */
-	public java.io.InputStream getBinaryStream () throws SQLException
-	{
-		try {
+    public java.io.InputStream getBinaryStream () throws SQLException
+    {
+        try {
             InputStream fis;
             if(blobData != null) {
                 fis = new java.io.ByteArrayInputStream(blobData);
@@ -115,10 +115,10 @@ class ImportBlob implements java.sql.Blob {
             } else {
                 return lobFile.getBinaryStream(blobPosition, blobLength);
             }
-		} catch (Exception e) {
-			throw LoadError.unexpectedError(e);
-		}
-	}
+        } catch (Exception e) {
+            throw LoadError.unexpectedError(e);
+        }
+    }
 
     
     /** following rotines does not have implmentation because there are not
@@ -131,10 +131,10 @@ class ImportBlob implements java.sql.Blob {
      *
      * @see java.sql.Blob 
      */
-	public byte[] getBytes(long pos, int length) throws SQLException {
-		throw LoadError.unexpectedError(
+    public byte[] getBytes(long pos, int length) throws SQLException {
+        throw LoadError.unexpectedError(
                          new Exception("Method not implemented"));
-	}
+    }
 
     /**
      * This routine is not used by the VTI to read the data, so no 
@@ -142,11 +142,11 @@ class ImportBlob implements java.sql.Blob {
      *
      * @see java.sql.Blob 
      */
-	public long position(byte pattern[], long start) throws SQLException
-	{
-		throw LoadError.unexpectedError(
+    public long position(byte pattern[], long start) throws SQLException
+    {
+        throw LoadError.unexpectedError(
                         new Exception("Method not implemented"));
-	}
+    }
 
     /**
      * This routine is not used by the VTI to read the data, so no 
@@ -154,10 +154,10 @@ class ImportBlob implements java.sql.Blob {
      *
      * @see java.sql.Blob
      */
-	public long position(Blob pattern, long start) throws SQLException {
-		throw LoadError.unexpectedError(
+    public long position(Blob pattern, long start) throws SQLException {
+        throw LoadError.unexpectedError(
                             new Exception("Method not implemented"));
-	}
+    }
 
 
     /**
@@ -167,8 +167,8 @@ class ImportBlob implements java.sql.Blob {
      * @see java.sql.Blob
      */
     public int setBytes(long pos, byte[] bytes) throws SQLException {
-		throw LoadError.unexpectedError(new Exception("Method not implemented"));
-	}
+        throw LoadError.unexpectedError(new Exception("Method not implemented"));
+    }
 
     /**
      * This routine is not used by the VTI to read the data, so no 
@@ -177,10 +177,10 @@ class ImportBlob implements java.sql.Blob {
      * @see java.sql.Blob
      */
     public int setBytes(long pos, byte[] bytes, int offset, int len) throws SQLException
-	{
-		throw LoadError.unexpectedError(
+    {
+        throw LoadError.unexpectedError(
                         new Exception("Method not implemented"));
-	}
+    }
 
     /**
      * This routine is not used by the VTI to read the data, so no 
@@ -189,10 +189,10 @@ class ImportBlob implements java.sql.Blob {
      * @see java.sql.Blob
      */
     public java.io.OutputStream setBinaryStream(long pos) throws SQLException 
-	{
-		throw LoadError.unexpectedError(
+    {
+        throw LoadError.unexpectedError(
                          new Exception("Method not implemented"));
-	}
+    }
 
     /**
      * This routine is not used by the VTI to read the data, so no 
@@ -201,9 +201,9 @@ class ImportBlob implements java.sql.Blob {
      * @see java.sql.Blob
      */
     public void truncate(long len) throws SQLException {
-		throw LoadError.unexpectedError(
+        throw LoadError.unexpectedError(
                         new Exception("Method not implemented"));
-	}
+    }
 
 //    @Override
     public void free() throws SQLException{

@@ -38,94 +38,94 @@ import java.util.Properties;
  */
 
 public class JNDIAuthenticationService
-	extends AuthenticationServiceBase {
-	private boolean _creatingCredentialsDB;
+    extends AuthenticationServiceBase {
+    private boolean _creatingCredentialsDB;
 
-	//
-	// constructor
-	//
+    //
+    // constructor
+    //
 
-	// call the super
-	public JNDIAuthenticationService() {
-		super();
-	}
+    // call the super
+    public JNDIAuthenticationService() {
+        super();
+    }
 
-	//
-	// ModuleControl implementation (overriden)
-	//
+    //
+    // ModuleControl implementation (overriden)
+    //
 
-	/**
-	 *  Check if we should activate the JNDI authentication service.
-	 */
-	public boolean canSupport(Properties properties) {
+    /**
+     *  Check if we should activate the JNDI authentication service.
+     */
+    public boolean canSupport(Properties properties) {
 
-		if (!requireAuthentication(properties))
-			return false;
+        if (!requireAuthentication(properties))
+            return false;
 
-		//
-		// we check 2 things:
-		//
-		// - if db.connection.requireAuthentication system
-		//   property is set to true.
-		// - if db.authentication.provider is set to one
-		// of the JNDI scheme we support (LDAP or Kerberos).
-		//
+        //
+        // we check 2 things:
+        //
+        // - if db.connection.requireAuthentication system
+        //   property is set to true.
+        // - if db.authentication.provider is set to one
+        // of the JNDI scheme we support (LDAP or Kerberos).
+        //
 
         String authenticationProvider = PropertyUtil.getPropertyFromSet(
             properties,
             Property.AUTHENTICATION_PROVIDER_PARAMETER);
 
-		return (authenticationProvider != null) &&
-				(StringUtil.SQLEqualsIgnoreCase(authenticationProvider,
-						Property.AUTHENTICATION_PROVIDER_LDAP) ||
-				StringUtil.SQLEqualsIgnoreCase(authenticationProvider,
-						Property.AUTHENTICATION_PROVIDER_KERBEROS));
+        return (authenticationProvider != null) &&
+                (StringUtil.SQLEqualsIgnoreCase(authenticationProvider,
+                        Property.AUTHENTICATION_PROVIDER_LDAP) ||
+                StringUtil.SQLEqualsIgnoreCase(authenticationProvider,
+                        Property.AUTHENTICATION_PROVIDER_KERBEROS));
 
     }
 
-	/**
-	 * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot
-	 * @exception StandardException upon failure to load/boot the expected
-	 * authentication service.
-	 */
-	public void boot(boolean create, Properties properties)
-	  throws StandardException {
+    /**
+     * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot
+     * @exception StandardException upon failure to load/boot the expected
+     * authentication service.
+     */
+    public void boot(boolean create, Properties properties)
+      throws StandardException {
 
-		// We need authentication
-		// setAuthentication(true);
+        // We need authentication
+        // setAuthentication(true);
 
-		// we call the super in case there is anything to get initialized.
-		super.boot(create, properties);
+        // we call the super in case there is anything to get initialized.
+        super.boot(create, properties);
 
-		// bootstrap the creation of the initial username/password when the dbo creates a credentials db
-		/*
-		 * DB-2088: Below, there is a manual override that can be enabled to force the creation of the
-		 * native credentials database after the Splice/Derby database has been created.
-		 * This is useful for beta Splice customers that wish to enable AnA.
-		 */
-		_creatingCredentialsDB = create ;
+        // bootstrap the creation of the initial username/password when the dbo creates a credentials db
+        /*
+         * DB-2088: Below, there is a manual override that can be enabled to force the creation of the
+         * native credentials database after the Splice/Derby database has been created.
+         * This is useful for beta Splice customers that wish to enable AnA.
+         */
+        _creatingCredentialsDB = create ;
 
-		// We must retrieve and load the authentication scheme that we were
-		// told to.
+        // We must retrieve and load the authentication scheme that we were
+        // told to.
 
-		// Set ourselves as being ready and loading the proper
-		// authentication scheme for this service
-		UserAuthenticator aJNDIAuthscheme;
+        // Set ourselves as being ready and loading the proper
+        // authentication scheme for this service
+        UserAuthenticator aJNDIAuthscheme;
 
-		String authenticationProvider = PropertyUtil.getPropertyFromSet(
-				properties,
-				Property.AUTHENTICATION_PROVIDER_PARAMETER);
+        String authenticationProvider = PropertyUtil.getPropertyFromSet(
+                properties,
+                Property.AUTHENTICATION_PROVIDER_PARAMETER);
 
-		// we're dealing with LDAP
-		aJNDIAuthscheme = ManagerLoader.load().getAuthenticationManager(this, properties);
-		this.setAuthenticationService(aJNDIAuthscheme);
-	}
+        // we're dealing with LDAP
+        aJNDIAuthscheme = ManagerLoader.load().getAuthenticationManager(this, properties);
+        this.setAuthenticationService(aJNDIAuthscheme);
+    }
 
-	public boolean isCreate() {
-		return _creatingCredentialsDB;
-	}
+    public boolean isCreate() {
+        return _creatingCredentialsDB;
+    }
 
-	public void clearCreate() {
-		_creatingCredentialsDB = false;
-	}
+    public void clearCreate() {
+        _creatingCredentialsDB = false;
+    }
 }

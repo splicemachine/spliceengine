@@ -120,7 +120,7 @@ public interface GroupFetchScanController extends GenericScanController
      * }
      *
      * <p>
-	 * @return The number of qualifying rows found and copied into the 
+     * @return The number of qualifying rows found and copied into the 
      *         provided array of rows.  If 0 then the scan is complete, 
      *         otherwise the return value will be: 
      *         1 <= row_count <= row_array.length
@@ -135,7 +135,7 @@ public interface GroupFetchScanController extends GenericScanController
      *                          copy into.  If null, no row locations are
      *                          retrieved.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     int fetchNextGroup(
             DataValueDescriptor[][] row_array,
@@ -157,10 +157,10 @@ public interface GroupFetchScanController extends GenericScanController
     transaction appended a row to the underlying conglomerate.
 
     @return True if there is a next position in the scan,
-	false if there isn't.
+    false if there isn't.
 
-	@exception StandardException Standard exception policy.
+    @exception StandardException Standard exception policy.
     **/
     boolean next()
-		throws StandardException;
+        throws StandardException;
 }

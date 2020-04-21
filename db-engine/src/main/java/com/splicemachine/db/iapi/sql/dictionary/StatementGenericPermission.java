@@ -44,40 +44,40 @@ import com.splicemachine.db.iapi.sql.Activation;
 
 public final class StatementGenericPermission extends StatementPermission
 {
-	private UUID _objectID;
+    private UUID _objectID;
     private String _objectType; // e.g., PermDescriptor.SEQUENCE_TYPE
     private String _privilege; // e.g., PermDescriptor.USAGE_PRIV
 
-	public StatementGenericPermission( UUID objectID, String objectType, String privilege )
-	{
-		_objectID = objectID;
+    public StatementGenericPermission( UUID objectID, String objectType, String privilege )
+    {
+        _objectID = objectID;
         _objectType = objectType;
         _privilege = privilege;
-	}
+    }
 
     // accessors
-	public UUID getObjectID() { return _objectID; }
+    public UUID getObjectID() { return _objectID; }
     public String getPrivilege() { return _privilege; }
 
-	/**
-	 * @see StatementPermission#getObjectType
-	 */
+    /**
+     * @see StatementPermission#getObjectType
+     */
     public String getObjectType() { return _objectType; }
 
-	/**
-	 * @see StatementPermission#check
-	 */
-	public void check( LanguageConnectionContext lcc,
-					   boolean forGrant,
-					   Activation activation) throws StandardException
-	{
+    /**
+     * @see StatementPermission#check
+     */
+    public void check( LanguageConnectionContext lcc,
+                       boolean forGrant,
+                       Activation activation) throws StandardException
+    {
         genericCheck( lcc, forGrant, activation, _privilege );
-	}
+    }
 
 
-	/**
-	 * @see StatementPermission#isCorrectPermission
-	 */
+    /**
+     * @see StatementPermission#isCorrectPermission
+     */
     public boolean isCorrectPermission( PermissionsDescriptor raw )
     {
         if ( (raw == null) || !( raw instanceof PermDescriptor) ) { return false; }
@@ -91,9 +91,9 @@ public final class StatementGenericPermission extends StatementPermission
             ;
     }
 
-	/**
-	 * @see StatementPermission#getPrivilegedObject
-	 */
+    /**
+     * @see StatementPermission#getPrivilegedObject
+     */
     public PrivilegedSQLObject getPrivilegedObject( DataDictionary dd ) throws StandardException
     {
         if ( PermDescriptor.UDT_TYPE.equals( _objectType ) ) { return dd.getAliasDescriptor( _objectID ); }
@@ -105,25 +105,25 @@ public final class StatementGenericPermission extends StatementPermission
         }
     }
 
-	/**
-	 * @see StatementPermission#getPermissionDescriptor
-	 */
-	public PermissionsDescriptor getPermissionDescriptor(String authid, DataDictionary dd)
-	throws StandardException
-	{
-		return dd.getGenericPermissions( _objectID, _objectType, _privilege, authid );
-	}
+    /**
+     * @see StatementPermission#getPermissionDescriptor
+     */
+    public PermissionsDescriptor getPermissionDescriptor(String authid, DataDictionary dd)
+    throws StandardException
+    {
+        return dd.getGenericPermissions( _objectID, _objectType, _privilege, authid );
+    }
 
 
-	public String toString()
-	{
-		return "StatementGenericPermission( " + _objectID + ", " + _objectType + ", " + _privilege + " )";
-	}
+    public String toString()
+    {
+        return "StatementGenericPermission( " + _objectID + ", " + _objectType + ", " + _privilege + " )";
+    }
 
-	@Override
-	public Type getType() {
-		return Type.GENERIC;
-	}
+    @Override
+    public Type getType() {
+        return Type.GENERIC;
+    }
 
 
 }

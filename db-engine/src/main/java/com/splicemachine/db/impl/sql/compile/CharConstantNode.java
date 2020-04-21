@@ -42,157 +42,157 @@ import java.util.List;
 
 public final class CharConstantNode extends ConstantNode
 {
-	/**
-	 * Initializer for a CharConstantNode.
-	 *
-	 * @param arg1	A String containing the value of the constant OR The TypeId for the type of the node
-	 *
-	 * @exception StandardException
-	 */
-	public void init(
-					Object arg1)
-		throws StandardException
-	{
-		if (arg1 instanceof TypeId)
-		{
-			super.init(
-						arg1,
-						Boolean.TRUE,
-						ReuseFactory.getInteger(0));
-		}
-		else
-		{
-			String val = (String) arg1;
+    /**
+     * Initializer for a CharConstantNode.
+     *
+     * @param arg1    A String containing the value of the constant OR The TypeId for the type of the node
+     *
+     * @exception StandardException
+     */
+    public void init(
+                    Object arg1)
+        throws StandardException
+    {
+        if (arg1 instanceof TypeId)
+        {
+            super.init(
+                        arg1,
+                        Boolean.TRUE,
+                        ReuseFactory.getInteger(0));
+        }
+        else
+        {
+            String val = (String) arg1;
 
-			super.init(
-				TypeId.CHAR_ID,
-				(val == null) ? Boolean.TRUE : Boolean.FALSE,
-				(val != null) ?
-					ReuseFactory.getInteger(val.length()) :
-					ReuseFactory.getInteger(0));
+            super.init(
+                TypeId.CHAR_ID,
+                (val == null) ? Boolean.TRUE : Boolean.FALSE,
+                (val != null) ?
+                    ReuseFactory.getInteger(val.length()) :
+                    ReuseFactory.getInteger(0));
 
-			setValue(getDataValueFactory().getCharDataValue(val));
-		}
-	}
+            setValue(getDataValueFactory().getCharDataValue(val));
+        }
+    }
 
-	/**
-	 * Initializer for a CharConstantNode of a specific length.
-	 *
-	 * @param newValue	A String containing the value of the constant
-	 * @param newLength The length of the new value of the constant
-	 *
-	 * @exception StandardException
-	 */
-	public void init(Object newValue, Object newLength) throws StandardException
-	{
-		StringBuilder val = new StringBuilder((String) newValue);
-		int newLen = (Integer) newLength;
+    /**
+     * Initializer for a CharConstantNode of a specific length.
+     *
+     * @param newValue    A String containing the value of the constant
+     * @param newLength The length of the new value of the constant
+     *
+     * @exception StandardException
+     */
+    public void init(Object newValue, Object newLength) throws StandardException
+    {
+        StringBuilder val = new StringBuilder((String) newValue);
+        int newLen = (Integer) newLength;
 
-		super.init(
-			 TypeId.CHAR_ID,
-			 (val == null) ? Boolean.TRUE : Boolean.FALSE,
-			 newLength);
+        super.init(
+             TypeId.CHAR_ID,
+             (val == null) ? Boolean.TRUE : Boolean.FALSE,
+             newLength);
 
-		if (val.length() > newLen)
-		{
-			throw StandardException.newException(SQLState.LANG_STRING_TRUNCATION, "CHAR", val.toString(), String.valueOf(newLen));
-		}
+        if (val.length() > newLen)
+        {
+            throw StandardException.newException(SQLState.LANG_STRING_TRUNCATION, "CHAR", val.toString(), String.valueOf(newLen));
+        }
 
-		// Blank pad the string if necessary
-		while (val.length() < newLen)
-		{
-			val.append(' ');
-		}
+        // Blank pad the string if necessary
+        while (val.length() < newLen)
+        {
+            val.append(' ');
+        }
 
-		setValue(getDataValueFactory().getCharDataValue(val.toString()));
-	}
+        setValue(getDataValueFactory().getCharDataValue(val.toString()));
+    }
 
-	/**
-	 * Return the value from this CharConstantNode
-	 *
-	 * @return	The value of this CharConstantNode.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Return the value from this CharConstantNode
+     *
+     * @return    The value of this CharConstantNode.
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public String	getString() throws StandardException
-	{
-		return value.getString();
-	}
+    public String    getString() throws StandardException
+    {
+        return value.getString();
+    }
 
-	/**
-	 * Return the length
-	 *
-	 * @return	The length of the value this node represents
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Return the length
+     *
+     * @return    The length of the value this node represents
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	//public int	getLength() throws StandardException
-	//{
-	//	return value.getLength();
-	//}
+    //public int    getLength() throws StandardException
+    //{
+    //    return value.getLength();
+    //}
 
-	/**
-	 * Return an Object representing the bind time value of this
-	 * expression tree.  If the expression tree does not evaluate to
-	 * a constant at bind time then we return null.
-	 * This is useful for bind time resolution of VTIs.
-	 * RESOLVE: What do we do for primitives?
-	 *
-	 * @return	An Object representing the bind time value of this expression tree.
-	 *			(null if not a bind time constant.)
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	Object getConstantValueAsObject() throws StandardException 
-	{
-		return value.getString();
-	}
-	
-	public ValueNode bindExpression(
-			FromList fromList, SubqueryList subqueryList,
-			List<AggregateNode> aggregateVector)
-	throws StandardException
-	{
-		//The DTD for this character constant should get its collation type
-		//from the schema it is getting compiled in.
-		setCollationUsingCompilationSchema();
-	    //Once we have the collation type, we should check if the value
-	    //associated with this node should change from 
-	    //SQLChar/SQLVarchar/SQLLongvarchar/SQLClob
-	    //to
-	    //CollatorSQLChar/CollatoSQLVarchar/CollatoSQLLongvarchar/CollatoSQLClob.
-	    //By default, the value associated with char constants are SQLxxx
-	    //kind because that is what is needed for UCS_BASIC collation. But
-	    //if at this bind time, we find that the char constant's collation
-	    //type is territory based, then we should change value from SQLxxx
-	    //to CollatorSQLxxx. That is what is getting done below.
-		if (value != null) {
-			value = ((StringDataValue)value).getValue(
-					getLanguageConnectionContext().getDataValueFactory().getCharacterCollator(
-							getTypeServices().getCollationType()));
-		}
-		return this;
-	}
+    /**
+     * Return an Object representing the bind time value of this
+     * expression tree.  If the expression tree does not evaluate to
+     * a constant at bind time then we return null.
+     * This is useful for bind time resolution of VTIs.
+     * RESOLVE: What do we do for primitives?
+     *
+     * @return    An Object representing the bind time value of this expression tree.
+     *            (null if not a bind time constant.)
+     *
+     * @exception StandardException        Thrown on error
+     */
+    Object getConstantValueAsObject() throws StandardException 
+    {
+        return value.getString();
+    }
+    
+    public ValueNode bindExpression(
+            FromList fromList, SubqueryList subqueryList,
+            List<AggregateNode> aggregateVector)
+    throws StandardException
+    {
+        //The DTD for this character constant should get its collation type
+        //from the schema it is getting compiled in.
+        setCollationUsingCompilationSchema();
+        //Once we have the collation type, we should check if the value
+        //associated with this node should change from 
+        //SQLChar/SQLVarchar/SQLLongvarchar/SQLClob
+        //to
+        //CollatorSQLChar/CollatoSQLVarchar/CollatoSQLLongvarchar/CollatoSQLClob.
+        //By default, the value associated with char constants are SQLxxx
+        //kind because that is what is needed for UCS_BASIC collation. But
+        //if at this bind time, we find that the char constant's collation
+        //type is territory based, then we should change value from SQLxxx
+        //to CollatorSQLxxx. That is what is getting done below.
+        if (value != null) {
+            value = ((StringDataValue)value).getValue(
+                    getLanguageConnectionContext().getDataValueFactory().getCharacterCollator(
+                            getTypeServices().getCollationType()));
+        }
+        return this;
+    }
 
-	/**
-	 * This generates the proper constant.  It is implemented
-	 * by every specific constant node (e.g. IntConstantNode).
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class being built
-	 * @param mb	The method the code to place the code
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	void generateConstant(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException
-	{
-		// The generated java is the expression:
-		// "#getString()"
-		mb.push(getString());
-	}
-	
-	public int hashCode(){
-		return value==null? 0: value.hashCode();
-	}
+    /**
+     * This generates the proper constant.  It is implemented
+     * by every specific constant node (e.g. IntConstantNode).
+     *
+     * @param acb    The ExpressionClassBuilder for the class being built
+     * @param mb    The method the code to place the code
+     *
+     * @exception StandardException        Thrown on error
+     */
+    void generateConstant(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException
+    {
+        // The generated java is the expression:
+        // "#getString()"
+        mb.push(getString());
+    }
+    
+    public int hashCode(){
+        return value==null? 0: value.hashCode();
+    }
 }

@@ -45,12 +45,12 @@ package com.splicemachine.db.iapi.services.io;
   */
 public interface TypedFormat
 {
-	/**
-	  Get a universally unique identifier for the type of
-	  this object. 
+    /**
+      Get a universally unique identifier for the type of
+      this object. 
 
-	  @return The identifier. (A UUID stuffed in an array
-	  of 16 bytes).
-	 */	
-	int getTypeFormatId();
+      @return The identifier. (A UUID stuffed in an array
+      of 16 bytes).
+     */    
+    int getTypeFormatId();
 }

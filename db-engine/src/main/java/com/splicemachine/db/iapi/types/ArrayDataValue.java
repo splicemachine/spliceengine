@@ -30,31 +30,31 @@ import java.sql.Array;
 
 public interface ArrayDataValue extends DataValueDescriptor, Array {
 
-	/**
-	 * Set the value of this RefDataValue.
-	 *
-	 * @param theValue	Contains the boolean value to set this RefDataValue
-	 *					to.  Null means set this RefDataValue to null.
-	 */
-	void setValue(DataValueDescriptor[] theValue);
-
-	/**
-	 *
-	 * Array Element to Probe for ArrayOperatorNode
-	 *
-	 * @param element
-	 * @param valueToSet
-	 * @return
-	 * @throws StandardException
+    /**
+     * Set the value of this RefDataValue.
+     *
+     * @param theValue    Contains the boolean value to set this RefDataValue
+     *                    to.  Null means set this RefDataValue to null.
      */
-	DataValueDescriptor arrayElement(int element, DataValueDescriptor valueToSet) throws StandardException;
+    void setValue(DataValueDescriptor[] theValue);
 
-	/**
-	 *
-	 * The type for the array to set from a null value.
-	 *
-	 * @param type
+    /**
+     *
+     * Array Element to Probe for ArrayOperatorNode
+     *
+     * @param element
+     * @param valueToSet
+     * @return
+     * @throws StandardException
      */
-	void setType(DataValueDescriptor type) throws StandardException;
+    DataValueDescriptor arrayElement(int element, DataValueDescriptor valueToSet) throws StandardException;
+
+    /**
+     *
+     * The type for the array to set from a null value.
+     *
+     * @param type
+     */
+    void setType(DataValueDescriptor type) throws StandardException;
 
 }

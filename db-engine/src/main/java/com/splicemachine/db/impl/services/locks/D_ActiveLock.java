@@ -38,16 +38,16 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 public class D_ActiveLock extends D_Lock  {
 
-	/**
-		@exception StandardException Standard Derby policy
-	*/
+    /**
+        @exception StandardException Standard Derby policy
+    */
     public String diag()
         throws StandardException
     {
-		String s = super.diag();
+        String s = super.diag();
 
         return s + " potentiallyGranted=" + ((ActiveLock) lock).potentiallyGranted + " " +
                 " wakeUpNow=" + ((ActiveLock) lock).wakeUpNow;
-	}
+    }
 }
 

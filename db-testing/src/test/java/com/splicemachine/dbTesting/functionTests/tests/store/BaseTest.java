@@ -62,7 +62,7 @@ public abstract class BaseTest
     void runTests(String[] argv)
         throws Throwable
     {
-   		ij.getPropertyArg(argv); 
+           ij.getPropertyArg(argv); 
         Connection conn = ij.startJBMS();
         System.out.println("conn from ij.startJBMS() = " + conn);
         conn.setAutoCommit(false);
@@ -73,10 +73,10 @@ public abstract class BaseTest
         }
         catch (SQLException sqle)
         {
-			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
-			sqle.printStackTrace(System.out);
-		}
+            sqle.printStackTrace(System.out);
+        }
     }
 
     public BaseTest()
@@ -142,7 +142,7 @@ public abstract class BaseTest
     Connection  conn,
     String      schemaName,
     String      tableName)
-		throws SQLException
+        throws SQLException
     {
         Statement s = conn.createStatement();
 
@@ -175,7 +175,7 @@ public abstract class BaseTest
      **/
     protected boolean checkAllConsistency(
     Connection  conn)
-		throws SQLException
+        throws SQLException
     {
         Statement s = conn.createStatement();
 
@@ -219,7 +219,7 @@ public abstract class BaseTest
      **/
     protected void createDebugSystemProcedures(
     Connection  conn)
-		throws SQLException
+        throws SQLException
     {
         Statement s = conn.createStatement();
         s.executeUpdate(
@@ -243,7 +243,7 @@ public abstract class BaseTest
     String      schemaName,
     String      tableName,
     boolean     commit_transaction)
-		throws SQLException
+        throws SQLException
     {
         if (!debug_system_procedures_created)
             createDebugSystemProcedures(conn);
@@ -293,7 +293,7 @@ public abstract class BaseTest
      * Returns a single string with a dump of the entire lock table.
      * <p>
      *
-	 * @return The lock table.
+     * @return The lock table.
      *
      * @param conn                  The connection to use.
      * @param include_system_locks  If true include non-user locks like those
@@ -303,7 +303,7 @@ public abstract class BaseTest
     protected String get_lock_info(
     Connection  conn,
     boolean     include_system_locks)
-		throws SQLException
+        throws SQLException
     {
         // Run the following query to get the current locks in the system,
         // toggling the "t.type='UserTransaction'" based on 
@@ -376,13 +376,13 @@ public abstract class BaseTest
      * Takes care of dropping the table if it exists already.
      * <p>
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     public void createTable(
     Connection  conn,
     String      tbl_name,
     String      create_str)
-		throws SQLException
+        throws SQLException
     {
         Statement  stmt = conn.createStatement();
 
@@ -429,7 +429,7 @@ public abstract class BaseTest
     String      schemaName,
     String      tableName,
     boolean     commit_xact)
-		throws SQLException
+        throws SQLException
     {
         String stmt_str = 
             "select conglomeratename, isindex, numallocatedpages, numfreepages, numunfilledpages, pagesize, estimspacesaving from new com.splicemachine.db.diag.SpaceTable('" +

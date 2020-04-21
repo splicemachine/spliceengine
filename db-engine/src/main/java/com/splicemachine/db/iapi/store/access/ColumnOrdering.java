@@ -43,8 +43,8 @@ package com.splicemachine.db.iapi.store.access;
 
 public interface ColumnOrdering
 {
-	int getColumnId();
-	boolean getIsAscending();
+    int getColumnId();
+    boolean getIsAscending();
         /**
          * Indicate whether NULL values should be ordered below non-NULL.
          *
@@ -54,6 +54,6 @@ public interface ColumnOrdering
          *
          * @return whether nulls should sort low
          */
-	boolean getIsNullsOrderedLow();
+    boolean getIsNullsOrderedLow();
 }
 

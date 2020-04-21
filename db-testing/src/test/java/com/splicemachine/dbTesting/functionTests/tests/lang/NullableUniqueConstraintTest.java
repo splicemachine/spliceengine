@@ -165,18 +165,18 @@ public class NullableUniqueConstraintTest extends BaseJDBCTestCase {
         Connection con = getConnection();
         Statement stmt = con.createStatement();
         stmt.executeUpdate("CREATE TABLE TABLE1(NAME1 INT UNIQUE, "+
-        		"name2 int unique not null, name3 int primary key)");
+                "name2 int unique not null, name3 int primary key)");
         stmt.execute("call syscs_util.syscs_compress_table('SPLICE','TABLE1',1)");
         stmt.executeUpdate("INSERT INTO TABLE1 VALUES(1,11,111)");
         //following should run into problem because of constraint on name1
         assertStatementError("23505", stmt,
-        		"INSERT INTO TABLE1 VALUES(1,22,222)");
+                "INSERT INTO TABLE1 VALUES(1,22,222)");
         //following should run into problem because of constraint on name2
         assertStatementError("23505", stmt,
-        		"INSERT INTO TABLE1 VALUES(3,11,333)");
+                "INSERT INTO TABLE1 VALUES(3,11,333)");
         //following should run into problem because of constraint on name3
         assertStatementError("23505", stmt,
-        		"INSERT INTO TABLE1 VALUES(4,44,111)");
+                "INSERT INTO TABLE1 VALUES(4,44,111)");
         stmt.executeUpdate("DROP TABLE TABLE1");    
     }
     

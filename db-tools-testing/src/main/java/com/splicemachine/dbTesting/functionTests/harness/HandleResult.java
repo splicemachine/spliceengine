@@ -46,77 +46,77 @@ import java.io.IOException;
 public class HandleResult
 {
 
-	public static void main(String[] args) throws Exception
-	{
-	}
+    public static void main(String[] args) throws Exception
+    {
+    }
 
-	public static String handleResult(int exitCode, InputStream stdout,
-	        InputStream stderr, PrintWriter printWriter)
-	        throws IOException
-	{
-		return handleResult(exitCode, stdout, stderr, printWriter, null);
-	}
-	
+    public static String handleResult(int exitCode, InputStream stdout,
+            InputStream stderr, PrintWriter printWriter)
+            throws IOException
+    {
+        return handleResult(exitCode, stdout, stderr, printWriter, null);
+    }
+    
     public static String handleResult(int exitCode, InputStream stdout,
         InputStream stderr, PrintWriter printWriter, String encoding)
         throws IOException
     {
-		StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
 
-		// only used for debugging
-		sb.append("exitcode=");
-		sb.append(exitCode);
+        // only used for debugging
+        sb.append("exitcode=");
+        sb.append(exitCode);
 
         if (stdout != null)
         {
-    		// reader for stdout
-        	BufferedReader outReader;
-        	if(encoding != null)
-        		outReader = new BufferedReader(new InputStreamReader(stdout, encoding));
-        	else
-        		outReader = new BufferedReader(new InputStreamReader(stdout));
+            // reader for stdout
+            BufferedReader outReader;
+            if(encoding != null)
+                outReader = new BufferedReader(new InputStreamReader(stdout, encoding));
+            else
+                outReader = new BufferedReader(new InputStreamReader(stdout));
 
             // Read each line and write to printWriter
-    		String s = null;
-    		int lines = 0;
-    		while ((s = outReader.readLine()) != null)
-    		{
-    		    lines++;
-    		    if (printWriter == null)
-    			    System.out.println(s);
-    			else
-    			    printWriter.println(s);
-    		}
-    		sb.append(",");
-    		sb.append(lines);
-    		outReader.close();
-    		printWriter.flush();
+            String s = null;
+            int lines = 0;
+            while ((s = outReader.readLine()) != null)
+            {
+                lines++;
+                if (printWriter == null)
+                    System.out.println(s);
+                else
+                    printWriter.println(s);
+            }
+            sb.append(",");
+            sb.append(lines);
+            outReader.close();
+            printWriter.flush();
         }
 
         if (stderr != null)
         {
             // reader for stderr
-        	BufferedReader errReader;
-        	if(encoding != null)
-        		errReader = new BufferedReader(new InputStreamReader(stderr, encoding));
-        	else
-        		errReader = new BufferedReader(new InputStreamReader(stderr));
+            BufferedReader errReader;
+            if(encoding != null)
+                errReader = new BufferedReader(new InputStreamReader(stderr, encoding));
+            else
+                errReader = new BufferedReader(new InputStreamReader(stderr));
 
-    		String s = null;
-    		int lines = 0;
-    		while ((s = errReader.readLine()) != null)
-    		{
-    		    if (printWriter == null)
-    			    System.out.println(s);
-    			else
-    			    printWriter.println(s);
-    		}
-    		errReader.close();
-    		printWriter.flush();
-    	}
+            String s = null;
+            int lines = 0;
+            while ((s = errReader.readLine()) != null)
+            {
+                if (printWriter == null)
+                    System.out.println(s);
+                else
+                    printWriter.println(s);
+            }
+            errReader.close();
+            printWriter.flush();
+        }
 
-		return sb.toString();
-	}
+        return sb.toString();
+    }
 }
 
 

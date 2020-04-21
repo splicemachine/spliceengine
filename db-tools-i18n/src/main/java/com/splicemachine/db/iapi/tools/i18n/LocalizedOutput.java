@@ -36,21 +36,21 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 
 public class LocalizedOutput extends PrintWriter {
-	private OutputStream out;
-	public LocalizedOutput(OutputStream o){
-		super(new OutputStreamWriter(o), true);
-		out = o;
-	}
-	LocalizedOutput(OutputStream o, String enc) throws UnsupportedEncodingException {
-		super(new OutputStreamWriter(o, enc), true);
-		out = o;
-	}
-	public boolean isStandardOutput(){
-		return (out == System.out);
-	}
-	public void close() {
-		if (!isStandardOutput()) {
-			super.close();
-		}
-	}
+    private OutputStream out;
+    public LocalizedOutput(OutputStream o){
+        super(new OutputStreamWriter(o), true);
+        out = o;
+    }
+    LocalizedOutput(OutputStream o, String enc) throws UnsupportedEncodingException {
+        super(new OutputStreamWriter(o, enc), true);
+        out = o;
+    }
+    public boolean isStandardOutput(){
+        return (out == System.out);
+    }
+    public void close() {
+        if (!isStandardOutput()) {
+            super.close();
+        }
+    }
 }

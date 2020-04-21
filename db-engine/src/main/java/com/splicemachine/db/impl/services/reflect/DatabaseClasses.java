@@ -66,140 +66,140 @@ import java.security.PrivilegedExceptionAction;
 /**
 
     An abstract implementation of the ClassFactory. This package can
-	be extended to fully implement a ClassFactory. Implementations can
-	differ in two areas, how they load a class and how they invoke methods
-	of the generated class.
+    be extended to fully implement a ClassFactory. Implementations can
+    differ in two areas, how they load a class and how they invoke methods
+    of the generated class.
 
     <P>
-	This class manages a hash table of loaded generated classes and
-	their GeneratedClass objects.  A loaded class may be referenced
-	multiple times -- each class has a reference count associated
-	with it.  When a load request arrives, if the class has already
-	been loaded, its ref count is incremented.  For a remove request,
-	the ref count is decremented unless it is the last reference,
-	in which case the class is removed.  This is transparent to users.
+    This class manages a hash table of loaded generated classes and
+    their GeneratedClass objects.  A loaded class may be referenced
+    multiple times -- each class has a reference count associated
+    with it.  When a load request arrives, if the class has already
+    been loaded, its ref count is incremented.  For a remove request,
+    the ref count is decremented unless it is the last reference,
+    in which case the class is removed.  This is transparent to users.
 
-	@see com.splicemachine.db.iapi.services.loader.ClassFactory
+    @see com.splicemachine.db.iapi.services.loader.ClassFactory
 */
 
 public abstract class DatabaseClasses
-	implements ClassFactory, ModuleControl
+    implements ClassFactory, ModuleControl
 {
-	/*
-	** Fields
-	*/
+    /*
+    ** Fields
+    */
 
-	private	ClassInspector	classInspector;
-	private JavaFactory		javaFactory;
+    private    ClassInspector    classInspector;
+    private JavaFactory        javaFactory;
 
-	private UpdateLoader		applicationLoader;
+    private UpdateLoader        applicationLoader;
 
-	/*
-	** Constructor
-	*/
+    /*
+    ** Constructor
+    */
 
-	public DatabaseClasses() {
-	}
+    public DatabaseClasses() {
+    }
 
-	/*
-	** Public methods of ModuleControl
-	*/
+    /*
+    ** Public methods of ModuleControl
+    */
 
-	public void boot(boolean create, Properties startParams)
-		throws StandardException
-	{
+    public void boot(boolean create, Properties startParams)
+        throws StandardException
+    {
 
-		classInspector = makeClassInspector( this );
+        classInspector = makeClassInspector( this );
 
-		//
-		//The ClassFactory runs per service (database) mode (booted as a service module after AccessFactory).
-		//If the code that booted
-		//us needs a per-database classpath then they pass in the classpath using
-		//the runtime property BOOT_DB_CLASSPATH in startParams
-
-
-		String classpath = null;
-		if (startParams != null) {
-			classpath = startParams.getProperty(Property.BOOT_DB_CLASSPATH);
-		}
-
-		if (classpath != null) {
-			applicationLoader = UpdateLoader.getInstance(classpath, this, true, true);
-		}
-
-		javaFactory = (JavaFactory) com.splicemachine.db.iapi.services.monitor.Monitor.startSystemModule(Module.JavaFactory);
-	}
+        //
+        //The ClassFactory runs per service (database) mode (booted as a service module after AccessFactory).
+        //If the code that booted
+        //us needs a per-database classpath then they pass in the classpath using
+        //the runtime property BOOT_DB_CLASSPATH in startParams
 
 
+        String classpath = null;
+        if (startParams != null) {
+            classpath = startParams.getProperty(Property.BOOT_DB_CLASSPATH);
+        }
 
-	public void stop() {
-		if (applicationLoader != null)
-			applicationLoader.close();
-	}
+        if (classpath != null) {
+            applicationLoader = UpdateLoader.getInstance(classpath, this, true, true);
+        }
 
-	/**
+        javaFactory = (JavaFactory) com.splicemachine.db.iapi.services.monitor.Monitor.startSystemModule(Module.JavaFactory);
+    }
+
+
+
+    public void stop() {
+        if (applicationLoader != null)
+            applicationLoader.close();
+    }
+
+    /**
      * For creating the class inspector. On Java 5 and higher, we have a more
-	 * capable class inspector.
-	 */
-	protected   ClassInspector  makeClassInspector( DatabaseClasses dc )
-	{
-	    return new ClassInspector( dc );
-	}
+     * capable class inspector.
+     */
+    protected   ClassInspector  makeClassInspector( DatabaseClasses dc )
+    {
+        return new ClassInspector( dc );
+    }
 
-	/*
-	**	Public methods of ClassFactory
-	*/
+    /*
+    **    Public methods of ClassFactory
+    */
 
-	/**
-		Here we load the newly added class now, rather than waiting for the
-		findGeneratedClass(). Thus we are assuming that the class is going
-		to be used sometime soon. Delaying the load would mean storing the class
-		data in a file, this wastes cycles and compilcates the cleanup.
+    /**
+        Here we load the newly added class now, rather than waiting for the
+        findGeneratedClass(). Thus we are assuming that the class is going
+        to be used sometime soon. Delaying the load would mean storing the class
+        data in a file, this wastes cycles and compilcates the cleanup.
 
-		@see ClassFactory#loadGeneratedClass
+        @see ClassFactory#loadGeneratedClass
 
-		@exception	StandardException Class format is bad.
-	*/
-	public final GeneratedClass loadGeneratedClass(String fullyQualifiedName, ByteArray classDump)
-		throws StandardException {
-
-
-			try {
+        @exception    StandardException Class format is bad.
+    */
+    public final GeneratedClass loadGeneratedClass(String fullyQualifiedName, ByteArray classDump)
+        throws StandardException {
 
 
-				return loadGeneratedClassFromData(fullyQualifiedName, classDump);
+            try {
 
-			} catch (LinkageError le) {
 
-			    WriteClassFile(fullyQualifiedName, classDump, le);
+                return loadGeneratedClassFromData(fullyQualifiedName, classDump);
 
-				throw StandardException.newException(SQLState.GENERATED_CLASS_LINKAGE_ERROR,
-							le, fullyQualifiedName);
+            } catch (LinkageError le) {
 
-    		} catch (VirtualMachineError vme) { // these may be beyond saving, but fwiw
+                WriteClassFile(fullyQualifiedName, classDump, le);
 
-			    WriteClassFile(fullyQualifiedName, classDump, vme);
+                throw StandardException.newException(SQLState.GENERATED_CLASS_LINKAGE_ERROR,
+                            le, fullyQualifiedName);
 
-			    throw vme;
-		    }
+            } catch (VirtualMachineError vme) { // these may be beyond saving, but fwiw
 
-	}
+                WriteClassFile(fullyQualifiedName, classDump, vme);
+
+                throw vme;
+            }
+
+    }
 
     private static void WriteClassFile(String fullyQualifiedName, ByteArray bytecode, Throwable t) {
 
-		// get the un-qualified name and add the extension
+        // get the un-qualified name and add the extension
         int lastDot = fullyQualifiedName.lastIndexOf((int)'.');
         String filename = fullyQualifiedName.substring(lastDot + 1, fullyQualifiedName.length()) + ".class";
 
-		Object env = Monitor.getMonitor().getEnvironment();
-		File dir = env instanceof File ? (File) env : null;
+        Object env = Monitor.getMonitor().getEnvironment();
+        File dir = env instanceof File ? (File) env : null;
 
-		final File classFile = FileUtil.newFile(dir,filename);
+        final File classFile = FileUtil.newFile(dir,filename);
 
-		// find the error stream
-		HeaderPrintWriter errorStream = Monitor.getStream();
+        // find the error stream
+        HeaderPrintWriter errorStream = Monitor.getStream();
 
-		try {
+        try {
             FileOutputStream fis;
             try {
                 fis = (FileOutputStream) AccessController.doPrivileged(
@@ -211,26 +211,26 @@ public abstract class DatabaseClasses
             } catch (PrivilegedActionException pae) {
                 throw (IOException) pae.getCause();
             }
-			fis.write(bytecode.getArray(),
-				bytecode.getOffset(), bytecode.getLength());
-			fis.flush();
-			if (t!=null) {				
-				errorStream.printlnWithHeader(MessageService.getTextMessage(MessageId.CM_WROTE_CLASS_FILE, fullyQualifiedName, classFile, t));
-			}
-			fis.close();
-		} catch (IOException e) {
-			if (SanityManager.DEBUG)
-				SanityManager.THROWASSERT("Unable to write .class file", e);
-		}
-	}
+            fis.write(bytecode.getArray(),
+                bytecode.getOffset(), bytecode.getLength());
+            fis.flush();
+            if (t!=null) {                
+                errorStream.printlnWithHeader(MessageService.getTextMessage(MessageId.CM_WROTE_CLASS_FILE, fullyQualifiedName, classFile, t));
+            }
+            fis.close();
+        } catch (IOException e) {
+            if (SanityManager.DEBUG)
+                SanityManager.THROWASSERT("Unable to write .class file", e);
+        }
+    }
 
-	public ClassInspector getClassInspector() {
-		return classInspector;
-	}
+    public ClassInspector getClassInspector() {
+        return classInspector;
+    }
 
 
-	public final Class loadApplicationClass(String className)
-		throws ClassNotFoundException {
+    public final Class loadApplicationClass(String className)
+        throws ClassNotFoundException {
         
         if (className.startsWith("com.splicemachine.db.")) {
             // Assume this is an engine class, if so
@@ -249,99 +249,99 @@ public abstract class DatabaseClasses
             }
         }
  
-		Throwable loadError;
-		try {
-			try {
-				return loadClassNotInDatabaseJar(className);
-			} catch (ClassNotFoundException cnfe) {
-				if (applicationLoader == null)
-					throw cnfe;
-				Class c = applicationLoader.loadClass(className, true);
-				if (c == null)
-					throw cnfe;
-				return c;
-			}
-		}
-		catch (SecurityException | LinkageError se)
-		{
-			// Thrown if the class has been comprimised in some
-			// way, e.g. modified in a signed jar.
-			loadError = se;	
-		}
+        Throwable loadError;
+        try {
+            try {
+                return loadClassNotInDatabaseJar(className);
+            } catch (ClassNotFoundException cnfe) {
+                if (applicationLoader == null)
+                    throw cnfe;
+                Class c = applicationLoader.loadClass(className, true);
+                if (c == null)
+                    throw cnfe;
+                return c;
+            }
+        }
+        catch (SecurityException | LinkageError se)
+        {
+            // Thrown if the class has been comprimised in some
+            // way, e.g. modified in a signed jar.
+            loadError = se;    
+        }
         throw new ClassNotFoundException(className + " : " + loadError.getMessage());
-	}
-	
-	protected abstract Class loadClassNotInDatabaseJar(String className)
-		throws ClassNotFoundException;
+    }
+    
+    protected abstract Class loadClassNotInDatabaseJar(String className)
+        throws ClassNotFoundException;
 
-	public final Class loadApplicationClass(ObjectStreamClass classDescriptor)
-		throws ClassNotFoundException {
-		return loadApplicationClass(classDescriptor.getName());
-	}
+    public final Class loadApplicationClass(ObjectStreamClass classDescriptor)
+        throws ClassNotFoundException {
+        return loadApplicationClass(classDescriptor.getName());
+    }
 
-	public boolean isApplicationClass(Class theClass) {
+    public boolean isApplicationClass(Class theClass) {
 
-		return theClass.getClassLoader()
-			instanceof JarLoader;
-	}
+        return theClass.getClassLoader()
+            instanceof JarLoader;
+    }
 
-	public void notifyModifyJar(boolean reload) throws StandardException  {
-		if (applicationLoader != null) {
-			applicationLoader.modifyJar(reload);
-		}
-	}
+    public void notifyModifyJar(boolean reload) throws StandardException  {
+        if (applicationLoader != null) {
+            applicationLoader.modifyJar(reload);
+        }
+    }
 
-	/**
-		Notify the class manager that the classpath has been modified.
+    /**
+        Notify the class manager that the classpath has been modified.
 
-		@exception StandardException thrown on error
-	*/
-	public void notifyModifyClasspath(String classpath) throws StandardException {
+        @exception StandardException thrown on error
+    */
+    public void notifyModifyClasspath(String classpath) throws StandardException {
 
-		if (applicationLoader != null) {
-			applicationLoader.modifyClasspath(classpath);
-		}
-	}
+        if (applicationLoader != null) {
+            applicationLoader.modifyClasspath(classpath);
+        }
+    }
 
 
-	public int getClassLoaderVersion() {
-		if (applicationLoader != null) {
-			return applicationLoader.getClassLoaderVersion();
-		}
+    public int getClassLoaderVersion() {
+        if (applicationLoader != null) {
+            return applicationLoader.getClassLoaderVersion();
+        }
 
-		return -1;
-	}
+        return -1;
+    }
 
-	public ByteArray buildSpecificFactory(String className, String factoryName)
-		throws StandardException {
+    public ByteArray buildSpecificFactory(String className, String factoryName)
+        throws StandardException {
 
-		ClassBuilder cb = javaFactory.newClassBuilder(this, CodeGeneration.GENERATED_PACKAGE_PREFIX,
-			Modifier.PUBLIC | Modifier.FINAL, factoryName, "com.splicemachine.db.impl.services.reflect.GCInstanceFactory");
+        ClassBuilder cb = javaFactory.newClassBuilder(this, CodeGeneration.GENERATED_PACKAGE_PREFIX,
+            Modifier.PUBLIC | Modifier.FINAL, factoryName, "com.splicemachine.db.impl.services.reflect.GCInstanceFactory");
 
-		MethodBuilder constructor = cb.newConstructorBuilder(Modifier.PUBLIC);
+        MethodBuilder constructor = cb.newConstructorBuilder(Modifier.PUBLIC);
 
-		constructor.callSuper();
-		constructor.methodReturn();
-		constructor.complete();
-		constructor = null;
+        constructor.callSuper();
+        constructor.methodReturn();
+        constructor.complete();
+        constructor = null;
 
-		MethodBuilder noArg = cb.newMethodBuilder(Modifier.PUBLIC, ClassName.GeneratedByteCode, "getNewInstance");
-		noArg.pushNewStart(className);
-		noArg.pushNewComplete(0);
-		noArg.methodReturn();
-		noArg.complete();
-		noArg = null;
+        MethodBuilder noArg = cb.newMethodBuilder(Modifier.PUBLIC, ClassName.GeneratedByteCode, "getNewInstance");
+        noArg.pushNewStart(className);
+        noArg.pushNewComplete(0);
+        noArg.methodReturn();
+        noArg.complete();
+        noArg = null;
 
-		return cb.getClassBytecode();
-	}
+        return cb.getClassBytecode();
+    }
 
-	/*
-	** Class specific methods
-	*/
-	
-	/*
-	** Keep track of loaded generated classes and their GeneratedClass objects.
-	*/
+    /*
+    ** Class specific methods
+    */
+    
+    /*
+    ** Keep track of loaded generated classes and their GeneratedClass objects.
+    */
 
-	protected abstract LoadedGeneratedClass loadGeneratedClassFromData(String fullyQualifiedName, ByteArray classDump); 
+    protected abstract LoadedGeneratedClass loadGeneratedClassFromData(String fullyQualifiedName, ByteArray classDump); 
 }

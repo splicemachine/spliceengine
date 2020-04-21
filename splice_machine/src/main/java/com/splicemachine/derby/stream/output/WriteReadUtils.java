@@ -50,7 +50,7 @@ public class WriteReadUtils {
         }
    }
 
-	public static Pair<Long,Long>[] getStartAndIncrementFromSystemTables(RowLocation[] autoIncrementRowLocationArray,DataDictionary dataDictionary, long seqConglomId) throws StandardException {
+    public static Pair<Long,Long>[] getStartAndIncrementFromSystemTables(RowLocation[] autoIncrementRowLocationArray,DataDictionary dataDictionary, long seqConglomId) throws StandardException {
         if (autoIncrementRowLocationArray.length ==0)
             return new Pair[0];
         Pair<Long,Long>[] defaultAutoIncrementValues = new Pair[autoIncrementRowLocationArray.length];

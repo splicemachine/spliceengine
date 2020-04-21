@@ -38,156 +38,156 @@ import java.util.Enumeration;
  */
 public class mtTestSuite
 {
-	private Vector cases;
-	private Vector last;
-	private Vector init;
-	private mtTime time;
-	private int numThreads;
-	private String rootDir = null;
+    private Vector cases;
+    private Vector last;
+    private Vector init;
+    private mtTime time;
+    private int numThreads;
+    private String rootDir = null;
 
 
-	mtTestSuite(int numThreads, mtTime time, 
-			Vector initCases, Vector testCases, Vector finalCases)
-	{
-		this.numThreads = numThreads;
-		this.time = time;
-		this.cases = testCases;
-		this.init = initCases;
-		this.last = finalCases;
-	}
+    mtTestSuite(int numThreads, mtTime time, 
+            Vector initCases, Vector testCases, Vector finalCases)
+    {
+        this.numThreads = numThreads;
+        this.time = time;
+        this.cases = testCases;
+        this.init = initCases;
+        this.last = finalCases;
+    }
 
-	public void init()
-	{
-		boolean loadInitFailed = loadCases(init);
-		boolean loadTestsFailed = loadCases(cases);
-		boolean loadLastFailed = loadCases(last);
+    public void init()
+    {
+        boolean loadInitFailed = loadCases(init);
+        boolean loadTestsFailed = loadCases(cases);
+        boolean loadLastFailed = loadCases(last);
 
-		if ((loadInitFailed) ||
-			(loadTestsFailed) ||
-			(loadLastFailed))
-		{
-			throw new Error("Initialization Error");
-		}
-	}
+        if ((loadInitFailed) ||
+            (loadTestsFailed) ||
+            (loadLastFailed))
+        {
+            throw new Error("Initialization Error");
+        }
+    }
 
-	/**
-	** @return boolean indicates if there was a problem loading
-	** 	the file
-	*/
-	private boolean loadCases(Vector cases)
-	{
-		if (cases == null)
-			return false;
+    /**
+    ** @return boolean indicates if there was a problem loading
+    **     the file
+    */
+    private boolean loadCases(Vector cases)
+    {
+        if (cases == null)
+            return false;
 
-		boolean gotError = false;
-		Enumeration e = cases.elements();
-		mtTestCase tcase;
+        boolean gotError = false;
+        Enumeration e = cases.elements();
+        mtTestCase tcase;
  
-		while (e.hasMoreElements())
-		{
-			tcase = (mtTestCase)e.nextElement();
-			try
-			{
-				tcase.initialize(rootDir);
-			}
-			catch (Throwable t)
-			{
-				gotError = true;
-			}
-		}
+        while (e.hasMoreElements())
+        {
+            tcase = (mtTestCase)e.nextElement();
+            try
+            {
+                tcase.initialize(rootDir);
+            }
+            catch (Throwable t)
+            {
+                gotError = true;
+            }
+        }
 
-		return gotError;
-	}
+        return gotError;
+    }
 
-	public void setRoot(String rootDir)
-	{
-		this.rootDir = rootDir;
-	}
+    public void setRoot(String rootDir)
+    {
+        this.rootDir = rootDir;
+    }
 
-	public String getRoot()
-	{
-		return rootDir;
-	}
+    public String getRoot()
+    {
+        return rootDir;
+    }
 
-	public int getNumThreads()
-	{
-		return numThreads;
-	}
+    public int getNumThreads()
+    {
+        return numThreads;
+    }
 
-	public Vector getCases()
-	{
-		return cases;
-	}
+    public Vector getCases()
+    {
+        return cases;
+    }
 
-	public Vector getInitCases()
-	{
-		return init;
-	}
+    public Vector getInitCases()
+    {
+        return init;
+    }
 
-	public Vector getFinalCases()
-	{
-		return last;
-	}
+    public Vector getFinalCases()
+    {
+        return last;
+    }
 
-	public mtTime getTime()
-	{
-		return time;
-	}
+    public mtTime getTime()
+    {
+        return time;
+    }
 
-	public long getTimeMillis()
-	{
-		return ((time.hours * 360) +
-				(time.minutes * 60) +
-				(time.seconds)) * 1000;
-	}
+    public long getTimeMillis()
+    {
+        return ((time.hours * 360) +
+                (time.minutes * 60) +
+                (time.seconds)) * 1000;
+    }
 
-	public String toString()
-	{
-		StringBuilder str;
-		int	len;
-		int i;
-	
-		str = new StringBuilder("TEST CASES\nNumber of Threads: " + numThreads);
-		str.append("\nTime: ").append(time);
-		str.append("\nNumber of Initializers: ").append(init.size()).append("\n");
-		for (i = 0, len = init.size(); i < len; i++)
-		{
-			str.append(init.elementAt(i).toString()).append("\n");
-		}
+    public String toString()
+    {
+        StringBuilder str;
+        int    len;
+        int i;
+    
+        str = new StringBuilder("TEST CASES\nNumber of Threads: " + numThreads);
+        str.append("\nTime: ").append(time);
+        str.append("\nNumber of Initializers: ").append(init.size()).append("\n");
+        for (i = 0, len = init.size(); i < len; i++)
+        {
+            str.append(init.elementAt(i).toString()).append("\n");
+        }
 
-		str.append("\nNumber of Cases: ").append(cases.size()).append("\n");
-		for (i = 0, len = cases.size(); i < len; i++)
-		{
-			str.append(cases.elementAt(i).toString()).append("\n");
-		}
+        str.append("\nNumber of Cases: ").append(cases.size()).append("\n");
+        for (i = 0, len = cases.size(); i < len; i++)
+        {
+            str.append(cases.elementAt(i).toString()).append("\n");
+        }
 
-		str.append("\nNumber of Final Cases: ").append(last.size()).append("\n");
-		for (i = 0, len = last.size(); i < len; i++)
-		{
-			str.append(last.elementAt(i).toString()).append("\n");
-		}
+        str.append("\nNumber of Final Cases: ").append(last.size()).append("\n");
+        for (i = 0, len = last.size(); i < len; i++)
+        {
+            str.append(last.elementAt(i).toString()).append("\n");
+        }
 
-		return str.toString();
-	}
+        return str.toString();
+    }
 
-	/*
-	** Grab a test case.  Pick one randomly and
-	** try to grab that case.  If we get it we are
-	** done.  Otherwise, try try again.
-	*/
-	public mtTestCase grabTestCase() 
-	{
-		int numCases = cases.size();
-		int caseNum;
-		mtTestCase testCase;
+    /*
+    ** Grab a test case.  Pick one randomly and
+    ** try to grab that case.  If we get it we are
+    ** done.  Otherwise, try try again.
+    */
+    public mtTestCase grabTestCase() 
+    {
+        int numCases = cases.size();
+        int caseNum;
+        mtTestCase testCase;
 
-		do
-		{
-			caseNum = (int)((java.lang.Math.random() * 1311) % numCases);
-			testCase = (mtTestCase)cases.elementAt(caseNum);
-		}
-		while (!testCase.grab());
-	
-		return testCase;	
-	}
+        do
+        {
+            caseNum = (int)((java.lang.Math.random() * 1311) % numCases);
+            testCase = (mtTestCase)cases.elementAt(caseNum);
+        }
+        while (!testCase.grab());
+    
+        return testCase;    
+    }
 }

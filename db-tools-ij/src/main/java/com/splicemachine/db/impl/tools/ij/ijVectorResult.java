@@ -40,34 +40,34 @@ import java.sql.SQLWarning;
  */
 class ijVectorResult extends ijResultImpl {
 
-	Vector vec;
-	SQLWarning warns;
+    Vector vec;
+    SQLWarning warns;
 
-	ijVectorResult(Vector v, SQLWarning w) {
-		vec = v;
-		warns = w;
-	}
+    ijVectorResult(Vector v, SQLWarning w) {
+        vec = v;
+        warns = w;
+    }
 
-	/**
-	 * Initialize a new vector containing only one object.
-	 */
-	ijVectorResult(Object value, SQLWarning w) {
-		this(new Vector(1), w);
-		vec.add(value);
-	}
+    /**
+     * Initialize a new vector containing only one object.
+     */
+    ijVectorResult(Object value, SQLWarning w) {
+        this(new Vector(1), w);
+        vec.add(value);
+    }
 
-	/**
-	 * Initialize a new vector containing only one integer value.
-	 */
-	ijVectorResult(int value, SQLWarning w) {
-		this(new Integer(value), w);
-	}
+    /**
+     * Initialize a new vector containing only one integer value.
+     */
+    ijVectorResult(int value, SQLWarning w) {
+        this(new Integer(value), w);
+    }
 
 
-	public boolean isVector() { return true; }
+    public boolean isVector() { return true; }
 
-	public Vector getVector() { return vec; }
+    public Vector getVector() { return vec; }
 
-	public SQLWarning getSQLWarnings() { return warns; }
-	public void clearSQLWarnings() { warns = null; }
+    public SQLWarning getSQLWarnings() { return warns; }
+    public void clearSQLWarnings() { warns = null; }
 }

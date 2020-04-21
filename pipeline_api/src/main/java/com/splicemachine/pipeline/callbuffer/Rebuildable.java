@@ -19,5 +19,5 @@ package com.splicemachine.pipeline.callbuffer;
  *
  */
 public interface Rebuildable{
-	void rebuild();
+    void rebuild();
 }

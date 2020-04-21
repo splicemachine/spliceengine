@@ -273,8 +273,8 @@ public class BulkWriteAction implements Callable<WriteStats>{
                         retriedRows.add(currentBulkWrite.getSize());
                         /*
                          * The entire BulkWrite needs to be retried--either because it was rejected outright,
-		    			 * or because the region moved/split/something else.
-						 */
+                         * or because the region moved/split/something else.
+                         */
                         ctx.rejected();
 
                         if(RETRY_LOG.isDebugEnabled())

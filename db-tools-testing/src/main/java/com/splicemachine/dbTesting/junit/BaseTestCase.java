@@ -115,8 +115,8 @@ public abstract class BaseTestCase
         // installed
         if ( System.getSecurityManager() == null )
         {
-        	/* gd temporarily remove            
-        	 	if (config.defaultSecurityManagerSetup())
+            /* gd temporarily remove            
+                 if (config.defaultSecurityManagerSetup())
             {
                 assertSecurityManager();
             }
@@ -182,7 +182,7 @@ public abstract class BaseTestCase
      */
     public final TestConfiguration getTestConfiguration()
     {
-    	return TestConfiguration.getCurrent();
+        return TestConfiguration.getCurrent();
     }
     
     /**
@@ -250,21 +250,21 @@ public abstract class BaseTestCase
      * @param value value of the property
      */
     protected static void setSystemProperty(final String name, 
-					    final String value)
+                        final String value)
     {
-	
-	AccessController.doPrivileged
-	    (new java.security.PrivilegedAction(){
-		    
-		    public Object run(){
-			System.setProperty( name, value);
-			return null;
-			
-		    }
-		    
-		}
-	     );
-	
+    
+    AccessController.doPrivileged
+        (new java.security.PrivilegedAction(){
+            
+            public Object run(){
+            System.setProperty( name, value);
+            return null;
+            
+            }
+            
+        }
+         );
+    
     }
     /**
      * Remove system property
@@ -272,20 +272,20 @@ public abstract class BaseTestCase
      * @param name name of the property
      */
     public static void removeSystemProperty(final String name)
-	{
-	
-	AccessController.doPrivileged
-	    (new java.security.PrivilegedAction(){
-		    
-		    public Object run(){
-			System.getProperties().remove(name);
-			return null;
-			
-		    }
-		    
-		}
-	     );
-	
+    {
+    
+    AccessController.doPrivileged
+        (new java.security.PrivilegedAction(){
+            
+            public Object run(){
+            System.getProperties().remove(name);
+            return null;
+            
+            }
+            
+        }
+         );
+    
     }    
     /**
      * Get system property.
@@ -293,18 +293,18 @@ public abstract class BaseTestCase
      * @param name name of the property
      */
     protected static String getSystemProperty(final String name)
-	{
+    {
 
-	return (String )AccessController.doPrivileged
-	    (new java.security.PrivilegedAction(){
+    return (String )AccessController.doPrivileged
+        (new java.security.PrivilegedAction(){
 
-		    public Object run(){
-			return System.getProperty(name);
+            public Object run(){
+            return System.getProperty(name);
 
-		    }
+            }
 
-		}
-	     );
+        }
+         );
     }
     
     /**
@@ -340,19 +340,19 @@ public abstract class BaseTestCase
      * @return URL to the resource, null if it does not exist.
      */
     protected static URL getTestResource(final String name)
-	{
+    {
 
-	return (URL)AccessController.doPrivileged
-	    (new java.security.PrivilegedAction(){
+    return (URL)AccessController.doPrivileged
+        (new java.security.PrivilegedAction(){
 
-		    public Object run(){
-			return BaseTestCase.class.getClassLoader().
-			    getResource(name);
+            public Object run(){
+            return BaseTestCase.class.getClassLoader().
+                getResource(name);
 
-		    }
+            }
 
-		}
-	     );
+        }
+         );
     }  
   
     /**
@@ -364,16 +364,16 @@ public abstract class BaseTestCase
     protected static InputStream openTestResource(final URL url)
         throws PrivilegedActionException
     {
-    	return (InputStream)AccessController.doPrivileged
-	    (new java.security.PrivilegedExceptionAction(){
+        return (InputStream)AccessController.doPrivileged
+        (new java.security.PrivilegedExceptionAction(){
 
-		    public Object run() throws IOException{
-			return url.openStream();
+            public Object run() throws IOException{
+            return url.openStream();
 
-		    }
+            }
 
-		}
-	     );    	
+        }
+         );        
     }
     
     /**
@@ -382,8 +382,8 @@ public abstract class BaseTestCase
      */
     public static void assertSecurityManager()
     {
-    	assertNotNull("No SecurityManager installed",
-    			System.getSecurityManager());
+        assertNotNull("No SecurityManager installed",
+                System.getSecurityManager());
     }
 
     /**
@@ -483,86 +483,86 @@ public abstract class BaseTestCase
      * @param file1 the first file to compare
      * @param file2 the second file to compare
      */
-	public static void assertEquals(final File file1, final File file2) {
-		AccessController.doPrivileged
+    public static void assertEquals(final File file1, final File file2) {
+        AccessController.doPrivileged
         (new PrivilegedAction() {
-        	public Object run() {
-        		try {
-					InputStream f1 = new BufferedInputStream(new FileInputStream(file1));
-					InputStream f2 = new BufferedInputStream(new FileInputStream(file2));
+            public Object run() {
+                try {
+                    InputStream f1 = new BufferedInputStream(new FileInputStream(file1));
+                    InputStream f2 = new BufferedInputStream(new FileInputStream(file2));
 
-					assertEquals(f1, f2);
-				} catch (FileNotFoundException e) {
-					fail("FileNotFoundException in assertEquals(File,File): " + e.getMessage());
-					e.printStackTrace();
-				} catch (IOException e) {
-					fail("IOException in assertEquals(File, File): " + e.getMessage());
-					e.printStackTrace();
-				}
-				return null;
-        	}
+                    assertEquals(f1, f2);
+                } catch (FileNotFoundException e) {
+                    fail("FileNotFoundException in assertEquals(File,File): " + e.getMessage());
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    fail("IOException in assertEquals(File, File): " + e.getMessage());
+                    e.printStackTrace();
+                }
+                return null;
+            }
         });
-	}
+    }
     
-	/**
-	 * Execute command using 'java' executable and verify that it completes
-	 * with expected results
-	 * @param expectedString String to compare the resulting output with. May be
-	 *     null if the output is not expected to be of interest.
-	 * @param cmd array of java arguments for command
-	 * @param expectedExitValue expected return value from the command
-	 * @throws InterruptedException
-	 * @throws IOException
-	 */
-	public static void assertExecJavaCmdAsExpected(String[] expectedString,
-	        String[] cmd, int expectedExitValue) throws InterruptedException,
-	        IOException {
+    /**
+     * Execute command using 'java' executable and verify that it completes
+     * with expected results
+     * @param expectedString String to compare the resulting output with. May be
+     *     null if the output is not expected to be of interest.
+     * @param cmd array of java arguments for command
+     * @param expectedExitValue expected return value from the command
+     * @throws InterruptedException
+     * @throws IOException
+     */
+    public static void assertExecJavaCmdAsExpected(String[] expectedString,
+            String[] cmd, int expectedExitValue) throws InterruptedException,
+            IOException {
 
-	    Process pr = execJavaCmd(cmd);
-	    String output = readProcessOutput(pr);
-	    int exitValue = pr.exitValue();
-	    String expectedStrings = "";
-	    for (int i = 0; i < expectedString.length; i++) 
-	        expectedStrings += "\t[" +i + "]" + expectedString[i] +  "\n";
-	    Assert.assertEquals("expectedExitValue:"+expectedExitValue+
+        Process pr = execJavaCmd(cmd);
+        String output = readProcessOutput(pr);
+        int exitValue = pr.exitValue();
+        String expectedStrings = "";
+        for (int i = 0; i < expectedString.length; i++) 
+            expectedStrings += "\t[" +i + "]" + expectedString[i] +  "\n";
+        Assert.assertEquals("expectedExitValue:"+expectedExitValue+
                         " does not match exitValue:"+exitValue+"\n"+
                         "expected output strings:\n"+expectedStrings+
                         " actual output:"+output,
                 expectedExitValue,exitValue);
-	    if (expectedString != null) {
-	        for (int i = 0; i < expectedString.length; i++) {
-	            assertTrue("Could not find expectedString:" +
-	                    expectedString[i] + " in output:" + output,
-	                    output.indexOf(expectedString[i]) >= 0);
-	        }
-	    }
-	}
+        if (expectedString != null) {
+            for (int i = 0; i < expectedString.length; i++) {
+                assertTrue("Could not find expectedString:" +
+                        expectedString[i] + " in output:" + output,
+                        output.indexOf(expectedString[i]) >= 0);
+            }
+        }
+    }
 
 
-	/**
-	 * Execute a java command and return the process.
-	 * The caller should decide what to do with the process, if anything,
-	 * typical activities would be to do a pr.waitFor, or to
-	 * get a getInputStream or getErrorStream
-	 * Note, that for verifying the output of a Java process, there is
-	 * assertExecJavaCmdAsExpected
-	 * 
-	 * @param cmd array of java arguments for command
-	 * @return the process that was started
-	 * @throws IOException
-	 */
-	public static Process execJavaCmd(String[] cmd) throws IOException {
-	    ArrayList cmdlist = new ArrayList();
-	    cmdlist.add(getJavaExecutableName());
-	    if (isJ9Platform())
-	    {
-	        cmdlist.add("-jcl:foun11");
+    /**
+     * Execute a java command and return the process.
+     * The caller should decide what to do with the process, if anything,
+     * typical activities would be to do a pr.waitFor, or to
+     * get a getInputStream or getErrorStream
+     * Note, that for verifying the output of a Java process, there is
+     * assertExecJavaCmdAsExpected
+     * 
+     * @param cmd array of java arguments for command
+     * @return the process that was started
+     * @throws IOException
+     */
+    public static Process execJavaCmd(String[] cmd) throws IOException {
+        ArrayList cmdlist = new ArrayList();
+        cmdlist.add(getJavaExecutableName());
+        if (isJ9Platform())
+        {
+            cmdlist.add("-jcl:foun11");
             // also add the setting for emma.active so any tests
             // that fork will work correctly. See DERBY-5558.
             String emmaactive=getSystemProperty("emma.active");
             if (emmaactive != null)
                 cmdlist.add("-Demma.active=" + emmaactive);            
-	    }
+        }
 
         if (isCVM()) {
             // DERBY-5642: The default maximum heap size on CVM is very low.
@@ -570,29 +570,29 @@ public abstract class BaseTestCase
             cmdlist.add("-Xmx32M");
         }
 
-	    cmdlist.add("-classpath");
-	    cmdlist.add(getSystemProperty("java.class.path"));
+        cmdlist.add("-classpath");
+        cmdlist.add(getSystemProperty("java.class.path"));
         Collections.addAll(cmdlist, cmd);
-	    final String[] command = (String[]) cmdlist.toArray(cmd);
-	    println("execute java command:");
-	    for (int i = 0; i < command.length; i++) {
-	        println("command[" + i + "]" + command[i]);
-	    }
-	    Process pr = null;
-	    try {
-	        pr = (Process) AccessController
-	        .doPrivileged(new PrivilegedExceptionAction() {
-	            public Object run() throws IOException {
-	                Process result = null;
-	                result = Runtime.getRuntime().exec(command);
-	                return result;
-	            }
-	        });
-	    } catch (PrivilegedActionException pe) {
+        final String[] command = (String[]) cmdlist.toArray(cmd);
+        println("execute java command:");
+        for (int i = 0; i < command.length; i++) {
+            println("command[" + i + "]" + command[i]);
+        }
+        Process pr = null;
+        try {
+            pr = (Process) AccessController
+            .doPrivileged(new PrivilegedExceptionAction() {
+                public Object run() throws IOException {
+                    Process result = null;
+                    result = Runtime.getRuntime().exec(command);
+                    return result;
+                }
+            });
+        } catch (PrivilegedActionException pe) {
             throw (IOException) pe.getException();
-	    }
-	    return pr;
-	}
+        }
+        return pr;
+    }
 
     /**
      * Return the executable name for spawning java commands.

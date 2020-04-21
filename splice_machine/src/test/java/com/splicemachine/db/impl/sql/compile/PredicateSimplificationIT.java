@@ -37,9 +37,9 @@ import static org.junit.Assert.assertTrue;
  * Test predicate simplification.
  * First pass of predicate simplification involves only the transformation
  * of a predicate 'p', OR'ed or AND'ed with boolean TRUE and FALSE:
- * 	(p OR FALSE)  ==> (p)
- * 	(p OR TRUE)   ==> TRUE
- * 	(p AND TRUE)  ==> (p)
+ *     (p OR FALSE)  ==> (p)
+ *     (p OR TRUE)   ==> TRUE
+ *     (p AND TRUE)  ==> (p)
  *  (p AND FALSE) ==> (FALSE)
  */
 @RunWith(Parameterized.class)

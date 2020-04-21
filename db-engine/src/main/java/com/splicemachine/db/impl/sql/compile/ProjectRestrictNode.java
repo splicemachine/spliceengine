@@ -1310,11 +1310,11 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     private void generateMinion(ExpressionClassBuilder acb,
                                 MethodBuilder mb,
                                 boolean genChildResultSet) throws StandardException{
-		/* If this ProjectRestrict doesn't do anything, bypass its generation.
-		 * (Remove any true and true predicates first, as they could be left
-		 * by the like transformation.)
-		 */
-	String subqueryText = "";
+        /* If this ProjectRestrict doesn't do anything, bypass its generation.
+         * (Remove any true and true predicates first, as they could be left
+         * by the like transformation.)
+         */
+    String subqueryText = "";
         if(restrictionList!=null && !restrictionList.isEmpty()){
             restrictionList.eliminateBooleanTrueAndBooleanTrue();
         }

@@ -73,14 +73,14 @@ public class ColumnOrdering{
      */
     boolean ordered(int direction,int tableNumber,int columnNumber){
         /*
-		** Check the direction only if the direction isn't DONTCARE
-		*/
+        ** Check the direction only if the direction isn't DONTCARE
+        */
         if(direction!=RowOrdering.DONTCARE){
             if(direction!=myDirection)
                 return false;
         }
 
-		/* The direction matches - see if the column is in this ordering */
+        /* The direction matches - see if the column is in this ordering */
         return contains(tableNumber,columnNumber);
     }
 
@@ -143,10 +143,10 @@ public class ColumnOrdering{
      * Remove all columns with the given table number
      */
     void removeColumns(int tableNumber){
-		/*
-		** Walk the list backwards, so we can remove elements
-		** by position.
-		*/
+        /*
+        ** Walk the list backwards, so we can remove elements
+        ** by position.
+        */
         for(int i=tables.size()-1;i>=0;i--){
             Integer tab=(Integer)tables.get(i);
             if(tab ==tableNumber){
@@ -170,7 +170,7 @@ public class ColumnOrdering{
         ColumnOrdering retval=new ColumnOrdering(myDirection);
 
         for(int i=0;i<columns.size();i++){
-			/* Integers are immutable, so just copy the pointers */
+            /* Integers are immutable, so just copy the pointers */
             retval.columns.addElement(columns.get(i));
             retval.tables.addElement(tables.get(i));
         }

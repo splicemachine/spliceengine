@@ -52,35 +52,35 @@ import java.util.Arrays;
  */
 public class LongBufferedSumAggregator extends SumAggregator {
 
-		private final long[] buffer;
-		private final int length;
-		private int position;
+        private final long[] buffer;
+        private final int length;
+        private int position;
 
-		private long sum = 0;
-		private boolean isNull = true; //set to false when elements are added
+        private long sum = 0;
+        private boolean isNull = true; //set to false when elements are added
 
-		public LongBufferedSumAggregator(int bufferSize) {
-				int s = 1;
-				while(s<bufferSize){
-						s<<=1;
-				}
-				buffer = new long[s];
-				this.length = s-1;
-				position = 0;
-		}
+        public LongBufferedSumAggregator(int bufferSize) {
+                int s = 1;
+                while(s<bufferSize){
+                        s<<=1;
+                }
+                buffer = new long[s];
+                this.length = s-1;
+                position = 0;
+        }
 
-		@Override
-		protected void accumulate(DataValueDescriptor addend) throws StandardException {
-				buffer[position] = addend.getLong();
-				incrementPosition();
-		}
+        @Override
+        protected void accumulate(DataValueDescriptor addend) throws StandardException {
+                buffer[position] = addend.getLong();
+                incrementPosition();
+        }
 
 
-		@Override
-		public void merge(ExecAggregator addend) throws StandardException {
-			if(addend==null)
-			    return; //treat null entries as zero
-			//In Splice, we should never see a different type of an ExecAggregator
+        @Override
+        public void merge(ExecAggregator addend) throws StandardException {
+            if(addend==null)
+                return; //treat null entries as zero
+            //In Splice, we should never see a different type of an ExecAggregator
             LongBufferedSumAggregator other = (LongBufferedSumAggregator) addend;
 
             if (other.isNull){
@@ -95,104 +95,104 @@ public class LongBufferedSumAggregator extends SumAggregator {
                 buffer[position] = other.buffer[i];
                 incrementPosition();
             }
-		}
+        }
 
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				//Need to sum up all the intermediate values before serializing
-				if(position!=0){
-						try {
-								sum(position);
-						} catch (StandardException e) {
-								throw new IOException(e);
-						}
-						position=0;
-				}
-				out.writeBoolean(eliminatedNulls);
-				out.writeBoolean(isNull);
-				out.writeLong(sum);
-		}
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+                //Need to sum up all the intermediate values before serializing
+                if(position!=0){
+                        try {
+                                sum(position);
+                        } catch (StandardException e) {
+                                throw new IOException(e);
+                        }
+                        position=0;
+                }
+                out.writeBoolean(eliminatedNulls);
+                out.writeBoolean(isNull);
+                out.writeLong(sum);
+        }
 
-		@Override
-		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-				this.eliminatedNulls = in.readBoolean();
-				this.isNull = in.readBoolean();
-				this.sum = in.readLong();
-		}
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+                this.eliminatedNulls = in.readBoolean();
+                this.isNull = in.readBoolean();
+                this.sum = in.readLong();
+        }
 
-		@Override
-		public DataValueDescriptor getResult() throws StandardException {
-				if (value == null) {
-						value = new SQLLongint();
-				}
-				if(isNull){
-						value.setToNull();
-						return value;
-				}
-				if(position!=0){
-						sum(position);
-						position=0;
-				}
-				value.setValue(sum);
-				return value;
-		}
+        @Override
+        public DataValueDescriptor getResult() throws StandardException {
+                if (value == null) {
+                        value = new SQLLongint();
+                }
+                if(isNull){
+                        value.setToNull();
+                        return value;
+                }
+                if(position!=0){
+                        sum(position);
+                        position=0;
+                }
+                value.setValue(sum);
+                return value;
+        }
 
-		/**
-		 * Can only be safely called after first calling getResult();
-		 * e.g. after GenericAggregator.finish() has been called
-		 * @return the current sum;
-		 */
-		public long getSum(){
-				assert position==0: "There are entries still to be buffered!";
-				return sum;
-		}
+        /**
+         * Can only be safely called after first calling getResult();
+         * e.g. after GenericAggregator.finish() has been called
+         * @return the current sum;
+         */
+        public long getSum(){
+                assert position==0: "There are entries still to be buffered!";
+                return sum;
+        }
 
-		public void init(long sum,boolean eliminatedNulls){
-				this.sum = sum;
-				this.eliminatedNulls = eliminatedNulls;
-		}
+        public void init(long sum,boolean eliminatedNulls){
+                this.sum = sum;
+                this.eliminatedNulls = eliminatedNulls;
+        }
 
-		@Override
-		public ExecAggregator newAggregator() {
-				return new LongBufferedSumAggregator(64);
-		}
+        @Override
+        public ExecAggregator newAggregator() {
+                return new LongBufferedSumAggregator(64);
+        }
 
-		/**
-		 * Update this aggregator to an aggregator which does not suffer from the same overflows.
-		 *
-		 * @return an aggregator which can contain larger numbers
-		 * @throws StandardException if something goes wrong.
-		 */
-		public SumAggregator upgrade() throws StandardException {
-				DecimalBufferedSumAggregator aggregator = new DecimalBufferedSumAggregator(buffer.length);
-				aggregator.init(BigDecimal.valueOf(sum), eliminatedNulls);
-				for(int i=0;i<position;i++){
-					aggregator.addDirect(BigDecimal.valueOf(buffer[i]));
-				}
-				return aggregator;
-		}
+        /**
+         * Update this aggregator to an aggregator which does not suffer from the same overflows.
+         *
+         * @return an aggregator which can contain larger numbers
+         * @throws StandardException if something goes wrong.
+         */
+        public SumAggregator upgrade() throws StandardException {
+                DecimalBufferedSumAggregator aggregator = new DecimalBufferedSumAggregator(buffer.length);
+                aggregator.init(BigDecimal.valueOf(sum), eliminatedNulls);
+                for(int i=0;i<position;i++){
+                    aggregator.addDirect(BigDecimal.valueOf(buffer[i]));
+                }
+                return aggregator;
+        }
 
-		private void sum(int bufferLength) throws StandardException {
-				long newSum = sum;
-				try {
+        private void sum(int bufferLength) throws StandardException {
+                long newSum = sum;
+                try {
                     for (int i = 0; i < bufferLength; i++) {
                         newSum = ArithmeticUtils.addAndCheck(newSum, buffer[i]);
                     }
                 }
-				catch (MathArithmeticException e) {
-					throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE,"BIGINT");
-				}
-				sum = newSum;
-		}
+                catch (MathArithmeticException e) {
+                    throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE,"BIGINT");
+                }
+                sum = newSum;
+        }
 
-		private void incrementPosition() throws StandardException {
-				int newposition = (position+1) & length;
-				if(newposition==0){
-					sum(buffer.length);
-				}
-				isNull=false;
-				position = newposition;
-		}
+        private void incrementPosition() throws StandardException {
+                int newposition = (position+1) & length;
+                if(newposition==0){
+                    sum(buffer.length);
+                }
+                isNull=false;
+                position = newposition;
+        }
 
       public String toString() {
          String bufferInfo = isNull ? null : (position < 25 && position > 0 ? 

@@ -40,52 +40,52 @@ import com.splicemachine.mrio.MRConstants;
 
 @Ignore("Breaks stuff")
 public class BaseMRIOTest extends SpliceUnitTest{
-	private static final Logger LOG = Logger.getLogger(BaseMRIOTest.class);
-	protected static Configuration config;
-	protected static SMSQLUtil sqlUtil;
-	protected static org.apache.hadoop.hbase.client.Connection connection;
-	
-	static {
-		config = HConfiguration.unwrapDelegate();
-		config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
-		config.set(HConstants.HBASE_DIR,getHbaseRootDirectory());
+    private static final Logger LOG = Logger.getLogger(BaseMRIOTest.class);
+    protected static Configuration config;
+    protected static SMSQLUtil sqlUtil;
+    protected static org.apache.hadoop.hbase.client.Connection connection;
+    
+    static {
+        config = HConfiguration.unwrapDelegate();
+        config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
+        config.set(HConstants.HBASE_DIR,getHbaseRootDirectory());
         config.set("fs.default.name", "file:///"); // MapR Hack, tells it local filesystem
-    	config.set(MRConstants.SPLICE_JDBC_STR, SpliceNetConnection.getDefaultLocalURL());
+        config.set(MRConstants.SPLICE_JDBC_STR, SpliceNetConnection.getDefaultLocalURL());
         System.setProperty(HConstants.HBASE_DIR, getHbaseRootDirectory());
-    	System.setProperty("hive.metastore.warehouse.dir", getHiveWarehouseDirectory());
-    	System.setProperty("mapred.job.tracker", "local");
-    	System.setProperty("mapreduce.framework.name", "local-chicken");
-    	System.setProperty("hive.exec.mode.local.auto","true");
-    	System.setProperty("javax.jdo.option.ConnectionURL", "jdbc:derby:;databaseName=target/metastore_db;create=true");
-		sqlUtil = SMSQLUtil.getInstance(SpliceNetConnection.getDefaultLocalURL());
-		try {
-			connection = ConnectionFactory.createConnection(config);
-		} catch (IOException e) {
-			LOG.error(e.getMessage());
-		}
-	}
+        System.setProperty("hive.metastore.warehouse.dir", getHiveWarehouseDirectory());
+        System.setProperty("mapred.job.tracker", "local");
+        System.setProperty("mapreduce.framework.name", "local-chicken");
+        System.setProperty("hive.exec.mode.local.auto","true");
+        System.setProperty("javax.jdo.option.ConnectionURL", "jdbc:derby:;databaseName=target/metastore_db;create=true");
+        sqlUtil = SMSQLUtil.getInstance(SpliceNetConnection.getDefaultLocalURL());
+        try {
+            connection = ConnectionFactory.createConnection(config);
+        } catch (IOException e) {
+            LOG.error(e.getMessage());
+        }
+    }
 
-	protected static void flushTable(String tableName) throws SQLException, IOException, InterruptedException {
-		TableName conglomId = TableName.valueOf(sqlUtil.getConglomID(tableName));
-		try (Admin admin = connection.getAdmin()) {
-			admin.flush(conglomId);
-		}
-	}
+    protected static void flushTable(String tableName) throws SQLException, IOException, InterruptedException {
+        TableName conglomId = TableName.valueOf(sqlUtil.getConglomID(tableName));
+        try (Admin admin = connection.getAdmin()) {
+            admin.flush(conglomId);
+        }
+    }
 
-	
-	protected static void compactTable(String tableName) throws SQLException, IOException, InterruptedException {
-		TableName conglomId = TableName.valueOf(sqlUtil.getConglomID(tableName));
-		try (Admin admin = connection.getAdmin()) {
-			admin.majorCompact(conglomId);
-		}
-	}
+    
+    protected static void compactTable(String tableName) throws SQLException, IOException, InterruptedException {
+        TableName conglomId = TableName.valueOf(sqlUtil.getConglomID(tableName));
+        try (Admin admin = connection.getAdmin()) {
+            admin.majorCompact(conglomId);
+        }
+    }
 
-	protected static void splitTable(String tableName) throws SQLException, IOException, InterruptedException {
-		TableName conglomId = TableName.valueOf(sqlUtil.getConglomID(tableName));
-		try (Admin admin = connection.getAdmin()) {
-			admin.split(conglomId);
-		}
-	}
+    protected static void splitTable(String tableName) throws SQLException, IOException, InterruptedException {
+        TableName conglomId = TableName.valueOf(sqlUtil.getConglomID(tableName));
+        try (Admin admin = connection.getAdmin()) {
+            admin.split(conglomId);
+        }
+    }
 
     protected static HRegionLocation getRegionLocation(String conglomId, Admin hBaseAdmin) throws IOException, SQLException {
         TableName tableName = TableName.valueOf("splice",conglomId);

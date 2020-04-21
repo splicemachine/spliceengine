@@ -33,20 +33,20 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  * This stored procedure is used by the DatabaseMetaData.getProcedureColumns() API in JDBC and ODBC.
  *
  * @author David Winters
- *		 Created on: 9/25/14
+ *         Created on: 9/25/14
  */
 public class SqlProcedureColsIT extends SpliceUnitTest {
-	public static final String CLASS_NAME = SqlProcedureColsIT.class.getSimpleName().toUpperCase();
+    public static final String CLASS_NAME = SqlProcedureColsIT.class.getSimpleName().toUpperCase();
 
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
-	@ClassRule
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-			.around(spliceSchemaWatcher);
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher);
 
-	@Rule
-	public SpliceWatcher methodWatcher = new SpliceWatcher();
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     private TestConnection conn;
 
@@ -56,7 +56,7 @@ public class SqlProcedureColsIT extends SpliceUnitTest {
     }
 
     @Test
-	public void testCatalogNameLikeComparison() throws Exception {
+    public void testCatalogNameLikeComparison() throws Exception {
         testRowSize("null","null");
         testRowSize("'%'","null");
         testRowSize("'%IBM'","null");
@@ -66,7 +66,7 @@ public class SqlProcedureColsIT extends SpliceUnitTest {
         testRowSize("'S%S%BM'","null");
         testRowSize("'S%S%B%'","null");
         testRowSize("'%Y%%B%'","null");
-	}
+    }
 
     private void testRowSize(String catalogPattern,String schemaPattern) throws Exception{
         Assert.assertEquals("Incorrect rows returned",5,rowSize(catalogPattern, schemaPattern,"'SQLPROCEDURECOLS'"));
@@ -89,8 +89,8 @@ public class SqlProcedureColsIT extends SpliceUnitTest {
         }
     }
 
-	@Test
-	public void testSchemaNameLikeComparison() throws Exception {
+    @Test
+    public void testSchemaNameLikeComparison() throws Exception {
         testRowSize("null","null");
         testRowSize("null","'%'");
         testRowSize("null","'%IBM'");
@@ -100,36 +100,36 @@ public class SqlProcedureColsIT extends SpliceUnitTest {
         testRowSize("null","'S%S%BM'");
         testRowSize("null","'S%S%B%'");
         testRowSize("null","'%Y%%B%'");
-	}
+    }
 
-	@Test
-	public void testProcNameLikeComparison() throws Exception {
-		Assert.assertTrue("Incorrect rows returned!", rowSize("null","null","null")> 100);
-		Assert.assertTrue("Incorrect rows returned!", rowSize("null","null","'%'") > 100);
-		Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","null","'%PROCEDURECOLS'"));
-		Assert.assertEquals("Incorrect rows returned!", 9, rowSize("null","null","'SQLPROCEDURE%'"));
-		Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","null","'SQLPROCEDURECOLS'"));
-		Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","null","'SQLPROC%DURECOLS'"));
-		Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","null","'SQLPROC%DUR%COLS'"));
-		Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","null","'SQLPR%CEDUREC%L%'"));
-		Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","null","'%QLPR%C%D%R%C%L%'"));
-	}
+    @Test
+    public void testProcNameLikeComparison() throws Exception {
+        Assert.assertTrue("Incorrect rows returned!", rowSize("null","null","null")> 100);
+        Assert.assertTrue("Incorrect rows returned!", rowSize("null","null","'%'") > 100);
+        Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","null","'%PROCEDURECOLS'"));
+        Assert.assertEquals("Incorrect rows returned!", 9, rowSize("null","null","'SQLPROCEDURE%'"));
+        Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","null","'SQLPROCEDURECOLS'"));
+        Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","null","'SQLPROC%DURECOLS'"));
+        Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","null","'SQLPROC%DUR%COLS'"));
+        Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","null","'SQLPR%CEDUREC%L%'"));
+        Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","null","'%QLPR%C%D%R%C%L%'"));
+    }
 
-	@Test
-	public void testParamNameLikeComparison() throws Exception {
-		Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","null"));
-		Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'%'"));
-		Assert.assertEquals("Incorrect rows returned!", 4, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'%NAME'"));
-		Assert.assertEquals("Incorrect rows returned!", 1, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'PROC%'"));
-		Assert.assertEquals("Incorrect rows returned!", 1, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'PROCNAME'"));
-		Assert.assertEquals("Incorrect rows returned!", 1, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'PROC%AME'"));
-		Assert.assertEquals("Incorrect rows returned!", 1, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'PR%CN%ME'"));
-		Assert.assertEquals("Incorrect rows returned!", 1, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'PR%CN%M%'"));
-		Assert.assertEquals("Incorrect rows returned!", 1, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'%R%CN%M%'"));
-	}
+    @Test
+    public void testParamNameLikeComparison() throws Exception {
+        Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","null"));
+        Assert.assertEquals("Incorrect rows returned!", 5, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'%'"));
+        Assert.assertEquals("Incorrect rows returned!", 4, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'%NAME'"));
+        Assert.assertEquals("Incorrect rows returned!", 1, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'PROC%'"));
+        Assert.assertEquals("Incorrect rows returned!", 1, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'PROCNAME'"));
+        Assert.assertEquals("Incorrect rows returned!", 1, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'PROC%AME'"));
+        Assert.assertEquals("Incorrect rows returned!", 1, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'PR%CN%ME'"));
+        Assert.assertEquals("Incorrect rows returned!", 1, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'PR%CN%M%'"));
+        Assert.assertEquals("Incorrect rows returned!", 1, rowSize("null","'SYSIBM'","'SQLPROCEDURECOLS'","'%R%CN%M%'"));
+    }
 
-	@Test
-	public void testResultSetColumnTypesForJDBC() throws Exception {
+    @Test
+    public void testResultSetColumnTypesForJDBC() throws Exception {
         try(Statement s = conn.createStatement()){
             try(ResultSet rs=s.executeQuery("CALL SYSIBM.SQLPROCEDURECOLS(null, 'SYSIBM', 'SQLPROCEDURECOLS', 'PROCNAME', null)")){
                 Assert.assertTrue("No rows returned!",rs.next());
@@ -160,10 +160,10 @@ public class SqlProcedureColsIT extends SpliceUnitTest {
                 Assert.assertFalse("Too many rows returned!",rs.next());
             }
         }
-	}
+    }
 
-	@Test
-	public void testResultSetColumnTypesForODBC() throws Exception {
+    @Test
+    public void testResultSetColumnTypesForODBC() throws Exception {
         try(Statement s = conn.createStatement()){
             try(ResultSet rs=s.executeQuery("CALL SYSIBM.SQLPROCEDURECOLS(null, 'SYSIBM', 'SQLPROCEDURECOLS', 'PROCNAME', 'DATATYPE=''ODBC''')")){
                 Assert.assertTrue("No rows returned!",rs.next());
@@ -192,7 +192,7 @@ public class SqlProcedureColsIT extends SpliceUnitTest {
                 Assert.assertFalse("Too many rows returned!",rs.next());
             }
         }
-	}
+    }
 
     @Test
     public void testSYSIBMSQLUDTS() throws Exception {

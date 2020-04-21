@@ -285,7 +285,7 @@ final public class UpdateXXXTest extends BaseJDBCTestCase
         ResultSet rs = s.executeQuery(SELECT_STMT);
         
         rs.next();
-    	
+        
         for (int i = 1; i <= COLUMNS; i++) {
             rs.updateDouble(i, 2.0);
             assertEquals("Expected rs.getDouble(" + i + 

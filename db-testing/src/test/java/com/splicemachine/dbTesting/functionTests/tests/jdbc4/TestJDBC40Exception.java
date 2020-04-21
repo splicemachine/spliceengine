@@ -113,29 +113,29 @@ public class TestJDBC40Exception extends BaseJDBCTestCase {
         
         if (usingEmbedded())
         {
-        	// test exception after database shutdown
-        	// DERBY-3074
-        	stmt = createStatement();
-        	TestConfiguration.getCurrent().shutdownDatabase();
-        	try {
-        		stmt.execute("select * from exception1");
-        		fail("Statement didn't fail.");
-        	} catch (SQLNonTransientConnectionException cone) {
-        		assertTrue("Unexpected SQL State: " + cone.getSQLState(),
-        				cone.getSQLState().startsWith("08"));        	  
-        	}
+            // test exception after database shutdown
+            // DERBY-3074
+            stmt = createStatement();
+            TestConfiguration.getCurrent().shutdownDatabase();
+            try {
+                stmt.execute("select * from exception1");
+                fail("Statement didn't fail.");
+            } catch (SQLNonTransientConnectionException cone) {
+                assertTrue("Unexpected SQL State: " + cone.getSQLState(),
+                        cone.getSQLState().startsWith("08"));              
+            }
         }
         // test connection to server which is not up.
         // DERBY-3075
         if (usingDerbyNetClient()) {
-        	DataSource ds = JDBCDataSource.getDataSource();
-        	JDBCDataSource.setBeanProperty(ds, "portNumber", new Integer(0));
-        	try {
-        		ds.getConnection();
-        	} catch (SQLNonTransientConnectionException cone) {
-        		assertTrue("Unexpected SQL State: " + cone.getSQLState(),
-        				cone.getSQLState().startsWith("08"));   
-        	}
+            DataSource ds = JDBCDataSource.getDataSource();
+            JDBCDataSource.setBeanProperty(ds, "portNumber", new Integer(0));
+            try {
+                ds.getConnection();
+            } catch (SQLNonTransientConnectionException cone) {
+                assertTrue("Unexpected SQL State: " + cone.getSQLState(),
+                        cone.getSQLState().startsWith("08"));   
+            }
         }
 
     }

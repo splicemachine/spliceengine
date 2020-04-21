@@ -32,16 +32,16 @@ import java.sql.SQLException;
  *         Created on: 3/8/13
  */
 public class NonNullConstraintIT extends SpliceUnitTest { 
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(NonNullConstraintIT.class.getSimpleName());	
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",NonNullConstraintIT.class.getSimpleName(),"(name varchar(40) NOT NULL, val int)");
-	
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher);
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(NonNullConstraintIT.class.getSimpleName());    
+    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",NonNullConstraintIT.class.getSimpleName(),"(name varchar(40) NOT NULL, val int)");
+    
+    @ClassRule 
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+        .around(spliceSchemaWatcher)
+        .around(spliceTableWatcher);
+    
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test(expected = SQLException.class)
     public void testCannotAddNullEntryToNonNullTable() throws Exception{
@@ -50,7 +50,7 @@ public class NonNullConstraintIT extends SpliceUnitTest {
 
     @Test
     public void testCanStillAddEntryToNonNullTable() throws Exception{
-    	methodWatcher.getStatement().execute("insert into" +this.getPaddedTableReference("A")+"(name, val) values ('sfines',27)");
+        methodWatcher.getStatement().execute("insert into" +this.getPaddedTableReference("A")+"(name, val) values ('sfines',27)");
         ResultSet rs = methodWatcher.executeQuery("select * from"+this.getPaddedTableReference("A"));
         Assert.assertTrue("No Columns returned!",rs.next());
         String name = rs.getString(1);

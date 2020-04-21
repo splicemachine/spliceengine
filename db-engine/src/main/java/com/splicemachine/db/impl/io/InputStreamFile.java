@@ -385,12 +385,12 @@ abstract class InputStreamFile implements StorageFile
         return NO_FILE_LOCK_SUPPORT;
     }
 
-	/**
+    /**
      * Release the resource associated with an earlier acquired exclusive lock
      *
      * @see #getExclusiveFileLock
      */
-	public void releaseExclusiveFileLock()
+    public void releaseExclusiveFileLock()
     {}
 
     /**
@@ -432,12 +432,12 @@ abstract class InputStreamFile implements StorageFile
         return path;
     }
     
-	/**
-	 * @see com.splicemachine.db.io.StorageFile#getURL()
-	 */
-	public URL getURL() throws MalformedURLException {
-		throw new MalformedURLException(toString());
-	}
+    /**
+     * @see com.splicemachine.db.io.StorageFile#getURL()
+     */
+    public URL getURL() throws MalformedURLException {
+        throw new MalformedURLException(toString());
+    }
 
     public void limitAccessToOwner() {}
 }

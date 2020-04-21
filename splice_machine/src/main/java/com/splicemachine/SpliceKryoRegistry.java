@@ -148,73 +148,73 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
     @Override
     public void register(Kryo instance){
                 /*
-				 * IMPORTANT!!!! READ THIS COMMENT!!!
-				 * ===========================================================
-			   * If you don't read this comment fully and COMPLETELY
-			   * understand what's going on with this registry, then you run
-			   * the risk of doing something which breaks Splice on existing
-			   * clusters; when you do that, Customer Solutions and QA will
-			   * complain to Gene, who will in turn complain to Scott, who
-			   * will in turn hunt you down and stab you with a razor-sharp
-			   * shard of glass for not paying attention to this message. You
-			   * Have Been Warned.
-			   * ==========================================================
-			   *
-			   * When Kryo serializes an object, the first thing it will
-			   * write is an integer identifier. This identifier UNIQUELY
-			   * and UNEQUIVOCABLY represents the entirety of the class
-			   * information for the serialized object.
-			   *
-			   * In most cases, this isn't much of a problem, but we use
-			   * Kryo to serialize objects into tables (in particular,
-			   * into System tables). What this means is that if the
-			   * identifier for a class that's stored in a table, then
-			   * we can NEVER change the identifier FOR ANY REASON.
-			   *
-			   * So, in practice, what does that mean for you? Well,
-			   * each line of the following block of code will assign
-			   * a unique, manually-defined id to a class. This allows
-			   * you to rearrange lines (which wasn't always true), but
-			   * means that you MUST follow these rules when adding to this
-			   * class
-			   *
-			   * 1. do NOT refactor away the magic numbers--if you try
-			   * and be clever with a counter, you WILL break backwards compatibility
-			   *
-			   * 2. Once the rest of the world has seen a line with a specific Id,
-			   * NEVER CHANGE THAT ID. In practice, once you've pushed a change to this
-			   * file, that change can NEVER BE UNDONE. So make sure it's right.
-			   *
-			   * To register a new class, here's what you do.
-			   *
-			   * 1. create a serializer class (or reuse one)
-			   * 2. find the HIGHEST PREVIOUSLY REGISTERED id.
-			   * 3. register your new class with the NEXT id in the monotonic sequence
-			   * (e.g. if the highest is 145, register with 146).
-			   * 4. run the ENTIRE IT suite WITHOUT cleaning your data (an easy protection
-			   * against accidentally breaking system tables)
-			   * 5. warn everyone that you've made changes to this file (in particular, warn
-			   * Scott and Gene, so that they can be aware of your potentially breaking
-			   * backwards compatibility).
-			   * 6. push ONLY AFTER YOU ARE SURE that it works exactly as intended.
-			   *
-			   * To change how a class is being serialized:
-			   *
-			   * 1. DON'T. You'll probably break backwards compatibility.
-			   *
-			   * If you absolutely MUST change the serialization, then you'll need
-			   * to ensure somehow that your change is backwards compatible. To do this:
-			   *
-			   * 1. confirm that your class isn't stored anywhere. If it's never written
-			   *  to disk, then you are safe to make changes. Most classes that are known
-			   *  to never be written to disk should have a comment in this file about
-			   *  it being safe to change
-			   * 2. If the file IS stored EVER, then you'll need to devise a way to convert
-			   * existing stored instances into the new format. Usually, that means you'll need
-			   * to be able to read either format (but only need to write in the new),
-			   * which will make your deserialization code complicated and difficult,
-			   * but that's the nature of the beast.
-	    	   */
+                 * IMPORTANT!!!! READ THIS COMMENT!!!
+                 * ===========================================================
+               * If you don't read this comment fully and COMPLETELY
+               * understand what's going on with this registry, then you run
+               * the risk of doing something which breaks Splice on existing
+               * clusters; when you do that, Customer Solutions and QA will
+               * complain to Gene, who will in turn complain to Scott, who
+               * will in turn hunt you down and stab you with a razor-sharp
+               * shard of glass for not paying attention to this message. You
+               * Have Been Warned.
+               * ==========================================================
+               *
+               * When Kryo serializes an object, the first thing it will
+               * write is an integer identifier. This identifier UNIQUELY
+               * and UNEQUIVOCABLY represents the entirety of the class
+               * information for the serialized object.
+               *
+               * In most cases, this isn't much of a problem, but we use
+               * Kryo to serialize objects into tables (in particular,
+               * into System tables). What this means is that if the
+               * identifier for a class that's stored in a table, then
+               * we can NEVER change the identifier FOR ANY REASON.
+               *
+               * So, in practice, what does that mean for you? Well,
+               * each line of the following block of code will assign
+               * a unique, manually-defined id to a class. This allows
+               * you to rearrange lines (which wasn't always true), but
+               * means that you MUST follow these rules when adding to this
+               * class
+               *
+               * 1. do NOT refactor away the magic numbers--if you try
+               * and be clever with a counter, you WILL break backwards compatibility
+               *
+               * 2. Once the rest of the world has seen a line with a specific Id,
+               * NEVER CHANGE THAT ID. In practice, once you've pushed a change to this
+               * file, that change can NEVER BE UNDONE. So make sure it's right.
+               *
+               * To register a new class, here's what you do.
+               *
+               * 1. create a serializer class (or reuse one)
+               * 2. find the HIGHEST PREVIOUSLY REGISTERED id.
+               * 3. register your new class with the NEXT id in the monotonic sequence
+               * (e.g. if the highest is 145, register with 146).
+               * 4. run the ENTIRE IT suite WITHOUT cleaning your data (an easy protection
+               * against accidentally breaking system tables)
+               * 5. warn everyone that you've made changes to this file (in particular, warn
+               * Scott and Gene, so that they can be aware of your potentially breaking
+               * backwards compatibility).
+               * 6. push ONLY AFTER YOU ARE SURE that it works exactly as intended.
+               *
+               * To change how a class is being serialized:
+               *
+               * 1. DON'T. You'll probably break backwards compatibility.
+               *
+               * If you absolutely MUST change the serialization, then you'll need
+               * to ensure somehow that your change is backwards compatible. To do this:
+               *
+               * 1. confirm that your class isn't stored anywhere. If it's never written
+               *  to disk, then you are safe to make changes. Most classes that are known
+               *  to never be written to disk should have a comment in this file about
+               *  it being safe to change
+               * 2. If the file IS stored EVER, then you'll need to devise a way to convert
+               * existing stored instances into the new format. Usually, that means you'll need
+               * to be able to read either format (but only need to write in the new),
+               * which will make your deserialization code complicated and difficult,
+               * but that's the nature of the beast.
+               */
         instance.setReferences(false);
         instance.setRegistrationRequired(true);
 

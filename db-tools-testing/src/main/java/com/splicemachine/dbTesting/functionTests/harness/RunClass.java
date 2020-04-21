@@ -38,40 +38,40 @@ import java.lang.reflect.Method;
 public class RunClass implements Runnable
 {
 
-	/**
-		param args the arguments to pass into ij
-	*/
-	public RunClass(Method methodToCall, Object args[])
-	{
-		mainMethod = methodToCall;
-		arguments=args;	
-	}
+    /**
+        param args the arguments to pass into ij
+    */
+    public RunClass(Method methodToCall, Object args[])
+    {
+        mainMethod = methodToCall;
+        arguments=args;    
+    }
 
-	Object arguments[];
-	Method mainMethod;
+    Object arguments[];
+    Method mainMethod;
 
-	public void run()
-	{
+    public void run()
+    {
         synchronized (this)
         {
-		    try
-		    {
-			    // we're invoking the test class's main method - which is always static
-			    // thus we can pass null, an underlying object argument would be 
-			    // ignored anyway. 
-			    mainMethod.invoke(null, arguments);
-		    }
-		    catch (IllegalAccessException iae)
-		    {
-			iae.printStackTrace();
-		        System.out.println("RunClass: " + iae + " make sure the test class is public.");
-		        System.exit(1);
-		    }
-		    catch (Exception e)
-		    {
-			    System.out.println("RunClass --> " + e);
-			    e.printStackTrace();
-		    }
-		}
-	}
+            try
+            {
+                // we're invoking the test class's main method - which is always static
+                // thus we can pass null, an underlying object argument would be 
+                // ignored anyway. 
+                mainMethod.invoke(null, arguments);
+            }
+            catch (IllegalAccessException iae)
+            {
+            iae.printStackTrace();
+                System.out.println("RunClass: " + iae + " make sure the test class is public.");
+                System.exit(1);
+            }
+            catch (Exception e)
+            {
+                System.out.println("RunClass --> " + e);
+                e.printStackTrace();
+            }
+        }
+    }
 }

@@ -141,7 +141,7 @@ public class WriteNode implements WriteContext {
     }
 
     public void setNext(WriteNode next) {
-    	this.next = next;
+        this.next = next;
     }
 
     @Override

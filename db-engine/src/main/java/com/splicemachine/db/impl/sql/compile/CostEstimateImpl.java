@@ -38,9 +38,9 @@ import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 public class CostEstimateImpl implements CostEstimate {
-    public double	cost;
-    public double	rowCount;
-    public double	singleScanRowCount;
+    public double    cost;
+    public double    rowCount;
+    public double    singleScanRowCount;
     public int joinType;
     public boolean isAntiJoin;
 
@@ -143,27 +143,27 @@ public class CostEstimateImpl implements CostEstimate {
             }
         }
 
-		/* Note: if both CostEstimates are infinity, an attempt to
-		 * substract them will result in NaN, which tells us nothing
-		 * and thus makes it impossible to do a comparison.  So in
-		 * that case we fallback and check the row counts as a secondary
-		 * point of comparison, and the singleScanRowCounts as a
-		 * third comparison.  If all three values are infinity
-		 * for both CostEstimates then we just consider the two
-		 * costs to equal (equally as bad?) and so return 0.0d (instead
-		 * NaN).  RESOLVE: Ideally the optimizer could be updated
-		 * to give more reasonable estimates than infinity, but
-		 * until that happens we're forced to deal with such
-		 * comparisons.  Note that we're most likely to end up with
-		 * infinite cost estimates in situations where we have deeply
-		 * nested subqueries and/or FROM lists with a large number of
-		 * FromTables (such as 10 or more). The reason is that each
-		 * FromTable's cost estimate is (potentially) multiplied by
-		 * the row counts of all preceding FromTables, so if the
-		 * row counts for the preceding FromTables are large, we
-		 * can eventually end up going beyond Double.MAX_VALUE,
-		 * which then gives us infinity.
-		 */
+        /* Note: if both CostEstimates are infinity, an attempt to
+         * substract them will result in NaN, which tells us nothing
+         * and thus makes it impossible to do a comparison.  So in
+         * that case we fallback and check the row counts as a secondary
+         * point of comparison, and the singleScanRowCounts as a
+         * third comparison.  If all three values are infinity
+         * for both CostEstimates then we just consider the two
+         * costs to equal (equally as bad?) and so return 0.0d (instead
+         * NaN).  RESOLVE: Ideally the optimizer could be updated
+         * to give more reasonable estimates than infinity, but
+         * until that happens we're forced to deal with such
+         * comparisons.  Note that we're most likely to end up with
+         * infinite cost estimates in situations where we have deeply
+         * nested subqueries and/or FROM lists with a large number of
+         * FromTables (such as 10 or more). The reason is that each
+         * FromTable's cost estimate is (potentially) multiplied by
+         * the row counts of all preceding FromTables, so if the
+         * row counts for the preceding FromTables are large, we
+         * can eventually end up going beyond Double.MAX_VALUE,
+         * which then gives us infinity.
+         */
 
         // If at least one of costs is _not_ infinity, then just do
         // a normal compare (the other side is less).
@@ -204,7 +204,7 @@ public class CostEstimateImpl implements CostEstimate {
                     retval instanceof CostEstimateImpl);
         }
 
-        CostEstimateImpl	addend = (CostEstimateImpl) other;
+        CostEstimateImpl    addend = (CostEstimateImpl) other;
 
         double sumCost = this.cost + addend.cost;
         double sumRowCount = this.rowCount + addend.rowCount;
@@ -225,7 +225,7 @@ public class CostEstimateImpl implements CostEstimate {
             }
         }
 
-		/* Presume that ordering is not maintained */
+        /* Presume that ordering is not maintained */
         return setState(sumCost,
                 sumRowCount,
                 (CostEstimateImpl) retval);
@@ -257,7 +257,7 @@ public class CostEstimateImpl implements CostEstimate {
             }
         }
 
-		/* Presume that ordering is not maintained */
+        /* Presume that ordering is not maintained */
         return setState(multCost,
                 multRowCount,
                 (CostEstimateImpl) retval);
@@ -289,7 +289,7 @@ public class CostEstimateImpl implements CostEstimate {
             }
         }
 
-		/* Presume that ordering is not maintained */
+        /* Presume that ordering is not maintained */
         return setState(divCost,
                 divRowCount,
                 (CostEstimateImpl) retval);
@@ -340,11 +340,11 @@ public class CostEstimateImpl implements CostEstimate {
 
     /** @see StoreCostResult#setEstimatedRowCount */
     public void setEstimatedRowCount(long count) {
-		/* This method is called by the store to
-		 * give us the estimate for the # of rows
-		 * returned in a scan.  So, we set both
-		 * rowCount and singleScanRowCount here.
-		 */
+        /* This method is called by the store to
+         * give us the estimate for the # of rows
+         * returned in a scan.  So, we set both
+         * rowCount and singleScanRowCount here.
+         */
         rowCount = (double) count;
         singleScanRowCount = (double) count;
     }

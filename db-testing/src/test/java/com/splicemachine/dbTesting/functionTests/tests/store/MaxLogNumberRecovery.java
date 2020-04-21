@@ -48,52 +48,52 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 public class MaxLogNumberRecovery extends MaxLogNumber {
 
-	MaxLogNumberRecovery() {
-		super();
-	}
-	
-	private void runTest(Connection conn) throws SQLException {
-		logMessage("Begin MaxLogNumberRecovery Test");
-		verifyData(conn, 100);
-		boolean hitMaxLogLimitError = false;
-		try{
-			insert(conn, 110, COMMIT, 11);
-			update(conn, 110, ROLLBACK, 5);
-			update(conn, 110, NOACTION, 5);
-			verifyData(conn, 210);
-			if (SanityManager.DEBUG)
-			{
-				// do lot of inserts in debug mode , 
-				// so that actuall reach the max log file number 
-				// limit
-				insert(conn, 11000, COMMIT, 5);
-			}
-		} catch(SQLException se) {
-			
-			SQLException ose = se;
-			while (se != null) {
-      			if ("XSLAK".equals(se.getSQLState())) {
-					hitMaxLogLimitError = true;
-					break;
-				}
-				se = se.getNextException();
-			}
-			if(!hitMaxLogLimitError)
-				throw ose;
-		}
-
-		if (SanityManager.DEBUG)
-		{
-			// In the debug build mode , this test should hit the max log limit while
-			// doing above DML. 
-			if(!hitMaxLogLimitError)
-				logMessage("Expected: ERROR XSLAK:" +
-						   "Database has exceeded largest log file" +
-						   "number 8,589,934,591.");
+    MaxLogNumberRecovery() {
+        super();
+    }
+    
+    private void runTest(Connection conn) throws SQLException {
+        logMessage("Begin MaxLogNumberRecovery Test");
+        verifyData(conn, 100);
+        boolean hitMaxLogLimitError = false;
+        try{
+            insert(conn, 110, COMMIT, 11);
+            update(conn, 110, ROLLBACK, 5);
+            update(conn, 110, NOACTION, 5);
+            verifyData(conn, 210);
+            if (SanityManager.DEBUG)
+            {
+                // do lot of inserts in debug mode , 
+                // so that actuall reach the max log file number 
+                // limit
+                insert(conn, 11000, COMMIT, 5);
+            }
+        } catch(SQLException se) {
+            
+            SQLException ose = se;
+            while (se != null) {
+                  if ("XSLAK".equals(se.getSQLState())) {
+                    hitMaxLogLimitError = true;
+                    break;
+                }
+                se = se.getNextException();
+            }
+            if(!hitMaxLogLimitError)
+                throw ose;
         }
 
-		logMessage("End MaxLogNumberRecovery Test");
-	}
+        if (SanityManager.DEBUG)
+        {
+            // In the debug build mode , this test should hit the max log limit while
+            // doing above DML. 
+            if(!hitMaxLogLimitError)
+                logMessage("Expected: ERROR XSLAK:" +
+                           "Database has exceeded largest log file" +
+                           "number 8,589,934,591.");
+        }
+
+        logMessage("End MaxLogNumberRecovery Test");
+    }
 
 
     /**
@@ -119,10 +119,10 @@ public class MaxLogNumberRecovery extends MaxLogNumber {
          );
     
     }
-	public static void main(String[] argv) throws Throwable {
-		
+    public static void main(String[] argv) throws Throwable {
+        
         MaxLogNumberRecovery test = new MaxLogNumberRecovery();
-   		ij.getPropertyArg(argv); 
+           ij.getPropertyArg(argv); 
         //DERBY -4856 will cause XSLAK create diagnostic information set the
         //extenedDiagSeverityLevel higher so no thread dump or diagnostic info
         setSystemProperty("derby.stream.error.extendedDiagSeverityLevel","50000");
@@ -133,9 +133,9 @@ public class MaxLogNumberRecovery extends MaxLogNumber {
             test.runTest(conn);
         }
         catch (SQLException sqle) {
-			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
-			sqle.printStackTrace(System.out);
-		}
+            sqle.printStackTrace(System.out);
+        }
     }
 }

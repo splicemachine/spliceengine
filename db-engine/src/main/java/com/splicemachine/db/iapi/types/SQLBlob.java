@@ -58,35 +58,35 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 public class SQLBlob extends SQLBinary
 {
 
-	/*
-	 * constructors
-	 */
-	public SQLBlob()
+    /*
+     * constructors
+     */
+    public SQLBlob()
         {
         }
 
-	public SQLBlob(byte[] val)
+    public SQLBlob(byte[] val)
         {
-			super(val);
+            super(val);
         }
-	
-	public SQLBlob(Blob val)
+    
+    public SQLBlob(Blob val)
         {
-			super(val);
+            super(val);
         }
-	
-	public String getTypeName()
+    
+    public String getTypeName()
         {
-			return TypeId.BLOB_NAME;
+            return TypeId.BLOB_NAME;
         }
 
-	/**
-	 * Return max memory usage for a SQL Blob
-	 */
-	int getMaxMemoryUsage()
-	{
-		return Limits.DB2_LOB_MAXWIDTH;
-	}
+    /**
+     * Return max memory usage for a SQL Blob
+     */
+    int getMaxMemoryUsage()
+    {
+        return Limits.DB2_LOB_MAXWIDTH;
+    }
 
     /**
      * Tells if this BLOB value is, or will be, represented by a stream.
@@ -156,9 +156,9 @@ public class SQLBlob extends SQLBinary
     /**
      * @see DataValueDescriptor#getNewNull
      */
-	public DataValueDescriptor getNewNull()
+    public DataValueDescriptor getNewNull()
         {
-			return new SQLBlob();
+            return new SQLBlob();
         }
 
      /**
@@ -187,27 +187,27 @@ public class SQLBlob extends SQLBinary
         }
     }
     
-	/**
-	 * Normalization method - this method may be called when putting
-	 * a value into a SQLBit, for example, when inserting into a SQLBit
-	 * column.  See NormalizeResultSet in execution.
-	 *
-	 * @param desiredType	The type to normalize the source column to
-	 * @param source		The value to normalize
-	 *
-	 * @exception StandardException				Thrown for null into
-	 *											non-nullable column, and for
-	 *											truncation error
-	 */
+    /**
+     * Normalization method - this method may be called when putting
+     * a value into a SQLBit, for example, when inserting into a SQLBit
+     * column.  See NormalizeResultSet in execution.
+     *
+     * @param desiredType    The type to normalize the source column to
+     * @param source        The value to normalize
+     *
+     * @exception StandardException                Thrown for null into
+     *                                            non-nullable column, and for
+     *                                            truncation error
+     */
 
-	public void normalize(
-				DataTypeDescriptor desiredType,
-				DataValueDescriptor source)
-					throws StandardException
-	{
-		setValue(source);
-		setWidth(desiredType.getMaximumWidth(), 0, true);
-	}
+    public void normalize(
+                DataTypeDescriptor desiredType,
+                DataValueDescriptor source)
+                    throws StandardException
+    {
+        setValue(source);
+        setWidth(desiredType.getMaximumWidth(), 0, true);
+    }
 
     // The method setWidth is only(?) used to adopt the value
     // to the casted domain/size. BLOBs behave different
@@ -218,23 +218,23 @@ public class SQLBlob extends SQLBinary
     // Anyhow, here we just ignore the call, since there is no padding to be done.
     // We do detect truncation, if the errorOnTrunc flag is set.
     // DB2 does return a WARNING on CAST and ERROR on INSERT.
-	public void setWidth(int desiredWidth,  // ignored!
-			int desiredScale,	// Ignored 
-			boolean errorOnTrunc)
-			throws StandardException
+    public void setWidth(int desiredWidth,  // ignored!
+            int desiredScale,    // Ignored 
+            boolean errorOnTrunc)
+            throws StandardException
     {
 
-		// Input is null, so there's nothing to do.
-		if (isNull())
-			return;
+        // Input is null, so there's nothing to do.
+        if (isNull())
+            return;
 
-		// Input is a stream with unknown length. The length will be checked
-		// while reading the stream.
-		if (isLengthLess()) {
-			return;
-		}
+        // Input is a stream with unknown length. The length will be checked
+        // while reading the stream.
+        if (isLengthLess()) {
+            return;
+        }
 
-		int sourceWidth = getLength();
+        int sourceWidth = getLength();
 
         // need to truncate?
         if (sourceWidth > desiredWidth) {
@@ -246,60 +246,60 @@ public class SQLBlob extends SQLBinary
                 /*
                  * Truncate to the desired width.
                  */
-				truncate(sourceWidth, desiredWidth, true);
+                truncate(sourceWidth, desiredWidth, true);
             }
         }
     }
 
     /**
-	   Return my format identifier.
+       Return my format identifier.
            
-	   @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
-	public int getTypeFormatId()
+       @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
+    */
+    public int getTypeFormatId()
         {
-			return StoredFormatIds.SQL_BLOB_ID;
+            return StoredFormatIds.SQL_BLOB_ID;
         }
 
-	/** 
-	 * @see DataValueDescriptor#setValueFromResultSet 
-	 *
-	 * @exception SQLException		Thrown on error
-	 * @throws StandardException 
-	 */
-	public void setValueFromResultSet(ResultSet resultSet, int colNumber,
-									  boolean isNullable)
-		throws SQLException, StandardException
-	{
+    /** 
+     * @see DataValueDescriptor#setValueFromResultSet 
+     *
+     * @exception SQLException        Thrown on error
+     * @throws StandardException 
+     */
+    public void setValueFromResultSet(ResultSet resultSet, int colNumber,
+                                      boolean isNullable)
+        throws SQLException, StandardException
+    {
         Blob blob = resultSet.getBlob(colNumber);
         if (blob == null)
             setToNull();
         else
             setObject(blob);
-	}
+    }
 
 
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
         
-	/** @see DataValueDescriptor#typePrecedence */
-	public int typePrecedence()
-		{
-			return TypeId.BLOB_PRECEDENCE; // not really used
-		}
+    /** @see DataValueDescriptor#typePrecedence */
+    public int typePrecedence()
+        {
+            return TypeId.BLOB_PRECEDENCE; // not really used
+        }
 
     public void setInto(PreparedStatement ps, int position)
-		throws SQLException, StandardException
-	{
-		if (isNull()) {
-			ps.setBlob(position, (Blob)null);    
-			return;
-		}
+        throws SQLException, StandardException
+    {
+        if (isNull()) {
+            ps.setBlob(position, (Blob)null);    
+            return;
+        }
 
-		// This may cause problems for streaming blobs, by materializing the whole blob.
-		ps.setBytes(position, getBytes());
+        // This may cause problems for streaming blobs, by materializing the whole blob.
+        ps.setBytes(position, getBytes());
     }
     
     /**
@@ -335,7 +335,7 @@ public class SQLBlob extends SQLBinary
     }
     
     public Format getFormat() {
-    	return Format.BLOB;
+        return Format.BLOB;
     }
 
 }

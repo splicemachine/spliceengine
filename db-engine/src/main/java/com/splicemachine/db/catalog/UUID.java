@@ -34,35 +34,35 @@ package com.splicemachine.db.catalog;
 /**
 
  An interface for accessing Derby UUIDs, unique identifiers.
-		
-	<p>The values in the
-	system catalog held in ID columns with a type of CHAR(36) are the
-	string representations of these UUIDs.
+        
+    <p>The values in the
+    system catalog held in ID columns with a type of CHAR(36) are the
+    string representations of these UUIDs.
 
-	<p>A UUID implements equals() and hashCode based on value equality.
+    <p>A UUID implements equals() and hashCode based on value equality.
 
  */
 
 public interface UUID extends java.io.Externalizable
 {
-	/**
-	  UUID_BYTE_LENGTH
+    /**
+      UUID_BYTE_LENGTH
 
-	  The number of bytes in the array toByteArray returns.
-	  */
-	int UUID_BYTE_LENGTH = 16;
-	
-	/**
-		Produce a string representation of this UUID which
-		is suitable for use as a unique ANSI identifier.
-	 */
-	String toANSIidentifier();
+      The number of bytes in the array toByteArray returns.
+      */
+    int UUID_BYTE_LENGTH = 16;
+    
+    /**
+        Produce a string representation of this UUID which
+        is suitable for use as a unique ANSI identifier.
+     */
+    String toANSIidentifier();
 
-	/**
-	  Clone this UUID.
+    /**
+      Clone this UUID.
 
-	  @return	a copy of this UUID
-	  */
-	UUID cloneMe();
+      @return    a copy of this UUID
+      */
+    UUID cloneMe();
 }
 

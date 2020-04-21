@@ -36,9 +36,9 @@ import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.Function
  *  
  */
 public class WindowAggregatorImpl implements WindowAggregator {
-	final int functionColumnId;
-	private final int[] inputColumnIds;
-	private final int resultColumnId;
+    final int functionColumnId;
+    private final int[] inputColumnIds;
+    private final int resultColumnId;
     private final String functionName;
     private final FrameDefinition frameDefinition;
 
@@ -58,11 +58,11 @@ public class WindowAggregatorImpl implements WindowAggregator {
     private FunctionType type;
 
     public WindowAggregatorImpl(WindowFunctionInfo windowInfo, ClassFactory cf) {
-		this.cf = cf;
+        this.cf = cf;
         // all these are one-based
-		this.functionColumnId = windowInfo.getWindowFunctionColNum();
-		this.inputColumnIds = windowInfo.getInputColNums();
-		this.resultColumnId = windowInfo.getOutputColNum();
+        this.functionColumnId = windowInfo.getWindowFunctionColNum();
+        this.inputColumnIds = windowInfo.getInputColNums();
+        this.resultColumnId = windowInfo.getOutputColNum();
         this.functionName = windowInfo.getFunctionName();
         this.type = windowInfo.getType();
         this.functionSpecificArgs = windowInfo.getFunctionSpecificArgs();
@@ -103,7 +103,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
             nullOrders[index] = key.getIsNullsOrderedLow();
             keyOrders[index++] = key.getIsAscending();
         }
-	}
+    }
 
     @Override
     public String toString() {
@@ -147,18 +147,18 @@ public class WindowAggregatorImpl implements WindowAggregator {
         accumulate(getInputColumns(nextRow, inputColumnIds),aggCol, outputCol);
     }
 
-	@Override
+    @Override
     public void finish(ExecRow row) throws StandardException{
-		DataValueDescriptor outputCol = row.getColumn(resultColumnId);
-		DataValueDescriptor aggCol = row.getColumn(functionColumnId);
+        DataValueDescriptor outputCol = row.getColumn(resultColumnId);
+        DataValueDescriptor aggCol = row.getColumn(functionColumnId);
 
         WindowFunction ua = (WindowFunction)aggCol.getObject();
         if(ua ==null) ua = findOrCreateNewWindowFunction(outputCol);
-		
-		DataValueDescriptor result = ua.getResult();
-		if(result ==null) outputCol.setToNull();
-		else outputCol.setValue(result);
-	}
+        
+        DataValueDescriptor result = ua.getResult();
+        if(result ==null) outputCol.setToNull();
+        else outputCol.setValue(result);
+    }
 
     @Override
     public boolean initialize(ExecRow row) throws StandardException {

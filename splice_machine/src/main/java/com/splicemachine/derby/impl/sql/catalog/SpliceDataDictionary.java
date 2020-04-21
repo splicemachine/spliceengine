@@ -1122,7 +1122,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         {
             ConglomerateDescriptor[] cds=td.getConglomerateDescriptors();
 
-			/* Init the heap conglomerate here */
+            /* Init the heap conglomerate here */
             for(ConglomerateDescriptor conglomerateDescriptor : cds){
 
                 if(!conglomerateDescriptor.isIndex()){

@@ -41,14 +41,14 @@ package com.splicemachine.db.iapi.services.stream;
 
 public interface PrintWriterGetHeader
 {
-	/**
-	 *	getHeader
-	 *
-	 *  @return	The header for an output line. 
-	 *
-	 *  @see com.splicemachine.db.iapi.services.stream.HeaderPrintWriter
-	 **/
+    /**
+     *    getHeader
+     *
+     *  @return    The header for an output line. 
+     *
+     *  @see com.splicemachine.db.iapi.services.stream.HeaderPrintWriter
+     **/
 
-	String getHeader();
+    String getHeader();
 }
-	
+    

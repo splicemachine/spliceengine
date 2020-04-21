@@ -52,14 +52,14 @@ public class SysInfoLog
     public void exec(String jvmName, String javaCmd, String classpath,
         String framework, PrintWriter pw, boolean useprocess)
         throws Exception
-	{
+    {
         if ( useprocess == true )
         {
             // Create a process to run sysinfo
-    		Process pr = null;
-			jvm javavm = null; // to quiet the compiler
-    		try
-    		{
+            Process pr = null;
+            jvm javavm = null; // to quiet the compiler
+            try
+            {
                 // Create the command line
                 //System.out.println("jvmName: " + jvmName);
                 if ( (jvmName == null) || (jvmName.isEmpty()) )
@@ -67,10 +67,10 @@ public class SysInfoLog
                 else if (jvmName.startsWith("jdk13"))
                     jvmName = "jdk13";
 
-				javavm = jvm.getJvm(jvmName);
+                javavm = jvm.getJvm(jvmName);
                 if (javaCmd != null)
                     javavm.setJavaCmd(javaCmd);
-				
+                
                 if (javavm == null) System.out.println("WHOA, javavm is NULL");
                 if (javavm == null) pw.println("WHOA, javavm is NULL");
 
@@ -79,7 +79,7 @@ public class SysInfoLog
                     javavm.setClasspath(classpath);
                 }
 
-				Vector v = javavm.getCommandLine();
+                Vector v = javavm.getCommandLine();
                 v.addElement("com.splicemachine.db.tools.sysinfo");
                 // Now convert the vector into a string array
                 String[] sCmd = new String[v.size()];

@@ -46,142 +46,142 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 public class SubKeyConstraintDescriptor extends SubConstraintDescriptor
 {
-	/** Interface for SubKeyConstraintDescriptor is 
-		<ol>
-		<li>public UUID getIndexId();</li>
-		<li>public UUID getKeyConstraintId();</li>
-		</ol>
-	*/
+    /** Interface for SubKeyConstraintDescriptor is 
+        <ol>
+        <li>public UUID getIndexId();</li>
+        <li>public UUID getKeyConstraintId();</li>
+        </ol>
+    */
 
-	// Implementation
-	UUID					indexId;
-	UUID					keyConstraintId;
+    // Implementation
+    UUID                    indexId;
+    UUID                    keyConstraintId;
 
-	int                     raDeleteRule; //referential action rule for a DELETE 
-	int                     raUpdateRule; //referential action rule for a UPDATE
-
-
-	/**
-	 * Constructor for a SubConstraintDescriptorImpl
-	 *
-	 * @param constraintId		The UUID of the constraint.
-	 * @param indexId			The UUID of the backing index.
-	 */
-	public SubKeyConstraintDescriptor(UUID constraintId, UUID indexId)
-	{
-		super(constraintId);
-		this.indexId = indexId;
-	}
-
-	/**
-	 * Constructor for a SubConstraintDescriptor
-	 *
-	 * @param constraintId		The UUID of the constraint.
-	 * @param indexId			The UUID of the backing index.
-	 * @param keyConstraintId	The UUID of the referenced constraint (fks)
-	 */
-	public SubKeyConstraintDescriptor(UUID constraintId, UUID indexId, UUID keyConstraintId)
-	{
-		this(constraintId, indexId);
-		this.keyConstraintId = keyConstraintId;
-	}
+    int                     raDeleteRule; //referential action rule for a DELETE 
+    int                     raUpdateRule; //referential action rule for a UPDATE
 
 
-	/**
-	 * Constructor for a SubConstraintDescriptor
-	 *
-	 * @param constraintId		The UUID of the constraint.
-	 * @param indexId			The UUID of the backing index.
-	 * @param keyConstraintId	The UUID of the referenced constraint (fks)
-	 * @param raDeleteRule      The referential action for delete
-	 * @param raUpdateRule      The referential action for update
-	 */
-	public SubKeyConstraintDescriptor(UUID constraintId, UUID indexId, UUID
-									  keyConstraintId, int raDeleteRule, int raUpdateRule)
-	{
-		this(constraintId, indexId);
-		this.keyConstraintId = keyConstraintId;
-		this.raDeleteRule = raDeleteRule;
-		this.raUpdateRule = raUpdateRule;
-	}
+    /**
+     * Constructor for a SubConstraintDescriptorImpl
+     *
+     * @param constraintId        The UUID of the constraint.
+     * @param indexId            The UUID of the backing index.
+     */
+    public SubKeyConstraintDescriptor(UUID constraintId, UUID indexId)
+    {
+        super(constraintId);
+        this.indexId = indexId;
+    }
+
+    /**
+     * Constructor for a SubConstraintDescriptor
+     *
+     * @param constraintId        The UUID of the constraint.
+     * @param indexId            The UUID of the backing index.
+     * @param keyConstraintId    The UUID of the referenced constraint (fks)
+     */
+    public SubKeyConstraintDescriptor(UUID constraintId, UUID indexId, UUID keyConstraintId)
+    {
+        this(constraintId, indexId);
+        this.keyConstraintId = keyConstraintId;
+    }
 
 
+    /**
+     * Constructor for a SubConstraintDescriptor
+     *
+     * @param constraintId        The UUID of the constraint.
+     * @param indexId            The UUID of the backing index.
+     * @param keyConstraintId    The UUID of the referenced constraint (fks)
+     * @param raDeleteRule      The referential action for delete
+     * @param raUpdateRule      The referential action for update
+     */
+    public SubKeyConstraintDescriptor(UUID constraintId, UUID indexId, UUID
+                                      keyConstraintId, int raDeleteRule, int raUpdateRule)
+    {
+        this(constraintId, indexId);
+        this.keyConstraintId = keyConstraintId;
+        this.raDeleteRule = raDeleteRule;
+        this.raUpdateRule = raUpdateRule;
+    }
 
 
 
-	/**
-	 * Gets the UUID of the backing index.
-	 *
-	 * @return	The UUID of the backing index.
-	 */
-	public UUID	getIndexId()
-	{
-		return indexId;
-	}
-
-	/**
-	 * Gets the UUID of the referenced key constraint
-	 *
-	 * @return	The UUID of the referenced key constraint
-	 */
-	public UUID	getKeyConstraintId()
-	{
-		return keyConstraintId;
-	}
-
-	/**
-	 * Does this constraint have a backing index?
-	 *
-	 * @return boolean	Whether or not there is a backing index for this constraint.
-	 */
-	public boolean hasBackingIndex()
-	{
-		return true;
-	}
-
-	/**
-	 * Gets a referential action rule on a  DELETE
-	 * @return referential rule defined by the user during foreign key creattion
-	 * for a delete (like CASCDE , RESTRICT ..etc)
-	 */
-	public int	getRaDeleteRule()
-	{
-		return raDeleteRule;
-	}
-	
-	
-	/**
-	 * Gets a referential action rule on a UPDATE
-	 * @return referential rule defined by the user during foreign key creattion
-	 * for an UPDATE (like CASCDE , RESTRICT ..etc)
-	 */
-	public int	getRaUpdateRule()
-	{
-		return raUpdateRule;
-	}
-	
 
 
-	/**
-	 * Convert the SubKeyConstraintDescriptor to a String.
-	 *
-	 * @return	A String representation of this SubConstraintDescriptor
-	 */
+    /**
+     * Gets the UUID of the backing index.
+     *
+     * @return    The UUID of the backing index.
+     */
+    public UUID    getIndexId()
+    {
+        return indexId;
+    }
 
-	public String	toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			return "indexId: " + indexId + "\n" +
-				"keyConstraintId: " + keyConstraintId + "\n" +
-				"raDeleteRule: " + raDeleteRule + "\n" +
-				"raUpdateRule: " + raUpdateRule + "\n" +
-				super.toString();
-		}
-		else
-		{
-			return "";
-		}
-	}
+    /**
+     * Gets the UUID of the referenced key constraint
+     *
+     * @return    The UUID of the referenced key constraint
+     */
+    public UUID    getKeyConstraintId()
+    {
+        return keyConstraintId;
+    }
+
+    /**
+     * Does this constraint have a backing index?
+     *
+     * @return boolean    Whether or not there is a backing index for this constraint.
+     */
+    public boolean hasBackingIndex()
+    {
+        return true;
+    }
+
+    /**
+     * Gets a referential action rule on a  DELETE
+     * @return referential rule defined by the user during foreign key creattion
+     * for a delete (like CASCDE , RESTRICT ..etc)
+     */
+    public int    getRaDeleteRule()
+    {
+        return raDeleteRule;
+    }
+    
+    
+    /**
+     * Gets a referential action rule on a UPDATE
+     * @return referential rule defined by the user during foreign key creattion
+     * for an UPDATE (like CASCDE , RESTRICT ..etc)
+     */
+    public int    getRaUpdateRule()
+    {
+        return raUpdateRule;
+    }
+    
+
+
+    /**
+     * Convert the SubKeyConstraintDescriptor to a String.
+     *
+     * @return    A String representation of this SubConstraintDescriptor
+     */
+
+    public String    toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            return "indexId: " + indexId + "\n" +
+                "keyConstraintId: " + keyConstraintId + "\n" +
+                "raDeleteRule: " + raDeleteRule + "\n" +
+                "raUpdateRule: " + raUpdateRule + "\n" +
+                super.toString();
+        }
+        else
+        {
+            return "";
+        }
+    }
 
 }

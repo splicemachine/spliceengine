@@ -42,76 +42,76 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 import java.io.UTFDataFormatException;
 
 /**
-	An InputStream that allows reading from an array of bytes. The array
-	of bytes that is read from can be changed without having to create a new
-	instance of this class.
+    An InputStream that allows reading from an array of bytes. The array
+    of bytes that is read from can be changed without having to create a new
+    instance of this class.
 */
 public final class ArrayInputStream extends InputStream implements LimitObjectInput {
 
-	private byte[] pageData;
+    private byte[] pageData;
 
-	private int		start;
-	private int		end;		// exclusive
-	private int		position;
+    private int        start;
+    private int        end;        // exclusive
+    private int        position;
 
-	/**
-	 * Create an ArrayInputStream with a zero length byte array.
-	 * The position is set to 0 and the limit is the entire byte array.
-	 *
-	 */
-	public ArrayInputStream() {
-		this(ReuseFactory.getZeroLenByteArray());
-	}
+    /**
+     * Create an ArrayInputStream with a zero length byte array.
+     * The position is set to 0 and the limit is the entire byte array.
+     *
+     */
+    public ArrayInputStream() {
+        this(ReuseFactory.getZeroLenByteArray());
+    }
 
-	private ErrorObjectInput oi;
+    private ErrorObjectInput oi;
 
-	/**
-	 * Create an ArrayInputStream with the passed in data.
-	 * The position is set to 0 and the limit is the entire byte array.
-	 * @param data
-	 */
-	public ArrayInputStream(byte[] data) {
-		super();
-		setData(data);
-		oi = new com.splicemachine.db.iapi.services.io.FormatIdInputStream(this);
-	}
+    /**
+     * Create an ArrayInputStream with the passed in data.
+     * The position is set to 0 and the limit is the entire byte array.
+     * @param data
+     */
+    public ArrayInputStream(byte[] data) {
+        super();
+        setData(data);
+        oi = new com.splicemachine.db.iapi.services.io.FormatIdInputStream(this);
+    }
 
-	/*
-	** Public methods
-	*/
+    /*
+    ** Public methods
+    */
 
-	/**
-		Set the array of bytes to be read.
-		Position is set to zero.
-	*/
-	public void setData(byte[] data) {
-		pageData = data;
-		start = position = 0;
-		end = data.length;
-	}
+    /**
+        Set the array of bytes to be read.
+        Position is set to zero.
+    */
+    public void setData(byte[] data) {
+        pageData = data;
+        start = position = 0;
+        end = data.length;
+    }
 
-	/**
-		Return a reference to the array of bytes this stream is going to read
-		from so that caller may load it with stuff 
-	*/
-	public byte[] getData()
-	{
-		return pageData;
-	}
+    /**
+        Return a reference to the array of bytes this stream is going to read
+        from so that caller may load it with stuff 
+    */
+    public byte[] getData()
+    {
+        return pageData;
+    }
 
-	/*
-	** Methods of InputStream
-	*/
+    /*
+    ** Methods of InputStream
+    */
 
-	public int read() throws IOException {
-		if (position == end)
-			return -1; // end of file
+    public int read() throws IOException {
+        if (position == end)
+            return -1; // end of file
 
-		return pageData[position++] & 0xff ;
+        return pageData[position++] & 0xff ;
 
-	}
+    }
 
-	public int read(byte b[], int off, int len) throws IOException {
+    public int read(byte b[], int off, int len) throws IOException {
         final int available = available();
 
         if (len > available) {
@@ -126,10 +126,10 @@ public final class ArrayInputStream extends InputStream implements LimitObjectIn
             len = available;
         }
 
-		System.arraycopy(pageData, position, b, off, len);
-		position += len;
-		return len;
-	}
+        System.arraycopy(pageData, position, b, off, len);
+        position += len;
+        return len;
+    }
 
     /**
      * Skip as many bytes as possible, but no more than {@code count}.
@@ -137,7 +137,7 @@ public final class ArrayInputStream extends InputStream implements LimitObjectIn
      * @param count the number of bytes to skip
      * @return the number of bytes that were skipped
      */
-	public long skip(long count)  throws IOException {
+    public long skip(long count)  throws IOException {
 
         // return 0 on non-positive count, per javadoc for
         // InputStream.skip(long)
@@ -150,88 +150,88 @@ public final class ArrayInputStream extends InputStream implements LimitObjectIn
         position += toSkip;
         return toSkip;
 
-	}
+    }
 
-	public int getPosition() {
-		return position;
-	}
+    public int getPosition() {
+        return position;
+    }
 
-	public final void setPosition(int newPosition)
-		throws IOException {
+    public final void setPosition(int newPosition)
+        throws IOException {
 
         if ((newPosition >= start) && (newPosition < end))
             position = newPosition;
         else
-			throw new EOFException();
-	}
+            throw new EOFException();
+    }
 
-	public int available() throws IOException {
+    public int available() throws IOException {
 
-		return end - position;
-	}
+        return end - position;
+    }
 
 
-	/**
-		A setLimit which also sets the position to be offset.
+    /**
+        A setLimit which also sets the position to be offset.
 
-		@exception IOException limit is out of range 
-	*/
-	public void setLimit(int offset, int length) throws IOException {
+        @exception IOException limit is out of range 
+    */
+    public void setLimit(int offset, int length) throws IOException {
 
-		start = offset;
-		end = offset + length;
-		position = start;
+        start = offset;
+        end = offset + length;
+        position = start;
 
-		if ((offset < 0) || (length < 0) || (end > pageData.length)) {
-			start = end = position = 0;
-			throw new EOFException();
-		}
-	}
+        if ((offset < 0) || (length < 0) || (end > pageData.length)) {
+            start = end = position = 0;
+            throw new EOFException();
+        }
+    }
 
-	/*
-	** Methods of Limit
-	*/
+    /*
+    ** Methods of Limit
+    */
 
-	public final void setLimit(int length) throws IOException {
+    public final void setLimit(int length) throws IOException {
 
         start = position;
         end   = position + length;
 
         if (end > pageData.length) {
-			start = end = position = 0;
-			throw new EOFException();
+            start = end = position = 0;
+            throw new EOFException();
         }
-	}
+    }
 
-	/**
-		Clears the limit by setting the limit to be the entire byte array.
+    /**
+        Clears the limit by setting the limit to be the entire byte array.
 
-		@see Limit#clearLimit
-	*/
-	public final int clearLimit() {
+        @see Limit#clearLimit
+    */
+    public final int clearLimit() {
         start = 0;
         int remainingBytes = end - position;
         end = pageData.length;
         return remainingBytes;
-	}
+    }
 
-	/*
-	** Methods of DataInput
-	*/
+    /*
+    ** Methods of DataInput
+    */
 
     public final void readFully(byte b[]) throws IOException {
-		readFully(b, 0, b.length);
+        readFully(b, 0, b.length);
     }
 
     public final void readFully(byte b[], int off, int len) throws IOException {
 
-		if (len > available()) {
-			throw new EOFException();
-		}
+        if (len > available()) {
+            throw new EOFException();
+        }
 
-		System.arraycopy(pageData, position, b, off, len);
-		position += len;
-	}
+        System.arraycopy(pageData, position, b, off, len);
+        position += len;
+    }
 
     /**
      * Skip as many bytes as possible, but no more than {@code n}.
@@ -244,97 +244,97 @@ public final class ArrayInputStream extends InputStream implements LimitObjectIn
     }
 
     public final boolean readBoolean() throws IOException {
-		if (position == end)
-			throw new EOFException(); // end of file
+        if (position == end)
+            throw new EOFException(); // end of file
 
-		return pageData[position++] != 0;
+        return pageData[position++] != 0;
     }
 
     public final byte readByte() throws IOException {
-		if (position == end)
-			throw new EOFException(); // end of file
+        if (position == end)
+            throw new EOFException(); // end of file
 
-		return pageData[position++];
+        return pageData[position++];
     }
 
     public final int readUnsignedByte() throws IOException {
-		if (position == end)
-			throw new EOFException(); // end of file
+        if (position == end)
+            throw new EOFException(); // end of file
 
-		return pageData[position++] & 0xff ;
+        return pageData[position++] & 0xff ;
     }
 
     public final short readShort() throws IOException {
 
-		int pos = position;
-		byte[] data = pageData;
+        int pos = position;
+        byte[] data = pageData;
 
-		if (pos >= (end - 1))
-			throw new EOFException(); // end of file
+        if (pos >= (end - 1))
+            throw new EOFException(); // end of file
 
-		int s = ((data[pos++] & 0xff) << 8) | (data[pos++] & 0xff);
+        int s = ((data[pos++] & 0xff) << 8) | (data[pos++] & 0xff);
 
-		position = pos;
+        position = pos;
 
-		return (short) s;
+        return (short) s;
     }
 
    public final int readUnsignedShort() throws IOException {
- 		int    pos  = position;
-		byte[] data = pageData;
+         int    pos  = position;
+        byte[] data = pageData;
 
-		if (pos >= (end - 1))
-			throw new EOFException(); // end of file
+        if (pos >= (end - 1))
+            throw new EOFException(); // end of file
 
-		int us = ((data[pos++] & 0xff) << 8) | (data[pos++] & 0xff);
+        int us = ((data[pos++] & 0xff) << 8) | (data[pos++] & 0xff);
 
-		position = pos;
+        position = pos;
 
-		return us;
+        return us;
    }
 
     public final char readChar() throws IOException {
- 		int    pos  = position;
-		byte[] data = pageData;
+         int    pos  = position;
+        byte[] data = pageData;
 
-		if (pos >= (end -1))
-			throw new EOFException(); // end of file
+        if (pos >= (end -1))
+            throw new EOFException(); // end of file
 
-		int c = ((data[pos++] & 0xff) << 8) | (data[pos++] & 0xff);
+        int c = ((data[pos++] & 0xff) << 8) | (data[pos++] & 0xff);
 
-		position = pos;
+        position = pos;
 
-		return (char) c;
+        return (char) c;
     }
 
     public final int readInt() throws IOException {
 
- 		int pos = position;
-		byte[] data = pageData;
+         int pos = position;
+        byte[] data = pageData;
 
-		if (pos >= (end - 3))
-			throw new EOFException(); // end of file
+        if (pos >= (end - 3))
+            throw new EOFException(); // end of file
 
 
 
-		int i = ((data[pos++] & 0xff) << 24) |
+        int i = ((data[pos++] & 0xff) << 24) |
                 ((data[pos++] & 0xff) << 16) |
                 ((data[pos++] & 0xff) <<  8) |
                 ((data[pos++] & 0xff)      );
 
-		position = pos;
+        position = pos;
 
-		return i;
+        return i;
     }
 
     public final long readLong() throws IOException {
- 		int    pos  = position;
-		byte[] data = pageData;
+         int    pos  = position;
+        byte[] data = pageData;
 
-		if (pos >= (end - 7))
-			throw new EOFException(); // end of file
+        if (pos >= (end - 7))
+            throw new EOFException(); // end of file
 
-		long l = 
+        long l = 
             (((long) (data[pos++] & 0xff)) << 56) |
             (((long) (data[pos++] & 0xff)) << 48) |
             (((long) (data[pos++] & 0xff)) << 40) |
@@ -344,24 +344,24 @@ public final class ArrayInputStream extends InputStream implements LimitObjectIn
             (((long) (data[pos++] & 0xff)) <<  8) | 
             (((long) (data[pos++] & 0xff))      );
 
-		position = pos;
+        position = pos;
 
-		return l;
+        return l;
     }
 
     public final float readFloat() throws IOException {
-		return Float.intBitsToFloat(readInt());
+        return Float.intBitsToFloat(readInt());
     }
 
     public final double readDouble() throws IOException {
-		return Double.longBitsToDouble(readLong());
+        return Double.longBitsToDouble(readLong());
     }
 
     public final String readLine() throws IOException {
-		return oi.readLine();
+        return oi.readLine();
     }
     public final String readUTF() throws IOException {
-		return oi.readUTF();
+        return oi.readUTF();
     }
 
     /**
@@ -384,7 +384,7 @@ public final class ArrayInputStream extends InputStream implements LimitObjectIn
      * The stream must be positioned on the first user byte when this method
      * is invoked.
      *
-	 * @return The the number of valid char's in the returned char[].
+     * @return The the number of valid char's in the returned char[].
      *
      * @param rawData_array This parameter uses a element array to implement
      *                      an in/out function parameter.  The char[] array
@@ -397,15 +397,15 @@ public final class ArrayInputStream extends InputStream implements LimitObjectIn
      *                      one passed in.
      * @param utflen the byte length of the value, or {@code 0} if unknown
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     public final int readDerbyUTF(char[][] rawData_array, int utflen)
         throws IOException
-	{
+    {
         // copy globals locally, to give compiler chance to optimize.
         byte[]  data    = pageData;
         int     end_pos = end;
- 		int     pos     = position;
+         int     pos     = position;
 
         /**
          * 3 cases - can they all happen?
@@ -419,7 +419,7 @@ public final class ArrayInputStream extends InputStream implements LimitObjectIn
         // either the utflen in the header length, or the number of bytes
         // available in the array.  Throw an exception if we know up front
         // that utflen is bigger than number of bytes in the array.
-		int requiredLength;
+        int requiredLength;
         if (utflen != 0)
         {
             // this is the only place we need to check for end of file, 
@@ -450,82 +450,82 @@ public final class ArrayInputStream extends InputStream implements LimitObjectIn
         // the array will have extra space at the end.  "strlen" tracks the
         // real number of char's in str[].
         char[] str = rawData_array[0];
-		if ((str == null) || (requiredLength > str.length)) 
+        if ((str == null) || (requiredLength > str.length)) 
         {
-			str = new char[requiredLength];
+            str = new char[requiredLength];
             rawData_array[0] = str;
-		} 
+        } 
 
         end_pos = pos + requiredLength;
         int strlen = 0;
 
         while (pos < end_pos)
         {
-			int char1 = (data[pos++] & 0xff);
+            int char1 = (data[pos++] & 0xff);
 
-			// top fours bits of the first unsigned byte that maps to a 1,2 
+            // top fours bits of the first unsigned byte that maps to a 1,2 
             // or 3 byte character
-			//
-			// 0000xxxx	- 0 - 1 byte char
-			// 0001xxxx - 1 - 1 byte char
-			// 0010xxxx - 2 - 1 byte char
-			// 0011xxxx - 3 - 1 byte char
-			// 0100xxxx - 4 - 1 byte char
-			// 0101xxxx - 5 - 1 byte char
-			// 0110xxxx - 6 - 1 byte char
-			// 0111xxxx - 7 - 1 byte char
-			// 1000xxxx - 8 - error
-			// 1001xxxx - 9 - error
-			// 1010xxxx - 10 - error
-			// 1011xxxx - 11 - error
-			// 1100xxxx - 12 - 2 byte char
-			// 1101xxxx - 13 - 2 byte char
-			// 1110xxxx - 14 - 3 byte char
-			// 1111xxxx - 15 - error
+            //
+            // 0000xxxx    - 0 - 1 byte char
+            // 0001xxxx - 1 - 1 byte char
+            // 0010xxxx - 2 - 1 byte char
+            // 0011xxxx - 3 - 1 byte char
+            // 0100xxxx - 4 - 1 byte char
+            // 0101xxxx - 5 - 1 byte char
+            // 0110xxxx - 6 - 1 byte char
+            // 0111xxxx - 7 - 1 byte char
+            // 1000xxxx - 8 - error
+            // 1001xxxx - 9 - error
+            // 1010xxxx - 10 - error
+            // 1011xxxx - 11 - error
+            // 1100xxxx - 12 - 2 byte char
+            // 1101xxxx - 13 - 2 byte char
+            // 1110xxxx - 14 - 3 byte char
+            // 1111xxxx - 15 - error
 
-			int char2, char3;
-			if ((char1 & 0x80) == 0x00)
-			{
-				// one byte character
-				str[strlen++] = (char) char1;
-			}
-			else if ((char1 & 0x60) == 0x40) // we know the top bit is set here
-			{ 
-				// two byte character, make sure read of next byte is in bounds.
+            int char2, char3;
+            if ((char1 & 0x80) == 0x00)
+            {
+                // one byte character
+                str[strlen++] = (char) char1;
+            }
+            else if ((char1 & 0x60) == 0x40) // we know the top bit is set here
+            { 
+                // two byte character, make sure read of next byte is in bounds.
                 if (pos >= end_pos)
-					throw new UTFDataFormatException();		  
+                    throw new UTFDataFormatException();          
 
                 char2 = (data[pos++] & 0xff);
 
-				if ((char2 & 0xC0) != 0x80)
-					throw new UTFDataFormatException();		  
+                if ((char2 & 0xC0) != 0x80)
+                    throw new UTFDataFormatException();          
 
-				str[strlen++] = (char)(((char1 & 0x1F) << 6) | (char2 & 0x3F));
-			}
-			else if ((char1 & 0x70) == 0x60) // we know the top bit is set here
-			{
-				// three byte character
+                str[strlen++] = (char)(((char1 & 0x1F) << 6) | (char2 & 0x3F));
+            }
+            else if ((char1 & 0x70) == 0x60) // we know the top bit is set here
+            {
+                // three byte character
 
-				// 3 byte character, make sure read of next 2 bytes in bounds.
+                // 3 byte character, make sure read of next 2 bytes in bounds.
                 if (pos + 1 >= end_pos)
-					throw new UTFDataFormatException();		  
+                    throw new UTFDataFormatException();          
 
                 char2 = (data[pos++] & 0xff);
                 char3 = (data[pos++] & 0xff);
 
-				if ((char1 == 0xE0) && 
+                if ((char1 == 0xE0) && 
                     (char2 ==    0) && 
                     (char3 ==    0) && 
                     (utflen == 0))
-				{
-					// we reached the end of a long string,
-					// that was terminated with
-					// (11100000, 00000000, 00000000)
+                {
+                    // we reached the end of a long string,
+                    // that was terminated with
+                    // (11100000, 00000000, 00000000)
                     break;
-				}
+                }
                 else if (((char2 & 0xC0) != 0x80) || ((char3 & 0xC0) != 0x80))
                 {
-					throw new UTFDataFormatException();		  
+                    throw new UTFDataFormatException();          
                 }
                 else
                 {
@@ -534,19 +534,19 @@ public final class ArrayInputStream extends InputStream implements LimitObjectIn
                          ((char2 & 0x3F) <<  6) | 
                          ((char3 & 0x3F) <<  0));
                 }
-			}
-			else 
+            }
+            else 
             {
-				throw new UTFDataFormatException();
-			}
+                throw new UTFDataFormatException();
+            }
 
-		}
+        }
 
         // update global on successful read exit.
         position = pos;
 
         return(strlen);
-	}
+    }
 
     /**
      * Read a compressed int from the stream.
@@ -566,13 +566,13 @@ public final class ArrayInputStream extends InputStream implements LimitObjectIn
      * 4 byte- 1xxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx val > 16383 && <= MAX_INT
      * </PRE>
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     public final int readCompressedInt()
         throws IOException
     {
- 		int    pos  = position;
-		byte[] data = pageData;
+         int    pos  = position;
+        byte[] data = pageData;
 
         try
         {
@@ -631,7 +631,7 @@ public final class ArrayInputStream extends InputStream implements LimitObjectIn
         }
         catch (java.lang.ArrayIndexOutOfBoundsException ex)
         {
-			throw new EOFException(); // end of file
+            throw new EOFException(); // end of file
         }
 
     }
@@ -726,17 +726,17 @@ public final class ArrayInputStream extends InputStream implements LimitObjectIn
         {
             // let java figure out if we went past end of data[] array.
             
-			throw new EOFException(); // end of file
+            throw new EOFException(); // end of file
         }
     }
 
-	public Object readObject() throws ClassNotFoundException, IOException {
-		return oi.readObject();
-	}
+    public Object readObject() throws ClassNotFoundException, IOException {
+        return oi.readObject();
+    }
 
-	public String getErrorInfo()  {
-		return oi.getErrorInfo();
-	}
+    public String getErrorInfo()  {
+        return oi.getErrorInfo();
+    }
 
     public Exception getNestedException() {
         return oi.getNestedException();

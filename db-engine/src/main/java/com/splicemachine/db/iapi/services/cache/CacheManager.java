@@ -40,242 +40,242 @@ import java.util.Collection;
 
 public interface CacheManager {
 
-	/**
+    /**
         Find an object in the cache.
         <p>
-		Find an object in the cache that matches the key provided using the equals()
-		method, i.e. the return Cacheable will have getIdentifier.equals(key) true.
-		If the object does not exist in the cache it will be added by one of:
-		<UL>
-		<LI>creating a new holder object and calling its initParameter() method and then its
-		setIdentity() method with key as the parameter.
-		<LI>Calling clearIdentity() on an holder object in the clean state and then calling its
-		setIdentity() method with key as the parameter.
-		<LI>Calling clean() on a dirty holder object and then calling clearIdentity() on an
-		holder object in the clean state and then calling its setIdentity() method with key
-		as the parameter.
-		</UL>
-		In all cases the setIdentity() method is called with forCreate set to false. 
-		<BR>
-		The returned object is kept, i.e. its identity will not change, until the release()
-		method is called. The release() method must be called after the caller is finished
-		with the object and throw away the reference to it, e.g.
-		<PRE>
-			Page p = (Page) pageCache.find(pageKey);
+        Find an object in the cache that matches the key provided using the equals()
+        method, i.e. the return Cacheable will have getIdentifier.equals(key) true.
+        If the object does not exist in the cache it will be added by one of:
+        <UL>
+        <LI>creating a new holder object and calling its initParameter() method and then its
+        setIdentity() method with key as the parameter.
+        <LI>Calling clearIdentity() on an holder object in the clean state and then calling its
+        setIdentity() method with key as the parameter.
+        <LI>Calling clean() on a dirty holder object and then calling clearIdentity() on an
+        holder object in the clean state and then calling its setIdentity() method with key
+        as the parameter.
+        </UL>
+        In all cases the setIdentity() method is called with forCreate set to false. 
+        <BR>
+        The returned object is kept, i.e. its identity will not change, until the release()
+        method is called. The release() method must be called after the caller is finished
+        with the object and throw away the reference to it, e.g.
+        <PRE>
+            Page p = (Page) pageCache.find(pageKey);
 
-			// do stuff with p
+            // do stuff with p
 
-			// release p
-			pageCache.release(p);
-			p = null;
-			
-		</PRE>
+            // release p
+            pageCache.release(p);
+            p = null;
+            
+        </PRE>
 
-		@return A reference to an object in the cache, or null if the object cannot be found.
+        @return A reference to an object in the cache, or null if the object cannot be found.
 
-		@exception StandardException Standard Derby error policy.
+        @exception StandardException Standard Derby error policy.
 
-		@see Cacheable#setIdentity
+        @see Cacheable#setIdentity
 
-	*/
-	Cacheable find(Object key) throws StandardException;
+    */
+    Cacheable find(Object key) throws StandardException;
 
-	/**
+    /**
         Find an object in the cache.
         <p>
-		Find an object in the cache that matches the key provided using the equals()
-		method, i.e. the return Cacheable will have getIdentifier.equals(key) true.
-		If a matching object does not exist in the cache, null is returned.
-		<BR>
-		The returned object is kept, i.e. its identity will not change, until the release()
-		method is called. The release() method must be called after the caller is finished
-		with the object and throw away the reference to it, e.g.
-		<PRE>
-			Page p = (Page) pageCache.findCached(pageKey);
-			if (p != null) {
+        Find an object in the cache that matches the key provided using the equals()
+        method, i.e. the return Cacheable will have getIdentifier.equals(key) true.
+        If a matching object does not exist in the cache, null is returned.
+        <BR>
+        The returned object is kept, i.e. its identity will not change, until the release()
+        method is called. The release() method must be called after the caller is finished
+        with the object and throw away the reference to it, e.g.
+        <PRE>
+            Page p = (Page) pageCache.findCached(pageKey);
+            if (p != null) {
 
-				// do stuff with p
+                // do stuff with p
 
-				// release p
-				pageCache.release(p);
-				p = null;
-			}
-			
-		</PRE>
-		@exception StandardException Standard Derby error policy.
-	*/
-	Cacheable findCached(Object key) throws StandardException;
+                // release p
+                pageCache.release(p);
+                p = null;
+            }
+            
+        </PRE>
+        @exception StandardException Standard Derby error policy.
+    */
+    Cacheable findCached(Object key) throws StandardException;
 
-	/**
-		Create an object in the cache. The resulting object will match the key provided using the equals()
-		method, i.e. the return Cacheable will have getIdentifier.equals(key) true.
-		If an object that matches the key already exists in the cache then
-		an exception is thrown. 
-		<BR>
-		The object will be added by one of:
-		<UL>
-		<LI>creating a new holder object and calling its initParameter() method and then its
-		createIdentity() method with key as the parameter.
-		<LI>Calling clearIdentity() on an holder object in the clean state and then calling its
-		createIdentity() method with key as the parameter.
-		<LI>Calling clean() on a dirty holder object and then calling clearIdentity() on an
-		holder object in the clean state and then calling its createIdentity() method with key
-		as the parameter.
-		</UL>
-		In all cases the setIdentity() method is called with the createParameter as the second
-		argument.
-		If the object cannot be created then an exception is thrown by createIdentity.
-		<BR>
-		The returned object is kept, i.e. its identity will not change, until the release()
-		method is called. The release() method must be called after the caller is finished
-		with the object and throw away the reference to it, e.g.
-		<PRE>
-			Page p = (Page) pageCache.create(pageKey, createType);
+    /**
+        Create an object in the cache. The resulting object will match the key provided using the equals()
+        method, i.e. the return Cacheable will have getIdentifier.equals(key) true.
+        If an object that matches the key already exists in the cache then
+        an exception is thrown. 
+        <BR>
+        The object will be added by one of:
+        <UL>
+        <LI>creating a new holder object and calling its initParameter() method and then its
+        createIdentity() method with key as the parameter.
+        <LI>Calling clearIdentity() on an holder object in the clean state and then calling its
+        createIdentity() method with key as the parameter.
+        <LI>Calling clean() on a dirty holder object and then calling clearIdentity() on an
+        holder object in the clean state and then calling its createIdentity() method with key
+        as the parameter.
+        </UL>
+        In all cases the setIdentity() method is called with the createParameter as the second
+        argument.
+        If the object cannot be created then an exception is thrown by createIdentity.
+        <BR>
+        The returned object is kept, i.e. its identity will not change, until the release()
+        method is called. The release() method must be called after the caller is finished
+        with the object and throw away the reference to it, e.g.
+        <PRE>
+            Page p = (Page) pageCache.create(pageKey, createType);
 
-			// do stuff with p
+            // do stuff with p
 
-			// release p
-			pageCache.release(p);
-			p = null;
-			
-		</PRE>
+            // release p
+            pageCache.release(p);
+            p = null;
+            
+        </PRE>
 
-		@return A reference to an object in the cache.
+        @return A reference to an object in the cache.
 
-		@exception StandardException Standard Derby error policy.
+        @exception StandardException Standard Derby error policy.
 
-		@see Cacheable#createIdentity
+        @see Cacheable#createIdentity
 
-	*/
-	Cacheable create(Object key, Object createParameter) throws StandardException;
+    */
+    Cacheable create(Object key, Object createParameter) throws StandardException;
 
-	/**
-		Release a <code>Cacheable</code> object previously found with
-		<code>find()</code> or <code>findCached()</code>, or created with
-		<code>create()</code>, and which is still kept by the caller.
-		After this call the caller must throw away the reference to item.
+    /**
+        Release a <code>Cacheable</code> object previously found with
+        <code>find()</code> or <code>findCached()</code>, or created with
+        <code>create()</code>, and which is still kept by the caller.
+        After this call the caller must throw away the reference to item.
 
-		@param entry the cached object to release
-	*/
-	void release(Cacheable entry);
+        @param entry the cached object to release
+    */
+    void release(Cacheable entry);
 
-	/**
-		Delete and remove an object from the cache. It is up to the user of the cache
-		to provide synchronization of some form that ensures that only one caller
-		executes remove() on a cached object.
-		<BR>
-		The object must previously have been found with <code>find()</code> or
-		<code>findCached()</code>, or created with <code>create()</code>, and
-		it must still be kept by the caller.
-		The item will be placed into the NoIdentity
-		state through clean(true) (if required) and clearIdentity(). The removal of the
-		object will be delayed until it is not kept by anyone. Objects that are in the
-		to be removed state can still be found through find() and findCached()
-		until their keep count drops to zero. This call waits until the object
-		has been removed.
-		<BR>
-		After this call the caller must throw away the reference to item.
+    /**
+        Delete and remove an object from the cache. It is up to the user of the cache
+        to provide synchronization of some form that ensures that only one caller
+        executes remove() on a cached object.
+        <BR>
+        The object must previously have been found with <code>find()</code> or
+        <code>findCached()</code>, or created with <code>create()</code>, and
+        it must still be kept by the caller.
+        The item will be placed into the NoIdentity
+        state through clean(true) (if required) and clearIdentity(). The removal of the
+        object will be delayed until it is not kept by anyone. Objects that are in the
+        to be removed state can still be found through find() and findCached()
+        until their keep count drops to zero. This call waits until the object
+        has been removed.
+        <BR>
+        After this call the caller must throw away the reference to item.
 
-		@param entry the object to remove from the cache
+        @param entry the object to remove from the cache
 
-		@exception StandardException Standard Derby error policy.
-	*/
-	void remove(Cacheable entry) throws StandardException;
+        @exception StandardException Standard Derby error policy.
+    */
+    void remove(Cacheable entry) throws StandardException;
 
-	/**
-		Place all objects in their clean state by calling their clean method
-		if they are dirty. This method guarantees that all objects that existed
-		in the cache at the time of the call are placed in the clean state 
+    /**
+        Place all objects in their clean state by calling their clean method
+        if they are dirty. This method guarantees that all objects that existed
+        in the cache at the time of the call are placed in the clean state 
         sometime during this call. Objects that are added to the cache during 
         this call or objects that are dirtied during this call (by other 
         callers) are not guaranteed to be clean once this call returns.
 
-		@see Cacheable#clean
-		@see Cacheable#isDirty
+        @see Cacheable#clean
+        @see Cacheable#isDirty
 
-		@exception StandardException Standard Derby error policy.
-	*/
-	void cleanAll() throws StandardException;
+        @exception StandardException Standard Derby error policy.
+    */
+    void cleanAll() throws StandardException;
 
-	/**
-		Clean all objects that match the partialKey (or exact key).
-		Any cached object that results in the partialKey.equals(Object)
-		method returning true when passed the cached object will be cleaned. 
-		<P>
-		In order to clean more than one object the Cacheable equals method must
+    /**
+        Clean all objects that match the partialKey (or exact key).
+        Any cached object that results in the partialKey.equals(Object)
+        method returning true when passed the cached object will be cleaned. 
+        <P>
+        In order to clean more than one object the Cacheable equals method must
         be able to handle a partial key, e.g. a page has PageKey but a clean 
         may pass a ContainerKey which will discard all pages in that container.
 
-		@exception StandardException Standard Derby error policy.
-	*/
-	void clean(Matchable partialKey) throws StandardException;
+        @exception StandardException Standard Derby error policy.
+    */
+    void clean(Matchable partialKey) throws StandardException;
 
-	/**
-		Age as many objects as possible out of the cache.
-		This call is guaranteed not to block.
-		It is not guaranteed to leave the cache empty.
+    /**
+        Age as many objects as possible out of the cache.
+        This call is guaranteed not to block.
+        It is not guaranteed to leave the cache empty.
 
-		<BR>
-		It is guaranteed that all unkept, clean objects will be
-		removed from the cache.
+        <BR>
+        It is guaranteed that all unkept, clean objects will be
+        removed from the cache.
 
-		@see Cacheable#clean
-		@see Cacheable#clearIdentity
+        @see Cacheable#clean
+        @see Cacheable#clearIdentity
 
 
-	*/
-	void ageOut();
+    */
+    void ageOut();
 
-	/**
-		Shutdown the cache. This call stops the cache returning
-		any more valid references on a <code>find()</code>,
-		<code>findCached()</code> or <code>create()</code> call,
-		and then cleanAll() and ageOut() are called. The cache remains
-		in existence until the last kept object has been unkept.
+    /**
+        Shutdown the cache. This call stops the cache returning
+        any more valid references on a <code>find()</code>,
+        <code>findCached()</code> or <code>create()</code> call,
+        and then cleanAll() and ageOut() are called. The cache remains
+        in existence until the last kept object has been unkept.
 
-		@exception StandardException Standard Derby error policy.
+        @exception StandardException Standard Derby error policy.
 
-	*/
-	void shutdown() throws StandardException;
+    */
+    void shutdown() throws StandardException;
 
-	/**
-		This cache can use this DaemonService if it needs some work to be done
-		in the background. The caller must ensure that it has exclusive access
+    /**
+        This cache can use this DaemonService if it needs some work to be done
+        in the background. The caller must ensure that it has exclusive access
         to the cache when this method is called. No synchronization is required
         in the implementations of this method.
-	*/
-	void useDaemonService(DaemonService daemon);
+    */
+    void useDaemonService(DaemonService daemon);
 
 
-	/**
-		Discard all objects that match the partialKey (or exact key).
-		Any cached object that results in the partialKey.equals(Object)
-		method returning true when passed the cached object will be thrown out of the cache
-		if and only if it is not in use. The Cacheable
-		will be discarded without its clean method being called.
-		<P>
-		If partialKey is null, it matches all objects.  This is a way to
-		discard all objects from the cache in case of emergency shutdown.
-		<P>
-		In order to discard more than one object the Cacheable equals method must be able to handle
-		a partial key, e.g. a page has PageKey but a discard may pass a ContainerKey which will discard
-		all pages in that container.
-		<P>
-		@return true if discard has successful gotten rid of all objects that
-		match the partial or exact key.  False if some objects that matches
-		were not gotten rid of because it was kept.
-	*/
-	boolean discard(Matchable partialKey);
+    /**
+        Discard all objects that match the partialKey (or exact key).
+        Any cached object that results in the partialKey.equals(Object)
+        method returning true when passed the cached object will be thrown out of the cache
+        if and only if it is not in use. The Cacheable
+        will be discarded without its clean method being called.
+        <P>
+        If partialKey is null, it matches all objects.  This is a way to
+        discard all objects from the cache in case of emergency shutdown.
+        <P>
+        In order to discard more than one object the Cacheable equals method must be able to handle
+        a partial key, e.g. a page has PageKey but a discard may pass a ContainerKey which will discard
+        all pages in that container.
+        <P>
+        @return true if discard has successful gotten rid of all objects that
+        match the partial or exact key.  False if some objects that matches
+        were not gotten rid of because it was kept.
+    */
+    boolean discard(Matchable partialKey);
 
-	/**
-	 * Return a Collection of the Cacheables currently in the
-	 * cache. The Collection should be a copy so that external
-	 * synchronization isn't required.
-	 *
-	 * <p>
-	 * This method should only be used for diagnostic purposes.
-	 *
-	 * @return a Collection of all the elements in the cache
-	 */
-	Collection values();
+    /**
+     * Return a Collection of the Cacheables currently in the
+     * cache. The Collection should be a copy so that external
+     * synchronization isn't required.
+     *
+     * <p>
+     * This method should only be used for diagnostic purposes.
+     *
+     * @return a Collection of all the elements in the cache
+     */
+    Collection values();
 }

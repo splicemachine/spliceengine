@@ -50,23 +50,23 @@ import java.io.InputStream;
  */
 public class AccessibleByteArrayOutputStream extends ByteArrayOutputStream {
 
-	public AccessibleByteArrayOutputStream() {
-		super();
-	}
+    public AccessibleByteArrayOutputStream() {
+        super();
+    }
 
-	public AccessibleByteArrayOutputStream(int size) {
-		super(size);
-	}
+    public AccessibleByteArrayOutputStream(int size) {
+        super(size);
+    }
 
-	/**
-	 * The caller promises to set their variable to null
-	 * before any other calls to write to this stream are made.
-	   Or promises to throw away references to the stream before
-	   passing the array reference out of its control.
-	 */
-	public byte[] getInternalByteArray() {
-		return buf;
-	}
+    /**
+     * The caller promises to set their variable to null
+     * before any other calls to write to this stream are made.
+       Or promises to throw away references to the stream before
+       passing the array reference out of its control.
+     */
+    public byte[] getInternalByteArray() {
+        return buf;
+    }
     
     /**
      * Read the complete contents of the passed input stream

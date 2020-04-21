@@ -115,7 +115,7 @@ public class UserLobTest extends GeneratedColumnsHelper
              conn,
              "create function f_2201_blob_1\n" +
              "(\n" +
-             "	a_0 varchar( 10 )\n" +
+             "    a_0 varchar( 10 )\n" +
              ")\n" +
              "returns blob\n" +
              "language java\n" +
@@ -128,7 +128,7 @@ public class UserLobTest extends GeneratedColumnsHelper
              conn,
              "create function f_2201_clob_1\n" +
              "(\n" +
-             "	a_0 varchar( 10 )\n" +
+             "    a_0 varchar( 10 )\n" +
              ")\n" +
              "returns clob\n" +
              "language java\n" +

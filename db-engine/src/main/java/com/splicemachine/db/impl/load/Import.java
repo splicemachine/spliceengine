@@ -64,124 +64,124 @@ public class Import extends ImportAbstract{
 
     private String inputFileName;
 
-	/**
-	 * Constructior to Invoke Import from a select statement 
-	 * @param inputFileName	 The URL of the ASCII file from which import will happen
-	 * @exception Exception on error 
-	 */
-	public Import(String inputFileName, String columnDelimiter,
+    /**
+     * Constructior to Invoke Import from a select statement 
+     * @param inputFileName     The URL of the ASCII file from which import will happen
+     * @exception Exception on error 
+     */
+    public Import(String inputFileName, String columnDelimiter,
                   String characterDelimiter,  String codeset, 
                   int noOfColumnsExpected,  String columnTypes, 
                   boolean lobsInExtFile,
                   int importCounter,
                   String columnTypeNames, String udtClassNamesString ) throws SQLException 
-	{
-		try{
-			this.inputFileName = inputFileName;
+    {
+        try{
+            this.inputFileName = inputFileName;
             this.noOfColumnsExpected = noOfColumnsExpected;
             this.tableColumnTypesStr = columnTypes;
             this.columnTypeNamesString = columnTypeNames;
             this.udtClassNamesString = udtClassNamesString;
-			controlFileReader = new ControlInfo();
-			controlFileReader.setControlProperties(characterDelimiter,
-												   columnDelimiter, codeset);
+            controlFileReader = new ControlInfo();
+            controlFileReader.setControlProperties(characterDelimiter,
+                                                   columnDelimiter, codeset);
             this.lobsInExtFile = lobsInExtFile;
 
             _importers.put(importCounter, this );
             
-			doImport();
+            doImport();
 
-		}catch(Exception e)
-		{
-			throw importError(e);
-		}
-	}
+        }catch(Exception e)
+        {
+            throw importError(e);
+        }
+    }
 
 
-	private void doImport() throws Exception
-	{
-		if (inputFileName == null)
-			throw LoadError.dataFileNull();
-		doAllTheWork();
+    private void doImport() throws Exception
+    {
+        if (inputFileName == null)
+            throw LoadError.dataFileNull();
+        doAllTheWork();
 
-	}
+    }
 
-	
-	/**
-	 * SYSCS_IMPORT_TABLE  system Procedure from ij or from a Java application
-	 * invokes  this method to perform import to a table from a file.
-	 * @param connection	 The Derby database connection URL for the database containing the table
-	 * @param schemaName	The name of the schema where table to import exists 
-	 * @param tableName     Name of the Table the data has to be imported to.
-	 * @param inputFileName Name of the file from which data has to be imported.
-	 * @param columnDelimiter  Delimiter that seperates columns in the file
-	 * @param characterDelimiter  Delimiter that is used to quiote non-numeric types
-	 * @param tableDefinition     table definition for the data in the file
-	 * @param lobsInExtFile true, if the lobs data is stored in an external file,
+    
+    /**
+     * SYSCS_IMPORT_TABLE  system Procedure from ij or from a Java application
+     * invokes  this method to perform import to a table from a file.
+     * @param connection     The Derby database connection URL for the database containing the table
+     * @param schemaName    The name of the schema where table to import exists 
+     * @param tableName     Name of the Table the data has to be imported to.
+     * @param inputFileName Name of the file from which data has to be imported.
+     * @param columnDelimiter  Delimiter that seperates columns in the file
+     * @param characterDelimiter  Delimiter that is used to quiote non-numeric types
+     * @param tableDefinition     table definition for the data in the file
+     * @param lobsInExtFile true, if the lobs data is stored in an external file,
      *                      and the reference to it is stored in the main import file.
- 	 * @exception SQLException on errors
-	 */
+      * @exception SQLException on errors
+     */
 
-	public static void importTable(Connection connection, String schemaName, 
+    public static void importTable(Connection connection, String schemaName, 
                                    String tableName, String inputFileName,  
                                    String columnDelimiter, 
                                    String characterDelimiter,String tableDefinition,
                                    boolean lobsInExtFile)
-		throws SQLException {
+        throws SQLException {
 
 
-		performImport(connection,  schemaName,  null, //No columnList 
-					  null , //No column indexes
-					  tableName, inputFileName, columnDelimiter, 
-					  characterDelimiter, tableDefinition, lobsInExtFile);
-	}
+        performImport(connection,  schemaName,  null, //No columnList 
+                      null , //No column indexes
+                      tableName, inputFileName, columnDelimiter, 
+                      characterDelimiter, tableDefinition, lobsInExtFile);
+    }
 
 
 
-		
-	/**
-	 * SYSCS_IMPORT_DATA  system Procedure from ij or from a Java application
-	 * invokes  this method to perform import to a table from a file.
-	 * @param connection	 The Derby database connection URL for the database containing the table
-	 * @param schemaName	The name of the schema where table to import exists 
-	 * @param tableName     Name of the Table the data has to be imported to.
-	 * @param insertColumnList  Comma Seperated column name list to which data
-	 *                          has to be imported from file.eg: 'c2,c2,'c3'.
-	 * @param columnIndexes     Comma sepearted Lit Index of the columns in the file(first column
-	                             starts at 1). eg: '3 ,4 , 5'
-	 * @param inputFileName Name of the file from which data has to be imported.
-	 * @param columnDelimiter  Delimiter that seperates columns in the file
-	 * @param characterDelimiter  Delimiter that is used to quiote non-numeric types
-	 * @param tableDefinition     table definition for the data in the file
-	 * @param lobsInExtFile true, if the lobs data is stored in an external file,
+        
+    /**
+     * SYSCS_IMPORT_DATA  system Procedure from ij or from a Java application
+     * invokes  this method to perform import to a table from a file.
+     * @param connection     The Derby database connection URL for the database containing the table
+     * @param schemaName    The name of the schema where table to import exists 
+     * @param tableName     Name of the Table the data has to be imported to.
+     * @param insertColumnList  Comma Seperated column name list to which data
+     *                          has to be imported from file.eg: 'c2,c2,'c3'.
+     * @param columnIndexes     Comma sepearted Lit Index of the columns in the file(first column
+                                 starts at 1). eg: '3 ,4 , 5'
+     * @param inputFileName Name of the file from which data has to be imported.
+     * @param columnDelimiter  Delimiter that seperates columns in the file
+     * @param characterDelimiter  Delimiter that is used to quiote non-numeric types
+     * @param tableDefinition     table definition for the data in the file
+     * @param lobsInExtFile true, if the lobs data is stored in an external file,
      *                      and the reference is stored in the main import file.
- 	 * @exception SQLException on errors
-	 */
-	public static void importData(Connection connection, String schemaName,
+      * @exception SQLException on errors
+     */
+    public static void importData(Connection connection, String schemaName,
                                   String tableName, String insertColumnList, 
                                   String columnIndexes, String inputFileName, 
                                   String columnDelimiter, 
                                   String characterDelimiter,
                                   String tableDefinition,
                                   boolean lobsInExtFile)
-		throws SQLException 
-	{
-		
+        throws SQLException 
+    {
+        
 
-			performImport(connection, schemaName, insertColumnList, columnIndexes,
+            performImport(connection, schemaName, insertColumnList, columnIndexes,
                     tableName, inputFileName, columnDelimiter,
                     characterDelimiter, tableDefinition, lobsInExtFile);
-	}
+    }
 
 
-	/*
-	 * This function creates and executes  SQL Insert statement that performs the 
-	 * the import using VTI. 
-	 * eg:
-	 * insert into T1 select  (cast column1 as DECIMAL), (cast column2 as
-	 * INTEGER)  from new com.splicemachine.db.impl.load.Import('extin/Tutor1.asc') as importvti;
-	 *
-	 */
+    /*
+     * This function creates and executes  SQL Insert statement that performs the 
+     * the import using VTI. 
+     * eg:
+     * insert into T1 select  (cast column1 as DECIMAL), (cast column2 as
+     * INTEGER)  from new com.splicemachine.db.impl.load.Import('extin/Tutor1.asc') as importvti;
+     *
+     */
     private static void performImport
         (Connection connection, 
          String schemaName, 
@@ -278,12 +278,12 @@ public class Import extends ImportAbstract{
         }
     }
 
-	/** virtual method from the abstract class
-	 * @exception	Exception on error
-	 */
-	ImportReadData getImportReadData() throws Exception {
-		return new ImportReadData(inputFileName, controlFileReader);
-	}
+    /** virtual method from the abstract class
+     * @exception    Exception on error
+     */
+    ImportReadData getImportReadData() throws Exception {
+        return new ImportReadData(inputFileName, controlFileReader);
+    }
 
     /*
      * Bump the import counter.

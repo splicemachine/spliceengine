@@ -67,7 +67,7 @@ public interface WriterStatus {
 
     void reset();
 
-	long getTotalRejectedFlushes();
+    long getTotalRejectedFlushes();
 
     long getMaxRegionsPerFlush();
 

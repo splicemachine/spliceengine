@@ -21,12 +21,12 @@ import java.io.IOException;
  *         Date: 11/15/13
  */
 public class NoOpPrefix implements HashPrefix {
-		public static final HashPrefix INSTANCE = new NoOpPrefix();
+        public static final HashPrefix INSTANCE = new NoOpPrefix();
 
-		private NoOpPrefix(){}
+        private NoOpPrefix(){}
 
-		@Override public int getPrefixLength() {return 0;}
-		@Override public void encode(byte[] bytes, int offset, byte[] hashBytes) {}//no-op
+        @Override public int getPrefixLength() {return 0;}
+        @Override public void encode(byte[] bytes, int offset, byte[] hashBytes) {}//no-op
 
-		@Override public void close() throws IOException {  }
+        @Override public void close() throws IOException {  }
 }

@@ -39,18 +39,18 @@ import com.splicemachine.db.iapi.sql.Activation;
  */
 public interface CursorActivation extends Activation {
 
-	/**
-	 * Returns the target result set for this activation,
-	 * so that the current base row can be determined.
-	 *
-	 * @return the target ResultSet of this activation.
-	 */
-	CursorResultSet getTargetResultSet();
+    /**
+     * Returns the target result set for this activation,
+     * so that the current base row can be determined.
+     *
+     * @return the target ResultSet of this activation.
+     */
+    CursorResultSet getTargetResultSet();
 
-	/**
-	 * Returns the cursor result set for this activation,
-	 * so that the current row can be re-qualified, and
-	 * so that the current row location can be determined.
-	 */
-	CursorResultSet getCursorResultSet();
+    /**
+     * Returns the cursor result set for this activation,
+     * so that the current row can be re-qualified, and
+     * so that the current row location can be determined.
+     */
+    CursorResultSet getCursorResultSet();
 }

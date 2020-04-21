@@ -20,9 +20,9 @@ package com.splicemachine.metrics;
  */
 public interface Gauge {
 
-		void update(double value);
+        void update(double value);
 
-		double getValue();
+        double getValue();
 
-		boolean isActive();
+        boolean isActive();
 }

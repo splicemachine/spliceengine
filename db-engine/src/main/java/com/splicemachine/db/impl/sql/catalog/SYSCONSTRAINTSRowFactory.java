@@ -86,7 +86,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
 
     /////////////////////////////////////////////////////////////////////////////
     //
-    //	CONSTRUCTORS
+    //    CONSTRUCTORS
     //
     /////////////////////////////////////////////////////////////////////////////
 
@@ -98,7 +98,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
 
     /////////////////////////////////////////////////////////////////////////////
     //
-    //	METHODS
+    //    METHODS
     //
     /////////////////////////////////////////////////////////////////////////////
 
@@ -125,9 +125,9 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         if(td!=null){
             ConstraintDescriptor constraint=(ConstraintDescriptor)td;
             /*
-			** We only allocate a new UUID if the descriptor doesn't already have one.
-			** For descriptors replicated from a Source system, we already have an UUID.
-			*/
+            ** We only allocate a new UUID if the descriptor doesn't already have one.
+            ** For descriptors replicated from a Source system, we already have an UUID.
+            */
             oid=constraint.getUUID();
             constraintID=oid.toString();
 
@@ -165,34 +165,34 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
             referenceCount=constraint.getReferenceCount();
         }
 
-		/* Insert info into sysconstraints */
+        /* Insert info into sysconstraints */
 
-		/* RESOLVE - It would be nice to require less knowledge about sysconstraints
-		 * and have this be more table driven.
-		 */
+        /* RESOLVE - It would be nice to require less knowledge about sysconstraints
+         * and have this be more table driven.
+         */
 
-		/* Build the row to insert  */
+        /* Build the row to insert  */
         row=getExecutionFactory().getValueRow(SYSCONSTRAINTS_COLUMN_COUNT);
 
-		/* 1st column is CONSTRAINTID (UUID - char(36)) */
+        /* 1st column is CONSTRAINTID (UUID - char(36)) */
         row.setColumn(SYSCONSTRAINTS_CONSTRAINTID,new SQLChar(constraintID));
 
-		/* 2nd column is TABLEID (UUID - char(36)) */
+        /* 2nd column is TABLEID (UUID - char(36)) */
         row.setColumn(SYSCONSTRAINTS_TABLEID,new SQLChar(tableID));
 
-		/* 3rd column is NAME (varchar(128)) */
+        /* 3rd column is NAME (varchar(128)) */
         row.setColumn(SYSCONSTRAINTS_CONSTRAINTNAME,new SQLVarchar(constraintName));
 
-		/* 4th column is TYPE (char(1)) */
+        /* 4th column is TYPE (char(1)) */
         row.setColumn(SYSCONSTRAINTS_TYPE,new SQLChar(constraintSType));
 
-		/* 5th column is SCHEMAID (UUID - char(36)) */
+        /* 5th column is SCHEMAID (UUID - char(36)) */
         row.setColumn(SYSCONSTRAINTS_SCHEMAID,new SQLChar(schemaID));
 
-		/* 6th column is STATE (char(1)) */
+        /* 6th column is STATE (char(1)) */
         row.setColumn(SYSCONSTRAINTS_STATE,new SQLChar(isEnabled?"E":"D"));
 
-		/* 7th column is REFERENCED */
+        /* 7th column is REFERENCED */
         row.setColumn(SYSCONSTRAINTS_REFERENCECOUNT,new SQLInteger(referenceCount));
 
         return row;
@@ -201,7 +201,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
 
     ///////////////////////////////////////////////////////////////////////////
     //
-    //	ABSTRACT METHODS TO BE IMPLEMENTED BY CHILDREN OF CatalogRowFactory
+    //    ABSTRACT METHODS TO BE IMPLEMENTED BY CHILDREN OF CatalogRowFactory
     //
     ///////////////////////////////////////////////////////////////////////////
 
@@ -260,21 +260,21 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
 
         ddg=dd.getDataDescriptorGenerator();
 
-		/* 1st column is CONSTRAINTID (UUID - char(36)) */
+        /* 1st column is CONSTRAINTID (UUID - char(36)) */
         col=row.getColumn(SYSCONSTRAINTS_CONSTRAINTID);
         constraintUUIDString=col.getString();
         constraintUUID=getUUIDFactory().recreateUUID(constraintUUIDString);
 
-		/* 2nd column is TABLEID (UUID - char(36)) */
+        /* 2nd column is TABLEID (UUID - char(36)) */
         col=row.getColumn(SYSCONSTRAINTS_TABLEID);
         tableUUIDString=col.getString();
         tableUUID=getUUIDFactory().recreateUUID(tableUUIDString);
 
-		/* Get the TableDescriptor.  
-		 * It may be cached in the SCD, 
-		 * otherwise we need to go to the
-		 * DD.
-		 */
+        /* Get the TableDescriptor.  
+         * It may be cached in the SCD, 
+         * otherwise we need to go to the
+         * DD.
+         */
         if(scd!=null){
             td=scd.getTableDescriptor();
         }
@@ -282,11 +282,11 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
             td=dd.getTableDescriptor(tableUUID);
         }
 
-		/* 3rd column is NAME (varchar(128)) */
+        /* 3rd column is NAME (varchar(128)) */
         col=row.getColumn(SYSCONSTRAINTS_CONSTRAINTNAME);
         constraintName=col.getString();
 
-		/* 4th column is TYPE (char(1)) */
+        /* 4th column is TYPE (char(1)) */
         col=row.getColumn(SYSCONSTRAINTS_TYPE);
         constraintSType=col.getString();
         if(SanityManager.DEBUG){
@@ -322,16 +322,16 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                 conglomDesc=td.getConglomerateDescriptor(
                         ((SubKeyConstraintDescriptor)
                                 parentTupleDescriptor).getIndexId());
-				/* Take care the rare case of conglomDesc being null.  The
-				 * reason is that our "td" is out of date.  Another thread
-				 * which was adding a constraint committed between the moment
-				 * we got the table descriptor (conglomerate list) and the
-				 * moment we scanned and got the constraint desc list.  Since
-				 * that thread just added a new row to SYSCONGLOMERATES, 
-				 * SYSCONSTRAINTS, etc.  We wouldn't have wanted to lock the
-				 * system tables just to prevent other threads from adding new
-				 * rows.
-				 */
+                /* Take care the rare case of conglomDesc being null.  The
+                 * reason is that our "td" is out of date.  Another thread
+                 * which was adding a constraint committed between the moment
+                 * we got the table descriptor (conglomerate list) and the
+                 * moment we scanned and got the constraint desc list.  Since
+                 * that thread just added a new row to SYSCONGLOMERATES, 
+                 * SYSCONSTRAINTS, etc.  We wouldn't have wanted to lock the
+                 * system tables just to prevent other threads from adding new
+                 * rows.
+                 */
                 if(conglomDesc==null){
                     // we can't be getting td from cache because if we are
                     // here, we must have been in dd's ddl mode (that's why
@@ -373,14 +373,14 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                 }
         }
 
-		/* 5th column is SCHEMAID (UUID - char(36)) */
+        /* 5th column is SCHEMAID (UUID - char(36)) */
         col=row.getColumn(SYSCONSTRAINTS_SCHEMAID);
         schemaUUIDString=col.getString();
         schemaUUID=getUUIDFactory().recreateUUID(schemaUUIDString);
 
         schema=dd.getSchemaDescriptor(schemaUUID,null);
 
-		/* 6th column is STATE (char(1)) */
+        /* 6th column is STATE (char(1)) */
         col=row.getColumn(SYSCONSTRAINTS_STATE);
         constraintStateStr=col.getString();
         if(SanityManager.DEBUG){
@@ -403,11 +403,11 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                 }
         }
 
-		/* 7th column is REFERENCECOUNT, boolean */
+        /* 7th column is REFERENCECOUNT, boolean */
         col=row.getColumn(SYSCONSTRAINTS_REFERENCECOUNT);
         referenceCount=col.getInt();
-		
-		/* now build and return the descriptor */
+        
+        /* now build and return the descriptor */
 
         switch(constraintIType){
             case DataDictionary.PRIMARYKEY_CONSTRAINT:
@@ -500,7 +500,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         DataValueDescriptor col;
         String constraintUUIDString;
 
-		/* 1st column is CONSTRAINTID (UUID - char(36)) */
+        /* 1st column is CONSTRAINTID (UUID - char(36)) */
         col=row.getColumn(SYSCONSTRAINTS_CONSTRAINTID);
         constraintUUIDString=col.getString();
         return getUUIDFactory().recreateUUID(constraintUUIDString);
@@ -518,7 +518,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         DataValueDescriptor col;
         String constraintName;
 
-		/* 3rd column is CONSTRAINTNAME (char(128)) */
+        /* 3rd column is CONSTRAINTNAME (char(128)) */
         col=row.getColumn(SYSCONSTRAINTS_CONSTRAINTNAME);
         constraintName=col.getString();
         return constraintName;
@@ -536,7 +536,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         DataValueDescriptor col;
         String schemaUUIDString;
 
-		/* 5th column is SCHEMAID (UUID - char(36)) */
+        /* 5th column is SCHEMAID (UUID - char(36)) */
         col=row.getColumn(SYSCONSTRAINTS_SCHEMAID);
         schemaUUIDString=col.getString();
         return getUUIDFactory().recreateUUID(schemaUUIDString);
@@ -554,7 +554,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         DataValueDescriptor col;
         String tableUUIDString;
 
-		/* 2nd column is TABLEID (UUID - char(36)) */
+        /* 2nd column is TABLEID (UUID - char(36)) */
         col=row.getColumn(SYSCONSTRAINTS_TABLEID);
         tableUUIDString=col.getString();
         return getUUIDFactory().recreateUUID(tableUUIDString);
@@ -564,7 +564,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
      * Get the constraint type out of the row.
      *
      * @param row The row from sysconstraints
-     * @return int    The constraint type	as an int
+     * @return int    The constraint type    as an int
      * @throws StandardException thrown on failure
      */
     protected int getConstraintType(ExecRow row) throws StandardException{
@@ -572,7 +572,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         int constraintIType;
         String constraintSType;
 
-		/* 4th column is TYPE (char(1)) */
+        /* 4th column is TYPE (char(1)) */
         col=row.getColumn(SYSCONSTRAINTS_TYPE);
         constraintSType=col.getString();
         assert constraintSType.length()==1:"Fourth column type incorrect";

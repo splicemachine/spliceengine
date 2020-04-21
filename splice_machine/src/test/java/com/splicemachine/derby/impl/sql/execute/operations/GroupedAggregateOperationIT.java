@@ -95,12 +95,12 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
     @Test
     // Bugzilla #376: nested sub-query in HAVING
     public void testHavingWithSubQuery() throws Exception {
-				String query = format("SELECT T1.PNUM FROM %1$s.T1 T1 GROUP BY T1.PNUM " +
-								"HAVING T1.PNUM IN " +
-								"(SELECT T2.PNUM FROM %1$s.T2 T2 GROUP BY T2.PNUM HAVING SUM(T2.BUDGET) > 25000)",
-								CLASS_NAME, CLASS_NAME);
-				System.out.println(query);
-				ResultSet rs = methodWatcher.executeQuery(query);
+                String query = format("SELECT T1.PNUM FROM %1$s.T1 T1 GROUP BY T1.PNUM " +
+                                "HAVING T1.PNUM IN " +
+                                "(SELECT T2.PNUM FROM %1$s.T2 T2 GROUP BY T2.PNUM HAVING SUM(T2.BUDGET) > 25000)",
+                                CLASS_NAME, CLASS_NAME);
+                System.out.println(query);
+                ResultSet rs = methodWatcher.executeQuery(query);
         Assert.assertEquals(3, TestUtils.resultSetToMaps(rs).size());
     }
 
@@ -122,22 +122,22 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(format("select distinct month(swh_date), count(distinct(i)) from %s " +
                 "group by month(swh_date) order by month(swh_date)",
                 spliceTableWatcher.toString()));
-				Map<Integer,Integer> correctResults = Maps.newHashMap();
-				correctResults.put(1,1);
-				correctResults.put(2,1);
-				correctResults.put(3,3);
-				correctResults.put(4,1);
-				correctResults.put(5,1);
-				int i = 0;
+                Map<Integer,Integer> correctResults = Maps.newHashMap();
+                correctResults.put(1,1);
+                correctResults.put(2,1);
+                correctResults.put(3,3);
+                correctResults.put(4,1);
+                correctResults.put(5,1);
+                int i = 0;
         while (rs.next()) {
-        	i++;
-						int groupKey = rs.getInt(1);
-						Assert.assertFalse("Group key was null!",rs.wasNull());
-						Assert.assertTrue("Group key "+ groupKey+" was unexpected",correctResults.containsKey(groupKey));
-						int count = rs.getInt(2);
-						Assert.assertFalse("Count was null!",rs.wasNull());
-						int correct = correctResults.get(groupKey);
-						Assert.assertEquals("Incorrect count for group key "+ groupKey,correct,count);
+            i++;
+                        int groupKey = rs.getInt(1);
+                        Assert.assertFalse("Group key was null!",rs.wasNull());
+                        Assert.assertTrue("Group key "+ groupKey+" was unexpected",correctResults.containsKey(groupKey));
+                        int count = rs.getInt(2);
+                        Assert.assertFalse("Count was null!",rs.wasNull());
+                        int correct = correctResults.get(groupKey);
+                        Assert.assertEquals("Incorrect count for group key "+ groupKey,correct,count);
         }
         Assert.assertEquals("Should return only rows for the group by columns",5, i);
     }
@@ -215,7 +215,7 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(format("select c1+10, c2, c1*1, c1, c2*5 from %s group by c1, c2",spliceTableWatcher2));
         int i =0;
         while (rs.next()) {
-        	i++;
+            i++;
         }
         Assert.assertEquals("Should return 5 rows",5, i);
     }
@@ -226,7 +226,7 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(format("select tmpC1 from (select max(c1+10) from %s group by c2) as tmp (tmpC1)",spliceTableWatcher2));
         int i =0;
         while (rs.next()) {
-        	i++;
+            i++;
         }
         Assert.assertEquals("Should return 3 rows",3, i);
     }
@@ -237,7 +237,7 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(format("select c1, count(distinct c2) RESPONDERS from a1 group by c1",spliceTableWatcher3));
         int i =0;
         while (rs.next()) {
-        	i++;
+            i++;
         }
         Assert.assertEquals("Should return 1 row",1, i);
     }

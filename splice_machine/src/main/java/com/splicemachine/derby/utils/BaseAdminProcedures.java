@@ -54,11 +54,11 @@ import com.splicemachine.utils.Pair;
  */
 public abstract class BaseAdminProcedures {
 
-	// WARNING: do not add just any old logic here! This class is only intended
-	// for static methods needed to support the back end system procedures.
-	// Just because 'admin' is in the name does not mean anything you deem to be
-	// related to system admin belongs here. We don't want this to be another
-	// dumping around for utility functions.
+    // WARNING: do not add just any old logic here! This class is only intended
+    // for static methods needed to support the back end system procedures.
+    // Just because 'admin' is in the name does not mean anything you deem to be
+    // related to system admin belongs here. We don't want this to be another
+    // dumping around for utility functions.
 
     protected static List<Pair<String,String>> getServerNames(Collection<PartitionServer> serverInfo) {
         List<Pair<String,String>> names =new ArrayList<>(serverInfo.size());
@@ -68,10 +68,10 @@ public abstract class BaseAdminProcedures {
         return names;
     }
 
-	protected static void throwNullArgError(Object value) {
-	    throw new IllegalArgumentException(String.format("Required argument %s is null.", value));	
-	}
-	
+    protected static void throwNullArgError(Object value) {
+        throw new IllegalArgumentException(String.format("Required argument %s is null.", value));    
+    }
+    
     protected interface JMXServerOperation {
         void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException;
     }
@@ -84,7 +84,7 @@ public abstract class BaseAdminProcedures {
      * @throws IOException
      */
     protected static List<Pair<String, JMXConnector>> getConnections(Collection<PartitionServer> serverNames) throws IOException {
-    	return JMXUtils.getMBeanServerConnections(getServerNames(serverNames));
+        return JMXUtils.getMBeanServerConnections(getServerNames(serverNames));
     }
 
     /**
@@ -97,7 +97,7 @@ public abstract class BaseAdminProcedures {
      * @throws SQLException
      */
     protected static void operate(JMXServerOperation operation, Collection<PartitionServer> serverNames) throws SQLException {
-    	if (operation == null) throwNullArgError("operation");
+        if (operation == null) throwNullArgError("operation");
         List<Pair<String, JMXConnector>> connections = null;
         try {
             connections = getConnections(serverNames);
@@ -106,7 +106,7 @@ public abstract class BaseAdminProcedures {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }finally {
             if (connections != null) {
-            	close(connections);
+                close(connections);
             }
         }
     }
@@ -126,7 +126,7 @@ public abstract class BaseAdminProcedures {
     }
 
     protected static void operate(JMXServerOperation operation) throws SQLException {
-    	if (operation == null) throwNullArgError("operation");
+        if (operation == null) throwNullArgError("operation");
         try(PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin()){
             operate(operation,admin.allServers());
         }catch(IOException e){

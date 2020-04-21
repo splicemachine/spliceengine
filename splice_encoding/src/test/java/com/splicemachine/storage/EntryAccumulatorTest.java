@@ -32,10 +32,10 @@ public class EntryAccumulatorTest {
         fields.set(2);
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields);
         EntryAccumulator accumulator = new ByteEntryAccumulator(predicateFilter,false,fields);
-				byte[] encodedOne = Encoding.encode(1);
-				accumulator.add(2, encodedOne,0,encodedOne.length);
-				byte[] encodedTwo = Encoding.encode(2);
-				accumulator.add(0, encodedTwo,0,encodedTwo.length);
+                byte[] encodedOne = Encoding.encode(1);
+                accumulator.add(2, encodedOne,0,encodedOne.length);
+                byte[] encodedTwo = Encoding.encode(2);
+                accumulator.add(0, encodedTwo,0,encodedTwo.length);
 
         byte[] bytes = accumulator.finish();
         MultiFieldDecoder decoder = MultiFieldDecoder.wrap(bytes);
@@ -50,10 +50,10 @@ public class EntryAccumulatorTest {
         fields.set(2);
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields);
         EntryAccumulator accumulator = new ByteEntryAccumulator(predicateFilter,false,null);
-				byte[] encodedOne = Encoding.encode(1);
-				accumulator.add(2, encodedOne,0,encodedOne.length);
-				byte[] encodedTwo = Encoding.encode(2);
-				accumulator.add(0, encodedTwo,0,encodedTwo.length);
+                byte[] encodedOne = Encoding.encode(1);
+                accumulator.add(2, encodedOne,0,encodedOne.length);
+                byte[] encodedTwo = Encoding.encode(2);
+                accumulator.add(0, encodedTwo,0,encodedTwo.length);
 
         byte[] bytes = accumulator.finish();
         MultiFieldDecoder decoder = MultiFieldDecoder.wrap(bytes);

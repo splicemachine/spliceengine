@@ -44,79 +44,79 @@ import com.splicemachine.db.iapi.error.StandardException;
  */
 public class RemapCRsVisitor implements Visitor
 {
-	private boolean remap;
+    private boolean remap;
 
-	public RemapCRsVisitor(boolean remap)
-	{
-		this.remap = remap;
-	}
+    public RemapCRsVisitor(boolean remap)
+    {
+        this.remap = remap;
+    }
 
 
-	////////////////////////////////////////////////
-	//
-	// VISITOR INTERFACE
-	//
-	////////////////////////////////////////////////
+    ////////////////////////////////////////////////
+    //
+    // VISITOR INTERFACE
+    //
+    ////////////////////////////////////////////////
 
-	/**
-	 * Don't do anything unless we have a ColumnReference
-	 * node.
-	 *
-	 * @param node 	the node to process
-	 *
-	 * @return me
-	 *
-	 * @exception StandardException on error
-	 */
-	public Visitable visit(Visitable node, QueryTreeNode parent)
-		throws StandardException
-	{
-		/*
-		 * Remap all of the ColumnReferences in this expression tree
-		 * to point to the ResultColumn that is 1 level under their
-		 * current source ResultColumn.
-		 * This is useful for pushing down single table predicates.
-		 */
-		if (node instanceof ColumnReference)
-		{
-			ColumnReference cr = (ColumnReference) node;
-			if (remap)
-			{
-				cr.remapColumnReferences();
-			}
-			else
-			{
-				cr.unRemapColumnReferences();
-			}
-		}
+    /**
+     * Don't do anything unless we have a ColumnReference
+     * node.
+     *
+     * @param node     the node to process
+     *
+     * @return me
+     *
+     * @exception StandardException on error
+     */
+    public Visitable visit(Visitable node, QueryTreeNode parent)
+        throws StandardException
+    {
+        /*
+         * Remap all of the ColumnReferences in this expression tree
+         * to point to the ResultColumn that is 1 level under their
+         * current source ResultColumn.
+         * This is useful for pushing down single table predicates.
+         */
+        if (node instanceof ColumnReference)
+        {
+            ColumnReference cr = (ColumnReference) node;
+            if (remap)
+            {
+                cr.remapColumnReferences();
+            }
+            else
+            {
+                cr.unRemapColumnReferences();
+            }
+        }
 
-		return node;
-	}
+        return node;
+    }
 
-	/**
-	 * No need to go below a SubqueryNode.
-	 *
-	 * @return Whether or not to go below the node.
-	 */
-	public boolean skipChildren(Visitable node)
-	{
-		return (node instanceof SubqueryNode);
-	}
+    /**
+     * No need to go below a SubqueryNode.
+     *
+     * @return Whether or not to go below the node.
+     */
+    public boolean skipChildren(Visitable node)
+    {
+        return (node instanceof SubqueryNode);
+    }
 
-	public boolean visitChildrenFirst(Visitable node)
-	{
-		return false;
-	}
+    public boolean visitChildrenFirst(Visitable node)
+    {
+        return false;
+    }
 
-	public boolean stopTraversal()
-	{
-		return false;
-	}
+    public boolean stopTraversal()
+    {
+        return false;
+    }
 
-	////////////////////////////////////////////////
-	//
-	// CLASS INTERFACE
-	//
-	////////////////////////////////////////////////
+    ////////////////////////////////////////////////
+    //
+    // CLASS INTERFACE
+    //
+    ////////////////////////////////////////////////
 
-}	
+}    

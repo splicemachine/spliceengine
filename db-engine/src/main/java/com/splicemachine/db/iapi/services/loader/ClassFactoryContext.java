@@ -45,20 +45,20 @@ import com.splicemachine.db.iapi.error.StandardException;
 */
 public abstract class ClassFactoryContext extends ContextImpl {
 
-	public static final String CONTEXT_ID = "ClassFactoryContext";
+    public static final String CONTEXT_ID = "ClassFactoryContext";
 
-	private final ClassFactory cf;
+    private final ClassFactory cf;
 
-	protected ClassFactoryContext(ContextManager cm, ClassFactory cf) {
+    protected ClassFactoryContext(ContextManager cm, ClassFactory cf) {
 
-		super(cm, CONTEXT_ID);
+        super(cm, CONTEXT_ID);
 
-		this.cf = cf;
-	}
+        this.cf = cf;
+    }
 
-	public final ClassFactory getClassFactory() {
-		return cf;
-	}
+    public final ClassFactory getClassFactory() {
+        return cf;
+    }
 
     /**
      * Get the lock compatibility space to use for the
@@ -71,19 +71,19 @@ public abstract class ClassFactoryContext extends ContextImpl {
     /**
      * Get the set of properties stored with this service.
     */
-	public abstract PersistentSet getPersistentSet() throws StandardException;
+    public abstract PersistentSet getPersistentSet() throws StandardException;
 
-	/**
-		Get the mechanism to rad jar files. The ClassFactory
-		may keep the JarReader reference from the first class load.
-	*/
-	public abstract JarReader getJarReader();
+    /**
+        Get the mechanism to rad jar files. The ClassFactory
+        may keep the JarReader reference from the first class load.
+    */
+    public abstract JarReader getJarReader();
 
     /**
      * Handle any errors. Only work here is to pop myself
      * on a session or greater severity error.
      */
-	public final void cleanupOnError(Throwable error) {
+    public final void cleanupOnError(Throwable error) {
         if (error instanceof StandardException) {
 
             StandardException se = (StandardException) error;

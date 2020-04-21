@@ -41,9 +41,9 @@ import java.net.URL;
 import java.util.Calendar;
 
 /**
-	An  implementation of the JDBC 3.0 ResultSet that is useful
-	when writing table functions, read-only VTIs (virtual table interface), and
-	the ResultSets returned by executeQuery in read-write VTI classes. This
+    An  implementation of the JDBC 3.0 ResultSet that is useful
+    when writing table functions, read-only VTIs (virtual table interface), and
+    the ResultSets returned by executeQuery in read-write VTI classes. This
     implementation raises "unimplemented method" exceptions for all methods.
 */
 class VTITemplateBase implements ResultSet
@@ -135,63 +135,63 @@ class VTITemplateBase implements ResultSet
     public void updateTime(int columnIndex, java.sql.Time x) throws SQLException { throw notImplemented( "updateTime" ); }
     public void updateTimestamp(int columnIndex, java.sql.Timestamp x) throws SQLException { throw notImplemented( "updateTimestamp" ); }
     public void updateAsciiStream(int columnIndex, InputStream x, int length ) throws SQLException { throw notImplemented( "updateAsciiStream" ); }
-	public void updateBinaryStream(int columnIndex, InputStream x, int length)  throws SQLException { throw notImplemented( "updateBinaryStream" ); }
-	public void updateCharacterStream(int columnIndex, java.io.Reader x, int length ) throws SQLException { throw notImplemented( "updateCharacterStream" ); }
-	public void updateObject(int columnIndex, Object x, int scale) throws SQLException { throw notImplemented( "updateObject" ); }
-	public void updateObject(int columnIndex, Object x) throws SQLException { throw notImplemented( "updateObject" ); }
-	public void updateNull(String columnName) throws SQLException { throw notImplemented( "updateNull" ); }
-	public void updateBoolean(String columnName, boolean x) throws SQLException { throw notImplemented( "updateBoolean" ); }
-	public void updateByte(String columnName, byte x) throws SQLException { throw notImplemented( "updateByte" ); }
-	public void updateShort(String columnName, short x) throws SQLException { throw notImplemented( "updateShort" ); }
-	public void updateInt(String columnName, int x) throws SQLException { throw notImplemented( "updateInt" ); }
-	public void updateLong(String columnName, long x) throws SQLException { throw notImplemented( "updateLong" ); }
-	public void updateFloat(String columnName, float x) throws SQLException { throw notImplemented( "updateFloat" ); }
-	public void updateDouble(String columnName, double x) throws SQLException { throw notImplemented( "updateDouble" ); }
-	public void updateBigDecimal(String columnName, BigDecimal x) throws SQLException { throw notImplemented( "updateBigDecimal" ); }
-	public void updateString(String columnName, String x) throws SQLException { throw notImplemented( "updateString" ); }
-	public void updateBytes(String columnName, byte[] x) throws SQLException { throw notImplemented( "updateBytes" ); }
-	public void updateDate(String columnName, java.sql.Date x) throws SQLException { throw notImplemented( "updateDate" ); }
-	public void updateTime(String columnName, java.sql.Time x) throws SQLException { throw notImplemented( "updateTime" ); }
-	public void updateTimestamp(String columnName, java.sql.Timestamp x) throws SQLException { throw notImplemented( "updateTimestamp" ); }
-	public void updateAsciiStream(String columnName, java.io.InputStream x, int length) throws SQLException { throw notImplemented( "updateAsciiStream" ); }
-	public void updateBinaryStream(String columnName, java.io.InputStream x, int length) throws SQLException { throw notImplemented( "updateBinaryStream" ); }
-	public void updateCharacterStream(String columnName, java.io.Reader x, int length) throws SQLException { throw notImplemented( "updateCharacterStream" ); }
-	public void updateObject(String columnName, Object x, int scale) throws SQLException { throw notImplemented( "updateObject" ); }
-	public void updateObject(String columnName, Object x) throws SQLException { throw notImplemented( "updateObject" ); }
-	public void insertRow() throws SQLException { throw notImplemented( "insertRow" ); }
-	public void updateRow() throws SQLException { throw notImplemented( "updateRow" ); }
-	public void deleteRow() throws SQLException { throw notImplemented( "deleteRow" ); }
-	public void refreshRow() throws SQLException { throw notImplemented( "refreshRow" ); }
-	public void cancelRowUpdates() throws SQLException { throw notImplemented( "cancelRowUpdates" ); }
-	public void moveToInsertRow() throws SQLException { throw notImplemented( "moveToInsertRow" ); }
-	public void moveToCurrentRow() throws SQLException { throw notImplemented( "moveToCurrentRow" ); }
-	public Statement getStatement() throws SQLException { throw notImplemented( "getStatement" ); }
-	public java.sql.Date getDate(int columnIndex, Calendar cal) throws SQLException { throw notImplemented( "sql.Date getDate" ); }
-	public java.sql.Date getDate(String columnName, Calendar cal) throws SQLException { throw notImplemented( "sql.Date getDate" ); }
-	public java.sql.Time getTime(int columnIndex, Calendar cal) throws SQLException { throw notImplemented( "sql.Time getTime" ); }
-	public java.sql.Time getTime(String columnName, Calendar cal) throws SQLException { throw notImplemented( "sql.Time getTime" ); }
-	public java.sql.Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException { throw notImplemented( "sql.Timestamp getTimestamp" ); }
-	public java.sql.Timestamp getTimestamp(String columnName, Calendar cal) throws SQLException { throw notImplemented( "sql.Timestamp getTimestamp" ); }
-	public URL getURL(int columnIndex) throws SQLException { throw notImplemented( "getURL" ); }
-	public URL getURL(String columnName) throws SQLException { throw notImplemented( "getURL" ); }
-	public Object getObject(int i, java.util.Map map) throws SQLException { throw notImplemented( "getObject" ); }
-	public Ref getRef(int i) throws SQLException { throw notImplemented( "getRef" ); }
-	public Blob getBlob(int i) throws SQLException { throw notImplemented( "getBlob" ); }
-	public Clob getClob(int i) throws SQLException { throw notImplemented( "getClob" ); }
-	public Array getArray(int i) throws SQLException { throw notImplemented( "getArray" ); }
-	public Object getObject(String colName, java.util.Map map) throws SQLException { throw notImplemented( "getObject" ); }
-	public Ref getRef(String colName) throws SQLException { throw notImplemented( "getRef" ); }
-	public Blob getBlob(String colName) throws SQLException { throw notImplemented( "getBlob" ); }
-	public Clob getClob(String colName) throws SQLException { throw notImplemented( "getClob" ); }
-	public Array getArray(String colName) throws SQLException { throw notImplemented( "getArray" ); }
-	public void updateRef(int columnIndex, Ref x) throws SQLException { throw notImplemented( "updateRef" ); }
-	public void updateRef(String columnName, Ref x) throws SQLException { throw notImplemented( "updateRef" ); }
-	public void updateBlob(int columnIndex, Blob x) throws SQLException { throw notImplemented( "updateBlob" ); }
-	public void updateBlob(String columnName, Blob x) throws SQLException { throw notImplemented( "updateBlob" ); }
-	public void updateClob(int columnIndex, Clob x) throws SQLException { throw notImplemented( "updateClob" ); }
-	public void updateClob(String columnName, Clob x) throws SQLException { throw notImplemented( "updateClob" ); }
-	public void updateArray(int columnIndex, Array x) throws SQLException { throw notImplemented( "updateArray" ); }
-	public void updateArray(String columnName, Array x) throws SQLException { throw notImplemented( "updateArray" ); }
+    public void updateBinaryStream(int columnIndex, InputStream x, int length)  throws SQLException { throw notImplemented( "updateBinaryStream" ); }
+    public void updateCharacterStream(int columnIndex, java.io.Reader x, int length ) throws SQLException { throw notImplemented( "updateCharacterStream" ); }
+    public void updateObject(int columnIndex, Object x, int scale) throws SQLException { throw notImplemented( "updateObject" ); }
+    public void updateObject(int columnIndex, Object x) throws SQLException { throw notImplemented( "updateObject" ); }
+    public void updateNull(String columnName) throws SQLException { throw notImplemented( "updateNull" ); }
+    public void updateBoolean(String columnName, boolean x) throws SQLException { throw notImplemented( "updateBoolean" ); }
+    public void updateByte(String columnName, byte x) throws SQLException { throw notImplemented( "updateByte" ); }
+    public void updateShort(String columnName, short x) throws SQLException { throw notImplemented( "updateShort" ); }
+    public void updateInt(String columnName, int x) throws SQLException { throw notImplemented( "updateInt" ); }
+    public void updateLong(String columnName, long x) throws SQLException { throw notImplemented( "updateLong" ); }
+    public void updateFloat(String columnName, float x) throws SQLException { throw notImplemented( "updateFloat" ); }
+    public void updateDouble(String columnName, double x) throws SQLException { throw notImplemented( "updateDouble" ); }
+    public void updateBigDecimal(String columnName, BigDecimal x) throws SQLException { throw notImplemented( "updateBigDecimal" ); }
+    public void updateString(String columnName, String x) throws SQLException { throw notImplemented( "updateString" ); }
+    public void updateBytes(String columnName, byte[] x) throws SQLException { throw notImplemented( "updateBytes" ); }
+    public void updateDate(String columnName, java.sql.Date x) throws SQLException { throw notImplemented( "updateDate" ); }
+    public void updateTime(String columnName, java.sql.Time x) throws SQLException { throw notImplemented( "updateTime" ); }
+    public void updateTimestamp(String columnName, java.sql.Timestamp x) throws SQLException { throw notImplemented( "updateTimestamp" ); }
+    public void updateAsciiStream(String columnName, java.io.InputStream x, int length) throws SQLException { throw notImplemented( "updateAsciiStream" ); }
+    public void updateBinaryStream(String columnName, java.io.InputStream x, int length) throws SQLException { throw notImplemented( "updateBinaryStream" ); }
+    public void updateCharacterStream(String columnName, java.io.Reader x, int length) throws SQLException { throw notImplemented( "updateCharacterStream" ); }
+    public void updateObject(String columnName, Object x, int scale) throws SQLException { throw notImplemented( "updateObject" ); }
+    public void updateObject(String columnName, Object x) throws SQLException { throw notImplemented( "updateObject" ); }
+    public void insertRow() throws SQLException { throw notImplemented( "insertRow" ); }
+    public void updateRow() throws SQLException { throw notImplemented( "updateRow" ); }
+    public void deleteRow() throws SQLException { throw notImplemented( "deleteRow" ); }
+    public void refreshRow() throws SQLException { throw notImplemented( "refreshRow" ); }
+    public void cancelRowUpdates() throws SQLException { throw notImplemented( "cancelRowUpdates" ); }
+    public void moveToInsertRow() throws SQLException { throw notImplemented( "moveToInsertRow" ); }
+    public void moveToCurrentRow() throws SQLException { throw notImplemented( "moveToCurrentRow" ); }
+    public Statement getStatement() throws SQLException { throw notImplemented( "getStatement" ); }
+    public java.sql.Date getDate(int columnIndex, Calendar cal) throws SQLException { throw notImplemented( "sql.Date getDate" ); }
+    public java.sql.Date getDate(String columnName, Calendar cal) throws SQLException { throw notImplemented( "sql.Date getDate" ); }
+    public java.sql.Time getTime(int columnIndex, Calendar cal) throws SQLException { throw notImplemented( "sql.Time getTime" ); }
+    public java.sql.Time getTime(String columnName, Calendar cal) throws SQLException { throw notImplemented( "sql.Time getTime" ); }
+    public java.sql.Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException { throw notImplemented( "sql.Timestamp getTimestamp" ); }
+    public java.sql.Timestamp getTimestamp(String columnName, Calendar cal) throws SQLException { throw notImplemented( "sql.Timestamp getTimestamp" ); }
+    public URL getURL(int columnIndex) throws SQLException { throw notImplemented( "getURL" ); }
+    public URL getURL(String columnName) throws SQLException { throw notImplemented( "getURL" ); }
+    public Object getObject(int i, java.util.Map map) throws SQLException { throw notImplemented( "getObject" ); }
+    public Ref getRef(int i) throws SQLException { throw notImplemented( "getRef" ); }
+    public Blob getBlob(int i) throws SQLException { throw notImplemented( "getBlob" ); }
+    public Clob getClob(int i) throws SQLException { throw notImplemented( "getClob" ); }
+    public Array getArray(int i) throws SQLException { throw notImplemented( "getArray" ); }
+    public Object getObject(String colName, java.util.Map map) throws SQLException { throw notImplemented( "getObject" ); }
+    public Ref getRef(String colName) throws SQLException { throw notImplemented( "getRef" ); }
+    public Blob getBlob(String colName) throws SQLException { throw notImplemented( "getBlob" ); }
+    public Clob getClob(String colName) throws SQLException { throw notImplemented( "getClob" ); }
+    public Array getArray(String colName) throws SQLException { throw notImplemented( "getArray" ); }
+    public void updateRef(int columnIndex, Ref x) throws SQLException { throw notImplemented( "updateRef" ); }
+    public void updateRef(String columnName, Ref x) throws SQLException { throw notImplemented( "updateRef" ); }
+    public void updateBlob(int columnIndex, Blob x) throws SQLException { throw notImplemented( "updateBlob" ); }
+    public void updateBlob(String columnName, Blob x) throws SQLException { throw notImplemented( "updateBlob" ); }
+    public void updateClob(int columnIndex, Clob x) throws SQLException { throw notImplemented( "updateClob" ); }
+    public void updateClob(String columnName, Clob x) throws SQLException { throw notImplemented( "updateClob" ); }
+    public void updateArray(int columnIndex, Array x) throws SQLException { throw notImplemented( "updateArray" ); }
+    public void updateArray(String columnName, Array x) throws SQLException { throw notImplemented( "updateArray" ); }
 
     public RowId getRowId(int columnIndex) throws SQLException{ throw notImplemented("getRowId"); }
     public RowId getRowId(String columnLabel) throws SQLException{ throw notImplemented("getRowId"); }

@@ -31,13 +31,13 @@ import org.apache.log4j.Logger;
 public class SpliceDependencyManager extends BasicDependencyManager {
     private static final Logger LOG = Logger.getLogger(SpliceDependencyManager.class);
     
-	public SpliceDependencyManager(DataDictionary dd) {
-		super(dd);
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "initialize dependencyManager");
-	}
+    public SpliceDependencyManager(DataDictionary dd) {
+        super(dd);
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "initialize dependencyManager");
+    }
 
-	@Override
+    @Override
   public void copyDependencies(Dependent copyFrom, Dependent copyTo, boolean persistentOnly, ContextManager cm, TransactionController tc) throws StandardException {
       if (LOG.isTraceEnabled())
           SpliceLogUtils.trace(LOG, "copyDependencies copyFrom=%s,copyTo=%s,persistentOnly=%s, contextManager=%s, transactionController=%s",copyFrom,copyTo,persistentOnly,cm,tc);

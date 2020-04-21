@@ -53,8 +53,8 @@ public class SkipTest
         throws Exception
     {
         boolean answer = false;
-	    InputStream is =
-		RunTest.loadTestResource("suites" + '/' + listFileName);
+        InputStream is =
+        RunTest.loadTestResource("suites" + '/' + listFileName);
         if (is == null)
         {
             System.out.println("File not found: " + listFileName);
@@ -68,11 +68,11 @@ public class SkipTest
         // Read the list of tests to skip, compare to testName
         while ( (str = listFile.readLine()) != null )
         {
-	       if ( (testName.equals(str)) )
-	            answer = true;
-	    }
+           if ( (testName.equals(str)) )
+                answer = true;
+        }
         return answer;
     }
 }
-		
-			
+        
+            

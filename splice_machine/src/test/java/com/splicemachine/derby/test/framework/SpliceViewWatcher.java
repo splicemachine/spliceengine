@@ -49,9 +49,9 @@ public class SpliceViewWatcher extends TestWatcher {
     }
 
     public SpliceViewWatcher(String viewName,String schemaName, String createString, String userName, String password) {
-    	this(viewName,schemaName,createString);
-    	this.userName = userName;
-    	this.password = password;
+        this(viewName,schemaName,createString);
+        this.userName = userName;
+        this.password = password;
     }
 
     

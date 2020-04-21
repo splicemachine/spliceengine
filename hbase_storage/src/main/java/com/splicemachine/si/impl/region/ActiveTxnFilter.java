@@ -99,11 +99,11 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
 
     @Override
     public boolean filterRowKey(byte[] buffer, int offset, int length) {
-		/*
-		 * Since the transaction id must necessarily be the begin timestamp in both
-		 * the old and new format, we can filter transactions out based entirely on the
-		 * row key here
-		 */
+        /*
+         * Since the transaction id must necessarily be the begin timestamp in both
+         * the old and new format, we can filter transactions out based entirely on the
+         * row key here
+         */
         long txnId = TxnUtils.txnIdFromRowKey(buffer, offset, length);
         boolean withinRange = txnId >= afterTs && txnId <= beforeTs;
         return !withinRange;

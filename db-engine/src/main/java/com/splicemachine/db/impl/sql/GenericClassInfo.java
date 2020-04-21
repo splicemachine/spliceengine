@@ -36,15 +36,15 @@ import com.splicemachine.db.iapi.services.io.FormatableInstanceGetter;
 public class GenericClassInfo extends FormatableInstanceGetter 
 {
 
-	public Object getNewInstance() 
-	{
+    public Object getNewInstance() 
+    {
 
-		switch (fmtId) 
-		{
-		//case  StoredFormatIds.GENERIC_COLUMN_DESCRIPTOR_V01_ID:
-			///return new GenericColumnDescriptor(20);
-		default:
-			return null;
-		}
-	}
+        switch (fmtId) 
+        {
+        //case  StoredFormatIds.GENERIC_COLUMN_DESCRIPTOR_V01_ID:
+            ///return new GenericColumnDescriptor(20);
+        default:
+            return null;
+        }
+    }
 }

@@ -245,15 +245,15 @@ public class LazyTxnView implements TxnView {
         return "Lazy" + delegate;
     }
 
-	@Override
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         throw new UnsupportedOperationException();
-	}
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        throw new UnsupportedOperationException();
+    }
 
 
     /* ****************************************************************************************************************/

@@ -62,7 +62,7 @@ public class AssertEventCatcher implements ConnectionEventListener
      */
     public boolean didConnectionClosedEventHappen() 
     {
-    	return gotConnectionClosed;
+        return gotConnectionClosed;
     }
     
     /**
@@ -71,7 +71,7 @@ public class AssertEventCatcher implements ConnectionEventListener
      */
     public boolean didConnectionErrorEventHappen() 
     {
-    	return gotConnectionErrorOccured;
+        return gotConnectionErrorOccured;
     }
     
     /**
@@ -79,7 +79,7 @@ public class AssertEventCatcher implements ConnectionEventListener
      */
     public void resetState() 
     {
-    	gotConnectionClosed = false;
-    	gotConnectionErrorOccured = false;
+        gotConnectionClosed = false;
+        gotConnectionErrorOccured = false;
     }
 }

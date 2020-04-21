@@ -52,7 +52,7 @@ public class SetSessionPropertyNode extends MiscellaneousStatementNode {
     /**
      * Initializer for a SetSessionPropertyNode
      *
-     * @param properties	list of session properties
+     * @param properties    list of session properties
 
      *
      */
@@ -69,7 +69,7 @@ public class SetSessionPropertyNode extends MiscellaneousStatementNode {
      * Convert this object to a String.  See comments in QueryTreeNode.java
      * for how this should be done for tree printing.
      *
-     * @return	This object as a String
+     * @return    This object as a String
      */
 
     public String toString()
@@ -96,15 +96,15 @@ public class SetSessionPropertyNode extends MiscellaneousStatementNode {
      */
     public ConstantAction makeConstantAction() throws StandardException
     {
-        return	getGenericConstantActionFactory().getSetSessionPropertyConstantAction(sessionProperties);
+        return    getGenericConstantActionFactory().getSetSessionPropertyConstantAction(sessionProperties);
     }
     /**
      * Generate code, need to push parameters
      *
-     * @param acb	The ActivationClassBuilder for the class being built
+     * @param acb    The ActivationClassBuilder for the class being built
      * @param mb the method  for the execute() method to be built
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
 
     public void generate(ActivationClassBuilder acb,
@@ -127,7 +127,7 @@ public class SetSessionPropertyNode extends MiscellaneousStatementNode {
      * generates.
      *
      * @return  NEED_PARAM_ACTIVATION or
-     *			NEED_NOTHING_ACTIVATION depending on params
+     *            NEED_NOTHING_ACTIVATION depending on params
      *
      */
     int activationKind()

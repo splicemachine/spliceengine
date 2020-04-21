@@ -28,58 +28,58 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 
 public abstract class SpliceConglomerateFactory implements ConglomerateFactory, ModuleControl, ModuleSupportable {
-	protected TxnOperationFactory operationFactory;
-	protected PartitionFactory partitionFactory;
-	protected UUID formatUUID;
-	public SpliceConglomerateFactory() {
-	
-	}
+    protected TxnOperationFactory operationFactory;
+    protected PartitionFactory partitionFactory;
+    protected UUID formatUUID;
+    public SpliceConglomerateFactory() {
+    
+    }
 
-	public void	stop() {
-	
-	}
+    public void    stop() {
+    
+    }
 
-	protected UUID getformatUUID() {
-		return formatUUID;
-	}
-	
-	public void	boot(boolean create, Properties startParams) throws StandardException {
-		UUIDFactory uuidFactory = Monitor.getMonitor().getUUIDFactory();
-		formatUUID = uuidFactory.recreateUUID(getFormatUUIDString());
-		SIDriver driver=SIDriver.driver();
-		operationFactory =driver.getOperationFactory();
-		partitionFactory = driver.getTableFactory();
-	}
+    protected UUID getformatUUID() {
+        return formatUUID;
+    }
+    
+    public void    boot(boolean create, Properties startParams) throws StandardException {
+        UUIDFactory uuidFactory = Monitor.getMonitor().getUUIDFactory();
+        formatUUID = uuidFactory.recreateUUID(getFormatUUIDString());
+        SIDriver driver=SIDriver.driver();
+        operationFactory =driver.getOperationFactory();
+        partitionFactory = driver.getTableFactory();
+    }
 
-	public boolean supportsImplementation(String implementationId) {
-		return implementationId.equals(getImplementationID());
-	}
+    public boolean supportsImplementation(String implementationId) {
+        return implementationId.equals(getImplementationID());
+    }
 
-	public String primaryImplementationType() {
-		return getImplementationID();
-	}
-	
-	public boolean supportsFormat(UUID formatid) {
-		return formatid.equals(formatUUID);
-	}
+    public String primaryImplementationType() {
+        return getImplementationID();
+    }
+    
+    public boolean supportsFormat(UUID formatid) {
+        return formatid.equals(formatUUID);
+    }
 
-	public Properties defaultProperties() {
-		return new Properties();
-	}
+    public Properties defaultProperties() {
+        return new Properties();
+    }
 
-	public UUID primaryFormat() {
-		return formatUUID;
-	}
-	public boolean canSupport(Properties startParams) {
-		String impl = startParams.getProperty("derby.access.Conglomerate.type");
-		if (impl == null)
-			return false;
-		return supportsImplementation(impl);
-	}
-	
-	abstract protected String getImplementationID();
-	abstract protected String getFormatUUIDString();
-	abstract public int getConglomerateFactoryId();
-	
-	
+    public UUID primaryFormat() {
+        return formatUUID;
+    }
+    public boolean canSupport(Properties startParams) {
+        String impl = startParams.getProperty("derby.access.Conglomerate.type");
+        if (impl == null)
+            return false;
+        return supportsImplementation(impl);
+    }
+    
+    abstract protected String getImplementationID();
+    abstract protected String getFormatUUIDString();
+    abstract public int getConglomerateFactoryId();
+    
+    
 }

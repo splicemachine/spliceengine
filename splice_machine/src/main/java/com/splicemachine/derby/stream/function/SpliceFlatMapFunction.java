@@ -24,13 +24,13 @@ import java.util.Iterator;
  * Created by dgomezferro on 4/4/14.
  */
 public abstract class SpliceFlatMapFunction<Op extends SpliceOperation, From, To>
-		extends AbstractSpliceFunction<Op> implements ExternalizableFlatMapFunction<From, To>, Function<From,Iterator<To>> {
-	public SpliceFlatMapFunction() {
-	}
+        extends AbstractSpliceFunction<Op> implements ExternalizableFlatMapFunction<From, To>, Function<From,Iterator<To>> {
+    public SpliceFlatMapFunction() {
+    }
 
-	public SpliceFlatMapFunction(OperationContext<Op> operationContext) {
+    public SpliceFlatMapFunction(OperationContext<Op> operationContext) {
         super(operationContext);
-	}
+    }
 
     @Nullable
     @Override

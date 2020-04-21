@@ -58,7 +58,7 @@ public class CommentStripperImpl implements CommentStripper {
      */
     protected Object getTokenManager()
     {
-	    /* returned a cached tokenmanager if already exists, otherwise create */
+        /* returned a cached tokenmanager if already exists, otherwise create */
         SQLCommentStripperTokenManager tm = (SQLCommentStripperTokenManager) cachedTokenManager;
         if (tm == null) {
             tm = new SQLCommentStripperTokenManager(charStream);
@@ -74,7 +74,7 @@ public class CommentStripperImpl implements CommentStripper {
 
         java.io.Reader sqlText = new java.io.StringReader(statementSQLText);
 
-		/* Get a char stream if we don't have one already */
+        /* Get a char stream if we don't have one already */
         if (charStream == null)
         {
             charStream = new UCode_CharStream(sqlText, 1, 1, LARGE_TOKEN_SIZE);
@@ -84,10 +84,10 @@ public class CommentStripperImpl implements CommentStripper {
             charStream.ReInit(sqlText, 1, 1, LARGE_TOKEN_SIZE);
         }
 
-		/* remember the string that we're parsing */
+        /* remember the string that we're parsing */
         SQLtext = statementSQLText;
 
-		/* Parse the statement, and return the QueryTree */
+        /* Parse the statement, and return the QueryTree */
         try
         {
             return getStripper().strip();
@@ -109,7 +109,7 @@ public class CommentStripperImpl implements CommentStripper {
     private SQLCommentStripper getStripper()
     {
         SQLCommentStripperTokenManager tm = (SQLCommentStripperTokenManager) getTokenManager();
-	    /* returned a cached comment stripper if already exists, otherwise create */
+        /* returned a cached comment stripper if already exists, otherwise create */
         SQLCommentStripper p = (SQLCommentStripper) cachedCommentStripper;
         if (p == null) {
             p = new SQLCommentStripper(tm);
@@ -122,10 +122,10 @@ public class CommentStripperImpl implements CommentStripper {
     /**
      * Returns the current SQL text string that is being parsed.
      *
-     * @return	Current SQL text string.
+     * @return    Current SQL text string.
      *
      */
-    public	String		getSQLtext() {
+    public    String        getSQLtext() {
         return SQLtext;
     }
 

@@ -123,30 +123,30 @@ public class UpdateOperation extends DMLWriteOperation{
     public int[] getColumnPositionMap(FormatableBitSet heapList){
         if(colPositionMap==null){
                 /*
-			       * heapList is the position of the columns in the original row (e.g. if cols 2 and 3 are being modified,
-						 * then heapList = {2,3}). We have to take that position and convert it into the actual positions
-						 * in nextRow.
-						 *
-						 * nextRow looks like {old,old,...,old,new,new,...,new,rowLocation}, so suppose that we have
-						 * heapList = {2,3}. Then nextRow = {old2,old3,new2,new3,rowLocation}. Which makes our colPositionMap
-						 * look like
-						 *
-						 * colPositionMap[2] = 2;
-						 * colPositionMap[3] = 3;
-						 *
-						 * But if heapList = {2}, then nextRow looks like {old2,new2,rowLocation}, which makes our colPositionMap
-						 * look like
-						 *
-						 * colPositionMap[2] = 1
-						 *
-						 * in general, then
-						 *
-						 * colPositionMap[i= heapList.anySetBit()] = nextRow[heapList.numSetBits()]
-						 * colPositionMap[heapList.anySetBit(i)] = nextRow[heapList.numSetBits()+1]
-						 * ...
-						 *
-						 * and so forth
-						 */
+                   * heapList is the position of the columns in the original row (e.g. if cols 2 and 3 are being modified,
+                         * then heapList = {2,3}). We have to take that position and convert it into the actual positions
+                         * in nextRow.
+                         *
+                         * nextRow looks like {old,old,...,old,new,new,...,new,rowLocation}, so suppose that we have
+                         * heapList = {2,3}. Then nextRow = {old2,old3,new2,new3,rowLocation}. Which makes our colPositionMap
+                         * look like
+                         *
+                         * colPositionMap[2] = 2;
+                         * colPositionMap[3] = 3;
+                         *
+                         * But if heapList = {2}, then nextRow looks like {old2,new2,rowLocation}, which makes our colPositionMap
+                         * look like
+                         *
+                         * colPositionMap[2] = 1
+                         *
+                         * in general, then
+                         *
+                         * colPositionMap[i= heapList.anySetBit()] = nextRow[heapList.numSetBits()]
+                         * colPositionMap[heapList.anySetBit(i)] = nextRow[heapList.numSetBits()+1]
+                         * ...
+                         *
+                         * and so forth
+                         */
             colPositionMap=new int[heapList.size()];
 
             for(int i=heapList.anySetBit(), pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++){

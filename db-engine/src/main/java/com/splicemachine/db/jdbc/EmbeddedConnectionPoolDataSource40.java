@@ -39,25 +39,25 @@ import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 /** 
-	EmbeddedConnectionPoolDataSource40 is Derby's ConnectionPoolDataSource
-	implementation for JDBC 4.0 (and higher) environments.
-	
+    EmbeddedConnectionPoolDataSource40 is Derby's ConnectionPoolDataSource
+    implementation for JDBC 4.0 (and higher) environments.
+    
 
-	<P>A ConnectionPoolDataSource is a factory for PooledConnection
-	objects. An object that implements this interface will typically be
-	registered with a JNDI service.
-	<P>
-	Use EmbeddedConnectionPoolDataSource40 if your application runs at JDBC level 4.0 (or higher).
-	Use
-	EmbeddedConnectionPoolDataSource if your application runs in the
-	following environments:
-	<UL>
-	<LI> JDBC 3.0 - Java 2 - JDK 1.4, J2SE 5.0
-	</UL>	
+    <P>A ConnectionPoolDataSource is a factory for PooledConnection
+    objects. An object that implements this interface will typically be
+    registered with a JNDI service.
+    <P>
+    Use EmbeddedConnectionPoolDataSource40 if your application runs at JDBC level 4.0 (or higher).
+    Use
+    EmbeddedConnectionPoolDataSource if your application runs in the
+    following environments:
+    <UL>
+    <LI> JDBC 3.0 - Java 2 - JDK 1.4, J2SE 5.0
+    </UL>    
 
-	<P>EmbeddedConnectionPoolDataSource40 is serializable and referenceable.
+    <P>EmbeddedConnectionPoolDataSource40 is serializable and referenceable.
 
-	<P>See EmbeddedDataSource40 for DataSource properties.
+    <P>See EmbeddedDataSource40 for DataSource properties.
 
  */
 public class EmbeddedConnectionPoolDataSource40 

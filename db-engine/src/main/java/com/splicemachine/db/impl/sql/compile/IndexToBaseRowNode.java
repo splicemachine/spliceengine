@@ -151,21 +151,21 @@ public class IndexToBaseRowNode extends FromTable{
     public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException{
         ValueNode restriction=null;
 
-		/*
+        /*
         ** Get the next ResultSet #, so that we can number this ResultSetNode,
-		** its ResultColumnList and ResultSet.
-		*/
+        ** its ResultColumnList and ResultSet.
+        */
         assignResultSetNumber();
 
         // Get the CostEstimate info for the underlying scan
         costEstimate=getFinalCostEstimate(false);
 
-		/* Put the predicates back into the tree */
+        /* Put the predicates back into the tree */
         if(restrictionList!=null){
             restriction=restrictionList.restorePredicates();
-			/* Allow the restrictionList to get garbage collected now
-			 * that we're done with it.
-			 */
+            /* Allow the restrictionList to get garbage collected now
+             * that we're done with it.
+             */
             restrictionList=null;
         }
 
@@ -197,9 +197,9 @@ public class IndexToBaseRowNode extends FromTable{
             heapOnlyColRefItem=acb.addItem(heapOnlyReferencedCols);
         }
 
-		/* Create the ReferencedColumnsDescriptorImpl which tells which columns
-		 * come from the index.
-		 */
+        /* Create the ReferencedColumnsDescriptorImpl which tells which columns
+         * come from the index.
+         */
         int indexColMapItem=acb.addItem(new ReferencedColumnsDescriptorImpl(getIndexColMapping()));
         long heapConglomNumber=baseCD.getConglomerateNumber();
         StaticCompiledOpenConglomInfo scoci=getLanguageConnectionContext()
@@ -229,19 +229,19 @@ public class IndexToBaseRowNode extends FromTable{
         }else{
             // this sets up the method and the static field.
             // generates:
-            // 	Object userExprFun { }
+            //     Object userExprFun { }
             MethodBuilder userExprFun=acb.newUserExprFun();
 
             // restriction knows it is returning its value;
-	
-			/* generates:
-			 *    return <restriction.generate(acb)>;
-			 * and adds it to userExprFun
-			 * NOTE: The explicit cast to DataValueDescriptor is required
-			 * since the restriction may simply be a boolean column or subquery
-			 * which returns a boolean.  For example:
-			 *		where booleanColumn
-			 */
+    
+            /* generates:
+             *    return <restriction.generate(acb)>;
+             * and adds it to userExprFun
+             * NOTE: The explicit cast to DataValueDescriptor is required
+             * since the restriction may simply be a boolean column or subquery
+             * which returns a boolean.  For example:
+             *        where booleanColumn
+             */
             restriction.generate(acb,userExprFun);
             userExprFun.methodReturn();
 
@@ -251,7 +251,7 @@ public class IndexToBaseRowNode extends FromTable{
             // restriction is used in the final result set as an access of the new static
             // field holding a reference to this new method.
             // generates:
-            //	ActivationClass.userExprFun
+            //    ActivationClass.userExprFun
             // which is the static field that "points" to the userExprFun
             // that evaluates the where clause.
             acb.pushMethodReference(mb,userExprFun);
@@ -268,12 +268,12 @@ public class IndexToBaseRowNode extends FromTable{
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getIndexRowToBaseRowResultSet", ClassName.NoPutResultSet,18);
 
-		/* The IndexRowToBaseRowResultSet generator is what we return */
+        /* The IndexRowToBaseRowResultSet generator is what we return */
 
-		/*
-		** Remember if this result set is the cursor target table, so we
-		** can know which table to use when doing positioned update and delete.
-		*/
+        /*
+        ** Remember if this result set is the cursor target table, so we
+        ** can know which table to use when doing positioned update and delete.
+        */
         if(cursorTargetTable){
             acb.rememberCursorTarget(mb);
         }
@@ -337,24 +337,24 @@ public class IndexToBaseRowNode extends FromTable{
 
     @Override
     void adjustForSortElimination(){
-		/* NOTE: We use a different method to tell a FBT that
-		 * it cannot do a bulk fetch as the ordering issues are
-		 * specific to a FBT being under an IRTBR as opposed to a
-		 * FBT being under a PRN, etc.
-		 */
+        /* NOTE: We use a different method to tell a FBT that
+         * it cannot do a bulk fetch as the ordering issues are
+         * specific to a FBT being under an IRTBR as opposed to a
+         * FBT being under a PRN, etc.
+         */
         source.disableBulkFetch();
     }
 
     @Override
     void adjustForSortElimination(RequiredRowOrdering rowOrdering) throws StandardException{
-		/* rowOrdering is not important to this specific node, so
-		 * just call the no-arg version of the method.
-		 */
+        /* rowOrdering is not important to this specific node, so
+         * just call the no-arg version of the method.
+         */
         adjustForSortElimination();
 
-		/* Now pass the rowOrdering down to source, which may
-		 * need to do additional work. DERBY-3279.
-		 */
+        /* Now pass the rowOrdering down to source, which may
+         * need to do additional work. DERBY-3279.
+         */
         source.adjustForSortElimination(rowOrdering);
     }
 

@@ -68,7 +68,7 @@ public final class CheckConstraintTest extends BaseJDBCTestCase {
         setAutoCommit(false);
         
         // negative The following are not allowed in check 
-        // constraints:	?, subquery, datetime functions
+        // constraints:    ?, subquery, datetime functions
         
         assertStatementError("42Y39", st,
             "create table neg1(c1 int check(?))");

@@ -113,10 +113,10 @@ public class EntryEncoder {
     private void resetEncoder() {
         if (encoder == null) return;
                 /*
-				 * It is possible that we changed the underlying bitset in the bitIndex out from under
-				 * us, which means that the encoder is using out of date information. Check for that,
-				 * and if so, reset the encoder
-				 */
+                 * It is possible that we changed the underlying bitset in the bitIndex out from under
+                 * us, which means that the encoder is using out of date information. Check for that,
+                 * and if so, reset the encoder
+                 */
 
         if (encoder.getNumFields() == bitIndex.cardinality()) {
             encoder.reset();
@@ -159,7 +159,7 @@ public class EntryEncoder {
             bitIndex = BitIndexing.getBestIndex(newIndex, newScalarFields, newFloatFields, newDoubleFields);
         }
 
-				resetEncoder();
+                resetEncoder();
     }
 
     public void close(){

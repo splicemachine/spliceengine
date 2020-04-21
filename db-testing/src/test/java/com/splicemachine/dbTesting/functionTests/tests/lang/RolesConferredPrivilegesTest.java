@@ -1137,61 +1137,61 @@ public class RolesConferredPrivilegesTest extends BaseJDBCTestCase
         
         stmtMM.executeUpdate("set role role1");
         try {
-        	stmtMM.executeQuery("select c11 from DonaldDuck.DDtable1");
-        	fail("select should have failed");
+            stmtMM.executeQuery("select c11 from DonaldDuck.DDtable1");
+            fail("select should have failed");
         } catch (SQLException e) {
             assertSQLState("42502", e);
         }
         try {
-        	stmtMM.executeUpdate("update DonaldDuck.DDtable1 set c11 = " +
-        			" (select c21 from DonaldDuck.DDtable2)");
-        	fail("select should have failed");
+            stmtMM.executeUpdate("update DonaldDuck.DDtable1 set c11 = " +
+                    " (select c21 from DonaldDuck.DDtable2)");
+            fail("select should have failed");
         } catch (SQLException e) {
             assertSQLState("42502", e);
         }
 
         stmtDD.executeUpdate("grant select(c12) on DDtable1 to role1");
         stmtDD.executeUpdate("grant update on DDtable1 to role1");
-    	stmtMM.executeQuery("select c12 from DonaldDuck.DDtable1");
+        stmtMM.executeQuery("select c12 from DonaldDuck.DDtable1");
         try {
-        	stmtMM.executeQuery("select c11 from DonaldDuck.DDtable1");
-        	fail("select should have failed");
+            stmtMM.executeQuery("select c11 from DonaldDuck.DDtable1");
+            fail("select should have failed");
         } catch (SQLException e) {
             assertSQLState("42502", e);
         }
         try {
-        	stmtMM.executeUpdate("update DonaldDuck.DDtable1 set c11 = " +
-        			" (select c21 from DonaldDuck.DDtable2)");
-        	fail("select should have failed");
+            stmtMM.executeUpdate("update DonaldDuck.DDtable1 set c11 = " +
+                    " (select c21 from DonaldDuck.DDtable2)");
+            fail("select should have failed");
         } catch (SQLException e) {
             assertSQLState("42502", e);
         }
 
         stmtDD.executeUpdate("grant select(c11) on DDtable1 to role1");
-    	stmtMM.executeQuery("select c12 from DonaldDuck.DDtable1");
-    	stmtMM.executeQuery("select c11 from DonaldDuck.DDtable1");
+        stmtMM.executeQuery("select c12 from DonaldDuck.DDtable1");
+        stmtMM.executeQuery("select c11 from DonaldDuck.DDtable1");
         try {
-        	stmtMM.executeQuery("select c11 from DonaldDuck.DDtable1, " +
-        			"DonaldDuck.DDtable2");
-        	fail("select should have failed");
+            stmtMM.executeQuery("select c11 from DonaldDuck.DDtable1, " +
+                    "DonaldDuck.DDtable2");
+            fail("select should have failed");
         } catch (SQLException e) {
             assertSQLState("42500", e);
         }
         try {
-        	stmtMM.executeQuery("update DonaldDuck.DDtable1 set c11 = " +
-        			" (select c21 from DonaldDuck.DDtable2)");
-        	fail("select should have failed");
+            stmtMM.executeQuery("update DonaldDuck.DDtable1 set c11 = " +
+                    " (select c21 from DonaldDuck.DDtable2)");
+            fail("select should have failed");
         } catch (SQLException e) {
             assertSQLState("42502", e);
         }
 
         stmtDD.executeUpdate("grant select(c21) on DDtable2 to role1");
-    	stmtMM.executeQuery("select c12 from DonaldDuck.DDtable1");
-    	stmtMM.executeQuery("select c11 from DonaldDuck.DDtable1");
-    	stmtMM.executeQuery("select c11 from DonaldDuck.DDtable1, " +
-    			"DonaldDuck.DDtable2");
-    	stmtMM.executeUpdate("update DonaldDuck.DDtable1 set c11 = " +
-    			" (select c21 from DonaldDuck.DDtable2)");
+        stmtMM.executeQuery("select c12 from DonaldDuck.DDtable1");
+        stmtMM.executeQuery("select c11 from DonaldDuck.DDtable1");
+        stmtMM.executeQuery("select c11 from DonaldDuck.DDtable1, " +
+                "DonaldDuck.DDtable2");
+        stmtMM.executeUpdate("update DonaldDuck.DDtable1 set c11 = " +
+                " (select c21 from DonaldDuck.DDtable2)");
     }
 
     /**
@@ -2148,11 +2148,11 @@ public class RolesConferredPrivilegesTest extends BaseJDBCTestCase
                                        String table,
                                        String[] columns) throws SQLException {
       assertSelectPrivilege(hasPrivilege, c, schema, 
-        		table, columns, NOCOLUMNPERMISSION);
+                table, columns, NOCOLUMNPERMISSION);
       assertSelectConstantPrivilege(hasPrivilege, c, schema, 
-        		table, NOTABLEPERMISSION);
+                table, NOTABLEPERMISSION);
       assertSelectCountPrivilege(hasPrivilege, c, schema, 
-        		table, columns, NOTABLEPERMISSION);
+                table, columns, NOTABLEPERMISSION);
     }
 
     /**

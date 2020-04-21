@@ -46,27 +46,27 @@ import com.splicemachine.db.iapi.types.RowLocation;
  */
 public interface TargetResultSet extends ResultSet
 {
-	/**
-	 * Pass a changed row and the row location for that row
-	 * to the target result set.
-	 *
-	 * @param execRow		The changed row.
-	 * @param rowLocation	The row location of the row.
-	 *
-	 * @exception StandardException thrown if cursor finished.
-	 */
-	void changedRow(ExecRow execRow, RowLocation rowLocation) throws StandardException;
+    /**
+     * Pass a changed row and the row location for that row
+     * to the target result set.
+     *
+     * @param execRow        The changed row.
+     * @param rowLocation    The row location of the row.
+     *
+     * @exception StandardException thrown if cursor finished.
+     */
+    void changedRow(ExecRow execRow, RowLocation rowLocation) throws StandardException;
 
-	/**
-	 * Preprocess the source row prior to getting it back from the source.
-	 * This is useful for bulk insert where the store stands between the target and 
-	 * the source.
-	 *
-	 * @param sourceRow	The source row.
-	 *
-	 * @return The preprocessed source row.
-	 *
-	 * @exception StandardException thrown if cursor finished.
-	 */
-	ExecRow preprocessSourceRow(ExecRow sourceRow) throws StandardException;
+    /**
+     * Preprocess the source row prior to getting it back from the source.
+     * This is useful for bulk insert where the store stands between the target and 
+     * the source.
+     *
+     * @param sourceRow    The source row.
+     *
+     * @return The preprocessed source row.
+     *
+     * @exception StandardException thrown if cursor finished.
+     */
+    ExecRow preprocessSourceRow(ExecRow sourceRow) throws StandardException;
 }

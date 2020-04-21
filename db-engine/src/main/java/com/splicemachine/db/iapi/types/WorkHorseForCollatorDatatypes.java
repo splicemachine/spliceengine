@@ -52,187 +52,187 @@ import java.text.RuleBasedCollator;
  */
 final class WorkHorseForCollatorDatatypes  
 {
-	/** 
-	 * Use this object for collation on character datatype. This collator
-	 * object is passed as a parameter to the constructor.
-	 */
-	private RuleBasedCollator collatorForCharacterDatatypes;
-	/**
-	 * collatorForCharacterDatatypes will be used on this SQLChar to determine
-	 * collationElementsForString. The collationElementsForString is used by
-	 * the like method to do Collator specific comparison.
-	 * This SQLChar object is passed as a parameter to the constructor.
-	 */
-	private SQLChar stringData;
-	/**
-	 * Following is the array holding a series of collation elements for the
-	 * string. It will be used in the like method. This gets initialized when
-	 * the like method is first invoked. 
-	 */
-	private int[]	collationElementsForString;
-	/** 
-	 * Number of valid collation elements in the array above. Note that this 
-	 * might be smaller than the actual size of the array above. Gets 
-	 * initialized when the like method is first invoked.
-	 */
-	private int		countOfCollationElements;
+    /** 
+     * Use this object for collation on character datatype. This collator
+     * object is passed as a parameter to the constructor.
+     */
+    private RuleBasedCollator collatorForCharacterDatatypes;
+    /**
+     * collatorForCharacterDatatypes will be used on this SQLChar to determine
+     * collationElementsForString. The collationElementsForString is used by
+     * the like method to do Collator specific comparison.
+     * This SQLChar object is passed as a parameter to the constructor.
+     */
+    private SQLChar stringData;
+    /**
+     * Following is the array holding a series of collation elements for the
+     * string. It will be used in the like method. This gets initialized when
+     * the like method is first invoked. 
+     */
+    private int[]    collationElementsForString;
+    /** 
+     * Number of valid collation elements in the array above. Note that this 
+     * might be smaller than the actual size of the array above. Gets 
+     * initialized when the like method is first invoked.
+     */
+    private int        countOfCollationElements;
 
-	// For null strings, cKey = null.
-	private CollationKey cKey; 
+    // For null strings, cKey = null.
+    private CollationKey cKey; 
 
-	WorkHorseForCollatorDatatypes(
-			RuleBasedCollator collatorForCharacterDatatypes,
-			SQLChar stringData)
-	{
-		this.collatorForCharacterDatatypes = collatorForCharacterDatatypes;
-		this.stringData = stringData;
-	}
-	
-	/** @see SQLChar#stringCompare(SQLChar, SQLChar) */
-	int stringCompare(SQLChar str1, SQLChar str2)
-	throws StandardException
-	{
-		CollationKey ckey1 = str1.getCollationKey();
-		CollationKey ckey2 = str2.getCollationKey();
-		
-		/*
-		** By convention, nulls sort High, and null == null
-		*/
-		if (ckey1 == null || ckey2 == null)
-		{
-			if (ckey1 != null)	// str2 == null
-				return -1;
-			if (ckey2 != null)	// this == null
-				return 1;
-			return 0;			// both == null
-		}
+    WorkHorseForCollatorDatatypes(
+            RuleBasedCollator collatorForCharacterDatatypes,
+            SQLChar stringData)
+    {
+        this.collatorForCharacterDatatypes = collatorForCharacterDatatypes;
+        this.stringData = stringData;
+    }
+    
+    /** @see SQLChar#stringCompare(SQLChar, SQLChar) */
+    int stringCompare(SQLChar str1, SQLChar str2)
+    throws StandardException
+    {
+        CollationKey ckey1 = str1.getCollationKey();
+        CollationKey ckey2 = str2.getCollationKey();
+        
+        /*
+        ** By convention, nulls sort High, and null == null
+        */
+        if (ckey1 == null || ckey2 == null)
+        {
+            if (ckey1 != null)    // str2 == null
+                return -1;
+            if (ckey2 != null)    // this == null
+                return 1;
+            return 0;            // both == null
+        }
 
-		return ckey1.compareTo(ckey2);
-	}
-	
-	/**
-	 * This method implements the like function for char (with no escape value).
-	 * The difference in this method and the same method in SQLChar is that 
-	 * here we use special Collator object to do the comparison rather than
-	 * using the Collator object associated with the default jvm locale.
-	 *
-	 * @param pattern		The pattern to use
-	 *
-	 * @return	A SQL boolean value telling whether the first operand is
-	 *			like the second operand
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	BooleanDataValue like(DataValueDescriptor pattern)
-								throws StandardException
-	{
-		Boolean likeResult;
+        return ckey1.compareTo(ckey2);
+    }
+    
+    /**
+     * This method implements the like function for char (with no escape value).
+     * The difference in this method and the same method in SQLChar is that 
+     * here we use special Collator object to do the comparison rather than
+     * using the Collator object associated with the default jvm locale.
+     *
+     * @param pattern        The pattern to use
+     *
+     * @return    A SQL boolean value telling whether the first operand is
+     *            like the second operand
+     *
+     * @exception StandardException        Thrown on error
+     */
+    BooleanDataValue like(DataValueDescriptor pattern)
+                                throws StandardException
+    {
+        Boolean likeResult;
 
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(
-				pattern instanceof CollationElementsInterface,
-				"Both the operands must be instances of CollationElementsInterface");
-		likeResult = Like.like(stringData.getCharArray(), 
-				stringData.getLength(), 
-				((SQLChar)pattern).getCharArray(), 
-				pattern.getLength(), 
-				null, 
-				0,
-				collatorForCharacterDatatypes);
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(
+                pattern instanceof CollationElementsInterface,
+                "Both the operands must be instances of CollationElementsInterface");
+        likeResult = Like.like(stringData.getCharArray(), 
+                stringData.getLength(), 
+                ((SQLChar)pattern).getCharArray(), 
+                pattern.getLength(), 
+                null, 
+                0,
+                collatorForCharacterDatatypes);
 
-		return SQLBoolean.truthValue(stringData ,
-									 pattern,
-									 likeResult);
-	}
-	
-	/**
-	 * This method implements the like function for char with an escape value.
-	 * 
-	 * @param pattern		The pattern to use
-	 * 
-	 * @return	A SQL boolean value telling whether the first operand is
-	 * 			like the second operand
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	BooleanDataValue like(DataValueDescriptor pattern, 
-			DataValueDescriptor escape)	throws StandardException
-	{
-		Boolean likeResult;
+        return SQLBoolean.truthValue(stringData ,
+                                     pattern,
+                                     likeResult);
+    }
+    
+    /**
+     * This method implements the like function for char with an escape value.
+     * 
+     * @param pattern        The pattern to use
+     * 
+     * @return    A SQL boolean value telling whether the first operand is
+     *             like the second operand
+     *
+     * @exception StandardException        Thrown on error
+     */
+    BooleanDataValue like(DataValueDescriptor pattern, 
+            DataValueDescriptor escape)    throws StandardException
+    {
+        Boolean likeResult;
 
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(
-							 pattern instanceof CollationElementsInterface &&
-							 escape instanceof CollationElementsInterface,
-			"All three operands must be instances of CollationElementsInterface");
-		
-		// ANSI states a null escape yields 'unknown' results 
-		//
-		// This method is only called when we have an escape clause, so this 
-		// test is valid
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(
+                             pattern instanceof CollationElementsInterface &&
+                             escape instanceof CollationElementsInterface,
+            "All three operands must be instances of CollationElementsInterface");
+        
+        // ANSI states a null escape yields 'unknown' results 
+        //
+        // This method is only called when we have an escape clause, so this 
+        // test is valid
 
-		if (escape.isNull())
-		{
-			throw StandardException.newException(SQLState.LANG_ESCAPE_IS_NULL);
-		}
+        if (escape.isNull())
+        {
+            throw StandardException.newException(SQLState.LANG_ESCAPE_IS_NULL);
+        }
 
-		CollationElementsInterface escapeCharacter = (CollationElementsInterface) escape;
+        CollationElementsInterface escapeCharacter = (CollationElementsInterface) escape;
 
-		if (escapeCharacter.getCollationElementsForString() != null && 
-				(escapeCharacter.getCountOfCollationElements() != 1))
-		{
-			throw StandardException.newException(SQLState.LANG_INVALID_ESCAPE_CHARACTER,
-					escapeCharacter.toString());
-		}
-		likeResult = Like.like(stringData.getCharArray(), 
-				stringData.getLength(), 
-				((SQLChar)pattern).getCharArray(), 
-				pattern.getLength(), 
-				((SQLChar)escape).getCharArray(), 
-				escape.getLength(),
-				collatorForCharacterDatatypes);
+        if (escapeCharacter.getCollationElementsForString() != null && 
+                (escapeCharacter.getCountOfCollationElements() != 1))
+        {
+            throw StandardException.newException(SQLState.LANG_INVALID_ESCAPE_CHARACTER,
+                    escapeCharacter.toString());
+        }
+        likeResult = Like.like(stringData.getCharArray(), 
+                stringData.getLength(), 
+                ((SQLChar)pattern).getCharArray(), 
+                pattern.getLength(), 
+                ((SQLChar)escape).getCharArray(), 
+                escape.getLength(),
+                collatorForCharacterDatatypes);
 
-		return SQLBoolean.truthValue(stringData,
-								 pattern,
-								 likeResult);
-	}
+        return SQLBoolean.truthValue(stringData,
+                                 pattern,
+                                 likeResult);
+    }
 
-	/**
-	 * Get the RuleBasedCollator which is getting used for collation sensitive
-	 * methods. 
-	 */
-	RuleBasedCollator getCollatorForCollation()
-	{
-		return(collatorForCharacterDatatypes);
-	}
+    /**
+     * Get the RuleBasedCollator which is getting used for collation sensitive
+     * methods. 
+     */
+    RuleBasedCollator getCollatorForCollation()
+    {
+        return(collatorForCharacterDatatypes);
+    }
 
-	/**
-	 * This method returns the count of collation elements for SQLChar object.
-	 * It method will return the correct value only if method   
-	 * getCollationElementsForString has been called previously on the SQLChar
-	 * object. 
-	 *
-	 * @return count of collation elements for this instance of CollatorSQLChar
-	 */
-	int getCountOfCollationElements()
-	{
-		return countOfCollationElements;
-	}
+    /**
+     * This method returns the count of collation elements for SQLChar object.
+     * It method will return the correct value only if method   
+     * getCollationElementsForString has been called previously on the SQLChar
+     * object. 
+     *
+     * @return count of collation elements for this instance of CollatorSQLChar
+     */
+    int getCountOfCollationElements()
+    {
+        return countOfCollationElements;
+    }
 
-	/**
-	 * This method translates the string into a series of collation elements.
-	 * These elements will get used in the like method.
-	 * 
-	 * @return an array of collation elements for the string
-	 * @throws StandardException
-	 */
-	int[] getCollationElementsForString()
-		throws StandardException
-	{
-		if (stringData.isNull())
-		{
-			return (int[]) null;
-		}
+    /**
+     * This method translates the string into a series of collation elements.
+     * These elements will get used in the like method.
+     * 
+     * @return an array of collation elements for the string
+     * @throws StandardException
+     */
+    int[] getCollationElementsForString()
+        throws StandardException
+    {
+        if (stringData.isNull())
+        {
+            return (int[]) null;
+        }
 
 
 
@@ -245,48 +245,48 @@ final class WorkHorseForCollatorDatatypes
         countOfCollationElements   = 0;
 
 
-		if (collationElementsForString != null)
-		{
-			return collationElementsForString;
-		}
+        if (collationElementsForString != null)
+        {
+            return collationElementsForString;
+        }
 
-		// countOfCollationElements should always be 0 when 
+        // countOfCollationElements should always be 0 when 
         // collationElementsForString is null
-		if (SanityManager.DEBUG)
-		{
-			if (countOfCollationElements != 0)
-			{
-				SanityManager.THROWASSERT(
-					"countOfCollationElements expected to be 0, not " + 
+        if (SanityManager.DEBUG)
+        {
+            if (countOfCollationElements != 0)
+            {
+                SanityManager.THROWASSERT(
+                    "countOfCollationElements expected to be 0, not " + 
                     countOfCollationElements);
-			}
-		}
+            }
+        }
         
 
-		collationElementsForString = new int[stringData.getLength()];
+        collationElementsForString = new int[stringData.getLength()];
 
-		CollationElementIterator cei = 
+        CollationElementIterator cei = 
             collatorForCharacterDatatypes.getCollationElementIterator(
                 stringData.getString());
 
-		int nextInt;
-		while ((nextInt = cei.next()) != CollationElementIterator.NULLORDER)
-		{
-			/* Believe it or not, a String might have more
-			 * collation elements than characters.
-			 * So, we handle that case by increasing the int array
-			 * by 5 and copying array elements.
-			 */
-			if (countOfCollationElements == collationElementsForString.length)
-			{
-				int[] expandedArray = new int[countOfCollationElements + 5];
-				System.arraycopy(collationElementsForString, 0, expandedArray, 
-						0, collationElementsForString.length);
-				collationElementsForString = expandedArray;
-			}
-			collationElementsForString[countOfCollationElements++] = nextInt;
-		}
+        int nextInt;
+        while ((nextInt = cei.next()) != CollationElementIterator.NULLORDER)
+        {
+            /* Believe it or not, a String might have more
+             * collation elements than characters.
+             * So, we handle that case by increasing the int array
+             * by 5 and copying array elements.
+             */
+            if (countOfCollationElements == collationElementsForString.length)
+            {
+                int[] expandedArray = new int[countOfCollationElements + 5];
+                System.arraycopy(collationElementsForString, 0, expandedArray, 
+                        0, collationElementsForString.length);
+                collationElementsForString = expandedArray;
+            }
+            collationElementsForString[countOfCollationElements++] = nextInt;
+        }
 
-		return collationElementsForString;
-	}
+        return collationElementsForString;
+    }
 }

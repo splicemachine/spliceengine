@@ -47,23 +47,23 @@ import java.io.IOException;
 
 public class LogDeviceTest {
 
-	private static final String TEST_DATABASE_NAME = "wombat" ;
+    private static final String TEST_DATABASE_NAME = "wombat" ;
     private static final String TEST_DATABASE_NAME1 = "wombat1" ;
-	private static final String TEST_TABLE_NAME   =    "emp";
+    private static final String TEST_TABLE_NAME   =    "emp";
     private static final String LOG_PATH = "extinout/logDeviceTest_c1";
     private static final String LOG_PATH1 = "extinout/logDeviceTest_c2";
 
-	public static void main(String[] argv) throws Throwable {
-		
+    public static void main(String[] argv) throws Throwable {
+        
         LogDeviceTest test = new LogDeviceTest();
-   		ij.getPropertyArg(argv); 
+           ij.getPropertyArg(argv); 
 
         try {
             test.runTest();
         }
         catch (SQLException sqle) {
-			dumpSQLException(sqle);
-		} 
+            dumpSQLException(sqle);
+        } 
     }
 
     /*
@@ -85,11 +85,11 @@ public class LogDeviceTest {
 
 
 
-	/*
-	 * Test database creation with log in non-default location.
-	 */
-	private void runTest() throws Exception {
-		logMessage("Begin Log Device Test");
+    /*
+     * Test database creation with log in non-default location.
+     */
+    private void runTest() throws Exception {
+        logMessage("Begin Log Device Test");
 
         // case 1: test logDevice property with absolute path
 
@@ -106,8 +106,8 @@ public class LogDeviceTest {
         conn.commit();
         insert(conn, TEST_TABLE_NAME, 100);
         conn.rollback();
-		// shutdown the test db 
-		shutdown(TEST_DATABASE_NAME);
+        // shutdown the test db 
+        shutdown(TEST_DATABASE_NAME);
         
         // case 2: database creation on non-empty 
         // log dir location should fail.  
@@ -147,49 +147,49 @@ public class LogDeviceTest {
         createTable(conn, TEST_TABLE_NAME);
         conn.commit();
         insert(conn, TEST_TABLE_NAME, 100);
-		// shutdown the test db 
-		shutdown(TEST_DATABASE_NAME1);
+        // shutdown the test db 
+        shutdown(TEST_DATABASE_NAME1);
         
         // reconnect to the same database.
         conn = TestUtil.getConnection(TEST_DATABASE_NAME1, null);
         
-		logMessage("End log device Test");
-	}
+        logMessage("End log device Test");
+    }
 
-		
-	/**
-	 * Shutdown the datbase
-	 * @param  dbName  Name of the database to shutdown.
-	 */
-	private void shutdown(String dbName) {
+        
+    /**
+     * Shutdown the datbase
+     * @param  dbName  Name of the database to shutdown.
+     */
+    private void shutdown(String dbName) {
 
-		try{
-			//shutdown
-			TestUtil.getConnection(dbName, "shutdown=true");
-		}catch(SQLException se){
-			if (se.getSQLState() != null && se.getSQLState().equals("08006"))
-				System.out.println("database shutdown properly");
-			else
-				dumpSQLException(se);
-		}
-	}
+        try{
+            //shutdown
+            TestUtil.getConnection(dbName, "shutdown=true");
+        }catch(SQLException se){
+            if (se.getSQLState() != null && se.getSQLState().equals("08006"))
+                System.out.println("database shutdown properly");
+            else
+                dumpSQLException(se);
+        }
+    }
 
-	/**
-	 * Write message to the standard output.
-	 */
-	private void logMessage(String   str)	{
-			System.out.println(str);
-	}
+    /**
+     * Write message to the standard output.
+     */
+    private void logMessage(String   str)    {
+            System.out.println(str);
+    }
 
-	
-	/**
-	 * dump the SQLException to the standard output.
-	 */
-	static private void dumpSQLException(SQLException sqle) {
-		
-		com.splicemachine.db.tools.JDBCDisplayUtil.	ShowSQLException(System.out, sqle);
-		sqle.printStackTrace(System.out);
-	}
+    
+    /**
+     * dump the SQLException to the standard output.
+     */
+    static private void dumpSQLException(SQLException sqle) {
+        
+        com.splicemachine.db.tools.JDBCDisplayUtil.    ShowSQLException(System.out, sqle);
+        sqle.printStackTrace(System.out);
+    }
 
     /**
      * Insert some rows into the specified table.
@@ -206,12 +206,12 @@ public class LogDeviceTest {
                                                      tableName + 
                                                      " VALUES(?,?,?)");
         for (int i = 0; i < rowCount; i++) {
-			
+            
             ps.setInt(1, i); // ID
             ps.setString(2 , "skywalker" + i);
             ps.setFloat(3, (float)(i * 2000)); 
             ps.executeUpdate();
-		}
+        }
         ps.close();
     }
 
@@ -222,7 +222,7 @@ public class LogDeviceTest {
      * @param  tableName  Name of the table to create.
      * @exception SQLException if any database exception occurs.
      */
-    private	void createTable(Connection conn, 
+    private    void createTable(Connection conn, 
                              String tableName) throws SQLException {
 
         Statement s = conn.createStatement();

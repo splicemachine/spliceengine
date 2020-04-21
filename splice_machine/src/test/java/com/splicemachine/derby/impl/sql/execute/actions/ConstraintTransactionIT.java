@@ -549,7 +549,7 @@ public class ConstraintTransactionIT {
             Assert.fail("Expected check constraint violation");
         } catch (SQLException e) {
             Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith(
-            	"The check constraint 'DELME' was violated while performing an INSERT or UPDATE on table"));
+                "The check constraint 'DELME' was violated while performing an INSERT or UPDATE on table"));
         }
 
         s1.execute(String.format("alter table %s drop constraint delme", tableRef));

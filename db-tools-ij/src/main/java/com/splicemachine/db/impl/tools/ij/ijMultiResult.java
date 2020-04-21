@@ -44,22 +44,22 @@ import java.sql.SQLWarning;
  */
 class ijMultiResult extends ijResultImpl {
 
-	private Statement statement;
-	private ResultSet rs;
-	boolean closeWhenDone;
+    private Statement statement;
+    private ResultSet rs;
+    boolean closeWhenDone;
 
-	ijMultiResult(Statement s, ResultSet rs, boolean c) {
-		statement = s;
-		this.rs = rs;
-		closeWhenDone = c;
-	}
+    ijMultiResult(Statement s, ResultSet rs, boolean c) {
+        statement = s;
+        this.rs = rs;
+        closeWhenDone = c;
+    }
 
-	public boolean isMulti() { return true; }
+    public boolean isMulti() { return true; }
 
-	public Statement getStatement() { return statement; }
-	public ResultSet getResultSet() { return rs; }
-	public void closeStatement() throws SQLException { if (closeWhenDone) statement.close(); }
+    public Statement getStatement() { return statement; }
+    public ResultSet getResultSet() { return rs; }
+    public void closeStatement() throws SQLException { if (closeWhenDone) statement.close(); }
 
-	public SQLWarning getSQLWarnings() { return null; }
-	public void clearSQLWarnings() { }
+    public SQLWarning getSQLWarnings() { return null; }
+    public void clearSQLWarnings() { }
 }

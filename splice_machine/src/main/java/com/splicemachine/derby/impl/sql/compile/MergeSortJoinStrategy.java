@@ -28,13 +28,13 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
     }
 
     @Override
-	public boolean feasible(Optimizable innerTable,
+    public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
                             CostEstimate outerCost,boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
-		return super.feasible(innerTable, predList, optimizer,outerCost,wasHinted,skipKeyCheck);
-	}
+        return super.feasible(innerTable, predList, optimizer,outerCost,wasHinted,skipKeyCheck);
+    }
 
     @Override
     public String getName() {
@@ -47,9 +47,9 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
     }
 
     /** @see JoinStrategy#multiplyBaseCostByOuterRows */
-	public boolean multiplyBaseCostByOuterRows() {
-		return true;
-	}
+    public boolean multiplyBaseCostByOuterRows() {
+        return true;
+    }
 
     /**
      * @see JoinStrategy#joinResultSetMethodName
@@ -71,11 +71,11 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
 
 
     /**
-	 * 
-	 * Right Side Cost + (LeftSideRows+RightSideRows)*WriteCost 
-	 * 
-	 */
-	@Override
+     * 
+     * Right Side Cost + (LeftSideRows+RightSideRows)*WriteCost 
+     * 
+     */
+    @Override
     public void estimateCost(Optimizable innerTable,
                              OptimizablePredicateList predList,
                              ConglomerateDescriptor cd,

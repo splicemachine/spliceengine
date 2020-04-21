@@ -81,7 +81,7 @@ public class NetHarnessJavaTest extends HarnessJavaTest {
             return suite;
 
         suite.addTest(TestConfiguration.clientServerDecorator(
-        		         decorate(new NetHarnessJavaTest("executeUpdate"))));
+                         decorate(new NetHarnessJavaTest("executeUpdate"))));
 
         //DERBY-2348: SECMEC 9 is available on IBM 1.4.2 and 1.5 VMs, leading
         //            to differences in output, disabling for now. While tests
@@ -90,14 +90,14 @@ public class NetHarnessJavaTest extends HarnessJavaTest {
         //            responses of secmec and secchkcd for various error cases,
         //            which is tested in ProtocolTest.
         return new SupportFilesSetup(suite,
-        	           new String[] {
-	                       "functionTests/tests/derbynet/excsat_accsecrd1.inc",
-	                       "functionTests/tests/derbynet/excsat_accsecrd2.inc",
-	                       "functionTests/tests/derbynet/excsat_secchk.inc",
-	                       "functionTests/tests/derbynet/connect.inc",
-	                       "functionTests/tests/derbynet/values1.inc",
-	                       "functionTests/tests/derbynet/values64kblksz.inc"
-	                   });
+                       new String[] {
+                           "functionTests/tests/derbynet/excsat_accsecrd1.inc",
+                           "functionTests/tests/derbynet/excsat_accsecrd2.inc",
+                           "functionTests/tests/derbynet/excsat_secchk.inc",
+                           "functionTests/tests/derbynet/connect.inc",
+                           "functionTests/tests/derbynet/values1.inc",
+                           "functionTests/tests/derbynet/values64kblksz.inc"
+                       });
     }
 
 }

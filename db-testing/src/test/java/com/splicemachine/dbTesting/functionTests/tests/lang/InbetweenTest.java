@@ -118,13 +118,13 @@ public final class InbetweenTest extends BaseJDBCTestCase {
         st.executeUpdate(
             " insert into t values (0, 100, 'hello', 'everyone "
                 + "is here', 200.0e0,"
-                + "	300.0e0, '1992-01-01','12:30:30',"
+                + "    300.0e0, '1992-01-01','12:30:30',"
                 +"'"+Timestamp.valueOf("1992-01-01 12:30:30")+"')");
         
         st.executeUpdate(
             "insert into t values (-1, -100, 'goodbye', "
                 + "'everyone is there', -200.0e0,"
-                + "	-300.0e0, '1992-01-02', '12:30:59',"
+                + "    -300.0e0, '1992-01-02', '12:30:59',"
                 +"'"+Timestamp.valueOf("1992-01-02 12:30:59")+"')");
         
         st.executeUpdate(" insert into test values (2, 4.0)");                    
@@ -136,12 +136,12 @@ public final class InbetweenTest extends BaseJDBCTestCase {
         
         st.executeUpdate(
             " insert into big values "
-                + "	(1, '1'), (2, '2'), (3, '3'), (4, '4'), (5, '5'), "
+                + "    (1, '1'), (2, '2'), (3, '3'), (4, '4'), (5, '5'), "
                 + "(6, '6'), (7, '7'), (8, '8'), (9, '9'), (10, '10'), "
-                + "	(11, '11'), (12, '12'), (13, '13'), (14, '14'), "
+                + "    (11, '11'), (12, '12'), (13, '13'), (14, '14'), "
                 + "(15, '15'), (16, '16'), (17, '17'), (18, '18'), "
                 + "(19, '19'), (20, '20'), "
-                + "	(21, '21'), (22, '22'), (23, '23'), (24, '24'), "
+                + "    (21, '21'), (22, '22'), (23, '23'), (24, '24'), "
                 + "(25, '25'), (26, '26'), (27, '27'), (28, '28'), "
                 + "(29, '29'), (30, '30')");        
         
@@ -1312,13 +1312,13 @@ public final class InbetweenTest extends BaseJDBCTestCase {
         st.executeUpdate(
             "insert into t values (20, 200, 'maybe', 'noone is "
             + "here', 800.0e0,"
-            + "	1000.0e0, '1892-01-01', '07:30:30', "
+            + "    1000.0e0, '1892-01-01', '07:30:30', "
             + "'"+Timestamp.valueOf("1892-01-01 07:30:30")+"')");
         
         st.executeUpdate(
             " insert into t values (-50, -200, 'never', 'noone "
             + "is there', -800.0e0,"
-            + "	-10300.0e0, '2992-01-02', '19:30:59', "
+            + "    -10300.0e0, '2992-01-02', '19:30:59', "
             + "'"+Timestamp.valueOf("2992-01-02 19:30:59")+"')");
         
         // test the static in list xform for the various types
@@ -3699,7 +3699,7 @@ public final class InbetweenTest extends BaseJDBCTestCase {
        //Comparisons between 'REAL' and 'CHAR (UCS_BASIC)' are not supported
         assertStatementError("42818", st,
             "select c1 from t1 where c1 in ('9', '4', '8.0', '7.7',"
-            + "	5.2, 6, '7.7', '4.9', '6.1')");
+            + "    5.2, 6, '7.7', '4.9', '6.1')");
         
         PreparedStatement pSt = prepareStatement(
             "select c1 from t1 where c1 in (3, ?)");

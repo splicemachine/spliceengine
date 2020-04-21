@@ -60,7 +60,7 @@ public class dropcrash2 extends dropcrash
     {
         dropcrash2 test = new dropcrash2();
 
-   		ij.getPropertyArg(argv); 
+           ij.getPropertyArg(argv); 
         Connection conn = ij.startJBMS();
         conn.setAutoCommit(false);
 
@@ -70,9 +70,9 @@ public class dropcrash2 extends dropcrash
         }
         catch (SQLException sqle)
         {
-			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
-			sqle.printStackTrace(System.out);
-		}
+            sqle.printStackTrace(System.out);
+        }
     }
 }

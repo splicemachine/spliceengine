@@ -53,31 +53,31 @@ public class AggregatorInfo implements Formatable
 {
     /********************************************************
      **
-     **	This class implements Formatable. That means that it
-     **	can write itself to and from a formatted stream. If
-     **	you add more fields to this class, make sure that you
-     **	also write/read them with the writeExternal()/readExternal()
-     **	methods.
+     **    This class implements Formatable. That means that it
+     **    can write itself to and from a formatted stream. If
+     **    you add more fields to this class, make sure that you
+     **    also write/read them with the writeExternal()/readExternal()
+     **    methods.
      **
-     **	If, inbetween releases, you add more fields to this class,
-     **	then you should bump the version number emitted by the getTypeFormatId()
-     **	method.  OR, since this is something that is used
-     **	in stored prepared statements, it is ok to change it
-     **	if you make sure that stored prepared statements are
-     **	invalidated across releases.
+     **    If, inbetween releases, you add more fields to this class,
+     **    then you should bump the version number emitted by the getTypeFormatId()
+     **    method.  OR, since this is something that is used
+     **    in stored prepared statements, it is ok to change it
+     **    if you make sure that stored prepared statements are
+     **    invalidated across releases.
      **
      ********************************************************/
 
     /*
      ** See the constructor for the meaning of these fields
      */
-    String	aggregateName;
-    int		inputColumn;
-    int		outputColumn;
-    int		aggregatorColumn;
-    String	aggregatorClassName;
-    boolean	isDistinct;
-    ResultDescription	rd;
+    String    aggregateName;
+    int        inputColumn;
+    int        outputColumn;
+    int        aggregatorColumn;
+    String    aggregatorClassName;
+    boolean    isDistinct;
+    ResultDescription    rd;
     DataValueDescriptor param;
 
     /**
@@ -88,53 +88,53 @@ public class AggregatorInfo implements Formatable
     /**
      * Consructor
      *
-     * @param aggregateName	the name of the aggregate.  Not
-     *		actually used anywhere except diagnostics.  Should
-     *		be the names as found in the language (e.g. MAX).
-     * @param aggregatorClassName	the name of the aggregator
-     *		used to process this aggregate.  Aggregator expected
-     *		to have a null arg constructor and implement
-     *		Aggregator.
-     * @param inputColNum	the input column number
-     * @param outputColNum	the output column number
-     * @param aggregatorColNum	the column number in which the
-     *		aggregator is stored.
-     * @param isDistinct	if it is a distinct aggregate
-     * @param rd	the result description
+     * @param aggregateName    the name of the aggregate.  Not
+     *        actually used anywhere except diagnostics.  Should
+     *        be the names as found in the language (e.g. MAX).
+     * @param aggregatorClassName    the name of the aggregator
+     *        used to process this aggregate.  Aggregator expected
+     *        to have a null arg constructor and implement
+     *        Aggregator.
+     * @param inputColNum    the input column number
+     * @param outputColNum    the output column number
+     * @param aggregatorColNum    the column number in which the
+     *        aggregator is stored.
+     * @param isDistinct    if it is a distinct aggregate
+     * @param rd    the result description
      *
      */
     public AggregatorInfo
     (
-            String 				aggregateName,
-            String				aggregatorClassName,
-            int					inputColNum,
-            int					outputColNum,
-            int					aggregatorColNum,
-            boolean				isDistinct,
-            ResultDescription	rd
+            String                 aggregateName,
+            String                aggregatorClassName,
+            int                    inputColNum,
+            int                    outputColNum,
+            int                    aggregatorColNum,
+            boolean                isDistinct,
+            ResultDescription    rd
     ) {
         this(aggregateName, aggregatorClassName, inputColNum, outputColNum, aggregatorColNum, isDistinct, rd, null);
     }
 
     public AggregatorInfo
             (
-                    String 				aggregateName,
-                    String				aggregatorClassName,
-                    int					inputColNum,
-                    int					outputColNum,
-                    int					aggregatorColNum,
-                    boolean				isDistinct,
-                    ResultDescription	rd,
+                    String                 aggregateName,
+                    String                aggregatorClassName,
+                    int                    inputColNum,
+                    int                    outputColNum,
+                    int                    aggregatorColNum,
+                    boolean                isDistinct,
+                    ResultDescription    rd,
                     DataValueDescriptor param
             )
     {
-        this.aggregateName	= aggregateName;
+        this.aggregateName    = aggregateName;
         this.aggregatorClassName = aggregatorClassName;
-        this.inputColumn	= inputColNum;
-        this.outputColumn	= outputColNum;
+        this.inputColumn    = inputColNum;
+        this.outputColumn    = outputColNum;
         this.aggregatorColumn = aggregatorColNum;
-        this.isDistinct 	= isDistinct;
-        this.rd 			= rd;
+        this.isDistinct     = isDistinct;
+        this.rd             = rd;
         this.param          = param;
     }
 
@@ -273,8 +273,8 @@ public class AggregatorInfo implements Formatable
      *
      * @param in read this.
      *
-     * @exception IOException					thrown on error
-     * @exception ClassNotFoundException		thrown on error
+     * @exception IOException                    thrown on error
+     * @exception ClassNotFoundException        thrown on error
      */
     public void readExternal(ObjectInput in)
             throws IOException, ClassNotFoundException
@@ -294,7 +294,7 @@ public class AggregatorInfo implements Formatable
     /**
      * Get the formatID which corresponds to this class.
      *
-     *	@return	the formatID of this class
+     *    @return    the formatID of this class
      */
-    public int	getTypeFormatId()	{ return StoredFormatIds.AGG_INFO_V02_ID; }
+    public int    getTypeFormatId()    { return StoredFormatIds.AGG_INFO_V02_ID; }
 }

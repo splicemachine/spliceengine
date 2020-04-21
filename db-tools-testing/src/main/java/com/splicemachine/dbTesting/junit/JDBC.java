@@ -102,7 +102,7 @@ public class JDBC {
      * Types.SQLXML value without having to compile with JDBC4.
      */
     public static final int SQLXML = 2009;
-	
+    
     /**
      * Tell if we are allowed to use DriverManager to create database
      * connections.
@@ -150,8 +150,8 @@ public class JDBC {
             Class.forName(className);
             return true;
         } catch (Throwable e) {
-        	return false;
-        }    	
+            return false;
+        }        
     }
 
     /**
@@ -162,103 +162,103 @@ public class JDBC {
         return vmSupportsJDBC4() && HAVE_AUTO_CLOSEABLE_RESULT_SET;
     }
 
- 	/**
-	 * Return true if the virtual machine environment
-	 * supports JDBC4 or later. JDBC 4 is a superset
+     /**
+     * Return true if the virtual machine environment
+     * supports JDBC4 or later. JDBC 4 is a superset
      * of JDBC 3 and of JSR169.
      * <BR>
      * This method returns true in a JDBC 4 environment
      * and false in a JDBC 3 or JSR 169 environment.
-	 */
-	public static boolean vmSupportsJDBC4()
-	{
-		return HAVE_DRIVER
-	       && HAVE_SQLXML;
-	}
- 	/**
-	 * Return true if the virtual machine environment
-	 * supports JDBC3 or later. JDBC 3 is a super-set of JSR169
+     */
+    public static boolean vmSupportsJDBC4()
+    {
+        return HAVE_DRIVER
+           && HAVE_SQLXML;
+    }
+     /**
+     * Return true if the virtual machine environment
+     * supports JDBC3 or later. JDBC 3 is a super-set of JSR169
      * and a subset of JDBC 4.
      * <BR>
      * This method will return true in a JDBC 3 or JDBC 4
      * environment, but false in a JSR169 environment.
-	 */
-	public static boolean vmSupportsJDBC3()
-	{
-		return HAVE_DRIVER
-		       && HAVE_SAVEPOINT;
-	}
+     */
+    public static boolean vmSupportsJDBC3()
+    {
+        return HAVE_DRIVER
+               && HAVE_SAVEPOINT;
+    }
 
-	/**
-	 * Return true if the virtual machine environment
-	 * supports JSR169. JSR169 is a subset of JDBC 3
+    /**
+     * Return true if the virtual machine environment
+     * supports JSR169. JSR169 is a subset of JDBC 3
      * and hence a subset of JDBC 4 as well.
      * <BR>
      * This method returns true only in a JSR 169
      * environment.
-	 */
-	public static boolean vmSupportsJSR169()
-	{
-		return !HAVE_DRIVER
-		       && HAVE_SAVEPOINT;
-	}	
-	
-	/**
-	 * Rollback and close a connection for cleanup.
-	 * Test code that is expecting Connection.close to succeed
-	 * normally should just call conn.close().
-	 * 
-	 * <P>
-	 * If conn is not-null and isClosed() returns false
-	 * then both rollback and close will be called.
-	 * If both methods throw exceptions
-	 * then they will be chained together and thrown.
-	 * @throws SQLException Error closing connection.
-	 */
-	public static void cleanup(Connection conn) throws SQLException
-	{
-		if (conn == null)
-			return;
-		if (conn.isClosed())
-			return;
-		
-		SQLException sqle = null;
-		try {
-			conn.rollback();
-		} catch (SQLException e) {
-			sqle = e;
-		}
-		
-		try {
-			conn.close();
-		} catch (SQLException e) {
-			if (sqle == null)
-			    sqle = e;
-			else
-				sqle.setNextException(e);
-			throw sqle;
-		}
-	}
-	
-	/**
-	 * Drop a database schema by dropping all objects in it
-	 * and then executing DROP SCHEMA. If the schema is
-	 * SPLICE it is cleaned but DROP SCHEMA is not executed.
-	 * 
-	 * TODO: Handle dependencies by looping in some intelligent
-	 * way until everything can be dropped.
-	 * 
+     */
+    public static boolean vmSupportsJSR169()
+    {
+        return !HAVE_DRIVER
+               && HAVE_SAVEPOINT;
+    }    
+    
+    /**
+     * Rollback and close a connection for cleanup.
+     * Test code that is expecting Connection.close to succeed
+     * normally should just call conn.close().
+     * 
+     * <P>
+     * If conn is not-null and isClosed() returns false
+     * then both rollback and close will be called.
+     * If both methods throw exceptions
+     * then they will be chained together and thrown.
+     * @throws SQLException Error closing connection.
+     */
+    public static void cleanup(Connection conn) throws SQLException
+    {
+        if (conn == null)
+            return;
+        if (conn.isClosed())
+            return;
+        
+        SQLException sqle = null;
+        try {
+            conn.rollback();
+        } catch (SQLException e) {
+            sqle = e;
+        }
+        
+        try {
+            conn.close();
+        } catch (SQLException e) {
+            if (sqle == null)
+                sqle = e;
+            else
+                sqle.setNextException(e);
+            throw sqle;
+        }
+    }
+    
+    /**
+     * Drop a database schema by dropping all objects in it
+     * and then executing DROP SCHEMA. If the schema is
+     * SPLICE it is cleaned but DROP SCHEMA is not executed.
+     * 
+     * TODO: Handle dependencies by looping in some intelligent
+     * way until everything can be dropped.
+     * 
 
-	 * 
-	 * @param dmd DatabaseMetaData object for database
-	 * @param schema Name of the schema
-	 * @throws SQLException database error
-	 */
-	public static void dropSchema(DatabaseMetaData dmd, String schema) throws SQLException
-	{		
-		Connection conn = dmd.getConnection();
-		Assert.assertFalse(conn.getAutoCommit());
-		Statement s = dmd.getConnection().createStatement();
+     * 
+     * @param dmd DatabaseMetaData object for database
+     * @param schema Name of the schema
+     * @throws SQLException database error
+     */
+    public static void dropSchema(DatabaseMetaData dmd, String schema) throws SQLException
+    {        
+        Connection conn = dmd.getConnection();
+        Assert.assertFalse(conn.getAutoCommit());
+        Statement s = dmd.getConnection().createStatement();
         
         // Functions - not supported by JDBC meta data until JDBC 4
         // Need to use the CHAR() function on A.ALIASTYPE
@@ -273,23 +273,23 @@ public class JDBC {
         ResultSet rs = psf.executeQuery();
         dropUsingDMD(s, rs, schema, "ALIAS", "FUNCTION");        
 
-		// Procedures
-		rs = dmd.getProcedures((String) null,
-				schema, (String) null);
-		
-		dropUsingDMD(s, rs, schema, "PROCEDURE_NAME", "PROCEDURE");
-		
-		// Views
-		rs = dmd.getTables((String) null, schema, (String) null,
+        // Procedures
+        rs = dmd.getProcedures((String) null,
+                schema, (String) null);
+        
+        dropUsingDMD(s, rs, schema, "PROCEDURE_NAME", "PROCEDURE");
+        
+        // Views
+        rs = dmd.getTables((String) null, schema, (String) null,
                 GET_TABLES_VIEW);
-		
-		dropUsingDMD(s, rs, schema, "TABLE_NAME", "VIEW");
-		
-		// Tables
-		rs = dmd.getTables((String) null, schema, (String) null,
+        
+        dropUsingDMD(s, rs, schema, "TABLE_NAME", "VIEW");
+        
+        // Tables
+        rs = dmd.getTables((String) null, schema, (String) null,
                 GET_TABLES_TABLE);
-		
-		dropUsingDMD(s, rs, schema, "TABLE_NAME", "TABLE");
+        
+        dropUsingDMD(s, rs, schema, "TABLE_NAME", "TABLE");
         
         // At this point there may be tables left due to
         // foreign key constraints leading to a dependency loop.
@@ -361,13 +361,13 @@ public class JDBC {
             psf.close();
         }
 
-		// Finally drop the schema if it is not SPLICE
-		if (!schema.equals("SPLICE")) {
-			s.executeUpdate("DROP SCHEMA " + JDBC.escape(schema) + " RESTRICT");
-		}
-		conn.commit();
-		s.close();
-	}
+        // Finally drop the schema if it is not SPLICE
+        if (!schema.equals("SPLICE")) {
+            s.executeUpdate("DROP SCHEMA " + JDBC.escape(schema) + " RESTRICT");
+        }
+        conn.commit();
+        s.close();
+    }
 
     /**
      * Return true if the SYSSEQUENCES table exists.
@@ -393,44 +393,44 @@ public class JDBC {
             if ( ps != null ) { ps.close(); }
         }
     }
-	
-	/**
-	 * DROP a set of objects based upon a ResultSet from a
-	 * DatabaseMetaData call.
-	 * 
-	 * TODO: Handle errors to ensure all objects are dropped,
-	 * probably requires interaction with its caller.
-	 * 
-	 * @param s Statement object used to execute the DROP commands.
-	 * @param rs DatabaseMetaData ResultSet
-	 * @param schema Schema the objects are contained in
-	 * @param mdColumn The column name used to extract the object's
-	 * name from rs
-	 * @param dropType The keyword to use after DROP in the SQL statement
-	 * @throws SQLException database errors.
-	 */
-	private static void dropUsingDMD(
-			Statement s, ResultSet rs, String schema,
-			String mdColumn,
-			String dropType) throws SQLException
-	{
-		String dropLeadIn = "DROP " + dropType + " ";
-		
+    
+    /**
+     * DROP a set of objects based upon a ResultSet from a
+     * DatabaseMetaData call.
+     * 
+     * TODO: Handle errors to ensure all objects are dropped,
+     * probably requires interaction with its caller.
+     * 
+     * @param s Statement object used to execute the DROP commands.
+     * @param rs DatabaseMetaData ResultSet
+     * @param schema Schema the objects are contained in
+     * @param mdColumn The column name used to extract the object's
+     * name from rs
+     * @param dropType The keyword to use after DROP in the SQL statement
+     * @throws SQLException database errors.
+     */
+    private static void dropUsingDMD(
+            Statement s, ResultSet rs, String schema,
+            String mdColumn,
+            String dropType) throws SQLException
+    {
+        String dropLeadIn = "DROP " + dropType + " ";
+        
         // First collect the set of DROP SQL statements.
         ArrayList ddl = new ArrayList();
-		while (rs.next())
-		{
+        while (rs.next())
+        {
             String objectName = rs.getString(mdColumn);
             String raw = dropLeadIn + JDBC.escape(schema, objectName);
             if (
-            		"TYPE".equals( dropType )  ||
-            		"SEQUENCE".equals( dropType ) ||
-            		"DERBY AGGREGATE".equals( dropType )
-            		)
+                    "TYPE".equals( dropType )  ||
+                    "SEQUENCE".equals( dropType ) ||
+                    "DERBY AGGREGATE".equals( dropType )
+                    )
             { raw = raw + " restrict "; }
             ddl.add( raw );
-		}
-		rs.close();
+        }
+        rs.close();
         if (ddl.isEmpty())
             return;
                 
@@ -446,36 +446,36 @@ public class JDBC {
             }
         }
 
-		int[] results;
+        int[] results;
         boolean hadError;
-		try {
-		    results = s.executeBatch();
-		    Assert.assertNotNull(results);
-		    Assert.assertEquals("Incorrect result length from executeBatch",
-		    		batchCount, results.length);
+        try {
+            results = s.executeBatch();
+            Assert.assertNotNull(results);
+            Assert.assertEquals("Incorrect result length from executeBatch",
+                    batchCount, results.length);
             hadError = false;
-		} catch (BatchUpdateException batchException) {
-			results = batchException.getUpdateCounts();
-			Assert.assertNotNull(results);
-			Assert.assertTrue("Too many results in BatchUpdateException",
-					results.length <= batchCount);
+        } catch (BatchUpdateException batchException) {
+            results = batchException.getUpdateCounts();
+            Assert.assertNotNull(results);
+            Assert.assertTrue("Too many results in BatchUpdateException",
+                    results.length <= batchCount);
             hadError = true;
-		}
-		
+        }
+        
         // Remove any statements from the list that succeeded.
-		boolean didDrop = false;
-		for (int i = 0; i < results.length; i++)
-		{
-			int result = results[i];
-			if (result == Statement.EXECUTE_FAILED)
-				hadError = true;
-			else if (result == Statement.SUCCESS_NO_INFO || result >= 0) {
-				didDrop = true;
-				ddl.set(i, null);
-			}
-			else
-				Assert.fail("Negative executeBatch status");
-		}
+        boolean didDrop = false;
+        for (int i = 0; i < results.length; i++)
+        {
+            int result = results[i];
+            if (result == Statement.EXECUTE_FAILED)
+                hadError = true;
+            else if (result == Statement.SUCCESS_NO_INFO || result >= 0) {
+                didDrop = true;
+                ddl.set(i, null);
+            }
+            else
+                Assert.fail("Negative executeBatch status");
+        }
         s.clearBatch();
         if (didDrop) {
             // Commit any work we did do.
@@ -509,46 +509,46 @@ public class JDBC {
                     s.getConnection().commit();
             } while (hadError && didDrop);
         }
-	}
-	
-	/**
-	 * Assert all columns in the ResultSetMetaData match the
-	 * table's defintion through DatabaseMetadDta. Only works
-	 * if the complete select list correspond to columns from
-	 * base tables.
-	 * <BR>
-	 * Does not require that the complete set of any table's columns are
-	 * returned.
-	 * @throws SQLException 
-	 * 
-	 */
-	public static void assertMetaDataMatch(DatabaseMetaData dmd,
-			ResultSetMetaData rsmd) throws SQLException
-	{
-		for (int col = 1; col <= rsmd.getColumnCount(); col++)
-		{
-			// Only expect a single column back
-		    ResultSet column = dmd.getColumns(
-		    		rsmd.getCatalogName(col),
-		    		rsmd.getSchemaName(col),
-		    		rsmd.getTableName(col),
-		    		rsmd.getColumnName(col));
-		    
-		    Assert.assertTrue("Column missing " + rsmd.getColumnName(col),
-		    		column.next());
-		    
-		    Assert.assertEquals(column.getInt("DATA_TYPE"),
-		    		rsmd.getColumnType(col));
-		    
-		    Assert.assertEquals(column.getInt("NULLABLE"),
-		    		rsmd.isNullable(col));
-		    
-		    Assert.assertEquals(column.getString("TYPE_NAME"),
-		    		rsmd.getColumnTypeName(col));
-		    
-		    column.close();
-		}
-	}
+    }
+    
+    /**
+     * Assert all columns in the ResultSetMetaData match the
+     * table's defintion through DatabaseMetadDta. Only works
+     * if the complete select list correspond to columns from
+     * base tables.
+     * <BR>
+     * Does not require that the complete set of any table's columns are
+     * returned.
+     * @throws SQLException 
+     * 
+     */
+    public static void assertMetaDataMatch(DatabaseMetaData dmd,
+            ResultSetMetaData rsmd) throws SQLException
+    {
+        for (int col = 1; col <= rsmd.getColumnCount(); col++)
+        {
+            // Only expect a single column back
+            ResultSet column = dmd.getColumns(
+                    rsmd.getCatalogName(col),
+                    rsmd.getSchemaName(col),
+                    rsmd.getTableName(col),
+                    rsmd.getColumnName(col));
+            
+            Assert.assertTrue("Column missing " + rsmd.getColumnName(col),
+                    column.next());
+            
+            Assert.assertEquals(column.getInt("DATA_TYPE"),
+                    rsmd.getColumnType(col));
+            
+            Assert.assertEquals(column.getInt("NULLABLE"),
+                    rsmd.isNullable(col));
+            
+            Assert.assertEquals(column.getString("TYPE_NAME"),
+                    rsmd.getColumnTypeName(col));
+            
+            column.close();
+        }
+    }
     
     /**
      * Assert a result set is empty.
@@ -563,7 +563,7 @@ public class JDBC {
     {
         assertDrainResults(rs, 0);
     }
-	
+    
     /**
      * 
      * @param rs
@@ -604,7 +604,7 @@ public class JDBC {
      */
     public static void assertNoMoreResults(Statement s) throws SQLException
     {
-    	Assert.assertFalse(s.getMoreResults());
+        Assert.assertFalse(s.getMoreResults());
         Assert.assertTrue(s.getUpdateCount() == -1);
         Assert.assertNull(s.getResultSet());
     }
@@ -654,65 +654,65 @@ public class JDBC {
         Assert.assertTrue("ResultSet expected to have data", rowCount > 0);
     }    
     
-	/**
-	 * Drain a single ResultSet by reading all of its
-	 * rows and columns. Each column is accessed using
-	 * getString() and asserted that the returned value
-	 * matches the state of ResultSet.wasNull().
-	 *
-	 * Provides simple testing of the ResultSet when the
-	 * contents are not important.
+    /**
+     * Drain a single ResultSet by reading all of its
+     * rows and columns. Each column is accessed using
+     * getString() and asserted that the returned value
+     * matches the state of ResultSet.wasNull().
+     *
+     * Provides simple testing of the ResultSet when the
+     * contents are not important.
      * 
      * The ResultSet is closed by this method.
-	 *
-	 * @param rs Result set to drain.
+     *
+     * @param rs Result set to drain.
      * @return the number of rows seen.
 
-	 * @throws SQLException
-	 */
-	public static int assertDrainResults(ResultSet rs)
-	    throws SQLException
-	{
-		return assertDrainResults(rs, -1);
-	}
+     * @throws SQLException
+     */
+    public static int assertDrainResults(ResultSet rs)
+        throws SQLException
+    {
+        return assertDrainResults(rs, -1);
+    }
 
-	/**
-	 * Does the work of assertDrainResults() as described
-	 * above.  If the received row count is non-negative,
-	 * this method also asserts that the number of rows
-	 * in the result set matches the received row count.
+    /**
+     * Does the work of assertDrainResults() as described
+     * above.  If the received row count is non-negative,
+     * this method also asserts that the number of rows
+     * in the result set matches the received row count.
      * 
      * The ResultSet is closed by this method.
-	 *
-	 * @param rs Result set to drain.
-	 * @param expectedRows If non-negative, indicates how
-	 *  many rows we expected to see in the result set.
+     *
+     * @param rs Result set to drain.
+     * @param expectedRows If non-negative, indicates how
+     *  many rows we expected to see in the result set.
      *  @return the number of rows seen.
-	 * @throws SQLException
-	 */
-	public static int assertDrainResults(ResultSet rs,
-	    int expectedRows) throws SQLException
-	{
-		ResultSetMetaData rsmd = rs.getMetaData();
-		
-		int rows = 0;
-		while (rs.next()) {
-			for (int col = 1; col <= rsmd.getColumnCount(); col++)
-			{
-				String s = rs.getString(col);
-				Assert.assertEquals(s == null, rs.wasNull());
+     * @throws SQLException
+     */
+    public static int assertDrainResults(ResultSet rs,
+        int expectedRows) throws SQLException
+    {
+        ResultSetMetaData rsmd = rs.getMetaData();
+        
+        int rows = 0;
+        while (rs.next()) {
+            for (int col = 1; col <= rsmd.getColumnCount(); col++)
+            {
+                String s = rs.getString(col);
+                Assert.assertEquals(s == null, rs.wasNull());
                 if (rs.wasNull())
                     assertResultColumnNullable(rsmd, col);
-			}
-			rows++;
-		}
-		rs.close();
+            }
+            rows++;
+        }
+        rs.close();
 
-		if (expectedRows >= 0)
-			Assert.assertEquals("Unexpected row count:", expectedRows, rows);
+        if (expectedRows >= 0)
+            Assert.assertEquals("Unexpected row count:", expectedRows, rows);
         
         return rows;
-	}
+    }
     
     /**
      * Assert that a column is nullable in its ResultSetMetaData.
@@ -729,7 +729,7 @@ public class JDBC {
     {
         Assert.assertFalse(rsmd.isNullable(col) == ResultSetMetaData.columnNoNulls); 
     }
-	
+    
     /**
      * Takes a result set and an array of expected colum names (as
      * Strings)  and asserts that the column names in the result
@@ -794,8 +794,8 @@ public class JDBC {
      * @param expectedTypes Array of expected parameter types.
      */
     public static void assertParameterTypes (PreparedStatement ps,
-	        int[] expectedTypes) throws Exception
-	    {
+            int[] expectedTypes) throws Exception
+        {
             if ( vmSupportsJSR169() )
             {
                 Assert.fail( "The assertParameterTypes() method only works on platforms which support ParameterMetaData." );
@@ -804,20 +804,20 @@ public class JDBC {
             Object pmd = ps.getClass().getMethod( "getParameterMetaData", null ).invoke(  ps, null );
             int actualParams = ((Integer) pmd.getClass().getMethod( "getParameterCount", null ).invoke( pmd, null )).intValue();
 
-	        Assert.assertEquals("Unexpected parameter count:",
-	                expectedTypes.length, actualParams );
+            Assert.assertEquals("Unexpected parameter count:",
+                    expectedTypes.length, actualParams );
 
             Method  getParameterType = pmd.getClass().getMethod( "getParameterType", new Class[] { Integer.TYPE } );
 
-	        for (int i = 0; i < actualParams; i++)
-	        {
-	            Assert.assertEquals
+            for (int i = 0; i < actualParams; i++)
+            {
+                Assert.assertEquals
                     ("Types do not match for parameter " + (i+1),
                      expectedTypes[i],
                      ((Integer) getParameterType.invoke( pmd, new Object[] { new Integer( i + 1 ) } )).intValue()
                      );
-	        }
-	    }
+            }
+        }
     
     /**
      * Check the nullability of the column definitions for
@@ -1432,12 +1432,12 @@ public class JDBC {
         return s.toString();
     }
 
-	/**
-	 * Escape a non-qualified name so that it is suitable
-	 * for use in a SQL query executed by JDBC.
-	 */
-	public static String escape(String name)
-	{
+    /**
+     * Escape a non-qualified name so that it is suitable
+     * for use in a SQL query executed by JDBC.
+     */
+    public static String escape(String name)
+    {
         StringBuilder buffer = new StringBuilder(name.length() + 2);
         buffer.append('"');
         for (int i = 0; i < name.length(); i++) {
@@ -1448,10 +1448,10 @@ public class JDBC {
         }
         buffer.append('"');
         return buffer.toString();
-	}	
+    }    
 
 
-	/**
+    /**
      * Compress 2 adjacent (single or double) quotes into a single (s or d)
      * quote when found in the middle of a String.
      *
@@ -1511,13 +1511,13 @@ public class JDBC {
 
 
     /**
-	 * Escape a schama-qualified name so that it is suitable
-	 * for use in a SQL query executed by JDBC.
-	 */
-	public static String escape(String schema, String name)
-	{
+     * Escape a schama-qualified name so that it is suitable
+     * for use in a SQL query executed by JDBC.
+     */
+    public static String escape(String schema, String name)
+    {
         return escape(schema) + "." + escape(name);
-	}
+    }
          
         /**
          * Return Type name from jdbc type

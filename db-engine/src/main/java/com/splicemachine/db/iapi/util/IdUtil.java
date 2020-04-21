@@ -51,11 +51,11 @@ import com.splicemachine.db.iapi.reference.Limits;
   <PRE>
       id := delim-id | unDelim-id
 
-	  delim-id := "[""|[any char but quote]]+"
-	  undelim-id := (a-z|A-Z|anyunicodeletter)[a-z|A-Z|_|0-9|anyunicodeletter|anyunicodedigit]*
+      delim-id := "[""|[any char but quote]]+"
+      undelim-id := (a-z|A-Z|anyunicodeletter)[a-z|A-Z|_|0-9|anyunicodeletter|anyunicodedigit]*
 
-	  In the syntax braces show grouping. '*' means repeat 0 or more times.
-	  '|' means or. '+' means repeat 1 or more times. 
+      In the syntax braces show grouping. '*' means repeat 0 or more times.
+      '|' means or. '+' means repeat 1 or more times. 
   </PRE>
 
   <P>In addition this class provides support for qualified names. A qualified name
@@ -69,216 +69,216 @@ import com.splicemachine.db.iapi.reference.Limits;
   */
 public abstract class IdUtil
 {
-	/**
+    /**
      * Produce a delimited form of a normal value.
-	  @return the delimited identifier.
-	  */
-	public static String normalToDelimited(String id)
-	{
+      @return the delimited identifier.
+      */
+    public static String normalToDelimited(String id)
+    {
         return StringUtil.quoteString(id, '"');
-	}
+    }
 
-	/**
-	  Produce a delimited two part qualified name from two
-	  un-delimited identifiers.
-	  @return the result.
-	  */
-	public static String mkQualifiedName(String id1,
-										 String id2)
-	{
+    /**
+      Produce a delimited two part qualified name from two
+      un-delimited identifiers.
+      @return the result.
+      */
+    public static String mkQualifiedName(String id1,
+                                         String id2)
+    {
         if( null == id1)
             return normalToDelimited(id2);
-		return
+        return
         normalToDelimited(id1) +
-			"." +
+            "." +
             normalToDelimited(id2);
-	}
+    }
 
-	/**
-	  Make a string form of a qualified name from the array of ids provided.
-	  */
-	public static String mkQualifiedName(String[] ids)
-	{
-		StringBuilder sb = new StringBuilder();
-		for (int ix=0; ix < ids.length; ix++)
-		{
-			if (ix!=0) sb.append(".");
-			sb.append(normalToDelimited(ids[ix]));
-		}
-		return sb.toString();
-	}
+    /**
+      Make a string form of a qualified name from the array of ids provided.
+      */
+    public static String mkQualifiedName(String[] ids)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (int ix=0; ix < ids.length; ix++)
+        {
+            if (ix!=0) sb.append(".");
+            sb.append(normalToDelimited(ids[ix]));
+        }
+        return sb.toString();
+    }
 
-	/**
-	  Parse a multi-part (dot separated) SQL identifier form the
+    /**
+      Parse a multi-part (dot separated) SQL identifier form the
       String provided. Raise an excepion
-	  if the string does not contain valid SQL indentifiers.
+      if the string does not contain valid SQL indentifiers.
       The returned String array contains the normalized form of the
       identifiers.
       
       @param s The string to be parsed
       @return An array of strings made by breaking the input string at its dots, '.'.
-	  @exception StandardException Oops
-	  */
-	public static String[] parseMultiPartSQLIdentifier(String s)
-		 throws StandardException
-	{
-		StringReader r = new StringReader(s);
-		String[] qName = parseMultiPartSQLIdentifier(r);
-		verifyEmpty(r);
-		return qName;
-	}
+      @exception StandardException Oops
+      */
+    public static String[] parseMultiPartSQLIdentifier(String s)
+         throws StandardException
+    {
+        StringReader r = new StringReader(s);
+        String[] qName = parseMultiPartSQLIdentifier(r);
+        verifyEmpty(r);
+        return qName;
+    }
 
     /**
     @param r The multi-part identifier to be parsed
     @return An array of strings made by breaking the input string at its dots, '.'.
       @exception StandardException Oops
       */
-	private static String[] parseMultiPartSQLIdentifier(StringReader r)
-		 throws StandardException
-	{
-		Vector v = new Vector();
-		while (true)
-		{
-			String thisId = parseId(r,true);
-			v.add(thisId);
-			int dot;
+    private static String[] parseMultiPartSQLIdentifier(StringReader r)
+         throws StandardException
+    {
+        Vector v = new Vector();
+        while (true)
+        {
+            String thisId = parseId(r,true);
+            v.add(thisId);
+            int dot;
 
-			try {
-				r.mark(0);
-				dot = r.read();
-				if (dot != '.')
-				{
-					if (dot!=-1) r.reset();
-					break;
-				}
-			}
+            try {
+                r.mark(0);
+                dot = r.read();
+                if (dot != '.')
+                {
+                    if (dot!=-1) r.reset();
+                    break;
+                }
+            }
 
-			catch (IOException ioe){
-				throw StandardException.newException(SQLState.ID_PARSE_ERROR,ioe);
-			}
-		}
-		String[] result = new String[v.size()];
-		v.copyInto(result);
-		return result;
-	}
-	
-	/**
+            catch (IOException ioe){
+                throw StandardException.newException(SQLState.ID_PARSE_ERROR,ioe);
+            }
+        }
+        String[] result = new String[v.size()];
+        v.copyInto(result);
+        return result;
+    }
+    
+    /**
       Parse a SQL identifier from the String provided. Raise an excepion
       if the string does not contain a valid SQL indentifier.
       The returned String  contains the normalized form of the
       identifier.
         
-	  @exception StandardException Oops
-	  */
-	public static String parseSQLIdentifier(String s)
-		 throws StandardException
-	{
-		StringReader r = new StringReader(s);
-		String id = parseId(r,true);
-		verifyEmpty(r);
-		return id;
-	}
+      @exception StandardException Oops
+      */
+    public static String parseSQLIdentifier(String s)
+         throws StandardException
+    {
+        StringReader r = new StringReader(s);
+        String id = parseId(r,true);
+        verifyEmpty(r);
+        return id;
+    }
 
-	/**
-	  Read an id from the StringReader provided.
-
-
-	  @param normalize true means return ids in nomral form, false means
-	        return them as they were entered.
-
-	  <P>
-	  Raise an exception if the first thing in the StringReader
-	  is not a valid id.
-
-	  @exception StandardException Ooops.
-	  */
-	private static String parseId(StringReader r, boolean normalize)
-		 throws StandardException
-	{
-		try {
-			r.mark(0);
-			int c = r.read();
-			if (c == -1)  //id can't be 0-length
-				throw StandardException.newException(SQLState.ID_PARSE_ERROR);
- 			r.reset();
-			if (c == '"')
-				return parseQId(r,normalize);
-			else
-				return parseUnQId(r,normalize);
-		}
-
-		catch (IOException ioe){
-			throw StandardException.newException(SQLState.ID_PARSE_ERROR,ioe);
-		}
-	}
+    /**
+      Read an id from the StringReader provided.
 
 
-	/**
-	 * Given a case normal form SQL authorization identifier, convert it to a
-	 * form that may be compared with the username of Derby builtin
-	 * authentication, which uses Java properties of the form
-	 * {@code db.user.}&lt;username&gt;.
-	 * <p>
-	 * The returned form is suitable for comparing against the property string,
-	 * cf.  {@code systemPropertiesExistsBuiltinUser}.
-	 * <p>
-	 * E.g.:
-	 * <p>
-	 * <pre>
-	 *  Argument -> Return
-	 *  ------------------
-	 *  EVE      -> eve       [will match Java property: db.user.eve]
-	 *  eVe      -> "eVe"     [will match Java property: db.user."eVe"]
-	 *  "eve"    -> """eve""" [will match Java property: db.user."""eVe"""]
-	 *  \eve\    -> "\eve\"   [will match Java property: db.user."\eve\"]
-	 *
-	 * The latter could look this if specified on a Unix shell command line:
-	 *
-	 *                      -Dderby.user.'"\eve\"'=&lt;password&gt;
-	 *
-	 * Note: The processing of properties specified on the command line do not
-	 * interpret backslash as escape in the way done by the
-	 * java.util.Properties#load method, so no extra backslash is needed above.
-	 *
-	 * </pre>
-	 * Since parseSQLIdentifier maps many-to-one, the backward mapping is
-	 * non-unique, so the chosen lower case canonical form is arbitrary,
-	 * e.g. we will not be able to correctly match the non-canonical:
-	 * <p>
+      @param normalize true means return ids in nomral form, false means
+            return them as they were entered.
+
+      <P>
+      Raise an exception if the first thing in the StringReader
+      is not a valid id.
+
+      @exception StandardException Ooops.
+      */
+    private static String parseId(StringReader r, boolean normalize)
+         throws StandardException
+    {
+        try {
+            r.mark(0);
+            int c = r.read();
+            if (c == -1)  //id can't be 0-length
+                throw StandardException.newException(SQLState.ID_PARSE_ERROR);
+             r.reset();
+            if (c == '"')
+                return parseQId(r,normalize);
+            else
+                return parseUnQId(r,normalize);
+        }
+
+        catch (IOException ioe){
+            throw StandardException.newException(SQLState.ID_PARSE_ERROR,ioe);
+        }
+    }
+
+
+    /**
+     * Given a case normal form SQL authorization identifier, convert it to a
+     * form that may be compared with the username of Derby builtin
+     * authentication, which uses Java properties of the form
+     * {@code db.user.}&lt;username&gt;.
+     * <p>
+     * The returned form is suitable for comparing against the property string,
+     * cf.  {@code systemPropertiesExistsBuiltinUser}.
+     * <p>
+     * E.g.:
+     * <p>
      * <pre>
-	 *                      [Java property: db.user.eVe]
-	 * </pre>
-	 * since this is internally EVE (but see DERBY-3150), and maps back as eve
-	 * after the rules above.
-	 * @see com.splicemachine.db.iapi.services.property.PropertyUtil#propertiesContainsBuiltinUser
-	 * @see com.splicemachine.db.iapi.services.property.PropertyUtil#systemPropertiesExistsBuiltinUser
-	 */
-	public static String SQLIdentifier2CanonicalPropertyUsername(String authid){
-		boolean needsQuote = false;
-		String result;
+     *  Argument -> Return
+     *  ------------------
+     *  EVE      -> eve       [will match Java property: db.user.eve]
+     *  eVe      -> "eVe"     [will match Java property: db.user."eVe"]
+     *  "eve"    -> """eve""" [will match Java property: db.user."""eVe"""]
+     *  \eve\    -> "\eve\"   [will match Java property: db.user."\eve\"]
+     *
+     * The latter could look this if specified on a Unix shell command line:
+     *
+     *                      -Dderby.user.'"\eve\"'=&lt;password&gt;
+     *
+     * Note: The processing of properties specified on the command line do not
+     * interpret backslash as escape in the way done by the
+     * java.util.Properties#load method, so no extra backslash is needed above.
+     *
+     * </pre>
+     * Since parseSQLIdentifier maps many-to-one, the backward mapping is
+     * non-unique, so the chosen lower case canonical form is arbitrary,
+     * e.g. we will not be able to correctly match the non-canonical:
+     * <p>
+     * <pre>
+     *                      [Java property: db.user.eVe]
+     * </pre>
+     * since this is internally EVE (but see DERBY-3150), and maps back as eve
+     * after the rules above.
+     * @see com.splicemachine.db.iapi.services.property.PropertyUtil#propertiesContainsBuiltinUser
+     * @see com.splicemachine.db.iapi.services.property.PropertyUtil#systemPropertiesExistsBuiltinUser
+     */
+    public static String SQLIdentifier2CanonicalPropertyUsername(String authid){
+        boolean needsQuote = false;
+        String result;
 
-		for (int i=0; i < authid.length(); i++) {
-			char c = authid.charAt(i);
-			// The only external form that needs no quoting contains
-			// only uppercase ASCII, underscore, and if not the first
-			// character, a decimal number. In all other cases, we
-			// envelop in double quotes.
-			if (!( (c >= 'A' && c <= 'Z') ||
-				   (c == '_') ||
-				   (i > 0 && (c >= '0' && c <= '9')))) {
-				needsQuote = true;
-				break;
-			}
-		}
+        for (int i=0; i < authid.length(); i++) {
+            char c = authid.charAt(i);
+            // The only external form that needs no quoting contains
+            // only uppercase ASCII, underscore, and if not the first
+            // character, a decimal number. In all other cases, we
+            // envelop in double quotes.
+            if (!( (c >= 'A' && c <= 'Z') ||
+                   (c == '_') ||
+                   (i > 0 && (c >= '0' && c <= '9')))) {
+                needsQuote = true;
+                break;
+            }
+        }
 
-		if (!needsQuote) {
-			result = authid.toLowerCase();
-		} else {
-			result = normalToDelimited(authid);
-		}
+        if (!needsQuote) {
+            result = authid.toLowerCase();
+        } else {
+            result = normalToDelimited(authid);
+        }
 
-		return result;
-	}
+        return result;
+    }
 
     /**
      * Parse a regular identifier (unquoted) returning returning either
@@ -292,43 +292,43 @@ public abstract class IdUtil
      * @throws StandardException Error parsing identifier.
  
      */
-	private static String parseUnQId(StringReader r, boolean normalize)
-		 throws IOException,StandardException
-	{
-		StringBuilder b = new StringBuilder();
-		int c;
-		boolean first;
-		//
-		for(first = true; ; first=false)
-		{
-			r.mark(0);
-			if (idChar(first,c=r.read()))
-				b.append((char)c);
-			else
-				break;
-		}
-		if (c != -1) r.reset();
+    private static String parseUnQId(StringReader r, boolean normalize)
+         throws IOException,StandardException
+    {
+        StringBuilder b = new StringBuilder();
+        int c;
+        boolean first;
+        //
+        for(first = true; ; first=false)
+        {
+            r.mark(0);
+            if (idChar(first,c=r.read()))
+                b.append((char)c);
+            else
+                break;
+        }
+        if (c != -1) r.reset();
         
         String id = b.toString();
 
-		if (normalize)
-			return StringUtil.SQLToUpperCase(id);
-		else
-			return id;
-	}
+        if (normalize)
+            return StringUtil.SQLToUpperCase(id);
+        else
+            return id;
+    }
 
 
-	private static boolean idChar(boolean first,int c)
-	{
-		if (((c>='a' && c<='z') || (c>='A' && c<='Z')) ||
-			(!first &&(c>='0' && c<='9')) || (!first &&c =='_') )
-			return true;
-		else if (Character.isLetter((char) c))
-			return true;
-		else if (!first && Character.isDigit((char) c))
-			return true;
-		return false;
-	}
+    private static boolean idChar(boolean first,int c)
+    {
+        if (((c>='a' && c<='z') || (c>='A' && c<='Z')) ||
+            (!first &&(c>='0' && c<='9')) || (!first &&c =='_') )
+            return true;
+        else if (Character.isLetter((char) c))
+            return true;
+        else if (!first && Character.isDigit((char) c))
+            return true;
+        return false;
+    }
     
     /**
      * Parse a delimited (quoted) identifier returning either
@@ -339,460 +339,460 @@ public abstract class IdUtil
      * @throws IOException Error accessing value
      * @throws StandardException Error parsing identifier.
      */
-	private static String parseQId(StringReader r,boolean normalize)
-		 throws IOException,StandardException
-	{
-		StringBuilder b = new StringBuilder();
-		int c = r.read();
-		if (c != '"') throw StandardException.newException(SQLState.ID_PARSE_ERROR);
-		while (true)
-		{
-			c=r.read();
-			if (c == '"')
-			{
-				r.mark(0);
-				int c2 = r.read();
-				if (c2 != '"')
-				{
-					if (c2!=-1)r.reset();
-					break;
-				}
-			}
-			else if (c == -1)
-				throw StandardException.newException(SQLState.ID_PARSE_ERROR);
-			
-			b.append((char)c);
-		}
+    private static String parseQId(StringReader r,boolean normalize)
+         throws IOException,StandardException
+    {
+        StringBuilder b = new StringBuilder();
+        int c = r.read();
+        if (c != '"') throw StandardException.newException(SQLState.ID_PARSE_ERROR);
+        while (true)
+        {
+            c=r.read();
+            if (c == '"')
+            {
+                r.mark(0);
+                int c2 = r.read();
+                if (c2 != '"')
+                {
+                    if (c2!=-1)r.reset();
+                    break;
+                }
+            }
+            else if (c == -1)
+                throw StandardException.newException(SQLState.ID_PARSE_ERROR);
+            
+            b.append((char)c);
+        }
 
-		if (b.length() == 0) //id can't be 0-length
-			throw StandardException.newException(SQLState.ID_PARSE_ERROR);
+        if (b.length() == 0) //id can't be 0-length
+            throw StandardException.newException(SQLState.ID_PARSE_ERROR);
 
-		if (normalize)
-			return b.toString();
-		else
-			return normalToDelimited(b.toString()); //Put the quotes back.
-	}
+        if (normalize)
+            return b.toString();
+        else
+            return normalToDelimited(b.toString()); //Put the quotes back.
+    }
 
     /**
      * Verify the read is empty (no more characters in its stream).
      * @param r
      * @throws StandardException
      */
-	private static void verifyEmpty(java.io.Reader r)
-		 throws StandardException
-	{
-		try {
-			if (r.read() != -1)
-				throw StandardException.newException(SQLState.ID_PARSE_ERROR);
-		}
+    private static void verifyEmpty(java.io.Reader r)
+         throws StandardException
+    {
+        try {
+            if (r.read() != -1)
+                throw StandardException.newException(SQLState.ID_PARSE_ERROR);
+        }
 
-		catch (IOException ioe){
-			throw StandardException.newException(SQLState.ID_PARSE_ERROR,ioe);
-		}			
-	}
-	/**Index of the schema name in a jar name on a db classpath*/
-	public static final int DBCP_SCHEMA_NAME = 0;
-	/**Index of the sql jar name in a jar name on a db classpath*/
-	public static final int DBCP_SQL_JAR_NAME = 1;
-	
-	/**
-	  Scan a database classpath from the string provided. This returns
-	  an array with one qualified name per entry on the classpath. The
-	  constants above describe the content of the returned names. This 
-	  raises an an exception if the string does not contain a valid database 
-	  class path.
+        catch (IOException ioe){
+            throw StandardException.newException(SQLState.ID_PARSE_ERROR,ioe);
+        }            
+    }
+    /**Index of the schema name in a jar name on a db classpath*/
+    public static final int DBCP_SCHEMA_NAME = 0;
+    /**Index of the sql jar name in a jar name on a db classpath*/
+    public static final int DBCP_SQL_JAR_NAME = 1;
+    
+    /**
+      Scan a database classpath from the string provided. This returns
+      an array with one qualified name per entry on the classpath. The
+      constants above describe the content of the returned names. This 
+      raises an an exception if the string does not contain a valid database 
+      class path.
   <PRE>
       classpath := item[:item]*
-	  item := id.id
-	  
-	  In the syntax braces ([]) show grouping. '*' means repeat 0 or more times.
-	  The syntax for id is defined in IdUtil.
+      item := id.id
+      
+      In the syntax braces ([]) show grouping. '*' means repeat 0 or more times.
+      The syntax for id is defined in IdUtil.
   </PRE>
-	  <BR>
-	  Classpath returned is a two part name.	  <BR>
-	  If the class path is empty then this returns an array
-	  of zero length.
+      <BR>
+      Classpath returned is a two part name.      <BR>
+      If the class path is empty then this returns an array
+      of zero length.
 
-	  @exception StandardException Oops
-	  */
-	public static String[][] parseDbClassPath(String input)
-		 throws StandardException
-	{
-		//As a special case we accept a zero length dbclasspath.
-		if (input.isEmpty())
-			return new String[0][];
+      @exception StandardException Oops
+      */
+    public static String[][] parseDbClassPath(String input)
+         throws StandardException
+    {
+        //As a special case we accept a zero length dbclasspath.
+        if (input.isEmpty())
+            return new String[0][];
 
-		Vector v = new Vector();
-		java.io.StringReader r = new java.io.StringReader(input);
-		//
-		while (true)
-		{
-			try {
-				String[] thisQName = IdUtil.parseMultiPartSQLIdentifier(r);
-				if (thisQName.length != 2)
-					throw StandardException.newException(SQLState.DB_CLASS_PATH_PARSE_ERROR,input);
+        Vector v = new Vector();
+        java.io.StringReader r = new java.io.StringReader(input);
+        //
+        while (true)
+        {
+            try {
+                String[] thisQName = IdUtil.parseMultiPartSQLIdentifier(r);
+                if (thisQName.length != 2)
+                    throw StandardException.newException(SQLState.DB_CLASS_PATH_PARSE_ERROR,input);
 
-				v.add(thisQName);
-				int delim = r.read();
-				if (delim != ':')
-				{
-					if (delim!=-1)
-						throw StandardException.newException(SQLState.DB_CLASS_PATH_PARSE_ERROR,input);
-					break;
-				}
-			}
-			
-			catch (StandardException se){
-			    if (se.getMessageId().equals(SQLState.ID_PARSE_ERROR))
-					throw StandardException.newException(SQLState.DB_CLASS_PATH_PARSE_ERROR,
-														 se,input);
-				else
-					throw se;
-			}
-			
-			catch (IOException ioe){
-				throw StandardException.newException(SQLState.DB_CLASS_PATH_PARSE_ERROR,ioe,input);
-			}
-		}
-		String[][] result = new String[v.size()][];
-		v.copyInto(result);
-		return result;
-	}
-
-
-	/*
-	** Methods that operate on lists of identifiers.
-	*/
+                v.add(thisQName);
+                int delim = r.read();
+                if (delim != ':')
+                {
+                    if (delim!=-1)
+                        throw StandardException.newException(SQLState.DB_CLASS_PATH_PARSE_ERROR,input);
+                    break;
+                }
+            }
+            
+            catch (StandardException se){
+                if (se.getMessageId().equals(SQLState.ID_PARSE_ERROR))
+                    throw StandardException.newException(SQLState.DB_CLASS_PATH_PARSE_ERROR,
+                                                         se,input);
+                else
+                    throw se;
+            }
+            
+            catch (IOException ioe){
+                throw StandardException.newException(SQLState.DB_CLASS_PATH_PARSE_ERROR,ioe,input);
+            }
+        }
+        String[][] result = new String[v.size()][];
+        v.copyInto(result);
+        return result;
+    }
 
 
-	/**
-	  Scan a list of comma separated SQL identifiers from the string provided.
+    /*
+    ** Methods that operate on lists of identifiers.
+    */
+
+
+    /**
+      Scan a list of comma separated SQL identifiers from the string provided.
       This returns an array with containing the normalized forms of the identifiers.
       
       This raises an an exception if
-	  the string does not contain a valid list of names.
+      the string does not contain a valid list of names.
 
-	  @exception StandardException Oops
-	  */
-	public static String[] parseIdList(String p)
-		 throws StandardException
-	{
-		if (p==null) return null;
-		StringReader r = new StringReader(p);
-		String[] result = parseIdList(r, true);
-		verifyEmpty(r);
-		return result;
-	}
-	
-	
-	/**
-	  Parse a list of comma separated SQL identifiers returning
+      @exception StandardException Oops
+      */
+    public static String[] parseIdList(String p)
+         throws StandardException
+    {
+        if (p==null) return null;
+        StringReader r = new StringReader(p);
+        String[] result = parseIdList(r, true);
+        verifyEmpty(r);
+        return result;
+    }
+    
+    
+    /**
+      Parse a list of comma separated SQL identifiers returning
       them a as elements in an array.
 
-	  @param normalize true means return ids in nomral form, false means
-	        return them as they were entered.
+      @param normalize true means return ids in nomral form, false means
+            return them as they were entered.
 
-	  @exception StandardException Oops
-	  */
-	private static String[] parseIdList(StringReader r, boolean normalize)
-		 throws StandardException
-	{
-		Vector v = new Vector();
-		while (true)
-		{
-			int delim;
-			try {
-				String thisId = IdUtil.parseId(r,normalize);
-				v.add(thisId);
-				r.mark(0);
-				delim = r.read();
-				if (delim != ',')
-				{
-					if (delim!=-1) r.reset();
-					break;
-				}
-			}
-			
-			catch (StandardException se){
-				if (se.getMessageId().equals(SQLState.ID_LIST_PARSE_ERROR))
-					throw StandardException.newException(SQLState.ID_LIST_PARSE_ERROR,se);
-				else
-					throw se;
-			}
-			
-			catch (IOException ioe){
-				throw StandardException.newException(SQLState.ID_LIST_PARSE_ERROR,ioe);
-			}
-		}
-		if (v.isEmpty()) return null;
-		String[] result = new String[v.size()];
-		v.copyInto(result);
-		return result;
-	}
+      @exception StandardException Oops
+      */
+    private static String[] parseIdList(StringReader r, boolean normalize)
+         throws StandardException
+    {
+        Vector v = new Vector();
+        while (true)
+        {
+            int delim;
+            try {
+                String thisId = IdUtil.parseId(r,normalize);
+                v.add(thisId);
+                r.mark(0);
+                delim = r.read();
+                if (delim != ',')
+                {
+                    if (delim!=-1) r.reset();
+                    break;
+                }
+            }
+            
+            catch (StandardException se){
+                if (se.getMessageId().equals(SQLState.ID_LIST_PARSE_ERROR))
+                    throw StandardException.newException(SQLState.ID_LIST_PARSE_ERROR,se);
+                else
+                    throw se;
+            }
+            
+            catch (IOException ioe){
+                throw StandardException.newException(SQLState.ID_LIST_PARSE_ERROR,ioe);
+            }
+        }
+        if (v.isEmpty()) return null;
+        String[] result = new String[v.size()];
+        v.copyInto(result);
+        return result;
+    }
 
-	/**
-	  Return an IdList with all the ids that in l1 and l2
-	  or null if not ids are on both lists.
+    /**
+      Return an IdList with all the ids that in l1 and l2
+      or null if not ids are on both lists.
 
-	  @param l1 An array of ids in normal form
-	  @param l2 An array of ids in nomral form
-	  */
-	public static String intersect(String[] l1, String[] l2)
-	{
-		if (l1 == null || l2 == null) return null;
-		HashSet h = new HashSet();
-		Collections.addAll(h, l2);
-		Vector v = new Vector();
+      @param l1 An array of ids in normal form
+      @param l2 An array of ids in nomral form
+      */
+    public static String intersect(String[] l1, String[] l2)
+    {
+        if (l1 == null || l2 == null) return null;
+        HashSet h = new HashSet();
+        Collections.addAll(h, l2);
+        Vector v = new Vector();
         for (String aL1 : l1) if (h.contains(aL1)) v.add(aL1);
-		return vectorToIdList(v,true); 
-	}
+        return vectorToIdList(v,true); 
+    }
 
-	/**
-	  Return an idList in external form with one id for every 
-	  element of v. If v has no elements, return null.
+    /**
+      Return an idList in external form with one id for every 
+      element of v. If v has no elements, return null.
 
-	  @param normal True means the ids in v are in normal form
-	         and false means they are in external form.
-	  */
-	private static String vectorToIdList(Vector v,boolean normal)
-	{
-		if (v.isEmpty()) return null;
-		String[] a = new String[v.size()];
-		v.copyInto(a);
-		if (normal)
-			return mkIdList(a);
-		else
-			return mkIdListAsEntered(a);
-	}
+      @param normal True means the ids in v are in normal form
+             and false means they are in external form.
+      */
+    private static String vectorToIdList(Vector v,boolean normal)
+    {
+        if (v.isEmpty()) return null;
+        String[] a = new String[v.size()];
+        v.copyInto(a);
+        if (normal)
+            return mkIdList(a);
+        else
+            return mkIdListAsEntered(a);
+    }
 
-	/**
-	 * Map userName to authorizationId in its normal form.
-	 * 
-	 * @exception StandardException on error or userName is null
-	 */
-	public static String getUserAuthorizationId(String userName) throws StandardException
-	{
-		try {
+    /**
+     * Map userName to authorizationId in its normal form.
+     * 
+     * @exception StandardException on error or userName is null
+     */
+    public static String getUserAuthorizationId(String userName) throws StandardException
+    {
+        try {
             if (userName != null)
-			    return parseSQLIdentifier(userName);
-		}
-		catch (StandardException ignored) {
-		}
+                return parseSQLIdentifier(userName);
+        }
+        catch (StandardException ignored) {
+        }
         throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME, userName);
-	}
+    }
 
-	/**
-	 * Get user name from URL properties (key user) without any transformation.
+    /**
+     * Get user name from URL properties (key user) without any transformation.
      * If the user property does not exist or is set to the empty string
      * then Property.DEFAULT_USER_NAME is returned.
      * 
      * @see Property#DEFAULT_USER_NAME
-	 */
-	public static String getUserNameFromURLProps(Properties params)
-	{
+     */
+    public static String getUserNameFromURLProps(Properties params)
+    {
 
-		String proxyUserName = params.getProperty(Attribute.PROXY_USER_ATTR);
+        String proxyUserName = params.getProperty(Attribute.PROXY_USER_ATTR);
 
-		if (proxyUserName != null)
-			return proxyUserName;
+        if (proxyUserName != null)
+            return proxyUserName;
 
-		String userName = params.getProperty(Attribute.USERNAME_ATTR,
-							Property.DEFAULT_USER_NAME);
+        String userName = params.getProperty(Attribute.USERNAME_ATTR,
+                            Property.DEFAULT_USER_NAME);
 
-		if (userName.isEmpty())
-			userName = Property.DEFAULT_USER_NAME;
+        if (userName.isEmpty())
+            userName = Property.DEFAULT_USER_NAME;
 
-		return userName;
-	}
+        return userName;
+    }
 
-	/**
-	  Return an IdList with all the ids that are repeated
-	  in l.
+    /**
+      Return an IdList with all the ids that are repeated
+      in l.
 
-	  @param l a list of ids in normal form.
-	  */
-	public static String dups(String[] l)
-	{
-		if (l == null) return null;
-		HashSet h = new HashSet();
-		Vector v = new Vector();
+      @param l a list of ids in normal form.
+      */
+    public static String dups(String[] l)
+    {
+        if (l == null) return null;
+        HashSet h = new HashSet();
+        Vector v = new Vector();
         for (String aL : l) {
             if (!h.contains(aL))
                 h.add(aL);
             else
                 v.add(aL);
         }
-		return vectorToIdList(v,true);
-	}
-	
-	/**
-	  Return an IdList with all the duplicate ids removed
-	  @param l a list of ids in external form.
-	  @exception StandardException Oops.
-	  */
-	public static String pruneDups(String l) throws StandardException
-	{
-		if (l == null) return null;
-		String[] normal_a = parseIdList(l);
-		StringReader r = new StringReader(l);
-		String[] external_a = parseIdList(r,false);
-		HashSet h = new HashSet();
-		Vector v = new Vector();
-		for(int ix=0;ix<normal_a.length;ix++)
-		{
-			if (!h.contains(normal_a[ix]))
-			{
-				h.add(normal_a[ix]);
-				v.add(external_a[ix]);
-			}
-		}
-		return vectorToIdList(v,false);
-	}
+        return vectorToIdList(v,true);
+    }
+    
+    /**
+      Return an IdList with all the duplicate ids removed
+      @param l a list of ids in external form.
+      @exception StandardException Oops.
+      */
+    public static String pruneDups(String l) throws StandardException
+    {
+        if (l == null) return null;
+        String[] normal_a = parseIdList(l);
+        StringReader r = new StringReader(l);
+        String[] external_a = parseIdList(r,false);
+        HashSet h = new HashSet();
+        Vector v = new Vector();
+        for(int ix=0;ix<normal_a.length;ix++)
+        {
+            if (!h.contains(normal_a[ix]))
+            {
+                h.add(normal_a[ix]);
+                v.add(external_a[ix]);
+            }
+        }
+        return vectorToIdList(v,false);
+    }
 
-	/**
-	  Produce a string form of an idList from an array of
-	  normalized ids.
-	  */
-	public static String mkIdList(String[] ids)
-	{
-		StringBuilder sb = new StringBuilder();
-		for (int ix=0;ix<ids.length; ix++)
-		{
-			if (ix != 0) sb.append(",");
-			sb.append(IdUtil.normalToDelimited(ids[ix]));
-		}
-		return sb.toString();
-	}
+    /**
+      Produce a string form of an idList from an array of
+      normalized ids.
+      */
+    public static String mkIdList(String[] ids)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (int ix=0;ix<ids.length; ix++)
+        {
+            if (ix != 0) sb.append(",");
+            sb.append(IdUtil.normalToDelimited(ids[ix]));
+        }
+        return sb.toString();
+    }
 
-	/**
-	  Produce an id list from an array of ids in external form
-	  */
-	private static String mkIdListAsEntered(String[] externalIds )
-	{
-		StringBuilder sb = new StringBuilder();
-		for (int ix=0;ix<externalIds.length; ix++)
-		{
-			if (ix != 0) sb.append(",");
-			sb.append(externalIds[ix]);
-		}
-		return sb.toString();
-	}
+    /**
+      Produce an id list from an array of ids in external form
+      */
+    private static String mkIdListAsEntered(String[] externalIds )
+    {
+        StringBuilder sb = new StringBuilder();
+        for (int ix=0;ix<externalIds.length; ix++)
+        {
+            if (ix != 0) sb.append(",");
+            sb.append(externalIds[ix]);
+        }
+        return sb.toString();
+    }
 
-	/**
-	  Return true if the normalized value of an indentifier is on the list 
+    /**
+      Return true if the normalized value of an indentifier is on the list 
       of SQL identifiers provided.
-	  @param id an id in normal form
-	  @param	list a list of ids in external form.
-	  @exception StandardException oops.
-	  */
-	public static boolean idOnList(String id, String list)
-		 throws StandardException
-	{
-		if (list==null) return false;
-		String[] list_a = parseIdList(list);
+      @param id an id in normal form
+      @param    list a list of ids in external form.
+      @exception StandardException oops.
+      */
+    public static boolean idOnList(String id, String list)
+         throws StandardException
+    {
+        if (list==null) return false;
+        String[] list_a = parseIdList(list);
         for (String aList_a : list_a) if (id.equals(aList_a)) return true;
-		return false;
-	}
+        return false;
+    }
 
-	/**
-	  Delete an normal value from a list of SQL identifiers.
+    /**
+      Delete an normal value from a list of SQL identifiers.
       The returned list maintains its remaining identifiers in the
       format they were upon entry to the call.
       
       
-	  @param id an id in normal form (quotes removed, upshifted if regular)
-	  @param list a comma separated list of ids in external
-	         form (possibly delmited or not upshifted).
-	  @return the list with the id deleted or null if the
-	    resulting list has no ids. If 'id' is not on 'list'
-		this returns list unchanged. If list becomes empty after the removal
+      @param id an id in normal form (quotes removed, upshifted if regular)
+      @param list a comma separated list of ids in external
+             form (possibly delmited or not upshifted).
+      @return the list with the id deleted or null if the
+        resulting list has no ids. If 'id' is not on 'list'
+        this returns list unchanged. If list becomes empty after the removal
         null is returned.
-				 
-	  @exception StandardException oops.
-	  */
-	public static String deleteId(String id, String list)
-		 throws StandardException
-	{
-		if (list==null) return null;
-		Vector v = new Vector();
-		StringReader r = new StringReader(list);
-		String[] enteredList_a = parseIdList(r,false);
+                 
+      @exception StandardException oops.
+      */
+    public static String deleteId(String id, String list)
+         throws StandardException
+    {
+        if (list==null) return null;
+        Vector v = new Vector();
+        StringReader r = new StringReader(list);
+        String[] enteredList_a = parseIdList(r,false);
         
-		//
-		//Loop through enteredList element by element
-		//removing elements that match id. Before we
-		//compare we parse each SQL indentifier in list to convert
-		//to normal form.
+        //
+        //Loop through enteredList element by element
+        //removing elements that match id. Before we
+        //compare we parse each SQL indentifier in list to convert
+        //to normal form.
         for (String anEnteredList_a : enteredList_a)
             if (!id.equals(IdUtil.parseSQLIdentifier(anEnteredList_a)))
                 v.add(anEnteredList_a);
-		if (v.isEmpty())
-			return null;
-		else
-			return vectorToIdList(v,false);
-	}
+        if (v.isEmpty())
+            return null;
+        else
+            return vectorToIdList(v,false);
+    }
 
 
-	/**
+    /**
      * Append an identifier to a comma separated list
      * of identifiers. The passed in identifier is its
      * normal form, the list contains a list of SQL identifiers,
      * either regular or delimited. This routine takes the easy
      * way out and always appends a delimited identifier.
-	  @return the list with the id appended in its delimited form. 
-	  @exception StandardException oops
-	  */
-	public static String appendNormalToList(String id, String list)
-		 throws StandardException
-	{
+      @return the list with the id appended in its delimited form. 
+      @exception StandardException oops
+      */
+    public static String appendNormalToList(String id, String list)
+         throws StandardException
+    {
         String delimitedId = normalToDelimited(id);
-		if (list==null)
-			return delimitedId;
-		else
-			return list+","+delimitedId;
-	}
+        if (list==null)
+            return delimitedId;
+        else
+            return list+","+delimitedId;
+    }
 
-	/**
-	 * Parse role identifier to internal, case normal form. It should not be
-	 * NONE nor exceed Limits.MAX_IDENTIFIER_LENGTH.
-	 *
-	 * @param roleName role identifier to check (SQL form, has possible quoting)
-	 * @return the role name to use (internal, case normal form).
-	 * @exception StandardException normal error policy
-	 */
-	public static String parseRoleId(String roleName) throws StandardException
-	{
-		roleName = roleName.trim();
-		// NONE is a special case and is not allowed with its special
-		// meaning in SET ROLE <value specification>. Even if there is
-		// a role with case normal form "NONE", we require it to be
-		// delimited here, since it would have had to be delimited to
-		// get created, too. We could have chosen to be lenient here,
-		// but it seems safer to be restrictive.
-		if (StringUtil.SQLToUpperCase(roleName).equals("NONE")) {
-			throw StandardException.newException(SQLState.ID_PARSE_ERROR);
-		}
+    /**
+     * Parse role identifier to internal, case normal form. It should not be
+     * NONE nor exceed Limits.MAX_IDENTIFIER_LENGTH.
+     *
+     * @param roleName role identifier to check (SQL form, has possible quoting)
+     * @return the role name to use (internal, case normal form).
+     * @exception StandardException normal error policy
+     */
+    public static String parseRoleId(String roleName) throws StandardException
+    {
+        roleName = roleName.trim();
+        // NONE is a special case and is not allowed with its special
+        // meaning in SET ROLE <value specification>. Even if there is
+        // a role with case normal form "NONE", we require it to be
+        // delimited here, since it would have had to be delimited to
+        // get created, too. We could have chosen to be lenient here,
+        // but it seems safer to be restrictive.
+        if (StringUtil.SQLToUpperCase(roleName).equals("NONE")) {
+            throw StandardException.newException(SQLState.ID_PARSE_ERROR);
+        }
 
-		roleName = parseSQLIdentifier(roleName);
-		checkIdentifierLengthLimit(roleName, Limits.MAX_IDENTIFIER_LENGTH);
+        roleName = parseSQLIdentifier(roleName);
+        checkIdentifierLengthLimit(roleName, Limits.MAX_IDENTIFIER_LENGTH);
 
-		return roleName;
-	}
+        return roleName;
+    }
 
-	/**
-	 * Check that identifier is not too long
-	 * @param identifier identifier (in case normal form) to check
-	 * @param identifier_length_limit maximum legal length
-	 * @exception StandardException normal error policy
-	 */
-	public static void checkIdentifierLengthLimit(String identifier,
-												  int identifier_length_limit)
-			throws StandardException
-	{
-		if (identifier.length() > identifier_length_limit)
-			throw StandardException.newException
-				(SQLState.LANG_IDENTIFIER_TOO_LONG,
-				 identifier,
-				 String.valueOf(identifier_length_limit));
+    /**
+     * Check that identifier is not too long
+     * @param identifier identifier (in case normal form) to check
+     * @param identifier_length_limit maximum legal length
+     * @exception StandardException normal error policy
+     */
+    public static void checkIdentifierLengthLimit(String identifier,
+                                                  int identifier_length_limit)
+            throws StandardException
+    {
+        if (identifier.length() > identifier_length_limit)
+            throw StandardException.newException
+                (SQLState.LANG_IDENTIFIER_TOO_LONG,
+                 identifier,
+                 String.valueOf(identifier_length_limit));
     }
 }

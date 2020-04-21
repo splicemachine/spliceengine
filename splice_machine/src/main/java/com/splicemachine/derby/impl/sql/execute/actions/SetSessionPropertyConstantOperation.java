@@ -29,21 +29,21 @@ public class SetSessionPropertyConstantOperation implements ConstantAction {
     /**
      * Make the ConstantAction for a SET SCHEMA statement.
      *
-     *  @param sessionProperties	list of session properties
+     *  @param sessionProperties    list of session properties
      */
     public SetSessionPropertyConstantOperation(Properties sessionProperties) {
         this.sessionProperties = sessionProperties;
     }
 
-    public	String	toString() {
+    public    String    toString() {
         return "SET SESSION PROPERTIES: " + sessionProperties.toString();
     }
 
 
     /**
-     *	This is the guts of the Execution-time logic for SET SCHEMA.
+     *    This is the guts of the Execution-time logic for SET SCHEMA.
      *
-     *	@see ConstantAction#executeConstantAction
+     *    @see ConstantAction#executeConstantAction
      *
      * @exception StandardException        Thrown on failure
      */

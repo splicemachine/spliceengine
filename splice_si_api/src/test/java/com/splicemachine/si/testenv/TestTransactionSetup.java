@@ -101,12 +101,12 @@ public class TestTransactionSetup {
         return testEnv.getPersonTable(this);
     }
 
-		/*
+        /*
          * The following methods are in place to bridge the goofiness gap between real code (i.e. HBase) and
-		 * the stupid test code, without requiring odd production-level classes and methods which don't have good
-		 * type signatures and don't make sense within the system. Someday, we'll remove the test Operation logic
-		 * entirely and replace it with an in-memory HBase installation
-		 */
+         * the stupid test code, without requiring odd production-level classes and methods which don't have good
+         * type signatures and don't make sense within the system. Someday, we'll remove the test Operation logic
+         * entirely and replace it with an in-memory HBase installation
+         */
 
 //    public OperationWithAttributes convertTestTypePut(Put put) {
 //        if (isInMemory) {

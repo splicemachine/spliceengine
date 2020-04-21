@@ -43,91 +43,91 @@ import com.splicemachine.db.iapi.error.StandardException;
  */
 public class ReplaceAggregatesWithCRVisitor implements Visitor
 {
-	private ResultColumnList rcl;
-	private Class skipOverClass;
-	private int tableNumber;
+    private ResultColumnList rcl;
+    private Class skipOverClass;
+    private int tableNumber;
 
-	/**
-	 * Replace all aggregates with column references.  Add
-	 * the reference to the RCL.  Delegates most work to
-	 * AggregateNode.replaceAggregatesWithColumnReferences(rcl, tableNumber).
-	 *
-	 * @param rcl the result column list
-	 * @param tableNumber	The tableNumber for the new CRs
-	 */
-	public ReplaceAggregatesWithCRVisitor(ResultColumnList rcl, int tableNumber)
-	{
-		this(rcl, tableNumber, null);
-	}
+    /**
+     * Replace all aggregates with column references.  Add
+     * the reference to the RCL.  Delegates most work to
+     * AggregateNode.replaceAggregatesWithColumnReferences(rcl, tableNumber).
+     *
+     * @param rcl the result column list
+     * @param tableNumber    The tableNumber for the new CRs
+     */
+    public ReplaceAggregatesWithCRVisitor(ResultColumnList rcl, int tableNumber)
+    {
+        this(rcl, tableNumber, null);
+    }
 
-	public ReplaceAggregatesWithCRVisitor(ResultColumnList rcl, int tableNumber, Class skipOverClass)
-	{
-		this.rcl = rcl;
-		this.tableNumber = tableNumber;
-		this.skipOverClass = skipOverClass;
-	}
+    public ReplaceAggregatesWithCRVisitor(ResultColumnList rcl, int tableNumber, Class skipOverClass)
+    {
+        this.rcl = rcl;
+        this.tableNumber = tableNumber;
+        this.skipOverClass = skipOverClass;
+    }
 
-	/**
-	 * Replace all aggregates with column references.  Add
-	 * the reference to the RCL.  Delegates most work to
-	 * AggregateNode.replaceAggregatesWithColumnReferences(rcl).
-	 * Doesn't traverse below the passed in class.
-	 *
-	 * @param rcl the result column list
-	 * @param nodeToSkip don't examine anything below nodeToSkip
-	 */
-	public ReplaceAggregatesWithCRVisitor(ResultColumnList rcl, Class nodeToSkip)
-	{
-		this.rcl = rcl;
-		this.skipOverClass = nodeToSkip;
-	}
+    /**
+     * Replace all aggregates with column references.  Add
+     * the reference to the RCL.  Delegates most work to
+     * AggregateNode.replaceAggregatesWithColumnReferences(rcl).
+     * Doesn't traverse below the passed in class.
+     *
+     * @param rcl the result column list
+     * @param nodeToSkip don't examine anything below nodeToSkip
+     */
+    public ReplaceAggregatesWithCRVisitor(ResultColumnList rcl, Class nodeToSkip)
+    {
+        this.rcl = rcl;
+        this.skipOverClass = nodeToSkip;
+    }
 
 
-	////////////////////////////////////////////////
-	//
-	// VISITOR INTERFACE
-	//
-	////////////////////////////////////////////////
+    ////////////////////////////////////////////////
+    //
+    // VISITOR INTERFACE
+    //
+    ////////////////////////////////////////////////
 
-	/**
-	 * Don't do anything unless we have an aggregate
-	 * node.
-	 *
-	 * @param node 	the node to process
-	 *
-	 * @return me
-	 */
+    /**
+     * Don't do anything unless we have an aggregate
+     * node.
+     *
+     * @param node     the node to process
+     *
+     * @return me
+     */
     @Override
-	public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
-		if (node instanceof AggregateNode && ! (node instanceof WindowFunctionNode))
-		{
-			/*
-			** Let aggregateNode replace itself.
-			*/
-			node = ((AggregateNode)node).replaceAggregatesWithColumnReferences(rcl, tableNumber);
-		}
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
+        if (node instanceof AggregateNode && ! (node instanceof WindowFunctionNode))
+        {
+            /*
+            ** Let aggregateNode replace itself.
+            */
+            node = ((AggregateNode)node).replaceAggregatesWithColumnReferences(rcl, tableNumber);
+        }
 
-		return node;
-	}
+        return node;
+    }
 
-	/**
-	 * Don't visit childen under the skipOverClass
-	 * node, if it isn't null.
-	 *
-	 * @return true/false
-	 */
-	public boolean skipChildren(Visitable node)
-	{
-		return skipOverClass != null && skipOverClass.isInstance(node);
-	}
-	
-	public boolean visitChildrenFirst(Visitable node)
-	{
-		return false;
-	}
+    /**
+     * Don't visit childen under the skipOverClass
+     * node, if it isn't null.
+     *
+     * @return true/false
+     */
+    public boolean skipChildren(Visitable node)
+    {
+        return skipOverClass != null && skipOverClass.isInstance(node);
+    }
+    
+    public boolean visitChildrenFirst(Visitable node)
+    {
+        return false;
+    }
 
-	public boolean stopTraversal()
-	{
-		return false;
-	}
+    public boolean stopTraversal()
+    {
+        return false;
+    }
 }

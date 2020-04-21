@@ -127,16 +127,16 @@ public class AttributeHolder {
         ex.printStackTrace();
       }
     }
-	  boolean checkBoolean(String aValue) {
-		  if (aValue == null)
-			  return false;
-		  return aValue.toLowerCase(Locale.ENGLISH).equals("true") || 
-			  aValue.toLowerCase(Locale.ENGLISH).equals("false");
-	  }
+      boolean checkBoolean(String aValue) {
+          if (aValue == null)
+              return false;
+          return aValue.toLowerCase(Locale.ENGLISH).equals("true") || 
+              aValue.toLowerCase(Locale.ENGLISH).equals("false");
+      }
     void display(String aString) {
-		LocalizedResource.OutputWriter().println(aString);
+        LocalizedResource.OutputWriter().println(aString);
     }
     void displayIndented(String aString) {
-		LocalizedResource.OutputWriter().println("   " + aString);
+        LocalizedResource.OutputWriter().println("   " + aString);
     }
   }

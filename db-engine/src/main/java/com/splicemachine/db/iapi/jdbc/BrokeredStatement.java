@@ -40,56 +40,56 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 
 /**
-	A Statement implementation that forwards all of its requests to an underlying Statement.
+    A Statement implementation that forwards all of its requests to an underlying Statement.
  */
 public class BrokeredStatement implements EngineStatement {
 
-	/**
-		My control. Use the controlCheck() method to obtain the control
-		when calling a check method. This will result in the correct exception
-		being thrown if the statement is already closed.
-	*/
-	final BrokeredStatementControl control;
+    /**
+        My control. Use the controlCheck() method to obtain the control
+        when calling a check method. This will result in the correct exception
+        being thrown if the statement is already closed.
+    */
+    final BrokeredStatementControl control;
 
-	final int resultSetType;
-	final int resultSetConcurrency;
-	final int resultSetHoldability;
+    final int resultSetType;
+    final int resultSetConcurrency;
+    final int resultSetHoldability;
 
-	/**
-		My state
-	*/
-	private String cursorName;
-	private Boolean escapeProcessing;
+    /**
+        My state
+    */
+    private String cursorName;
+    private Boolean escapeProcessing;
 
     BrokeredStatement(BrokeredStatementControl control) throws SQLException
     {
-		this.control = control;
+        this.control = control;
 
-		// save the state of the Statement while we are pretty much guaranteed the
-		// underlying statement is open.
-		resultSetType = getResultSetType();
-		resultSetConcurrency = getResultSetConcurrency();
-		resultSetHoldability = getResultSetHoldability();
+        // save the state of the Statement while we are pretty much guaranteed the
+        // underlying statement is open.
+        resultSetType = getResultSetType();
+        resultSetConcurrency = getResultSetConcurrency();
+        resultSetHoldability = getResultSetHoldability();
     }
 
 
     public final void addBatch(String sql)
               throws SQLException
     {
-		getStatement().addBatch( sql);
-	}
+        getStatement().addBatch( sql);
+    }
 
     public final void clearBatch()
         throws SQLException
     {
            getStatement().clearBatch();
-	}
+    }
 
     public final int[] executeBatch()
         throws SQLException
     {
-		return getStatement().executeBatch();
-	}
+        return getStatement().executeBatch();
+    }
 
 
     public final void cancel()
@@ -99,18 +99,18 @@ public class BrokeredStatement implements EngineStatement {
     }
 
     public final boolean execute(String sql) throws SQLException
-	{
-		return getStatement().execute(sql);
+    {
+        return getStatement().execute(sql);
     } 
 
     public final ResultSet executeQuery(String sql) throws SQLException
-	{
- 		return wrapResultSet(getStatement().executeQuery(sql));
+    {
+         return wrapResultSet(getStatement().executeQuery(sql));
     }
 
     public final int executeUpdate(String sql) throws SQLException
-	{
-		return getStatement().executeUpdate(sql);
+    {
+        return getStatement().executeUpdate(sql);
     }
 
         
@@ -123,48 +123,48 @@ public class BrokeredStatement implements EngineStatement {
      * <P><B>Note:</B> A Statement is automatically closed when it is
      * garbage collected. When a Statement is closed its current
      * ResultSet, if one exists, is also closed.
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
-	public void close() throws SQLException
+    public void close() throws SQLException
     {
-		control.closeRealStatement();
+        control.closeRealStatement();
     }
 
     public final Connection getConnection()
         throws SQLException
     {
-		return getStatement().getConnection();
-	}
+        return getStatement().getConnection();
+    }
 
     public final int getFetchDirection()
         throws SQLException
     {
-		return getStatement().getFetchDirection();
-	}
+        return getStatement().getFetchDirection();
+    }
 
     public final int getFetchSize()
         throws SQLException
     {
-		return getStatement().getFetchSize();
-	}
+        return getStatement().getFetchSize();
+    }
 
     public final int getMaxFieldSize()
         throws SQLException
     {
-		return getStatement().getMaxFieldSize();
-	}
+        return getStatement().getMaxFieldSize();
+    }
 
     public final int getMaxRows()
         throws SQLException
     {
-		return getStatement().getMaxRows();
-	}
+        return getStatement().getMaxRows();
+    }
 
     public final int getResultSetConcurrency()
         throws SQLException
     {
-		return getStatement().getResultSetConcurrency();
-	}
+        return getStatement().getResultSetConcurrency();
+    }
 
     /**
      * The maxFieldSize limit (in bytes) is set to limit the size of
@@ -174,12 +174,12 @@ public class BrokeredStatement implements EngineStatement {
      * is silently discarded.
      *
      * @param max the new max column size limit; zero means unlimited
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
-	public final void setMaxFieldSize(int max) throws SQLException
+    public final void setMaxFieldSize(int max) throws SQLException
     {
         getStatement().setMaxFieldSize(max);
-	}
+    }
 
     /**
      * The maxRows limit is set to limit the number of rows that any
@@ -187,10 +187,10 @@ public class BrokeredStatement implements EngineStatement {
      * rows are silently dropped.
      *
      * @param max the new max rows limit; zero means unlimited
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
-	public final void setMaxRows(int max) throws SQLException	
-	{
+    public final void setMaxRows(int max) throws SQLException    
+    {
         getStatement().setMaxRows( max);
     }
 
@@ -199,13 +199,13 @@ public class BrokeredStatement implements EngineStatement {
      * escape substitution before sending the SQL to the database.
      *
      * @param enable true to enable; false to disable
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
-	public final void setEscapeProcessing(boolean enable) throws SQLException
+    public final void setEscapeProcessing(boolean enable) throws SQLException
     {
         getStatement().setEscapeProcessing( enable);
-		escapeProcessing = enable ? Boolean.TRUE : Boolean.FALSE;
-	}
+        escapeProcessing = enable ? Boolean.TRUE : Boolean.FALSE;
+    }
 
     /**
      * The first warning reported by calls on this Statement is
@@ -221,21 +221,21 @@ public class BrokeredStatement implements EngineStatement {
      * ResultSet object.
      *
      * @return the first SQLWarning or null
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
-	public final SQLWarning getWarnings() throws SQLException
+    public final SQLWarning getWarnings() throws SQLException
     {
-		return getStatement().getWarnings();
-	}
+        return getStatement().getWarnings();
+    }
 
     /**
      * After this call getWarnings returns null until a new warning is
      * reported for this Statement.
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
-	public final void clearWarnings() throws SQLException
+    public final void clearWarnings() throws SQLException
     {
-		getStatement().clearWarnings();
+        getStatement().clearWarnings();
     }
 
     /**
@@ -253,11 +253,11 @@ public class BrokeredStatement implements EngineStatement {
      *
      * @param name the new cursor name.
      */
-	public final void setCursorName(String name) throws SQLException
+    public final void setCursorName(String name) throws SQLException
     {
-		getStatement().setCursorName( name);
-		cursorName = name;
-	}
+        getStatement().setCursorName( name);
+        cursorName = name;
+    }
     
     
     /**
@@ -266,10 +266,10 @@ public class BrokeredStatement implements EngineStatement {
      *
      * @return the current result as a ResultSet; null if the result
      * is an update count or there are no more results or the statement
-	 * was closed.
+     * was closed.
      * @see #execute
      */
-	public final ResultSet getResultSet() throws SQLException
+    public final ResultSet getResultSet() throws SQLException
     {
         return wrapResultSet(getStatement().getResultSet());
     }
@@ -288,7 +288,7 @@ public class BrokeredStatement implements EngineStatement {
      * ResultSet or there are no more results
      * @see #execute
      */
-	public final int getUpdateCount()	throws SQLException
+    public final int getUpdateCount()    throws SQLException
     {
         return getStatement().getUpdateCount();
     }
@@ -304,9 +304,9 @@ public class BrokeredStatement implements EngineStatement {
      * @return true if the next result is a ResultSet; false if it is
      * an update count or there are no more results
      * @see #execute
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
-	public final boolean getMoreResults() throws SQLException
+    public final boolean getMoreResults() throws SQLException
     {
         return getStatement().getMoreResults();
     }
@@ -319,8 +319,8 @@ public class BrokeredStatement implements EngineStatement {
      * @exception SQLException Feature not implemented for now.
      */
     public final int getResultSetType()
-		throws SQLException 
-	{
+        throws SQLException 
+    {
         return getStatement().getResultSetType();
     }
 
@@ -373,10 +373,10 @@ public class BrokeredStatement implements EngineStatement {
     }
 
 
-	/*
-	** JDBC 3.0 methods
-	*/
-	public final boolean execute(String sql,
+    /*
+    ** JDBC 3.0 methods
+    */
+    public final boolean execute(String sql,
                            int autoGeneratedKeys)
         throws SQLException
     {
@@ -438,10 +438,10 @@ public class BrokeredStatement implements EngineStatement {
      * @see #execute
      * @exception SQLException thrown on failure.
      */
-	public final boolean getMoreResults(int current) throws SQLException
+    public final boolean getMoreResults(int current) throws SQLException
     {
         return ((EngineStatement) getStatement()).getMoreResults( current);
-	}
+    }
 
     /**
      * JDBC 3.0
@@ -455,7 +455,7 @@ public class BrokeredStatement implements EngineStatement {
      * the execution of this Statement object
      * @exception SQLException if a database access error occurs
      */
-	public final ResultSet getGeneratedKeys() throws SQLException
+    public final ResultSet getGeneratedKeys() throws SQLException
     {
         return wrapResultSet(getStatement().getGeneratedKeys());
     }
@@ -467,30 +467,30 @@ public class BrokeredStatement implements EngineStatement {
      * the holdability it was created with. In a local transaction
      * the original create holdabilty will be returned.
      */
-	public final int getResultSetHoldability()
+    public final int getResultSetHoldability()
         throws SQLException
-	{
+    {
         int holdability =
             ((EngineStatement) getStatement()).getResultSetHoldability();
         
         // Holdability might be downgraded.
         return controlCheck().checkHoldCursors(holdability);
-	}
+    }
 
-	/*
-	** Control methods
-	*/
+    /*
+    ** Control methods
+    */
 
-	public Statement createDuplicateStatement(Connection conn, Statement oldStatement) throws SQLException {
+    public Statement createDuplicateStatement(Connection conn, Statement oldStatement) throws SQLException {
 
-		Statement newStatement;
-		newStatement = conn.createStatement(resultSetType, resultSetConcurrency,
+        Statement newStatement;
+        newStatement = conn.createStatement(resultSetType, resultSetConcurrency,
                     resultSetHoldability);
 
-		setStatementState(oldStatement, newStatement);
+        setStatementState(oldStatement, newStatement);
 
-		return newStatement;
-	}
+        return newStatement;
+    }
 
 //    @Override
     public <T> T unwrap(Class<T> iface) throws SQLException{
@@ -498,21 +498,21 @@ public class BrokeredStatement implements EngineStatement {
     }
 
     void setStatementState(Statement oldStatement, Statement newStatement) throws SQLException {
-		if (cursorName != null)
-			newStatement.setCursorName(cursorName);
-		if (escapeProcessing != null)
-			newStatement.setEscapeProcessing(escapeProcessing);
+        if (cursorName != null)
+            newStatement.setCursorName(cursorName);
+        if (escapeProcessing != null)
+            newStatement.setEscapeProcessing(escapeProcessing);
 
-		newStatement.setFetchDirection(oldStatement.getFetchDirection());
-		newStatement.setFetchSize(oldStatement.getFetchSize());
-		newStatement.setMaxFieldSize(oldStatement.getMaxFieldSize());
-		newStatement.setMaxRows(oldStatement.getMaxRows());
-		newStatement.setQueryTimeout(oldStatement.getQueryTimeout());
-	}
+        newStatement.setFetchDirection(oldStatement.getFetchDirection());
+        newStatement.setFetchSize(oldStatement.getFetchSize());
+        newStatement.setMaxFieldSize(oldStatement.getMaxFieldSize());
+        newStatement.setMaxRows(oldStatement.getMaxRows());
+        newStatement.setQueryTimeout(oldStatement.getQueryTimeout());
+    }
 
-	public Statement getStatement() throws SQLException {
-		return control.getRealStatement();
-	}
+    public Statement getStatement() throws SQLException {
+        return control.getRealStatement();
+    }
     
     /**
      * Provide the control access to every ResultSet we return.
@@ -523,21 +523,21 @@ public class BrokeredStatement implements EngineStatement {
      * 
      * @param rs ResultSet being returned, can be null.
      */
-	final ResultSet wrapResultSet(ResultSet rs) {
-		return control.wrapResultSet(this, rs);
-	}
+    final ResultSet wrapResultSet(ResultSet rs) {
+        return control.wrapResultSet(this, rs);
+    }
 
-	/**
-		Get the BrokeredStatementControl in order to perform a check.
-		Obtained indirectly to ensure that the correct exception is
-		thrown if the Statement has been closed.
-	*/
-	final BrokeredStatementControl controlCheck() throws SQLException
-	{
-		// simplest method that will throw an exception if the Statement is closed
-		getStatement().getConnection();
-		return control;
-	}
+    /**
+        Get the BrokeredStatementControl in order to perform a check.
+        Obtained indirectly to ensure that the correct exception is
+        thrown if the Statement has been closed.
+    */
+    final BrokeredStatementControl controlCheck() throws SQLException
+    {
+        // simplest method that will throw an exception if the Statement is closed
+        getStatement().getConnection();
+        return control;
+    }
 
     /**
      * Returns false unless <code>iface</code> is implemented 

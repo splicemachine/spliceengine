@@ -171,8 +171,8 @@ public class SITransactorTest {
     @Test
     public void testChildTransactionsInterleave() throws Exception {
                 /*
-				 * Similar to what happens when an insertion occurs,
-				 */
+                 * Similar to what happens when an insertion occurs,
+                 */
         Txn parent = control.beginTransaction(DESTINATION_TABLE);
 
         Txn interleave = control.beginTransaction();
@@ -867,13 +867,13 @@ public class SITransactorTest {
 
     @Test
     public void writeManyDeleteOneBeforeWriteAllNullsSameTransactionAsWriteScanWithIncludeSIColumn() throws IOException {
-				/*
-				 * Steps here:
-				 * 1. write a bunch of rows (writeMany)
-				 * 2. delete a row (DeleteOne)
-				 * 3. Write all nulls (WriteAllNulls)
-				 * 4. Scan the data, including SI Column
-				 */
+                /*
+                 * Steps here:
+                 * 1. write a bunch of rows (writeMany)
+                 * 2. delete a row (DeleteOne)
+                 * 3. Write all nulls (WriteAllNulls)
+                 * 4. Scan the data, including SI Column
+                 */
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         //insert some data
         testUtility.insertAge(t1, "139joe", 20);
@@ -1018,10 +1018,10 @@ public class SITransactorTest {
 
     @Test
     public void testReadCommittedVisibleWithHappensAfter() throws IOException {
-				/*
-				 * Tests that a read-committed transaction is able to see rows that were committed
-				 *  before the transaction was started
-				 */
+                /*
+                 * Tests that a read-committed transaction is able to see rows that were committed
+                 *  before the transaction was started
+                 */
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe19", 20);
         t1.commit();
@@ -1032,10 +1032,10 @@ public class SITransactorTest {
 
     @Test
     public void testReadCommittedVisibleWithSimultaneousAction() throws IOException {
-				/*
-				 * Tests that a read-committed transaction is able to see rows that were committed,
-				 * even if the commit TS is after the RC begin timestamp
-				 */
+                /*
+                 * Tests that a read-committed transaction is able to see rows that were committed,
+                 * even if the commit TS is after the RC begin timestamp
+                 */
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe20", 20);
 
@@ -1048,10 +1048,10 @@ public class SITransactorTest {
 
     @Test
     public void testReadUncommittedRowsVisibleHappensAfter() throws IOException {
-				/*
-				 * Tests that read-uncommitted transactions are able to see rows that were committed
-				 * before the RU transaction was started
-				 */
+                /*
+                 * Tests that read-uncommitted transactions are able to see rows that were committed
+                 * before the RU transaction was started
+                 */
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe22", 20);
         t1.commit();
@@ -1062,10 +1062,10 @@ public class SITransactorTest {
 
     @Test
     public void testsReadUncommittedRowsVisibleIfNotRolledBack() throws IOException {
-				/*
-				 * Tests that a read-uncommitted transaction is able to see rows, even if the
-				 * writing transaction has not committed
-				 */
+                /*
+                 * Tests that a read-uncommitted transaction is able to see rows, even if the
+                 * writing transaction has not committed
+                 */
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe21", 20);
 
@@ -1078,10 +1078,10 @@ public class SITransactorTest {
 
     @Test
     public void testReadUncommittedCannotSeeRolledBackRows() throws IOException {
-				/*
-				 * Tests that a read-uncommitted transaction is not able to see
-				 * rolled back rows
-				 */
+                /*
+                 * Tests that a read-uncommitted transaction is not able to see
+                 * rolled back rows
+                 */
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         testUtility.insertAge(t1, "joe23", 20);
         t1.commit();
@@ -1123,10 +1123,10 @@ public class SITransactorTest {
 
     @Test
     public void testRollbackDoesNothingToCommittedChildTransactions() throws IOException {
-				/*
-				 * Tests that rolling back a child transaction does nothing if the child transaction
-				 * is already committed.
-				 */
+                /*
+                 * Tests that rolling back a child transaction does nothing if the child transaction
+                 * is already committed.
+                 */
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         Txn t2 = control.beginChildTransaction(noSubTxns(t1), DESTINATION_TABLE);
         testUtility.insertAge(t2, "joe51", 21);
@@ -1138,10 +1138,10 @@ public class SITransactorTest {
 
     @Test
     public void testRollbackWorksForCommittedChildSubTransactions() throws IOException {
-				/*
-				 * Tests that rolling back a child transaction works even if the child transaction
-				 * is already committed when it's in memory.
-				 */
+                /*
+                 * Tests that rolling back a child transaction works even if the child transaction
+                 * is already committed when it's in memory.
+                 */
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         Txn t2 = control.beginChildTransaction(t1, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, DESTINATION_TABLE, true);
         testUtility.insertAge(t2, "joe51", 21);
@@ -1294,18 +1294,18 @@ public class SITransactorTest {
 //        Txn t2 = control.beginChildTransaction(t1, t1.getIsolationLevel(), DESTINATION_TABLE);
 //        testUtility.insertJob(t2, "moe46", "baker");
 //        t2.commit();
-//				Assert.assertEquals("joe46 age=20 job=null", testUtility.read(t1, "joe46"));
-//				Assert.assertEquals("moe46 age=null job=baker", testUtility.read(t1, "moe46"));
-//				t1.rollback();
+//                Assert.assertEquals("joe46 age=20 job=null", testUtility.read(t1, "joe46"));
+//                Assert.assertEquals("moe46 age=null job=baker", testUtility.read(t1, "moe46"));
+//                t1.rollback();
 //        Txn t3 = control.beginChildTransaction(t1,t1.getIsolationLevel(), DESTINATION_TABLE);
 //        Assert.assertEquals("joe46 absent", testUtility.read(t3, "joe46"));
-//				/*
-//				 * When we create a child transaction after rolling back the parent, we
-//				 * enter the realm of undefined semantics. In this sense, we choose
-//				 * to be strict with respect to roll backs--in that way, rolling back
-//				 * a transaction is as if it never happened, EVEN TO ITSELF.
-//				 *
-//				 */
+//                /*
+//                 * When we create a child transaction after rolling back the parent, we
+//                 * enter the realm of undefined semantics. In this sense, we choose
+//                 * to be strict with respect to roll backs--in that way, rolling back
+//                 * a transaction is as if it never happened, EVEN TO ITSELF.
+//                 *
+//                 */
 //        Assert.assertEquals("moe46 absent", testUtility.read(t3, "moe46"));
 //    }
 
@@ -1553,12 +1553,12 @@ public class SITransactorTest {
     @Test
     public void childrenOfChildrenWritesDoNotConflict() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-		/*
-		 * In order to be transactionally value, we cannot write while we have active
-		 * child transactions (otherwise we violate the requirement that events
-		 * occur sequentially). Thus, we have to write the data first, then
-		 * we can begin the child transactions.
-		 */
+        /*
+         * In order to be transactionally value, we cannot write while we have active
+         * child transactions (otherwise we violate the requirement that events
+         * occur sequentially). Thus, we have to write the data first, then
+         * we can begin the child transactions.
+         */
         testUtility.insertAge(t1, "joe95", 18);
         Txn t2 = control.beginChildTransaction(noSubTxns(t1), DESTINATION_TABLE);
         Txn t3 = control.beginChildTransaction(noSubTxns(t2), DESTINATION_TABLE);
@@ -1577,13 +1577,13 @@ public class SITransactorTest {
 
     @Test
     public void testParentReadsChildWritesInReadCommittedMode() throws IOException {
-		/*
-		 * This tests two things:
-		 *
-		 * 1. that a parent's writes do not conflict with its children's writes, if the
-		 * children's writes occurred before the parent.
-		 *
-		 */
+        /*
+         * This tests two things:
+         *
+         * 1. that a parent's writes do not conflict with its children's writes, if the
+         * children's writes occurred before the parent.
+         *
+         */
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         Txn t2 = control.beginChildTransaction(noSubTxns(t1), t1.getIsolationLevel(), DESTINATION_TABLE);
         testUtility.insertAge(t2, "joe101", 20);

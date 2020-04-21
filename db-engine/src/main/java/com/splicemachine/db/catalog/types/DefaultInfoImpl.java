@@ -44,123 +44,123 @@ import java.io.IOException;
 
 public class DefaultInfoImpl implements DefaultInfo, Formatable
 {
-	/********************************************************
-	**
-	**	This class implements Formatable. That means that it
-	**	can write itself to and from a formatted stream. If
-	**	you add more fields to this class, make sure that you
-	**	also write/read them with the writeExternal()/readExternal()
-	**	methods.
-	**
-	**	If, inbetween releases, you add more fields to this class,
-	**	then you should bump the version number emitted by the getTypeFormatId()
-	**	method.
-	**
-	********************************************************/
+    /********************************************************
+    **
+    **    This class implements Formatable. That means that it
+    **    can write itself to and from a formatted stream. If
+    **    you add more fields to this class, make sure that you
+    **    also write/read them with the writeExternal()/readExternal()
+    **    methods.
+    **
+    **    If, inbetween releases, you add more fields to this class,
+    **    then you should bump the version number emitted by the getTypeFormatId()
+    **    method.
+    **
+    ********************************************************/
 
-	private DataValueDescriptor	defaultValue;
-	private String				defaultText;
-	private int                     type;
+    private DataValueDescriptor    defaultValue;
+    private String                defaultText;
+    private int                     type;
     private String[]                   referencedColumnNames;
     private String                  originalCurrentSchema;
 
-	final private static int BITS_MASK_IS_DEFAULTVALUE_AUTOINC = 0x1;
-	final private static int BITS_MASK_IS_GENERATED_COLUMN = 0x2;
+    final private static int BITS_MASK_IS_DEFAULTVALUE_AUTOINC = 0x1;
+    final private static int BITS_MASK_IS_GENERATED_COLUMN = 0x2;
 
-	/**
-	 * Public niladic constructor. Needed for Formatable interface to work.
-	 *
-	 */
-    public	DefaultInfoImpl() {}
+    /**
+     * Public niladic constructor. Needed for Formatable interface to work.
+     *
+     */
+    public    DefaultInfoImpl() {}
 
-	/**
-	 * Constructor for use with numeric types
-	 *
-	 * @param defaultText	The text of the default.
-	 */
-	public DefaultInfoImpl(boolean isDefaultValueAutoinc,
-		String defaultText,
-		DataValueDescriptor defaultValue)
-	{
-		this.type = calcType(isDefaultValueAutoinc);
-		this.defaultText = defaultText;
-		this.defaultValue = defaultValue;
-	}
+    /**
+     * Constructor for use with numeric types
+     *
+     * @param defaultText    The text of the default.
+     */
+    public DefaultInfoImpl(boolean isDefaultValueAutoinc,
+        String defaultText,
+        DataValueDescriptor defaultValue)
+    {
+        this.type = calcType(isDefaultValueAutoinc);
+        this.defaultText = defaultText;
+        this.defaultValue = defaultValue;
+    }
 
-	/**
-	 * Constructor for use with generated columns
+    /**
+     * Constructor for use with generated columns
      *
      * @param   defaultText Text of generation clause.
      * @param   referencedColumnNames   names of other columns in the base row which are mentioned in the generation clause.
      * @param   originalCurrentSchema   Schema in effect when the generate column was added to the table.
-	 */
-	public DefaultInfoImpl
+     */
+    public DefaultInfoImpl
         (
          String defaultText,
          String[]    referencedColumnNames,
          String originalCurrentSchema
          )
-	{
+    {
         if ( referencedColumnNames == null ) { referencedColumnNames = new String[0]; }
         
-		this.type = BITS_MASK_IS_GENERATED_COLUMN;
-		this.defaultText = defaultText;
-		this.referencedColumnNames = referencedColumnNames;
+        this.type = BITS_MASK_IS_GENERATED_COLUMN;
+        this.defaultText = defaultText;
+        this.referencedColumnNames = referencedColumnNames;
         this.originalCurrentSchema = originalCurrentSchema;
-	}
+    }
 
-	/**
-	 * @see DefaultInfo#getDefaultText
-	 */
-	public String getDefaultText()
-	{
-		return defaultText;
-	}
+    /**
+     * @see DefaultInfo#getDefaultText
+     */
+    public String getDefaultText()
+    {
+        return defaultText;
+    }
 
-	/**
-	 * @see DefaultInfo#getReferencedColumnNames
-	 */
-	public String[] getReferencedColumnNames()
-	{
-		return referencedColumnNames;
-	}
+    /**
+     * @see DefaultInfo#getReferencedColumnNames
+     */
+    public String[] getReferencedColumnNames()
+    {
+        return referencedColumnNames;
+    }
 
-	/**
-	 * @see DefaultInfo#getOriginalCurrentSchema
-	 */
-	public String   getOriginalCurrentSchema()
-	{
-		return originalCurrentSchema;
-	}
+    /**
+     * @see DefaultInfo#getOriginalCurrentSchema
+     */
+    public String   getOriginalCurrentSchema()
+    {
+        return originalCurrentSchema;
+    }
 
-	public String	toString()
-	{
-		if(isDefaultValueAutoinc()){
-			return "GENERATED_BY_DEFAULT";
-		}
+    public String    toString()
+    {
+        if(isDefaultValueAutoinc()){
+            return "GENERATED_BY_DEFAULT";
+        }
         else if ( isGeneratedColumn() )
         {
             return "GENERATED ALWAYS AS ( " + defaultText + " )";
         }
         else { return defaultText; }
-	}
+    }
 
-	// Formatable methods
+    // Formatable methods
 
-	/**
-	 * Read this object from a stream of stored objects.
-	 *
-	 * @param in read this.
-	 *
-	 * @exception IOException					thrown on error
-	 * @exception ClassNotFoundException		thrown on error
-	 */
-	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
-		defaultText = (String) in.readObject();
-		defaultValue = (DataValueDescriptor) in.readObject();
-		type = in.readInt();
+    /**
+     * Read this object from a stream of stored objects.
+     *
+     * @param in read this.
+     *
+     * @exception IOException                    thrown on error
+     * @exception ClassNotFoundException        thrown on error
+     */
+    public void readExternal( ObjectInput in )
+         throws IOException, ClassNotFoundException
+    {
+        defaultText = (String) in.readObject();
+        defaultValue = (DataValueDescriptor) in.readObject();
+        type = in.readInt();
 
         if ( isGeneratedColumn() )
         {
@@ -169,21 +169,21 @@ public class DefaultInfoImpl implements DefaultInfo, Formatable
             for ( int i = 0; i < count; i++ ) { referencedColumnNames[ i ] = (String) in.readObject(); }
             originalCurrentSchema = (String) in.readObject();
         }
-	}
+    }
 
-	/**
-	 * Write this object to a stream of stored objects.
-	 *
-	 * @param out write bytes here.
-	 *
-	 * @exception IOException		thrown on error
-	 */
-	public void writeExternal( ObjectOutput out )
-		 throws IOException
-	{
-		out.writeObject( defaultText );
-		out.writeObject( defaultValue );
-		out.writeInt(type);
+    /**
+     * Write this object to a stream of stored objects.
+     *
+     * @param out write bytes here.
+     *
+     * @exception IOException        thrown on error
+     */
+    public void writeExternal( ObjectOutput out )
+         throws IOException
+    {
+        out.writeObject( defaultText );
+        out.writeObject( defaultValue );
+        out.writeInt(type);
         
         if ( isGeneratedColumn() )
         {
@@ -194,63 +194,63 @@ public class DefaultInfoImpl implements DefaultInfo, Formatable
             }
             out.writeObject( originalCurrentSchema );
         }
-	}
+    }
  
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.DEFAULT_INFO_IMPL_V01_ID; }
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId()    { return StoredFormatIds.DEFAULT_INFO_IMPL_V01_ID; }
 
-	/**
-	 * Get the default value.
-	 * (NOTE: This returns null if 
-	 * the default is not a constant.)
-	 *
-	 * @return The default value.
-	 */
-	public DataValueDescriptor getDefaultValue()
-	{
-		return defaultValue;
-	}
+    /**
+     * Get the default value.
+     * (NOTE: This returns null if 
+     * the default is not a constant.)
+     *
+     * @return The default value.
+     */
+    public DataValueDescriptor getDefaultValue()
+    {
+        return defaultValue;
+    }
 
-	/**
-	 * Set the default value.
-	 *
-	 * @param defaultValue The default value.
-	 */
-	public void setDefaultValue(DataValueDescriptor defaultValue)
-	{
-		this.defaultValue = defaultValue;
-	}
-	
-	/**
-	 * @see DefaultInfo#isDefaultValueAutoinc
-	 */
-	public boolean isDefaultValueAutoinc(){
-		return (type & BITS_MASK_IS_DEFAULTVALUE_AUTOINC ) != 0;
-	}
-	
-	/**
-	 * @see DefaultInfo#isGeneratedColumn
-	 */
-	public boolean isGeneratedColumn(){
-		return (type & BITS_MASK_IS_GENERATED_COLUMN ) != 0;
-	}
-	
-	/**
-	 * This function returns stored value for flags and so on.
-	 */
-	private static int calcType(boolean isDefaultValueAutoinc){
+    /**
+     * Set the default value.
+     *
+     * @param defaultValue The default value.
+     */
+    public void setDefaultValue(DataValueDescriptor defaultValue)
+    {
+        this.defaultValue = defaultValue;
+    }
+    
+    /**
+     * @see DefaultInfo#isDefaultValueAutoinc
+     */
+    public boolean isDefaultValueAutoinc(){
+        return (type & BITS_MASK_IS_DEFAULTVALUE_AUTOINC ) != 0;
+    }
+    
+    /**
+     * @see DefaultInfo#isGeneratedColumn
+     */
+    public boolean isGeneratedColumn(){
+        return (type & BITS_MASK_IS_GENERATED_COLUMN ) != 0;
+    }
+    
+    /**
+     * This function returns stored value for flags and so on.
+     */
+    private static int calcType(boolean isDefaultValueAutoinc){
 
-		int value = 0;
+        int value = 0;
 
-		if(isDefaultValueAutoinc){
-			value |= BITS_MASK_IS_DEFAULTVALUE_AUTOINC;
-		}
+        if(isDefaultValueAutoinc){
+            value |= BITS_MASK_IS_DEFAULTVALUE_AUTOINC;
+        }
 
-		return value;
-	}
-	
+        return value;
+    }
+    
 }

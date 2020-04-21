@@ -77,13 +77,13 @@ public interface XAResourceManager
      *                 commit protocol to commit the work done on behalf of 
      *                 xid.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     void commit(
             ContextManager cm,
             Xid xid,
             boolean onePhase)
-		throws StandardException;
+        throws StandardException;
 
     /**
      * Find the given Xid in the transaction table.
@@ -122,13 +122,13 @@ public interface XAResourceManager
      * @param cm       The ContextManager returned from the find() call.
      * @param xid      A global transaction identifier.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
      **/
     void forget(
             ContextManager cm,
             Xid xid)
-		throws StandardException;
+        throws StandardException;
 
     /**
      * This method is called to obtain a list of prepared transactions.
@@ -142,7 +142,7 @@ public interface XAResourceManager
      * is specified the complete list is returned.  If recover is called with
      * TMNOFLAGS is ever called a 0 length array is returned.  
      *
-	 * @return Return a array with 0 or more Xid's which are currently in
+     * @return Return a array with 0 or more Xid's which are currently in
      *         prepared or heuristically completed state.  If an error occurs
      *         during the operation, an appropriate error is thrown.
      *
@@ -150,7 +150,7 @@ public interface XAResourceManager
      *                 XAResource.{TMSTARTRSCAN,TMENDRSCAN,TMNOFLAGS}.  
      *                 TMNOFLAGS must be used when no other flags are used.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     Xid[] recover(int flags)
         throws StandardException;
@@ -165,7 +165,7 @@ public interface XAResourceManager
      * @param cm       The ContextManager returned from the find() call.
      * @param xid      A global transaction identifier.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     void rollback(
             ContextManager cm,

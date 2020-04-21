@@ -178,7 +178,7 @@ public class ConcurrentImplicitCreateSchema
             System.out.println("PASSED");
         } else {
             System.out.println("FAILED");
-	}
+    }
     }
 
     void failed(Throwable e) 

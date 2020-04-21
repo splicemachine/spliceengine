@@ -165,8 +165,8 @@ public abstract class SequenceUpdater implements Cacheable
      * @param newValue The value to poke into the system table backing this sequence
      * @param wait Whether to wait for a lock
      *
-	 * 
-	 * @return Returns true if the value was successfully updated, false if we lost a race with another session.
+     * 
+     * @return Returns true if the value was successfully updated, false if we lost a race with another session.
      *
      * @throws StandardException May throw an exception if a lock can't be obtained.
      */
@@ -191,8 +191,8 @@ public abstract class SequenceUpdater implements Cacheable
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-	public void clean(boolean forRemove) throws StandardException
-	{
+    public void clean(boolean forRemove) throws StandardException
+    {
         //
         // Flush current value to disk. This prevents us from leaking values when DDL
         // is performed. The metadata caches are invalidated and cleared when DDL is performed.
@@ -218,12 +218,12 @@ public abstract class SequenceUpdater implements Cacheable
 
         _uuidString = null;
         _sequenceGenerator = null;
-	}
+    }
     
-	public boolean isDirty() { return false; }
+    public boolean isDirty() { return false; }
     public Object getIdentity() { return _uuidString; }
 
-	public void clearIdentity()
+    public void clearIdentity()
     {
         try
         {
@@ -241,37 +241,37 @@ public abstract class SequenceUpdater implements Cacheable
         }
     }
 
-	public Cacheable createIdentity( Object key, Object createParameter ) throws StandardException
-	{
+    public Cacheable createIdentity( Object key, Object createParameter ) throws StandardException
+    {
         Cacheable cacheable = this;
 
         //
         // The createParameter arg is unused.
         //
         return cacheable.setIdentity( key );
-	}
+    }
 
-	/**
-	 * @see Cacheable#setIdentity
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public Cacheable setIdentity(Object key) throws StandardException
-	{
-		if (SanityManager.DEBUG)
-		{
-			if (!(key instanceof String))
-			{
-				SanityManager.THROWASSERT( "Key for a SequenceUpdater is a " + key.getClass().getName() );
-			}
+    /**
+     * @see Cacheable#setIdentity
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public Cacheable setIdentity(Object key) throws StandardException
+    {
+        if (SanityManager.DEBUG)
+        {
+            if (!(key instanceof String))
+            {
+                SanityManager.THROWASSERT( "Key for a SequenceUpdater is a " + key.getClass().getName() );
+            }
 
             if ( (_uuidString != null) || (_sequenceGenerator != null) )
-			{
-				SanityManager.THROWASSERT( "Identity being changed on a live cacheable. Old uuidString = " + _uuidString );
-			}
-		}
+            {
+                SanityManager.THROWASSERT( "Identity being changed on a live cacheable. Old uuidString = " + _uuidString );
+            }
+        }
 
-		_uuidString = (String) key;
+        _uuidString = (String) key;
 
         if ( _sequenceGenerator == null )
         {
@@ -298,9 +298,9 @@ public abstract class SequenceUpdater implements Cacheable
             }
         }
 
-		if ( _sequenceGenerator != null ) { return this; }
-		else { return null; }
-	}
+        if ( _sequenceGenerator != null ) { return this; }
+        else { return null; }
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -393,8 +393,8 @@ public abstract class SequenceUpdater implements Cacheable
      * Update the value on disk. Does its work in a subtransaction of the user's
      * execution transaction. If that fails, raises a TOO MUCH CONTENTION exception.
      * </p>
-	 * 
-	 * @return Returns true if the value was successfully updated, false if we lost a race with another session.
+     * 
+     * @return Returns true if the value was successfully updated, false if we lost a race with another session.
      *
      */
     public synchronized boolean updateCurrentValueOnDisk( Long oldValue, Long newValue ) throws StandardException
@@ -410,8 +410,8 @@ public abstract class SequenceUpdater implements Cacheable
         {
             if (SanityManager.DEBUG)
             {
-				SanityManager.ASSERT( oldValue == null, "We should be flushing unused sequence values here." );
-			}
+                SanityManager.ASSERT( oldValue == null, "We should be flushing unused sequence values here." );
+            }
             
             ContextService csf = ContextService.getFactory();
             ContextManager cm = csf.getCurrentContextManager();
@@ -423,7 +423,7 @@ public abstract class SequenceUpdater implements Cacheable
             dummyTransaction.destroy();
 
             return retval;
-		}
+        }
 
         TransactionController executionTransaction = lcc.getTransactionExecute();
         TransactionController nestedTransaction = 
@@ -500,11 +500,11 @@ public abstract class SequenceUpdater implements Cacheable
         return true;
     }
     
-	private static LanguageConnectionContext getLCC()
+    private static LanguageConnectionContext getLCC()
     {
-		return (LanguageConnectionContext) 
-					ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
-	}
+        return (LanguageConnectionContext) 
+                    ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+    }
 
     /** Report an unimplemented feature */
     private StandardException unimplementedFeature()

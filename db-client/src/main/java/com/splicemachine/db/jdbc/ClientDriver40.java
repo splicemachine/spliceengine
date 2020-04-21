@@ -39,10 +39,10 @@ import com.splicemachine.db.shared.common.reference.SQLState;
  */
 public class ClientDriver40 extends ClientDriver
 {
-	static
-	{
+    static
+    {
         registerMe( new ClientDriver40() );
-	}
+    }
 
     ////////////////////////////////////////////////////////////////////
     //

@@ -201,8 +201,8 @@ public abstract class BaseJDBCTestCase
      * @throws SQLException
      */
     public Statement createStatement(int resultSetType,
-            			int resultSetConcurrency,
-	    			int resultSetHoldability) throws SQLException
+                        int resultSetConcurrency,
+                    int resultSetHoldability) throws SQLException
     {
         return getConnection().createStatement(resultSetType, resultSetConcurrency, resultSetHoldability);
     }
@@ -351,8 +351,8 @@ public abstract class BaseJDBCTestCase
      * @throws SQLException
      */
     public CallableStatement prepareCall(String sql,
-					int resultSetType, 
-					int resultSetConcurrency) throws SQLException
+                    int resultSetType, 
+                    int resultSetConcurrency) throws SQLException
     {
         CallableStatement cs = getConnection().prepareCall(sql, resultSetType,
                 resultSetConcurrency);
@@ -372,7 +372,7 @@ public abstract class BaseJDBCTestCase
     public CallableStatement prepareCall(String sql,
                                         int resultSetType,
                                         int resultSetConcurrency,
-					 int resultSetHoldability) throws SQLException
+                     int resultSetHoldability) throws SQLException
     {
         CallableStatement cs = getConnection().prepareCall(sql,
                 resultSetType, resultSetConcurrency, resultSetHoldability);
@@ -385,7 +385,7 @@ public abstract class BaseJDBCTestCase
      * @param commit false if autoCommit should be disabled.
      */
     public void setAutoCommit(boolean commit) throws SQLException {
-    	getConnection().setAutoCommit(commit);
+        getConnection().setAutoCommit(commit);
     }
     /**
      * Utility method to commit using the connection
@@ -1222,12 +1222,12 @@ public abstract class BaseJDBCTestCase
      */
     public static void assertNextError(String sqlState,ResultSet rs)
     {
-    	try {
-    		rs.next();
-    		fail("Expected error on next()");
-    	}catch (SQLException se){
-    		assertSQLState(sqlState,se);
-    	}
+        try {
+            rs.next();
+            fail("Expected error on next()");
+        }catch (SQLException se){
+            assertSQLState(sqlState,se);
+        }
     }
     
     /**
@@ -1238,14 +1238,14 @@ public abstract class BaseJDBCTestCase
      */
     public static void assertGetIntError(int position, String sqlState, ResultSet rs)
     {
-    	try {
-    		rs.getInt(position);
-    		fail("Expected exception " + sqlState);
-    	} catch (SQLException se){
-    		assertSQLState(sqlState,se);
-    	}
-    			
-    	
+        try {
+            rs.getInt(position);
+            fail("Expected exception " + sqlState);
+        } catch (SQLException se){
+            assertSQLState(sqlState,se);
+        }
+                
+        
     }
     /**
      * Take a Statement object and a SQL statement, execute it

@@ -102,9 +102,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         scoped=false;
     }
 
-	/*
+    /*
      *  Optimizable interface
-	 */
+     */
 
     @Override
     public JBitSet getReferencedMap(){
@@ -114,18 +114,18 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     @Override
     public boolean hasSubquery(){
         /* RESOLVE - Currently, we record whether or not a predicate is pushable based
-		 * on whether or not it contains a subquery or method call, but we do not
-		 * record the underlying info.
-		 */
+         * on whether or not it contains a subquery or method call, but we do not
+         * record the underlying info.
+         */
         return !pushable;
     }
 
     @Override
     public boolean hasMethodCall(){
-		/* RESOLVE - Currently, we record whether or not a predicate is pushable based
-		 * on whether or not it contains a subquery or method call, but we do not
-		 * record the underlying info.
-		 */
+        /* RESOLVE - Currently, we record whether or not a predicate is pushable based
+         * on whether or not it contains a subquery or method call, but we do not
+         * record the underlying info.
+         */
         return !pushable;
     }
 
@@ -173,9 +173,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         boolean retval=false;
         RelationalOperator relop=getRelop();
 
-		/* if this is for "in" operator node's dynamic start/stop key, relop is
-		 * null, and it's not comparing with constant, beetle 3858
-		 */
+        /* if this is for "in" operator node's dynamic start/stop key, relop is
+         * null, and it's not comparing with constant, beetle 3858
+         */
         if(!isRelationalOpPredicate())
             return false;
 
@@ -264,31 +264,31 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     /* Comparable interface */
     @Override
     public int compareTo(Predicate otherPred){
-		/* Not all operators are "equal". If the predicates are on the
-		 * same key column, then a "=" opertor takes precedence over all
-		 * other operators.  This ensures that the "=" will be both the start
-		 * and stop predicates.  Otherwise, we could end up with it being one
-		 * but not the other and get incorrect results.
-		 *
-		 * Also, we want "<>" to come after all the other operators.
-		 * Other parts of the optimizer use the first predicate on an index
-		 * column to determine the cost of using the index, so we want the
-		 * "<>" to come last because it's not useful for limiting the scan.
-		 *
-		 * In other words, P1 is before() P2 if:
-		 *		o  The P1.indexPosition < P2.indexPosition
-		 *	or  o  P1.indexPosition == P2.indexPosition and
-		 *		   P1's operator is ("=" or IS NULL) and
-		 *		   P2's operator is not ("=" or IS NULL)
-		 * or	o  P1.indexPosition == P2.indexPosition and
-		 *		   P1's operator is not ("<>" or IS NOT NULL) and
-		 *		   P2's operator is ("<>" or IS NOT NULL)
-		 *
-		 * (We have to impose an arbitrary, but reproducible ordering
-		 * on the the "=" predicates on the same column, otherwise an
-		 * ASSERTion, that after the predicates are order, Pn+1 is not
-		 * before() Pn, will be violated.
-		 */
+        /* Not all operators are "equal". If the predicates are on the
+         * same key column, then a "=" opertor takes precedence over all
+         * other operators.  This ensures that the "=" will be both the start
+         * and stop predicates.  Otherwise, we could end up with it being one
+         * but not the other and get incorrect results.
+         *
+         * Also, we want "<>" to come after all the other operators.
+         * Other parts of the optimizer use the first predicate on an index
+         * column to determine the cost of using the index, so we want the
+         * "<>" to come last because it's not useful for limiting the scan.
+         *
+         * In other words, P1 is before() P2 if:
+         *        o  The P1.indexPosition < P2.indexPosition
+         *    or  o  P1.indexPosition == P2.indexPosition and
+         *           P1's operator is ("=" or IS NULL) and
+         *           P2's operator is not ("=" or IS NULL)
+         * or    o  P1.indexPosition == P2.indexPosition and
+         *           P1's operator is not ("<>" or IS NOT NULL) and
+         *           P2's operator is ("<>" or IS NOT NULL)
+         *
+         * (We have to impose an arbitrary, but reproducible ordering
+         * on the the "=" predicates on the same column, otherwise an
+         * ASSERTion, that after the predicates are order, Pn+1 is not
+         * before() Pn, will be violated.
+         */
 
         int otherIndexPosition=otherPred.getIndexPosition();
 
@@ -305,14 +305,14 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         boolean thisIsNotEquals=true, otherIsNotEquals=true;
         boolean thisEqualsConstant = false, otherEqualsConstant=false;
 
-		/* The call to "isRelationalOpPredicate()" will return false
-		 * for a "probe predicate" because a probe predicate is really
-		 * a disguised IN list. But when it comes to sorting, the probe
-		 * predicate (which is of the form "<col> = ?") should be treated
-		 * as an equality--i.e. it should have precedence over any non-
-		 * equals predicate, per the comment at the start of this
-		 * method.  So that's what we're checking here.
-		 */
+        /* The call to "isRelationalOpPredicate()" will return false
+         * for a "probe predicate" because a probe predicate is really
+         * a disguised IN list. But when it comes to sorting, the probe
+         * predicate (which is of the form "<col> = ?") should be treated
+         * as an equality--i.e. it should have precedence over any non-
+         * equals predicate, per the comment at the start of this
+         * method.  So that's what we're checking here.
+         */
         //this is not "in" or this is a probe predicate
         if(this.isRelationalOpPredicate() || this.isInListProbePredicate()){
             int thisOperator=((RelationalOperator)andNode.getLeftOperand()).getOperator();
@@ -540,9 +540,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         if(searchClauseHT==null){
             searchClauseHT=new Hashtable();
         }
-		/* I have to remember that this ro has been added to this predicate as a
-		 * transitive search clause.
-		 */
+        /* I have to remember that this ro has been added to this predicate as a
+         * transitive search clause.
+         */
         //noinspection UnnecessaryBoxing
         Integer i=new Integer(ro.getOperator());
         //noinspection unchecked
@@ -559,9 +559,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     int getStartOperator(Optimizable optTable){
         assert startKey: "Getting a start operator from a Predicate that's not a start key.";
 
-		/* if it's for "in" operator's dynamic start key, operator is GE,
-		 * beetle 3858
-		 */
+        /* if it's for "in" operator's dynamic start key, operator is GE,
+         * beetle 3858
+         */
         if(andNode.getLeftOperand() instanceof InListOperatorNode)
             return ScanController.GE;
 
@@ -574,9 +574,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     int getStopOperator(Optimizable optTable){
         assert stopKey: "Getting a stop operator from a Predicate that's not a stop key.";
 
-		 /* if it's for "in" operator's dynamic stop key, operator is GT,
-		  * beetle 3858
-		  */
+         /* if it's for "in" operator's dynamic stop key, operator is GT,
+          * beetle 3858
+          */
         if(andNode.getLeftOperand() instanceof InListOperatorNode)
             return ScanController.GT;
 
@@ -1039,25 +1039,25 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         if(!scoped)
             return false;
 
-		/* Note: right now the only predicates we scope are those
-		 * which are join predicates and all scoped predicates will
-		 * have the same relational operator as the predicates from
-		 * which they were scoped.  Thus if we get here, we know
-		 * that andNode's leftOperand must be an instance of
-		 * BinaryRelationalOperatorNode (and therefore the following
-		 * cast is safe).
-		 */
+        /* Note: right now the only predicates we scope are those
+         * which are join predicates and all scoped predicates will
+         * have the same relational operator as the predicates from
+         * which they were scoped.  Thus if we get here, we know
+         * that andNode's leftOperand must be an instance of
+         * BinaryRelationalOperatorNode (and therefore the following
+         * cast is safe).
+         */
         BinaryRelationalOperatorNode binRelOp=(BinaryRelationalOperatorNode)andNode.getLeftOperand();
 
         ValueNode operand;
 
         if(SanityManager.DEBUG){
-			/* If this predicate is scoped then one (and only one) of
-			 * its operands should be scoped.  Note that it's possible
-			 * for an operand to be scoped to a non-ColumnReference
-			 * value; if either operand is not a ColumnReference, then
-			 * that operand must be the scoped operand.
-			 */
+            /* If this predicate is scoped then one (and only one) of
+             * its operands should be scoped.  Note that it's possible
+             * for an operand to be scoped to a non-ColumnReference
+             * value; if either operand is not a ColumnReference, then
+             * that operand must be the scoped operand.
+             */
             operand=binRelOp.getLeftOperand();
             boolean leftIsScoped=!(operand instanceof ColumnReference) || ((ColumnReference)operand).isScoped();
 
@@ -1122,37 +1122,37 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         if(!scoped)
             return false;
 
-		/* Note: right now the only predicates we scope are those
-		 * which are join predicates and all scoped predicates will
-		 * have the same relational operator as the predicates from
-		 * which they were scoped.  Thus if we get here, we know
-		 * that andNode's leftOperand must be an instance of
-		 * BinaryRelationalOperatorNode (and therefore the following
-		 * cast is safe).
-		 */
+        /* Note: right now the only predicates we scope are those
+         * which are join predicates and all scoped predicates will
+         * have the same relational operator as the predicates from
+         * which they were scoped.  Thus if we get here, we know
+         * that andNode's leftOperand must be an instance of
+         * BinaryRelationalOperatorNode (and therefore the following
+         * cast is safe).
+         */
         BinaryRelationalOperatorNode binRelOp=(BinaryRelationalOperatorNode)andNode.getLeftOperand();
 
         ValueNode operand=binRelOp.getLeftOperand();
 
-		/* If operand isn't a ColumnReference then is must be the
-		 * scoped operand.  This is because both operands have to
-		 * be column references in order for scoping to occur (as
-		 * per pushableToSubqueries()) and only the scoped operand
-		 * can change (esp. can become a non-ColumnReference) as
-		 * part of the scoping process.  And since it's not a
-		 * ColumnReference it can't be "a ColumnReference that
-		 * points to a source result set", so return false.
-		 */
+        /* If operand isn't a ColumnReference then is must be the
+         * scoped operand.  This is because both operands have to
+         * be column references in order for scoping to occur (as
+         * per pushableToSubqueries()) and only the scoped operand
+         * can change (esp. can become a non-ColumnReference) as
+         * part of the scoping process.  And since it's not a
+         * ColumnReference it can't be "a ColumnReference that
+         * points to a source result set", so return false.
+         */
         if(!(operand instanceof ColumnReference))
             return false;
 
-		/* If the operand is a ColumnReference and is scoped,
-		 * then see if it is pointing to a ResultColumn whose
-		 * expression is either another a CR or a Virtual
-		 * ColumnNode.  If it is then that operand applies
-		 * to a source result set further down the tree and
-		 * thus we return true.
-		 */
+        /* If the operand is a ColumnReference and is scoped,
+         * then see if it is pointing to a ResultColumn whose
+         * expression is either another a CR or a Virtual
+         * ColumnNode.  If it is then that operand applies
+         * to a source result set further down the tree and
+         * thus we return true.
+         */
         ValueNode exp;
         ColumnReference cRef=(ColumnReference)operand;
         if(cRef.isScoped()){
@@ -1188,14 +1188,14 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * it's a disguised IN-list operator). True otherwise.
      */
     protected boolean isRelationalOpPredicate(){
-		/* The isRelationalOperator() method on the ValueNode
-		 * interface tells us what we need to know, so all we have
-		 * to do is call that method on the left child of our AND node.
-		 * Note that BinaryRelationalOperatorNode.isRelationalOperator()
-		 * includes logic to determine whether or not it (the BRON) is
-		 * really a disguised IN-list operator--and if so, it will
-		 * return false (which is what we want).
-		 */
+        /* The isRelationalOperator() method on the ValueNode
+         * interface tells us what we need to know, so all we have
+         * to do is call that method on the left child of our AND node.
+         * Note that BinaryRelationalOperatorNode.isRelationalOperator()
+         * includes logic to determine whether or not it (the BRON) is
+         * really a disguised IN-list operator--and if so, it will
+         * return false (which is what we want).
+         */
         return andNode.getLeftOperand().isRelationalOperator();
     }
 
@@ -1204,10 +1204,10 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * predicate.
      */
     public boolean isInListProbePredicate(){
-		/* The isInListProbeNode() method on the ValueNode interface
-		 * tells us what we need to know, so all we have to do is call
-		 * that method on the left child of our AND node.
-		 */
+        /* The isInListProbeNode() method on the ValueNode interface
+         * tells us what we need to know, so all we have to do is call
+         * that method on the left child of our AND node.
+         */
         return andNode.getLeftOperand().isInListProbeNode();
     }
 

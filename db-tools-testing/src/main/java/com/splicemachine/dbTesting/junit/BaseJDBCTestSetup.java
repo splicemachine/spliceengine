@@ -39,25 +39,25 @@ import junit.framework.Test;
  */
 public abstract class BaseJDBCTestSetup
     extends BaseTestSetup {
-	
-	public BaseJDBCTestSetup(Test test) {
-		super(test);
-	}
-	
-	/**
-	 * Maintain a single connection to the default
-	 * database, opened at the first call to getConnection.
-	 * Typical setup will just require a single connection.
-	 * @see BaseJDBCTestSetup#getConnection()
-	 */
-	private Connection conn;
-	
+    
+    public BaseJDBCTestSetup(Test test) {
+        super(test);
+    }
+    
+    /**
+     * Maintain a single connection to the default
+     * database, opened at the first call to getConnection.
+     * Typical setup will just require a single connection.
+     * @see BaseJDBCTestSetup#getConnection()
+     */
+    private Connection conn;
+    
     /**
      * Return the current configuration for the test.
      */
     public final TestConfiguration getTestConfiguration()
     {
-    	return TestConfiguration.getCurrent();
+        return TestConfiguration.getCurrent();
     }
     
     /**
@@ -74,13 +74,13 @@ public abstract class BaseJDBCTestSetup
      */
     public final Connection getConnection() throws SQLException
     {
-    	if (conn != null)
-    	{
-    		if (!conn.isClosed())
-    			return conn;
-    		conn = null;
-    	}
-    	return conn = getTestConfiguration().openDefaultConnection();
+        if (conn != null)
+        {
+            if (!conn.isClosed())
+                return conn;
+            conn = null;
+        }
+        return conn = getTestConfiguration().openDefaultConnection();
     }
     
     /**

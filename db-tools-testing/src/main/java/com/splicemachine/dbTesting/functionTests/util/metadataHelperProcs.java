@@ -37,18 +37,18 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class metadataHelperProcs {
-	
+    
    
-	public static ResultSet rs;
+    public static ResultSet rs;
 
-	// for use in test getbestrowidentifier.sql
-	public static void getBestRowId(String schema, String tableName, int scope, String nullable, ResultSet[] rs) throws SQLException
-	{
-		Connection conn = DriverManager.getConnection("jdbc:default:connection");
-		boolean tf = true;
-		if (nullable.equals("false"))
-			tf = false;
-		rs[0] = conn.getMetaData().getBestRowIdentifier(null,schema.trim(),tableName.trim(),scope,tf);
-	}
+    // for use in test getbestrowidentifier.sql
+    public static void getBestRowId(String schema, String tableName, int scope, String nullable, ResultSet[] rs) throws SQLException
+    {
+        Connection conn = DriverManager.getConnection("jdbc:default:connection");
+        boolean tf = true;
+        if (nullable.equals("false"))
+            tf = false;
+        rs[0] = conn.getMetaData().getBestRowIdentifier(null,schema.trim(),tableName.trim(),scope,tf);
+    }
 
 }

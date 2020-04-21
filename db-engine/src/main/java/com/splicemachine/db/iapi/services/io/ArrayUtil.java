@@ -43,207 +43,207 @@ import java.io.IOException;
  */
 public abstract class ArrayUtil
 {
-	///////////////////////////////////////////////////////////////////
-	//
-	// Methods for Arrays of OBJECTS.  Cannot be used for an
-	// array of primitives, see below for something for primitives
-	//
-	///////////////////////////////////////////////////////////////////
-	/**
-	  Write the length of an array of objects to an output stream.
+    ///////////////////////////////////////////////////////////////////
+    //
+    // Methods for Arrays of OBJECTS.  Cannot be used for an
+    // array of primitives, see below for something for primitives
+    //
+    ///////////////////////////////////////////////////////////////////
+    /**
+      Write the length of an array of objects to an output stream.
 
-	  The length
+      The length
 
-	  @param	out		ObjectOutput stream
-	  @param	a		array of objects whose length should be written.
+      @param    out        ObjectOutput stream
+      @param    a        array of objects whose length should be written.
 
-	  @exception java.io.IOException The write caused an IOException. 
-	  */
-	public static void writeArrayLength(ObjectOutput out, Object[] a)
-		 throws IOException
-	{
-		out.writeInt(a.length);
-	}
+      @exception java.io.IOException The write caused an IOException. 
+      */
+    public static void writeArrayLength(ObjectOutput out, Object[] a)
+         throws IOException
+    {
+        out.writeInt(a.length);
+    }
 
-	/**
-	  Write an array of objects to an output stream.
+    /**
+      Write an array of objects to an output stream.
 
-	  @param	out		Object output stream to write to.
-	  @param	a		array of objects to write.
+      @param    out        Object output stream to write to.
+      @param    a        array of objects to write.
 
-	  @exception java.io.IOException The write caused an IOException. 
-	  */
-	public static void writeArrayItems(ObjectOutput out, Object[] a)
-		 throws IOException
-	{
-		if (a == null)
-			return;
+      @exception java.io.IOException The write caused an IOException. 
+      */
+    public static void writeArrayItems(ObjectOutput out, Object[] a)
+         throws IOException
+    {
+        if (a == null)
+            return;
 
-		for (Object anA : a) {
-			out.writeObject(anA);
-		}
-	}
+        for (Object anA : a) {
+            out.writeObject(anA);
+        }
+    }
 
-	/**
-	  Write an array of objects and length to an output stream.
-	  Does equivalent of writeArrayLength() followed by writeArrayItems()
+    /**
+      Write an array of objects and length to an output stream.
+      Does equivalent of writeArrayLength() followed by writeArrayItems()
 
-	  @param	out		Object output stream to write to.
-	  @param	a		array of objects to write.
+      @param    out        Object output stream to write to.
+      @param    a        array of objects to write.
 
-	  @exception java.io.IOException The write caused an IOException. 
-	  */
-	public static void writeArray(ObjectOutput out, Object[] a)
-		 throws IOException
-	{
-		if (a == null) 
-		{
-			out.writeInt(0);
-			return;
-		}
+      @exception java.io.IOException The write caused an IOException. 
+      */
+    public static void writeArray(ObjectOutput out, Object[] a)
+         throws IOException
+    {
+        if (a == null) 
+        {
+            out.writeInt(0);
+            return;
+        }
 
-		out.writeInt(a.length);
-		for (Object anA : a) {
-			out.writeObject(anA);
-		}
-	}
+        out.writeInt(a.length);
+        for (Object anA : a) {
+            out.writeObject(anA);
+        }
+    }
 
-	/**
-	  Read an array of objects out of a stream.
+    /**
+      Read an array of objects out of a stream.
 
-	  @param	in	Input stream
-	  @param	a	array to read into
+      @param    in    Input stream
+      @param    a    array to read into
 
-	  @exception java.io.IOException The write caused an IOException. 
-	  @exception java.lang.ClassNotFoundException The Class for an Object we are reading does not exist
-	  */
-	public static void readArrayItems(ObjectInput in, Object[] a)
-		 throws IOException, ClassNotFoundException
-	{
-		for (int ix=0; ix<a.length; ix++)
-		{
-			a[ix]=in.readObject();
-		}
-	}
+      @exception java.io.IOException The write caused an IOException. 
+      @exception java.lang.ClassNotFoundException The Class for an Object we are reading does not exist
+      */
+    public static void readArrayItems(ObjectInput in, Object[] a)
+         throws IOException, ClassNotFoundException
+    {
+        for (int ix=0; ix<a.length; ix++)
+        {
+            a[ix]=in.readObject();
+        }
+    }
 
-	/**
-	  Read the length of an array of objects in an object stream.
+    /**
+      Read the length of an array of objects in an object stream.
 
-	  @param	in	Input stream.
+      @param    in    Input stream.
 
-	  @return	length of the array of objects
-	  
-	  @exception java.io.IOException The write caused an IOException. 
-	  */
-	public static int readArrayLength(ObjectInput in)
-		 throws IOException
-	{
-		return in.readInt();
-	}
+      @return    length of the array of objects
+      
+      @exception java.io.IOException The write caused an IOException. 
+      */
+    public static int readArrayLength(ObjectInput in)
+         throws IOException
+    {
+        return in.readInt();
+    }
 
-	/**
-	  Reads an array of objects from the stream.
+    /**
+      Reads an array of objects from the stream.
 
-	  @param	in	Input stream
+      @param    in    Input stream
 
-	  @exception java.io.IOException The write caused an IOException. 
-	  @exception java.lang.ClassNotFoundException The Class for an Object we are reading does not exist
-	  */
-	public static Object[] readObjectArray(ObjectInput in)
-		 throws IOException, ClassNotFoundException
-	{
-		int	size = in.readInt();
-		if ( size == 0 ) { return null; }
+      @exception java.io.IOException The write caused an IOException. 
+      @exception java.lang.ClassNotFoundException The Class for an Object we are reading does not exist
+      */
+    public static Object[] readObjectArray(ObjectInput in)
+         throws IOException, ClassNotFoundException
+    {
+        int    size = in.readInt();
+        if ( size == 0 ) { return null; }
 
-		Object[]	result = new Object[ size ];
+        Object[]    result = new Object[ size ];
 
-		readArrayItems( in, result );
+        readArrayItems( in, result );
 
-		return result;
-	}
+        return result;
+    }
 
-	///////////////////////////////////////////////////////////////////
-	//
-	// Methods for Arrays of INTs
-	//
-	///////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////
+    //
+    // Methods for Arrays of INTs
+    //
+    ///////////////////////////////////////////////////////////////////
 
-	/**
-	  Write an array of integers to an ObjectOutput. This writes the array
-	  in a format readIntArray understands.
+    /**
+      Write an array of integers to an ObjectOutput. This writes the array
+      in a format readIntArray understands.
 
-	  @param out the ObjectOutput.
-	  @param a the array.
-	  @exception java.io.IOException The write caused an IOException. 
-	  */
-	public static void writeIntArray(ObjectOutput out, int[] a) throws IOException {
-		if (a == null)
-			out.writeBoolean(false);
-		else {
-			out.writeBoolean(true);
-			out.writeInt(a.length);
-			for (int anA : a) out.writeInt(anA);
-		}
-	}
+      @param out the ObjectOutput.
+      @param a the array.
+      @exception java.io.IOException The write caused an IOException. 
+      */
+    public static void writeIntArray(ObjectOutput out, int[] a) throws IOException {
+        if (a == null)
+            out.writeBoolean(false);
+        else {
+            out.writeBoolean(true);
+            out.writeInt(a.length);
+            for (int anA : a) out.writeInt(anA);
+        }
+    }
 
-	/**
-	  Read an array of integers from an ObjectInput. This allocates the
-	  array.
+    /**
+      Read an array of integers from an ObjectInput. This allocates the
+      array.
 
-	  @param	in	the ObjectInput.
-	  @return   the array of integers.
+      @param    in    the ObjectInput.
+      @return   the array of integers.
 
-	  @exception java.io.IOException The write caused an IOException. 
-	  */
-	public static int[] readIntArray(ObjectInput in) throws IOException {
-		if (!in.readBoolean())
-			return null;
-		int length = in.readInt();
-		int[] a = new int[length];
-		for (int i=0; i<length; i++)
-			a[i] = in.readInt();
-		return a;
-	}
+      @exception java.io.IOException The write caused an IOException. 
+      */
+    public static int[] readIntArray(ObjectInput in) throws IOException {
+        if (!in.readBoolean())
+            return null;
+        int length = in.readInt();
+        int[] a = new int[length];
+        for (int i=0; i<length; i++)
+            a[i] = in.readInt();
+        return a;
+    }
 
-	public	static	void	writeInts( ObjectOutput out, int[][] val )
-		throws IOException
-	{
-		if (val == null)
-		{
-			out.writeBoolean(false);
-		}
-		else
-		{
-			out.writeBoolean(true);
+    public    static    void    writeInts( ObjectOutput out, int[][] val )
+        throws IOException
+    {
+        if (val == null)
+        {
+            out.writeBoolean(false);
+        }
+        else
+        {
+            out.writeBoolean(true);
 
-			int	count = val.length;
-			out.writeInt( count );
+            int    count = val.length;
+            out.writeInt( count );
 
-			for (int[] aVal : val) {
-				ArrayUtil.writeIntArray(out, aVal);
-			}
-		}
-	}
+            for (int[] aVal : val) {
+                ArrayUtil.writeIntArray(out, aVal);
+            }
+        }
+    }
 
-	public	static	int[][]	readInts( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
-		int[][]	retVal = null;
+    public    static    int[][]    readInts( ObjectInput in )
+         throws IOException, ClassNotFoundException
+    {
+        int[][]    retVal = null;
 
-		if ( in.readBoolean() )
-		{
-			int	count = in.readInt();
+        if ( in.readBoolean() )
+        {
+            int    count = in.readInt();
 
-			retVal = new int[ count ][];
+            retVal = new int[ count ][];
 
-			for (int i = 0; i < count; i++)
-			{
-				retVal[ i ] = ArrayUtil.readIntArray( in );
-			}
-		}
+            for (int i = 0; i < count; i++)
+            {
+                retVal[ i ] = ArrayUtil.readIntArray( in );
+            }
+        }
 
-		return retVal;
-	}
+        return retVal;
+    }
 
     public static String toString(int[] value)
     {
@@ -254,149 +254,149 @@ public abstract class ArrayUtil
         else
         {
             StringBuilder ret_val = new StringBuilder();
-			for (int aValue : value) {
-				ret_val.append("[").append(aValue).append("],");
-			}
+            for (int aValue : value) {
+                ret_val.append("[").append(aValue).append("],");
+            }
             return ret_val.toString();
         }
     }
 
 
-	///////////////////////////////////////////////////////////////////
-	//
-	// Methods for Arrays of LONGs
-	//
-	///////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////
+    //
+    // Methods for Arrays of LONGs
+    //
+    ///////////////////////////////////////////////////////////////////
 
-	/**
-	  Write an array of longs to an ObjectOutput. This writes the array
-	  in a format readLongArray understands.
+    /**
+      Write an array of longs to an ObjectOutput. This writes the array
+      in a format readLongArray understands.
 
-	  @param out the ObjectOutput.
-	  @param a the array.
-	  @exception java.io.IOException The write caused an IOException. 
-	  */
-	public static void writeLongArray(ObjectOutput out, long[] a) throws IOException {
-		if (a == null)
-			out.writeInt(0);
-		else {
-			out.writeInt(a.length);
-			for (long anA : a) out.writeLong(anA);
-		}
-	}
+      @param out the ObjectOutput.
+      @param a the array.
+      @exception java.io.IOException The write caused an IOException. 
+      */
+    public static void writeLongArray(ObjectOutput out, long[] a) throws IOException {
+        if (a == null)
+            out.writeInt(0);
+        else {
+            out.writeInt(a.length);
+            for (long anA : a) out.writeLong(anA);
+        }
+    }
 
-	/**
-	  Read an array of integers from an ObjectInput. This allocates the
-	  array.
+    /**
+      Read an array of integers from an ObjectInput. This allocates the
+      array.
 
-	  @param	in	the ObjectInput.
-	  @return   the array of integers.
+      @param    in    the ObjectInput.
+      @return   the array of integers.
 
-	  @exception java.io.IOException The write caused an IOException. 
-	  */
-	public static long[] readLongArray(ObjectInput in) throws IOException {
-		int length = in.readInt();
-		long[] a = new long[length];
-		for (int i=0; i<length; i++)
-			a[i] = in.readLong();
-		return a;
-	}
+      @exception java.io.IOException The write caused an IOException. 
+      */
+    public static long[] readLongArray(ObjectInput in) throws IOException {
+        int length = in.readInt();
+        long[] a = new long[length];
+        for (int i=0; i<length; i++)
+            a[i] = in.readLong();
+        return a;
+    }
 
-	/**
-	  Read an array of strings from an ObjectInput. This allocates the
-	  array.
+    /**
+      Read an array of strings from an ObjectInput. This allocates the
+      array.
 
-	  @param	in	the ObjectInput.
-	  @return   the array of integers.
+      @param    in    the ObjectInput.
+      @return   the array of integers.
 
-	  @exception java.io.IOException The write caused an IOException. 
-	  */
-	public static String[] readStringArray(ObjectInput in) 
-		throws IOException, ClassNotFoundException
-	{
-		Object[] objArray = readObjectArray(in);
-		int size = 0;
+      @exception java.io.IOException The write caused an IOException. 
+      */
+    public static String[] readStringArray(ObjectInput in) 
+        throws IOException, ClassNotFoundException
+    {
+        Object[] objArray = readObjectArray(in);
+        int size = 0;
 
-		if (objArray == null)
-			return null;
+        if (objArray == null)
+            return null;
 
-		String[] stringArray = new String[size = objArray.length];
+        String[] stringArray = new String[size = objArray.length];
 
-		for (int i = 0; i < size; i++)
-		{
-			stringArray[i] = (String)objArray[i];
-		} 
+        for (int i = 0; i < size; i++)
+        {
+            stringArray[i] = (String)objArray[i];
+        } 
 
-		return stringArray;
-	}
-	
-	///////////////////////////////////////////////////////////////////
-	//
-	// Methods for Arrays of BOOLEANS
-	//
-	///////////////////////////////////////////////////////////////////
+        return stringArray;
+    }
+    
+    ///////////////////////////////////////////////////////////////////
+    //
+    // Methods for Arrays of BOOLEANS
+    //
+    ///////////////////////////////////////////////////////////////////
 
-	/**
-	  Write an array of booleans to an ObjectOutput. This writes the array
-	  in a format readBooleanArray understands.
+    /**
+      Write an array of booleans to an ObjectOutput. This writes the array
+      in a format readBooleanArray understands.
 
-	  @param out the ObjectOutput.
-	  @param a the array.
-	  @exception java.io.IOException The write caused an IOException. 
-	  */
-	public static void writeBooleanArray(ObjectOutput out, boolean[] a) throws IOException {
-		if (a == null)
-			out.writeInt(0);
-		else {
-			out.writeInt(a.length);
-			for (boolean anA : a) out.writeBoolean(anA);
-		}
-	}
+      @param out the ObjectOutput.
+      @param a the array.
+      @exception java.io.IOException The write caused an IOException. 
+      */
+    public static void writeBooleanArray(ObjectOutput out, boolean[] a) throws IOException {
+        if (a == null)
+            out.writeInt(0);
+        else {
+            out.writeInt(a.length);
+            for (boolean anA : a) out.writeBoolean(anA);
+        }
+    }
 
-	/**
-	  Read an array of integers from an ObjectInput. This allocates the
-	  array.
+    /**
+      Read an array of integers from an ObjectInput. This allocates the
+      array.
 
-	  @param	in	the ObjectInput.
-	  @return   the array of integers.
+      @param    in    the ObjectInput.
+      @return   the array of integers.
 
-	  @exception java.io.IOException The write caused an IOException. 
-	  */
-	public static boolean[] readBooleanArray(ObjectInput in) throws IOException {
-		int length = in.readInt();
-		boolean[] a = new boolean[length];
-		for (int i=0; i<length; i++)
-			a[i] = in.readBoolean();
-		return a;
-	}
+      @exception java.io.IOException The write caused an IOException. 
+      */
+    public static boolean[] readBooleanArray(ObjectInput in) throws IOException {
+        int length = in.readInt();
+        boolean[] a = new boolean[length];
+        for (int i=0; i<length; i++)
+            a[i] = in.readBoolean();
+        return a;
+    }
 
-	/**
-	 * Write a byte array to an ObjectOutput. This writes the array in a format readBytesArray understands.
-	 *
-	 * @param out the ObjectOutput
-	 * @param a a byte array
-	 * @throws IOException
-	 */
-	public static void writeByteArray(ObjectOutput out, byte[] a) throws IOException {
-		if (a==null)
-			out.writeInt(0);
-		else {
-			out.writeInt(a.length);
-			out.write(a);
-		}
-	}
+    /**
+     * Write a byte array to an ObjectOutput. This writes the array in a format readBytesArray understands.
+     *
+     * @param out the ObjectOutput
+     * @param a a byte array
+     * @throws IOException
+     */
+    public static void writeByteArray(ObjectOutput out, byte[] a) throws IOException {
+        if (a==null)
+            out.writeInt(0);
+        else {
+            out.writeInt(a.length);
+            out.write(a);
+        }
+    }
 
-	/**
-	 *  Read a byte array from an ObjectInput. This allocates the array.
-	 *
-	 * @param in the ObjectInput.
-	 * @return a byte array
-	 * @throws IOException
-	 */
-	public static byte[] readByteArray(ObjectInput in) throws IOException {
-		int size = in.readInt();
-		byte[] b = new byte[size];
-		in.readFully(b);
-		return b;
-	}
+    /**
+     *  Read a byte array from an ObjectInput. This allocates the array.
+     *
+     * @param in the ObjectInput.
+     * @return a byte array
+     * @throws IOException
+     */
+    public static byte[] readByteArray(ObjectInput in) throws IOException {
+        int size = in.readInt();
+        byte[] b = new byte[size];
+        in.readFully(b);
+        return b;
+    }
 }

@@ -36,36 +36,36 @@ package com.splicemachine.db.iapi.services.locks;
  */
 public class ShExQual
 {
-	private int	lockState;
+    private int    lockState;
 
-	private ShExQual(int lockState)
-	{
-		this.lockState = lockState;
-	}
+    private ShExQual(int lockState)
+    {
+        this.lockState = lockState;
+    }
 
-	/*
-	** These are intentionally package protected.  They are intended to
-	** be used in this class and by ShExLockable, and by no one else.
-	*/
-	public	static final int SHARED = 0;
-	public	static final int EXCLUSIVE = 1;
+    /*
+    ** These are intentionally package protected.  They are intended to
+    ** be used in this class and by ShExLockable, and by no one else.
+    */
+    public    static final int SHARED = 0;
+    public    static final int EXCLUSIVE = 1;
 
-	/* Shared Lock */
-	public static final ShExQual SH = new ShExQual(SHARED);
+    /* Shared Lock */
+    public static final ShExQual SH = new ShExQual(SHARED);
 
-	/* Exclusive Lock */
-	public static final ShExQual EX = new ShExQual(EXCLUSIVE);
+    /* Exclusive Lock */
+    public static final ShExQual EX = new ShExQual(EXCLUSIVE);
 
-	public int getLockState()
-	{
-		return lockState;
-	}
+    public int getLockState()
+    {
+        return lockState;
+    }
 
-	public String toString()
-	{
-		if (lockState == SHARED)
-			return "S";
-		else
-			return "X";
-	}
+    public String toString()
+    {
+        if (lockState == SHARED)
+            return "S";
+        else
+            return "X";
+    }
 }

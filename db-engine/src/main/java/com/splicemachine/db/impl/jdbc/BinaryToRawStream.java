@@ -35,9 +35,9 @@ import java.io.InputStream;
 import java.io.IOException;
 
 /**
-	Converts a stream containing the Derby stored binary form
-	to one that just contains the application's data.
-	Simply read and save the length information.
+    Converts a stream containing the Derby stored binary form
+    to one that just contains the application's data.
+    Simply read and save the length information.
 */
 class BinaryToRawStream
 extends java.io.FilterInputStream
@@ -52,68 +52,68 @@ extends java.io.FilterInputStream
     // stream is no longer being used.
     private Object          parent;
 
-	BinaryToRawStream(InputStream in, Object parent) 
+    BinaryToRawStream(InputStream in, Object parent) 
         throws IOException
-	{
-		super(in);
+    {
+        super(in);
 
-		this.parent     = parent;
+        this.parent     = parent;
 
-		int bl = in.read();
-		if (bl == -1)
-			throw new java.io.EOFException();
+        int bl = in.read();
+        if (bl == -1)
+            throw new java.io.EOFException();
 
-		if ((bl & 0x80) != 0)
-		{
-			if (bl == 0xC0)
-			{
-				int v1 = in.read();
-				int v2 = in.read();
-				int v3 = in.read();
-				int v4 = in.read();
+        if ((bl & 0x80) != 0)
+        {
+            if (bl == 0xC0)
+            {
+                int v1 = in.read();
+                int v2 = in.read();
+                int v3 = in.read();
+                int v4 = in.read();
 
-				if (v1 == -1 || v2 == -1 || v3 == -1 || v4 == -1)
-					throw new java.io.EOFException();
+                if (v1 == -1 || v2 == -1 || v3 == -1 || v4 == -1)
+                    throw new java.io.EOFException();
                 length = (((v1 & 0xff) << 24) |
                           ((v2 & 0xff) << 16) |
                           ((v3 & 0xff) << 8)  |
                            (v4 & 0xff));
 
-			}
-			else if (bl == 0xA0)
-			{
-				// read an unsigned short
-				int v1 = in.read();
-				int v2 = in.read();
-				if (v1 == -1 || v2 == -1)
-					throw new java.io.EOFException();
+            }
+            else if (bl == 0xA0)
+            {
+                // read an unsigned short
+                int v1 = in.read();
+                int v2 = in.read();
+                if (v1 == -1 || v2 == -1)
+                    throw new java.io.EOFException();
                 length = (((v1 & 0xff) << 8) + (v2 & 0xff));
 
-			}
-			else
-			{
-				length = bl & 0x1F;
-			}
-		}
-		else
-		{
-			// old length in bits
-			int v2 = in.read();
-			int v3 = in.read();
-			int v4 = in.read();
-			if (v2 == -1 || v3 == -1 || v4 == -1)
-				throw new java.io.EOFException();
+            }
+            else
+            {
+                length = bl & 0x1F;
+            }
+        }
+        else
+        {
+            // old length in bits
+            int v2 = in.read();
+            int v3 = in.read();
+            int v4 = in.read();
+            if (v2 == -1 || v3 == -1 || v4 == -1)
+                throw new java.io.EOFException();
             int lenInBits = (((bl & 0xff) << 24) | ((v2 & 0xff) << 16) | ((v3 & 0xff) << 8) | (v4 & 0xff));
 
-			length = lenInBits / 8;
-			if ((lenInBits % 8) != 0)
-			    length++;
+            length = lenInBits / 8;
+            if ((lenInBits % 8) != 0)
+                length++;
             
             // Signifies unknown length
             if (length == 0)
                 length = -1;
-		}
-	}
+        }
+    }
     
     /**
      * Return the length of the value in thie stream in bytes.

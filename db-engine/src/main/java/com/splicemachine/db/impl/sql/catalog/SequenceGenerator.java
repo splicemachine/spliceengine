@@ -521,11 +521,11 @@ public class SequenceGenerator
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-	private static LanguageConnectionContext getLCC()
+    private static LanguageConnectionContext getLCC()
     {
-		return (LanguageConnectionContext) 
-					ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
-	}
+        return (LanguageConnectionContext) 
+                    ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+    }
 
     /** Report an unimplemented feature */
     private StandardException unimplementedFeature()

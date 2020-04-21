@@ -110,47 +110,47 @@ public class ConglomerateUtils{
 
     private static <T> T readVersioned(byte[] nextRaw,Class<T> instanceClass) throws IOException, StandardException{
                 /*
-				 * Unfortunately, back in the day we decided to encode Conglomerates using straight Java serialization.
-				 * Even more unfortunately, we then forgot to set the serialVersionUID on the Conglomerates that we would
-				 * be writing. Even MORE unfortunately than that, we didn't detect the issue until after our first beta
-				 * release was exposed, meaning that we couldn't push in a random backwards-incompatible change like setting
-				 * the serialVersionUID on these fields without addressing backwards compatibility.
-				 *
-				 * Because the serialVersionUID wasn't explicitly set early on, different compilers would generate different
-				 * default UIDs, which would mean that sometimes upgrades would work, and sometimes they wouldn't, depending
-				 * on who compiles it and when and with what version. This is super awkward. The perfect fix is to set
-				 * the serialVersionUID explicitely, which will force all different versions to work together (as long as the
-				 * data version itself doesn't change).
-				 *
-				 * However, doing so breaks backwards compatibility, which is awful and horrible and cannot be tolerated.
-				 * Therefore, we need to do the following:
-				 *
-				 * 1. set the serialVersionUID on Conglomerates
-				 * 2. NEVER CHANGE THEM or how they serialize/deserialize EVER AGAIN. If we want to change the Conglomerate that
-				 * badly, we'll need to create a new class to hold the changes.
-				 * 3. avoid the serialVersionUID conflict by somehow hacking around Java's serialization mechanism to be prettier
-				 * about it.
-				 *
-				 * #3 is handled by this method. In essence it will
-				 * 1. skip the first few bytes (the stream header, a few type bytes, then the class string)
-				 * 2. put the same serialVersionUID in the field as the Conglomerate currently has
-				 * 3. re-attempt the read.
-				 *
-				 * Of course, java.io.* doesn't like us screwing around with their serialization format, so we have to
-				 * use Reflection to get access to a few fields and manipulate them. Thus, this is also fragile with
-				 * respect to JVM changes--if the Java devs ever change how the ObjectInputStream is implemented, then
-				 * we'll be up a creek with a very short paddle.
-				 *
-				 * Of course, this mechanism will ALSO break if the serialization code ever
-				 * changes in a non-backwards-compatible way, so NEVER DO THAT.
-				 *
-				 * Yes, I realize how horrible, hacky, dangerous, and disgusting this block of code is. If you have
-				 * an alternative, feel free. But after you've banged your head for a while on trying to re-implement
-				 * ObjectInputStream, you can just deal with the steaming pile of cow-dung which is this particular solution.
-				 *
-				 * Or you can just hope that this works and never change anything about Conglomerates. Ever. For any reason.
-				 * Then you'll be fine.
-			 	*/
+                 * Unfortunately, back in the day we decided to encode Conglomerates using straight Java serialization.
+                 * Even more unfortunately, we then forgot to set the serialVersionUID on the Conglomerates that we would
+                 * be writing. Even MORE unfortunately than that, we didn't detect the issue until after our first beta
+                 * release was exposed, meaning that we couldn't push in a random backwards-incompatible change like setting
+                 * the serialVersionUID on these fields without addressing backwards compatibility.
+                 *
+                 * Because the serialVersionUID wasn't explicitly set early on, different compilers would generate different
+                 * default UIDs, which would mean that sometimes upgrades would work, and sometimes they wouldn't, depending
+                 * on who compiles it and when and with what version. This is super awkward. The perfect fix is to set
+                 * the serialVersionUID explicitely, which will force all different versions to work together (as long as the
+                 * data version itself doesn't change).
+                 *
+                 * However, doing so breaks backwards compatibility, which is awful and horrible and cannot be tolerated.
+                 * Therefore, we need to do the following:
+                 *
+                 * 1. set the serialVersionUID on Conglomerates
+                 * 2. NEVER CHANGE THEM or how they serialize/deserialize EVER AGAIN. If we want to change the Conglomerate that
+                 * badly, we'll need to create a new class to hold the changes.
+                 * 3. avoid the serialVersionUID conflict by somehow hacking around Java's serialization mechanism to be prettier
+                 * about it.
+                 *
+                 * #3 is handled by this method. In essence it will
+                 * 1. skip the first few bytes (the stream header, a few type bytes, then the class string)
+                 * 2. put the same serialVersionUID in the field as the Conglomerate currently has
+                 * 3. re-attempt the read.
+                 *
+                 * Of course, java.io.* doesn't like us screwing around with their serialization format, so we have to
+                 * use Reflection to get access to a few fields and manipulate them. Thus, this is also fragile with
+                 * respect to JVM changes--if the Java devs ever change how the ObjectInputStream is implemented, then
+                 * we'll be up a creek with a very short paddle.
+                 *
+                 * Of course, this mechanism will ALSO break if the serialization code ever
+                 * changes in a non-backwards-compatible way, so NEVER DO THAT.
+                 *
+                 * Yes, I realize how horrible, hacky, dangerous, and disgusting this block of code is. If you have
+                 * an alternative, feel free. But after you've banged your head for a while on trying to re-implement
+                 * ObjectInputStream, you can just deal with the steaming pile of cow-dung which is this particular solution.
+                 *
+                 * Or you can just hope that this works and never change anything about Conglomerates. Ever. For any reason.
+                 * Then you'll be fine.
+                 */
         ByteArrayInputStream in=new ByteArrayInputStream(nextRaw);
         ObjectInputStream ois=new ObjectInputStream(in);
         Field binField=null;

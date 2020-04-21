@@ -43,54 +43,54 @@ import java.util.List;
 
 public class RoutinePrivilegeInfo extends PrivilegeInfo
 {
-	private AliasDescriptor aliasDescriptor;
+    private AliasDescriptor aliasDescriptor;
 
-	public RoutinePrivilegeInfo( AliasDescriptor aliasDescriptor)
-	{
-		this.aliasDescriptor = aliasDescriptor;
-	}
-	
-	/**
-	 *	This is the guts of the Execution-time logic for GRANT/REVOKE of a routine execute privilege
-	 *
-	 * @param activation
-	 * @param grant true if grant, false if revoke
-	 * @param grantees a list of authorization ids (strings)
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
-									boolean grant,
-									List grantees)
-		throws StandardException
-	{
-		// Check that the current user has permission to grant the privileges.
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
-        String currentUser = lcc.getCurrentUserId(activation);
-		TransactionController tc = lcc.getTransactionExecute();
-		List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
-
-		List<PermissionsDescriptor> result = Lists.newArrayList();
+    public RoutinePrivilegeInfo( AliasDescriptor aliasDescriptor)
+    {
+        this.aliasDescriptor = aliasDescriptor;
+    }
+    
+    /**
+     *    This is the guts of the Execution-time logic for GRANT/REVOKE of a routine execute privilege
+     *
+     * @param activation
+     * @param grant true if grant, false if revoke
+     * @param grantees a list of authorization ids (strings)
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
+                                    boolean grant,
+                                    List grantees)
+        throws StandardException
+    {
         // Check that the current user has permission to grant the privileges.
-		checkOwnership( currentUser,
-						groupuserlist,
-						dd.getSchemaDescriptor( aliasDescriptor.getSchemaUUID(), tc),
-						dd);
-		
-		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        String currentUser = lcc.getCurrentUserId(activation);
+        TransactionController tc = lcc.getTransactionExecute();
+        List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
 
-		RoutinePermsDescriptor routinePermsDesc = ddg.newRoutinePermsDescriptor( aliasDescriptor, currentUser);
+        List<PermissionsDescriptor> result = Lists.newArrayList();
+        // Check that the current user has permission to grant the privileges.
+        checkOwnership( currentUser,
+                        groupuserlist,
+                        dd.getSchemaDescriptor( aliasDescriptor.getSchemaUUID(), tc),
+                        dd);
+        
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
-		dd.startWriting(lcc);
+        RoutinePermsDescriptor routinePermsDesc = ddg.newRoutinePermsDescriptor( aliasDescriptor, currentUser);
+
+        dd.startWriting(lcc);
         for (Object grantee1 : grantees) {
             // Keep track to see if any privileges are revoked by a revoke
             // statement. If a privilege is not revoked, we need to raise a
             // warning.
             boolean privileges_revoked = false;
             String grantee = (String) grantee1;
-			DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor(grant, routinePermsDesc, grantee, tc);
-			if (action == DataDictionary.PermissionOperation.REMOVE) {
+            DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor(grant, routinePermsDesc, grantee, tc);
+            if (action == DataDictionary.PermissionOperation.REMOVE) {
                 privileges_revoked = true;
                 //Derby currently supports only restrict form of revoke execute
                 //privilege and that is why, we are sending invalidation action
@@ -109,8 +109,8 @@ public class RoutinePrivilegeInfo extends PrivilegeInfo
                         (aliasDescriptor,
                                 DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
 
-			}
-			if (action != DataDictionary.PermissionOperation.NOCHANGE) {
+            }
+            if (action != DataDictionary.PermissionOperation.NOCHANGE) {
                 RoutinePermsDescriptor routinePermsDescriptor =
                         new RoutinePermsDescriptor(dd, routinePermsDesc.getGrantee(), routinePermsDesc.getGrantor(),
                                 routinePermsDesc.getRoutineUUID());
@@ -121,5 +121,5 @@ public class RoutinePrivilegeInfo extends PrivilegeInfo
             addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
         }
         return result;
-	} // end of executeConstantAction
+    } // end of executeConstantAction
 }

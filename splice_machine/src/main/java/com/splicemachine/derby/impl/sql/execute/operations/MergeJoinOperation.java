@@ -53,10 +53,10 @@ public class MergeJoinOperation extends JoinOperation {
 
     protected static final String NAME = MergeJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+            return NAME;
+    }
 
     
     public MergeJoinOperation() {
@@ -104,7 +104,7 @@ public class MergeJoinOperation extends JoinOperation {
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
-    	super.init(context);
+        super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
         if (rightHashKeyToBaseTableMapItem != -1)
@@ -116,12 +116,12 @@ public class MergeJoinOperation extends JoinOperation {
         else
             rightHashKeySortOrders = null;
 
-    	if (LOG.isDebugEnabled()) {
-    		SpliceLogUtils.debug(LOG,"left hash keys {%s}",Arrays.toString(leftHashKeys));
-    		SpliceLogUtils.debug(LOG,"right hash keys {%s}",Arrays.toString(rightHashKeys));
+        if (LOG.isDebugEnabled()) {
+            SpliceLogUtils.debug(LOG,"left hash keys {%s}",Arrays.toString(leftHashKeys));
+            SpliceLogUtils.debug(LOG,"right hash keys {%s}",Arrays.toString(rightHashKeys));
             SpliceLogUtils.debug(LOG,"right hash keys to base table map {%s}",Arrays.toString(rightHashKeyToBaseTableMap));
             SpliceLogUtils.debug(LOG,"right hash keys' sort order {%s}", Arrays.toString(rightHashKeySortOrders));
-    	}
+        }
     }
 
     @Override
@@ -191,10 +191,10 @@ public class MergeJoinOperation extends JoinOperation {
     }
 
     public int[] getRightHashKeyToBaseTableMap() {
-	    return rightHashKeyToBaseTableMap;
+        return rightHashKeyToBaseTableMap;
     }
 
     public int[] getRightHashKeySortOrders() {
-	    return rightHashKeySortOrders;
+        return rightHashKeySortOrders;
     }
 }

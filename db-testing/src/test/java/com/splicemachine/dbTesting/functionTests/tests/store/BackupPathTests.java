@@ -120,7 +120,7 @@ public class BackupPathTests
                                       String backupPath) 
         throws SQLException
     {
-        CallableStatement backupStmt = 	
+        CallableStatement backupStmt =     
             conn.prepareCall("CALL SYSCS_UTIL.SYSCS_BACKUP_DATABASE(?)");
         backupStmt.setString(1, backupPath);
         backupStmt.execute();
@@ -131,7 +131,7 @@ public class BackupPathTests
     /**
      * Write message to the standard output.
      */
-    private static void logMsg(String   str)	{
+    private static void logMsg(String   str)    {
         System.out.println(str);
     }
 

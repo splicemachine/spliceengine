@@ -32,11 +32,11 @@
 package com.splicemachine.db.iapi.services.io;
 
 /**
-	Limit and ErrorObjectInput capabilities.
+    Limit and ErrorObjectInput capabilities.
 
-	Combin 
+    Combin 
  */
 public interface LimitObjectInput
-	extends ErrorObjectInput, Limit
+    extends ErrorObjectInput, Limit
 {
 }

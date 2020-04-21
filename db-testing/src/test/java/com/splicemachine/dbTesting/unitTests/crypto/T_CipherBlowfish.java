@@ -33,10 +33,10 @@ package com.splicemachine.dbTesting.unitTests.crypto;
 
 
 /*
-	To run, put the following line in db.properties
-	derby.module.test.T_Cipher=com.splicemachine.dbTesting.unitTests.crypto.T_CipherBlowfish
+    To run, put the following line in db.properties
+    derby.module.test.T_Cipher=com.splicemachine.dbTesting.unitTests.crypto.T_CipherBlowfish
 
-	and run java com.splicemachine.dbTesting.unitTests.harness.UnitTestMain
+    and run java com.splicemachine.dbTesting.unitTests.harness.UnitTestMain
 
 */
 public class T_CipherBlowfish extends T_Cipher

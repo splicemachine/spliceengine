@@ -572,12 +572,12 @@ restartScan:
         
         if (pos > length() + 1) {
             throw Util.generateCsSQLException(
-        	    SQLState.BLOB_POSITION_TOO_LARGE);
+                SQLState.BLOB_POSITION_TOO_LARGE);
         }
         
         if (str == null) {
             throw Util.generateCsSQLException(
-        	    SQLState.BLOB_NULL_PATTERN_OR_SEARCH_STR);
+                SQLState.BLOB_NULL_PATTERN_OR_SEARCH_STR);
         }
         
         if (str.isEmpty()) {
@@ -590,7 +590,7 @@ restartScan:
         
         if (len < 0) {
             throw Util.generateCsSQLException(
-        	    SQLState.BLOB_NONPOSITIVE_LENGTH);
+                SQLState.BLOB_NONPOSITIVE_LENGTH);
         }
         
         if (len + offset > str.length()) {

@@ -109,7 +109,7 @@ public class MultiProbeScanInPrepareIT extends SpliceUnitTest {
 
     @Test
     public void testMultiProbeTableScanPrepareStatemntMultipleExecution() throws Exception {
-		/* case 1 all parameters in an inlist */
+        /* case 1 all parameters in an inlist */
         PreparedStatement ps = methodWatcher.prepareStatement(format("select * from "+t1Watcher+
                 " --splice-properties useSpark=%s \n" +
                 " where segment_id in (?,?,?) and unixtime = ?", this.useSparkString));
@@ -144,7 +144,7 @@ public class MultiProbeScanInPrepareIT extends SpliceUnitTest {
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
-		/* case 2: inlist is a mixture of constants and parameters */
+        /* case 2: inlist is a mixture of constants and parameters */
         ps = methodWatcher.prepareStatement(format("select * from "+t1Watcher+
                 " --splice-properties useSpark=%s \n" +
                 " where segment_id in (1,?,5, ?) and unixtime = ?", this.useSparkString));
@@ -179,7 +179,7 @@ public class MultiProbeScanInPrepareIT extends SpliceUnitTest {
 
     @Test
     public void testMultiProbeIndexScanPrepareStatemntMultipleExecution() throws Exception {
-		/* case 1: inlist on first column */
+        /* case 1: inlist on first column */
         PreparedStatement ps = methodWatcher.prepareStatement(format("select b8, c8 from "+t8Watcher+
                 " --splice-properties index=ix_t8, useSpark=%s\n" +
                 "where b8 in (?,?)", this.useSparkString));
@@ -214,7 +214,7 @@ public class MultiProbeScanInPrepareIT extends SpliceUnitTest {
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
-		/* case 2: inlist on second index column */
+        /* case 2: inlist on second index column */
         ps = methodWatcher.prepareStatement(format("select b8, c8 from "+t8Watcher+
                 " --splice-properties index=ix_t8, useSpark=%s\n" +
                 "where b8=1 and c8 in (?,?)", this.useSparkString));
@@ -245,7 +245,7 @@ public class MultiProbeScanInPrepareIT extends SpliceUnitTest {
 
     @Test
     public void testMultiProbeIndexScanPrepareStatemntWithLookupMultipleExecution() throws Exception {
-		/* case 1: inlist on first column */
+        /* case 1: inlist on first column */
         PreparedStatement ps = methodWatcher.prepareStatement(format("select * from "+t8Watcher+
                 " --splice-properties index=ix_t8, useSpark=%s\n" +
                 "where b8 in (?,?)", this.useSparkString));
@@ -280,7 +280,7 @@ public class MultiProbeScanInPrepareIT extends SpliceUnitTest {
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
-		/* case 2: inlist on second index column */
+        /* case 2: inlist on second index column */
         ps = methodWatcher.prepareStatement(format("select * from "+t8Watcher+
                 " --splice-properties index=ix_t8, useSpark=%s\n" +
                 "where b8=1 and c8 in (?,?)", this.useSparkString));

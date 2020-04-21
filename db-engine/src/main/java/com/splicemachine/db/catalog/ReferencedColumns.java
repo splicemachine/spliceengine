@@ -33,7 +33,7 @@ package com.splicemachine.db.catalog;
 
 
 /**
- *	
+ *    
  *  Provides information about the columns that are referenced by a
  *  CHECK CONSTRAINT definition.
  *  
@@ -41,23 +41,23 @@ package com.splicemachine.db.catalog;
  */
 public interface ReferencedColumns
 {
-	/**
-	 * Returns an array of 1-based column positions in the table that the
-	 * check constraint is on.  
-	 *
-	 * @return	An array of ints representing the 1-based column positions
-	 *			of the columns that are referenced in this check constraint.
-	 */
-	int[]	getReferencedColumnPositions();
-	
-	/**
-	 * Returns an array of 1-based column positions in the trigger table.
-	 * These columns are the ones referenced in the trigger action through
-	 * the old/new transition variables.
-	 *
-	 * @return	An array of ints representing the 1-based column positions
-	 *			of the columns that are referenced in the trigger action
-	 *			through the old/new transition variables.
-	 */
-	int[]	getTriggerActionReferencedColumnPositions();
+    /**
+     * Returns an array of 1-based column positions in the table that the
+     * check constraint is on.  
+     *
+     * @return    An array of ints representing the 1-based column positions
+     *            of the columns that are referenced in this check constraint.
+     */
+    int[]    getReferencedColumnPositions();
+    
+    /**
+     * Returns an array of 1-based column positions in the trigger table.
+     * These columns are the ones referenced in the trigger action through
+     * the old/new transition variables.
+     *
+     * @return    An array of ints representing the 1-based column positions
+     *            of the columns that are referenced in the trigger action
+     *            through the old/new transition variables.
+     */
+    int[]    getTriggerActionReferencedColumnPositions();
 }

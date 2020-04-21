@@ -64,35 +64,35 @@ import org.spark_project.guava.primitives.Ints;
  * <p/>
  * <ol>
  * <li>external interface </li>
- * <li>public String	getSchemaName();</li>
- * <li>public String	getQualifiedName();</li>
- * <li>public int	getTableType();</li>
+ * <li>public String    getSchemaName();</li>
+ * <li>public String    getQualifiedName();</li>
+ * <li>public int    getTableType();</li>
  * <li>public long getHeapConglomerateId() throws StandardException;</li>
- * <li>public int getNumberOfColumns();		</li>
+ * <li>public int getNumberOfColumns();        </li>
  * <li>public FormatableBitSet getReferencedColumnMap();</li>
  * <li>public void setReferencedColumnMap(FormatableBitSet referencedColumnMap);</li>
  * <li>public int getMaxColumnID() throws StandardException;</li>
- * <li>public void	setUUID(UUID uuid);</li>
- * <li>public char	getLockGranularity();</li>
- * <li>public void	setTableName(String newTableName);</li>
- * <li>public void	setLockGranularity(char lockGranularity);</li>
+ * <li>public void    setUUID(UUID uuid);</li>
+ * <li>public char    getLockGranularity();</li>
+ * <li>public void    setTableName(String newTableName);</li>
+ * <li>public void    setLockGranularity(char lockGranularity);</li>
  * <li>public ExecRow getEmptyExecRow( ContextManager cm) throws StandardException;</li>
  * <li>public boolean tableNameEquals(String otherSchemaName, String otherTableName);</li>
  * <li>public ReferencedKeyConstraintDescriptor getPrimaryKey() throws StandardException;</li>
- * <li>public void removeConglomerateDescriptor(ConglomerateDescriptor cd)	throws StandardException;</li>
- * <li>public void removeConstraintDescriptor(ConstraintDescriptor cd)	throws StandardException;</li>
+ * <li>public void removeConglomerateDescriptor(ConglomerateDescriptor cd)    throws StandardException;</li>
+ * <li>public void removeConstraintDescriptor(ConstraintDescriptor cd)    throws StandardException;</li>
  * <li>public void getAffectedIndexes(...) throws StandardException;</li>
- * <li>public void	getAllRelevantTriggers(...) throws StandardException;</li>
+ * <li>public void    getAllRelevantTriggers(...) throws StandardException;</li>
  * <li>public void getAllRelevantConstraints(...) throws StandardException</li>
  * <li>public ColumnDescriptorList getColumnDescriptorList();</li>
  * <li> public String[] getColumnNamesArray();</li>
  * <li>public long[]   getAutoincIncrementArray();</li>
- * <li>public ColumnDescriptor	getColumnDescriptor(String columnName);</li>
- * <li>public ColumnDescriptor	getColumnDescriptor(int columnNumber);</li>
- * <li>public ConglomerateDescriptor[]	getConglomerateDescriptors() throws StandardException;</li>
- * <li>public ConglomerateDescriptor	getConglomerateDescriptor(long conglomerateNumber)	throws StandardException;</li>
- * <li>public ConglomerateDescriptor	getConglomerateDescriptor(UUID conglomerateUUID) throws StandardException;</li>
- * <li>public	IndexLister	getIndexLister() throws StandardException;</li>
+ * <li>public ColumnDescriptor    getColumnDescriptor(String columnName);</li>
+ * <li>public ColumnDescriptor    getColumnDescriptor(int columnNumber);</li>
+ * <li>public ConglomerateDescriptor[]    getConglomerateDescriptors() throws StandardException;</li>
+ * <li>public ConglomerateDescriptor    getConglomerateDescriptor(long conglomerateNumber)    throws StandardException;</li>
+ * <li>public ConglomerateDescriptor    getConglomerateDescriptor(UUID conglomerateUUID) throws StandardException;</li>
+ * <li>public    IndexLister    getIndexLister() throws StandardException;</li>
  * <li>public ViewDescriptor getViewDescriptor();</li>
  * <li>public boolean tableHasAutoincrement();</li>
  * <li>public boolean statisticsExist(ConglomerateDescriptor cd) throws StandardException;</li>
@@ -469,7 +469,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      */
     public long getHeapConglomerateId() throws StandardException{
 
-		// If we've already cached the heap conglomerate number, then
+        // If we've already cached the heap conglomerate number, then
         // simply return it.
         //
 
@@ -478,9 +478,9 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
             return -1;
         }
 
-		if (heapConglomNumber != -1) {
-			return heapConglomNumber;
-		}
+        if (heapConglomNumber != -1) {
+            return heapConglomNumber;
+        }
 
         ConglomerateDescriptor[] cds=getConglomerateDescriptors();
 
@@ -843,24 +843,24 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                 continue;
             }
 
-			/*
+            /*
             ** For each constraint, figure out if it requires deferred processing.
-			** Note that we need to do this on constraints that don't
-			** necessarily need to fire -- e.g. for an insert into a
-			** a table with a self-referencing constraint, we don't
-			** need to check the primary key constraint (assuming it
-			** is only referenced by the self-referencing fk on the same
-			** table), but we have to run in deferred mode nonetheless
-			** (even though we aren't going to check the pk constraint).
-			*/
+            ** Note that we need to do this on constraints that don't
+            ** necessarily need to fire -- e.g. for an insert into a
+            ** a table with a self-referencing constraint, we don't
+            ** need to check the primary key constraint (assuming it
+            ** is only referenced by the self-referencing fk on the same
+            ** table), but we have to run in deferred mode nonetheless
+            ** (even though we aren't going to check the pk constraint).
+            */
             if(!needsDeferredProcessing[0] &&
                     (cd instanceof ReferencedKeyConstraintDescriptor) &&
                     (statementType!=StatementType.UPDATE &&
                             statementType!=StatementType.BULK_INSERT_REPLACE)){
                 /* For insert (bulk or regular) on a non-published table,
                  * we only need deferred mode if there is a
-				 * self-referencing foreign key constraint.
-				 */
+                 * self-referencing foreign key constraint.
+                 */
                 needsDeferredProcessing[0]=((ReferencedKeyConstraintDescriptor)cd).
                         hasSelfReferencingFK(cdl,ConstraintDescriptor.ENABLED);
             }
@@ -868,9 +868,9 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
             if(cd.needsToFire(statementType,changedColumnIds)){
                 /*
                 ** For update, if we are updating a referenced key, then
-				** we have to do it in deferred mode (in case we update
-				** multiple rows).
-				*/
+                ** we have to do it in deferred mode (in case we update
+                ** multiple rows).
+                */
                 if((cd instanceof ReferencedKeyConstraintDescriptor) &&
                         (statementType==StatementType.UPDATE ||
                                 statementType==StatementType.BULK_INSERT_REPLACE)){
@@ -1321,10 +1321,10 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         DependencyManager dm=getDataDictionary().getDependencyManager();
 
         switch(action){
-			/*
-			** Currently, the only thing we are dependent
-			** on is an alias descriptor for an ANSI UDT.
-			*/
+            /*
+            ** Currently, the only thing we are dependent
+            ** on is an alias descriptor for an ANSI UDT.
+            */
             default:
 
                 throw StandardException.newException(SQLState.LANG_PROVIDER_HAS_DEPENDENT_TABLE,
@@ -1344,10 +1344,10 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      */
     public void makeInvalid(int action,LanguageConnectionContext lcc)
             throws StandardException{
-		/* 
-		** We should never get here, we should have barfed on 
-		** prepareToInvalidate().
-		*/
+        /* 
+        ** We should never get here, we should have barfed on 
+        ** prepareToInvalidate().
+        */
         if(SanityManager.DEBUG){
             DependencyManager dm;
 

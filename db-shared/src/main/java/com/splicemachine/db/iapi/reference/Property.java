@@ -514,7 +514,7 @@ public interface Property {
 
 
     /**
-     *	db.storage.logArchiveMode
+     *    db.storage.logArchiveMode
      *<BR>
      *used to identify whether the log is being archived for the database or not.
      *  It Is stored in the service.properties file.
@@ -530,7 +530,7 @@ public interface Property {
 
 
     /**
-     *	db.storage.logDeviceWhenBackedUp
+     *    db.storage.logDeviceWhenBackedUp
      *<BR>
      *  This property indicates the logDevice location(path) when the backup was
      *  taken, used to restore the log to the same location while restoring from
@@ -614,8 +614,8 @@ public interface Property {
      * <p>
      * Undocumented.
      */
-    String	LANG_TD_CACHE_SIZE = "derby.language.tableDescriptorCacheSize";
-    int		LANG_TD_CACHE_SIZE_DEFAULT = 128;
+    String    LANG_TD_CACHE_SIZE = "derby.language.tableDescriptorCacheSize";
+    int        LANG_TD_CACHE_SIZE_DEFAULT = 128;
 
     /**
      * The size of the permissions cache used by the data dictionary.
@@ -623,16 +623,16 @@ public interface Property {
      * <p>
      * Undocumented.
      */
-    String	LANG_PERMISSIONS_CACHE_SIZE = "derby.language.permissionsCacheSize";
-    int		LANG_PERMISSIONS_CACHE_SIZE_DEFAULT = 128;
+    String    LANG_PERMISSIONS_CACHE_SIZE = "derby.language.permissionsCacheSize";
+    int        LANG_PERMISSIONS_CACHE_SIZE_DEFAULT = 128;
     /**
      * The size of the stored prepared statment descriptor cache
      * used by the data dictionary.  Database.  Static.
      * <p>
      * Externally visible.
      */
-    String	LANG_SPS_CACHE_SIZE = "derby.language.spsCacheSize";
-    int		LANG_SPS_CACHE_SIZE_DEFAULT =32;
+    String    LANG_SPS_CACHE_SIZE = "derby.language.spsCacheSize";
+    int        LANG_SPS_CACHE_SIZE_DEFAULT =32;
 
     /**
      * The size of the sequence generator cache
@@ -640,8 +640,8 @@ public interface Property {
      * <p>
      * Externally visible.
      */
-    String	LANG_SEQGEN_CACHE_SIZE = "derby.language.sequenceGeneratorCacheSize";
-    int		LANG_SEQGEN_CACHE_SIZE_DEFAULT =32;
+    String    LANG_SEQGEN_CACHE_SIZE = "derby.language.sequenceGeneratorCacheSize";
+    int        LANG_SEQGEN_CACHE_SIZE_DEFAULT =32;
 
     /**
      * The size of the partition statistics cache
@@ -649,8 +649,8 @@ public interface Property {
      * <p>
      * Undocumented.
      */
-    String	LANG_PARTSTAT_CACHE_SIZE = "derby.language.partitionStatisticsCacheSize";
-    int		LANG_PARTSTAT_CACHE_SIZE_DEFAULT =8092;
+    String    LANG_PARTSTAT_CACHE_SIZE = "derby.language.partitionStatisticsCacheSize";
+    int        LANG_PARTSTAT_CACHE_SIZE_DEFAULT =8092;
 
     /**
      * The size of the conglomerate cache
@@ -658,8 +658,8 @@ public interface Property {
      * <p>
      * Undocumented.
      */
-    String	LANG_CONGLOMERATE_CACHE_SIZE = "derby.language.conglomerateCacheSize";
-    int		LANG_CONGLOMERATE_CACHE_SIZE_DEFAULT =1024;
+    String    LANG_CONGLOMERATE_CACHE_SIZE = "derby.language.conglomerateCacheSize";
+    int        LANG_CONGLOMERATE_CACHE_SIZE_DEFAULT =1024;
 
     /**
      * The size of the conglomerate descriptor cache
@@ -667,8 +667,8 @@ public interface Property {
      * <p>
      * Undocumented.
      */
-    String	LANG_CONGLOMERATE_DESCRIPTOR_CACHE_SIZE = "derby.language.conglomerateDescriptorCacheSize";
-    int		LANG_CONGLOMERATE_DESCRIPTOR_CACHE_SIZE_DEFAULT =1024;
+    String    LANG_CONGLOMERATE_DESCRIPTOR_CACHE_SIZE = "derby.language.conglomerateDescriptorCacheSize";
+    int        LANG_CONGLOMERATE_DESCRIPTOR_CACHE_SIZE_DEFAULT =1024;
 
     /**
      * The size of the statement cache
@@ -676,8 +676,8 @@ public interface Property {
      * <p>
      * Undocumented.
      */
-    String	LANG_STATEMENT_CACHE_SIZE = "derby.language.statementDataDictCacheSize";
-    int		LANG_STATEMENT_CACHE_SIZE_DEFAULT =1024;
+    String    LANG_STATEMENT_CACHE_SIZE = "derby.language.statementDataDictCacheSize";
+    int        LANG_STATEMENT_CACHE_SIZE_DEFAULT =1024;
 
     /**
      * The size of the schema cache
@@ -685,8 +685,8 @@ public interface Property {
      * <p>
      * Undocumented.
      */
-    String	LANG_SCHEMA_CACHE_SIZE = "derby.language.schemaCacheSize";
-    int		LANG_SCHEMA_CACHE_SIZE_DEFAULT =1024;
+    String    LANG_SCHEMA_CACHE_SIZE = "derby.language.schemaCacheSize";
+    int        LANG_SCHEMA_CACHE_SIZE_DEFAULT =1024;
 
     /**
      * The size of the alias descriptor cache
@@ -694,8 +694,8 @@ public interface Property {
      * <p>
      * Undocumented.
      */
-    String	LANG_ALIAS_DESCRIPTOR_CACHE_SIZE = "derby.language.aliasDescriptorCacheSize";
-    int		LANG_ALIAS_DESCRIPTOR_CACHE_SIZE_DEFAULT =1024;
+    String    LANG_ALIAS_DESCRIPTOR_CACHE_SIZE = "derby.language.aliasDescriptorCacheSize";
+    int        LANG_ALIAS_DESCRIPTOR_CACHE_SIZE_DEFAULT =1024;
 
     /**
      * The size of the role cache
@@ -703,8 +703,8 @@ public interface Property {
      * <p>
      * Undocumented.
      */
-    String	LANG_ROLE_CACHE_SIZE = "derby.language.roleCacheSize";
-    int		LANG_ROLE_CACHE_SIZE_DEFAULT =100;
+    String    LANG_ROLE_CACHE_SIZE = "derby.language.roleCacheSize";
+    int        LANG_ROLE_CACHE_SIZE_DEFAULT =100;
 
     /**
      * The size of the default role cache
@@ -712,8 +712,8 @@ public interface Property {
      * <p>
      * Undocumented.
      */
-    String	LANG_DEFAULT_ROLE_CACHE_SIZE = "derby.language.defaultRoleCacheSize";
-    int		LANG_DEFAULT_ROLE_CACHE_SIZE_DEFAULT =1024;
+    String    LANG_DEFAULT_ROLE_CACHE_SIZE = "derby.language.defaultRoleCacheSize";
+    int        LANG_DEFAULT_ROLE_CACHE_SIZE_DEFAULT =1024;
 
     /**
      * The size of the role grant cache
@@ -721,8 +721,8 @@ public interface Property {
      * <p>
      * Undocumented.
      */
-    String	LANG_ROLE_GRANT_CACHE_SIZE = "derby.language.roleGrantCacheSize";
-    int		LANG_ROLE_GRANT_CACHE_SIZE_DEFAULT =1024;
+    String    LANG_ROLE_GRANT_CACHE_SIZE = "derby.language.roleGrantCacheSize";
+    int        LANG_ROLE_GRANT_CACHE_SIZE_DEFAULT =1024;
 
     /**
      * The size of the token cache
@@ -730,8 +730,8 @@ public interface Property {
      * <p>
      * Undocumented.
      */
-    String	LANG_TOKEN_CACHE_SIZE = "derby.language.tokenCacheSize";
-    int		LANG_TOKEN_CACHE_SIZE_DEFAULT =1024;
+    String    LANG_TOKEN_CACHE_SIZE = "derby.language.tokenCacheSize";
+    int        LANG_TOKEN_CACHE_SIZE_DEFAULT =1024;
 
     /**
      * The size of the property cache
@@ -739,8 +739,8 @@ public interface Property {
      * <p>
      * Undocumented.
      */
-    String	LANG_PROPERTY_CACHE_SIZE = "derby.language.propertyCacheSize";
-    int		LANG_PROPERTY_CACHE_SIZE_DEFAULT =128;
+    String    LANG_PROPERTY_CACHE_SIZE = "derby.language.propertyCacheSize";
+    int        LANG_PROPERTY_CACHE_SIZE_DEFAULT =128;
 
     /**
      * Name of the implementation of SequencePreallocator which is used
@@ -749,7 +749,7 @@ public interface Property {
      * <p>
      * Externally visible.
      */
-    String	LANG_SEQUENCE_PREALLOCATOR = "derby.language.sequence.preallocator";
+    String    LANG_SEQUENCE_PREALLOCATOR = "derby.language.sequence.preallocator";
 
     /**
      db.language.stalePlanCheckInterval
@@ -783,8 +783,8 @@ public interface Property {
      * Tells if the system stored procedures should be updated during database boot up.
      * Default is false.  System property.  Loaded once (static initializer).
      */
-    String	LANG_UPDATE_SYSTEM_PROCS = "derby.language.updateSystemProcs";
-    boolean	LANG_UPDATE_SYSTEM_PROCS_DEFAULT = false;
+    String    LANG_UPDATE_SYSTEM_PROCS = "derby.language.updateSystemProcs";
+    boolean    LANG_UPDATE_SYSTEM_PROCS_DEFAULT = false;
 
     /**
      * Tells if automatic index statistics update is enabled (default is true).

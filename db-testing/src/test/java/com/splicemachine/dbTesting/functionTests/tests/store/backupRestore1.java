@@ -71,15 +71,15 @@ public class backupRestore1
     public static void main( String args[])
     {
 
-		System.out.println("Test backupRestore starting");
+        System.out.println("Test backupRestore starting");
         try
         {
-			// use the ij utility to read the property file and
-			// make the initial connection.
-			ij.getPropertyArg(args);
-			Connection conn = ij.startJBMS();
+            // use the ij utility to read the property file and
+            // make the initial connection.
+            ij.getPropertyArg(args);
+            Connection conn = ij.startJBMS();
             Statement stmt = conn.createStatement();
-			stmt.execute("CREATE FUNCTION ConsistencyChecker() RETURNS VARCHAR(128) EXTERNAL NAME 'com.splicemachine.dbTesting.functionTests.util.T_ConsistencyChecker.runConsistencyChecker' LANGUAGE JAVA PARAMETER STYLE JAVA");
+            stmt.execute("CREATE FUNCTION ConsistencyChecker() RETURNS VARCHAR(128) EXTERNAL NAME 'com.splicemachine.dbTesting.functionTests.util.T_ConsistencyChecker.runConsistencyChecker' LANGUAGE JAVA PARAMETER STYLE JAVA");
 
             stmt.executeUpdate( "create table t( id integer not null primary key, cBlob blob(64K),"
                 + "cClob clob(64K), clvarchar long varchar, clvarbinary long varchar for bit data)");
@@ -99,7 +99,7 @@ public class backupRestore1
             insStmt.executeUpdate();
             conn.commit();
 
-			//execute the backup command.
+            //execute the backup command.
             CallableStatement backupStmt = conn.prepareCall(
                 "CALL SYSCS_UTIL.SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE(?, ?)");
             backupStmt.setString(1, "extinout/mybackup");
@@ -107,77 +107,77 @@ public class backupRestore1
             backupStmt.execute();
             backupStmt.close();
 
-			//insert a row after the bacup
+            //insert a row after the bacup
             insStmt.setInt( 1, 3);
             insStmt.setBinaryStream( 2, new ByteArrayInputStream(blob3), blob3.length);
             insStmt.setAsciiStream( 3, new ByteArrayInputStream( clob3), clob3.length);
             insStmt.setAsciiStream( 4, new ByteArrayInputStream( clob4), clob4.length);
             insStmt.setBinaryStream( 5, new ByteArrayInputStream( blob4), blob4.length);
             insStmt.executeUpdate();
-			conn.commit();
+            conn.commit();
             insStmt.close();
             conn.close();
         }
         catch( SQLException e)
         {
-			dumpSQLExceptions(e);
-		} catch (Throwable e) {
-			System.out.println("FAIL -- unexpected exception:" + e.toString());
-		}
+            dumpSQLExceptions(e);
+        } catch (Throwable e) {
+            System.out.println("FAIL -- unexpected exception:" + e.toString());
+        }
 
-		//shutdown the database ..
-		try{
-			//shutdown
-			TestUtil.getConnection("wombat", "shutdown=true");
-		}catch(SQLException se){
-				if (se.getSQLState() != null && se.getSQLState().equals("08006"))
-					System.out.println("database shutdown properly");
-				else
-					dumpSQLExceptions(se);
-		} catch (Throwable e) {
-			System.out.println("FAIL -- unexpected exception:" + e.toString());
-		}
+        //shutdown the database ..
+        try{
+            //shutdown
+            TestUtil.getConnection("wombat", "shutdown=true");
+        }catch(SQLException se){
+                if (se.getSQLState() != null && se.getSQLState().equals("08006"))
+                    System.out.println("database shutdown properly");
+                else
+                    dumpSQLExceptions(se);
+        } catch (Throwable e) {
+            System.out.println("FAIL -- unexpected exception:" + e.toString());
+        }
 
-		System.out.println("testing rollforward recovery");
-		try{
-			//perform rollforward recovery and do some inserts again
-			Connection conn = TestUtil.getConnection("wombat", "rollForwardRecoveryFrom=extinout/mybackup/wombat");
-			//run consistenct checker
-			Statement stmt = conn.createStatement();
-			stmt.execute("VALUES (ConsistencyChecker())");
+        System.out.println("testing rollforward recovery");
+        try{
+            //perform rollforward recovery and do some inserts again
+            Connection conn = TestUtil.getConnection("wombat", "rollForwardRecoveryFrom=extinout/mybackup/wombat");
+            //run consistenct checker
+            Statement stmt = conn.createStatement();
+            stmt.execute("VALUES (ConsistencyChecker())");
 
-			//make sure the db has three rows
-			ResultSet rs = stmt.executeQuery("select count(*) from t");
-			while (rs.next()) {
-				int count = rs.getInt(1);
-				System.out.println(count);
-			}
+            //make sure the db has three rows
+            ResultSet rs = stmt.executeQuery("select count(*) from t");
+            while (rs.next()) {
+                int count = rs.getInt(1);
+                System.out.println(count);
+            }
 
             conn.commit();
-			conn.close();
-			TestUtil.getConnection("wombat", "shutdown=true");
-		}
+            conn.close();
+            TestUtil.getConnection("wombat", "shutdown=true");
+        }
         catch( SQLException se)
         {
-			if (se.getSQLState() != null && se.getSQLState().equals("08006"))
-				System.out.println("database shutdown properly");
-			else
-				dumpSQLExceptions(se);
-		} catch (Throwable e) {
-			System.out.println("FAIL -- unexpected exception:" + e.toString());
-		}
+            if (se.getSQLState() != null && se.getSQLState().equals("08006"))
+                System.out.println("database shutdown properly");
+            else
+                dumpSQLExceptions(se);
+        } catch (Throwable e) {
+            System.out.println("FAIL -- unexpected exception:" + e.toString());
+        }
 
-		
-		//make sure that good back does not get deleted if renaming existing
-		//backup as old backup fails. (beetle : 5336)
-		RandomAccessFile rfs = null;
-		boolean alreadyShutdown = false;
-		try{
-			Connection conn = TestUtil.getConnection("wombat", null);
-								
-			//just open to a file in existing backup, so that rename will fail on
-			//next backup
-			rfs = 
+        
+        //make sure that good back does not get deleted if renaming existing
+        //backup as old backup fails. (beetle : 5336)
+        RandomAccessFile rfs = null;
+        boolean alreadyShutdown = false;
+        try{
+            Connection conn = TestUtil.getConnection("wombat", null);
+                                
+            //just open to a file in existing backup, so that rename will fail on
+            //next backup
+            rfs = 
                 new RandomAccessFile(
                     "extinout/mybackup/wombat/service.properties" , "r");
 
@@ -186,107 +186,107 @@ public class backupRestore1
             backupStmt.setString(1, "extinout/mybackup");
             backupStmt.execute();
             backupStmt.close();
-			conn.close();
-			TestUtil.getConnection("wombat", "shutdown=true");
-		}catch(SQLException se)
-		{
-			if (se.getSQLState() != null && se.getSQLState().equals("XSRS4"))
-			{	alreadyShutdown = false;
-				//expected exception:XSRS4;rename failed because of a open file
-			}else	
-				if (se.getSQLState() != null &&
-					se.getSQLState().equals("08006"))
-				{	//On UNIX Systems , rename does not fail even if there is a
-					//open file, if we succefully reached shutdown mean
-					//everything is okay.
-					System.out.println("database shutdown properly");
-					alreadyShutdown = true;
-				}else
-					dumpSQLExceptions(se);
-		}catch (Throwable e) {
-			System.out.println("FAIL -- unexpected exception:" + e.toString());
-		}
+            conn.close();
+            TestUtil.getConnection("wombat", "shutdown=true");
+        }catch(SQLException se)
+        {
+            if (se.getSQLState() != null && se.getSQLState().equals("XSRS4"))
+            {    alreadyShutdown = false;
+                //expected exception:XSRS4;rename failed because of a open file
+            }else    
+                if (se.getSQLState() != null &&
+                    se.getSQLState().equals("08006"))
+                {    //On UNIX Systems , rename does not fail even if there is a
+                    //open file, if we succefully reached shutdown mean
+                    //everything is okay.
+                    System.out.println("database shutdown properly");
+                    alreadyShutdown = true;
+                }else
+                    dumpSQLExceptions(se);
+        }catch (Throwable e) {
+            System.out.println("FAIL -- unexpected exception:" + e.toString());
+        }
 
-		//shutdown the db
-		if(!alreadyShutdown)
-		{
-			try{
-				//shutdown 
-				TestUtil.getConnection("wombat", "shutdown=true");
-			}catch(SQLException se){
-				if (se.getSQLState() != null && se.getSQLState().equals("08006"))
-					System.out.println("database shutdown properly");
-				else
-					dumpSQLExceptions(se);
-			} catch (Throwable e) {
-				System.out.println("FAIL -- unexpected exception:" + e.toString());
-			}
-		}
+        //shutdown the db
+        if(!alreadyShutdown)
+        {
+            try{
+                //shutdown 
+                TestUtil.getConnection("wombat", "shutdown=true");
+            }catch(SQLException se){
+                if (se.getSQLState() != null && se.getSQLState().equals("08006"))
+                    System.out.println("database shutdown properly");
+                else
+                    dumpSQLExceptions(se);
+            } catch (Throwable e) {
+                System.out.println("FAIL -- unexpected exception:" + e.toString());
+            }
+        }
 
-		//restore from the backup db and run consistency checker on it.
-		try{
-			//close the earlier opened file in backup dir
-			if(rfs != null )
-				rfs.close();
+        //restore from the backup db and run consistency checker on it.
+        try{
+            //close the earlier opened file in backup dir
+            if(rfs != null )
+                rfs.close();
 
-			Connection conn = TestUtil.getConnection("wombat", "restoreFrom=extinout/mybackup/wombat");
-			
-			//run consistenct checker
-			Statement stmt = conn.createStatement();
-			stmt.execute("VALUES (ConsistencyChecker())");
-			conn.close();
-			//shutdown the backup db;
-			TestUtil.getConnection("wombat", "shutdown=true");
-		}catch(SQLException se)
-		{
-			if (se.getSQLState() != null && se.getSQLState().equals("08006"))
-				System.out.println("database shutdown properly");
-			else
-				dumpSQLExceptions(se);
-		}catch (Throwable e) {
-			System.out.println("FAIL -- unexpected exception:" + e.toString());
-		}
+            Connection conn = TestUtil.getConnection("wombat", "restoreFrom=extinout/mybackup/wombat");
+            
+            //run consistenct checker
+            Statement stmt = conn.createStatement();
+            stmt.execute("VALUES (ConsistencyChecker())");
+            conn.close();
+            //shutdown the backup db;
+            TestUtil.getConnection("wombat", "shutdown=true");
+        }catch(SQLException se)
+        {
+            if (se.getSQLState() != null && se.getSQLState().equals("08006"))
+                System.out.println("database shutdown properly");
+            else
+                dumpSQLExceptions(se);
+        }catch (Throwable e) {
+            System.out.println("FAIL -- unexpected exception:" + e.toString());
+        }
 
-		//now take a backup again , just to make all is well in the system.
-		try{
-			Connection conn = TestUtil.getConnection("wombat", null);
-			
+        //now take a backup again , just to make all is well in the system.
+        try{
+            Connection conn = TestUtil.getConnection("wombat", null);
+            
             CallableStatement backupStmt = conn.prepareCall(
                 "CALL SYSCS_UTIL.SYSCS_BACKUP_DATABASE(?)");
             backupStmt.setString(1, "extinout/mybackup");
             backupStmt.execute();
             backupStmt.close();
 
-			Statement stmt = conn.createStatement();
-			stmt.execute("VALUES (ConsistencyChecker())");
-			conn.close();
-			TestUtil.getConnection("wombat", "shutdown=true");
-		}catch(SQLException se)
-		{
-			if (se.getSQLState() != null && se.getSQLState().equals("08006"))
-				System.out.println("database shutdown properly");
-			else
-				dumpSQLExceptions(se);
-		}catch (Throwable e) {
-			System.out.println("FAIL -- unexpected exception:" + e.toString());
-		}
+            Statement stmt = conn.createStatement();
+            stmt.execute("VALUES (ConsistencyChecker())");
+            conn.close();
+            TestUtil.getConnection("wombat", "shutdown=true");
+        }catch(SQLException se)
+        {
+            if (se.getSQLState() != null && se.getSQLState().equals("08006"))
+                System.out.println("database shutdown properly");
+            else
+                dumpSQLExceptions(se);
+        }catch (Throwable e) {
+            System.out.println("FAIL -- unexpected exception:" + e.toString());
+        }
 
 
-		System.out.println("Test backupRestore1 finished");
+        System.out.println("Test backupRestore1 finished");
     }
 
-	
-	static private void dumpSQLExceptions (SQLException se) {
-		System.out.println("FAIL -- unexpected exception: " + se.toString());
+    
+    static private void dumpSQLExceptions (SQLException se) {
+        System.out.println("FAIL -- unexpected exception: " + se.toString());
         SQLException lastSe = se;
-		while (se != null) {
-			System.out.print("SQLSTATE("+se.getSQLState()+"):");
+        while (se != null) {
+            System.out.print("SQLSTATE("+se.getSQLState()+"):");
             lastSe = se;
-			se = se.getNextException();
-		}
-		System.out.println("");
+            se = se.getNextException();
+        }
+        System.out.println("");
         lastSe.printStackTrace(System.out);
-	}
+    }
     
 }        
 

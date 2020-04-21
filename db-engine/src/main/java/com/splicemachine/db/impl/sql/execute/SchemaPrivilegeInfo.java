@@ -46,50 +46,50 @@ public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
 {
 
 
-	protected SchemaDescriptor sd;
+    protected SchemaDescriptor sd;
 
 
-	public SchemaPrivilegeInfo(SchemaDescriptor sd,
-							   boolean[] actionAllowed,
-							   FormatableBitSet[] columnBitSets,
-							   List descriptorList)
-	{
-		this.actionAllowed = actionAllowed;
-		this.columnBitSets = columnBitSets;
-		this.sd = sd;
-		this.descriptorList = descriptorList;
-	}
+    public SchemaPrivilegeInfo(SchemaDescriptor sd,
+                               boolean[] actionAllowed,
+                               FormatableBitSet[] columnBitSets,
+                               List descriptorList)
+    {
+        this.actionAllowed = actionAllowed;
+        this.columnBitSets = columnBitSets;
+        this.sd = sd;
+        this.descriptorList = descriptorList;
+    }
 
-	@Override
-	public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
-														   boolean grant,
-														   List grantees)
-			throws StandardException {
-		List<PermissionsDescriptor> result = new ArrayList<>();
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
-		String currentUser = lcc.getCurrentUserId(activation);
-		TransactionController tc = lcc.getTransactionExecute();
-		List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
+    @Override
+    public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
+                                                           boolean grant,
+                                                           List grantees)
+            throws StandardException {
+        List<PermissionsDescriptor> result = new ArrayList<>();
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        String currentUser = lcc.getCurrentUserId(activation);
+        TransactionController tc = lcc.getTransactionExecute();
+        List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
 
-		// Check that the current user has permission to grant the privileges.
-		checkOwnership( currentUser, groupuserlist, sd, dd, lcc, grant);
+        // Check that the current user has permission to grant the privileges.
+        checkOwnership( currentUser, groupuserlist, sd, dd, lcc, grant);
 
-		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-		SchemaPermsDescriptor schemaPermsDesc =
-				ddg.newSchemaPermsDescriptor( sd,
-						getPermString( SELECT_ACTION, false),
-						getPermString( DELETE_ACTION, false),
-						getPermString( INSERT_ACTION, false),
-						getPermString( UPDATE_ACTION, false),
-						getPermString( REFERENCES_ACTION, false),
-						getPermString( TRIGGER_ACTION, false),
-						getPermString( MODIFY_ACTION, false),
-						getPermString( ACCESS_ACTION, false),
-						currentUser);
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+        SchemaPermsDescriptor schemaPermsDesc =
+                ddg.newSchemaPermsDescriptor( sd,
+                        getPermString( SELECT_ACTION, false),
+                        getPermString( DELETE_ACTION, false),
+                        getPermString( INSERT_ACTION, false),
+                        getPermString( UPDATE_ACTION, false),
+                        getPermString( REFERENCES_ACTION, false),
+                        getPermString( TRIGGER_ACTION, false),
+                        getPermString( MODIFY_ACTION, false),
+                        getPermString( ACCESS_ACTION, false),
+                        currentUser);
 
 
-		dd.startWriting(lcc);
+        dd.startWriting(lcc);
         for (Object grantee1 : grantees) {
             // Keep track to see if any privileges are revoked by a revoke
             // statement. If a privilege is not revoked, we need to raise a
@@ -98,30 +98,30 @@ public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
 
             String grantee = (String) grantee1;
             if (schemaPermsDesc != null) {
-				DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor(grant, schemaPermsDesc, grantee, tc);
+                DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor(grant, schemaPermsDesc, grantee, tc);
                 if (action == DataDictionary.PermissionOperation.REMOVE) {
-					privileges_revoked = true;
-					dd.getDependencyManager().invalidateFor
-							(schemaPermsDesc,
-									DependencyManager.REVOKE_PRIVILEGE, lcc);
+                    privileges_revoked = true;
+                    dd.getDependencyManager().invalidateFor
+                            (schemaPermsDesc,
+                                    DependencyManager.REVOKE_PRIVILEGE, lcc);
 
-					// When revoking a privilege from a Table we need to
-					// invalidate all GPSs refering to it. But GPSs aren't
-					// Dependents of SchemaPermsDescr, but of the
-					// SchemaDescriptor itself, so we must send
-					// INTERNAL_RECOMPILE_REQUEST to the SchemaDescriptor's
-					// Dependents.
-					dd.getDependencyManager().invalidateFor
-							(sd, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
-				}
-				if (action != DataDictionary.PermissionOperation.NOCHANGE) {
+                    // When revoking a privilege from a Table we need to
+                    // invalidate all GPSs refering to it. But GPSs aren't
+                    // Dependents of SchemaPermsDescr, but of the
+                    // SchemaDescriptor itself, so we must send
+                    // INTERNAL_RECOMPILE_REQUEST to the SchemaDescriptor's
+                    // Dependents.
+                    dd.getDependencyManager().invalidateFor
+                            (sd, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+                }
+                if (action != DataDictionary.PermissionOperation.NOCHANGE) {
                     SchemaPermsDescriptor schemaPermsDescriptor =
                             new SchemaPermsDescriptor(dd, schemaPermsDesc.getGrantee(),
                                     schemaPermsDesc.getGrantor(), schemaPermsDesc.getSchemaUUID(),
                                     schemaPermsDesc.getSelectPriv(), schemaPermsDesc.getDeletePriv(),
                                     schemaPermsDesc.getInsertPriv(), schemaPermsDesc.getUpdatePriv(),
                                     schemaPermsDesc.getReferencesPriv(), schemaPermsDesc.getTriggerPriv(),
-									schemaPermsDesc.getModifyPriv(), schemaPermsDesc.getAccessPriv());
+                                    schemaPermsDesc.getModifyPriv(), schemaPermsDesc.getAccessPriv());
                     schemaPermsDescriptor.setUUID(schemaPermsDesc.getUUID());
                     result.add(schemaPermsDescriptor);
                 }
@@ -130,8 +130,8 @@ public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
 
             addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
         }
-		return result;
-	}
+        return result;
+    }
 
 }
 

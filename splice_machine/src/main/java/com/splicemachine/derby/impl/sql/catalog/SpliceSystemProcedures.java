@@ -86,10 +86,10 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 
             UUID sysUUID = dictionary.getSystemUtilSchemaDescriptor().getUUID();
 
-        	/*
-        	 * Our import process is different than Vanilla Derby's, so find that Procedure in
-        	 * the map and replace it with our own Procedure
-        	 */
+            /*
+             * Our import process is different than Vanilla Derby's, so find that Procedure in
+             * the map and replace it with our own Procedure
+             */
             for(Object entry : sysProcedures.entrySet()){
                 Object key = ((Map.Entry)entry).getKey();
                 @SuppressWarnings("unchecked") List<Procedure> procedures = (List<Procedure>)((Map.Entry)entry).getValue();
@@ -130,11 +130,11 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(refreshExternalTable);
 
-        			/*
-        			 * Add a system procedure to enable splitting tables once data is loaded.
-        			 *
-        			 * We do this here because this way we know we're in the SYSCS procedure set
-        			 */
+                    /*
+                     * Add a system procedure to enable splitting tables once data is loaded.
+                     *
+                     * We do this here because this way we know we're in the SYSCS procedure set
+                     */
                     Procedure splitProc = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE")
                             .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
                             .catalog("schemaName")
@@ -192,9 +192,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(splitProc4);
                     
-         			/*
-        			 * Procedure get all active services
-        			 */
+                     /*
+                     * Procedure get all active services
+                     */
                     Procedure getActiveServers = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_SERVERS")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -203,9 +203,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getActiveServers);
 
-        			/*
-        			 * Procedure get all active requests
-        			 */
+                    /*
+                     * Procedure get all active requests
+                     */
                     Procedure getRequests = Procedure.newBuilder().name("SYSCS_GET_REQUESTS")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -214,9 +214,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(getRequests);
 
 
-        			/*
-        			 * Procedure get stats info for region servers
-        			 */
+                    /*
+                     * Procedure get stats info for region servers
+                     */
                     Procedure getRegionServerStatsInfo = Procedure.newBuilder().name("SYSCS_GET_REGION_SERVER_STATS_INFO")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -225,9 +225,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getRegionServerStatsInfo);
 
-        			/*
-        			 * Procedure fetch logical configuration from region servers
-        			 */
+                    /*
+                     * Procedure fetch logical configuration from region servers
+                     */
                     Procedure getRegionServerConfig = Procedure.newBuilder().name("SYSCS_GET_REGION_SERVER_CONFIG_INFO")
                             .varchar("configRoot", 128) // fetch only config props with prefix, or null for fetch all
                             .integer("mode")            // 0 = fetch all, 1 = fetch only props where value not same on all servers
@@ -257,9 +257,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getVersionInfoLocal);
 
-        			/*
-        			 * Procedure get write pipeline intake info
-        			 */
+                    /*
+                     * Procedure get write pipeline intake info
+                     */
                     Procedure getWriteIntakeInfo = Procedure.newBuilder().name("SYSCS_GET_WRITE_INTAKE_INFO")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -268,8 +268,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(getWriteIntakeInfo);
 
                     /*
-        			 * Procedure get exec service info
-        			 */
+                     * Procedure get exec service info
+                     */
                     Procedure getExecServiceInfo = Procedure.newBuilder().name("SYSCS_GET_EXEC_SERVICE_INFO")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -278,8 +278,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(getExecServiceInfo);
 
                     /*
-        			 * Procedure get each individual cache info
-        			 */
+                     * Procedure get each individual cache info
+                     */
                     Procedure getCacheInfo = Procedure.newBuilder().name("SYSCS_GET_CACHE_INFO")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -288,8 +288,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(getCacheInfo);
 
                     /*
-        			 * Procedure get total cache info
-        			 */
+                     * Procedure get total cache info
+                     */
                     Procedure getTotalCacheInfo = Procedure.newBuilder().name("SYSCS_GET_TOTAL_CACHE_INFO")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -297,9 +297,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getTotalCacheInfo);
 
-        			/*
-        			 * Procedures to kill stale transactions
-        			 */
+                    /*
+                     * Procedures to kill stale transactions
+                     */
                     Procedure killTransaction = Procedure.newBuilder().name("SYSCS_KILL_TRANSACTION")
                             .numOutputParams(0)
                             .numResultSets(0)
@@ -633,9 +633,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(setStatsExtrapolationForColumn);
 
-        			/*
-        			 * Procedure to get the session details
-        			 */
+                    /*
+                     * Procedure to get the session details
+                     */
                     Procedure sessionInfo = Procedure.newBuilder().name("SYSCS_GET_SESSION_INFO")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -644,9 +644,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(sessionInfo);
 
 
-        			/*
-        			 * Procedure to get a list of running operations
-        			 */
+                    /*
+                     * Procedure to get a list of running operations
+                     */
                     Procedure runningOperations = Procedure.newBuilder().name("SYSCS_GET_RUNNING_OPERATIONS")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -654,9 +654,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(runningOperations);
 
-        			/*
-        			 * Procedure to get a list of running operations on the local server
-        			 */
+                    /*
+                     * Procedure to get a list of running operations on the local server
+                     */
                     Procedure runningOperationsLocal = Procedure.newBuilder().name("SYSCS_GET_RUNNING_OPERATIONS_LOCAL")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -665,9 +665,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(runningOperationsLocal);
 
 
-        			/*
-        			 * Procedure to kill an executing operation
-        			 */
+                    /*
+                     * Procedure to kill an executing operation
+                     */
                     Procedure killOperationLocal = Procedure.newBuilder().name("SYSCS_KILL_OPERATION_LOCAL")
                             .numOutputParams(0)
                             .varchar("uuid",128)
@@ -675,9 +675,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(killOperationLocal);
 
-        			/*
-        			 * Procedure to kill an executing operation
-        			 */
+                    /*
+                     * Procedure to kill an executing operation
+                     */
                     Procedure killOperation = Procedure.newBuilder().name("SYSCS_KILL_OPERATION")
                             .numOutputParams(0)
                             .varchar("uuid",128)
@@ -797,9 +797,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(commitTxnProc);
 
-        			/*
-        			 * Procedure to get the log level for the given logger
-        			 */
+                    /*
+                     * Procedure to get the log level for the given logger
+                     */
                     Procedure getLoggerLevel = Procedure.newBuilder().name("SYSCS_GET_LOGGER_LEVEL")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -818,9 +818,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getLoggerLevelLocal);
 
-        			/*
-        			 * Procedure to set the log level for the given logger
-        			 */
+                    /*
+                     * Procedure to set the log level for the given logger
+                     */
                     Procedure setLoggerLevel = Procedure.newBuilder().name("SYSCS_SET_LOGGER_LEVEL")
                             .numOutputParams(0)
                             .numResultSets(0)
@@ -841,9 +841,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(setLoggerLevelLocal);
 
-        			/*
-        			 * Procedure to get all the splice logger names in the system
-        			 */
+                    /*
+                     * Procedure to get all the splice logger names in the system
+                     */
                     Procedure getLoggers = Procedure.newBuilder().name("SYSCS_GET_LOGGERS")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -858,9 +858,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getLoggersLocal);
 
-        			/*
-        			 * Procedure get table info in all schema
-        			 */
+                    /*
+                     * Procedure get table info in all schema
+                     */
                     Procedure getSchemaInfo = Procedure.newBuilder().name("SYSCS_GET_SCHEMA_INFO")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -868,9 +868,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getSchemaInfo);
 
-        			/*
-        			 * Procedure to perform major compaction on all tables in a schema
-        			 */
+                    /*
+                     * Procedure to perform major compaction on all tables in a schema
+                     */
                     Procedure majorComactionOnSchema = Procedure.newBuilder().name("SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA")
                             .varchar("schemaName", 128)
                             .numOutputParams(0)
@@ -879,9 +879,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(majorComactionOnSchema);
 
-        			/*
-        			 * Procedure to perform major compaction on a table in a schema
-        			 */
+                    /*
+                     * Procedure to perform major compaction on a table in a schema
+                     */
                     Procedure majorComactionOnTable = Procedure.newBuilder().name("SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE")
                             .varchar("schemaName", 128)
                             .varchar("tableName", 128)
@@ -915,9 +915,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(dictionaryDelete);
 
-        			/*
-        			 * Procedure to get all the information related to the execution plans of the stored prepared statements (metadata queries).
-        			 */
+                    /*
+                     * Procedure to get all the information related to the execution plans of the stored prepared statements (metadata queries).
+                     */
                     Procedure getStoredStatementPlanInfo = Procedure.newBuilder().name("SYSCS_GET_STORED_STATEMENT_PLAN_INFO")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -925,9 +925,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getStoredStatementPlanInfo);
 
-        			/*
-        			 * Procedure to print all of the properties (JVM, Service, Database, App).
-        			 */
+                    /*
+                     * Procedure to print all of the properties (JVM, Service, Database, App).
+                     */
                     Procedure getAllSystemProperties = Procedure.newBuilder().name("SYSCS_GET_ALL_PROPERTIES")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -1017,35 +1017,35 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                      * Procedure to get a database property on all region servers in the cluster.
                      */
                     procedures.add(Procedure.newBuilder().name("SYSCS_GET_GLOBAL_DATABASE_PROPERTY")
-                    		.numOutputParams(0)
-                    		.numResultSets(1)
-                    		.ownerClass(SpliceAdmin.class.getCanonicalName())
-                    		.sqlControl(RoutineAliasInfo.READS_SQL_DATA).returnType(null).isDeterministic(false)
-                    		.catalog("KEY")
-                    		.build());
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .sqlControl(RoutineAliasInfo.READS_SQL_DATA).returnType(null).isDeterministic(false)
+                            .catalog("KEY")
+                            .build());
 
                     /*
                      * Procedure to set a database property on all region servers in the cluster.
                      */
                     procedures.add(Procedure.newBuilder().name("SYSCS_SET_GLOBAL_DATABASE_PROPERTY")
-                    		.numOutputParams(0)
-                    		.numResultSets(0)
-                    		.ownerClass(SpliceAdmin.class.getCanonicalName())
-                    		.sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                    		.catalog("KEY")
-                    		.varchar("VALUE", Limits.DB2_VARCHAR_MAXWIDTH)
-                    		.build());
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                            .catalog("KEY")
+                            .varchar("VALUE", Limits.DB2_VARCHAR_MAXWIDTH)
+                            .build());
 
                     /*
                      * Procedure to enable splice enterprise version
                      */
                     procedures.add(Procedure.newBuilder().name("SYSCS_ENABLE_ENTERPRISE")
-                    		.numOutputParams(0)
-                    		.numResultSets(0)
-                    		.ownerClass(SpliceAdmin.class.getCanonicalName())
-                    		.sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                    		.varchar("VALUE", Limits.DB2_VARCHAR_MAXWIDTH)
-                    		.build());
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                            .varchar("VALUE", Limits.DB2_VARCHAR_MAXWIDTH)
+                            .build());
 
                     /*
                      * Procedure to empty the statement caches on all region servers in the cluster.
@@ -1591,7 +1591,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
                             .varchar("S",Limits.DB2_VARCHAR_MAXWIDTH / 2)
                             .build()
-            		)
+                    )
             );
             SYSFUN_PROCEDURES.addAll(Arrays.asList(
                     //

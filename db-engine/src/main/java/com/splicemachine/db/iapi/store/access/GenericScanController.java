@@ -146,7 +146,7 @@ public interface GenericScanController extends RowCountable,AutoCloseable{
      *                            stops just before the first row which is greater than or
      *                            equal to the stopKeyValue.  If stopSearchOperation is
      *                            ScanController.GT, the scan stops just before the first row whose
-     *                            key is greater than	startKeyValue.  The stopSearchOperation
+     *                            key is greater than    startKeyValue.  The stopSearchOperation
      *                            parameter is ignored if the stopKeyValue parameter is null.
      * @throws StandardException Standard exception policy.
      */

@@ -54,21 +54,21 @@ package com.splicemachine.db.iapi.services.info;
 public interface ProductGenusNames
 {
 
-	/**Genus name for dbms products.*/
-	String DBMS = "DBMS";
-	String DBMS_INFO = "/com/splicemachine/db/info/DBMS.properties";
+    /**Genus name for dbms products.*/
+    String DBMS = "DBMS";
+    String DBMS_INFO = "/com/splicemachine/db/info/DBMS.properties";
 
-	/**Genus name for tools products.*/
-	String TOOLS = "tools";
-	String TOOLS_INFO = "/com/splicemachine/db/info/tools.properties";
+    /**Genus name for tools products.*/
+    String TOOLS = "tools";
+    String TOOLS_INFO = "/com/splicemachine/db/info/tools.properties";
 
-	/**Genus name for net products.*/
-	String NET = "net";
-	String NET_INFO = "/com/splicemachine/db/info/net.properties";
+    /**Genus name for net products.*/
+    String NET = "net";
+    String NET_INFO = "/com/splicemachine/db/info/net.properties";
 
-	/**Genus name for network client */
-	String DNC = "dnc";
-	String DNC_INFO = "/com/splicemachine/db/info/dnc.properties";
+    /**Genus name for network client */
+    String DNC = "dnc";
+    String DNC_INFO = "/com/splicemachine/db/info/dnc.properties";
 
 }
 

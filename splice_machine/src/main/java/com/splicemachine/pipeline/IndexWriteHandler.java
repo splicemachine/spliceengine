@@ -162,7 +162,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "index delete with %s", mutation);
 
-    	/*
+        /*
          * To delete the correct index row, we do the following:
          *
          * 1. do a Get() on all the indexed columns of the main table

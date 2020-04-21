@@ -73,73 +73,73 @@ public class GenericPrivilegeInfo extends PrivilegeInfo
      * @param privilege Kind of privilege (e.g., PermDescriptor.USAGE_PRIV)
      * @param restrict True if this is a REVOKE RESTRICT action
      */
-	public GenericPrivilegeInfo( PrivilegedSQLObject tupleDescriptor, String privilege, boolean restrict )
-	{
-		_tupleDescriptor = tupleDescriptor;
+    public GenericPrivilegeInfo( PrivilegedSQLObject tupleDescriptor, String privilege, boolean restrict )
+    {
+        _tupleDescriptor = tupleDescriptor;
         _privilege = privilege;
         _restrict = restrict;
-	}
-	
+    }
+    
     ///////////////////////////////////////////////////////////////////////////////////
     //
     // PrivilegeInfo BEHAVIOR
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-	/**
-	 *	This is the guts of the Execution-time logic for GRANT/REVOKE generic privileges.
-	 *
-	 * @param activation
-	 * @param grant true if grant, false if revoke
-	 * @param grantees a list of authorization ids (strings)
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
-									boolean grant,
-									List grantees)
-		throws StandardException
-	{
-		// Check that the current user has permission to grant the privileges.
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
+    /**
+     *    This is the guts of the Execution-time logic for GRANT/REVOKE generic privileges.
+     *
+     * @param activation
+     * @param grant true if grant, false if revoke
+     * @param grantees a list of authorization ids (strings)
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
+                                    boolean grant,
+                                    List grantees)
+        throws StandardException
+    {
+        // Check that the current user has permission to grant the privileges.
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
         String currentUser = lcc.getCurrentUserId(activation);
-		TransactionController tc = lcc.getTransactionExecute();
+        TransactionController tc = lcc.getTransactionExecute();
         SchemaDescriptor sd = _tupleDescriptor.getSchemaDescriptor();
         UUID objectID = _tupleDescriptor.getUUID();
         String objectTypeName = _tupleDescriptor.getObjectTypeName();
-		List<PermissionsDescriptor> result = Lists.newArrayList();
-		// Check that the current user has permission to grant the privileges.
-		List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
-		checkOwnership( currentUser, groupuserlist, sd, dd );
-		
-		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+        List<PermissionsDescriptor> result = Lists.newArrayList();
+        // Check that the current user has permission to grant the privileges.
+        List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
+        checkOwnership( currentUser, groupuserlist, sd, dd );
+        
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
-		PermDescriptor permDesc = ddg.newPermDescriptor
+        PermDescriptor permDesc = ddg.newPermDescriptor
             ( null, objectTypeName, objectID, _privilege, currentUser, null, false );
 
-		dd.startWriting(lcc);
+        dd.startWriting(lcc);
         for (Object grantee1 : grantees) {
             // Keep track to see if any privileges are revoked by a revoke
             // statement. If a privilege is not revoked, we need to raise a
             // warning.
             boolean privileges_revoked = false;
             String grantee = (String) grantee1;
-			DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor( grant, permDesc, grantee, tc);
+            DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor( grant, permDesc, grantee, tc);
             if (action == DataDictionary.PermissionOperation.REMOVE){
-				//
-				// We fall in here if we are performing REVOKE.
-				//
-				privileges_revoked = true;
-				int invalidationType = _restrict ? DependencyManager.REVOKE_PRIVILEGE_RESTRICT : DependencyManager.REVOKE_PRIVILEGE;
+                //
+                // We fall in here if we are performing REVOKE.
+                //
+                privileges_revoked = true;
+                int invalidationType = _restrict ? DependencyManager.REVOKE_PRIVILEGE_RESTRICT : DependencyManager.REVOKE_PRIVILEGE;
 
-				dd.getDependencyManager().invalidateFor(permDesc, invalidationType, lcc);
+                dd.getDependencyManager().invalidateFor(permDesc, invalidationType, lcc);
 
-				// Now invalidate all GPSs refering to the object.
-				dd.getDependencyManager().invalidateFor(_tupleDescriptor, invalidationType, lcc);
-			}
+                // Now invalidate all GPSs refering to the object.
+                dd.getDependencyManager().invalidateFor(_tupleDescriptor, invalidationType, lcc);
+            }
 
-			if (action != DataDictionary.PermissionOperation.NOCHANGE) {
+            if (action != DataDictionary.PermissionOperation.NOCHANGE) {
                 PermDescriptor permDescriptor = ddg.newPermDescriptor
                         (permDesc.getUUID(), objectTypeName, objectID, _privilege, currentUser, grantee, false);
                 result.add(permDescriptor);
@@ -148,7 +148,7 @@ public class GenericPrivilegeInfo extends PrivilegeInfo
             addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
         }
         return result;
-	} // end of executeGrantRevoke
+    } // end of executeGrantRevoke
 
     public boolean isRestrict() {
         return _restrict;

@@ -105,8 +105,8 @@ public class DecimalIT  extends SpliceUnitTest {
 
         String
         sqlText = "insert into ts_decimal3 select * from ts_decimal2";
-		spliceClassWatcher.executeUpdate(sqlText);
-		spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
+        spliceClassWatcher.executeUpdate(sqlText);
 
         new TableCreator(conn)
                 .withCreate("create table ts_decimal4 (b dec(38,31), c int)")
@@ -621,7 +621,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         PreparedStatement statement = spliceClassWatcher.prepareStatement(String.format("delete from %s.%s", CLASS_NAME, "preparedDecimal"));
         statement.executeUpdate();
-	statement.close();
+    statement.close();
 
         statement = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?)", CLASS_NAME, "preparedDecimal"));
         BigDecimal bd = new BigDecimal("14.51");
@@ -641,7 +641,7 @@ public class DecimalIT  extends SpliceUnitTest {
         testQuery(sqlText, expected, methodWatcher);
         statement = spliceClassWatcher.prepareStatement(String.format("delete from %s.%s", CLASS_NAME, "preparedDecimal"));
         statement.executeUpdate();
-	statement.close();
+    statement.close();
 
 
         // The following should input "14" because a Double doesn't
@@ -661,7 +661,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         statement = spliceClassWatcher.prepareStatement(String.format("delete from %s.%s", CLASS_NAME, "preparedDecimal"));
         statement.executeUpdate();
-	statement.close();
+    statement.close();
 
         // Using the version of setObject which allows scale to be passed in
         // allows the decimal digits to be retained.

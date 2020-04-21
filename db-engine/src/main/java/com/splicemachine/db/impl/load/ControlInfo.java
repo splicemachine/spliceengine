@@ -268,8 +268,8 @@ class ControlInfo
 
   /**read the control file properties into a local variable which is used later on
   *In case there is no control file, read the default values for these properties
- 	* @exception	Exception if there is an error
-	*/
+     * @exception    Exception if there is an error
+    */
   Properties getCurrentProperties()  throws Exception{
     if (currentProperties == null) {
        loadDefaultValues();
@@ -279,94 +279,94 @@ class ControlInfo
 
 
 
-	
-	// Following set routines can be used to change the default properties
+    
+    // Following set routines can be used to change the default properties
 
-	public void setColumnWidths(String columnWidths) throws Exception {
-		if(columnWidths!=null)
-			currentProperties.setProperty(COLUMN_WIDTHS, columnWidths);
-	}
+    public void setColumnWidths(String columnWidths) throws Exception {
+        if(columnWidths!=null)
+            currentProperties.setProperty(COLUMN_WIDTHS, columnWidths);
+    }
 
 
-	public void setFieldSeparator(String fieldSeperator) throws Exception {
-		if(fieldSeperator!=null)
-			currentProperties.setProperty(FIELD_SEPARATOR, fieldSeperator);
-	}
+    public void setFieldSeparator(String fieldSeperator) throws Exception {
+        if(fieldSeperator!=null)
+            currentProperties.setProperty(FIELD_SEPARATOR, fieldSeperator);
+    }
 
-	public void setFieldStartDelimiter(String fsdl) throws Exception {
-		if(fsdl!=null)
-			currentProperties.setProperty(FIELD_START_DELIMITER, fsdl);
-	}
+    public void setFieldStartDelimiter(String fsdl) throws Exception {
+        if(fsdl!=null)
+            currentProperties.setProperty(FIELD_START_DELIMITER, fsdl);
+    }
 
-	public void setFieldEndDelimiter(String fedl) throws Exception {
-		if(fedl!=null)
-			currentProperties.setProperty(FIELD_END_DELIMITER, fedl);
-	}
+    public void setFieldEndDelimiter(String fedl) throws Exception {
+        if(fedl!=null)
+            currentProperties.setProperty(FIELD_END_DELIMITER, fedl);
+    }
 
-	public void  setRecordSeparator(String recordSeperator) throws Exception {
-		if(recordSeperator!=null)
-			currentProperties.setProperty(RECORD_SEPARATOR, recordSeperator);
-	}
+    public void  setRecordSeparator(String recordSeperator) throws Exception {
+        if(recordSeperator!=null)
+            currentProperties.setProperty(RECORD_SEPARATOR, recordSeperator);
+    }
 
-	public void setHasDelimiterAtEnd(String hasDelimeterAtEnd) throws Exception {
-		if(hasDelimeterAtEnd!=null)
-			currentProperties.setProperty(HAS_DELIMETER_AT_END, hasDelimeterAtEnd);
-	}
+    public void setHasDelimiterAtEnd(String hasDelimeterAtEnd) throws Exception {
+        if(hasDelimeterAtEnd!=null)
+            currentProperties.setProperty(HAS_DELIMETER_AT_END, hasDelimeterAtEnd);
+    }
   
-	public void setNullString(String nullString) throws Exception {
-		if(nullString!=null)
-			currentProperties.setProperty(NULL_STRING, nullString);
-	}
+    public void setNullString(String nullString) throws Exception {
+        if(nullString!=null)
+            currentProperties.setProperty(NULL_STRING, nullString);
+    }
 
-	//for fixed format, set column definitions
-	public void setcolumnDefinition(String columnDefinition) throws Exception {
-		if(columnDefinition!=null)
-			currentProperties.setProperty(COLUMN_DEFINITION, columnDefinition);
-	}
-
-
-	public void setDataCodeset(String codeset) throws Exception {
-		if(codeset!=null)
-			currentProperties.setProperty(DATA_CODESET, codeset);
-	}
-
-	
-	public void setCharacterDelimiter(String charDelimiter) throws Exception{
-		if(charDelimiter !=null)
-		{
-			setFieldStartDelimiter(charDelimiter) ;
-			setFieldEndDelimiter(charDelimiter);
-		}
-	}
+    //for fixed format, set column definitions
+    public void setcolumnDefinition(String columnDefinition) throws Exception {
+        if(columnDefinition!=null)
+            currentProperties.setProperty(COLUMN_DEFINITION, columnDefinition);
+    }
 
 
-	
-	public void setControlProperties(String characterDelimiter ,
-									 String columnDelimiter, 
-									 String codeset) throws Exception
-	{
-		setCharacterDelimiter(characterDelimiter);
-		setFieldSeparator(columnDelimiter);
-		setDataCodeset(codeset);
-		//check whether the delimiters are valid ones
-		validateDelimiters();
-	}
+    public void setDataCodeset(String codeset) throws Exception {
+        if(codeset!=null)
+            currentProperties.setProperty(DATA_CODESET, codeset);
+    }
+
+    
+    public void setCharacterDelimiter(String charDelimiter) throws Exception{
+        if(charDelimiter !=null)
+        {
+            setFieldStartDelimiter(charDelimiter) ;
+            setFieldEndDelimiter(charDelimiter);
+        }
+    }
 
 
-	private void validateDelimiters() throws Exception
-	{
+    
+    public void setControlProperties(String characterDelimiter ,
+                                     String columnDelimiter, 
+                                     String codeset) throws Exception
+    {
+        setCharacterDelimiter(characterDelimiter);
+        setFieldSeparator(columnDelimiter);
+        setDataCodeset(codeset);
+        //check whether the delimiters are valid ones
+        validateDelimiters();
+    }
 
 
-		char colDel = (getFieldSeparator()).charAt(0);
-		char charDel = (getFieldStartDelimiter()).charAt(0);
+    private void validateDelimiters() throws Exception
+    {
 
-		//The period was specified as a character string delimiter.
-		if(charDel == '.')
-		{
-			throw LoadError.periodAsCharDelimiterNotAllowed();
-		}
-		
-		
+
+        char colDel = (getFieldSeparator()).charAt(0);
+        char charDel = (getFieldStartDelimiter()).charAt(0);
+
+        //The period was specified as a character string delimiter.
+        if(charDel == '.')
+        {
+            throw LoadError.periodAsCharDelimiterNotAllowed();
+        }
+        
+        
         // check for the invalid delimiters. A delimiter is not valid it 
         // is used more than once, i.e same character is used 
         // character data delimiter and also as a column delimiter. 
@@ -374,16 +374,16 @@ class ControlInfo
         // valid delimiter, because binary data can be imported/exported 
         // as hex string.
 
-		if(colDel == charDel || 
-		   colDel == '.' ||
-		   Character.isSpaceChar(colDel) ||  
-		   Character.isSpaceChar(charDel) ||
+        if(colDel == charDel || 
+           colDel == '.' ||
+           Character.isSpaceChar(colDel) ||  
+           Character.isSpaceChar(charDel) ||
            Character.digit(colDel, 16) != -1 ||
            Character.digit(charDel, 16) != -1 )
-		{
-			throw LoadError.delimitersAreNotMutuallyExclusive();
-		}
+        {
+            throw LoadError.delimitersAreNotMutuallyExclusive();
+        }
         
-	}
+    }
 }
 

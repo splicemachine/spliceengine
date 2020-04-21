@@ -44,9 +44,9 @@ public class RowNumberFunctionDefinition implements AggregateDefinition {
     @Override
     public DataTypeDescriptor getAggregator(DataTypeDescriptor inputType, StringBuffer aggregatorClassName) throws StandardException {
         aggregatorClassName.append(ClassName.RowNumberFunction);
-		/*
-		**
-		*/
+        /*
+        **
+        */
         return DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false);
     }
 }

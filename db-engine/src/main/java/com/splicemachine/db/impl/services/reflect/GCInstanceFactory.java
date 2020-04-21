@@ -35,5 +35,5 @@ import com.splicemachine.db.iapi.services.loader.GeneratedByteCode;
 
 public abstract class GCInstanceFactory {
 
-	public abstract GeneratedByteCode getNewInstance();
+    public abstract GeneratedByteCode getNewInstance();
 }

@@ -37,10 +37,10 @@ import java.security.*;
 
 final class ClientThread extends Thread {
 
-	NetworkServerControlImpl parent;
-	ServerSocket serverSocket;
-	private int timeSlice;
-	private int connNum;
+    NetworkServerControlImpl parent;
+    ServerSocket serverSocket;
+    private int timeSlice;
+    private int connNum;
     
     ClientThread (NetworkServerControlImpl nsi, ServerSocket ss) {
         
@@ -52,7 +52,7 @@ final class ClientThread extends Thread {
         serverSocket=ss;
         timeSlice=nsi.getTimeSlice();
     }
-	
+    
     public void run() 
     {
         Socket clientSocket = null;
@@ -102,8 +102,8 @@ final class ClientThread extends Thread {
                         // is allways the case, but will not alter the
                         // behaviour since it is not within the scope of
                         // this change (DERBY-2108).
-                    	clientSocket.close();
-            	        return;
+                        clientSocket.close();
+                        return;
                     }
                     parent.consoleExceptionPrintTrace(ie);
                     if (clientSocket != null)

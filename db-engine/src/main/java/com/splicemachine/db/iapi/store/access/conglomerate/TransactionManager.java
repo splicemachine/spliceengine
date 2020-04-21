@@ -149,9 +149,9 @@ public interface TransactionManager extends TransactionController
      * operation which may need to search the tree is performed.
      * <p>
      *
-	 * @return The new internal transaction.
+     * @return The new internal transaction.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     TransactionManager getInternalTransaction()
         throws StandardException;
@@ -162,9 +162,9 @@ public interface TransactionManager extends TransactionController
      * Access methods often need direct access to the "Transaction" - ie. the
      * raw store transaction, so give access to it.
      *
-	 * @return The raw store transaction.
+     * @return The raw store transaction.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     Transaction getRawStoreXact()
         throws StandardException;

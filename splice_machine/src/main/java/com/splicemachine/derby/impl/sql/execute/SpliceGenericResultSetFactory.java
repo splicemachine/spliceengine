@@ -461,7 +461,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     lockMode,
                     tableLocked,
                     isolationLevel,
-                    1,	// rowsPerRead is 1 if not a bulkTableScan
+                    1,    // rowsPerRead is 1 if not a bulkTableScan
                     oneRowScan,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
@@ -1846,45 +1846,45 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 optimizerEstimatedCost);
         op.setExplainPlan(explainPlan);
         return op;
-	}
+    }
 
-	public NoPutResultSet getLastIndexKeyResultSet
-	(
-		Activation 			activation,
-		int 				resultSetNumber,
-		GeneratedMethod 	resultRowAllocator,
-		long 				conglomId,
-		String 				tableName,
-		String 				userSuppliedOptimizerOverrides,
-		String 				indexName,
-		int 				colRefItem,
-		int 				lockMode,
-		boolean				tableLocked,
-		int					isolationLevel,
-		double				optimizerEstimatedRowCount,
-		double 				optimizerEstimatedCost,
+    public NoPutResultSet getLastIndexKeyResultSet
+    (
+        Activation             activation,
+        int                 resultSetNumber,
+        GeneratedMethod     resultRowAllocator,
+        long                 conglomId,
+        String                 tableName,
+        String                 userSuppliedOptimizerOverrides,
+        String                 indexName,
+        int                 colRefItem,
+        int                 lockMode,
+        boolean                tableLocked,
+        int                    isolationLevel,
+        double                optimizerEstimatedRowCount,
+        double                 optimizerEstimatedCost,
         String              tableVersion,
         String              explainPlan
-	) throws StandardException
-	{
-		SpliceLogUtils.trace(LOG, "getLastIndexKeyResultSet");
-		ScanOperation op = new LastIndexKeyOperation(
-					activation,
-					resultSetNumber,
-					resultRowAllocator,
-					conglomId,
-					tableName,
-					userSuppliedOptimizerOverrides,
-					indexName,
-					colRefItem,
-					lockMode,
-					tableLocked,
-					isolationLevel,
-					optimizerEstimatedRowCount,
-					optimizerEstimatedCost, tableVersion);
+    ) throws StandardException
+    {
+        SpliceLogUtils.trace(LOG, "getLastIndexKeyResultSet");
+        ScanOperation op = new LastIndexKeyOperation(
+                    activation,
+                    resultSetNumber,
+                    resultRowAllocator,
+                    conglomId,
+                    tableName,
+                    userSuppliedOptimizerOverrides,
+                    indexName,
+                    colRefItem,
+                    lockMode,
+                    tableLocked,
+                    isolationLevel,
+                    optimizerEstimatedRowCount,
+                    optimizerEstimatedCost, tableVersion);
         op.setExplainPlan(explainPlan);
         return op;
-	}
+    }
 
     public NoPutResultSet getWindowResultSet(NoPutResultSet source,
                                              boolean isInSortedOrder,

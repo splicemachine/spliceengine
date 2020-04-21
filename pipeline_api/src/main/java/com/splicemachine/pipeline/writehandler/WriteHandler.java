@@ -27,9 +27,9 @@ import java.io.IOException;
  */
 public interface WriteHandler {
 
-	/**
-	 * Process the mutation with the given handler
-	 */
+    /**
+     * Process the mutation with the given handler
+     */
     void next(KVPair mutation, WriteContext ctx);
 
     /**

@@ -40,8 +40,8 @@ public class SpliceMethod<T> {
     @SuppressWarnings("unchecked")
     public T invoke() throws StandardException {
         try {
-        	if (method == null) {
-        	    method =  activation.getClass().getMethod(methodName);
+            if (method == null) {
+                method =  activation.getClass().getMethod(methodName);
             }
             return (T) method.invoke(activation);
         } catch (Throwable t) {
@@ -49,8 +49,8 @@ public class SpliceMethod<T> {
         }
     }
 
-	public Activation getActivation() {
-		return activation;
-	}
-	
+    public Activation getActivation() {
+        return activation;
+    }
+    
 }

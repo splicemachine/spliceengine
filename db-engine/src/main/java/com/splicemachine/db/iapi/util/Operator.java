@@ -32,13 +32,13 @@
 package com.splicemachine.db.iapi.util;
 
 /**
-	Provides an interface for an operator that operates on a range of objects
-	E.g in a cache.
+    Provides an interface for an operator that operates on a range of objects
+    E.g in a cache.
 */
 public interface Operator {
 
-	/**
-		Operate on an input object
-	*/
-	void operate(Object other);
+    /**
+        Operate on an input object
+    */
+    void operate(Object other);
 }

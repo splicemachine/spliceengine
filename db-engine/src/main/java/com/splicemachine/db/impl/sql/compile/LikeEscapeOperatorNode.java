@@ -195,9 +195,9 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
                 receiver.setCollationInfo(leftOperand.getTypeServices());
 
             } else if (rightOperand != null && !rightOperand.requiresTypeFromContext()) {
-                receiver.setCollationInfo(rightOperand.getTypeServices());          	
+                receiver.setCollationInfo(rightOperand.getTypeServices());              
             } else {
-    			receiver.setCollationUsingCompilationSchema();            	
+                receiver.setCollationUsingCompilationSchema();                
             }
         }
 
@@ -224,11 +224,11 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
                     new DataTypeDescriptor(
                         TypeId.getBuiltInTypeId(Types.VARCHAR), true));
             }
-			//collation of ? operand should be picked up from the context.
+            //collation of ? operand should be picked up from the context.
             //By the time we come here, receiver will have correct collation
             //set on it and hence we can rely on it to get correct collation
             //for the other ? in LIKE clause
-            leftOperand.setCollationInfo(receiver.getTypeServices());          	
+            leftOperand.setCollationInfo(receiver.getTypeServices());              
         }
 
         /* 
@@ -253,11 +253,11 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
                     new DataTypeDescriptor(
                         TypeId.getBuiltInTypeId(Types.VARCHAR), true));
             }
-			//collation of ? operand should be picked up from the context.
+            //collation of ? operand should be picked up from the context.
             //By the time we come here, receiver will have correct collation
             //set on it and hence we can rely on it to get correct collation
             //for the other ? in LIKE clause
-            rightOperand.setCollationInfo(receiver.getTypeServices());    	
+            rightOperand.setCollationInfo(receiver.getTypeServices());        
         }
 
         bindToBuiltIn();
@@ -327,7 +327,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         // The left and the pattern of the LIKE must be same collation type
         // and derivation.
         if (!receiver.getTypeServices().compareCollationInfo(
-        		leftOperand.getTypeServices()))
+                leftOperand.getTypeServices()))
         {
             // throw error.
             throw StandardException.newException(

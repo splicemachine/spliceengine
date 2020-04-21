@@ -123,16 +123,16 @@ public class LogicalDatabaseMetaData40
         return ((com.splicemachine.db.client.am.DatabaseMetaData) getRealMetaDataObject()).generatedKeyAlwaysReturned();
     }
 
-	/**
+    /**
     * See DatabaseMetaData javadoc. Empty ResultSet because Derby does
     * not support pseudo columns.
-	*/
-	public ResultSet getPseudoColumns
+    */
+    public ResultSet getPseudoColumns
         ( String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern )
         throws SQLException
-	{
-		return ((com.splicemachine.db.client.am.DatabaseMetaData) getRealMetaDataObject()).getPseudoColumns
+    {
+        return ((com.splicemachine.db.client.am.DatabaseMetaData) getRealMetaDataObject()).getPseudoColumns
             ( catalog, schemaPattern, tableNamePattern, columnNamePattern );
-	}
+    }
 
 }

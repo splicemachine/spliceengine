@@ -52,130 +52,130 @@ import com.splicemachine.db.catalog.AliasInfo;
 
 public class DropAliasNode extends DDLStatementNode
 {
-	private char aliasType;
-	private char nameSpace;
+    private char aliasType;
+    private char nameSpace;
 
-	/**
-	 * Initializer for a DropAliasNode
-	 *
-	 * @param dropAliasName	The name of the method alias being dropped
-	 * @param aliasType				Alias type
-	 *
-	 * @exception StandardException
-	 */
-	public void init(Object dropAliasName, Object aliasType)
-				throws StandardException
-	{
-		TableName dropItem = (TableName) dropAliasName;
-		initAndCheck(dropItem);
-		this.aliasType = (Character) aliasType;
-	
-		switch (this.aliasType)
-		{
-		    case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
-			    nameSpace = AliasInfo.ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR;
-			    break;
-			
-	        case AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR:
-				nameSpace = AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR;
-				break;
+    /**
+     * Initializer for a DropAliasNode
+     *
+     * @param dropAliasName    The name of the method alias being dropped
+     * @param aliasType                Alias type
+     *
+     * @exception StandardException
+     */
+    public void init(Object dropAliasName, Object aliasType)
+                throws StandardException
+    {
+        TableName dropItem = (TableName) dropAliasName;
+        initAndCheck(dropItem);
+        this.aliasType = (Character) aliasType;
+    
+        switch (this.aliasType)
+        {
+            case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
+                nameSpace = AliasInfo.ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR;
+                break;
+            
+            case AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR:
+                nameSpace = AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR;
+                break;
 
-			case AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR:
-				nameSpace = AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR;
-				break;
+            case AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR:
+                nameSpace = AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR;
+                break;
 
-			case AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR:
-				nameSpace = AliasInfo.ALIAS_NAME_SPACE_SYNONYM_AS_CHAR;
-				break;
+            case AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR:
+                nameSpace = AliasInfo.ALIAS_NAME_SPACE_SYNONYM_AS_CHAR;
+                break;
 
-			case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
-				nameSpace = AliasInfo.ALIAS_NAME_SPACE_UDT_AS_CHAR;
-				break;
+            case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
+                nameSpace = AliasInfo.ALIAS_NAME_SPACE_UDT_AS_CHAR;
+                break;
 
-			default:
-				if (SanityManager.DEBUG)
-				{
-					SanityManager.THROWASSERT("bad type to DropAliasNode: "+this.aliasType);
-				}
-		}
-	}
+            default:
+                if (SanityManager.DEBUG)
+                {
+                    SanityManager.THROWASSERT("bad type to DropAliasNode: "+this.aliasType);
+                }
+        }
+    }
 
-	public	char	getAliasType() { return aliasType; }
+    public    char    getAliasType() { return aliasType; }
 
-	public String statementToString()
-	{
-		return "DROP " + aliasTypeName(aliasType);
-	}
+    public String statementToString()
+    {
+        return "DROP " + aliasTypeName(aliasType);
+    }
 
-	/**
-	 * Bind this DropMethodAliasNode.  
-	 *
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void bindStatement() throws StandardException
-	{
-		DataDictionary	dataDictionary = getDataDictionary();
-		String			aliasName = getRelativeName();
+    /**
+     * Bind this DropMethodAliasNode.  
+     *
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void bindStatement() throws StandardException
+    {
+        DataDictionary    dataDictionary = getDataDictionary();
+        String            aliasName = getRelativeName();
 
-		AliasDescriptor	ad = null;
-		SchemaDescriptor sd = getSchemaDescriptor();
-		
-		if (sd.getUUID() != null) {
-			ad = dataDictionary.getAliasDescriptor
-			                          (sd.getUUID().toString(), aliasName, nameSpace );
-		}
-		if ( ad == null )
-		{
-			throw StandardException.newException(SQLState.LANG_OBJECT_DOES_NOT_EXIST, statementToString(), aliasName);
-		}
+        AliasDescriptor    ad = null;
+        SchemaDescriptor sd = getSchemaDescriptor();
+        
+        if (sd.getUUID() != null) {
+            ad = dataDictionary.getAliasDescriptor
+                                      (sd.getUUID().toString(), aliasName, nameSpace );
+        }
+        if ( ad == null )
+        {
+            throw StandardException.newException(SQLState.LANG_OBJECT_DOES_NOT_EXIST, statementToString(), aliasName);
+        }
 
-		// User cannot drop a system alias
-		if (ad.getSystemAlias())
-		{
-			throw StandardException.newException(SQLState.LANG_CANNOT_DROP_SYSTEM_ALIASES, aliasName);
-		}
+        // User cannot drop a system alias
+        if (ad.getSystemAlias())
+        {
+            throw StandardException.newException(SQLState.LANG_CANNOT_DROP_SYSTEM_ALIASES, aliasName);
+        }
 
-		// Statement is dependent on the AliasDescriptor
-		getCompilerContext().createDependency(ad);
-	}
+        // Statement is dependent on the AliasDescriptor
+        getCompilerContext().createDependency(ad);
+    }
 
-	// inherit generate() method from DDLStatementNode
+    // inherit generate() method from DDLStatementNode
 
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public ConstantAction	makeConstantAction() throws StandardException
-	{
-		return	getGenericConstantActionFactory().getDropAliasConstantAction(getSchemaDescriptor(), getRelativeName(), nameSpace);
-	}
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public ConstantAction    makeConstantAction() throws StandardException
+    {
+        return    getGenericConstantActionFactory().getDropAliasConstantAction(getSchemaDescriptor(), getRelativeName(), nameSpace);
+    }
 
-	/* returns the alias type name given the alias char type */
-	private static String aliasTypeName( char actualType)
-	{
-		String	typeName = null;
+    /* returns the alias type name given the alias char type */
+    private static String aliasTypeName( char actualType)
+    {
+        String    typeName = null;
 
-		switch ( actualType )
-		{
-		    case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
-			    typeName = "DERBY AGGREGATE";
-			    break;
-			case AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR:
-				typeName = "PROCEDURE";
-				break;
-			case AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR:
-				typeName = "FUNCTION";
-				break;
-			case AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR:
-				typeName = "SYNONYM";
-				break;
-			case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
-				typeName = "TYPE";
-				break;
-		}
-		return typeName;
-	}
+        switch ( actualType )
+        {
+            case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
+                typeName = "DERBY AGGREGATE";
+                break;
+            case AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR:
+                typeName = "PROCEDURE";
+                break;
+            case AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR:
+                typeName = "FUNCTION";
+                break;
+            case AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR:
+                typeName = "SYNONYM";
+                break;
+            case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
+                typeName = "TYPE";
+                break;
+        }
+        return typeName;
+    }
 }

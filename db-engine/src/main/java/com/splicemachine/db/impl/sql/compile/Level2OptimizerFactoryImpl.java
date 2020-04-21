@@ -47,76 +47,76 @@ import com.splicemachine.db.iapi.error.StandardException;
 import java.util.Properties;
 
 /**
-	This is simply the factory for creating an optimizer.
+    This is simply the factory for creating an optimizer.
  */
 
 public class Level2OptimizerFactoryImpl
-	extends OptimizerFactoryImpl 
+    extends OptimizerFactoryImpl 
 {
 
-	//
-	// ModuleControl interface
-	//
+    //
+    // ModuleControl interface
+    //
 
-	public void boot(boolean create, Properties startParams)
-			throws StandardException 
-	{
-		super.boot(create, startParams);
-	}
+    public void boot(boolean create, Properties startParams)
+            throws StandardException 
+    {
+        super.boot(create, startParams);
+    }
 
-	//
-	// OptimizerFactory interface
-	//
+    //
+    // OptimizerFactory interface
+    //
 
-	/**
-	 * @see OptimizerFactory#supportsOptimizerTrace
-	 */
-	public boolean supportsOptimizerTrace()
-	{
-		return true;
-	}
+    /**
+     * @see OptimizerFactory#supportsOptimizerTrace
+     */
+    public boolean supportsOptimizerTrace()
+    {
+        return true;
+    }
 
-	//
-	// class interface
-	//
-	public Level2OptimizerFactoryImpl() 
-	{
-	}
+    //
+    // class interface
+    //
+    public Level2OptimizerFactoryImpl() 
+    {
+    }
 
-	protected Optimizer getOptimizerImpl(
-								  OptimizableList optimizableList,
-								  OptimizablePredicateList predList,
-								  DataDictionary dDictionary,
-								  RequiredRowOrdering requiredRowOrdering,
-								  int numTablesInQuery,
-								  LanguageConnectionContext lcc)
-				throws StandardException
-	{
+    protected Optimizer getOptimizerImpl(
+                                  OptimizableList optimizableList,
+                                  OptimizablePredicateList predList,
+                                  DataDictionary dDictionary,
+                                  RequiredRowOrdering requiredRowOrdering,
+                                  int numTablesInQuery,
+                                  LanguageConnectionContext lcc)
+                throws StandardException
+    {
 
-		return new Level2OptimizerImpl(
-							optimizableList,
-							predList,
-							dDictionary,
-							ruleBasedOptimization,
-							noTimeout,
-							useStatistics,
-							maxMemoryPerTable,
-							joinStrategySet,
-							lcc.getLockEscalationThreshold(),
-							requiredRowOrdering,
-							numTablesInQuery,
-							lcc);
-	}
+        return new Level2OptimizerImpl(
+                            optimizableList,
+                            predList,
+                            dDictionary,
+                            ruleBasedOptimization,
+                            noTimeout,
+                            useStatistics,
+                            maxMemoryPerTable,
+                            joinStrategySet,
+                            lcc.getLockEscalationThreshold(),
+                            requiredRowOrdering,
+                            numTablesInQuery,
+                            lcc);
+    }
 
-	/**
-	 * @see OptimizerFactory#getCostEstimate
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public CostEstimate getCostEstimate()
-		throws StandardException
-	{
-		return new Level2CostEstimateImpl();
-	}
+    /**
+     * @see OptimizerFactory#getCostEstimate
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public CostEstimate getCostEstimate()
+        throws StandardException
+    {
+        return new Level2CostEstimateImpl();
+    }
 }
 

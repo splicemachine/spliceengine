@@ -52,8 +52,8 @@ public class TablePermsDescriptor extends PermissionsDescriptor
     private String updatePriv;
     private String referencesPriv;
     private String triggerPriv;
-	
-	public TablePermsDescriptor( DataDictionary dd,
+    
+    public TablePermsDescriptor( DataDictionary dd,
                                  String grantee,
                                  String grantor,
                                  UUID tableUUID,
@@ -63,8 +63,8 @@ public class TablePermsDescriptor extends PermissionsDescriptor
                                  String updatePriv,
                                  String referencesPriv,
                                  String triggerPriv) throws StandardException
-	{
-		super (dd, grantee, grantor);
+    {
+        super (dd, grantee, grantor);
         this.tableUUID = tableUUID;
         this.selectPriv = selectPriv;
         this.deletePriv = deletePriv;
@@ -75,8 +75,8 @@ public class TablePermsDescriptor extends PermissionsDescriptor
         //tableUUID can be null only if the constructor with tablePermsUUID
         //has been invoked.
         if (tableUUID != null)
-        	tableName = dd.getTableDescriptor(tableUUID).getName();
-	}
+            tableName = dd.getTableDescriptor(tableUUID).getName();
+    }
 
     /**
      * This constructor just sets up the key fields of a TablePermsDescriptor
@@ -96,14 +96,14 @@ public class TablePermsDescriptor extends PermissionsDescriptor
         this( dd, null, null, null,
                 (String) null, (String) null, (String) null, (String) null, (String) null, (String) null);
         this.oid = tablePermsUUID;
-			}
+            }
 
     public int getCatalogNumber()
     {
         return DataDictionary.SYSTABLEPERMS_CATALOG_NUM;
     }
-	
-	/*----- getter functions for rowfactory ------*/
+    
+    /*----- getter functions for rowfactory ------*/
     public UUID getTableUUID() { return tableUUID;}
     public String getSelectPriv() { return selectPriv;}
     public String getDeletePriv() { return deletePriv;}
@@ -112,11 +112,11 @@ public class TablePermsDescriptor extends PermissionsDescriptor
     public String getReferencesPriv() { return referencesPriv;}
     public String getTriggerPriv() { return triggerPriv;}
 
-	public String toString()
-	{
-		return "tablePerms: grantee=" + getGrantee() +
-		",tablePermsUUID=" + getUUID() +
-			",grantor=" + getGrantor() +
+    public String toString()
+    {
+        return "tablePerms: grantee=" + getGrantee() +
+        ",tablePermsUUID=" + getUUID() +
+            ",grantor=" + getGrantor() +
           ",tableUUID=" + getTableUUID() +
           ",selectPriv=" + getSelectPriv() +
           ",deletePriv=" + getDeletePriv() +
@@ -124,7 +124,7 @@ public class TablePermsDescriptor extends PermissionsDescriptor
           ",updatePriv=" + getUpdatePriv() +
           ",referencesPriv=" + getReferencesPriv() +
           ",triggerPriv=" + getTriggerPriv();
-	}
+    }
 
     /**
      * @return true iff the key part of this permissions descriptor equals the key part of another permissions
@@ -143,52 +143,52 @@ public class TablePermsDescriptor extends PermissionsDescriptor
      */
     public int hashCode()
     {
-    	return super.keyHashCode() + tableUUID.hashCode();
+        return super.keyHashCode() + tableUUID.hashCode();
     }
-	
-	/**
-	 * @see PermissionsDescriptor#checkOwner
-	 */
-	public boolean checkOwner(String authorizationId) throws StandardException
-	{
-		TableDescriptor td = getDataDictionary().getTableDescriptor(tableUUID);
+    
+    /**
+     * @see PermissionsDescriptor#checkOwner
+     */
+    public boolean checkOwner(String authorizationId) throws StandardException
+    {
+        TableDescriptor td = getDataDictionary().getTableDescriptor(tableUUID);
         return td.getSchemaDescriptor().getAuthorizationId().equals(authorizationId);
-	}
+    }
 
-	//////////////////////////////////////////////
-	//
-	// PROVIDER INTERFACE
-	//
-	//////////////////////////////////////////////
+    //////////////////////////////////////////////
+    //
+    // PROVIDER INTERFACE
+    //
+    //////////////////////////////////////////////
 
-	/**
-	 * Return the name of this Provider.  (Useful for errors.)
-	 *
-	 * @return String	The name of this provider.
-	 */
-	public String getObjectName()
-	{
-		return "Table Privilege on " + tableName; 
-	}
+    /**
+     * Return the name of this Provider.  (Useful for errors.)
+     *
+     * @return String    The name of this provider.
+     */
+    public String getObjectName()
+    {
+        return "Table Privilege on " + tableName; 
+    }
 
-	/**
-	 * Get the provider's type.
-	 *
-	 * @return char		The provider's type.
-	 */
-	public String getClassType()
-	{
-		return Dependable.TABLE_PERMISSION;
-	}
+    /**
+     * Get the provider's type.
+     *
+     * @return char        The provider's type.
+     */
+    public String getClassType()
+    {
+        return Dependable.TABLE_PERMISSION;
+    }
 
-	/**		
-		@return the stored form of this provider
+    /**        
+        @return the stored form of this provider
 
-			@see Dependable#getDependableFinder
-	 */
-	public DependableFinder getDependableFinder() 
-	{
+            @see Dependable#getDependableFinder
+     */
+    public DependableFinder getDependableFinder() 
+    {
         return getDependableFinder(
                 StoredFormatIds.TABLE_PERMISSION_FINDER_V01_ID);
-	}
+    }
 }

@@ -41,10 +41,10 @@ import com.splicemachine.dbTesting.junit.TestConfiguration;
 public class Derby5582AutomaticIndexStatisticsTest extends AutomaticIndexStatisticsTest  {
 
     // private thread group. Derby5582SecurityManager will prevent other threads from 
-	// modifying this thread group.
+    // modifying this thread group.
     private static final String PRIVTGNAME = "privtg";
 
-	public Derby5582AutomaticIndexStatisticsTest(String name) {
+    public Derby5582AutomaticIndexStatisticsTest(String name) {
         super(name);
         
     }
@@ -77,7 +77,7 @@ public class Derby5582AutomaticIndexStatisticsTest extends AutomaticIndexStatist
    
     
     public static Test suite() {
-    	// Run just the one fixture with the custom SecurityManager
+        // Run just the one fixture with the custom SecurityManager
         Test t = new Derby5582AutomaticIndexStatisticsTest("testDerby5582");
         Derby5582SecurityManager sm =  new Derby5582SecurityManager();
         return TestConfiguration.additionalDatabaseDecorator(new SecurityManagerSetup(t, null,
@@ -109,24 +109,24 @@ public class Derby5582AutomaticIndexStatisticsTest extends AutomaticIndexStatist
      */
     public class Derby5582Runner implements Runnable {
 
-    	// error saved from run so it can be reported in 
-    	// fixture as failure.
-    	private Exception savedError = null;
+        // error saved from run so it can be reported in 
+        // fixture as failure.
+        private Exception savedError = null;
 
-    	public void run() {
-    		try {
-    			testStatsUpdatedOnGrowth();
-    		} catch (SQLException sqle) {
-    			savedError = sqle;
-    		}   
-    	}
+        public void run() {
+            try {
+                testStatsUpdatedOnGrowth();
+            } catch (SQLException sqle) {
+                savedError = sqle;
+            }   
+        }
 
-    	/**
-    	 * @return saved Error
-    	 */
-    	public Exception getSavedError() {
-    		return savedError;
-    	}
+        /**
+         * @return saved Error
+         */
+        public Exception getSavedError() {
+            return savedError;
+        }
 
     }
 }

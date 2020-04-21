@@ -45,39 +45,39 @@ public class DefaultWriteConfigurationTest {
 
         this.exceptionFactory = testDataEnv.pipelineExceptionFactory();
     }
-	/**
-	 * MapR likes to throw CallerDisconnectedExceptions during bulk writes and BulkWriteAction was retrying infinitely
-	 * since it was always receiving this exception since the client went "bye-bye".  The import task needs to be failed in this case.
-	 * @throws ExecutionException
-	 */
-	@Test
-	public void testCallerDisconnectedException() throws ExecutionException {
-		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null,exceptionFactory);
-		Assert.assertEquals(WriteResponse.THROW_ERROR, configuration.globalError(exceptionFactory.callerDisconnected("Disconnected")));
-	}
+    /**
+     * MapR likes to throw CallerDisconnectedExceptions during bulk writes and BulkWriteAction was retrying infinitely
+     * since it was always receiving this exception since the client went "bye-bye".  The import task needs to be failed in this case.
+     * @throws ExecutionException
+     */
+    @Test
+    public void testCallerDisconnectedException() throws ExecutionException {
+        DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null,exceptionFactory);
+        Assert.assertEquals(WriteResponse.THROW_ERROR, configuration.globalError(exceptionFactory.callerDisconnected("Disconnected")));
+    }
 
-	@Test
-	public void testDoNotRetryIOException() throws ExecutionException {
-		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null,exceptionFactory);
-		Assert.assertEquals(WriteResponse.THROW_ERROR, configuration.globalError(exceptionFactory.doNotRetry("Some I/O exception occurred")));
-	}
+    @Test
+    public void testDoNotRetryIOException() throws ExecutionException {
+        DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null,exceptionFactory);
+        Assert.assertEquals(WriteResponse.THROW_ERROR, configuration.globalError(exceptionFactory.doNotRetry("Some I/O exception occurred")));
+    }
 
-	@Test
-	public void testRpcClientFailedServerException() throws ExecutionException {
-		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null,exceptionFactory);
-		Assert.assertEquals(WriteResponse.THROW_ERROR, configuration.globalError(exceptionFactory.failedServer("A server has failed")));
-	}
+    @Test
+    public void testRpcClientFailedServerException() throws ExecutionException {
+        DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null,exceptionFactory);
+        Assert.assertEquals(WriteResponse.THROW_ERROR, configuration.globalError(exceptionFactory.failedServer("A server has failed")));
+    }
 
-	@Test
-	public void testNotServingRegionException() throws ExecutionException {
-		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null,exceptionFactory);
-		Assert.assertEquals(WriteResponse.RETRY, configuration.globalError(exceptionFactory.notServingPartition("Some remote region not serving exception occurred")));
-	}
+    @Test
+    public void testNotServingRegionException() throws ExecutionException {
+        DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null,exceptionFactory);
+        Assert.assertEquals(WriteResponse.RETRY, configuration.globalError(exceptionFactory.notServingPartition("Some remote region not serving exception occurred")));
+    }
 
-	@Test
-	public void testConnectionClosedException() throws ExecutionException {
-		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null,exceptionFactory);
-		Assert.assertEquals(WriteResponse.RETRY, configuration.globalError(exceptionFactory.connectionClosingException()));
-	}
+    @Test
+    public void testConnectionClosedException() throws ExecutionException {
+        DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null,exceptionFactory);
+        Assert.assertEquals(WriteResponse.RETRY, configuration.globalError(exceptionFactory.connectionClosingException()));
+    }
 
 }

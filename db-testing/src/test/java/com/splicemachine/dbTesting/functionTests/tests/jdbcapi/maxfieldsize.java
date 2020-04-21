@@ -46,8 +46,8 @@ import com.splicemachine.dbTesting.functionTests.util.TestUtil;
 
 public class maxfieldsize { 
 
-	static final int START_SECOND_HALF = 5;
-	static final int NUM_EXECUTIONS = 2 * START_SECOND_HALF;
+    static final int START_SECOND_HALF = 5;
+    static final int NUM_EXECUTIONS = 2 * START_SECOND_HALF;
 
     static final String c1_value="C1XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
     static final String c2_value="C2XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
@@ -55,30 +55,30 @@ public class maxfieldsize {
     static final String c4_value="C4XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
     static final String c5_value="C5XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
     static final String c6_value="C6XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
-	
-	static private boolean isDerbyNet = false;
+    
+    static private boolean isDerbyNet = false;
    
-	public static void main(String[] args) {
-		Connection conn;
-		Statement stmt;
+    public static void main(String[] args) {
+        Connection conn;
+        Statement stmt;
 
-		// start by cleaning up, just in case
-		String[] testObjects = {"table tab1", "table tab2"};
-		
+        // start by cleaning up, just in case
+        String[] testObjects = {"table tab1", "table tab2"};
+        
 
-		System.out.println("Test MaxFieldSize  starting");
+        System.out.println("Test MaxFieldSize  starting");
 
-		isDerbyNet = TestUtil.isNetFramework();
-		try
-		{
-			// use the ij utility to read the property file and
-			// make the initial connection.
-			 ij.getPropertyArg(args);
-			 conn = ij.startJBMS();
-			 stmt = conn.createStatement();
+        isDerbyNet = TestUtil.isNetFramework();
+        try
+        {
+            // use the ij utility to read the property file and
+            // make the initial connection.
+             ij.getPropertyArg(args);
+             conn = ij.startJBMS();
+             stmt = conn.createStatement();
 
             //create a table, insert a row, do a select from the table,
-			 stmt.execute("create table tab1("+
+             stmt.execute("create table tab1("+
                                            "c1 char(100) for bit data,"+
                                            "c2 varchar(100) for bit data," +
                                            "c3 long varchar for bit data,"+
@@ -92,57 +92,57 @@ public class maxfieldsize {
             int loop = 0;
             while (loop < NUM_EXECUTIONS )
             {
-				if (loop == START_SECOND_HALF)
-				{
-					stmt.setMaxFieldSize(24);
-				}
+                if (loop == START_SECOND_HALF)
+                {
+                    stmt.setMaxFieldSize(24);
+                }
 
-				System.out.println("Iteration #: " + loop);
-	            System.out.println("Max Field Size = "  + stmt.getMaxFieldSize());
-				ResultSet rs = stmt.executeQuery("select * from tab1");
+                System.out.println("Iteration #: " + loop);
+                System.out.println("Max Field Size = "  + stmt.getMaxFieldSize());
+                ResultSet rs = stmt.executeQuery("select * from tab1");
                 while (rs.next())
                 {
                     for(int i=1 ; i < 7 ; i++)
                     {
-						System.out.println("Column #: " + i);
-						switch (loop % START_SECOND_HALF)
-						{
-							case 0:
-		                        connectionJdbc20.get_using_object(rs, i);
-								break;
+                        System.out.println("Column #: " + i);
+                        switch (loop % START_SECOND_HALF)
+                        {
+                            case 0:
+                                connectionJdbc20.get_using_object(rs, i);
+                                break;
 
-							case 1:
-								if (isDerbyNet)
-									System.out.println("beetle 5350 - JCC returns incorrect result for maxfieldsize()");
-								connectionJdbc20.get_using_string(rs, i);
-								break;
+                            case 1:
+                                if (isDerbyNet)
+                                    System.out.println("beetle 5350 - JCC returns incorrect result for maxfieldsize()");
+                                connectionJdbc20.get_using_string(rs, i);
+                                break;
 
-							case 2:
-								connectionJdbc20.get_using_ascii_stream(rs, i);
-								break;
+                            case 2:
+                                connectionJdbc20.get_using_ascii_stream(rs, i);
+                                break;
 
-							case 3:
-		                        if(i < 4 ) // only c1 , c2, c3
-				                {
-						            connectionJdbc20.get_using_binary_stream(rs, i);
-								}
-								else
-								{
-									System.out.println("SKIPPING");
-								}
-								break;
+                            case 3:
+                                if(i < 4 ) // only c1 , c2, c3
+                                {
+                                    connectionJdbc20.get_using_binary_stream(rs, i);
+                                }
+                                else
+                                {
+                                    System.out.println("SKIPPING");
+                                }
+                                break;
 
-							case 4:
-		                        if(i < 4 ) // only c1 , c2, c3
-				                {
-								    connectionJdbc20.get_using_bytes(rs, i);
-								}
-								else
-								{
-									System.out.println("SKIPPING");
-								}
-								break;
-						}
+                            case 4:
+                                if(i < 4 ) // only c1 , c2, c3
+                                {
+                                    connectionJdbc20.get_using_bytes(rs, i);
+                                }
+                                else
+                                {
+                                    System.out.println("SKIPPING");
+                                }
+                                break;
+                        }
                     } 
                 }
                 rs.close();
@@ -153,36 +153,36 @@ public class maxfieldsize {
                 // negative value should throw an exception
                 stmt.setMaxFieldSize(-200);
             } catch (SQLException e) {
-				if ((e.getMessage() != null &&
-					 e.getMessage().indexOf("Invalid maxFieldSize value") >= 0)
-					|| (e.getSQLState() != null &&
-						(e.getSQLState().equals("XJ066"))))
-					System.out.println("Expected Exception - Invalid maxFieldsize");
-				else System.out.println("Unexpected FAILURE at " +e);
+                if ((e.getMessage() != null &&
+                     e.getMessage().indexOf("Invalid maxFieldSize value") >= 0)
+                    || (e.getSQLState() != null &&
+                        (e.getSQLState().equals("XJ066"))))
+                    System.out.println("Expected Exception - Invalid maxFieldsize");
+                else System.out.println("Unexpected FAILURE at " +e);
             }
             // zero is valid value -- which means unlimited
             stmt.setMaxFieldSize(0);
 
-			// Do an external sort (forced via properties file),
-			// verifying that streams work correctly
-			System.out.println("Doing external sort");
+            // Do an external sort (forced via properties file),
+            // verifying that streams work correctly
+            System.out.println("Doing external sort");
 
-			testSort(conn, stmt);
+            testSort(conn, stmt);
 
-			stmt.close();
-			conn.close();
+            stmt.close();
+            conn.close();
 
-		}
-		catch (SQLException e) {
-			dumpSQLExceptions(e);
-			e.printStackTrace();
-		}
-		catch (Throwable e) {
-			System.out.println("FAIL -- unexpected exception: "+e);
-			e.printStackTrace();
-		}
+        }
+        catch (SQLException e) {
+            dumpSQLExceptions(e);
+            e.printStackTrace();
+        }
+        catch (Throwable e) {
+            System.out.println("FAIL -- unexpected exception: "+e);
+            e.printStackTrace();
+        }
 
-		System.out.println("Test maxfieldsize  finished");
+        System.out.println("Test maxfieldsize  finished");
     }
 
 
@@ -201,30 +201,30 @@ public class maxfieldsize {
             pstmt.setString(6, c6_value);
             pstmt.execute();
         }
-		catch(SQLException e)
-		{
-			dumpSQLExceptions(e);
-			e.printStackTrace();
+        catch(SQLException e)
+        {
+            dumpSQLExceptions(e);
+            e.printStackTrace();
         }
-		catch(Throwable e )
-		{
-			System.out.println("Fail -- unexpected exception ");
-			e.printStackTrace();
+        catch(Throwable e )
+        {
+            System.out.println("Fail -- unexpected exception ");
+            e.printStackTrace();
         }
-		finally
-		{
+        finally
+        {
              pstmt.close();
         }
     }
 
-	private static void testSort(Connection conn, Statement stmt)
-		throws SQLException, java.io.UnsupportedEncodingException
-	{
-		PreparedStatement insertPStmt;
+    private static void testSort(Connection conn, Statement stmt)
+        throws SQLException, java.io.UnsupportedEncodingException
+    {
+        PreparedStatement insertPStmt;
 
-		// Load up a 2nd table using streams where appropriate
-		stmt.execute("create table tab2("+
-									   "c0 int, " +
+        // Load up a 2nd table using streams where appropriate
+        stmt.execute("create table tab2("+
+                                       "c0 int, " +
                                           "c1 char(100) for bit data,"+
                                           "c2 varchar(100) for bit data," +
                                           "c3 long varchar for bit data,"+
@@ -232,97 +232,97 @@ public class maxfieldsize {
                                           "c5 varchar(100),"+
                                           "c6 long varchar)");
 
-		// Populate the table
-		insertPStmt = conn.prepareStatement(
-						"insert into tab2 values (?, ?, ?, ?, ?, ?, ?)");
-		for (int index = 0; index < 5000; index++)
-		{
-			insertPStmt.setInt(1, index);
+        // Populate the table
+        insertPStmt = conn.prepareStatement(
+                        "insert into tab2 values (?, ?, ?, ?, ?, ?, ?)");
+        for (int index = 0; index < 5000; index++)
+        {
+            insertPStmt.setInt(1, index);
             insertPStmt.setBytes(2, c1_value.getBytes("US-ASCII"));
             insertPStmt.setBytes(3, c2_value.getBytes("US-ASCII"));
             insertPStmt.setBytes(4, c3_value.getBytes("US-ASCII"));
             insertPStmt.setString(5, c4_value);
             insertPStmt.setString(6, c5_value);
             insertPStmt.setString(7, c6_value);
-			insertPStmt.executeUpdate();
-		}
+            insertPStmt.executeUpdate();
+        }
 
-		insertPStmt.close();
+        insertPStmt.close();
 
-		// Do sort with maxFieldSize = 0
-		doSort(stmt);
+        // Do sort with maxFieldSize = 0
+        doSort(stmt);
 
-		// Set maxFieldSize to 24 and do another sort
-		stmt.setMaxFieldSize(24);
-		doSort(stmt);
-	}
+        // Set maxFieldSize to 24 and do another sort
+        stmt.setMaxFieldSize(24);
+        doSort(stmt);
+    }
 
-	private static void doSort(Statement stmt)
-		throws SQLException
-	{
-		System.out.println("Max Field Size = "  + stmt.getMaxFieldSize());
+    private static void doSort(Statement stmt)
+        throws SQLException
+    {
+        System.out.println("Max Field Size = "  + stmt.getMaxFieldSize());
 
-		try
-		{
-			/* Do a descending sort on 1st column, but only select
-			 * out 1st and last 5 rows.  This should test streaming to/from
-			 * a work table.
-			 */
-			ResultSet rs = stmt.executeQuery("select * from tab2 order by c0 desc");
-			for (int index = 0; index < 5000; index++)
-			{
-				rs.next();
-				if (index < 5 || index >= 4995)
-				{
-					System.out.println("Iteration #: " + index);
-					System.out.println("Column #1: " + rs.getInt(1));
-					System.out.println("Column #2:");
-					connectionJdbc20.get_using_binary_stream(rs, 2);
-					System.out.println("Column #3:");
-					connectionJdbc20.get_using_binary_stream(rs, 3);
-					System.out.println("Column #4:");
-					connectionJdbc20.get_using_binary_stream(rs, 4);
-					System.out.println("Column #5:");
-					connectionJdbc20.get_using_ascii_stream(rs, 5);
-					System.out.println("Column #6:");
-					connectionJdbc20.get_using_ascii_stream(rs, 6);
-					System.out.println("Column #7:");
-					connectionJdbc20.get_using_ascii_stream(rs, 7);
-				}
-			}
-		}
-		catch (SQLException e) 
-		{
-			throw e;
-		}
-		catch (Throwable e) {
-			System.out.println("FAIL -- unexpected exception: "+e);
-			e.printStackTrace();
-		}
-	}
-
-	static private void dumpSQLExceptions (SQLException se) {
-		System.out.println("FAIL -- unexpected exception");
-		while (se != null)
-		{
-			System.out.println("SQLSTATE("+se.getSQLState()+"): "+se);
-			se = se.getNextException();
-		}
-	}
-
-	static private void dumpExpectedSQLExceptions (SQLException se) {
-		System.out.println("PASS -- expected exception");
-		while (se != null)
-		{
-			System.out.println("SQLSTATE("+se.getSQLState()+"): "+se);
-			se = se.getNextException();
+        try
+        {
+            /* Do a descending sort on 1st column, but only select
+             * out 1st and last 5 rows.  This should test streaming to/from
+             * a work table.
+             */
+            ResultSet rs = stmt.executeQuery("select * from tab2 order by c0 desc");
+            for (int index = 0; index < 5000; index++)
+            {
+                rs.next();
+                if (index < 5 || index >= 4995)
+                {
+                    System.out.println("Iteration #: " + index);
+                    System.out.println("Column #1: " + rs.getInt(1));
+                    System.out.println("Column #2:");
+                    connectionJdbc20.get_using_binary_stream(rs, 2);
+                    System.out.println("Column #3:");
+                    connectionJdbc20.get_using_binary_stream(rs, 3);
+                    System.out.println("Column #4:");
+                    connectionJdbc20.get_using_binary_stream(rs, 4);
+                    System.out.println("Column #5:");
+                    connectionJdbc20.get_using_ascii_stream(rs, 5);
+                    System.out.println("Column #6:");
+                    connectionJdbc20.get_using_ascii_stream(rs, 6);
+                    System.out.println("Column #7:");
+                    connectionJdbc20.get_using_ascii_stream(rs, 7);
+                }
+            }
+        }
+        catch (SQLException e) 
+        {
+            throw e;
+        }
+        catch (Throwable e) {
+            System.out.println("FAIL -- unexpected exception: "+e);
+            e.printStackTrace();
         }
     }
 
-	static private void cleanUp(Connection conn) throws SQLException
-	{
-		
-	}
+    static private void dumpSQLExceptions (SQLException se) {
+        System.out.println("FAIL -- unexpected exception");
+        while (se != null)
+        {
+            System.out.println("SQLSTATE("+se.getSQLState()+"): "+se);
+            se = se.getNextException();
+        }
+    }
+
+    static private void dumpExpectedSQLExceptions (SQLException se) {
+        System.out.println("PASS -- expected exception");
+        while (se != null)
+        {
+            System.out.println("SQLSTATE("+se.getSQLState()+"): "+se);
+            se = se.getNextException();
+        }
+    }
+
+    static private void cleanUp(Connection conn) throws SQLException
+    {
+        
+    }
 
 
 }

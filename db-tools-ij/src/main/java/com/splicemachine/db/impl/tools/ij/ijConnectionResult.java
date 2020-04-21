@@ -39,16 +39,16 @@ import java.sql.SQLWarning;
  */
 class ijConnectionResult extends ijResultImpl {
 
-	Connection conn;
+    Connection conn;
 
-	ijConnectionResult(Connection c) {
-		conn = c;
-	}
+    ijConnectionResult(Connection c) {
+        conn = c;
+    }
 
-	public boolean isConnection() { return true; }
+    public boolean isConnection() { return true; }
 
-	public Connection getConnection() { return conn; }
+    public Connection getConnection() { return conn; }
 
-	public SQLWarning getSQLWarnings() throws SQLException { return conn.getWarnings(); }
-	public void clearSQLWarnings() throws SQLException { conn.clearWarnings(); }
+    public SQLWarning getSQLWarnings() throws SQLException { return conn.getWarnings(); }
+    public void clearSQLWarnings() throws SQLException { conn.clearWarnings(); }
 }

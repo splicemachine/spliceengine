@@ -172,10 +172,10 @@ public class PrivilegeNode extends QueryTreeNode
      * @param isGrant grant if true; revoke if false
      * @return the bound node
      *
-     * @exception StandardException	Standard error policy.
+     * @exception StandardException    Standard error policy.
      */
-	public QueryTreeNode bind( HashMap dependencies, List grantees, boolean isGrant ) throws StandardException
-	{
+    public QueryTreeNode bind( HashMap dependencies, List grantees, boolean isGrant ) throws StandardException
+    {
         SchemaDescriptor sd;
 
         switch( objectType)
@@ -233,7 +233,7 @@ public class PrivilegeNode extends QueryTreeNode
             }
 
             if (td.getTableType() != TableDescriptor.BASE_TABLE_TYPE &&
-            		td.getTableType() != TableDescriptor.VIEW_TYPE)
+                    td.getTableType() != TableDescriptor.VIEW_TYPE)
             {
                 throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, objectName.getFullTableName());
             }
@@ -255,7 +255,7 @@ public class PrivilegeNode extends QueryTreeNode
             {
                 throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, objectName.getFullTableName());
             }
-				
+                
             AliasDescriptor proc = null;
             RoutineAliasInfo routineInfo;
             List<AliasDescriptor> list = getDataDictionary().getRoutineList(

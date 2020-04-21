@@ -32,26 +32,26 @@
 package com.splicemachine.dbTesting.functionTests.util;
 
 public class SubInterfaceClass extends ManyMethods
-	implements NoMethodInterface, ExtendingInterface {
+    implements NoMethodInterface, ExtendingInterface {
 
-	public SubInterfaceClass(int value) {
-		super(value);
-	}
+    public SubInterfaceClass(int value) {
+        super(value);
+    }
 
-	/*
-	** Methods of Runnable (from ExtendingInterface)
-	*/
+    /*
+    ** Methods of Runnable (from ExtendingInterface)
+    */
 
-	public void run() {
-	}
+    public void run() {
+    }
 
-	/*
-	** Methods of ExtendingInterface
-	*/
+    /*
+    ** Methods of ExtendingInterface
+    */
 
-	public void wait(int a, long b) {}
+    public void wait(int a, long b) {}
 
-	public Object eimethod(Object a) {
-		return a;
-	}
+    public Object eimethod(Object a) {
+        return a;
+    }
 }

@@ -38,131 +38,131 @@ public interface Transaction {
     void setNoLockWait(boolean noWait) throws IOException;
 
 
-	/**
-		Commit this transaction. All savepoints within this transaction are 
+    /**
+        Commit this transaction. All savepoints within this transaction are 
         released.
 
-		@return the commit instant of this transaction, or null if it
-		didn't make any changes 
-	*/
+        @return the commit instant of this transaction, or null if it
+        didn't make any changes 
+    */
 
-	void commit() throws IOException;
+    void commit() throws IOException;
 
-	/**
-	    "Commit" this transaction without sync'ing the log.
-		Everything else is identical to commit(), use this at your own risk.
-		
-		<BR>bits in the commitflag can turn on to fine tuned the "commit":
-		KEEP_LOCKS - no locks will be released by the commit and no post commit
-		processing will be initiated.  If, for some reasons, the locks cannot be
-		kept even if this flag is set, then the commit will sync the log, i.e.,
-		it will revert to the normal commit.
-	*/
+    /**
+        "Commit" this transaction without sync'ing the log.
+        Everything else is identical to commit(), use this at your own risk.
+        
+        <BR>bits in the commitflag can turn on to fine tuned the "commit":
+        KEEP_LOCKS - no locks will be released by the commit and no post commit
+        processing will be initiated.  If, for some reasons, the locks cannot be
+        kept even if this flag is set, then the commit will sync the log, i.e.,
+        it will revert to the normal commit.
+    */
 
-	void commitNoSync(int commitflag) throws IOException;
+    void commitNoSync(int commitflag) throws IOException;
 
-	/**
-		Abort all changes made by this transaction since the last commit, abort
-		or the point the transaction was started, whichever is the most recent.
-		All savepoints within this transaction are released.
+    /**
+        Abort all changes made by this transaction since the last commit, abort
+        or the point the transaction was started, whichever is the most recent.
+        All savepoints within this transaction are released.
 
-	*/
-	void abort() throws IOException;
+    */
+    void abort() throws IOException;
 
-	/**
-		Close this transaction, the transaction must be idle. This close will
-		pop the transaction context off the stack that was pushed when the 
+    /**
+        Close this transaction, the transaction must be idle. This close will
+        pop the transaction context off the stack that was pushed when the 
         transaction was started.
-	*/
-	void close() throws IOException;
+    */
+    void close() throws IOException;
 
-	/**
+    /**
         If this transaction is not idle, abort it.  After this call close().
 
-	*/
-	void destroy() throws IOException;
+    */
+    void destroy() throws IOException;
 
 
-	/**
-		Set a save point in the current transaction. A save point defines a 
+    /**
+        Set a save point in the current transaction. A save point defines a 
         point in time in the transaction that changes can be rolled back to. 
         Savepoints can be nested and they behave like a stack. Setting save 
         points "one" and "two" and the rolling back "one" will rollback all 
         the changes made since "one" (including those made since "two") and 
         release savepoint "two".
     @param name     The user provided name of the savepoint
-	  @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
+      @param    kindOfSavepoint     A NULL value means it is an internal savepoint (ie not a user defined savepoint)
                     Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
                     A String value for kindOfSavepoint would mean it is SQL savepoint
                     A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
 
-		@return returns total number of savepoints in the stack.
+        @return returns total number of savepoints in the stack.
         A statement level exception is thrown if a savepoint already
         exists in the current transaction with the same name.
-		
-	*/
+        
+    */
 
-	int setSavePoint(String name, Object kindOfSavepoint) throws IOException;
+    int setSavePoint(String name, Object kindOfSavepoint) throws IOException;
 
-	/**
-		Release the save point of the given name. Relasing a savepoint removes 
+    /**
+        Release the save point of the given name. Relasing a savepoint removes 
         all knowledge from this transaction of the named savepoint and any 
         savepoints set since the named savepoint was set.
     @param name     The user provided name of the savepoint, set by the user
                     in the setSavePoint() call.
-	  @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
+      @param    kindOfSavepoint     A NULL value means it is an internal savepoint (ie not a user defined savepoint)
                     Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
                     A String value for kindOfSavepoint would mean it is SQL savepoint
                     A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
 
-		@return returns total number of savepoints in the stack.
+        @return returns total number of savepoints in the stack.
 
-	*/
+    */
 
-	int releaseSavePoint(String name, Object kindOfSavepoint) throws IOException;
+    int releaseSavePoint(String name, Object kindOfSavepoint) throws IOException;
 
-	/**
-		Rollback all changes made since the named savepoint was set. The named
-		savepoint is not released, it remains valid within this transaction, and
-		thus can be named it future rollbackToSavePoint() calls. Any savepoints
-		set since this named savepoint are released (and their changes rolled
+    /**
+        Rollback all changes made since the named savepoint was set. The named
+        savepoint is not released, it remains valid within this transaction, and
+        thus can be named it future rollbackToSavePoint() calls. Any savepoints
+        set since this named savepoint are released (and their changes rolled
         back).
     @param name     The user provided name of the savepoint, set by the user
                     in the setSavePoint() call.
-	  @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
+      @param    kindOfSavepoint     A NULL value means it is an internal savepoint (ie not a user defined savepoint)
                     Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
                     A String value for kindOfSavepoint would mean it is SQL savepoint
                     A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
 
-		@return returns total number of savepoints in the stack.
+        @return returns total number of savepoints in the stack.
 
-	*/
-	int rollbackToSavePoint(String name, Object kindOfSavepoint) throws IOException;
+    */
+    int rollbackToSavePoint(String name, Object kindOfSavepoint) throws IOException;
 
     /**
      * Reveals whether the transaction has ever read or written data.
      *
-	 * @return true If the transaction has never read or written data.
+     * @return true If the transaction has never read or written data.
      **/
-	boolean isIdle();
+    boolean isIdle();
 
     /**
-	  Reveal whether the transaction is in a pristine state, which
-	  means it hasn't done any updates since the last commit.
-	  @return true if so, false otherwise
-	  */
-	boolean isPristine();
+      Reveal whether the transaction is in a pristine state, which
+      means it hasn't done any updates since the last commit.
+      @return true if so, false otherwise
+      */
+    boolean isPristine();
 
-	/**
-		Return true if any transaction is blocked, even if not by this one.
-	 */
-	boolean anyoneBlocked();
+    /**
+        Return true if any transaction is blocked, even if not by this one.
+     */
+    boolean anyoneBlocked();
 
-	/**
+    /**
      * Convert a local transaction to a global transaction.
      * <p>
-	 * Get a transaction controller with which to manipulate data within
-	 * the access manager.  Tbis controller allows one to manipulate a 
+     * Get a transaction controller with which to manipulate data within
+     * the access manager.  Tbis controller allows one to manipulate a 
      * global XA conforming transaction.
      * <p>
      * Must only be called a previous local transaction was created and exists
@@ -179,13 +179,13 @@ public interface Transaction {
      *                  Xid.getGlobalTransactionId().
      * @param branch_id The branch qualifier of the Xid - ie. 
      *                  Xid.getBranchQaulifier()
-     * 	
-	 **/
-	void createXATransactionFromLocalTransaction(
-			int format_id,
-			byte[] global_id,
-			byte[] branch_id)
-			throws IOException;
+     *     
+     **/
+    void createXATransactionFromLocalTransaction(
+            int format_id,
+            byte[] global_id,
+            byte[] branch_id)
+            throws IOException;
 
     /**
      * This method is called to commit the current XA global transaction.
@@ -199,9 +199,9 @@ public interface Transaction {
      *                 current xid.
      *
      **/
-	void xa_commit(
-			boolean onePhase)
-			throws IOException;
+    void xa_commit(
+            boolean onePhase)
+            throws IOException;
 
     /**
      * This method is called to ask the resource manager to prepare for
@@ -216,8 +216,8 @@ public interface Transaction {
      *                 method.
      *
      **/
-	int xa_prepare()
-			throws IOException;
+    int xa_prepare()
+            throws IOException;
 
     /**
      * rollback the current global transaction.
@@ -227,13 +227,13 @@ public interface Transaction {
      * <p>
      *
      **/
-	void xa_rollback()
-			throws IOException;
+    void xa_rollback()
+            throws IOException;
 
-	
+    
     /**
-	 * get string ID of the actual transaction ID that will 
-	 * be used when transaction is in  active state. 
-	 */
-	String getActiveStateTxIdString();
+     * get string ID of the actual transaction ID that will 
+     * be used when transaction is in  active state. 
+     */
+    String getActiveStateTxIdString();
 }

@@ -36,81 +36,81 @@ import java.io.Reader;
 import java.io.IOException;
 
 /**
-	ReaderToAscii converts Reader (with characters) to a stream of ASCII characters.
+    ReaderToAscii converts Reader (with characters) to a stream of ASCII characters.
 */
 public final class ReaderToAscii extends InputStream
 {
 
-	private final Reader data;
-	private char[]	conv;
-	private boolean closed;
+    private final Reader data;
+    private char[]    conv;
+    private boolean closed;
 
-	public ReaderToAscii(Reader data) 
-	{
-		this.data = data;
-		if (!(data instanceof UTF8Reader))
-			conv = new char[256];
-	}
+    public ReaderToAscii(Reader data) 
+    {
+        this.data = data;
+        if (!(data instanceof UTF8Reader))
+            conv = new char[256];
+    }
 
-	public int read() throws IOException
-	{
-		if (closed)
-			throw new IOException();
+    public int read() throws IOException
+    {
+        if (closed)
+            throw new IOException();
 
-		int c = data.read();
-		if (c == -1)
-			return -1;
+        int c = data.read();
+        if (c == -1)
+            return -1;
 
-		if (c <= 255)
-			return c & 0xFF;
-		else
-			return '?'; // Question mark - out of range character.
-	}
+        if (c <= 255)
+            return c & 0xFF;
+        else
+            return '?'; // Question mark - out of range character.
+    }
 
-	public int read(byte[] buf, int off, int len) throws IOException
-	{
-		if (closed)
-			throw new IOException();
+    public int read(byte[] buf, int off, int len) throws IOException
+    {
+        if (closed)
+            throw new IOException();
 
-		if (data instanceof UTF8Reader) {
+        if (data instanceof UTF8Reader) {
 
-			return ((UTF8Reader) data).readAsciiInto(buf, off, len);
-		}
+            return ((UTF8Reader) data).readAsciiInto(buf, off, len);
+        }
 
-		if (len > conv.length)
-			len = conv.length;
+        if (len > conv.length)
+            len = conv.length;
 
-		len = data.read(conv, 0, len);
-		if (len == -1)
-			return -1;
+        len = data.read(conv, 0, len);
+        if (len == -1)
+            return -1;
 
-		for (int i = 0; i < len; i++) {
-			char c = conv[i];
+        for (int i = 0; i < len; i++) {
+            char c = conv[i];
 
-			byte cb;
-			if (c <= 255)
-				cb = (byte) c;
-			else
-				cb = (byte) '?'; // Question mark - out of range character.
-				
-			buf[off++] = cb;
-		}
+            byte cb;
+            if (c <= 255)
+                cb = (byte) c;
+            else
+                cb = (byte) '?'; // Question mark - out of range character.
+                
+            buf[off++] = cb;
+        }
 
-		return len;
-	}
+        return len;
+    }
 
-	public long skip(long len) throws IOException {
-		if (closed)
-			throw new IOException();
+    public long skip(long len) throws IOException {
+        if (closed)
+            throw new IOException();
 
-		return data.skip(len);
-	}
+        return data.skip(len);
+    }
 
-	public void close() throws IOException
-	{
-		if (!closed) {
-			closed = true;
-			data.close();
-		}
-	}
+    public void close() throws IOException
+    {
+        if (!closed) {
+            closed = true;
+            data.close();
+        }
+    }
 }

@@ -36,23 +36,23 @@ import com.splicemachine.db.iapi.services.context.ContextImpl;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 
 /**
-	A context that is used during a service boot to
-	stop cleanup on the stack at this point.
+    A context that is used during a service boot to
+    stop cleanup on the stack at this point.
 */
 final class ServiceBootContext extends ContextImpl {
 
-	ServiceBootContext(ContextManager cm) {
-		super(cm, "ServiceBoot");
-	}
+    ServiceBootContext(ContextManager cm) {
+        super(cm, "ServiceBoot");
+    }
 
-	public void cleanupOnError(Throwable t) {
-		popMe();
-	}
+    public void cleanupOnError(Throwable t) {
+        popMe();
+    }
 
-	public boolean isLastHandler(int severity)
-	{
-		return (severity == ExceptionSeverity.NO_APPLICABLE_SEVERITY) ||
-			   (severity == ExceptionSeverity.DATABASE_SEVERITY) ||
-			   (severity == ExceptionSeverity.SYSTEM_SEVERITY);
-	}
+    public boolean isLastHandler(int severity)
+    {
+        return (severity == ExceptionSeverity.NO_APPLICABLE_SEVERITY) ||
+               (severity == ExceptionSeverity.DATABASE_SEVERITY) ||
+               (severity == ExceptionSeverity.SYSTEM_SEVERITY);
+    }
 }

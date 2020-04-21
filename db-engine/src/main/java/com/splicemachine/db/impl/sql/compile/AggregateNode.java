@@ -341,7 +341,7 @@ public class AggregateNode extends UnaryOperatorNode {
              */
             dts = operand.getTypeServices();
 
-            /* Convert count(nonNullableColumn) to count(*)	*/
+            /* Convert count(nonNullableColumn) to count(*)    */
             if (uad instanceof CountAggregateDefinition &&
                     !dts.isNullable()) {
                 setOperator(aggregateName);

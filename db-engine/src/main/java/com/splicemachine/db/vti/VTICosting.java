@@ -35,7 +35,7 @@ import java.sql.SQLException;
 
 /**
   * <P>
-  *	VTICosting is the interface that the query optimizer uses
+  *    VTICosting is the interface that the query optimizer uses
   * to cost Table Functions. The methods on this interface provide the optimizer
   * with the following information:
   * </P>
@@ -87,51 +87,51 @@ import java.sql.SQLException;
  */
 public interface VTICosting
 {
-	/**
-	 * A useful constant: the default estimated number of rows returned by a
-	 * Table Function.
-	 */
-	double defaultEstimatedRowCount		= 10000d;
-	/**
-	   A useful constant: The default estimated cost of instantiating and
-	   iterating throught a Table Function.
-	 */
-	double defaultEstimatedCost			= 100000d;
+    /**
+     * A useful constant: the default estimated number of rows returned by a
+     * Table Function.
+     */
+    double defaultEstimatedRowCount        = 10000d;
+    /**
+       A useful constant: The default estimated cost of instantiating and
+       iterating throught a Table Function.
+     */
+    double defaultEstimatedCost            = 100000d;
 
-	/**
-	 *  Get the estimated row count for a single scan of a Table Function.
-	 *
-	 *  @param vtiEnvironment The state variable for optimizing the Table Function.
-	 *
-	 *  @return	The estimated row count for a single scan of the Table Function.
-	 *
-	 *  @exception SQLException thrown if the costing fails.
-	 */
-	double getEstimatedRowCount(VTIEnvironment vtiEnvironment)
-		throws SQLException;
+    /**
+     *  Get the estimated row count for a single scan of a Table Function.
+     *
+     *  @param vtiEnvironment The state variable for optimizing the Table Function.
+     *
+     *  @return    The estimated row count for a single scan of the Table Function.
+     *
+     *  @exception SQLException thrown if the costing fails.
+     */
+    double getEstimatedRowCount(VTIEnvironment vtiEnvironment)
+        throws SQLException;
 
-	/**
-	 *  Get the estimated cost for a single instantiation of a Table Function.
-	 *
-	 *  @param vtiEnvironment The state variable for optimizing the Table Function.
-	 *
-	 *  @return	The estimated cost for a single instantiation of the Table Function.
-	 *
-	 *  @exception SQLException thrown if the costing fails.
-	 */
-	double getEstimatedCostPerInstantiation(VTIEnvironment vtiEnvironment)
-		throws SQLException;
+    /**
+     *  Get the estimated cost for a single instantiation of a Table Function.
+     *
+     *  @param vtiEnvironment The state variable for optimizing the Table Function.
+     *
+     *  @return    The estimated cost for a single instantiation of the Table Function.
+     *
+     *  @exception SQLException thrown if the costing fails.
+     */
+    double getEstimatedCostPerInstantiation(VTIEnvironment vtiEnvironment)
+        throws SQLException;
 
-	/**
-		 Find out if the ResultSet of the Table Function can be instantiated multiple times.
+    /**
+         Find out if the ResultSet of the Table Function can be instantiated multiple times.
 
-		 @param vtiEnvironment The state variable for optimizing the Table Function.
+         @param vtiEnvironment The state variable for optimizing the Table Function.
 
-		 @return	True if the ResultSet can be instantiated multiple times, false if
-		 can only be instantiated once.
+         @return    True if the ResultSet can be instantiated multiple times, false if
+         can only be instantiated once.
 
-		 @exception SQLException thrown if the costing fails.
-	 */
-	boolean supportsMultipleInstantiations(VTIEnvironment vtiEnvironment)
-		throws SQLException;
+         @exception SQLException thrown if the costing fails.
+     */
+    boolean supportsMultipleInstantiations(VTIEnvironment vtiEnvironment)
+        throws SQLException;
 }

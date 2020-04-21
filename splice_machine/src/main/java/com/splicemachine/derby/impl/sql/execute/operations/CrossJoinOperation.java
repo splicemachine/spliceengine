@@ -44,10 +44,10 @@ public class CrossJoinOperation extends JoinOperation{
     protected long sequenceId;
     protected static final String NAME = CrossJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+            return NAME;
+    }
 
     public CrossJoinOperation() {
         super();

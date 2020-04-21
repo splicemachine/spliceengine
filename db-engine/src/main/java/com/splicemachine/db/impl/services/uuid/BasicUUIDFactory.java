@@ -66,103 +66,103 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 **/
 
 public final class BasicUUIDFactory
-	implements UUIDFactory
+    implements UUIDFactory
 {
     /*
-	** Fields of BasicUUIDFactory.
-	*/
+    ** Fields of BasicUUIDFactory.
+    */
 
-	private long majorId;  // 48 bits only
-	private long timemillis;
+    private long majorId;  // 48 bits only
+    private long timemillis;
 
-	public BasicUUIDFactory() {
-		Object env = Monitor.getMonitor().getEnvironment();
-		if (env != null) {
-			String s = env.toString();
-			if (s != null)
-				env = s;
+    public BasicUUIDFactory() {
+        Object env = Monitor.getMonitor().getEnvironment();
+        if (env != null) {
+            String s = env.toString();
+            if (s != null)
+                env = s;
 
-			majorId = ((long) env.hashCode());
+            majorId = ((long) env.hashCode());
 
-			
-		} else {
-			majorId = Runtime.getRuntime().freeMemory();
-		}
+            
+        } else {
+            majorId = Runtime.getRuntime().freeMemory();
+        }
 
-		majorId &= 0x0000ffffffffffffL;
-		resetCounters();
-	}
+        majorId &= 0x0000ffffffffffffL;
+        resetCounters();
+    }
 
 
-	//
-	//	Constants and fields for computing the sequence number. We started out with monotonically
-	//	increasing sequence numbers but realized that this causes collisions at the
-	//	ends of BTREEs built on UUID columns. So now we have a random number
-	//	generator. We generate these numbers using a technique from Knuth
-	//	"Seminumerical Algorithms," section 3.2 (Generating Uniform Random Numbers).
-	//	The formula is:
-	//
-	//		next = ( (MULTIPLIER * current) + STEP ) % MODULUS
-	//
-	//	Here
-	//
-	//		MODULUS			=	int size.
-	//		MULTIPLIER		=	fairly close to the square root of MODULUS to force the
-	//							sequence number to jump around. satisifies the rule that
-	//							(MULTIPLIER-1) is divisible by 4 and by all the primes which
-	//							divide MODULUS.
-	//		STEP			=	a large number that keeps the sequence number jumping around.
-	//							must be relatively prime to MODULUS.
-	//		INITIAL_VALUE	=	a number guaranteeing that the first couple sequence numbers
-	//							won't be monotonically increasing.
-	//
-	//	The sequence numbers should jump around and cycle through all numbers which fit in an int.
+    //
+    //    Constants and fields for computing the sequence number. We started out with monotonically
+    //    increasing sequence numbers but realized that this causes collisions at the
+    //    ends of BTREEs built on UUID columns. So now we have a random number
+    //    generator. We generate these numbers using a technique from Knuth
+    //    "Seminumerical Algorithms," section 3.2 (Generating Uniform Random Numbers).
+    //    The formula is:
+    //
+    //        next = ( (MULTIPLIER * current) + STEP ) % MODULUS
+    //
+    //    Here
+    //
+    //        MODULUS            =    int size.
+    //        MULTIPLIER        =    fairly close to the square root of MODULUS to force the
+    //                            sequence number to jump around. satisifies the rule that
+    //                            (MULTIPLIER-1) is divisible by 4 and by all the primes which
+    //                            divide MODULUS.
+    //        STEP            =    a large number that keeps the sequence number jumping around.
+    //                            must be relatively prime to MODULUS.
+    //        INITIAL_VALUE    =    a number guaranteeing that the first couple sequence numbers
+    //                            won't be monotonically increasing.
+    //
+    //    The sequence numbers should jump around and cycle through all numbers which fit in an int.
 
-	private	static	final	long	MODULUS			=	( 1L << 32 );
-	private	static	final	long	MULTIPLIER		=	( ( 1L << 14 ) + 1 );
-	private	static	final	long	STEP			=	( ( 1L << 27 ) + 1 );
-	private	static	final	long	INITIAL_VALUE	=	( 2551218188L );
+    private    static    final    long    MODULUS            =    ( 1L << 32 );
+    private    static    final    long    MULTIPLIER        =    ( ( 1L << 14 ) + 1 );
+    private    static    final    long    STEP            =    ( ( 1L << 27 ) + 1 );
+    private    static    final    long    INITIAL_VALUE    =    ( 2551218188L );
 
-	private			long	currentValue;
+    private            long    currentValue;
 
-	/*
-	** Methods of UUID
-	*/
+    /*
+    ** Methods of UUID
+    */
 
-	/**
-		Generate a new UUID.
-		@see UUIDFactory#createUUID
-	**/
-	public synchronized UUID createUUID()
-	{
-		long cv = currentValue = ( ( MULTIPLIER * currentValue ) + STEP ) % MODULUS;
-		if ( cv == INITIAL_VALUE ) { bumpMajor(); }
-		int sequence = (int) cv;
+    /**
+        Generate a new UUID.
+        @see UUIDFactory#createUUID
+    **/
+    public synchronized UUID createUUID()
+    {
+        long cv = currentValue = ( ( MULTIPLIER * currentValue ) + STEP ) % MODULUS;
+        if ( cv == INITIAL_VALUE ) { bumpMajor(); }
+        int sequence = (int) cv;
 
-		return new BasicUUID(majorId, timemillis, sequence);
-	}
+        return new BasicUUID(majorId, timemillis, sequence);
+    }
 
-	/**
-		Recreate a UUID previously generated UUID value.
-		@see UUIDFactory#recreateUUID
-	**/
-	public UUID recreateUUID(String uuidstring)
-	{
-		return new BasicUUID(uuidstring);
-	}
+    /**
+        Recreate a UUID previously generated UUID value.
+        @see UUIDFactory#recreateUUID
+    **/
+    public UUID recreateUUID(String uuidstring)
+    {
+        return new BasicUUID(uuidstring);
+    }
 
-	private void bumpMajor() {
+    private void bumpMajor() {
 
-		// 48 bits only
-		majorId = (majorId + 1L) & 0x0000ffffffffffffL;
-		if (majorId == 0L)
-			resetCounters();
+        // 48 bits only
+        majorId = (majorId + 1L) & 0x0000ffffffffffffL;
+        if (majorId == 0L)
+            resetCounters();
 
-	}
-	private void resetCounters()
-	{
-		timemillis = System.currentTimeMillis();
-		currentValue = INITIAL_VALUE;
-	}
+    }
+    private void resetCounters()
+    {
+        timemillis = System.currentTimeMillis();
+        currentValue = INITIAL_VALUE;
+    }
 }
 

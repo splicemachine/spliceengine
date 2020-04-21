@@ -34,10 +34,10 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  *         Created on: 3/8/13
  */
 public class EmbeddedCallStatementOperationIT extends SpliceUnitTest {
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final Logger LOG = Logger.getLogger(EmbeddedCallStatementOperationIT.class);
-	@ClassRule public static TestRule chain = RuleChain.outerRule(spliceClassWatcher);
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+    @ClassRule public static TestRule chain = RuleChain.outerRule(spliceClassWatcher);
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
     public void testCallGetIndexInfo() throws Exception{
@@ -45,7 +45,7 @@ public class EmbeddedCallStatementOperationIT extends SpliceUnitTest {
         ResultSet rs = dmd.getIndexInfo(null, "SYS", "SYSSCHEMAS", false, true);
         int count = 0;
         while(rs.next()){
-        	count++;
+            count++;
             LOG.trace(rs.getString(1));
         }
         Assert.assertTrue(count > 0);

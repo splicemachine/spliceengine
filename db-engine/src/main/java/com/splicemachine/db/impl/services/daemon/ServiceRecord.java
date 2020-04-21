@@ -36,41 +36,41 @@ import com.splicemachine.db.iapi.services.daemon.Serviceable;
 /** wrapper class for basic daemon's clients */
 class ServiceRecord
 {
-	// immutable fields
-	final Serviceable client;	
-	private final boolean onDemandOnly;
-	final boolean subscriber;
+    // immutable fields
+    final Serviceable client;    
+    private final boolean onDemandOnly;
+    final boolean subscriber;
 
-	// we can tolerate spurrious service, so don't synchronized this
-	private boolean serviceRequest;
+    // we can tolerate spurrious service, so don't synchronized this
+    private boolean serviceRequest;
 
-	ServiceRecord(Serviceable client, boolean onDemandOnly, boolean subscriber)
-	{
-		this.client = client;
-		this.onDemandOnly = onDemandOnly;
-		this.subscriber = subscriber;
-	}
+    ServiceRecord(Serviceable client, boolean onDemandOnly, boolean subscriber)
+    {
+        this.client = client;
+        this.onDemandOnly = onDemandOnly;
+        this.subscriber = subscriber;
+    }
 
-	final void serviced()
-	{
-		serviceRequest = false;
-	}
+    final void serviced()
+    {
+        serviceRequest = false;
+    }
 
-	final boolean needImmediateService()
-	{
-		return serviceRequest;
-	}
+    final boolean needImmediateService()
+    {
+        return serviceRequest;
+    }
 
-	final boolean needService()
-	{
-		return serviceRequest || !onDemandOnly;
-	}
+    final boolean needService()
+    {
+        return serviceRequest || !onDemandOnly;
+    }
 
 
-	final void called()
-	{
-		serviceRequest = true;
-	}
+    final void called()
+    {
+        serviceRequest = true;
+    }
 }
 
 

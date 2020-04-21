@@ -45,10 +45,10 @@ import com.splicemachine.db.iapi.services.property.PersistentSet;
 
 public interface Transaction {
 
-	/**
-		Return the context manager this transaction is associated with.
-	*/
-	ContextManager getContextManager();
+    /**
+        Return the context manager this transaction is associated with.
+    */
+    ContextManager getContextManager();
 
     /**
      * Get the compatibility space of the transaction.
@@ -59,7 +59,7 @@ public interface Transaction {
      * is that each transaction has it's own unique compatibility space.
      * <p>
      *
-	 * @return The compatibility space of the transaction.
+     * @return The compatibility space of the transaction.
      **/
     CompatibilitySpace getCompatibilitySpace();
 
@@ -78,227 +78,227 @@ public interface Transaction {
      */
     void setNoLockWait(boolean noWait);
 
-	/**
-		Called after the transaction has been attached to an Access Manger
-		TransactionController. Thus may not be called for all transactions.
-		Purpose is to allow a transaction access to database (service) properties.
+    /**
+        Called after the transaction has been attached to an Access Manger
+        TransactionController. Thus may not be called for all transactions.
+        Purpose is to allow a transaction access to database (service) properties.
 
-		Will not be called for transactions early in the boot process, ie. before
-		the property conglomerate is set up.
-		@exception StandardException  Standard Derby exception policy
-	*/
-	void setup(PersistentSet set)
-		throws StandardException;
+        Will not be called for transactions early in the boot process, ie. before
+        the property conglomerate is set up.
+        @exception StandardException  Standard Derby exception policy
+    */
+    void setup(PersistentSet set)
+        throws StandardException;
 
-	/**
-		Return my transaction identifier. Transaction identifiers may be 
+    /**
+        Return my transaction identifier. Transaction identifiers may be 
         re-used for transactions that do not modify the raw store.
-		May return null if this transaction has no globalId.
-	*/
-	GlobalTransactionId getGlobalId();
+        May return null if this transaction has no globalId.
+    */
+    GlobalTransactionId getGlobalId();
 
-	/**
-		Commit this transaction. All savepoints within this transaction are 
+    /**
+        Commit this transaction. All savepoints within this transaction are 
         released.
 
-		@return the commit instant of this transaction, or null if it
-		didn't make any changes 
-		
-		@exception StandardException
+        @return the commit instant of this transaction, or null if it
+        didn't make any changes 
+        
+        @exception StandardException
         A transaction level exception is thrown
         if the transaction was aborted due to some error. Any exceptions that 
         occur of lower severity than Transaction severity are caught, the 
         transaction is then aborted and then an exception of Transaction
-		severity is thrown nesting the original exception.
+        severity is thrown nesting the original exception.
 
-		@exception StandardException Any exception more severe than a
+        @exception StandardException Any exception more severe than a
         Transaction exception is not caught and the transaction is not aborted.
         The transaction will be aborted by the standard context mechanism.
 
-	*/
+    */
 
-	void commit() throws StandardException;
+    void commit() throws StandardException;
 
-	/**
-	    "Commit" this transaction without sync'ing the log.
-		Everything else is identical to commit(), use this at your own risk.
-		
-		<BR>bits in the commitflag can turn on to fine tuned the "commit":
-		KEEP_LOCKS - no locks will be released by the commit and no post commit
-		processing will be initiated.  If, for some reasons, the locks cannot be
-		kept even if this flag is set, then the commit will sync the log, i.e.,
-		it will revert to the normal commit.
+    /**
+        "Commit" this transaction without sync'ing the log.
+        Everything else is identical to commit(), use this at your own risk.
+        
+        <BR>bits in the commitflag can turn on to fine tuned the "commit":
+        KEEP_LOCKS - no locks will be released by the commit and no post commit
+        processing will be initiated.  If, for some reasons, the locks cannot be
+        kept even if this flag is set, then the commit will sync the log, i.e.,
+        it will revert to the normal commit.
 
-		@exception StandardException
+        @exception StandardException
         A transaction level exception is thrown
         if the transaction was aborted due to some error. Any exceptions that 
         occur of lower severity than Transaction severity are caught, the 
         transaction is then aborted and then an exception of Transaction
-		severity is thrown nesting the original exception.
+        severity is thrown nesting the original exception.
 
-		@exception StandardException Any exception more severe than a
+        @exception StandardException Any exception more severe than a
         Transaction exception is not caught and the transaction is not aborted.
         The transaction will be aborted by the standard context mechanism.
-	*/
+    */
 
-	void commitNoSync(int commitflag) throws StandardException;
-	int RELEASE_LOCKS = TransactionController.RELEASE_LOCKS;
-	int KEEP_LOCKS = TransactionController.KEEP_LOCKS;
+    void commitNoSync(int commitflag) throws StandardException;
+    int RELEASE_LOCKS = TransactionController.RELEASE_LOCKS;
+    int KEEP_LOCKS = TransactionController.KEEP_LOCKS;
 
 
-	/**
-		Abort all changes made by this transaction since the last commit, abort
-		or the point the transaction was started, whichever is the most recent.
-		All savepoints within this transaction are released.
+    /**
+        Abort all changes made by this transaction since the last commit, abort
+        or the point the transaction was started, whichever is the most recent.
+        All savepoints within this transaction are released.
 
-		@exception StandardException Only exceptions with severities greater 
+        @exception StandardException Only exceptions with severities greater 
         than ExceptionSeverity.TRANSACTION_SEVERITY will be thrown.
-		
-	*/
-	void abort() throws StandardException;
+        
+    */
+    void abort() throws StandardException;
 
-	/**
-		Close this transaction, the transaction must be idle. This close will
-		pop the transaction context off the stack that was pushed when the 
+    /**
+        Close this transaction, the transaction must be idle. This close will
+        pop the transaction context off the stack that was pushed when the 
         transaction was started.
 
-		@see RawStoreFactory#startTransaction
+        @see RawStoreFactory#startTransaction
 
-		@exception StandardException Standard Derby error policy
-		@exception StandardException A transaction level exception is 
+        @exception StandardException Standard Derby error policy
+        @exception StandardException A transaction level exception is 
         thrown if the transaction is not idle.
 
-		
-	*/
-	void close() throws StandardException;
+        
+    */
+    void close() throws StandardException;
 
-	/**
+    /**
         If this transaction is not idle, abort it.  After this call close().
 
-		@see RawStoreFactory#startTransaction
+        @see RawStoreFactory#startTransaction
 
-		@exception StandardException Standard Derby error policy
-		@exception StandardException A transaction level exception is 
+        @exception StandardException Standard Derby error policy
+        @exception StandardException A transaction level exception is 
         thrown if the transaction is not idle.
 
-		
-	*/
-	void destroy() throws StandardException;
+        
+    */
+    void destroy() throws StandardException;
 
 
-	/**
-		Set a save point in the current transaction. A save point defines a 
+    /**
+        Set a save point in the current transaction. A save point defines a 
         point in time in the transaction that changes can be rolled back to. 
         Savepoints can be nested and they behave like a stack. Setting save 
         points "one" and "two" and the rolling back "one" will rollback all 
         the changes made since "one" (including those made since "two") and 
         release savepoint "two".
     @param name     The user provided name of the savepoint
-	  @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
+      @param    kindOfSavepoint     A NULL value means it is an internal savepoint (ie not a user defined savepoint)
                     Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
                     A String value for kindOfSavepoint would mean it is SQL savepoint
                     A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
 
-		@return returns total number of savepoints in the stack.
-		@exception StandardException  Standard Derby exception policy
-		@exception StandardException
+        @return returns total number of savepoints in the stack.
+        @exception StandardException  Standard Derby exception policy
+        @exception StandardException
         A statement level exception is thrown if a savepoint already 
         exists in the current transaction with the same name.
-		
-	*/
+        
+    */
 
-	int setSavePoint(String name, Object kindOfSavepoint) throws StandardException;
+    int setSavePoint(String name, Object kindOfSavepoint) throws StandardException;
 
-	/**
-		Release the save point of the given name. Relasing a savepoint removes 
+    /**
+        Release the save point of the given name. Relasing a savepoint removes 
         all knowledge from this transaction of the named savepoint and any 
         savepoints set since the named savepoint was set.
     @param name     The user provided name of the savepoint, set by the user
                     in the setSavePoint() call.
-	  @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
+      @param    kindOfSavepoint     A NULL value means it is an internal savepoint (ie not a user defined savepoint)
                     Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
                     A String value for kindOfSavepoint would mean it is SQL savepoint
                     A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
 
-		@return returns total number of savepoints in the stack.
-		@exception StandardException  Standard Derby exception policy
-		@exception StandardException
+        @return returns total number of savepoints in the stack.
+        @exception StandardException  Standard Derby exception policy
+        @exception StandardException
         A statement level exception is thrown if a savepoint already
         exists in the current transaction with the same name.
 
-	*/
+    */
 
-	int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException;
+    int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException;
 
-	/**
-		Rollback all changes made since the named savepoint was set. The named
-		savepoint is not released, it remains valid within this transaction, and
-		thus can be named it future rollbackToSavePoint() calls. Any savepoints
-		set since this named savepoint are released (and their changes rolled
+    /**
+        Rollback all changes made since the named savepoint was set. The named
+        savepoint is not released, it remains valid within this transaction, and
+        thus can be named it future rollbackToSavePoint() calls. Any savepoints
+        set since this named savepoint are released (and their changes rolled
         back).
     @param name     The user provided name of the savepoint, set by the user
                     in the setSavePoint() call.
-	  @param	kindOfSavepoint	 A NULL value means it is an internal savepoint (ie not a user defined savepoint)
+      @param    kindOfSavepoint     A NULL value means it is an internal savepoint (ie not a user defined savepoint)
                     Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
                     A String value for kindOfSavepoint would mean it is SQL savepoint
                     A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
 
-		@return returns total number of savepoints in the stack.
-		@exception StandardException  Standard Derby exception policy
-		@exception StandardException
+        @return returns total number of savepoints in the stack.
+        @exception StandardException  Standard Derby exception policy
+        @exception StandardException
         A statement level exception is thrown if no savepoint exists with 
         the given name.
 
-	*/
-	int rollbackToSavePoint(String name, Object kindOfSavepoint) throws StandardException;
+    */
+    int rollbackToSavePoint(String name, Object kindOfSavepoint) throws StandardException;
 
-	/**
-		Add to the list of post commit work that may be processed after this
-		transaction commits.  If this transaction aborts, then the post commit
-		work list will be thrown away.  No post commit work will be taken out
-		on a rollback to save point.
+    /**
+        Add to the list of post commit work that may be processed after this
+        transaction commits.  If this transaction aborts, then the post commit
+        work list will be thrown away.  No post commit work will be taken out
+        on a rollback to save point.
 
-		@param work the post commit work that is added
-	*/
-	void addPostCommitWork(Serviceable work);
+        @param work the post commit work that is added
+    */
+    void addPostCommitWork(Serviceable work);
 
-	/**
-		Add to the list of post termination work that may be processed after this
-		transaction commits or aborts.
+    /**
+        Add to the list of post termination work that may be processed after this
+        transaction commits or aborts.
 
-		@param work the post termination work that is added
-	*/
-	void addPostTerminationWork(Serviceable work);
+        @param work the post termination work that is added
+    */
+    void addPostTerminationWork(Serviceable work);
 
     /**
      * Reveals whether the transaction has ever read or written data.
      *
-	 * @return true If the transaction has never read or written data.
+     * @return true If the transaction has never read or written data.
      **/
-	boolean isIdle();
+    boolean isIdle();
 
     /**
-	  Reveal whether the transaction is in a pristine state, which
-	  means it hasn't done any updates since the last commit.
-	  @return true if so, false otherwise
-	  */
-	boolean isPristine();
+      Reveal whether the transaction is in a pristine state, which
+      means it hasn't done any updates since the last commit.
+      @return true if so, false otherwise
+      */
+    boolean isPristine();
 
-	/**
-		Get an object to handle non-transactional files.
-	*/
-	FileResource getFileHandler();
+    /**
+        Get an object to handle non-transactional files.
+    */
+    FileResource getFileHandler();
 
-	/**
-		Return true if any transaction is blocked, even if not by this one.
-	 */
-	boolean anyoneBlocked();
+    /**
+        Return true if any transaction is blocked, even if not by this one.
+     */
+    boolean anyoneBlocked();
 
-	/**
+    /**
      * Convert a local transaction to a global transaction.
      * <p>
-	 * Get a transaction controller with which to manipulate data within
-	 * the access manager.  Tbis controller allows one to manipulate a 
+     * Get a transaction controller with which to manipulate data within
+     * the access manager.  Tbis controller allows one to manipulate a 
      * global XA conforming transaction.
      * <p>
      * Must only be called a previous local transaction was created and exists
@@ -315,14 +315,14 @@ public interface Transaction {
      *                  Xid.getGlobalTransactionId().
      * @param branch_id The branch qualifier of the Xid - ie. 
      *                  Xid.getBranchQaulifier()
-     * 	
-	 * @exception StandardException Standard exception policy.
-	 **/
-	void createXATransactionFromLocalTransaction(
+     *     
+     * @exception StandardException Standard exception policy.
+     **/
+    void createXATransactionFromLocalTransaction(
     int                     format_id,
     byte[]                  global_id,
     byte[]                  branch_id)
-		throws StandardException;
+        throws StandardException;
 
     /**
      * This method is called to commit the current XA global transaction.
@@ -335,11 +335,11 @@ public interface Transaction {
      *                 commit protocol to commit the work done on behalf of 
      *                 current xid.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	void xa_commit(
-			boolean onePhase)
-		throws StandardException;
+    void xa_commit(
+            boolean onePhase)
+        throws StandardException;
 
     /**
      * This method is called to ask the resource manager to prepare for
@@ -353,10 +353,10 @@ public interface Transaction {
      *                 throwing an appropriate XAException in the prepare
      *                 method.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	int xa_prepare()
-		throws StandardException;
+    int xa_prepare()
+        throws StandardException;
     int XA_RDONLY = 1;
     int XA_OK     = 2;
 
@@ -367,17 +367,17 @@ public interface Transaction {
      * maintained in the transaction table or long term log.
      * <p>
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	void xa_rollback()
+    void xa_rollback()
         throws StandardException;
 
-	
+    
     /**
-	 * get string ID of the actual transaction ID that will 
-	 * be used when transaction is in  active state. 
-	 */
-	String getActiveStateTxIdString();
+     * get string ID of the actual transaction ID that will 
+     * be used when transaction is in  active state. 
+     */
+    String getActiveStateTxIdString();
 
 
     /**
@@ -387,10 +387,10 @@ public interface Transaction {
      * to make calls to: 
      *     DataValueFactory.getInstanceUsingFormatIdAndCollationType()
      *
-	 * @return a booted data value factory.
+     * @return a booted data value factory.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	DataValueFactory getDataValueFactory()
-		throws StandardException;
+    DataValueFactory getDataValueFactory()
+        throws StandardException;
 }

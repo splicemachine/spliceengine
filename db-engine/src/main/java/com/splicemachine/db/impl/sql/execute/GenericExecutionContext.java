@@ -47,57 +47,57 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
  *
  */
 class GenericExecutionContext
-	extends ContextImpl 
-	implements ExecutionContext {
+    extends ContextImpl 
+    implements ExecutionContext {
 
-	//
-	// class implementation
-	//
-	private ExecutionFactory execFactory;
+    //
+    // class implementation
+    //
+    private ExecutionFactory execFactory;
 
-	//
-	// ExecutionContext interface
-	//
+    //
+    // ExecutionContext interface
+    //
 
-	public ExecutionFactory getExecutionFactory() {
-		return execFactory;
-	}
+    public ExecutionFactory getExecutionFactory() {
+        return execFactory;
+    }
 
-	//
-	// Context interface
-	//
+    //
+    // Context interface
+    //
 
-	/**
-	 * @exception StandardException Thrown on error
-	 */
-	public void cleanupOnError(Throwable error) throws StandardException {
-		if (error instanceof StandardException) {
+    /**
+     * @exception StandardException Thrown on error
+     */
+    public void cleanupOnError(Throwable error) throws StandardException {
+        if (error instanceof StandardException) {
 
-			StandardException se = (StandardException) error;
+            StandardException se = (StandardException) error;
             int severity = se.getSeverity();
             if (severity >= ExceptionSeverity.SESSION_SEVERITY)
             {
                popMe();
                return;
             }
-			if (severity > ExceptionSeverity.STATEMENT_SEVERITY)
+            if (severity > ExceptionSeverity.STATEMENT_SEVERITY)
             {
- 				return;
+                 return;
             }
 
         }
-	}
+    }
 
-	//
-	// class interface
-	//
-	GenericExecutionContext(
-			ContextManager cm,
-			ExecutionFactory ef)
-	{
+    //
+    // class interface
+    //
+    GenericExecutionContext(
+            ContextManager cm,
+            ExecutionFactory ef)
+    {
 
-		super(cm, ExecutionContext.CONTEXT_ID);
-		execFactory = ef;
-	}
+        super(cm, ExecutionContext.CONTEXT_ID);
+        execFactory = ef;
+    }
 
 }

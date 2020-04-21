@@ -45,84 +45,84 @@ import java.util.List;
 public class TablePrivilegeInfo extends BasicPrivilegeInfo
 {
 
-	private TableDescriptor td;
-	protected SchemaDescriptor sd;
-	
-	/**
-	 * @param actionAllowed actionAllowed[action] is true if action is in the privilege set.
-	 */
-	public TablePrivilegeInfo( TableDescriptor td,
-							   boolean[] actionAllowed,
-							   FormatableBitSet[] columnBitSets,
-							   List descriptorList)
-	{
-		this.actionAllowed = actionAllowed;
-		this.columnBitSets = columnBitSets;
-		this.td = td;
-		this.descriptorList = descriptorList;
-	}
-	
+    private TableDescriptor td;
+    protected SchemaDescriptor sd;
+    
+    /**
+     * @param actionAllowed actionAllowed[action] is true if action is in the privilege set.
+     */
+    public TablePrivilegeInfo( TableDescriptor td,
+                               boolean[] actionAllowed,
+                               FormatableBitSet[] columnBitSets,
+                               List descriptorList)
+    {
+        this.actionAllowed = actionAllowed;
+        this.columnBitSets = columnBitSets;
+        this.td = td;
+        this.descriptorList = descriptorList;
+    }
+    
 
-	
+    
 
-	
-	/**
-	 *	This is the guts of the Execution-time logic for GRANT/REVOKE of a table privilege
-	 *
-	 * @param activation
-	 * @param grant true if grant, false if revoke
-	 * @param grantees a list of authorization ids (strings)
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
-									boolean grant,
-									List grantees)
-		throws StandardException
-	{
-		List<PermissionsDescriptor> result = Lists.newArrayList();
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
+    
+    /**
+     *    This is the guts of the Execution-time logic for GRANT/REVOKE of a table privilege
+     *
+     * @param activation
+     * @param grant true if grant, false if revoke
+     * @param grantees a list of authorization ids (strings)
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
+                                    boolean grant,
+                                    List grantees)
+        throws StandardException
+    {
+        List<PermissionsDescriptor> result = Lists.newArrayList();
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
         String currentUser = lcc.getCurrentUserId(activation);
-		TransactionController tc = lcc.getTransactionExecute();
-		SchemaDescriptor sd = td.getSchemaDescriptor();
-		List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
-		
-		// Check that the current user has permission to grant the privileges.
-		checkOwnership( currentUser, groupuserlist, td, sd, dd, lcc, grant);
-		
-		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+        TransactionController tc = lcc.getTransactionExecute();
+        SchemaDescriptor sd = td.getSchemaDescriptor();
+        List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
+        
+        // Check that the current user has permission to grant the privileges.
+        checkOwnership( currentUser, groupuserlist, td, sd, dd, lcc, grant);
+        
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
-		TablePermsDescriptor tablePermsDesc =
-		  ddg.newTablePermsDescriptor( td,
-									   getPermString( SELECT_ACTION, false),
-									   getPermString( DELETE_ACTION, false),
-									   getPermString( INSERT_ACTION, false),
-									   getPermString( UPDATE_ACTION, false),
-									   getPermString( REFERENCES_ACTION, false),
-									   getPermString( TRIGGER_ACTION, false),
-									   currentUser);
-			
-		ColPermsDescriptor[] colPermsDescs = new ColPermsDescriptor[ columnBitSets.length];
-		for( int i = 0; i < columnBitSets.length; i++)
-		{
-			if( columnBitSets[i] != null ||
-				// If it is a revoke and no column list is specified then revoke all column permissions.
-				// A null column bitSet in a ColPermsDescriptor indicates that all the column permissions
-				// should be removed.
-				(!grant) && hasColumnPermissions(i) && actionAllowed[i]
-				)
-			{
-				colPermsDescs[i] = ddg.newColPermsDescriptor( td,
-															  getActionString(i, false),
-															  columnBitSets[i],
-															  currentUser);
-			}
-		}
+        TablePermsDescriptor tablePermsDesc =
+          ddg.newTablePermsDescriptor( td,
+                                       getPermString( SELECT_ACTION, false),
+                                       getPermString( DELETE_ACTION, false),
+                                       getPermString( INSERT_ACTION, false),
+                                       getPermString( UPDATE_ACTION, false),
+                                       getPermString( REFERENCES_ACTION, false),
+                                       getPermString( TRIGGER_ACTION, false),
+                                       currentUser);
+            
+        ColPermsDescriptor[] colPermsDescs = new ColPermsDescriptor[ columnBitSets.length];
+        for( int i = 0; i < columnBitSets.length; i++)
+        {
+            if( columnBitSets[i] != null ||
+                // If it is a revoke and no column list is specified then revoke all column permissions.
+                // A null column bitSet in a ColPermsDescriptor indicates that all the column permissions
+                // should be removed.
+                (!grant) && hasColumnPermissions(i) && actionAllowed[i]
+                )
+            {
+                colPermsDescs[i] = ddg.newColPermsDescriptor( td,
+                                                              getActionString(i, false),
+                                                              columnBitSets[i],
+                                                              currentUser);
+            }
+        }
 
 
-		dd.startWriting(lcc);
-		// Add or remove the privileges to/from the SYS.SYSTABLEPERMS and SYS.SYSCOLPERMS tables
+        dd.startWriting(lcc);
+        // Add or remove the privileges to/from the SYS.SYSTABLEPERMS and SYS.SYSCOLPERMS tables
         for (Object grantee1 : grantees) {
             // Keep track to see if any privileges are revoked by a revoke
             // statement. If a privilege is not revoked, we need to raise a
@@ -136,25 +136,25 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
 
             String grantee = (String) grantee1;
             if (tablePermsDesc != null) {
-				DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor( grant, tablePermsDesc, grantee, tc);
+                DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor( grant, tablePermsDesc, grantee, tc);
                 if (action == DataDictionary.PermissionOperation.REMOVE) {
-					privileges_revoked = true;
-					dd.getDependencyManager().invalidateFor
-							(tablePermsDesc,
-									DependencyManager.REVOKE_PRIVILEGE, lcc);
+                    privileges_revoked = true;
+                    dd.getDependencyManager().invalidateFor
+                            (tablePermsDesc,
+                                    DependencyManager.REVOKE_PRIVILEGE, lcc);
 
-					// When revoking a privilege from a Table we need to
-					// invalidate all GPSs refering to it. But GPSs aren't
-					// Dependents of TablePermsDescr, but of the
-					// TableDescriptor itself, so we must send
-					// INTERNAL_RECOMPILE_REQUEST to the TableDescriptor's
-					// Dependents.
-					dd.getDependencyManager().invalidateFor
-							(td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
-				}
+                    // When revoking a privilege from a Table we need to
+                    // invalidate all GPSs refering to it. But GPSs aren't
+                    // Dependents of TablePermsDescr, but of the
+                    // TableDescriptor itself, so we must send
+                    // INTERNAL_RECOMPILE_REQUEST to the TableDescriptor's
+                    // Dependents.
+                    dd.getDependencyManager().invalidateFor
+                            (td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+                }
 
-				if (action != DataDictionary.PermissionOperation.NOCHANGE) {
-					// we need to invalidate the permission cache for both revoke and grant
+                if (action != DataDictionary.PermissionOperation.NOCHANGE) {
+                    // we need to invalidate the permission cache for both revoke and grant
                     TablePermsDescriptor tablePermsDescriptor =
                             new TablePermsDescriptor(dd, tablePermsDesc.getGrantee(),
                                     tablePermsDesc.getGrantor(), tablePermsDesc.getTableUUID(),
@@ -167,47 +167,47 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
             }
             for (int i = 0; i < columnBitSets.length; i++) {
                 if (colPermsDescs[i] != null) {
-                	DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor(grant, colPermsDescs[i], grantee, tc);
+                    DataDictionary.PermissionOperation action = dd.addRemovePermissionsDescriptor(grant, colPermsDescs[i], grantee, tc);
                     if (action == DataDictionary.PermissionOperation.REMOVE) {
-						privileges_revoked = true;
-						dd.getDependencyManager().invalidateFor(colPermsDescs[i], DependencyManager.REVOKE_PRIVILEGE, lcc);
-						// When revoking a privilege from a Table we need to
-						// invalidate all GPSs refering to it. But GPSs aren't
-						// Dependents of colPermsDescs[i], but of the
-						// TableDescriptor itself, so we must send
-						// INTERNAL_RECOMPILE_REQUEST to the TableDescriptor's
-						// Dependents.
-						dd.getDependencyManager().invalidateFor
-								(td,
-										DependencyManager.INTERNAL_RECOMPILE_REQUEST,
-										lcc);
-					}
-					if (action != DataDictionary.PermissionOperation.NOCHANGE) {
-						/* we need to add the colPermDescriptor to result for both grant and revoke case, so that we can invalidate cache
-						 * later in a distributed way for both cases.
-						 * an example where cache needs to be invalidated for grant statement is:
-						 * For a t1 of 3 columns (a1,b1,c1), suppose we've cached the permission of select(a1,b1) on a different region server,
-						 * after we grant select(c1), the cached entry on that region server should be invalidated, so that a select on c1 can go through
-						 */
-						ColPermsDescriptor colPermsDescriptor =
-								new ColPermsDescriptor(dd, grantee, colPermsDescs[i].getGrantor(),
-										colPermsDescs[i].getTableUUID(), colPermsDescs[i].getType(),
-										colPermsDescs[i].getColumns());
-						colPermsDescriptor.setUUID(colPermsDescs[i].getUUID());
-						result.add(colPermsDescriptor);
-					}
+                        privileges_revoked = true;
+                        dd.getDependencyManager().invalidateFor(colPermsDescs[i], DependencyManager.REVOKE_PRIVILEGE, lcc);
+                        // When revoking a privilege from a Table we need to
+                        // invalidate all GPSs refering to it. But GPSs aren't
+                        // Dependents of colPermsDescs[i], but of the
+                        // TableDescriptor itself, so we must send
+                        // INTERNAL_RECOMPILE_REQUEST to the TableDescriptor's
+                        // Dependents.
+                        dd.getDependencyManager().invalidateFor
+                                (td,
+                                        DependencyManager.INTERNAL_RECOMPILE_REQUEST,
+                                        lcc);
+                    }
+                    if (action != DataDictionary.PermissionOperation.NOCHANGE) {
+                        /* we need to add the colPermDescriptor to result for both grant and revoke case, so that we can invalidate cache
+                         * later in a distributed way for both cases.
+                         * an example where cache needs to be invalidated for grant statement is:
+                         * For a t1 of 3 columns (a1,b1,c1), suppose we've cached the permission of select(a1,b1) on a different region server,
+                         * after we grant select(c1), the cached entry on that region server should be invalidated, so that a select on c1 can go through
+                         */
+                        ColPermsDescriptor colPermsDescriptor =
+                                new ColPermsDescriptor(dd, grantee, colPermsDescs[i].getGrantor(),
+                                        colPermsDescs[i].getTableUUID(), colPermsDescs[i].getType(),
+                                        colPermsDescs[i].getColumns());
+                        colPermsDescriptor.setUUID(colPermsDescs[i].getUUID());
+                        result.add(colPermsDescriptor);
+                    }
                 }
             }
 
             addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
         }
         return result;
-	} // end of executeConstantAction
+    } // end of executeConstantAction
 
 
 
-	private boolean hasColumnPermissions( int action)
-	{
-		return action == SELECT_ACTION || action == UPDATE_ACTION || action == REFERENCES_ACTION;
-	}
+    private boolean hasColumnPermissions( int action)
+    {
+        return action == SELECT_ACTION || action == UPDATE_ACTION || action == REFERENCES_ACTION;
+    }
 }

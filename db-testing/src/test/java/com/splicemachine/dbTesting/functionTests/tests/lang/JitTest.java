@@ -50,20 +50,20 @@ public class JitTest {
   public static void main (String args[]) 
   { 
     try {
-    	/* Load the JDBC Driver class */
-    	// use the ij utility to read the property file and
-    	// make the initial connection.
-    	ij.getPropertyArg(args);
-    	Connection conn = ij.startJBMS();
+        /* Load the JDBC Driver class */
+        // use the ij utility to read the property file and
+        // make the initial connection.
+        ij.getPropertyArg(args);
+        Connection conn = ij.startJBMS();
 
-    	System.out.println("Start JitTest");
-    	//add tests specific to a jit issue
-    	testDerby1327BadStartWithForAutoIncColumn(conn);
-    	conn.close();
+        System.out.println("Start JitTest");
+        //add tests specific to a jit issue
+        testDerby1327BadStartWithForAutoIncColumn(conn);
+        conn.close();
     } catch (Exception e) {
-    	System.out.println("FAIL -- unexpected exception "+e);
-    	JDBCDisplayUtil.ShowException(System.out, e);
-      	e.printStackTrace(System.out);
+        System.out.println("FAIL -- unexpected exception "+e);
+        JDBCDisplayUtil.ShowException(System.out, e);
+          e.printStackTrace(System.out);
     }
   }
   
@@ -75,52 +75,52 @@ public class JitTest {
    * @throws Exception
    */
   public static void testDerby1327BadStartWithForAutoIncColumn(Connection conn) 
-  	throws Exception
+      throws Exception
   {
-	conn.setAutoCommit(false);
-		Statement stmt = null;		
+    conn.setAutoCommit(false);
+        Statement stmt = null;        
 
-		dropAllAppTables(conn);
-		System.out.println("Create tables until we get a wrong Start with value");
-		stmt = conn.createStatement();
+        dropAllAppTables(conn);
+        System.out.println("Create tables until we get a wrong Start with value");
+        stmt = conn.createStatement();
 
-		// numBadStartWith will be changed if any columns get a bad start with value.
-		int numBadStartWith = 0; 
-		String createTableSQL = null;
-		try {
-			// create 200 tables.  Break out if we get a table that has a bad
-			// start with value.
-			for (int i = 0; (i < 200) && (numBadStartWith == 0); i++)
-			{
-				String tableName = "SPLICE.MYTABLE" + i;
-			    createTableSQL = "CREATE TABLE " + tableName + 
-				"  (ROLEID INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY ("+
-				"START WITH 2, INCREMENT BY 1), INSTANCEID INTEGER, STATUS"+
-				" INTEGER, LOGICAL_STATE INTEGER, LSTATE_TSTAMP  TIMESTAMP,"+
-				" UPDT_TSTAMP TIMESTAMP, TSTAMP TIMESTAMP,"+
-				" CLALEVEL1_CLALEVEL2_CLALEVEL2ID VARCHAR(255),  "+
-				"CLALEVEL1_CLALEVEL2_CLALEVEL3_CLALEVEL3ID VARCHAR(255))";
-				
-				stmt.executeUpdate(createTableSQL);
-				conn.commit();
+        // numBadStartWith will be changed if any columns get a bad start with value.
+        int numBadStartWith = 0; 
+        String createTableSQL = null;
+        try {
+            // create 200 tables.  Break out if we get a table that has a bad
+            // start with value.
+            for (int i = 0; (i < 200) && (numBadStartWith == 0); i++)
+            {
+                String tableName = "SPLICE.MYTABLE" + i;
+                createTableSQL = "CREATE TABLE " + tableName + 
+                "  (ROLEID INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY ("+
+                "START WITH 2, INCREMENT BY 1), INSTANCEID INTEGER, STATUS"+
+                " INTEGER, LOGICAL_STATE INTEGER, LSTATE_TSTAMP  TIMESTAMP,"+
+                " UPDT_TSTAMP TIMESTAMP, TSTAMP TIMESTAMP,"+
+                " CLALEVEL1_CLALEVEL2_CLALEVEL2ID VARCHAR(255),  "+
+                "CLALEVEL1_CLALEVEL2_CLALEVEL3_CLALEVEL3ID VARCHAR(255))";
+                
+                stmt.executeUpdate(createTableSQL);
+                conn.commit();
                 numBadStartWith = checkBadStartWithCols(conn,2);
-				if (numBadStartWith > 0)
-					break;
-			}
-		} catch (SQLException se)
-		{
-			System.out.println("Failed on " + createTableSQL);
-			JDBCDisplayUtil.ShowSQLException(System.out,se);
+                if (numBadStartWith > 0)
+                    break;
+            }
+        } catch (SQLException se)
+        {
+            System.out.println("Failed on " + createTableSQL);
+            JDBCDisplayUtil.ShowSQLException(System.out,se);
 
-		}
-		
-		if (numBadStartWith == 0)
-		{
-			System.out.println("PASS: All 200 tables created without problems");
-			dropAllAppTables(conn);
-		}
-		stmt.close();
-		conn.rollback();
+        }
+        
+        if (numBadStartWith == 0)
+        {
+            System.out.println("PASS: All 200 tables created without problems");
+            dropAllAppTables(conn);
+        }
+        stmt.close();
+        conn.rollback();
   } 
 
 
@@ -131,68 +131,68 @@ public class JitTest {
    * @param maxautoincrementstart  Maximum expected autoincrementstart value
    * @return number of columns with bad autoincrementstart value
    */
-  	private static int checkBadStartWithCols(Connection conn, int
-  	  		maxautoincrementstart) throws Exception
-  	{
-  		Statement stmt = conn.createStatement();
-  		ResultSet rs =stmt.executeQuery("select count(autoincrementstart) from"+
-  				" sys.syscolumns c, sys.systables t, sys.sysschemas s WHERE"+
-				" t.schemaid =  s.schemaid and CAST(s.schemaname AS VARCHAR(128))= 'SPLICE' and"+
-				" autoincrementstart > " +  maxautoincrementstart);
+      private static int checkBadStartWithCols(Connection conn, int
+                maxautoincrementstart) throws Exception
+      {
+          Statement stmt = conn.createStatement();
+          ResultSet rs =stmt.executeQuery("select count(autoincrementstart) from"+
+                  " sys.syscolumns c, sys.systables t, sys.sysschemas s WHERE"+
+                " t.schemaid =  s.schemaid and CAST(s.schemaname AS VARCHAR(128))= 'SPLICE' and"+
+                " autoincrementstart > " +  maxautoincrementstart);
 
-  		rs.next();
-  		int numBadStartWith = rs.getInt(1);
-  		if (numBadStartWith > 0)
-  			System.out.println(numBadStartWith + " columns have bad START WITH VALUE");
-  		rs.close();
-  		
-  		if (numBadStartWith > 0)
-  		{
-  			rs =stmt.executeQuery("select tablename, columnname,"+
-  					" autoincrementstart from sys.syscolumns c, sys.systables t,"+
-					" CAST(sys.sysschemas AS VARCHAR(128)) s WHERE t.schemaid = s.schemaid and"+
-					" CAST(s.schemaname AS VARCHAR(128)) = 'SPLICE' and autoincrementstart > 2 ORDER"+
-					" BY tablename");
-  			while (rs.next())
-  			{
-  				System.out.println("Unexpected start value: " +
-  								   rs.getLong(3) + 
-  								   " on column " + rs.getString(1) +
-  								   "(" + rs.getString(2) + ")");
-  				
-  				
-  			}
-  		}
+          rs.next();
+          int numBadStartWith = rs.getInt(1);
+          if (numBadStartWith > 0)
+              System.out.println(numBadStartWith + " columns have bad START WITH VALUE");
+          rs.close();
+          
+          if (numBadStartWith > 0)
+          {
+              rs =stmt.executeQuery("select tablename, columnname,"+
+                      " autoincrementstart from sys.syscolumns c, sys.systables t,"+
+                    " CAST(sys.sysschemas AS VARCHAR(128)) s WHERE t.schemaid = s.schemaid and"+
+                    " CAST(s.schemaname AS VARCHAR(128)) = 'SPLICE' and autoincrementstart > 2 ORDER"+
+                    " BY tablename");
+              while (rs.next())
+              {
+                  System.out.println("Unexpected start value: " +
+                                     rs.getLong(3) + 
+                                     " on column " + rs.getString(1) +
+                                     "(" + rs.getString(2) + ")");
+                  
+                  
+              }
+          }
          return numBadStartWith;
-  	}
+      }
 
-  	/**
+      /**
        * Drop all tables in schema SPLICE
-  	 * @param conn
-  	 * @throws SQLException
-  	 */
-  	private  static void dropAllAppTables(Connection conn) throws SQLException
-  	{
-  		Statement stmt1 = conn.createStatement();
-  		Statement stmt2 = conn.createStatement();
-  		System.out.println("Drop all tables in SPLICE schema");
-  		ResultSet rs = stmt1.executeQuery("SELECT tablename from sys.systables"+
-  				" t, sys.sysschemas s where t.schemaid = s.schemaid and"+
-				" CAST(s.schemaname AS VARCHAR(128)) = 'SPLICE'");
+       * @param conn
+       * @throws SQLException
+       */
+      private  static void dropAllAppTables(Connection conn) throws SQLException
+      {
+          Statement stmt1 = conn.createStatement();
+          Statement stmt2 = conn.createStatement();
+          System.out.println("Drop all tables in SPLICE schema");
+          ResultSet rs = stmt1.executeQuery("SELECT tablename from sys.systables"+
+                  " t, sys.sysschemas s where t.schemaid = s.schemaid and"+
+                " CAST(s.schemaname AS VARCHAR(128)) = 'SPLICE'");
 
-  		while (rs.next())
-  		{
-  			String tableName = rs.getString(1);
-  			
-  			try {
-  				stmt2.executeUpdate("DROP TABLE " + tableName);
-  			}
-  			catch (SQLException se)
-  			{
-  				System.out.println("Error dropping table:" + tableName);
-  				se.printStackTrace();
-  				continue;
-  			}
-  		}
-  	}
+          while (rs.next())
+          {
+              String tableName = rs.getString(1);
+              
+              try {
+                  stmt2.executeUpdate("DROP TABLE " + tableName);
+              }
+              catch (SQLException se)
+              {
+                  System.out.println("Error dropping table:" + tableName);
+                  se.printStackTrace();
+                  continue;
+              }
+          }
+      }
 }

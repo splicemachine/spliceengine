@@ -53,147 +53,147 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 public class BaseColumnNode extends ValueNode
 {
-	private String	columnName;
+    private String    columnName;
 
-	/*
-	** This is the user-specified table name.  It will be null if the
-	** user specifies a column without a table name.  
-	*/
-	private TableName	tableName;
+    /*
+    ** This is the user-specified table name.  It will be null if the
+    ** user specifies a column without a table name.  
+    */
+    private TableName    tableName;
 
-	/**
-	 * Initializer for when you only have the column name.
-	 *
-	 * @param columnName	The name of the column being referenced
-	 * @param tableName		The qualification for the column
-	 * @param dts			DataTypeServices for the column
-	 */
+    /**
+     * Initializer for when you only have the column name.
+     *
+     * @param columnName    The name of the column being referenced
+     * @param tableName        The qualification for the column
+     * @param dts            DataTypeServices for the column
+     */
 
-	public void init(
-							Object columnName,
-							Object tableName,
-				   			Object dts) throws StandardException
-	{
-		this.columnName = (String) columnName;
-		this.tableName = (TableName) tableName;
-		setType((DataTypeDescriptor) dts);
-	}
+    public void init(
+                            Object columnName,
+                            Object tableName,
+                               Object dts) throws StandardException
+    {
+        this.columnName = (String) columnName;
+        this.tableName = (TableName) tableName;
+        setType((DataTypeDescriptor) dts);
+    }
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			return "columnName: " + columnName + "\n" +
-				"tableName: " +
-				( ( tableName != null) ?
-						tableName.toString() :
-						"null") + "\n" +
-				super.toString();
-		}
-		else
-		{
-			return "";
-		}
-	}
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            return "columnName: " + columnName + "\n" +
+                "tableName: " +
+                ( ( tableName != null) ?
+                        tableName.toString() :
+                        "null") + "\n" +
+                super.toString();
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	/**
-	 * Get the name of this column
-	 *
-	 * @return	The name of this column
-	 */
+    /**
+     * Get the name of this column
+     *
+     * @return    The name of this column
+     */
 
-	public String getColumnName()
-	{
-		return columnName;
-	}
+    public String getColumnName()
+    {
+        return columnName;
+    }
 
-	/**
-	 * Get the user-supplied table name of this column.  This will be null
-	 * if the user did not supply a name (for example, select a from t).
-	 * The method will return B for this example, select b.a from t as b
-	 * The method will return T for this example, select t.a from t
-	 *
-	 * @return	The user-supplied name of this column.  Null if no user-
-	 * 		supplied name.
-	 */
+    /**
+     * Get the user-supplied table name of this column.  This will be null
+     * if the user did not supply a name (for example, select a from t).
+     * The method will return B for this example, select b.a from t as b
+     * The method will return T for this example, select t.a from t
+     *
+     * @return    The user-supplied name of this column.  Null if no user-
+     *         supplied name.
+     */
 
-	public String getTableName()
-	{
-		return ( ( tableName != null) ? tableName.getTableName() : null );
-	}
+    public String getTableName()
+    {
+        return ( ( tableName != null) ? tableName.getTableName() : null );
+    }
 
-	/**
-	 * Get the user-supplied schema name for this column's table. This will be null
-	 * if the user did not supply a name (for example, select t.a from t).
-	 * Another example for null return value (for example, select b.a from t as b).
-	 * But for following query select app.t.a from t, this will return SPLICE
-	 *
-	 * @return	The schema name for this column's table
-	 */
-	public String getSchemaName() throws StandardException
-	{
-		return ( ( tableName != null) ? tableName.getSchemaName() : null );
-	}
+    /**
+     * Get the user-supplied schema name for this column's table. This will be null
+     * if the user did not supply a name (for example, select t.a from t).
+     * Another example for null return value (for example, select b.a from t as b).
+     * But for following query select app.t.a from t, this will return SPLICE
+     *
+     * @return    The schema name for this column's table
+     */
+    public String getSchemaName() throws StandardException
+    {
+        return ( ( tableName != null) ? tableName.getSchemaName() : null );
+    }
 
-	/**
-	 * Do the code generation for this node. Should never be called.
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class being built
-	 * @param mb	The method the code to place the code
-	 *
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Do the code generation for this node. Should never be called.
+     *
+     * @param acb    The ExpressionClassBuilder for the class being built
+     * @param mb    The method the code to place the code
+     *
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public void generateExpression(ExpressionClassBuilder acb,
-											MethodBuilder mb)
-							throws StandardException
-	{
-		throw StandardException.newException(SQLState.LANG_UNABLE_TO_GENERATE,
-			this.nodeHeader());
-	}
+    public void generateExpression(ExpressionClassBuilder acb,
+                                            MethodBuilder mb)
+                            throws StandardException
+    {
+        throw StandardException.newException(SQLState.LANG_UNABLE_TO_GENERATE,
+            this.nodeHeader());
+    }
 
-	/**
-	 * Return the variant type for the underlying expression.
-	 * The variant type can be:
-	 *		VARIANT				- variant within a scan
-	 *							  (method calls and non-static field access)
-	 *		SCAN_INVARIANT		- invariant within a scan
-	 *							  (column references from outer tables)
-	 *		QUERY_INVARIANT		- invariant within the life of a query
-	 *							  (constant expressions)
-	 *
-	 * @return	The variant type for the underlying expression.
-	 */
-	protected int getOrderableVariantType()
-	{
-		return Qualifier.SCAN_INVARIANT;
-	}
+    /**
+     * Return the variant type for the underlying expression.
+     * The variant type can be:
+     *        VARIANT                - variant within a scan
+     *                              (method calls and non-static field access)
+     *        SCAN_INVARIANT        - invariant within a scan
+     *                              (column references from outer tables)
+     *        QUERY_INVARIANT        - invariant within the life of a query
+     *                              (constant expressions)
+     *
+     * @return    The variant type for the underlying expression.
+     */
+    protected int getOrderableVariantType()
+    {
+        return Qualifier.SCAN_INVARIANT;
+    }
         
     /**
      * {@inheritDoc}
      */
-	protected boolean isEquivalent(ValueNode o)
-	{
-		if (isSameNodeType(o)) 
-		{
-			BaseColumnNode other = (BaseColumnNode)o;
-			return other.tableName.equals(tableName)
-			&& other.columnName.equals(columnName);
-		} 
-		return false;
-	}
+    protected boolean isEquivalent(ValueNode o)
+    {
+        if (isSameNodeType(o)) 
+        {
+            BaseColumnNode other = (BaseColumnNode)o;
+            return other.tableName.equals(tableName)
+            && other.columnName.equals(columnName);
+        } 
+        return false;
+    }
 
-	public List getChildren() {
-		return Collections.EMPTY_LIST;
-	}
+    public List getChildren() {
+        return Collections.EMPTY_LIST;
+    }
 
     @Override
     public String toHTMLString() {

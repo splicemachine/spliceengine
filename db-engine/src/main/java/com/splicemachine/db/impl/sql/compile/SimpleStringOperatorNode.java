@@ -52,122 +52,122 @@ import java.util.List;
 
 public class SimpleStringOperatorNode extends UnaryOperatorNode
 {
-	/**
-	 * Initializer for a SimpleOperatorNode
-	 *
-	 * @param operand		The operand
-	 * @param methodName	The method name
-	 */
+    /**
+     * Initializer for a SimpleOperatorNode
+     *
+     * @param operand        The operand
+     * @param methodName    The method name
+     */
 
-	public void init(Object operand, Object methodName)
-	{
-		super.init(operand, methodName, methodName);
-	}
+    public void init(Object operand, Object methodName)
+    {
+        super.init(operand, methodName, methodName);
+    }
 
-	/**
-	 * Bind this operator
-	 *
-	 * @param fromList			The query's FROM list
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	@Override
-	public ValueNode bindExpression(FromList fromList,
-									SubqueryList subqueryList,
-									List<AggregateNode> aggregateVector) throws StandardException {
-		TypeId	operandType;
+    /**
+     * Bind this operator
+     *
+     * @param fromList            The query's FROM list
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
+     *
+     * @return    The new top of the expression tree.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    @Override
+    public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
+        TypeId    operandType;
 
-		bindOperand(fromList, subqueryList, 
-				aggregateVector);
+        bindOperand(fromList, subqueryList, 
+                aggregateVector);
 
-		/*
-		** Check the type of the operand - this function is allowed only on
-		** string value (char and bit) types.
-		*/
-		operandType = operand.getTypeId();
+        /*
+        ** Check the type of the operand - this function is allowed only on
+        ** string value (char and bit) types.
+        */
+        operandType = operand.getTypeId();
 
-		switch (operandType.getJDBCTypeId())
-		{
-				case Types.CHAR:
-				case Types.VARCHAR:
-				case Types.LONGVARCHAR:
-				case Types.CLOB:
-					break;
-				case Types.JAVA_OBJECT:
-				case Types.OTHER:	
-				{
-					throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
-										methodName,
-										operandType.getSQLTypeName());
-				}
+        switch (operandType.getJDBCTypeId())
+        {
+                case Types.CHAR:
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CLOB:
+                    break;
+                case Types.JAVA_OBJECT:
+                case Types.OTHER:    
+                {
+                    throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
+                                        methodName,
+                                        operandType.getSQLTypeName());
+                }
 
-				default:
-					DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 
-							  operand.getTypeCompiler().
-								getCastToCharWidth(
-									operand.getTypeServices()));
-			
-					operand =  (ValueNode)
-						getNodeFactory().getNode(
-							C_NodeTypes.CAST_NODE,
-							operand,
-							dtd,
-							getContextManager());
-					
-				// DERBY-2910 - Match current schema collation for implicit cast as we do for
-				// explicit casts per SQL Spec 6.12 (10)					
-			    operand.setCollationUsingCompilationSchema();
-			    
-				((CastNode) operand).bindCastNodeOnly();
-					operandType = operand.getTypeId();
-		}
+                default:
+                    DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 
+                              operand.getTypeCompiler().
+                                getCastToCharWidth(
+                                    operand.getTypeServices()));
+            
+                    operand =  (ValueNode)
+                        getNodeFactory().getNode(
+                            C_NodeTypes.CAST_NODE,
+                            operand,
+                            dtd,
+                            getContextManager());
+                    
+                // DERBY-2910 - Match current schema collation for implicit cast as we do for
+                // explicit casts per SQL Spec 6.12 (10)                    
+                operand.setCollationUsingCompilationSchema();
+                
+                ((CastNode) operand).bindCastNodeOnly();
+                    operandType = operand.getTypeId();
+        }
 
-		/*
-		** The result type of upper()/lower() is the type of the operand.
-		*/
+        /*
+        ** The result type of upper()/lower() is the type of the operand.
+        */
 
-		setType(new DataTypeDescriptor(operandType,
-				operand.getTypeServices().isNullable(),
-				operand.getTypeCompiler().
-					getCastToCharWidth(operand.getTypeServices())
-						)
-				);
-		//Result of upper()/lower() will have the same collation as the   
-		//argument to upper()/lower(). 
+        setType(new DataTypeDescriptor(operandType,
+                operand.getTypeServices().isNullable(),
+                operand.getTypeCompiler().
+                    getCastToCharWidth(operand.getTypeServices())
+                        )
+                );
+        //Result of upper()/lower() will have the same collation as the   
+        //argument to upper()/lower(). 
         setCollationInfo(operand.getTypeServices());
 
-		return this;
-	}
+        return this;
+    }
 
-	/**
-	 * Bind a ? parameter operand of the upper/lower function.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Bind a ? parameter operand of the upper/lower function.
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	void bindParameter()
-			throws StandardException
-	{
-		/*
-		** According to the SQL standard, if bit_length has a ? operand,
-		** its type is bit varying with the implementation-defined maximum length
-		** for a bit.
-		*/
+    void bindParameter()
+            throws StandardException
+    {
+        /*
+        ** According to the SQL standard, if bit_length has a ? operand,
+        ** its type is bit varying with the implementation-defined maximum length
+        ** for a bit.
+        */
 
-		operand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-		//collation of ? operand should be same as the compilation schema
-		operand.setCollationUsingCompilationSchema();
-	}
+        operand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+        //collation of ? operand should be same as the compilation schema
+        operand.setCollationUsingCompilationSchema();
+    }
 
-	/**
-	 * This is a length operator node.  Overrides this method
-	 * in UnaryOperatorNode for code generation purposes.
-	 */
-	public String getReceiverInterfaceName() {
-	    return ClassName.StringDataValue;
-	}
+    /**
+     * This is a length operator node.  Overrides this method
+     * in UnaryOperatorNode for code generation purposes.
+     */
+    public String getReceiverInterfaceName() {
+        return ClassName.StringDataValue;
+    }
 }

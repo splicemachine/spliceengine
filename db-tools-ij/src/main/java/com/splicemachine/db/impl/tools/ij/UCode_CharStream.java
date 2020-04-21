@@ -204,7 +204,7 @@ public final class UCode_CharStream implements CharStream
         return (char)buffer[(bufpos == bufsize - 1) ? (bufpos = 0) : ++bufpos];
      }
 
-	 bufpos++;
+     bufpos++;
      char c = ReadChar();
      UpdateLineColumn(c);
 
@@ -287,7 +287,7 @@ public final class UCode_CharStream implements CharStream
     bufline = new int[buffersize];
     bufcolumn = new int[buffersize];
   }
-		
+        
 
   public UCode_CharStream(java.io.Reader dstream,
                                         int startline, int startcolumn)
@@ -310,8 +310,8 @@ public final class UCode_CharStream implements CharStream
       bufline = new int[buffersize];
       bufcolumn = new int[buffersize];
     }
-  	tokenBegin = inBuf = maxNextCharInd = 0; 
-	nextCharInd = bufpos = -1; 
+      tokenBegin = inBuf = maxNextCharInd = 0; 
+    nextCharInd = bufpos = -1; 
   }
 
   public void ReInit(java.io.Reader dstream,

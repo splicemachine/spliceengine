@@ -153,7 +153,7 @@ public class XML
         xmlStringValue = null;
         xType = -1;
         containsTopLevelAttr = false;
-		isNull = true;
+        isNull = true;
     }
 
     /**
@@ -176,7 +176,7 @@ public class XML
         setXType(xmlType);
         if (seqWithAttr)
             markAsHavingTopLevelAttr();
-		isNull = evaluateNull();
+        isNull = evaluateNull();
     }
 
     /* ****
@@ -265,7 +265,7 @@ public class XML
         // XML_DOC_ANY because that's all we allow to be
         // written into an XML column.
         setXType(XML_DOC_ANY);
-		isNull = evaluateNull();
+        isNull = evaluateNull();
     }
 
     /**
@@ -281,7 +281,7 @@ public class XML
 
             // Null is a valid value for DOCUMENT(ANY)
             setXType(XML_DOC_ANY);
-			isNull = evaluateNull();
+            isNull = evaluateNull();
             return;
         }
 
@@ -305,7 +305,7 @@ public class XML
             if (((XMLDataValue)theValue).hasTopLevelAttr())
                 markAsHavingTopLevelAttr();
         }
-		isNull = evaluateNull();
+        isNull = evaluateNull();
     }
 
     /** 
@@ -355,7 +355,7 @@ public class XML
                  */
                 xmlStringValue.setValue(valAsStr);
                 setXType(-1);
-				isNull = evaluateNull();
+                isNull = evaluateNull();
                 return;
 
             }
@@ -384,7 +384,7 @@ public class XML
             setXType(-1);
 
         }
-		isNull = evaluateNull();
+        isNull = evaluateNull();
     }
 
     /**
@@ -488,8 +488,8 @@ public class XML
 
     /**
      * @see Storable#isNull
-	 */
-	private boolean evaluateNull()
+     */
+    private boolean evaluateNull()
     {
         return ((xmlStringValue == null) || xmlStringValue.isNull());
     }
@@ -501,7 +501,7 @@ public class XML
     {
         if (xmlStringValue != null)
             xmlStringValue.restoreToNull();
-		isNull = true;
+        isNull = true;
     }
 
     /**
@@ -527,7 +527,7 @@ public class XML
         // XML_DOC_ANY because that's all we allow to be
         // written into an XML column.
         setXType(XML_DOC_ANY);
-		isNull = evaluateNull();
+        isNull = evaluateNull();
     }
 
     /**
@@ -593,7 +593,7 @@ public class XML
         // XML_DOC_ANY because that's all we allow to be
         // written into an XML column.
         setXType(XML_DOC_ANY);
-		isNull = evaluateNull();
+        isNull = evaluateNull();
     }
 
     /**
@@ -679,7 +679,7 @@ public class XML
         if (xmlStringValue == null)
             xmlStringValue = new SQLChar();
         xmlStringValue.setValue(text);
-		isNull = evaluateNull();
+        isNull = evaluateNull();
         return this;
     }
 
@@ -1095,7 +1095,7 @@ public class XML
         }
     }
     public Format getFormat() {
-    	return Format.XML;
+        return Format.XML;
     }
 
     @Override

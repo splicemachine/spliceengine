@@ -83,8 +83,8 @@ public class col_rec1 extends BaseTest
         conn.commit();
         conn.setAutoCommit(false);
         s.execute("insert into t values 'xxxx'");
-		Connection connSecond = DriverManager.getConnection
-		("jdbc:splice:collationDB");
+        Connection connSecond = DriverManager.getConnection
+        ("jdbc:splice:collationDB");
         connSecond.setAutoCommit(false);
         Statement sSecond = connSecond.createStatement();
         sSecond.execute("insert into t values 'abab'");
@@ -100,9 +100,9 @@ public class col_rec1 extends BaseTest
     public static void main(String[] argv) 
         throws Throwable
     {
-    	col_rec1 test = new col_rec1();
+        col_rec1 test = new col_rec1();
 
-   		ij.getPropertyArg(argv); 
+           ij.getPropertyArg(argv); 
         Connection conn = ij.startJBMS();
         conn.setAutoCommit(false);
 
@@ -112,9 +112,9 @@ public class col_rec1 extends BaseTest
         }
         catch (SQLException sqle)
         {
-			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
-			sqle.printStackTrace(System.out);
-		}
+            sqle.printStackTrace(System.out);
+        }
     }
 }

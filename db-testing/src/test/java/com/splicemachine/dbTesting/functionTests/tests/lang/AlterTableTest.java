@@ -1152,75 +1152,75 @@ public final class AlterTableTest extends BaseJDBCTestCase {
      * See DERBY-4693 for a case where this was broken.
      */
     public void testRenameAutoincrementColumn()
-	throws Exception
+    throws Exception
     {
-	// First, the repro from the Jira issue originally logged:
-	Statement st = createStatement();
-	st.executeUpdate("create table d4693" +
-		"(a int generated always as identity, b int)");
+    // First, the repro from the Jira issue originally logged:
+    Statement st = createStatement();
+    st.executeUpdate("create table d4693" +
+        "(a int generated always as identity, b int)");
         JDBC.assertFullResultSet(st.executeQuery(
                 "select columnname,columnnumber,columndatatype," +
-		"       autoincrementvalue," +
-		"       autoincrementstart," +
-		"       autoincrementinc" +
-		" from sys.syscolumns where " +
-		"      columnname = 'A' and " +
-		"      referenceid in (select tableid " +
+        "       autoincrementvalue," +
+        "       autoincrementstart," +
+        "       autoincrementinc" +
+        " from sys.syscolumns where " +
+        "      columnname = 'A' and " +
+        "      referenceid in (select tableid " +
                 "             from sys.systables where tablename = 'D4693')"),
                 new String[][]{ {"A","1","INTEGER NOT NULL","1","1","1"} });
-	st.executeUpdate("insert into d4693 (b) values (1)");
-	st.executeUpdate("rename column d4693.a to a2");
+    st.executeUpdate("insert into d4693 (b) values (1)");
+    st.executeUpdate("rename column d4693.a to a2");
         JDBC.assertFullResultSet(st.executeQuery(
                 "select columnname,columnnumber,columndatatype," +
-		"       autoincrementvalue," +
-		"       autoincrementstart," +
-		"       autoincrementinc" +
-		" from sys.syscolumns where " +
-		"      columnname = 'A2' and " +
-		"      referenceid in (select tableid " +
+        "       autoincrementvalue," +
+        "       autoincrementstart," +
+        "       autoincrementinc" +
+        " from sys.syscolumns where " +
+        "      columnname = 'A2' and " +
+        "      referenceid in (select tableid " +
                 "             from sys.systables where tablename = 'D4693')"),
                 new String[][]{ {"A2","1","INTEGER NOT NULL","2","1","1"} });
-	st.executeUpdate("insert into d4693 (b) values (2)");
+    st.executeUpdate("insert into d4693 (b) values (2)");
         JDBC.assertFullResultSet(st.executeQuery(
                 "select a2, b from d4693"),
                 new String[][]{ {"1", "1"}, {"2", "2"} });
         st.executeUpdate("drop table d4693");
 
-	// Then, a few other arbitrary test cases:
-	String colspecs[] = {
-	    "autoinc int generated always as identity (start with 100)",
-	    "autoinc1 int generated always as identity (increment by 100)",
-	    "autoinc2 int generated always as identity (start with 101, increment by 100)",
-	    "a11 int generated always as identity (start with  0, increment by -1)",
-	    "a21 int generated always as identity (start with  +0, increment by -1)",
-	    "a31 int generated always as identity (start with  -1, increment by -1)",
-	    "a41 int generated always as identity (start with  -11, increment by +100)"
-	};
-	String cn[] = {
-	    "AUTOINC", "AUTOINC1", "AUTOINC2", "A11", "A21", "A31", "A41" };
-	String val[] = {
-	    "100",     "1",        "101",      "0",   "0",   "-1",  "-11" };
-	String start[] = {
-	    "100",     "1",        "101",      "0",   "0",   "-1",  "-11" };
-	String inc[] = {
-	    "1",      "100",       "100",      "-1",  "-1",  "-1",  "100" };
-	for (int i = 0; i < colspecs.length; i++)
-	{
-	    st.executeUpdate("create table d4693 (" + colspecs[i] + ")");
-	    checkValStartInc(st, cn[i], val[i], start[i], inc[i]);
-	    st.executeUpdate("rename column d4693."+cn[i]+" to "+cn[i]+"2");
-	    checkValStartInc(st, cn[i]+"2", val[i], start[i], inc[i]);
-	    st.executeUpdate("drop table d4693");
-	}
+    // Then, a few other arbitrary test cases:
+    String colspecs[] = {
+        "autoinc int generated always as identity (start with 100)",
+        "autoinc1 int generated always as identity (increment by 100)",
+        "autoinc2 int generated always as identity (start with 101, increment by 100)",
+        "a11 int generated always as identity (start with  0, increment by -1)",
+        "a21 int generated always as identity (start with  +0, increment by -1)",
+        "a31 int generated always as identity (start with  -1, increment by -1)",
+        "a41 int generated always as identity (start with  -11, increment by +100)"
+    };
+    String cn[] = {
+        "AUTOINC", "AUTOINC1", "AUTOINC2", "A11", "A21", "A31", "A41" };
+    String val[] = {
+        "100",     "1",        "101",      "0",   "0",   "-1",  "-11" };
+    String start[] = {
+        "100",     "1",        "101",      "0",   "0",   "-1",  "-11" };
+    String inc[] = {
+        "1",      "100",       "100",      "-1",  "-1",  "-1",  "100" };
+    for (int i = 0; i < colspecs.length; i++)
+    {
+        st.executeUpdate("create table d4693 (" + colspecs[i] + ")");
+        checkValStartInc(st, cn[i], val[i], start[i], inc[i]);
+        st.executeUpdate("rename column d4693."+cn[i]+" to "+cn[i]+"2");
+        checkValStartInc(st, cn[i]+"2", val[i], start[i], inc[i]);
+        st.executeUpdate("drop table d4693");
+    }
     }
     private void checkValStartInc(Statement st, String nm, String v,
-					String s, String inc)
-	throws Exception
+                    String s, String inc)
+    throws Exception
     {
         JDBC.assertFullResultSet(st.executeQuery(
             "select autoincrementvalue,autoincrementstart,autoincrementinc" +
-		" from sys.syscolumns where columnname = '"+nm+"' and " +
-		"      referenceid in (select tableid " +
+        " from sys.syscolumns where columnname = '"+nm+"' and " +
+        "      referenceid in (select tableid " +
                 "             from sys.systables where tablename = 'D4693')"),
                 new String[][]{ {v, s, inc} });
     }
@@ -1792,11 +1792,11 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         st.executeUpdate(
                 "create table derby_3823_t1 (c11 int, c12 varchar(5))");
         PreparedStatement ps = prepareStatement(
-        		"insert into derby_3823_t1 values(?,'aaaaa')");
+                "insert into derby_3823_t1 values(?,'aaaaa')");
         for (int i = 0; i < 1000; i++) { 
-        	ps.setInt(1, i); 
-        	ps.executeUpdate(); 
-    	} 
+            ps.setInt(1, i); 
+            ps.executeUpdate(); 
+        } 
         commit();
         //Open a resultset on the table which will be altered because
         // the resultset has been exhausted. The alter table will fail
@@ -1807,8 +1807,8 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         //Next, we will attempt to change the column length of one of the
         // columns in the resultset and see what happens
         for (int i = 0; i < 100; i++) { 
-        	rs.next(); 
-    	}
+            rs.next(); 
+        }
         rsmd = rs.getMetaData();
         //The column c12's length at this point is 2
         assertEquals(5, rsmd.getColumnDisplaySize(2));
@@ -1818,11 +1818,11 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         assertStatementError("22001", st1, "insert into derby_3823_t1 values(99,'12345678')");
         if (usingEmbedded()) 
         {
-        	//ALTER TABLE will fail in embedded because of the open resulset
+            //ALTER TABLE will fail in embedded because of the open resulset
             assertStatementError("X0X95", st1,
                     "alter table derby_3823_t1 alter column c12 set data type varchar(8)");
         } else {
-        	//ALTER TABLE does not fail in network server because of pre-fetching
+            //ALTER TABLE does not fail in network server because of pre-fetching
             st1.execute("alter table derby_3823_t1 alter column c12 set data type varchar(8)"); 
             //BUG - but the following metadata of the resultset does not show
             //  the new column length for C12 which is 8 rather than 2
@@ -1858,7 +1858,7 @@ public final class AlterTableTest extends BaseJDBCTestCase {
                 "old_table as old for each statement insert into " +
                 "Derby5120_tab_bkup1 select * from old");
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeTestStart+5);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeTestStart+5);
 
         //Following trigger will add 5 rows to sysdepends. Trigger creation
         // will send CREATE TRIGGER invalidation to trigger table which will
@@ -1870,21 +1870,21 @@ public final class AlterTableTest extends BaseJDBCTestCase {
                 "old as oldrow for each row insert into  " +
                 "Derby5120_tab_bkup2(c211) values (oldrow.c11)");
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeTestStart+10);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeTestStart+10);
 
         //Following will fire the 2 triggers created above. During the firing,
         // we will find that Derby5120_tr1 has been marked invalid. As a result
         // we will recompile it's trigger action.
         st.executeUpdate("update Derby5120_tab set c11=2");
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeTestStart+10);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeTestStart+10);
 
         //Following alter table on trigger table will mark the two triggers 
         // created above invalid. As a result, when they are fired next
         // time, their trigger action sps will be regenerated.
         st.executeUpdate("alter table Derby5120_tab add column c113 int");
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeTestStart+10);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeTestStart+10);
 
         //Following will cause the 2 triggers to fire because they were marked
         // invalid by alter table. During the trigger action sps regeneration
@@ -1898,12 +1898,12 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         //Drop the errorneous trigger
         st.executeUpdate("drop trigger Derby5120_tr1");
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS will be less",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeTestStart+5);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeTestStart+5);
 
         //Following update will succeed this time
         st.executeUpdate("update Derby5120_tab set c11=2");
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeTestStart+5);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeTestStart+5);
     }
     
     //A test for ALTER TABLE DROP COLUMN with synonyms and trigger combination.
@@ -1915,7 +1915,7 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         
         st.executeUpdate("create table atdcSynonymTab_1 (c11 integer, c12 integer)");
         st.executeUpdate("create table atdcSynonymTab_2 (c21 integer, c22 integer)");
-		st.executeUpdate("CREATE SYNONYM synonymTab2 FOR atdcSynonymTab_2");
+        st.executeUpdate("CREATE SYNONYM synonymTab2 FOR atdcSynonymTab_2");
         st.executeUpdate(
                 "create trigger syn_tr1t1 after update of c11 on atdcSynonymTab_1 " +
                 "for each row mode db2sql " +
@@ -1934,7 +1934,7 @@ public final class AlterTableTest extends BaseJDBCTestCase {
                 " update atdcSynonymTab_1 set c11=99");
         //A new row in the table with synonym defined on it
         JDBC.assertFullResultSet(
-        		st.executeQuery("select * from synonymTab2"),
+                st.executeQuery("select * from synonymTab2"),
                 new String[][]{{"9","9"}});
         //delete data to get ready for next test which will attempt to do
         // ALTER TABLE DROP COLUMN RESTRICT and fail because there is a
@@ -1962,7 +1962,7 @@ public final class AlterTableTest extends BaseJDBCTestCase {
                 " update atdcSynonymTab_1 set c11=99");
         //A new row in the table with synonym defined on it
         JDBC.assertFullResultSet(
-        		st.executeQuery("select * from synonymTab2"),
+                st.executeQuery("select * from synonymTab2"),
                 new String[][]{{"9","9"}});
         //delete data to get ready for next test which will attempt to do
         // ALTER TABLE DROP COLUMN and will dropped the trigger using the 
@@ -2027,12 +2027,12 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         st.executeUpdate(
                 " update atdctd_1 set c11=99");
         JDBC.assertFullResultSet(
-        		st.executeQuery("select * from atdctd_3"),
+                st.executeQuery("select * from atdctd_3"),
                 new String[][]{{"9","9"}});
         st.executeUpdate(
                 " insert into atdctd_2 values(21,22)");
         JDBC.assertFullResultSet(
-        		st.executeQuery("select * from atdctd_3 order by c32"),
+                st.executeQuery("select * from atdctd_3 order by c32"),
                 new String[][]{{"9","9"}, {"99","12"},{"99",null}});
         st.executeUpdate(
                 " delete from atdctd_3");
@@ -2046,18 +2046,18 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         assertStatementError("X0Y25", st,
                 " alter table atdctd_1 drop column c11 restrict");
         JDBC.assertEmpty(st.executeQuery(
-        		" select * from atdctd_3"));
+                " select * from atdctd_3"));
         st.executeUpdate(
-        		" insert into atdctd_1 values(11,12)");
+                " insert into atdctd_1 values(11,12)");
         st.executeUpdate(
-        		" update atdctd_1 set c11=99");
+                " update atdctd_1 set c11=99");
         JDBC.assertFullResultSet(
-        		st.executeQuery("select * from atdctd_3"),
+                st.executeQuery("select * from atdctd_3"),
                 new String[][]{{"9","9"}});
         st.executeUpdate(
                 " insert into atdctd_2 values(21,22)");
         JDBC.assertFullResultSet(
-        		st.executeQuery("select * from atdctd_3 order by c32"),
+                st.executeQuery("select * from atdctd_3 order by c32"),
                 new String[][]{{"9","9"}, {"99","12"},{"99",null}});
         st.executeUpdate(
                 " delete from atdctd_3");
@@ -2492,7 +2492,7 @@ public final class AlterTableTest extends BaseJDBCTestCase {
                 " alter table atdc_6 drop column b restrict");
         triggersExist(st, new String[][]{{"ATDC_6_TRIGGER_1"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
 
         //CASCADE will drop the dependent trigger
         st.executeUpdate("alter table atdc_6 drop column b cascade");
@@ -2501,7 +2501,7 @@ public final class AlterTableTest extends BaseJDBCTestCase {
                 " select triggername from sys.systriggers where " +
                 "triggername='ATDC_6_TRIGGER_1'"));
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should reduce",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
         st.executeUpdate("drop table ATDC_6");
 
         // Another test
@@ -2519,7 +2519,7 @@ public final class AlterTableTest extends BaseJDBCTestCase {
                 " alter table atdc_11 drop column b restrict");
         triggersExist(st, new String[][]{{"ATDC_11_TRIGGER_1"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
 
         //CASCADE will drop the dependent trigger
         st.executeUpdate("alter table atdc_11 drop column b cascade");
@@ -2528,7 +2528,7 @@ public final class AlterTableTest extends BaseJDBCTestCase {
                 " select triggername from sys.systriggers where " +
                 "triggername='ATDC_11_TRIGGER_1'"));
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should reduce",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
         st.executeUpdate("drop table ATDC_11");
 
         // Another test
@@ -2549,11 +2549,11 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         // We got an error because Derby detected the dependency of 
         // the triggers
         assertStatementError("X0Y25", st,
-        		"alter table atdc_12 drop column b restrict");
+                "alter table atdc_12 drop column b restrict");
         triggersExist(st, new String[][]{{"ATDC_12_TRIGGER_1"},
-        		{"ATDC_12_TRIGGER_2"}});
+                {"ATDC_12_TRIGGER_2"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
 
         //Now try ALTER TABLE DROP COLUMN CASCADE where the column being
         //dropped is in trigger action but is not part of the trigger
@@ -2562,10 +2562,10 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         checkWarning(st, "01502");
         // the 2 triggers will get dropped as a result of cascade
         JDBC.assertEmpty(st.executeQuery(
-        		" select triggername from sys.systriggers where " +
-        		"triggername in ('ATDC_12_TRIGGER_1', 'ATDC_12_TRIGGER_2')"));
+                " select triggername from sys.systriggers where " +
+                "triggername in ('ATDC_12_TRIGGER_1', 'ATDC_12_TRIGGER_2')"));
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should reduce",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
         st.executeUpdate("drop table ATDC_12");
 
         // Another test
@@ -2598,25 +2598,25 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         sysdependsRowCountAfterCreateTrigger = numberOfRowsInSysdepends(st);
 
         assertStatementError("X0Y25", st,
-        		"alter table atdc_13 drop column b restrict");
+                "alter table atdc_13 drop column b restrict");
         triggersExist(st, new String[][]{{"ATDC_13_TRIGGER_1"},
-            	{"ATDC_13_TRIGGER_2"}, {"ATDC_13_TRIGGER_3"},
-            	{"ATDC_13_TRIGGER_4"}, {"ATDC_13_TRIGGER_5"},
-            	{"ATDC_13_TRIGGER_6"}});
+                {"ATDC_13_TRIGGER_2"}, {"ATDC_13_TRIGGER_3"},
+                {"ATDC_13_TRIGGER_4"}, {"ATDC_13_TRIGGER_5"},
+                {"ATDC_13_TRIGGER_6"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
         
         // Derby will drop all the 6 triggers
         st.executeUpdate("alter table atdc_13 drop column b");
         checkWarning(st, "01502");
         JDBC.assertEmpty(st.executeQuery(
-        		" select triggername from sys.systriggers where " +
-        		"triggername in ('ATDC_13_TRIGGER_1', "+
-        		"'ATDC_13_TRIGGER_2', 'ATDC_13_TRIGGER_3'," +
-        		"'ATDC_13_TRIGGER_4', 'ATDC_13_TRIGGER_5'," +
-        		"'ATDC_13_TRIGGER_6')"));        
+                " select triggername from sys.systriggers where " +
+                "triggername in ('ATDC_13_TRIGGER_1', "+
+                "'ATDC_13_TRIGGER_2', 'ATDC_13_TRIGGER_3'," +
+                "'ATDC_13_TRIGGER_4', 'ATDC_13_TRIGGER_5'," +
+                "'ATDC_13_TRIGGER_6')"));        
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should reduce",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
         st.executeUpdate("drop table ATDC_13");
         
         // Another test DERBY-5044
@@ -2658,14 +2658,14 @@ public final class AlterTableTest extends BaseJDBCTestCase {
             st.executeQuery(" select * from atdc_16_tab2");
         JDBC.assertFullResultSet(rs, new String[][]{{"1","11","333"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should reduce",
-              		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                      numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
         st.executeUpdate("drop table ATDC_16_TAB1");
         st.executeUpdate("drop table ATDC_16_TAB2");
         
         // Another test DERBY-5044
         //Following test case involves two tables. The trigger is defined 
         //on table 1 and it uses the column from table 2 in it's trigger  
-    	//action. 
+        //action. 
         createTableAndInsertData(st, "ATDC_14_TAB1", "A1", "B1");
         createTableAndInsertData(st, "ATDC_14_TAB2", "A2", "B2");
         sysdependsRowCountBeforeCreateTrigger = numberOfRowsInSysdepends(st);
@@ -2677,7 +2677,7 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         sysdependsRowCountAfterCreateTrigger = numberOfRowsInSysdepends(st);
 
         assertStatementError("X0Y25", st,
-		"alter table atdc_14_tab2 drop column a2 restrict");
+        "alter table atdc_14_tab2 drop column a2 restrict");
         triggersExist(st, new String[][]{{"ATDC_14_TRIGGER_1"}});
 
         //Now try ALTER TABLE DROP COLUMN CASCADE where the column being
@@ -2686,10 +2686,10 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         checkWarning(st, "01502");
         // the trigger will get dropped as a result of cascade
         JDBC.assertEmpty(st.executeQuery(
-        		" select triggername from sys.systriggers where " +
-        		"triggername in ('ATDC_14_TRIGGER_1')"));
+                " select triggername from sys.systriggers where " +
+                "triggername in ('ATDC_14_TRIGGER_1')"));
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
         st.executeUpdate("drop table ATDC_14_TAB1");
         st.executeUpdate("drop table ATDC_14_TAB2");
 
@@ -2723,22 +2723,22 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         int countAfter4thTrigger = numberOfRowsInSysdepends(st);
         sysdependsRowCountAfterCreateTrigger = numberOfRowsInSysdepends(st);
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
         st.executeUpdate("update ATDC_13_TAB1 set c12=11");
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
         rs = st.executeQuery("select * from ATDC_13_TAB1_BACKUP ORDER BY C11, C12");
         JDBC.assertFullResultSet(rs, new String[][]{
-        		{"1","1"}, {"1","11"}, {"1","11"}, {"1","11"}, {"1",null} });
+                {"1","1"}, {"1","11"}, {"1","11"}, {"1","11"}, {"1",null} });
         st.executeUpdate("delete from ATDC_13_TAB1_BACKUP");
 
         assertStatementError("X0Y25", st,
-		"alter table ATDC_13_TAB2 drop column c21 restrict");
+        "alter table ATDC_13_TAB2 drop column c21 restrict");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"},
-            	{"ATDC_13_TAB1_TRIGGER_2"}, {"ATDC_13_TAB1_TRIGGER_3"},
-            	{"ATDC_13_TAB1_TRIGGER_4"}});
+                {"ATDC_13_TAB1_TRIGGER_2"}, {"ATDC_13_TAB1_TRIGGER_3"},
+                {"ATDC_13_TAB1_TRIGGER_4"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
         st.executeUpdate("drop table ATDC_13_TAB1_BACKUP");
         st.executeUpdate("drop table ATDC_13_TAB1");
         st.executeUpdate("drop table ATDC_13_TAB2");
@@ -2778,43 +2778,43 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         sysdependsRowCountAfterCreateTrigger = numberOfRowsInSysdepends(st);
         st.executeUpdate("update ATDC_13_TAB1 set c12=11");
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
         rs = st.executeQuery("select * from ATDC_13_TAB1_BACKUP ORDER BY C11, C12");
         JDBC.assertFullResultSet(rs, new String[][]{
-        		{"1","1"}, {"1","11"}, {"1","11"}, {"1","11"}, {"1",null} });
+                {"1","1"}, {"1","11"}, {"1","11"}, {"1","11"}, {"1",null} });
         st.executeUpdate("delete from ATDC_13_TAB1_BACKUP");
         //We will get an error because column being dropped is getting used 
         // in a trigger action 
         assertStatementError("X0Y25", st,
-        		"alter table ATDC_13_TAB2 drop column c21 restrict");
+                "alter table ATDC_13_TAB2 drop column c21 restrict");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"},
-            	{"ATDC_13_TAB1_TRIGGER_2"}, {"ATDC_13_TAB1_TRIGGER_3"},
-            	{"ATDC_13_TAB1_TRIGGER_4"}});
+                {"ATDC_13_TAB1_TRIGGER_2"}, {"ATDC_13_TAB1_TRIGGER_3"},
+                {"ATDC_13_TAB1_TRIGGER_4"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
         
         // We will drop the dependent triggers  
         st.executeUpdate("alter table ATDC_13_TAB2 drop column c21");
         checkWarning(st, "01502");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"},
-            	{"ATDC_13_TAB1_TRIGGER_2"}, {"ATDC_13_TAB1_TRIGGER_3"}});
+                {"ATDC_13_TAB1_TRIGGER_2"}, {"ATDC_13_TAB1_TRIGGER_3"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should reduce",
-        		numberOfRowsInSysdepends(st),countAfter3Triggers);
+                numberOfRowsInSysdepends(st),countAfter3Triggers);
         st.executeUpdate("alter table ATDC_13_TAB2 add column c21 int");
         
         //We will get an error because column being dropped is getting used 
         // in a trigger action 
         assertStatementError("X0Y25", st,
-        		"alter table ATDC_13_TAB1_BACKUP drop column c11 restrict");
+                "alter table ATDC_13_TAB1_BACKUP drop column c11 restrict");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"},
-            	{"ATDC_13_TAB1_TRIGGER_2"}, {"ATDC_13_TAB1_TRIGGER_3"}});
+                {"ATDC_13_TAB1_TRIGGER_2"}, {"ATDC_13_TAB1_TRIGGER_3"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),countAfter3Triggers);
+                numberOfRowsInSysdepends(st),countAfter3Triggers);
         
         // We will drop the dependent triggers  
         st.executeUpdate("alter table ATDC_13_TAB1_BACKUP drop column c11");
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
         st.executeUpdate("alter table ATDC_13_TAB1_BACKUP add column c11 int");
         
         //Test triggers with trigger action doing UPDATE
@@ -2839,44 +2839,44 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         sysdependsRowCountAfterCreateTrigger = numberOfRowsInSysdepends(st);
 
         assertStatementError("X0Y25", st,
-        		"alter table ATDC_13_TAB3 drop column c31 restrict");
+                "alter table ATDC_13_TAB3 drop column c31 restrict");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"},
-            	{"ATDC_13_TAB1_TRIGGER_2"}, {"ATDC_13_TAB1_TRIGGER_3"}});
+                {"ATDC_13_TAB1_TRIGGER_2"}, {"ATDC_13_TAB1_TRIGGER_3"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
         
         // We will drop the dependent trigger
         st.executeUpdate("alter table ATDC_13_TAB3 drop column c31");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"},
-            	{"ATDC_13_TAB1_TRIGGER_2"}});
+                {"ATDC_13_TAB1_TRIGGER_2"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should reduce",
-        		numberOfRowsInSysdepends(st),countAfter2Triggers);
+                numberOfRowsInSysdepends(st),countAfter2Triggers);
         // After DERBY-5044 is fixed, following should be rewritten
         st.executeUpdate("alter table ATDC_13_TAB3 add column c31 int");
 
         assertStatementError("X0Y25", st,
-        		"alter table ATDC_13_TAB2 drop column c21 restrict");
+                "alter table ATDC_13_TAB2 drop column c21 restrict");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"},
-            	{"ATDC_13_TAB1_TRIGGER_2"}});
+                {"ATDC_13_TAB1_TRIGGER_2"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),countAfter2Triggers);
+                numberOfRowsInSysdepends(st),countAfter2Triggers);
         
         // We will drop the dependent trigger
         st.executeUpdate("alter table ATDC_13_TAB2 drop column c21");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should reduce",
-        		numberOfRowsInSysdepends(st),countAfter1Trigger);
+                numberOfRowsInSysdepends(st),countAfter1Trigger);
 
         assertStatementError("X0Y25", st,
-        		"alter table ATDC_13_TAB1_BACKUP drop column c12 restrict");
+                "alter table ATDC_13_TAB1_BACKUP drop column c12 restrict");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),countAfter1Trigger);
+                numberOfRowsInSysdepends(st),countAfter1Trigger);
         
         // We will drop the dependent trigger
         st.executeUpdate("alter table ATDC_13_TAB1_BACKUP drop column c12");
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should reduce",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
         // After DERBY-5044 is fixed, following should be rewritten
         st.executeUpdate("alter table ATDC_13_TAB1_BACKUP add column c12 int");
 
@@ -2897,28 +2897,28 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         sysdependsRowCountAfterCreateTrigger = numberOfRowsInSysdepends(st);
 
         assertStatementError("X0Y25", st,
-        		"alter table ATDC_13_TAB3 drop column c32 restrict");
+                "alter table ATDC_13_TAB3 drop column c32 restrict");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"},
-            	{"ATDC_13_TAB1_TRIGGER_2"}});
+                {"ATDC_13_TAB1_TRIGGER_2"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
         
         // We will drop the dependent trigger
         st.executeUpdate("alter table ATDC_13_TAB3 drop column c32");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should reduce",
-        		numberOfRowsInSysdepends(st),countAfter1Trigger);
+                numberOfRowsInSysdepends(st),countAfter1Trigger);
 
         assertStatementError("X0Y25", st,
-        		"alter table ATDC_13_TAB1_BACKUP drop column c12 restrict");
+                "alter table ATDC_13_TAB1_BACKUP drop column c12 restrict");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),countAfter1Trigger);
+                numberOfRowsInSysdepends(st),countAfter1Trigger);
         
         // We will drop the dependent trigger
         st.executeUpdate("alter table ATDC_13_TAB1_BACKUP drop column c12");
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should reduce",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger);
         st.executeUpdate("drop table ATDC_13_TAB1");
         st.executeUpdate("drop table ATDC_13_TAB1_BACKUP");
         st.executeUpdate("drop table ATDC_13_TAB2");
@@ -2934,11 +2934,11 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         createTableAndInsertData(st, "ATDC_13_TAB3", "C11", "C12");
         
         st.executeUpdate("create view ATDC_13_VIEW1 as " +
-        		"select c11 from ATDC_13_TAB2");
+                "select c11 from ATDC_13_TAB2");
         st.executeUpdate("create view ATDC_13_VIEW3 as " +
-        		"select * from ATDC_13_TAB2");
+                "select * from ATDC_13_TAB2");
         st.executeUpdate("create view ATDC_13_VIEW2 as " +
-        		"select c12 from ATDC_13_TAB3 where c12>0");
+                "select c12 from ATDC_13_TAB3 where c12>0");
         
         //Test triggers with trigger action using views
         sysdependsRowCountBeforeCreateTrigger = numberOfRowsInSysdepends(st);
@@ -2961,27 +2961,27 @@ public final class AlterTableTest extends BaseJDBCTestCase {
 
         // DROP COLUMN RESTRICT fails because there is a view using the column
         assertStatementError("X0Y23", st,
-        		"alter table ATDC_13_TAB3 drop column c12 restrict");
+                "alter table ATDC_13_TAB3 drop column c12 restrict");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"},
-            	{"ATDC_13_TAB1_TRIGGER_2"}, {"ATDC_13_TAB1_TRIGGER_3"}});
+                {"ATDC_13_TAB1_TRIGGER_2"}, {"ATDC_13_TAB1_TRIGGER_3"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
         
         st.executeUpdate("alter table ATDC_13_TAB3 drop column c12");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"},
-            	{"ATDC_13_TAB1_TRIGGER_2"}});
+                {"ATDC_13_TAB1_TRIGGER_2"}});
         // One row from sysdepends got dropped because of a view getting
         // dropped and that is why we are checking for countAfter2Triggers-1
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should reduce",
-        		numberOfRowsInSysdepends(st),countAfter2Triggers-1);
+                numberOfRowsInSysdepends(st),countAfter2Triggers-1);
 
         // DROP COLUMN RESTRICT fails as there are 2 views using the column
         assertStatementError("X0Y23", st,
-		"alter table ATDC_13_TAB2 drop column c11 restrict");
+        "alter table ATDC_13_TAB2 drop column c11 restrict");
         triggersExist(st, new String[][]{{"ATDC_13_TAB1_TRIGGER_1"},
-            	{"ATDC_13_TAB1_TRIGGER_2"}});
+                {"ATDC_13_TAB1_TRIGGER_2"}});
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),countAfter2Triggers-1);
+                numberOfRowsInSysdepends(st),countAfter2Triggers-1);
         
         // We have dropped dependent triggers while dropping dependent view
         st.executeUpdate("alter table ATDC_13_TAB2 drop column c11");
@@ -2991,7 +2991,7 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         // So 3 dependencies altogether got lost from sysdepends in
         // addition to the dependencies that triggers had required.
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should reduce",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger-3);
+                numberOfRowsInSysdepends(st),sysdependsRowCountBeforeCreateTrigger-3);
 
         st.executeUpdate("drop table ATDC_13_TAB1");
         st.executeUpdate("drop table ATDC_13_TAB2");
@@ -3023,7 +3023,7 @@ public final class AlterTableTest extends BaseJDBCTestCase {
         JDBC.assertFullResultSet(rs, new String[][]{{"1","22"}});
         st.executeUpdate("alter table atdc_15_tab1 drop column a1 restrict");
         Assert.assertEquals("# of rows in SYS.SYSDEPENDS should not change",
-        		numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
+                numberOfRowsInSysdepends(st),sysdependsRowCountAfterCreateTrigger);
         st.executeUpdate("update atdc_15_tab1 set b1=33");
         rs =
             st.executeQuery(" select * from atdc_15_tab1");
@@ -3142,33 +3142,33 @@ public final class AlterTableTest extends BaseJDBCTestCase {
 
     //Create table and insert data necessary for ALTER TABLE DROP COLUMN test
     private void createTableAndInsertData(Statement s, String tableName, 
-    		String column1, String column2)
+            String column1, String column2)
     throws SQLException {
         s.execute("CREATE TABLE " + tableName + " (" + 
-        		column1 + " int, " + column2 + " int) ");
+                column1 + " int, " + column2 + " int) ");
         s.execute("INSERT INTO " + tableName + " VALUES (1,11)");
     }
 
     //Get a count of number of rows in SYS.SYSDEPENDS
     private int numberOfRowsInSysdepends(Statement st)
-    		throws SQLException {
-    	ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM SYS.SYSDEPENDS");
-    	rs.next();
-    	return(rs.getInt(1));
+            throws SQLException {
+        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM SYS.SYSDEPENDS");
+        rs.next();
+        return(rs.getInt(1));
     }
 
     //Make sure that the passed triggers exist in SYS.SYSTRIGGERS
     private void triggersExist(Statement st, String [][] expectedTriggers) 
-    		throws SQLException {
+            throws SQLException {
         StringBuffer query = new StringBuffer("select triggername from sys.systriggers where triggername in (");
         
         for (int i=0; i < expectedTriggers.length; i++)
         {
-        	query.append("'" + expectedTriggers[i][0] + "'");
-        	if (i+1 < expectedTriggers.length)
-            	query.append(", ");
+            query.append("'" + expectedTriggers[i][0] + "'");
+            if (i+1 < expectedTriggers.length)
+                query.append(", ");
         }
-    	query.append(")");
+        query.append(")");
 
         ResultSet rs = st.executeQuery(query.toString());
         JDBC.assertFullResultSet(rs, expectedTriggers);

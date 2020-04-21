@@ -116,25 +116,25 @@ The "dataModifiedInSavepointLevel" for new temp tables will be set to -1 as well
 
 When a temp table is dropped, we will first check if the table was declared in a savepoint level
 equal to the current savepoint level.
-	If yes, then we will remove it from the temp tables list for the LanguageConnectionContext .
+    If yes, then we will remove it from the temp tables list for the LanguageConnectionContext .
     eg
     start tran ("current savepoint level = 0")
     set savepoint 1("current savepoint level = 1")
     declare temp table 1 ("declared in savepoint level"=1, "dropped in savepoint level"=-1)
     drop temp table 1 (declared in savepoint level same as current savepoint level and hence will remove it from list of temp tables)
-	If no, then we will set the dropped in savepoint level as the current savepoint level of the
-		LanguageConnectionContext (which will be 0 in a transaction without savepoints and it also means
-		that the table was declared in a previous transaction).
+    If no, then we will set the dropped in savepoint level as the current savepoint level of the
+        LanguageConnectionContext (which will be 0 in a transaction without savepoints and it also means
+        that the table was declared in a previous transaction).
 
 At the time of commit, go through all the temp tables with "dropped in savepoint level" != -1 (meaning dropped in this transaction)
 and remove them from the temp tables list for the LanguageConnectionContext. All the rest of the temp tables with
 "dropped in savepoint level" = -1, we will set their "declared in savepoint level" to -1 and , "dataModifiedInSavepointLevel" to -1.
 eg
   start tran ("current savepoint level = 0)
-	  declare temp table t1("declared in savepoint level" = 0, "dropped in savepoint level"=-1)
+      declare temp table t1("declared in savepoint level" = 0, "dropped in savepoint level"=-1)
   commit (temp table 1 ("declared in savepoint level"=-1, "dropped in savepoint level"=-1))
   start tran ("current savepoint level = 0)
-	  drop temp table t1 ("declared in savepoint level" = -1, "dropped in savepoint level"=0)
+      drop temp table t1 ("declared in savepoint level" = -1, "dropped in savepoint level"=0)
   commit (temp table t1 will be removed from list of temp tables)
 
 At the time of rollback
@@ -142,124 +142,124 @@ At the time of rollback
   if rolling back to a savepoint, first set the "current savepoint level" to savepoint level returned by Store
     for the rollback to savepoint command
   Now go through all the temp tables.
-	If "declared in savepoint level" of temp table is greater than or equal to "current savepoint level"
+    If "declared in savepoint level" of temp table is greater than or equal to "current savepoint level"
   (ie table was declared in this unit of work)
     And if table was not dropped in this unit of work ie "dropped in savepoint level" = -1
       Then we should remove the table from the list of temp tables and drop the conglomerate created for it
-		  eg
-		  start tran ("current savepoint level = 0)
-	  	declare temp table t2("declared in savepoint level" = 0, "dropped in savepoint level"=-1)
-		  rollback tran
+          eg
+          start tran ("current savepoint level = 0)
+          declare temp table t2("declared in savepoint level" = 0, "dropped in savepoint level"=-1)
+          rollback tran
         (temp table t2 will be removed from list of tables and conglomerate associated with it will be dropped)
     And if table was dropped in this unit of work ie "dropped in savepoint level" >= "current savepoint level"
       Then we should remove the table from the list of temp tables
-		  eg
-		  start tran ("current savepoint level = 0)
+          eg
+          start tran ("current savepoint level = 0)
       set savepoint 1("current savepoint level = 1")
-	  	declare temp table t2("declared in savepoint level" = 1, "dropped in savepoint level"=-1)
+          declare temp table t2("declared in savepoint level" = 1, "dropped in savepoint level"=-1)
       set savepoint 2("current savepoint level = 2")
-		  drop temp table t1 ("declared in savepoint level" = 1, "dropped in savepoint level"=2)
-		  rollback savepoint 1 ("current savepoint level = 0) temp table t1 will be removed from the list of temp tables
-	Else if the "dropped in savepoint level" of temp table is greate than or equal to "current savepoint level"
-	 	it mean that table was dropped in this unit of work (and was declared in an earlier savepoint unit / transaction) and we will
+          drop temp table t1 ("declared in savepoint level" = 1, "dropped in savepoint level"=2)
+          rollback savepoint 1 ("current savepoint level = 0) temp table t1 will be removed from the list of temp tables
+    Else if the "dropped in savepoint level" of temp table is greate than or equal to "current savepoint level"
+         it mean that table was dropped in this unit of work (and was declared in an earlier savepoint unit / transaction) and we will
     restore it as part of rollback ie replace the existing entry for this table in valid temp tables list with restored temp table.
     At the end of restoring, "declared in savepoint level" will remain unchanged and "dropped in savepoint level" will be -1.
-		eg
-		  start tran ("current savepoint level = 0)
-		  declare temp table t1 with definition 1("declared in savepoint level" = 0, "dropped in savepoint level"=-1, definition 1(stored in table descriptor))
-		  commit (temp table t1 "declared in savepoint level" = -1, "dropped in savepoint level"=-1)
-		  start tran ("current savepoint level = 0)
+        eg
+          start tran ("current savepoint level = 0)
+          declare temp table t1 with definition 1("declared in savepoint level" = 0, "dropped in savepoint level"=-1, definition 1(stored in table descriptor))
+          commit (temp table t1 "declared in savepoint level" = -1, "dropped in savepoint level"=-1)
+          start tran ("current savepoint level = 0)
       set savepoint 1("current savepoint level = 1")
-		  drop temp table t1 ("declared in savepoint level" = -1, "dropped in savepoint level"=1, definition 1(stored in table descriptor))
-		  declare temp table t1 with definition 2(say different than definition 1)
+          drop temp table t1 ("declared in savepoint level" = -1, "dropped in savepoint level"=1, definition 1(stored in table descriptor))
+          declare temp table t1 with definition 2(say different than definition 1)
         ("declared in savepoint level" = -1, "dropped in savepoint level"=1, definition 1(stored in table descriptor)) ,
-			  ("declared in savepoint level" = 1, "dropped in savepoint level"=-1, definition 2(stored in table descriptor))
+              ("declared in savepoint level" = 1, "dropped in savepoint level"=-1, definition 2(stored in table descriptor))
       set savepoint 2("current savepoint level = 2")
       drop temp table t1("declared in savepoint level" = -1, "dropped in savepoint level"=1, definition 1(stored in table descriptor)) ,
-			  ("declared in savepoint level" = 1, "dropped in savepoint level"=2, definition 2(stored in table descriptor))
-		  rollback tran
+              ("declared in savepoint level" = 1, "dropped in savepoint level"=2, definition 2(stored in table descriptor))
+          rollback tran
         (Remove : temp table t1("declared in savepoint level" = 1, "dropped in savepoint level"=2, definition 2(stored in table descriptor)
         (Restore : temp table t1"declared in savepoint level" = -1, "dropped in savepoint level"=-1, definition 1(stored in table descriptor))
-	Else if the "dataModifiedInSavepointLevel" of temp table is greate than or equal to "current savepoint level"
-	 	it means that table was declared in an earlier savepoint unit / transaction and was modified in the current UOW. And hence we will delete all the
+    Else if the "dataModifiedInSavepointLevel" of temp table is greate than or equal to "current savepoint level"
+         it means that table was declared in an earlier savepoint unit / transaction and was modified in the current UOW. And hence we will delete all the
     data from it.
 */
 class TempTableInfo
 {
 
-	private TableDescriptor td;
-	private int declaredInSavepointLevel;
-	private int droppededInSavepointLevel;
-	private int dataModifiedInSavepointLevel;
+    private TableDescriptor td;
+    private int declaredInSavepointLevel;
+    private int droppededInSavepointLevel;
+    private int dataModifiedInSavepointLevel;
 
-	TempTableInfo(TableDescriptor td, int declaredInSavepointLevel)
-	{
-		this.td = td;
-		this.declaredInSavepointLevel = declaredInSavepointLevel;
-		this.droppededInSavepointLevel = -1;
-		this.dataModifiedInSavepointLevel = -1;
-	}
+    TempTableInfo(TableDescriptor td, int declaredInSavepointLevel)
+    {
+        this.td = td;
+        this.declaredInSavepointLevel = declaredInSavepointLevel;
+        this.droppededInSavepointLevel = -1;
+        this.dataModifiedInSavepointLevel = -1;
+    }
 
-	/**
-	 * Return the table descriptor
-	 */
-	TableDescriptor getTableDescriptor() {
+    /**
+     * Return the table descriptor
+     */
+    TableDescriptor getTableDescriptor() {
     return td;
   }
 
-	/**
-	 * Set the table descriptor. Will be called while temporary is being restored
-	 */
-	void setTableDescriptor(TableDescriptor td) {
+    /**
+     * Set the table descriptor. Will be called while temporary is being restored
+     */
+    void setTableDescriptor(TableDescriptor td) {
     this.td = td;
   }
 
-	/**
-	 * Matches by name and only temp tables that have not been dropped (that's when droppededInSavepointLevel will be -1)
-	 */
-	boolean matches(String tableName) {
+    /**
+     * Matches by name and only temp tables that have not been dropped (that's when droppededInSavepointLevel will be -1)
+     */
+    boolean matches(String tableName) {
     return (td.getName().equals(tableName) && droppededInSavepointLevel == -1);
   }
 
-	/**
-	 * Return the savepoint level when the table was last modified
-	 */
-	int getModifiedInSavepointLevel() {
+    /**
+     * Return the savepoint level when the table was last modified
+     */
+    int getModifiedInSavepointLevel() {
     return dataModifiedInSavepointLevel;
   }
 
-	/**
-	 * Set the savepoint level when the table was last modified
-	 */
-	void setModifiedInSavepointLevel(int dataModifiedInSavepointLevel) {
+    /**
+     * Set the savepoint level when the table was last modified
+     */
+    void setModifiedInSavepointLevel(int dataModifiedInSavepointLevel) {
     this.dataModifiedInSavepointLevel = dataModifiedInSavepointLevel;
   }
 
-	/**
-	 * Return the savepoint level when the table was declared
-	 */
-	int getDeclaredInSavepointLevel() {
+    /**
+     * Return the savepoint level when the table was declared
+     */
+    int getDeclaredInSavepointLevel() {
     return declaredInSavepointLevel;
   }
 
-	/**
-	 * Set the savepoint level when the table was declared
-	 */
-	void setDeclaredInSavepointLevel(int declaredInSavepointLevel) {
+    /**
+     * Set the savepoint level when the table was declared
+     */
+    void setDeclaredInSavepointLevel(int declaredInSavepointLevel) {
     this.declaredInSavepointLevel = declaredInSavepointLevel;
   }
 
-	/**
-	 * Return the savepoint level when the table was dropped
-	 */
-	int getDroppedInSavepointLevel() {
+    /**
+     * Return the savepoint level when the table was dropped
+     */
+    int getDroppedInSavepointLevel() {
     return droppededInSavepointLevel;
   }
 
-	/**
-	 * Return the savepoint level when the table was dropped
-	 */
-	public void setDroppedInSavepointLevel(int droppededInSavepointLevel) {
+    /**
+     * Return the savepoint level when the table was dropped
+     */
+    public void setDroppedInSavepointLevel(int droppededInSavepointLevel) {
     this.droppededInSavepointLevel = droppededInSavepointLevel;
   }
 }

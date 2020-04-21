@@ -37,46 +37,46 @@ import java.util.HashSet;
 import java.util.Properties;
 
 /**
-	A properties object that links two independent
-	properties together. The read property set is always
-	searched first, with the write property set being
-	second. But any put() calls are always made directly to
-	the write object.
+    A properties object that links two independent
+    properties together. The read property set is always
+    searched first, with the write property set being
+    second. But any put() calls are always made directly to
+    the write object.
 
     Only the put(), propertyNames() and getProperty() methods are supported
-	by this class.
+    by this class.
 */
 
 public final class DoubleProperties extends Properties {
 
-	private final Properties read;
-	private final Properties write;
+    private final Properties read;
+    private final Properties write;
 
-	public DoubleProperties(Properties read, Properties write) {
-		this.read = read;
-		this.write = write;
-	}
+    public DoubleProperties(Properties read, Properties write) {
+        this.read = read;
+        this.write = write;
+    }
 
-	public Object put(Object key, Object value) {
-		return write.put(key, value);
-	}
+    public Object put(Object key, Object value) {
+        return write.put(key, value);
+    }
 
-	public String getProperty(String key) {
+    public String getProperty(String key) {
 
-		return read.getProperty(key, write.getProperty(key));
-	}
+        return read.getProperty(key, write.getProperty(key));
+    }
 
-	public String getProperty(String key, String defaultValue) {
-		return read.getProperty(key, write.getProperty(key, defaultValue));
+    public String getProperty(String key, String defaultValue) {
+        return read.getProperty(key, write.getProperty(key, defaultValue));
 
-	}
+    }
 
-	public Enumeration propertyNames() {
+    public Enumeration propertyNames() {
         HashSet names = new HashSet();
         addAllNames(write, names);
         addAllNames(read, names);
         return Collections.enumeration(names);
-	}
+    }
 
     /**
      * Add all property names in the Properties object {@code src} to the

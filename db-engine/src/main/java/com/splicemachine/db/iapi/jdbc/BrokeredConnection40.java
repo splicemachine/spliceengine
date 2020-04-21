@@ -189,10 +189,10 @@ public class BrokeredConnection40
             notifyException(se);
             throw new SQLClientInfoException
                 (se.getMessage(), se.getSQLState(), 
-                		se.getErrorCode(),
-  		 (new FailedProperties40
-		  (FailedProperties40.makeProperties(name,value))).
-		 getProperties());
+                        se.getErrorCode(),
+           (new FailedProperties40
+          (FailedProperties40.makeProperties(name,value))).
+         getProperties());
         }
     }
 
@@ -219,8 +219,8 @@ public class BrokeredConnection40
             notifyException(se);
             throw new SQLClientInfoException
                 (se.getMessage(), se.getSQLState(),
-                		se.getErrorCode(),
-  		 (new FailedProperties40(properties)).getProperties());
+                        se.getErrorCode(),
+           (new FailedProperties40(properties)).getProperties());
         }
     }
     

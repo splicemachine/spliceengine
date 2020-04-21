@@ -76,10 +76,10 @@ public interface ConglomPropertyQueryable
      *
      * @param prop   Property list to fill in.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     void getTableProperties(Properties prop)
-		throws StandardException;
+        throws StandardException;
 
     /**
      * Request set of properties associated with a table. 
@@ -104,8 +104,8 @@ public interface ConglomPropertyQueryable
      * @param prop   Property list to add properties to.  If null, routine will
      *               create a new Properties object, fill it in and return it.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     Properties getInternalTablePropertySet(Properties prop)
-		throws StandardException;
+        throws StandardException;
 }

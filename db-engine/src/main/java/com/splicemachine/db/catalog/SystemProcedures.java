@@ -758,9 +758,9 @@ public class SystemProcedures{
 //        String escapedTableName = IdUtil.normalToDelimited(tablename);
 //        String query = "alter table " + escapedSchema + "." + escapedTableName;
 //        if (indexname == null)
-//        	query = query + " all drop statistics ";
+//            query = query + " all drop statistics ";
 //        else
-//        	query = query + " statistics drop " + IdUtil.normalToDelimited(indexname);
+//            query = query + " statistics drop " + IdUtil.normalToDelimited(indexname);
 //        Connection conn = getDefaultConn();
 //
 //        PreparedStatement ps = conn.prepareStatement(query);
@@ -1067,9 +1067,9 @@ public class SystemProcedures{
         conn.close();
     }
 
-	/*
-	** SQLJ Procedures.
-	*/
+    /*
+    ** SQLJ Procedures.
+    */
 
     /**
      * Install a jar file in the database.
@@ -1084,26 +1084,26 @@ public class SystemProcedures{
     public static void INSTALL_JAR(String url,String jar,int deploy)
             throws SQLException{
 
-		try {
+        try {
             LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-			String[] st = IdUtil.parseMultiPartSQLIdentifier(jar.trim());
-			String schemaName;
-			String sqlName;
+            String[] st = IdUtil.parseMultiPartSQLIdentifier(jar.trim());
+            String schemaName;
+            String sqlName;
             if (st.length == 1) {
-				schemaName = lcc.getCurrentSchemaName();
-				sqlName = st[0];
+                schemaName = lcc.getCurrentSchemaName();
+                sqlName = st[0];
             }
             else {
                 schemaName = st[0];
-				sqlName = st[1];
-			}
-			checkJarSQLName(sqlName);
+                sqlName = st[1];
+            }
+            checkJarSQLName(sqlName);
             JarUtil.install(lcc, schemaName, sqlName, url);
-		} 
-		catch (StandardException se) {
-			throw PublicAPI.wrapStandardException(se);
-		}
-	}
+        } 
+        catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
 
     /**
      * Replace a jar file in the database.
@@ -1851,15 +1851,15 @@ public class SystemProcedures{
             LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
             DataDictionary dd=lcc.getDataDictionary();
 
-			/*
-			 ** Inform the data dictionary that we are about to write to it.
-			 ** There are several calls to data dictionary "get" methods here
-			 ** that might be done in "read" mode in the data dictionary, but
-			 ** it seemed safer to do this whole operation in "write" mode.
-			 **
-			 ** We tell the data dictionary we're done writing at the end of
-			 ** the transaction.
-			 */
+            /*
+             ** Inform the data dictionary that we are about to write to it.
+             ** There are several calls to data dictionary "get" methods here
+             ** that might be done in "read" mode in the data dictionary, but
+             ** it seemed safer to do this whole operation in "write" mode.
+             **
+             ** We tell the data dictionary we're done writing at the end of
+             ** the transaction.
+             */
             dd.startWriting(lcc);
             // Change system schemas to be owned by aid
             dd.updateSystemSchemaAuthorization(aid,tc);

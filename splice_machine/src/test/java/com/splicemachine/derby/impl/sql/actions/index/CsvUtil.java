@@ -142,13 +142,13 @@ public class CsvUtil {
         } catch (IOException e) {
             Assert.fail("Unable to read: " + filePath + ": " + e.getLocalizedMessage());
         } finally {
-        	if (in != null) {
-        		try {
-					in.close();
-				} catch (IOException e) {
-					// ignore
-				}
-        	}
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
         }
         return lines;
     }

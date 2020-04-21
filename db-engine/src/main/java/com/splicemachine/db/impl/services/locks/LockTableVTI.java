@@ -42,105 +42,105 @@ import java.util.List;
 import java.util.Map;
 
 /**
-	This provides an Enumeration of Latch's
-	from a clone of the lock table. A Latch is badly named,
-	it represents lock information.
+    This provides an Enumeration of Latch's
+    from a clone of the lock table. A Latch is badly named,
+    it represents lock information.
  */
 class LockTableVTI implements Enumeration
 {
-	// the clonedLockTable temporarily holds a copy of the lock table.
-	//
-	// The copy is necessary because the real lock manager needs to be single
-	// threaded while a snap shot is made.  After the copy is made, it can take
-	// its time digesting the information without blocking the real lock
-	// manager.
+    // the clonedLockTable temporarily holds a copy of the lock table.
+    //
+    // The copy is necessary because the real lock manager needs to be single
+    // threaded while a snap shot is made.  After the copy is made, it can take
+    // its time digesting the information without blocking the real lock
+    // manager.
 
-	private final Iterator outerControl;
-	private Control control;
-	private ListIterator grantedList;
-	private ListIterator waitingList;
-	private Latch nextLock;
+    private final Iterator outerControl;
+    private Control control;
+    private ListIterator grantedList;
+    private ListIterator waitingList;
+    private Latch nextLock;
 
-	LockTableVTI(Map clonedLockTable)
-	{
-		outerControl = clonedLockTable.values().iterator();
-	}
+    LockTableVTI(Map clonedLockTable)
+    {
+        outerControl = clonedLockTable.values().iterator();
+    }
 
 
-	public boolean hasMoreElements() {
+    public boolean hasMoreElements() {
 
-		if (nextLock != null)
-			return true;
+        if (nextLock != null)
+            return true;
 
-		for (;;) {
+        for (;;) {
 
-			if (control == null) {
-				if (!outerControl.hasNext())
-					return false;
+            if (control == null) {
+                if (!outerControl.hasNext())
+                    return false;
 //System.out.println("new control lock ");
 
-				control = (Control) outerControl.next();
+                control = (Control) outerControl.next();
 
-				List granted = control.getGranted();
-				if (granted != null)
-					grantedList = granted.listIterator();
-
-
-				List waiting = control.getWaiting();
-				if (waiting != null)
-					waitingList = waiting.listIterator();
-
-				nextLock = control.getFirstGrant();
-				if (nextLock == null) {
-
-					nextLock = getNextLock(control);
-				}
-				
-			} else {
-				nextLock = getNextLock(control);
-			}
+                List granted = control.getGranted();
+                if (granted != null)
+                    grantedList = granted.listIterator();
 
 
-			if (nextLock != null)
-				return true;
+                List waiting = control.getWaiting();
+                if (waiting != null)
+                    waitingList = waiting.listIterator();
 
-			control = null;
-		}
-	}
+                nextLock = control.getFirstGrant();
+                if (nextLock == null) {
 
-	private Latch getNextLock(Control control) {
-		Latch lock = null;
-		if (grantedList != null) {
-			if (grantedList.hasNext()) {
-				lock = (Latch) grantedList.next();
-			}
-			else
-				grantedList = null;
-		}
+                    nextLock = getNextLock(control);
+                }
+                
+            } else {
+                nextLock = getNextLock(control);
+            }
 
-		if (lock == null) {
-			if (waitingList != null) {
-				if (waitingList.hasNext()) {
-					lock = (Latch) waitingList.next();
-				}
-				else
-					waitingList = null;
-			}
-		}
 
-		return lock;
-	}
+            if (nextLock != null)
+                return true;
 
-	public Object nextElement() {
+            control = null;
+        }
+    }
 
-		if (!hasMoreElements())
-			throw new NoSuchElementException();
+    private Latch getNextLock(Control control) {
+        Latch lock = null;
+        if (grantedList != null) {
+            if (grantedList.hasNext()) {
+                lock = (Latch) grantedList.next();
+            }
+            else
+                grantedList = null;
+        }
 
-		Latch ret = nextLock;
+        if (lock == null) {
+            if (waitingList != null) {
+                if (waitingList.hasNext()) {
+                    lock = (Latch) waitingList.next();
+                }
+                else
+                    waitingList = null;
+            }
+        }
 
-		nextLock = null;
-		return ret;
-	}
+        return lock;
+    }
+
+    public Object nextElement() {
+
+        if (!hasMoreElements())
+            throw new NoSuchElementException();
+
+        Latch ret = nextLock;
+
+        nextLock = null;
+        return ret;
+    }
 }
 
 

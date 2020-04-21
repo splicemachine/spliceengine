@@ -47,192 +47,192 @@ import java.util.Enumeration;
 */
 public interface LockFactory extends PropertySetCallback {
 
-	/**
-	 * Create an object which can be used as a compatibility space. A
-	 * compatibility space object can only be used in the
-	 * <code>LockFactory</code> that created it.
-	 *
-	 * @param owner the owner of the compatibility space (typically a
-	 * transaction object). Might be <code>null</code>.
-	 * @return an object which represents a compatibility space
-	 */
-	CompatibilitySpace createCompatibilitySpace(LockOwner owner);
+    /**
+     * Create an object which can be used as a compatibility space. A
+     * compatibility space object can only be used in the
+     * <code>LockFactory</code> that created it.
+     *
+     * @param owner the owner of the compatibility space (typically a
+     * transaction object). Might be <code>null</code>.
+     * @return an object which represents a compatibility space
+     */
+    CompatibilitySpace createCompatibilitySpace(LockOwner owner);
 
-	/**
-		Lock an object within a compatibility space
-		and associate the lock with a group object,
-		waits up to timeout milli-seconds for the object to become unlocked. A 
+    /**
+        Lock an object within a compatibility space
+        and associate the lock with a group object,
+        waits up to timeout milli-seconds for the object to become unlocked. A 
         timeout of 0 means do not wait for the lock to be unlocked.
-		Note the actual time waited is approximate.
-		<P>
-		A compatibility space in an space where lock requests are assumed to be
+        Note the actual time waited is approximate.
+        <P>
+        A compatibility space in an space where lock requests are assumed to be
         compatible and granted by the lock manager if the trio
         {compatibilitySpace, ref, qualifier} are equal (i.e. reference equality
         for qualifier and compatibilitySpace, equals() method for ref).
-		Granted by the lock manager means that the Lockable object may or may 
+        Granted by the lock manager means that the Lockable object may or may 
         not be queried to see if the request is compatible.
-		<BR>
-		A compatibility space is not assumed to be owned by a single thread.
-	
+        <BR>
+        A compatibility space is not assumed to be owned by a single thread.
+    
 
 
-		@param compatibilitySpace object defining compatibility space
-		@param group handle of group, must be private to a thread.
-		@param ref reference to object to be locked
-		@param qualifier A qualification of the request.
-		@param timeout the maximum time to wait in milliseconds, LockFactory.NO_WAIT means don't wait.
+        @param compatibilitySpace object defining compatibility space
+        @param group handle of group, must be private to a thread.
+        @param ref reference to object to be locked
+        @param qualifier A qualification of the request.
+        @param timeout the maximum time to wait in milliseconds, LockFactory.NO_WAIT means don't wait.
 
-		@return true if the lock was obtained, false if timeout is equal to LockFactory.NO_WAIT and the lock
-		could not be granted.
+        @return true if the lock was obtained, false if timeout is equal to LockFactory.NO_WAIT and the lock
+        could not be granted.
 
-		@exception com.splicemachine.db.iapi.error.StandardException A deadlock has occured (message id will be LockFactory.Deadlock)
-		@exception com.splicemachine.db.iapi.error.StandardException The wait for the lock timed out (message id will be LockFactory.TimeOut).
-		@exception com.splicemachine.db.iapi.error.StandardException Another thread interupted this thread while
-		it was waiting for the lock. This will be a StandardException with a nested java.lang.InterruptedException exception,
-		(message id will be LockFactory.InterruptedExceptionId)
-		@exception StandardException Standard Derby error policy.
+        @exception com.splicemachine.db.iapi.error.StandardException A deadlock has occured (message id will be LockFactory.Deadlock)
+        @exception com.splicemachine.db.iapi.error.StandardException The wait for the lock timed out (message id will be LockFactory.TimeOut).
+        @exception com.splicemachine.db.iapi.error.StandardException Another thread interupted this thread while
+        it was waiting for the lock. This will be a StandardException with a nested java.lang.InterruptedException exception,
+        (message id will be LockFactory.InterruptedExceptionId)
+        @exception StandardException Standard Derby error policy.
 
-	*/
-	boolean lockObject(CompatibilitySpace compatibilitySpace,
-					   Object group, Lockable ref, Object qualifier,
-					   int timeout)
-		throws StandardException;
+    */
+    boolean lockObject(CompatibilitySpace compatibilitySpace,
+                       Object group, Lockable ref, Object qualifier,
+                       int timeout)
+        throws StandardException;
 
-	/**
-		Unlock a single lock on a single object held within this compatibility
-		space and locked with the supplied qualifier.
+    /**
+        Unlock a single lock on a single object held within this compatibility
+        space and locked with the supplied qualifier.
 
-		@param compatibilitySpace object defining compatibility space
-		@param group handle of group.
-		@param ref Reference to object to be unlocked.
-		@param qualifier qualifier of lock to be unlocked
+        @param compatibilitySpace object defining compatibility space
+        @param group handle of group.
+        @param ref Reference to object to be unlocked.
+        @param qualifier qualifier of lock to be unlocked
 
-		@return number of locks released (one or zero).
-	*/
-	int unlock(CompatibilitySpace compatibilitySpace, Object group,
-			   Lockable ref, Object qualifier);
+        @return number of locks released (one or zero).
+    */
+    int unlock(CompatibilitySpace compatibilitySpace, Object group,
+               Lockable ref, Object qualifier);
 
-	/**
-		Unlock all locks in a group. 
+    /**
+        Unlock all locks in a group. 
 
-		@param compatibilitySpace object defining compatibility space
-		@param group handle of group that objects were locked with.
-	*/
-	void unlockGroup(CompatibilitySpace compatibilitySpace,
-					 Object group);
+        @param compatibilitySpace object defining compatibility space
+        @param group handle of group that objects were locked with.
+    */
+    void unlockGroup(CompatibilitySpace compatibilitySpace,
+                     Object group);
 
-	/**
-		Unlock all locks on a group that match the passed in value.
-	*/
-	void unlockGroup(CompatibilitySpace compatibilitySpace,
-					 Object group, Matchable key);
+    /**
+        Unlock all locks on a group that match the passed in value.
+    */
+    void unlockGroup(CompatibilitySpace compatibilitySpace,
+                     Object group, Matchable key);
 
-	/**
-		Transfer a set of locks from one group to another.
-	*/
-	void transfer(CompatibilitySpace compatibilitySpace,
-				  Object oldGroup, Object newGroup);
+    /**
+        Transfer a set of locks from one group to another.
+    */
+    void transfer(CompatibilitySpace compatibilitySpace,
+                  Object oldGroup, Object newGroup);
 
-	/**
-		Returns true if locks held by anyone are blocking anyone else
-	*/
-	boolean anyoneBlocked();
+    /**
+        Returns true if locks held by anyone are blocking anyone else
+    */
+    boolean anyoneBlocked();
 
-	/**
-		Return true if locks are held in this compatibility space and
-		 this group.
+    /**
+        Return true if locks are held in this compatibility space and
+         this group.
 
-		@param group handle of group that objects were locked with.
+        @param group handle of group that objects were locked with.
 
-	*/
-	boolean areLocksHeld(CompatibilitySpace compatibilitySpace,
-						 Object group);
+    */
+    boolean areLocksHeld(CompatibilitySpace compatibilitySpace,
+                         Object group);
 
-	/**
-		Return true if locks are held in this compatibility space.
-	*/
-	boolean areLocksHeld(CompatibilitySpace compatibilitySpace);
+    /**
+        Return true if locks are held in this compatibility space.
+    */
+    boolean areLocksHeld(CompatibilitySpace compatibilitySpace);
 
-	/**
-		Lock an object with zero duration within a compatibility space,
-		waits up to timeout milli-seconds for the object to become unlocked. A 
+    /**
+        Lock an object with zero duration within a compatibility space,
+        waits up to timeout milli-seconds for the object to become unlocked. A 
         timeout of 0 means do not wait for the lock to be unlocked.
-		Note the actual time waited is approximate.
-		<P>
-		Zero duration means the lock is released as soon as it is obtained.
-		<P>
-		A compatibility space in an space where lock requests are assumed to be
+        Note the actual time waited is approximate.
+        <P>
+        Zero duration means the lock is released as soon as it is obtained.
+        <P>
+        A compatibility space in an space where lock requests are assumed to be
         compatible and granted by the lock manager if the trio
         {compatibilitySpace, ref, qualifier} are equal (i.e. reference equality
         for qualifier and compatibilitySpace, equals() method for ref).
-		Granted by the lock manager means that the Lockable object may or may 
+        Granted by the lock manager means that the Lockable object may or may 
         not be queried to see if the request is compatible.
-		<BR>
-		A compatibility space is not assumed to be owned by a single thread.
-	
+        <BR>
+        A compatibility space is not assumed to be owned by a single thread.
+    
 
 
-		@param compatibilitySpace object defining compatibility space
-		@param ref reference to object to be locked
-		@param qualifier A qualification of the request.
-		@param timeout the maximum time to wait in milliseconds, LockFactory.NO_WAIT means don't wait.
+        @param compatibilitySpace object defining compatibility space
+        @param ref reference to object to be locked
+        @param qualifier A qualification of the request.
+        @param timeout the maximum time to wait in milliseconds, LockFactory.NO_WAIT means don't wait.
 
-		@return true if the lock was obtained, false if timeout is equal to LockFactory.NO_WAIT and the lock
-		could not be granted.
+        @return true if the lock was obtained, false if timeout is equal to LockFactory.NO_WAIT and the lock
+        could not be granted.
 
-		@exception com.splicemachine.db.iapi.error.StandardException A deadlock has occured (message id will be LockFactory.Deadlock)
-		@exception com.splicemachine.db.iapi.error.StandardException The wait for the lock timed out (message id will be LockFactory.TimeOut).
-		@exception com.splicemachine.db.iapi.error.StandardException Another thread interupted this thread while
-		it was waiting for the lock. This will be a StandardException with a nested java.lang.InterruptedException exception,
-		(message id will be LockFactory.InterruptedExceptionId)
-		@exception StandardException Standard Derby error policy.
+        @exception com.splicemachine.db.iapi.error.StandardException A deadlock has occured (message id will be LockFactory.Deadlock)
+        @exception com.splicemachine.db.iapi.error.StandardException The wait for the lock timed out (message id will be LockFactory.TimeOut).
+        @exception com.splicemachine.db.iapi.error.StandardException Another thread interupted this thread while
+        it was waiting for the lock. This will be a StandardException with a nested java.lang.InterruptedException exception,
+        (message id will be LockFactory.InterruptedExceptionId)
+        @exception StandardException Standard Derby error policy.
 
-	*/
-	boolean zeroDurationlockObject(CompatibilitySpace compatibilitySpace,
-								   Lockable ref, Object qualifier,
-								   int timeout)
-		throws StandardException;
+    */
+    boolean zeroDurationlockObject(CompatibilitySpace compatibilitySpace,
+                                   Lockable ref, Object qualifier,
+                                   int timeout)
+        throws StandardException;
 
-	/**
-		Check to see if a specific lock is held.
-	*/
-	boolean isLockHeld(CompatibilitySpace compatibilitySpace,
-					   Object group, Lockable ref, Object qualifier);
+    /**
+        Check to see if a specific lock is held.
+    */
+    boolean isLockHeld(CompatibilitySpace compatibilitySpace,
+                       Object group, Lockable ref, Object qualifier);
 
-	/**
-		Get the lock timeout in milliseconds. A negative number means that
+    /**
+        Get the lock timeout in milliseconds. A negative number means that
         there is no timeout.
-	*/
-	int getWaitTimeout();
+    */
+    int getWaitTimeout();
 
-	/**
-		Install a limit that is called when the size of the group exceeds
-		the required limit.
-		<BR>
-		It is not guaranteed that the callback method (Limit.reached) is
-		called as soon as the group size exceeds the given limit.
-		If the callback method does not result in a decrease in the
-		number of locks held then the lock factory implementation
-		may delay calling the method again. E.g. with a limit
-		of 500 and a reached() method that does nothing, may result
-		in the call back method only being called when the group size reaches
-		550.
-		<BR>
-		Only one limit may be in place for a group at any time.
-		@see Limit
-	*/
-	void setLimit(CompatibilitySpace compatibilitySpace, Object group,
-				  int limit, Limit callback);
+    /**
+        Install a limit that is called when the size of the group exceeds
+        the required limit.
+        <BR>
+        It is not guaranteed that the callback method (Limit.reached) is
+        called as soon as the group size exceeds the given limit.
+        If the callback method does not result in a decrease in the
+        number of locks held then the lock factory implementation
+        may delay calling the method again. E.g. with a limit
+        of 500 and a reached() method that does nothing, may result
+        in the call back method only being called when the group size reaches
+        550.
+        <BR>
+        Only one limit may be in place for a group at any time.
+        @see Limit
+    */
+    void setLimit(CompatibilitySpace compatibilitySpace, Object group,
+                  int limit, Limit callback);
 
-	/**
-		Clear a limit set by setLimit.
-	*/
-	void clearLimit(CompatibilitySpace compatibilitySpace, Object group);
+    /**
+        Clear a limit set by setLimit.
+    */
+    void clearLimit(CompatibilitySpace compatibilitySpace, Object group);
 
-	/**
-		Make a virtual lock table for diagnostics.
-	 */
-	Enumeration makeVirtualLockTable();
+    /**
+        Make a virtual lock table for diagnostics.
+     */
+    Enumeration makeVirtualLockTable();
 
 }
 

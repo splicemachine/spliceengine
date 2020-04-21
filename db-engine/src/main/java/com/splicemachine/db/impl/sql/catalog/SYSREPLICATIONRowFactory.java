@@ -73,7 +73,7 @@ public class SYSREPLICATIONRowFactory extends CatalogRowFactory {
             "8bd68c7e-1d2f-11ea-978f-2e728ce88125"  // index3 UUID
     };
 
-    private	static	final	boolean[]	uniqueness = {
+    private    static    final    boolean[]    uniqueness = {
             false,
             false,
             true

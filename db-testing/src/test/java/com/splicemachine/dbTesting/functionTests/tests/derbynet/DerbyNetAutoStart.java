@@ -327,12 +327,12 @@ public class DerbyNetAutoStart
             portStr = "1527";
             cmd[i++] = JUST_START_SERVER_ARG;
         }
-		/*
-		System.out.println("Cmd:");
-		for (int c = 0; c < cmd.length;c++)
-			System.out.print(cmd[c] + " ");
-		System.out.println("");
-		*/
+        /*
+        System.out.println("Cmd:");
+        for (int c = 0; c < cmd.length;c++)
+            System.out.print(cmd[c] + " ");
+        System.out.println("");
+        */
 
         Process serverProcess = Runtime.getRuntime().exec( cmd);
         // Wait for to start

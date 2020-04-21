@@ -52,10 +52,10 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 public class SplitRegionScannerIT  extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(SplitRegionScannerIT.class);
     private static final String SCHEMA = SplitRegionScannerIT.class.getSimpleName();
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
-	protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
-	protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
+    protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
     protected static SpliceTableWatcher spliceTableWatcherC = new SpliceTableWatcher("C",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
     protected static SpliceTableWatcher spliceTableWatcherD = new SpliceTableWatcher("D",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
     protected static SpliceTableWatcher spliceTableWatcherE = new SpliceTableWatcher("E",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
@@ -88,11 +88,11 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
 
 
 
-	@ClassRule
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcherA)
-		.around(spliceTableWatcherB)
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+        .around(spliceSchemaWatcher)
+        .around(spliceTableWatcherA)
+        .around(spliceTableWatcherB)
             .around(spliceTableWatcherC)
             .around(spliceTableWatcherD)
             .around(spliceTableWatcherE)
@@ -103,16 +103,16 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
             .around(spliceTableWatcherJ)
             .around(spliceTableWatcherK)
 
-		.around(new SpliceDataWatcher(){
-			@Override
-			protected void starting(Description description) {
-				try {
-					PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ SCHEMA + ".A (col1,col2) values (?,?)");
-					for (int i = 0; i< ITERATIONS; i++) {
-						psA.setInt(1,i);
-						psA.setString(2, "dataset"+i);
+        .around(new SpliceDataWatcher(){
+            @Override
+            protected void starting(Description description) {
+                try {
+                    PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ SCHEMA + ".A (col1,col2) values (?,?)");
+                    for (int i = 0; i< ITERATIONS; i++) {
+                        psA.setInt(1,i);
+                        psA.setString(2, "dataset"+i);
                         psA.executeUpdate();
-					}
+                    }
                     spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
                     ,SCHEMA + ".B",SCHEMA + ".A"));
                     spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
@@ -134,17 +134,17 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
                     spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
                             ,SCHEMA + ".K",SCHEMA + ".A"));
                 } catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-				finally {
-					spliceClassWatcher.closeAll();
-				}
-			}
-		});
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
-	@Test
-	public void simpleScan() throws SQLException, IOException, InterruptedException {
+                    throw new RuntimeException(e);
+                }
+                finally {
+                    spliceClassWatcher.closeAll();
+                }
+            }
+        });
+    
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+    @Test
+    public void simpleScan() throws SQLException, IOException, InterruptedException {
         Partition partition = driver.getTableFactory()
                 .getTable(sqlUtil.getConglomID(spliceTableWatcherA.toString()));
         Table htable = ((ClientPartition) partition).unwrapDelegate();
@@ -166,7 +166,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         }
         htable.close();
         Assert.assertEquals("Did not return all rows ",ITERATIONS,i);
-	}
+    }
 
     @Test
     public void simpleScanPostFlush() throws SQLException, IOException, InterruptedException {

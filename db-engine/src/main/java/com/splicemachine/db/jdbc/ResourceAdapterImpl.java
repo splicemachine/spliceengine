@@ -49,102 +49,102 @@ import javax.transaction.xa.XAException;
 
 
 public class ResourceAdapterImpl
-		implements ResourceAdapter, ModuleControl
+        implements ResourceAdapter, ModuleControl
 {
-	private boolean active;
+    private boolean active;
 
-	// the real resource manager 
-	private XAResourceManager rm;	
+    // the real resource manager 
+    private XAResourceManager rm;    
 
-	// maps Xid to XATransationResource for run time transactions
-	private Hashtable connectionTable;
+    // maps Xid to XATransationResource for run time transactions
+    private Hashtable connectionTable;
 
-	/*
-	 * Module control
-	 */
+    /*
+     * Module control
+     */
 
-	public void boot(boolean create, Properties properties)
-		throws StandardException
-	{
-		// we can only run on jdk1.2 or beyond with JTA and JAVA 20 extension
-		// loaded.
+    public void boot(boolean create, Properties properties)
+        throws StandardException
+    {
+        // we can only run on jdk1.2 or beyond with JTA and JAVA 20 extension
+        // loaded.
 
-		connectionTable = new Hashtable();
+        connectionTable = new Hashtable();
 
-		AccessFactory af = 
-			(AccessFactory)Monitor.findServiceModule(this, AccessFactory.MODULE);
+        AccessFactory af = 
+            (AccessFactory)Monitor.findServiceModule(this, AccessFactory.MODULE);
 
-		rm = (XAResourceManager) af.getXAResourceManager();
+        rm = (XAResourceManager) af.getXAResourceManager();
 
-		active = true;
-	}
+        active = true;
+    }
 
-	public void stop()
-	{
-		active = false;
+    public void stop()
+    {
+        active = false;
 
-		for (Enumeration e = connectionTable.elements(); e.hasMoreElements(); ) {
+        for (Enumeration e = connectionTable.elements(); e.hasMoreElements(); ) {
 
-			XATransactionState tranState = (XATransactionState) e.nextElement();
+            XATransactionState tranState = (XATransactionState) e.nextElement();
 
-			try {
-				tranState.conn.close();
-			} catch (java.sql.SQLException ignored) {
-			}
-		}
+            try {
+                tranState.conn.close();
+            } catch (java.sql.SQLException ignored) {
+            }
+        }
 
-		active = false;
-	}
+        active = false;
+    }
 
-	public boolean isActive()
-	{
-		return active;
-	}
+    public boolean isActive()
+    {
+        return active;
+    }
 
-	/*
-	 * Resource Adapter methods 
-	 */
+    /*
+     * Resource Adapter methods 
+     */
 
-	public synchronized Object findConnection(XAXactId xid) {
+    public synchronized Object findConnection(XAXactId xid) {
 
-		return connectionTable.get(xid);
-	}
+        return connectionTable.get(xid);
+    }
 
-	public synchronized boolean addConnection(XAXactId xid, Object conn) {
-		if (connectionTable.get(xid) != null)
-			return false;
+    public synchronized boolean addConnection(XAXactId xid, Object conn) {
+        if (connectionTable.get(xid) != null)
+            return false;
 
-		// put this into the transaction table, if the xid is already
-		// present as an in-doubt transaction, we need to remove it from
-		// the run time list
-		connectionTable.put(xid, conn);
-		return true;
-	}
+        // put this into the transaction table, if the xid is already
+        // present as an in-doubt transaction, we need to remove it from
+        // the run time list
+        connectionTable.put(xid, conn);
+        return true;
+    }
 
-	public synchronized Object removeConnection(XAXactId xid) {
+    public synchronized Object removeConnection(XAXactId xid) {
 
-		return connectionTable.remove(xid);
+        return connectionTable.remove(xid);
 
-	}
+    }
 
-	/** @see com.splicemachine.db.iapi.jdbc.ResourceAdapter#cancelXATransaction(XAXactId, String)
-	 */
-	public void cancelXATransaction(XAXactId xid, String messageId)
-	throws XAException
-	{
-		XATransactionState xaState = (XATransactionState) findConnection(xid);
+    /** @see com.splicemachine.db.iapi.jdbc.ResourceAdapter#cancelXATransaction(XAXactId, String)
+     */
+    public void cancelXATransaction(XAXactId xid, String messageId)
+    throws XAException
+    {
+        XATransactionState xaState = (XATransactionState) findConnection(xid);
 
-		if (xaState != null) {
-			xaState.cancel(messageId);
-		}
-	}
+        if (xaState != null) {
+            xaState.cancel(messageId);
+        }
+    }
 
 
-	/**
-		Return the XA Resource manager to the XA Connection
-	 */
-	public XAResourceManager getXAResourceManager()
-	{
-		return rm;
-	}
+    /**
+        Return the XA Resource manager to the XA Connection
+     */
+    public XAResourceManager getXAResourceManager()
+    {
+        return rm;
+    }
 }

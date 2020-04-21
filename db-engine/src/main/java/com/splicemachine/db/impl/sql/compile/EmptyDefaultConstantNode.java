@@ -59,8 +59,8 @@ public final class EmptyDefaultConstantNode extends ConstantNode
      * Should never be called for EmptyDefaultConstantNode because
      * we shouldn't make it to generate
      *
-     * @param acb	The ExpressionClassBuilder for the class being built
-     * @param mb	The method the expression will go into
+     * @param acb    The ExpressionClassBuilder for the class being built
+     * @param mb    The method the expression will go into
      */
     void generateConstant(ExpressionClassBuilder acb, MethodBuilder mb)
     {
@@ -73,7 +73,7 @@ public final class EmptyDefaultConstantNode extends ConstantNode
     /**
      * Translate a Default node into a default value, given a type descriptor.
      *
-     * @param typeDescriptor	A description of the required data type.
+     * @param typeDescriptor    A description of the required data type.
      *
      */
     public DataValueDescriptor convertDefaultNode(DataTypeDescriptor typeDescriptor)

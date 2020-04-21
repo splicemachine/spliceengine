@@ -35,13 +35,13 @@ import java.sql.SQLException;
 
 public interface IQualifyable {
 
-	// public boolean handleQualifier(int relOp, int 
+    // public boolean handleQualifier(int relOp, int 
 
-	/**
-		Called at runtime before each scan of the VTI.
-		The passed in qualifiers are only valid for the single
-		execution that follows.
-	*/
-	void setQualifiers(VTIEnvironment vtiEnvironment, com.splicemachine.db.iapi.store.access.Qualifier[][] qualifiers)
-		throws SQLException;
+    /**
+        Called at runtime before each scan of the VTI.
+        The passed in qualifiers are only valid for the single
+        execution that follows.
+    */
+    void setQualifiers(VTIEnvironment vtiEnvironment, com.splicemachine.db.iapi.store.access.Qualifier[][] qualifiers)
+        throws SQLException;
 }

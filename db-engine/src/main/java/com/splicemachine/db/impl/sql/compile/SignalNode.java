@@ -50,7 +50,7 @@ public class SignalNode extends MiscellaneousStatementNode {
     /**
      * Initializer for a SignalNode
      *
-     * @param sqlState	The error code to return.
+     * @param sqlState    The error code to return.
 
      *
      */
@@ -64,7 +64,7 @@ public class SignalNode extends MiscellaneousStatementNode {
      * Convert this object to a String.  See comments in QueryTreeNode.java
      * for how this should be done for tree printing.
      *
-     * @return	This object as a String
+     * @return    This object as a String
      */
     public String toString()
     {
@@ -128,10 +128,10 @@ public class SignalNode extends MiscellaneousStatementNode {
     /**
      * Generate code, need to push parameters
      *
-     * @param acb	The ActivationClassBuilder for the class being built
+     * @param acb    The ActivationClassBuilder for the class being built
      * @param mb the method  for the execute() method to be built
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
 
     public void generate(ActivationClassBuilder acb,
@@ -149,7 +149,7 @@ public class SignalNode extends MiscellaneousStatementNode {
         else {
             // this sets up the method and the static field.
             // generates:
-            // 	Object userExprFun { }
+            //     Object userExprFun { }
             MethodBuilder userExprFun=acb.newUserExprFun();
 
             errorText.generateExpression(acb,userExprFun);

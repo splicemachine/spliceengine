@@ -23,15 +23,15 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
  */
 public interface SerializerMap {
 
-		DescriptorSerializer getSerializer(DataValueDescriptor dvd);
+        DescriptorSerializer getSerializer(DataValueDescriptor dvd);
 
-		DescriptorSerializer getSerializer(int typeFormatId);
+        DescriptorSerializer getSerializer(int typeFormatId);
 
-		DescriptorSerializer[] getSerializers(ExecRow row);
+        DescriptorSerializer[] getSerializers(ExecRow row);
 
-		DescriptorSerializer[] getSerializers(DataValueDescriptor[] kdvds);
+        DescriptorSerializer[] getSerializers(DataValueDescriptor[] kdvds);
 
-		DescriptorSerializer getEagerSerializer(int typeFormatId);
+        DescriptorSerializer getEagerSerializer(int typeFormatId);
 
-		DescriptorSerializer[] getSerializers(int[] typeFormatIds);
+        DescriptorSerializer[] getSerializers(int[] typeFormatIds);
 }

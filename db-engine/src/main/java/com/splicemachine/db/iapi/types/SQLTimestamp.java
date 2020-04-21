@@ -64,20 +64,20 @@ import java.util.GregorianCalendar;
  * This contains an instance of a SQL Timestamp object.
  * <p>
  * SQLTimestamp is stored in 3 ints - an encoded date, an encoded time and
- *		nanoseconds
+ *        nanoseconds
  * encodedDate = 0 indicates a null WSCTimestamp
  *
  * SQLTimestamp is similar to SQLTimestamp, but it does conserves space by not keeping a GregorianCalendar object
  *
  * PERFORMANCE OPTIMIZATION:
- *	We only instantiate the value field when required due to the overhead of the
- *	Date methods.
- *	Thus, use isNull() instead of "value == null" and
- *	getTimestamp() instead of using value directly.
+ *    We only instantiate the value field when required due to the overhead of the
+ *    Date methods.
+ *    Thus, use isNull() instead of "value == null" and
+ *    getTimestamp() instead of using value directly.
  */
 
 public final class SQLTimestamp extends DataType
-						implements DateTimeDataValue
+                        implements DateTimeDataValue
 {
     static final int MAX_FRACTION_DIGITS = 9; // Only nanosecond resolution on conversion to/from strings
     static final int FRACTION_TO_NANO = 1; // 10**(9 - MAX_FRACTION_DIGITS)
@@ -87,23 +87,23 @@ public final class SQLTimestamp extends DataType
     private static final int MICROS_TO_SECOND = 1000000;
     // edges for our internal Timestamp in microseconds
     // from ~21 Sep 1677 00:12:44 GMT to ~11 Apr 2262 23:47:16 GMT
-	// This is only applicable to version 2.0 tables, that use the
-	// TimestampV2DescriptorSerializer.  Version 3.0 and above supports
-	// the full range of timestamps, year 0001 - 9999.
+    // This is only applicable to version 2.0 tables, that use the
+    // TimestampV2DescriptorSerializer.  Version 3.0 and above supports
+    // the full range of timestamps, year 0001 - 9999.
     public static final long MAX_V2_TIMESTAMP = Long.MAX_VALUE / MICROS_TO_SECOND - 1;
     public static final long MIN_V2_TIMESTAMP = Long.MIN_VALUE / MICROS_TO_SECOND + 1;
 
-	private static boolean skipDBContext = false;
+    private static boolean skipDBContext = false;
 
-	public static void setSkipDBContext(boolean value) { skipDBContext = value; }
+    public static void setSkipDBContext(boolean value) { skipDBContext = value; }
 
-    private int	encodedDate;
-	private int	encodedTime;
-	private int	nanos;
-	/*
-	** DataValueDescriptor interface
-	** (mostly implemented in DataType)
-	*/
+    private int    encodedDate;
+    private int    encodedTime;
+    private int    nanos;
+    /*
+    ** DataValueDescriptor interface
+    ** (mostly implemented in DataType)
+    */
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLTimestamp.class);
 
@@ -129,7 +129,7 @@ public final class SQLTimestamp extends DataType
      *         Due to time zone settings or other influences, the actual maximum
      *         or minimum timestamp may differ slightly.
      */
-	public static Timestamp convertTimeStamp(Timestamp timestamp) throws StandardException {
+    public static Timestamp convertTimeStamp(Timestamp timestamp) throws StandardException {
         if (timestamp == null)
             return null;
 
@@ -141,17 +141,17 @@ public final class SQLTimestamp extends DataType
             timestamp = new Timestamp(MIN_V2_TIMESTAMP);
 
         return timestamp;
-	}
+    }
 
     public int estimateMemoryUsage()
     {
-		return BASE_MEMORY_USAGE;
+        return BASE_MEMORY_USAGE;
     } // end of estimateMemoryUsage
 
-	public String getString()
-	{
-		if (!isNull())
-		{
+    public String getString()
+    {
+        if (!isNull())
+        {
             String valueString = getTimestamp((Calendar) null).toString();
             /* The java.sql.Timestamp.toString() method is supposed to return a string in
              * the JDBC escape format. However the JDK 1.3 libraries truncate leading zeros from
@@ -167,27 +167,27 @@ public final class SQLTimestamp extends DataType
                 valueString = sb.toString();
             }
 
-			return valueString;
-		}
-		else
-		{
-			return null;
-		}
-	}
+            return valueString;
+        }
+        else
+        {
+            return null;
+        }
+    }
 
 
-	/**
-		getDate returns the date portion of the timestamp
-		Time is set to 00:00:00.0
-		Since Date is a JDBC object we use the JDBC definition
-		for the time portion.  See JDBC API Tutorial, 47.3.12.
+    /**
+        getDate returns the date portion of the timestamp
+        Time is set to 00:00:00.0
+        Since Date is a JDBC object we use the JDBC definition
+        for the time portion.  See JDBC API Tutorial, 47.3.12.
 
-		@exception StandardException thrown on failure
-	 */
-	public Date	getDate( Calendar cal) throws StandardException
-	{
-		if (isNull())
-			return null;
+        @exception StandardException thrown on failure
+     */
+    public Date    getDate( Calendar cal) throws StandardException
+    {
+        if (isNull())
+            return null;
 
         if( cal == null)
             cal = SQLDate.GREGORIAN_CALENDAR.get();
@@ -199,283 +199,283 @@ public final class SQLTimestamp extends DataType
         
         SQLDate.setDateInCalendar(cal, encodedDate);
 
-		return new Date(cal.getTimeInMillis());
-	}
+        return new Date(cal.getTimeInMillis());
+    }
 
-	/**
-		getTime returns the time portion of the timestamp
-		Date is set to 1970-01-01
-		Since Time is a JDBC object we use the JDBC definition
-		for the date portion.  See JDBC API Tutorial, 47.3.12.
-		@exception StandardException thrown on failure
-	 */
-	public Time	getTime( Calendar cal) throws StandardException
-	{
-		if (isNull())
-			return null;
+    /**
+        getTime returns the time portion of the timestamp
+        Date is set to 1970-01-01
+        Since Time is a JDBC object we use the JDBC definition
+        for the date portion.  See JDBC API Tutorial, 47.3.12.
+        @exception StandardException thrown on failure
+     */
+    public Time    getTime( Calendar cal) throws StandardException
+    {
+        if (isNull())
+            return null;
         
         // Derby's SQL TIMESTAMP type supports resolution
         // to nano-seconds so ensure the Time object
         // maintains that since it has milli-second
         // resolutiuon.
         return SQLTime.getTime(cal, encodedTime, nanos);
-	}
+    }
 
-	public Object getObject()
-	{
-		return getTimestamp((Calendar) null);
-	}
-		
-	/* get storage length */
-	public int getLength()
-	{
-		return 12;
-	}
+    public Object getObject()
+    {
+        return getTimestamp((Calendar) null);
+    }
+        
+    /* get storage length */
+    public int getLength()
+    {
+        return 12;
+    }
 
-	/* this is for DataType's error generator */
-	public String getTypeName()
-	{
-		return "TIMESTAMP";
-	}
+    /* this is for DataType's error generator */
+    public String getTypeName()
+    {
+        return "TIMESTAMP";
+    }
 
-	/*
-	 * Storable interface, implies Externalizable, TypedFormat
-	 */
+    /*
+     * Storable interface, implies Externalizable, TypedFormat
+     */
 
-	/**
-		Return my format identifier.
+    /**
+        Return my format identifier.
 
-		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
-	public int getTypeFormatId() {
-		return StoredFormatIds.SQL_TIMESTAMP_ID;
-	}
+        @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
+    */
+    public int getTypeFormatId() {
+        return StoredFormatIds.SQL_TIMESTAMP_ID;
+    }
 
-	/** 
-		@exception IOException error writing data
+    /** 
+        @exception IOException error writing data
 
-	*/
-	public void writeExternal(ObjectOutput out) throws IOException {
+    */
+    public void writeExternal(ObjectOutput out) throws IOException {
 
-		out.writeBoolean(isNull);
-		/*
-		** Timestamp is written out 3 ints, encoded date, encoded time, and
-		** nanoseconds
-		*/
-		out.writeInt(encodedDate);
-		out.writeInt(encodedTime);
-		out.writeInt(nanos);
-	}
+        out.writeBoolean(isNull);
+        /*
+        ** Timestamp is written out 3 ints, encoded date, encoded time, and
+        ** nanoseconds
+        */
+        out.writeInt(encodedDate);
+        out.writeInt(encodedTime);
+        out.writeInt(nanos);
+    }
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 */
-	public void readExternal(ObjectInput in) throws IOException
-	{
-		int date;
-		int time;
-		int nanos;
-		isNull = in.readBoolean();
-		date = in.readInt();
-		time = in.readInt();
-		nanos = in.readInt();
-		setValue(date, time, nanos);
-	}
-	public void readExternalFromArray(ArrayInputStream in) throws IOException
-	{
-		int date;
-		int time;
-		int nanos;
-		isNull = in.readBoolean();
-		date = in.readInt();
-		time = in.readInt();
-		nanos = in.readInt();
-		setValue(date, time,nanos);
-	}
+    /**
+     * @see java.io.Externalizable#readExternal
+     *
+     * @exception IOException    Thrown on error reading the object
+     */
+    public void readExternal(ObjectInput in) throws IOException
+    {
+        int date;
+        int time;
+        int nanos;
+        isNull = in.readBoolean();
+        date = in.readInt();
+        time = in.readInt();
+        nanos = in.readInt();
+        setValue(date, time, nanos);
+    }
+    public void readExternalFromArray(ArrayInputStream in) throws IOException
+    {
+        int date;
+        int time;
+        int nanos;
+        isNull = in.readBoolean();
+        date = in.readInt();
+        time = in.readInt();
+        nanos = in.readInt();
+        setValue(date, time,nanos);
+    }
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
 
-	/** @see DataValueDescriptor#cloneValue */
-	public DataValueDescriptor cloneValue(boolean forceMaterialization)
-	{
-		// Call constructor with all of our info
-		if (isNull)
-			return new SQLTimestamp();
-		return new SQLTimestamp(encodedDate, encodedTime, nanos);
-	}
+    /** @see DataValueDescriptor#cloneValue */
+    public DataValueDescriptor cloneValue(boolean forceMaterialization)
+    {
+        // Call constructor with all of our info
+        if (isNull)
+            return new SQLTimestamp();
+        return new SQLTimestamp(encodedDate, encodedTime, nanos);
+    }
 
-	/**
-	 * @see DataValueDescriptor#getNewNull
-	 */
-	public DataValueDescriptor getNewNull()
-	{
-		return new SQLTimestamp();
-	}
-	/**
-	 * @see com.splicemachine.db.iapi.services.io.Storable#restoreToNull
-	 *
-	 */
-	public void restoreToNull()
-	{
-		// clear numeric representation
-		encodedDate = 0;
-		encodedTime = 0;
-		nanos = 0;
-		isNull = true;
+    /**
+     * @see DataValueDescriptor#getNewNull
+     */
+    public DataValueDescriptor getNewNull()
+    {
+        return new SQLTimestamp();
+    }
+    /**
+     * @see com.splicemachine.db.iapi.services.io.Storable#restoreToNull
+     *
+     */
+    public void restoreToNull()
+    {
+        // clear numeric representation
+        encodedDate = 0;
+        encodedTime = 0;
+        nanos = 0;
+        isNull = true;
 
-	}
+    }
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
 
-	/** 
-	 * @see DataValueDescriptor#setValueFromResultSet 
-	 *
-	 * @exception SQLException		Thrown on error
-	 */
-	public void setValueFromResultSet(ResultSet resultSet, int colNumber,
-									  boolean isNullable)
-		throws SQLException, StandardException
-	{
-			setValue(resultSet.getTimestamp(colNumber), (Calendar) null);
-	}
+    /** 
+     * @see DataValueDescriptor#setValueFromResultSet 
+     *
+     * @exception SQLException        Thrown on error
+     */
+    public void setValueFromResultSet(ResultSet resultSet, int colNumber,
+                                      boolean isNullable)
+        throws SQLException, StandardException
+    {
+            setValue(resultSet.getTimestamp(colNumber), (Calendar) null);
+    }
 
-	public int compare(DataValueDescriptor other)
-		throws StandardException
-	{
-		/* Use compare method from dominant type, negating result
-		 * to reflect flipping of sides.
-		 */
-		if (typePrecedence() < other.typePrecedence())
-		{
-			return - (other.compare(this));
-		}
+    public int compare(DataValueDescriptor other)
+        throws StandardException
+    {
+        /* Use compare method from dominant type, negating result
+         * to reflect flipping of sides.
+         */
+        if (typePrecedence() < other.typePrecedence())
+        {
+            return - (other.compare(this));
+        }
 
-		boolean thisNull, otherNull;
+        boolean thisNull, otherNull;
 
-		thisNull = this.isNull();
-		otherNull = other.isNull();
+        thisNull = this.isNull();
+        otherNull = other.isNull();
 
-		/*
-		 * thisNull otherNull	return
-		 *	T		T		 	0	(this == other)
-		 *	F		T		 	-1 	(this < other)
-		 *	T		F		 	1	(this > other)
-		 */
-		if (thisNull || otherNull)
-		{
-			if (!thisNull)		// otherNull must be true
-				return -1;
-			if (!otherNull)		// thisNull must be true
-				return 1;
-			return 0;
-		}
+        /*
+         * thisNull otherNull    return
+         *    T        T             0    (this == other)
+         *    F        T             -1     (this < other)
+         *    T        F             1    (this > other)
+         */
+        if (thisNull || otherNull)
+        {
+            if (!thisNull)        // otherNull must be true
+                return -1;
+            if (!otherNull)        // thisNull must be true
+                return 1;
+            return 0;
+        }
 
-		/*
-			Neither are null compare them 
-		 */
+        /*
+            Neither are null compare them 
+         */
 
-		int comparison;
-		/* get the comparison date values */
-		int otherEncodedDate = 0;
-		int otherEncodedTime = 0;
-		int otherNanos = 0;
+        int comparison;
+        /* get the comparison date values */
+        int otherEncodedDate = 0;
+        int otherEncodedTime = 0;
+        int otherNanos = 0;
 
-		/* if the argument is another SQLTimestamp, look up the value
-		 */
-		if (other instanceof SQLTimestamp)
-		{
-			SQLTimestamp st = (SQLTimestamp)other;
-			otherEncodedDate= st.encodedDate;
-			otherEncodedTime= st.encodedTime;
-			otherNanos= st.nanos;
-		}
-		else 
-		{
-			/* O.K. have to do it the hard way and calculate the numeric value
-			 * from the value
-			 */
-			Calendar cal = SQLDate.GREGORIAN_CALENDAR.get();
-			Timestamp otherts = other.getTimestamp(cal);
-			int[] otherDateTime = SQLTimestamp.computeEncodedDateTime(otherts,cal);
-			otherEncodedDate = otherDateTime[0];
-			otherEncodedTime = otherDateTime[1];
-			otherNanos = otherts.getNanos();
-		}
-		if (encodedDate < otherEncodedDate)
-			comparison = -1;
-		else if (encodedDate > otherEncodedDate)
-			comparison = 1;
-		else if (encodedTime < otherEncodedTime)
-			comparison = -1;
-		else if (encodedTime > otherEncodedTime)
-			comparison = 1;
-		else if (nanos < otherNanos)
-			comparison = -1;
-		else if (nanos > otherNanos)
-			comparison = 1;
-		else
-			comparison = 0;
+        /* if the argument is another SQLTimestamp, look up the value
+         */
+        if (other instanceof SQLTimestamp)
+        {
+            SQLTimestamp st = (SQLTimestamp)other;
+            otherEncodedDate= st.encodedDate;
+            otherEncodedTime= st.encodedTime;
+            otherNanos= st.nanos;
+        }
+        else 
+        {
+            /* O.K. have to do it the hard way and calculate the numeric value
+             * from the value
+             */
+            Calendar cal = SQLDate.GREGORIAN_CALENDAR.get();
+            Timestamp otherts = other.getTimestamp(cal);
+            int[] otherDateTime = SQLTimestamp.computeEncodedDateTime(otherts,cal);
+            otherEncodedDate = otherDateTime[0];
+            otherEncodedTime = otherDateTime[1];
+            otherNanos = otherts.getNanos();
+        }
+        if (encodedDate < otherEncodedDate)
+            comparison = -1;
+        else if (encodedDate > otherEncodedDate)
+            comparison = 1;
+        else if (encodedTime < otherEncodedTime)
+            comparison = -1;
+        else if (encodedTime > otherEncodedTime)
+            comparison = 1;
+        else if (nanos < otherNanos)
+            comparison = -1;
+        else if (nanos > otherNanos)
+            comparison = 1;
+        else
+            comparison = 0;
 
-		return comparison;
-	}
+        return comparison;
+    }
 
-	/**
-		@exception StandardException thrown on error
-	 */
-	public boolean compare(int op,
-						   DataValueDescriptor other,
-						   boolean orderedNulls,
-						   boolean unknownRV)
-		throws StandardException
-	{
-		if (!orderedNulls)		// nulls are unordered
-		{
-			if (this.isNull() || ((DataValueDescriptor)other).isNull())
-				return unknownRV;
-		}
+    /**
+        @exception StandardException thrown on error
+     */
+    public boolean compare(int op,
+                           DataValueDescriptor other,
+                           boolean orderedNulls,
+                           boolean unknownRV)
+        throws StandardException
+    {
+        if (!orderedNulls)        // nulls are unordered
+        {
+            if (this.isNull() || ((DataValueDescriptor)other).isNull())
+                return unknownRV;
+        }
 
-		/* Do the comparison */
-		return super.compare(op, other, orderedNulls, unknownRV);
-	}
+        /* Do the comparison */
+        return super.compare(op, other, orderedNulls, unknownRV);
+    }
 
-	/*
-	** Class interface
-	*/
+    /*
+    ** Class interface
+    */
 
-	/*
-	** Constructors
-	*/
+    /*
+    ** Constructors
+    */
 
-	/** no-arg constructor required by Formattable */
-	public SQLTimestamp() { }
+    /** no-arg constructor required by Formattable */
+    public SQLTimestamp() { }
 
 
-	public SQLTimestamp(Timestamp value) throws StandardException
-	{
-		setValue(value, (Calendar) null);
-	}
+    public SQLTimestamp(Timestamp value) throws StandardException
+    {
+        setValue(value, (Calendar) null);
+    }
 
     public SQLTimestamp(org.joda.time.DateTime value) throws StandardException
     {
         setValue(value);
     }
 
-	SQLTimestamp(int encodedDate, int encodedTime, int nanos) {
+    SQLTimestamp(int encodedDate, int encodedTime, int nanos) {
 
-		setValue(encodedDate, encodedTime, nanos);
-	}
+        setValue(encodedDate, encodedTime, nanos);
+    }
 
     public SQLTimestamp( DataValueDescriptor date, DataValueDescriptor time) throws StandardException
     {
         Calendar cal = null;
-		int encodedDateLocal;
-		int encodedTimeLocal;
+        int encodedDateLocal;
+        int encodedTimeLocal;
         if( date == null || date.isNull()
             || time == null || time.isNull())
             return;
@@ -500,7 +500,7 @@ public final class SQLTimestamp extends DataType
                 cal = SQLDate.GREGORIAN_CALENDAR.get();
             encodedTimeLocal = computeEncodedTime( time.getTime( cal), cal);
         }
-		setValue(encodedDateLocal, encodedTimeLocal);
+        setValue(encodedDateLocal, encodedTimeLocal);
     }
 
     /**
@@ -556,7 +556,7 @@ public final class SQLTimestamp extends DataType
         try
         {
             int[] dateTimeNano = parseDateOrTimestamp( parser, false);
-			setValue(dateTimeNano[0], dateTimeNano[1], dateTimeNano[2]);
+            setValue(dateTimeNano[0], dateTimeNano[1], dateTimeNano[2]);
             return;
         }
         catch( StandardException se)
@@ -568,7 +568,7 @@ public final class SQLTimestamp extends DataType
         {
             timestampStr = StringUtil.trimTrailing( timestampStr);
             int[] dateAndTime = parseLocalTimestamp( timestampStr, localeFinder, cal);
-			setValue(dateAndTime[0], dateAndTime[1]);
+            setValue(dateAndTime[0], dateAndTime[1]);
             return;
         }
         catch( ParseException | StandardException ignored){}
@@ -633,7 +633,7 @@ public final class SQLTimestamp extends DataType
         if( parser.getCurrentSeparator() != 0)
         {
             char timeSeparator = ((parser.getCurrentSeparator() == ODBC_DATE_TIME_SEPARATOR) || (parser.getCurrentSeparator() == ISO_DATE_TIME_SEPARATOR))
-            		? ODBC_TIME_SEPARATOR : IBM_TIME_SEPARATOR;
+                    ? ODBC_TIME_SEPARATOR : IBM_TIME_SEPARATOR;
             hour = parser.parseInt( 2, true, TIME_SEPARATORS, false);
             if( timeSeparator == parser.getCurrentSeparator())
             {
@@ -652,59 +652,59 @@ public final class SQLTimestamp extends DataType
                            nano};
     } // end of parseDateOrTimestamp
 
-	/**
-	 * Set the value from a correctly typed Timestamp object.
-	 * @throws StandardException 
-	 */
-	void setObject(Object theValue) throws StandardException
-	{
+    /**
+     * Set the value from a correctly typed Timestamp object.
+     * @throws StandardException 
+     */
+    void setObject(Object theValue) throws StandardException
+    {
         if (theValue instanceof DateTime)
             setValue((DateTime) theValue);
         else
             setValue((Timestamp) theValue);
-	}
-	
-	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
+    }
+    
+    protected void setFrom(DataValueDescriptor theValue) throws StandardException {
 
-		if (theValue instanceof SQLTimestamp) {
-			restoreToNull();
-			SQLTimestamp tvst = (SQLTimestamp) theValue;
-			setValue(tvst.encodedDate, tvst.encodedTime, tvst.nanos);
+        if (theValue instanceof SQLTimestamp) {
+            restoreToNull();
+            SQLTimestamp tvst = (SQLTimestamp) theValue;
+            setValue(tvst.encodedDate, tvst.encodedTime, tvst.nanos);
         }
-		else
+        else
         {
             Calendar cal = SQLDate.GREGORIAN_CALENDAR.get();
-			setValue(theValue.getTimestamp( cal), cal);
+            setValue(theValue.getTimestamp( cal), cal);
         }
-	}
+    }
 
-	/**
-		@see DateTimeDataValue#setValue
-		When converting from a date to a timestamp, time is set to 00:00:00.0
+    /**
+        @see DateTimeDataValue#setValue
+        When converting from a date to a timestamp, time is set to 00:00:00.0
 
-	 */
-	public void setValue(Date value, Calendar cal) throws StandardException
-	{
-		restoreToNull();
+     */
+    public void setValue(Date value, Calendar cal) throws StandardException
+    {
+        restoreToNull();
         if( value != null)
         {
             if( cal == null)
                 cal = SQLDate.GREGORIAN_CALENDAR.get();
             setValue(computeEncodedDate(value, cal));
         }
-		/* encodedTime and nanos are already set to zero by restoreToNull() */
-	}
+        /* encodedTime and nanos are already set to zero by restoreToNull() */
+    }
 
-	/**
-		@see DateTimeDataValue#setValue
+    /**
+        @see DateTimeDataValue#setValue
 
-	 */
-	public void setValue(Timestamp value, Calendar cal) 
-	    throws StandardException
-	{
-		restoreToNull();
-		setNumericTimestamp(value, cal);
-	}
+     */
+    public void setValue(Timestamp value, Calendar cal) 
+        throws StandardException
+    {
+        restoreToNull();
+        setNumericTimestamp(value, cal);
+    }
 
     public void setValue(DateTime value)
             throws StandardException
@@ -713,40 +713,40 @@ public final class SQLTimestamp extends DataType
         setNumericTimestamp(value);
     }
 
-	public void setValue(String theValue) throws StandardException {
-		setValue(theValue,null);
-	}
+    public void setValue(String theValue) throws StandardException {
+        setValue(theValue,null);
+    }
 
-	public void setValue(int encodedDateArg)
-	{
-		restoreToNull();
-		encodedDate = encodedDateArg;
-		encodedTime = 0;
-		nanos = 0;
-		isNull = evaluateNull();
-	}
+    public void setValue(int encodedDateArg)
+    {
+        restoreToNull();
+        encodedDate = encodedDateArg;
+        encodedTime = 0;
+        nanos = 0;
+        isNull = evaluateNull();
+    }
 
-	public void setValue(int encodedDateArg, int encodedTimeArg)
-	{
-		restoreToNull();
-		encodedDate = encodedDateArg;
-		encodedTime = encodedTimeArg;
-		nanos = 0;
-		isNull = evaluateNull();
-	}
+    public void setValue(int encodedDateArg, int encodedTimeArg)
+    {
+        restoreToNull();
+        encodedDate = encodedDateArg;
+        encodedTime = encodedTimeArg;
+        nanos = 0;
+        isNull = evaluateNull();
+    }
 
-	public void setValue(int encodedDateArg, int encodedTimeArg, int nanosArg)
-	{
-		restoreToNull();
-		encodedDate = encodedDateArg;
-		encodedTime = encodedTimeArg;
-		nanos = nanosArg;
-		isNull = evaluateNull();
-	}
+    public void setValue(int encodedDateArg, int encodedTimeArg, int nanosArg)
+    {
+        restoreToNull();
+        encodedDate = encodedDateArg;
+        encodedTime = encodedTimeArg;
+        nanos = nanosArg;
+        isNull = evaluateNull();
+    }
 
-	/*
-	** SQL Operators
-	*/
+    /*
+    ** SQL Operators
+    */
 
     NumberDataValue nullValueInt() {
         return new SQLInteger();
@@ -760,25 +760,25 @@ public final class SQLTimestamp extends DataType
         return new SQLVarchar();
     }
 
-	/**
-	 * @see DateTimeDataValue#getYear
-	 * 
-	 * @exception StandardException		Thrown on error
-	 */
-	public NumberDataValue getYear(NumberDataValue result)
-							throws StandardException
-	{
+    /**
+     * @see DateTimeDataValue#getYear
+     * 
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getYear(NumberDataValue result)
+                            throws StandardException
+    {
         if (isNull()) {
             return nullValueInt();
         } else {    
             return SQLDate.setSource(SQLDate.getYear(encodedDate), result);
         }
-	}
+    }
 
     /**
      * @see DateTimeDataValue#getQuarter
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public NumberDataValue getQuarter(NumberDataValue result)
         throws StandardException
@@ -790,26 +790,26 @@ public final class SQLTimestamp extends DataType
         }
     }
 
-	/**
-	 * @see DateTimeDataValue#getMonth
-	 * 
-	 * @exception StandardException		Thrown on error
-	 */
-	public NumberDataValue getMonth(NumberDataValue result)
-							throws StandardException
-	{
+    /**
+     * @see DateTimeDataValue#getMonth
+     * 
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getMonth(NumberDataValue result)
+                            throws StandardException
+    {
         if (isNull()) {
             return nullValueInt();
         } else {    
             return SQLDate.setSource(SQLDate.getMonth(encodedDate), result);
         }
-	}
+    }
 
-	/**
-	 * @see DateTimeDataValue#getMonthName
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * @see DateTimeDataValue#getMonthName
+     *
+     * @exception StandardException        Thrown on error
+     */
     public StringDataValue getMonthName(StringDataValue result)
         throws StandardException {
         if (isNull()) {
@@ -822,7 +822,7 @@ public final class SQLTimestamp extends DataType
     /**
      * @see DateTimeDataValue#getWeek
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public NumberDataValue getWeek(NumberDataValue result)
         throws StandardException {
@@ -836,7 +836,7 @@ public final class SQLTimestamp extends DataType
     /**
      * @see DateTimeDataValue#getWeekDay
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public NumberDataValue getWeekDay(NumberDataValue result)
         throws StandardException {
@@ -847,11 +847,11 @@ public final class SQLTimestamp extends DataType
         }
     }
 
-	/**
-	 * @see DateTimeDataValue#getWeekDayName
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * @see DateTimeDataValue#getWeekDayName
+     *
+     * @exception StandardException        Thrown on error
+     */
     public StringDataValue getWeekDayName(StringDataValue result)
         throws StandardException {
         if (isNull()) {
@@ -864,7 +864,7 @@ public final class SQLTimestamp extends DataType
     /**
      * @see DateTimeDataValue#getDayOfYear
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public NumberDataValue getDayOfYear(NumberDataValue result)
         throws StandardException {
@@ -875,176 +875,176 @@ public final class SQLTimestamp extends DataType
         }
     }
 
-	/**
-	 * @see DateTimeDataValue#getDate
-	 * 
-	 * @exception StandardException		Thrown on error
-	 */
-	public NumberDataValue getDate(NumberDataValue result)
-							throws StandardException
-	{
+    /**
+     * @see DateTimeDataValue#getDate
+     * 
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getDate(NumberDataValue result)
+                            throws StandardException
+    {
         if (isNull()) {
             return nullValueInt();
         } else {    
             return SQLDate.setSource(SQLDate.getDay(encodedDate), result);
         }
-	}
+    }
 
-	/**
-	 * @see DateTimeDataValue#getHours
-	 * 
-	 * @exception StandardException		Thrown on error
-	 */
-	public NumberDataValue getHours(NumberDataValue result)
-							throws StandardException
-	{
+    /**
+     * @see DateTimeDataValue#getHours
+     * 
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getHours(NumberDataValue result)
+                            throws StandardException
+    {
         if (isNull()) {
             return nullValueInt();
         } else {    
             return SQLDate.setSource(SQLTime.getHour(encodedTime), result);
         }
-	}
+    }
 
-	/**
-	 * @see DateTimeDataValue#getMinutes
-	 * 
-	 * @exception StandardException		Thrown on error
-	 */
-	public NumberDataValue getMinutes(NumberDataValue result)
-							throws StandardException
-	{
+    /**
+     * @see DateTimeDataValue#getMinutes
+     * 
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getMinutes(NumberDataValue result)
+                            throws StandardException
+    {
         if (isNull()) {
             return nullValueInt();
         } else {    
             return SQLDate.setSource(SQLTime.getMinute(encodedTime), result);
         }
-	}
+    }
 
-	/**
-	 * @see DateTimeDataValue#getSeconds
-	 * 
-	 * @exception StandardException		Thrown on error
-	 */
-	public NumberDataValue getSeconds(NumberDataValue source)
-							throws StandardException
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(source == null || source.isDoubleType(),
-		"getSeconds for a timestamp was given a source other than a SQLDouble");
-		}
-		NumberDataValue result;
+    /**
+     * @see DateTimeDataValue#getSeconds
+     * 
+     * @exception StandardException        Thrown on error
+     */
+    public NumberDataValue getSeconds(NumberDataValue source)
+                            throws StandardException
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(source == null || source.isDoubleType(),
+        "getSeconds for a timestamp was given a source other than a SQLDouble");
+        }
+        NumberDataValue result;
 
         if (isNull()) {
             return nullValueDouble();
         }
 
-		if (source != null)
-			result = source;
-		else
-			result = new SQLDouble();
+        if (source != null)
+            result = source;
+        else
+            result = new SQLDouble();
 
-		result.setValue((double)(SQLTime.getSecond(encodedTime))
-				+ ((double)nanos)/1.0e9);
+        result.setValue((double)(SQLTime.getSecond(encodedTime))
+                + ((double)nanos)/1.0e9);
 
-		return result;
-	}
+        return result;
+    }
 
-	/*
-	** String display of value
-	*/
+    /*
+    ** String display of value
+    */
 
-	public String toString()
-	{
-		if (isNull())
-		{
-			return "NULL";
-		}
-		else
-		{
-			return getTimestamp( (Calendar) null).toString();
-		}
-	}
+    public String toString()
+    {
+        if (isNull())
+        {
+            return "NULL";
+        }
+        else
+        {
+            return getTimestamp( (Calendar) null).toString();
+        }
+    }
 
-	/*
-	 * Hash code
-	 */
-	public int hashCode()
-	{
-		if (isNull())
-		{
-			return 0;
-		}
-		
-		return  encodedDate + encodedTime + nanos; //since 0 is null
+    /*
+     * Hash code
+     */
+    public int hashCode()
+    {
+        if (isNull())
+        {
+            return 0;
+        }
+        
+        return  encodedDate + encodedTime + nanos; //since 0 is null
 
-	}
+    }
 
-	/** @see DataValueDescriptor#typePrecedence */
-	public int	typePrecedence()
-	{
-		return TypeId.TIMESTAMP_PRECEDENCE;
-	}
+    /** @see DataValueDescriptor#typePrecedence */
+    public int    typePrecedence()
+    {
+        return TypeId.TIMESTAMP_PRECEDENCE;
+    }
 
-	/**
-	 * Check if the value is null.  encodedDate value of 0 is null
-	 *
-	 * @return Whether or not value is logically null.
-	 */
-	private boolean evaluateNull()
-	{
-		return (encodedDate == 0);
-	}
+    /**
+     * Check if the value is null.  encodedDate value of 0 is null
+     *
+     * @return Whether or not value is logically null.
+     */
+    private boolean evaluateNull()
+    {
+        return (encodedDate == 0);
+    }
 
-	/**
-	 * Get the value field.  We instantiate the field
-	 * on demand.
-	 *
-	 * @return	The value field.
-	 */
-	public Timestamp getTimestamp(java.util.Calendar cal)
-	{
-		if (isNull())
-			return null;
+    /**
+     * Get the value field.  We instantiate the field
+     * on demand.
+     *
+     * @return    The value field.
+     */
+    public Timestamp getTimestamp(java.util.Calendar cal)
+    {
+        if (isNull())
+            return null;
 
-		Timestamp t = null;
+        Timestamp t = null;
 
-		if (cal == null){
-			int year = SQLDate.getYear(encodedDate);
-			if (year < SQLDate.JODA_CRUSH_YEAR) {
-				t = computeGregorianCalendarTimestamp(year);
-			} else {
-				try {
-					t = new Timestamp(SQLDate.getYear(encodedDate) - 1900,
-					                  SQLDate.getMonth(encodedDate) - 1,
-					                  SQLDate.getDay(encodedDate),
-					                  SQLTime.getHour(encodedTime),
-					                  SQLTime.getMinute(encodedTime),
-					                  SQLTime.getSecond(encodedTime),
-					                  nanos);
-				} catch (Exception e) {
-					t = computeGregorianCalendarTimestamp(year);
-				}
-			}
-		}else{
-			setCalendar(cal);
-			t = new Timestamp(cal.getTimeInMillis());
-		}
+        if (cal == null){
+            int year = SQLDate.getYear(encodedDate);
+            if (year < SQLDate.JODA_CRUSH_YEAR) {
+                t = computeGregorianCalendarTimestamp(year);
+            } else {
+                try {
+                    t = new Timestamp(SQLDate.getYear(encodedDate) - 1900,
+                                      SQLDate.getMonth(encodedDate) - 1,
+                                      SQLDate.getDay(encodedDate),
+                                      SQLTime.getHour(encodedTime),
+                                      SQLTime.getMinute(encodedTime),
+                                      SQLTime.getSecond(encodedTime),
+                                      nanos);
+                } catch (Exception e) {
+                    t = computeGregorianCalendarTimestamp(year);
+                }
+            }
+        }else{
+            setCalendar(cal);
+            t = new Timestamp(cal.getTimeInMillis());
+        }
 
-		t.setNanos(nanos);
-		return t;
-	}
+        t.setNanos(nanos);
+        return t;
+    }
 
-	private Timestamp computeGregorianCalendarTimestamp(int year) {
-		GregorianCalendar c = SQLDate.GREGORIAN_CALENDAR.get();
-		c.clear();
-		c.set(year, SQLDate.getMonth(encodedDate) - 1, SQLDate.getDay(encodedDate), SQLTime.getHour(encodedTime), SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime));
-		// c.setTimeZone(...); if necessary
-		return new Timestamp(c.getTimeInMillis());
-	}
+    private Timestamp computeGregorianCalendarTimestamp(int year) {
+        GregorianCalendar c = SQLDate.GREGORIAN_CALENDAR.get();
+        c.clear();
+        c.set(year, SQLDate.getMonth(encodedDate) - 1, SQLDate.getDay(encodedDate), SQLTime.getHour(encodedTime), SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime));
+        // c.setTimeZone(...); if necessary
+        return new Timestamp(c.getTimeInMillis());
+    }
 
     public DateTime getDateTime() {
-		return createDateTime();
+        return createDateTime();
     }
 
     /**
@@ -1058,8 +1058,8 @@ public final class SQLTimestamp extends DataType
      *
      * @return joda DateTime representation
      */
-	private DateTime createDateTime(){
-		return new DateTime(SQLDate.getYear(encodedDate),
+    private DateTime createDateTime(){
+        return new DateTime(SQLDate.getYear(encodedDate),
                             SQLDate.getMonth(encodedDate),
                             SQLDate.getDay(encodedDate),
                             SQLTime.getHour(encodedTime),
@@ -1076,30 +1076,30 @@ public final class SQLTimestamp extends DataType
         
         SQLTime.setTimeInCalendar(cal, encodedTime);
 
-		cal.set(Calendar.MILLISECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
     } // end of setCalendar
         
-	/**
-	 * Set the encoded values for the timestamp
-	 *
-	 */
-	private void setNumericTimestamp(Timestamp value, Calendar cal) throws StandardException
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(isNull(), "setNumericTimestamp called when already set");
-		}
-		if (value != null)
-		{
+    /**
+     * Set the encoded values for the timestamp
+     *
+     */
+    private void setNumericTimestamp(Timestamp value, Calendar cal) throws StandardException
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(isNull(), "setNumericTimestamp called when already set");
+        }
+        if (value != null)
+        {
             if( cal == null) {
                 cal = SQLDate.GREGORIAN_CALENDAR.get();
             }
             int[] encodedDateTime = computeEncodedDateTime(value, cal);
-			setValue(encodedDateTime[0], encodedDateTime[1], value.getNanos());
+            setValue(encodedDateTime[0], encodedDateTime[1], value.getNanos());
 
-		}
-		/* encoded date should already be 0 for null */
-	}
+        }
+        /* encoded date should already be 0 for null */
+    }
 
 
     private void setNumericTimestamp(DateTime dt) throws StandardException
@@ -1110,74 +1110,74 @@ public final class SQLTimestamp extends DataType
         }
         if (dt != null)
         {
-			int nanosLocal;
+            int nanosLocal;
             nanosLocal = (int)((dt.getMillis()%1000) * 1000000);
             if (nanosLocal < 0) {
                 nanosLocal = 1000000000 + nanosLocal;
             }
             setValue(computeEncodedDate(dt), computeEncodedTime(dt), nanosLocal);
         }
-		/* encoded date should already be 0 for null */
+        /* encoded date should already be 0 for null */
     }
-	/**
-		computeEncodedDate sets the date in a Calendar object
-		and then uses the SQLDate function to compute an encoded date
-		The encoded date is
-			year << 16 + month << 8 + date
-		@param value	the value to convert
-		@return 		the encodedDate
+    /**
+        computeEncodedDate sets the date in a Calendar object
+        and then uses the SQLDate function to compute an encoded date
+        The encoded date is
+            year << 16 + month << 8 + date
+        @param value    the value to convert
+        @return         the encodedDate
 
-	 */
-	private static int computeEncodedDate(java.util.Date value, Calendar currentCal) throws StandardException
-	{
-		if (value == null)
-			return 0;
+     */
+    private static int computeEncodedDate(java.util.Date value, Calendar currentCal) throws StandardException
+    {
+        if (value == null)
+            return 0;
 
-		currentCal.setTime(value);
-		return SQLDate.computeEncodedDate(currentCal);
-	}
-	
-	private static int computeEncodedDate(DateTime value) throws StandardException
-	{
-		if (value == null)
-			return 0;
+        currentCal.setTime(value);
+        return SQLDate.computeEncodedDate(currentCal);
+    }
+    
+    private static int computeEncodedDate(DateTime value) throws StandardException
+    {
+        if (value == null)
+            return 0;
 
-		return SQLDate.computeEncodedDate(value.getYear(), value.getMonthOfYear(), value.getDayOfMonth());
-	}
-	/**
-		computeEncodedTime extracts the hour, minute and seconds from
-		a java.util.Date value and encodes them as
-			hour << 16 + minute << 8 + second
-		using the SQLTime function for encoding the data
-		@param value	the value to convert
-		@return 		the encodedTime
+        return SQLDate.computeEncodedDate(value.getYear(), value.getMonthOfYear(), value.getDayOfMonth());
+    }
+    /**
+        computeEncodedTime extracts the hour, minute and seconds from
+        a java.util.Date value and encodes them as
+            hour << 16 + minute << 8 + second
+        using the SQLTime function for encoding the data
+        @param value    the value to convert
+        @return         the encodedTime
 
-	 */
-	private static int computeEncodedTime(java.util.Date value, Calendar currentCal) throws StandardException
-	{
-		currentCal.setTime(value);
-		return SQLTime.computeEncodedTime(currentCal);
-	}
-	
-	private static int computeEncodedTime(DateTime value) throws StandardException
-	{
-		return SQLTime.computeEncodedTime(value.getHourOfDay(), value.getMinuteOfHour(), value.getSecondOfMinute());
-	}
+     */
+    private static int computeEncodedTime(java.util.Date value, Calendar currentCal) throws StandardException
+    {
+        currentCal.setTime(value);
+        return SQLTime.computeEncodedTime(currentCal);
+    }
+    
+    private static int computeEncodedTime(DateTime value) throws StandardException
+    {
+        return SQLTime.computeEncodedTime(value.getHourOfDay(), value.getMinuteOfHour(), value.getSecondOfMinute());
+    }
 
-	/**
-	 computeEncodedDateTime combines the computation of computeEncodedDate and computeEncodedTime
-	 which returns the results of the two function as a 2-element array
-	 @param value	the value to convert
-	 @return 		the int array of encodedDate and encodedTime
-	 */
-	private static int[] computeEncodedDateTime(java.util.Date value, Calendar currentCal) throws StandardException
-	{
-		if (value == null)
-			return new int[]{0,0};
+    /**
+     computeEncodedDateTime combines the computation of computeEncodedDate and computeEncodedTime
+     which returns the results of the two function as a 2-element array
+     @param value    the value to convert
+     @return         the int array of encodedDate and encodedTime
+     */
+    private static int[] computeEncodedDateTime(java.util.Date value, Calendar currentCal) throws StandardException
+    {
+        if (value == null)
+            return new int[]{0,0};
 
-		currentCal.setTime(value);
-		return new int[]{SQLDate.computeEncodedDate(currentCal),SQLTime.computeEncodedTime(currentCal)};
-	}
+        currentCal.setTime(value);
+        return new int[]{SQLDate.computeEncodedDate(currentCal),SQLTime.computeEncodedTime(currentCal)};
+    }
     
     public void setInto(PreparedStatement ps, int position) throws SQLException, StandardException {
 
@@ -1339,8 +1339,8 @@ public final class SQLTimestamp extends DataType
         {
             cal.add( calIntervalType, count);
             tsResult.setValue(SQLDate.computeEncodedDate(cal),
-			                  SQLTime.computeEncodedTime(cal),
-			                  tsResult.getNanos());
+                              SQLTime.computeEncodedTime(cal),
+                              tsResult.getNanos());
         }
         catch( StandardException se)
         {
@@ -1395,23 +1395,23 @@ public final class SQLTimestamp extends DataType
         return resultHolder;
     }
 
-	@Override
-	public void setValue(String theValue,Calendar cal) throws StandardException{
-		restoreToNull();
+    @Override
+    public void setValue(String theValue,Calendar cal) throws StandardException{
+        restoreToNull();
 
-		if (theValue != null)
-		{
-			DatabaseContext databaseContext = skipDBContext ? null : (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID);
-			parseTimestamp( theValue,
-					false,
-					(databaseContext == null) ? null : databaseContext.getDatabase(),
-					cal);
-		}
-		/* restoreToNull will have already set the encoded date to 0 (null value) */
+        if (theValue != null)
+        {
+            DatabaseContext databaseContext = skipDBContext ? null : (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID);
+            parseTimestamp( theValue,
+                    false,
+                    (databaseContext == null) ? null : databaseContext.getDatabase(),
+                    cal);
+        }
+        /* restoreToNull will have already set the encoded date to 0 (null value) */
 
-	}
+    }
 
-	/**
+    /**
      * Finds the difference between two datetime values as a number of intervals. Implements the JDBC
      * TIMESTAMPDIFF escape function.
      *
@@ -1597,42 +1597,42 @@ public final class SQLTimestamp extends DataType
     } // end of promote
     
     public Format getFormat() {
-    	return Format.TIMESTAMP;
+        return Format.TIMESTAMP;
     }
 
-	@Override
-	public void read(Row row, int ordinal) throws StandardException {
-		if (row.isNullAt(ordinal))
-			setToNull();
-		else {
-			Timestamp ts = row.getTimestamp(ordinal);
-			setNumericTimestamp(ts,null);
-			isNull = false;
-		}
-	}
+    @Override
+    public void read(Row row, int ordinal) throws StandardException {
+        if (row.isNullAt(ordinal))
+            setToNull();
+        else {
+            Timestamp ts = row.getTimestamp(ordinal);
+            setNumericTimestamp(ts,null);
+            isNull = false;
+        }
+    }
 
-	@Override
-	public StructField getStructField(String columnName) {
-		return DataTypes.createStructField(columnName, DataTypes.TimestampType, true);
-	}
+    @Override
+    public StructField getStructField(String columnName) {
+        return DataTypes.createStructField(columnName, DataTypes.TimestampType, true);
+    }
 
 
-	@Override
-	public void updateThetaSketch(UpdateSketch updateSketch) {
-		updateSketch.update(new int[]{encodedDate,encodedTime,nanos});
-	}
+    @Override
+    public void updateThetaSketch(UpdateSketch updateSketch) {
+        updateSketch.update(new int[]{encodedDate,encodedTime,nanos});
+    }
 
-	@Override
-	public void setSparkObject(Object sparkObject) throws StandardException {
-		if (sparkObject == null)
-			setToNull();
-		else {
-			setValue((Timestamp) sparkObject);
-			setIsNull(false);
-		}
-	}
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+        if (sparkObject == null)
+            setToNull();
+        else {
+            setValue((Timestamp) sparkObject);
+            setIsNull(false);
+        }
+    }
 
-	public int getNanos() { return nanos; }
-	public int getEncodedDate() { return encodedDate; }
-	public int getEncodedTime() { return encodedTime; }
+    public int getNanos() { return nanos; }
+    public int getEncodedDate() { return encodedDate; }
+    public int getEncodedTime() { return encodedTime; }
 }

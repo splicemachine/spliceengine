@@ -176,7 +176,7 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
     /**
      * Return the name of this Provider.  (Useful for errors.)
      *
-     * @return String	The name of this provider.
+     * @return String    The name of this provider.
      */
     public String getObjectName()
     {
@@ -186,7 +186,7 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
     /**
      * Get the provider's type.
      *
-     * @return char		The provider's type.
+     * @return char        The provider's type.
      */
     public String getClassType()
     {

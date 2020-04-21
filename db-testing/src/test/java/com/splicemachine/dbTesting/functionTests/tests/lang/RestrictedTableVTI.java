@@ -57,17 +57,17 @@ import com.splicemachine.db.vti.Restriction;
  * from a Derby table.
  * </p>
  */
-public	class   RestrictedTableVTI extends VTITemplate implements  RestrictedVTI
+public    class   RestrictedTableVTI extends VTITemplate implements  RestrictedVTI
 {
     ////////////////////////////////////////////////////////////////////////
     //
-    //	CONSTANTS
+    //    CONSTANTS
     //
     ////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////
     //
-    //	STATE
+    //    STATE
     //
     ////////////////////////////////////////////////////////////////////////
 
@@ -88,7 +88,7 @@ public	class   RestrictedTableVTI extends VTITemplate implements  RestrictedVTI
 
     ////////////////////////////////////////////////////////////////////////
     //
-    //	CONSTRUCTOR
+    //    CONSTRUCTOR
     //
     ////////////////////////////////////////////////////////////////////////
 
@@ -106,7 +106,7 @@ public	class   RestrictedTableVTI extends VTITemplate implements  RestrictedVTI
 
     ////////////////////////////////////////////////////////////////////////
     //
-    //	TABLE FUNCTIONS
+    //    TABLE FUNCTIONS
     //
     ////////////////////////////////////////////////////////////////////////
 
@@ -135,7 +135,7 @@ public	class   RestrictedTableVTI extends VTITemplate implements  RestrictedVTI
 
     ////////////////////////////////////////////////////////////////////////
     //
-    //	ResultSet BEHAVIOR
+    //    ResultSet BEHAVIOR
     //
     ////////////////////////////////////////////////////////////////////////
 
@@ -177,78 +177,78 @@ public	class   RestrictedTableVTI extends VTITemplate implements  RestrictedVTI
     public  ResultSetMetaData   getMetaData()   throws SQLException
     { return _resultSet.getMetaData(); }
 
-    public  InputStream 	getAsciiStream(int i) throws SQLException
+    public  InputStream     getAsciiStream(int i) throws SQLException
     { return _resultSet.getAsciiStream( mapColumnNumber( i ) ); }
     
-    public  BigDecimal 	getBigDecimal(int i) throws SQLException
+    public  BigDecimal     getBigDecimal(int i) throws SQLException
     { return _resultSet.getBigDecimal( mapColumnNumber( i ) ); }
     
-    public  BigDecimal 	getBigDecimal(int i, int scale) throws SQLException
+    public  BigDecimal     getBigDecimal(int i, int scale) throws SQLException
     { return _resultSet.getBigDecimal( mapColumnNumber( i ), scale ); }
     
-    public  InputStream 	getBinaryStream(int i)  throws SQLException
+    public  InputStream     getBinaryStream(int i)  throws SQLException
     { return _resultSet.getBinaryStream( mapColumnNumber( i ) ); }
     
-    public  Blob 	getBlob(int i)  throws SQLException
+    public  Blob     getBlob(int i)  throws SQLException
     { return _resultSet.getBlob( mapColumnNumber( i ) ); }
     
-    public  boolean 	getBoolean(int i) throws SQLException
+    public  boolean     getBoolean(int i) throws SQLException
     { return _resultSet.getBoolean( mapColumnNumber( i ) ); }
     
-    public  byte 	getByte(int i)    throws SQLException
+    public  byte     getByte(int i)    throws SQLException
     { return _resultSet.getByte( mapColumnNumber( i ) ); }
     
-    public  byte[] 	getBytes(int i) throws SQLException
+    public  byte[]     getBytes(int i) throws SQLException
     { return _resultSet.getBytes( mapColumnNumber( i ) ); }
     
-    public  Reader 	getCharacterStream(int i) throws SQLException
+    public  Reader     getCharacterStream(int i) throws SQLException
     { return _resultSet.getCharacterStream( mapColumnNumber( i ) ); }
 
-    public  Clob 	getClob(int i)  throws SQLException
+    public  Clob     getClob(int i)  throws SQLException
     { return _resultSet.getClob( mapColumnNumber( i ) ); }
 
-    public  Date 	getDate(int i)  throws SQLException
+    public  Date     getDate(int i)  throws SQLException
     { return _resultSet.getDate( mapColumnNumber( i ) ); }
 
-    public  Date 	getDate(int i, Calendar cal)    throws SQLException
+    public  Date     getDate(int i, Calendar cal)    throws SQLException
     { return _resultSet.getDate( mapColumnNumber( i ), cal ); }
 
-    public  double 	getDouble(int i)    throws SQLException
+    public  double     getDouble(int i)    throws SQLException
     { return _resultSet.getDouble( mapColumnNumber( i ) ); }
 
-    public  float 	getFloat(int i) throws SQLException
+    public  float     getFloat(int i) throws SQLException
     { return _resultSet.getFloat( mapColumnNumber( i ) ); }
 
-    public  int 	getInt(int i)   throws SQLException
+    public  int     getInt(int i)   throws SQLException
     { return _resultSet.getInt( mapColumnNumber( i ) ); }
 
-    public  long 	getLong(int i)  throws SQLException
+    public  long     getLong(int i)  throws SQLException
     { return _resultSet.getLong( mapColumnNumber( i ) ); }
 
-    public  Object 	getObject(int i)    throws SQLException
+    public  Object     getObject(int i)    throws SQLException
     { return _resultSet.getObject( mapColumnNumber( i ) ); }
 
-    public  short 	getShort(int i) throws SQLException
+    public  short     getShort(int i) throws SQLException
     { return _resultSet.getShort( mapColumnNumber( i ) ); }
 
-    public  String 	getString(int i)    throws SQLException
+    public  String     getString(int i)    throws SQLException
     { return _resultSet.getString( mapColumnNumber( i ) ); }
 
-    public  Time 	getTime(int i)  throws SQLException
+    public  Time     getTime(int i)  throws SQLException
     { return _resultSet.getTime( mapColumnNumber( i ) ); }
 
-    public  Time 	getTime(int i, Calendar cal)    throws SQLException
+    public  Time     getTime(int i, Calendar cal)    throws SQLException
     { return _resultSet.getTime( mapColumnNumber( i ), cal ); }
 
-    public  Timestamp 	getTimestamp(int i) throws SQLException
+    public  Timestamp     getTimestamp(int i) throws SQLException
     { return _resultSet.getTimestamp( mapColumnNumber( i ) ); }
 
-    public  Timestamp 	getTimestamp(int i, Calendar cal)   throws SQLException
+    public  Timestamp     getTimestamp(int i, Calendar cal)   throws SQLException
     { return _resultSet.getTimestamp( mapColumnNumber( i ), cal ); }
 
     ////////////////////////////////////////////////////////////////////////
     //
-    //	RestrictedVTI BEHAVIOR
+    //    RestrictedVTI BEHAVIOR
     //
     ////////////////////////////////////////////////////////////////////////
 
@@ -271,7 +271,7 @@ public	class   RestrictedTableVTI extends VTITemplate implements  RestrictedVTI
 
     ////////////////////////////////////////////////////////////////////////
     //
-    //	Connection MANAGEMENT
+    //    Connection MANAGEMENT
     //
     ////////////////////////////////////////////////////////////////////////
 
@@ -284,7 +284,7 @@ public	class   RestrictedTableVTI extends VTITemplate implements  RestrictedVTI
 
     ////////////////////////////////////////////////////////////////////////
     //
-    //	QUERY FACTORY
+    //    QUERY FACTORY
     //
     ////////////////////////////////////////////////////////////////////////
 
@@ -348,7 +348,7 @@ public	class   RestrictedTableVTI extends VTITemplate implements  RestrictedVTI
 
     ////////////////////////////////////////////////////////////////////////
     //
-    //	UTILITY METHODS
+    //    UTILITY METHODS
     //
     ////////////////////////////////////////////////////////////////////////
 

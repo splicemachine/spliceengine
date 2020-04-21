@@ -40,39 +40,39 @@ import java.lang.reflect.InvocationTargetException;
 
 public class ReflectMethod implements GeneratedMethod {
 
-	private final Method realMethod;
+    private final Method realMethod;
 
-	ReflectMethod(Method m) {
-		super();
-		realMethod = m;
-	}
+    ReflectMethod(Method m) {
+        super();
+        realMethod = m;
+    }
 
-	public Object invoke(Object ref)
-		throws StandardException {
+    public Object invoke(Object ref)
+        throws StandardException {
 
-		Throwable t;
+        Throwable t;
 
-		try {
-			return realMethod.invoke(ref, null);
+        try {
+            return realMethod.invoke(ref, null);
 
-		} catch (IllegalAccessException | IllegalArgumentException iae) {
+        } catch (IllegalAccessException | IllegalArgumentException iae) {
 
-			t = iae;
+            t = iae;
 
-		} catch (InvocationTargetException ite) {
+        } catch (InvocationTargetException ite) {
 
-			t = ite.getTargetException();
-			if (t instanceof StandardException)
-				throw (StandardException) t;
-		}
-		
-		throw StandardException.unexpectedUserException(t);
-	}
+            t = ite.getTargetException();
+            if (t instanceof StandardException)
+                throw (StandardException) t;
+        }
+        
+        throw StandardException.unexpectedUserException(t);
+    }
 
-//	@Override
-	public String getMethodName() {
-		return realMethod.getName();
-	}
+//    @Override
+    public String getMethodName() {
+        return realMethod.getName();
+    }
 
 
 }

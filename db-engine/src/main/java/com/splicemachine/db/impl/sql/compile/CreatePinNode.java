@@ -43,87 +43,87 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
  */
 
 public class CreatePinNode extends DDLStatementNode  {
-	private TableDescriptor td;
+    private TableDescriptor td;
 
-	 /**
-	 * Initializer for a CreateTableNode for a base table
-	 *
-	 * @param tableName			Table to Pin
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void init(Object tableName) throws StandardException {
-		initAndCheck(tableName);
-	}
+     /**
+     * Initializer for a CreateTableNode for a base table
+     *
+     * @param tableName            Table to Pin
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void init(Object tableName) throws StandardException {
+        initAndCheck(tableName);
+    }
 
-	/**
-	 * Convert this object to a String.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Convert this object to a String.
+     *
+     * @return    This object as a String
+     */
 
-	public String toString() {
+    public String toString() {
         return String.format("schemaName=%s, tableName=%s",objectName.getSchemaName(),objectName.getTableName());
-	}
+    }
 
-	/**
-	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
-	 * how tree printing is supposed to work.
-	 * @param depth		The depth to indent the sub-nodes
-	 */
-	public void printSubNodes(int depth) {
-		// No Sub Nodes
-	}
+    /**
+     * Prints the sub-nodes of this object.  See QueryTreeNode.java for
+     * how tree printing is supposed to work.
+     * @param depth        The depth to indent the sub-nodes
+     */
+    public void printSubNodes(int depth) {
+        // No Sub Nodes
+    }
 
 
-	public String statementToString() {
-		return "PIN TABLE";
-	}
+    public String statementToString() {
+        return "PIN TABLE";
+    }
 
-	// We inherit the generate() method from DDLStatementNode.
+    // We inherit the generate() method from DDLStatementNode.
 
-	/**
-	 * Bind this CreateTableNode.  This means doing any static error checking that can be
-	 * done before actually creating the base table or declaring the global temporary table.
-	 * For eg, verifying that the TableElementList does not contain any duplicate column names.
-	 *
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Bind this CreateTableNode.  This means doing any static error checking that can be
+     * done before actually creating the base table or declaring the global temporary table.
+     * For eg, verifying that the TableElementList does not contain any duplicate column names.
+     *
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public void bindStatement() throws StandardException {
-		CompilerContext cc = getCompilerContext();
+    public void bindStatement() throws StandardException {
+        CompilerContext cc = getCompilerContext();
 
-		td = getTableDescriptor();
+        td = getTableDescriptor();
 
-		/* Get the base conglomerate descriptor */
-		ConglomerateDescriptor cd = td.getConglomerateDescriptor(td.getHeapConglomerateId());
+        /* Get the base conglomerate descriptor */
+        ConglomerateDescriptor cd = td.getConglomerateDescriptor(td.getHeapConglomerateId());
 
-		/* Statement is dependent on the TableDescriptor and ConglomerateDescriptor */
-		cc.createDependency(td);
-		cc.createDependency(cd);
-	}
+        /* Statement is dependent on the TableDescriptor and ConglomerateDescriptor */
+        cc.createDependency(td);
+        cc.createDependency(cd);
+    }
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public ConstantAction	makeConstantAction() throws StandardException {
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public ConstantAction    makeConstantAction() throws StandardException {
            return getGenericConstantActionFactory().getPinTableConstantAction(
-				   getSchemaDescriptor(td.getTableType() !=
-								   TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE,
-						   true).getSchemaName(),
-					getObjectName().getTableName());
-	}
+                   getSchemaDescriptor(td.getTableType() !=
+                                   TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE,
+                           true).getSchemaName(),
+                    getObjectName().getTableName());
+    }
 
-	/**
-	 * Accept the visitor for all visitable children of this node.
-	 * 
-	 * @param v the visitor
-	 */
+    /**
+     * Accept the visitor for all visitable children of this node.
+     * 
+     * @param v the visitor
+     */
     @Override
-	public void acceptChildren(Visitor v) throws StandardException {
-		super.acceptChildren(v);
-	}
+    public void acceptChildren(Visitor v) throws StandardException {
+        super.acceptChildren(v);
+    }
 }

@@ -162,7 +162,7 @@ public class EmbedConnection40
         try { checkIfClosed(); }
         catch (SQLException se) {
             throw new SQLClientInfoException(se.getMessage(), se.getSQLState(),
-            		se.getErrorCode(), fp.getProperties());
+                    se.getErrorCode(), fp.getProperties());
         }
 
         // Allow null to simplify compliance testing through
@@ -179,9 +179,9 @@ public class EmbedConnection40
              fp.getFirstKey(), 
              fp.getFirstValue());
         throw new SQLClientInfoException(se.getMessage(),
-        		se.getSQLState(), 
-        		se.getErrorCode(),
-        		fp.getProperties());
+                se.getSQLState(), 
+                se.getErrorCode(),
+                fp.getProperties());
     }
     
     /**

@@ -61,12 +61,12 @@ import java.io.OutputStream;
        the object using java serialization and returns it.
   <LI> (A format id for a Storable, isNull flag and object if isNull == false)
        (see note 1) in.readObject() reads the boolean isNull flag. If is null
-	   is true, in.readObject() returns a Storable object of the correct
-	   class which is null. If ifNull is false, in.readObject() restores
-	   the object using its readExternal() method.
+       is true, in.readObject() returns a Storable object of the correct
+       class which is null. If ifNull is false, in.readObject() restores
+       the object using its readExternal() method.
   <LI> (A format id for a Formatable which is not Storable, the stored object)
        (see note 1) in.readObject restores the object using its
-	   readExternal() method.
+       readExternal() method.
   </OL>
 
   <P>Note 1: The FormatIdInputStream uses
@@ -80,33 +80,33 @@ public class FormatIdOutputStream
 extends DataOutputStream implements ObjectOutput, ErrorInfo
 {
 
-	/**
-	  Constructor for a FormatIdOutputStream
+    /**
+      Constructor for a FormatIdOutputStream
 
-	  @param out output goes here.
-	  */
-	public FormatIdOutputStream(OutputStream out)
-	{
-		super(out);
-	}
+      @param out output goes here.
+      */
+    public FormatIdOutputStream(OutputStream out)
+    {
+        super(out);
+    }
 
-	/**
-	  Write a format id for the object provied followed by the
-	  object itself to this FormatIdOutputStream.
+    /**
+      Write a format id for the object provied followed by the
+      object itself to this FormatIdOutputStream.
 
-	  @param ref a reference to the object.
-	  @exception java.io.IOException the exception.
-	  */
-	public void writeObject(Object ref) throws IOException
-	{
-		if (ref == null)
-		{
-			FormatIdUtil.writeFormatIdInteger(this, StoredFormatIds.NULL_FORMAT_ID);
-			return;
-		}
+      @param ref a reference to the object.
+      @exception java.io.IOException the exception.
+      */
+    public void writeObject(Object ref) throws IOException
+    {
+        if (ref == null)
+        {
+            FormatIdUtil.writeFormatIdInteger(this, StoredFormatIds.NULL_FORMAT_ID);
+            return;
+        }
 
-		if (ref instanceof String)
-		{
+        if (ref instanceof String)
+        {
             // String's are special cased to use writeUTF which is more
             // efficient than the default writeObject(String), but the format
             // can only store 65535 bytes.  The worst case size conversion is
@@ -125,122 +125,122 @@ extends DataOutputStream implements ObjectOutput, ErrorInfo
                 this.writeUTF((String)ref);
                 return;
             }
-		}
+        }
 
-		// Add debugging code to read-in every formatable that we write
-		// to ensure that it can be read and it's correctly registered.
-		OutputStream oldOut = null;
-		if (SanityManager.DEBUG) {
+        // Add debugging code to read-in every formatable that we write
+        // to ensure that it can be read and it's correctly registered.
+        OutputStream oldOut = null;
+        if (SanityManager.DEBUG) {
 
-			if (ref instanceof Formatable) {
+            if (ref instanceof Formatable) {
 
-				oldOut = this.out;
+                oldOut = this.out;
 
-				this.out = new DebugByteTeeOutputStream(oldOut);
-			}
-		}
+                this.out = new DebugByteTeeOutputStream(oldOut);
+            }
+        }
 
-		if (ref instanceof Storable)
+        if (ref instanceof Storable)
         {
-			Storable s = (Storable)ref;
+            Storable s = (Storable)ref;
 
-			int fmtId = s.getTypeFormatId();
+            int fmtId = s.getTypeFormatId();
 
-			if (fmtId != StoredFormatIds.SERIALIZABLE_FORMAT_ID) {
-				FormatIdUtil.writeFormatIdInteger(this, fmtId);
-				boolean isNull = s.isNull();
-				writeBoolean(isNull);
-				if (!isNull)
-				{
-					s.writeExternal(this);
-				}
-				if (SanityManager.DEBUG) {
-					((DebugByteTeeOutputStream) this.out).checkObject(s);
-					this.out = oldOut;
-				}
-				return;
-			}
-		}
-		else if (ref instanceof Formatable)
-		{
-			Formatable f =
-				(Formatable) ref;
-			int fmtId = f.getTypeFormatId();
+            if (fmtId != StoredFormatIds.SERIALIZABLE_FORMAT_ID) {
+                FormatIdUtil.writeFormatIdInteger(this, fmtId);
+                boolean isNull = s.isNull();
+                writeBoolean(isNull);
+                if (!isNull)
+                {
+                    s.writeExternal(this);
+                }
+                if (SanityManager.DEBUG) {
+                    ((DebugByteTeeOutputStream) this.out).checkObject(s);
+                    this.out = oldOut;
+                }
+                return;
+            }
+        }
+        else if (ref instanceof Formatable)
+        {
+            Formatable f =
+                (Formatable) ref;
+            int fmtId = f.getTypeFormatId();
 
-			if (fmtId != StoredFormatIds.SERIALIZABLE_FORMAT_ID) {
-				FormatIdUtil.writeFormatIdInteger(this,fmtId);
-				f.writeExternal(this);
+            if (fmtId != StoredFormatIds.SERIALIZABLE_FORMAT_ID) {
+                FormatIdUtil.writeFormatIdInteger(this,fmtId);
+                f.writeExternal(this);
 
-				if (SanityManager.DEBUG) {
-					((DebugByteTeeOutputStream) this.out).checkObject(f);
-					this.out = oldOut;
-				}
-				return;
-			}
-		}
+                if (SanityManager.DEBUG) {
+                    ((DebugByteTeeOutputStream) this.out).checkObject(f);
+                    this.out = oldOut;
+                }
+                return;
+            }
+        }
 
-		/*
-		** Otherwise we assume (ref instanceof Serializable).
-		** If it isn't we'll get an error, which is what
-	 	** we would expect if someone uses something that
-	 	** doesn't support Serializable/Externalizable/Formattable
-		** when it should.
-		*/
-		{
+        /*
+        ** Otherwise we assume (ref instanceof Serializable).
+        ** If it isn't we'll get an error, which is what
+         ** we would expect if someone uses something that
+         ** doesn't support Serializable/Externalizable/Formattable
+        ** when it should.
+        */
+        {
 
-			/*
-			** If we are debugging (SerializeTrace), we are
-			** going to print out every unexpected serialized
-			** class.  We print them out to stdout to help
-			** in debugging (so they cause diffs in test runs).
-			** This is only active in a SANE server.
-			*/
-			if (SanityManager.DEBUG)
-			{
-				if (SanityManager.DEBUG_ON("SerializedTrace"))
-				{
-					String name = ref.getClass().getName();
-					if (
-						!name.startsWith("java.lang") &&
-						!name.startsWith("java.math"))
-					{
-						SanityManager.DEBUG("SerializedTrace",
-							"...writing serialized class: "+name);
-						System.out.println(
-							"...writing serialized class: "+name);
-					}
-				}
-			}
+            /*
+            ** If we are debugging (SerializeTrace), we are
+            ** going to print out every unexpected serialized
+            ** class.  We print them out to stdout to help
+            ** in debugging (so they cause diffs in test runs).
+            ** This is only active in a SANE server.
+            */
+            if (SanityManager.DEBUG)
+            {
+                if (SanityManager.DEBUG_ON("SerializedTrace"))
+                {
+                    String name = ref.getClass().getName();
+                    if (
+                        !name.startsWith("java.lang") &&
+                        !name.startsWith("java.math"))
+                    {
+                        SanityManager.DEBUG("SerializedTrace",
+                            "...writing serialized class: "+name);
+                        System.out.println(
+                            "...writing serialized class: "+name);
+                    }
+                }
+            }
 
-			FormatIdUtil.writeFormatIdInteger(this, StoredFormatIds.SERIALIZABLE_FORMAT_ID);
-			ObjectOutputStream oos = new ObjectOutputStream(this);
-			oos.writeObject(ref);
-			oos.flush();
+            FormatIdUtil.writeFormatIdInteger(this, StoredFormatIds.SERIALIZABLE_FORMAT_ID);
+            ObjectOutputStream oos = new ObjectOutputStream(this);
+            oos.writeObject(ref);
+            oos.flush();
 
-			if (SanityManager.DEBUG && ref instanceof Formatable) {
-				((DebugByteTeeOutputStream) this.out).checkObject((Formatable) ref);
-				this.out = oldOut;
-			}
-		}
-	}
+            if (SanityManager.DEBUG && ref instanceof Formatable) {
+                ((DebugByteTeeOutputStream) this.out).checkObject((Formatable) ref);
+                this.out = oldOut;
+            }
+        }
+    }
 
-	/**
-	  Set the OutputStream for this FormatIdOutputStream to the stream
-	  provided. It is the responsibility of the caller to flush or
-	  close (as required) the previous stream this class was attached to.
+    /**
+      Set the OutputStream for this FormatIdOutputStream to the stream
+      provided. It is the responsibility of the caller to flush or
+      close (as required) the previous stream this class was attached to.
 
-	  @param out The new output stream.
-	  */
-	public void setOutput(OutputStream out)
-	{
-		this.out = out;
-		this.written = 0;
-	}
+      @param out The new output stream.
+      */
+    public void setOutput(OutputStream out)
+    {
+        this.out = out;
+        this.written = 0;
+    }
 
 
     /* Methods of ErrorInfo, used here for SQLData error reporting */
 
-	public String getErrorInfo()
+    public String getErrorInfo()
     {
         return null;
     }

@@ -657,13 +657,13 @@ public class SetQueryTimeoutTest
     private static void testTimeoutWithExecuteUpdate(Connection conn)
         throws TestFailedException
     {
-    	System.out.println("Testing timeout with executeUpdate call.");
+        System.out.println("Testing timeout with executeUpdate call.");
         try{
             Statement stmt = conn.createStatement();
             stmt.setQueryTimeout(TIMEOUT);
             stmt.executeUpdate(getExecQuery("t"));    
         } catch (SQLException sqle) {
-        	expectException("XCL52", sqle, "Should have timed out.");
+            expectException("XCL52", sqle, "Should have timed out.");
         }
     }
     

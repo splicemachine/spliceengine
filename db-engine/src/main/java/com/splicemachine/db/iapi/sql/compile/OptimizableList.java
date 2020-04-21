@@ -42,77 +42,77 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
 public interface OptimizableList {
 
-	/**
-	 *  Return the number of Optimizables in the list.
-	 *
-	 *  @return integer		The number of Optimizables in the list.
-	 */
-	int size();
+    /**
+     *  Return the number of Optimizables in the list.
+     *
+     *  @return integer        The number of Optimizables in the list.
+     */
+    int size();
 
-	/**
-	 *  Return the nth Optimizable in the list.
-	 *
-	 *  @param n				"index" (0 based) into the list.
-	 *
-	 *  @return Optimizable		The nth Optimizables in the list.
-	 */
-	Optimizable getOptimizable(int n);
+    /**
+     *  Return the nth Optimizable in the list.
+     *
+     *  @param n                "index" (0 based) into the list.
+     *
+     *  @return Optimizable        The nth Optimizables in the list.
+     */
+    Optimizable getOptimizable(int n);
 
-	/**
-	 * Set the nth Optimizable to the specified Optimizable.
-	 *
-	 *  @param n				"index" (0 based) into the list.
-	 *  @param optimizable		New nth Optimizable.
-	 */
-	void setOptimizable(int n, Optimizable optimizable);
+    /**
+     * Set the nth Optimizable to the specified Optimizable.
+     *
+     *  @param n                "index" (0 based) into the list.
+     *  @param optimizable        New nth Optimizable.
+     */
+    void setOptimizable(int n, Optimizable optimizable);
 
-	/** 
-	 * Verify that the Properties list with optimizer overrides, if specified, is valid
-	 *
-	 * @param dDictionary	The DataDictionary to use.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	void verifyProperties(DataDictionary dDictionary) throws StandardException;
+    /** 
+     * Verify that the Properties list with optimizer overrides, if specified, is valid
+     *
+     * @param dDictionary    The DataDictionary to use.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    void verifyProperties(DataDictionary dDictionary) throws StandardException;
 
-	/**
-	 * Set the join order for this list of optimizables.  The join order is
-	 * represented as an array of integers - each entry in the array stands
-	 * for the order of the corresponding element in the list.  For example,
-	 * a joinOrder of {2, 0, 1} means that the 3rd Optimizable in the list
-	 * (element 2, since we are zero-based) is the first one in the join
-	 * order, followed by the 1st element in the list, and finally by the
-	 * 2nd element in the list.
-	 *
-	 * This method shuffles this OptimizableList to match the join order.
-	 *
-	 * Obviously, the size of the array must equal the number of elements in
-	 * the array, and the values in the array must be between 0 and the
-	 * number of elements in the array minus 1, and the values in the array
-	 * must be unique.
-	 */
-	void reOrder(int[] joinOrder);
+    /**
+     * Set the join order for this list of optimizables.  The join order is
+     * represented as an array of integers - each entry in the array stands
+     * for the order of the corresponding element in the list.  For example,
+     * a joinOrder of {2, 0, 1} means that the 3rd Optimizable in the list
+     * (element 2, since we are zero-based) is the first one in the join
+     * order, followed by the 1st element in the list, and finally by the
+     * 2nd element in the list.
+     *
+     * This method shuffles this OptimizableList to match the join order.
+     *
+     * Obviously, the size of the array must equal the number of elements in
+     * the array, and the values in the array must be between 0 and the
+     * number of elements in the array minus 1, and the values in the array
+     * must be unique.
+     */
+    void reOrder(int[] joinOrder);
 
-	/**
-	 * user can specify that s/he doesn't want statistics to be considered when
-	 * optimizing the query.
-	 */
-	boolean useStatistics();
+    /**
+     * user can specify that s/he doesn't want statistics to be considered when
+     * optimizing the query.
+     */
+    boolean useStatistics();
 
-	/**
-	 * Tell whether the join order should be optimized.
-	 */
-	boolean optimizeJoinOrder();
+    /**
+     * Tell whether the join order should be optimized.
+     */
+    boolean optimizeJoinOrder();
 
-	/**
-	 * Tell whether the join order is legal.
-	 */
-	boolean legalJoinOrder(int numTablesInQuery);
+    /**
+     * Tell whether the join order is legal.
+     */
+    boolean legalJoinOrder(int numTablesInQuery);
 
-	/**
-	 * Init the access paths for these optimizables.
-	 *
-	 * @param optimizer The optimizer being used.
-	 */
-	void initAccessPaths(Optimizer optimizer);
+    /**
+     * Init the access paths for these optimizables.
+     *
+     * @param optimizer The optimizer being used.
+     */
+    void initAccessPaths(Optimizer optimizer);
 }

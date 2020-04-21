@@ -42,26 +42,26 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 
 public class SingleThreadDaemonFactory implements DaemonFactory
 {
-	private final ContextService contextService;
-	
-	public SingleThreadDaemonFactory()
-	{
-		contextService = ContextService.getFactory();
-	}
+    private final ContextService contextService;
+    
+    public SingleThreadDaemonFactory()
+    {
+        contextService = ContextService.getFactory();
+    }
 
-	/*
-	 * Daemon factory method
-	 */
+    /*
+     * Daemon factory method
+     */
 
-	/* make a daemon service with the default timer */
-	public DaemonService createNewDaemon(String name)
-	{
-		BasicDaemon daemon = new BasicDaemon(contextService);
+    /* make a daemon service with the default timer */
+    public DaemonService createNewDaemon(String name)
+    {
+        BasicDaemon daemon = new BasicDaemon(contextService);
 
-		final Thread daemonThread = Monitor.getMonitor().getDaemonThread(daemon, name, false);
-		// DERBY-3745.  setContextClassLoader for thread to null to avoid
-		// leaking class loaders.
-		try {
+        final Thread daemonThread = Monitor.getMonitor().getDaemonThread(daemon, name, false);
+        // DERBY-3745.  setContextClassLoader for thread to null to avoid
+        // leaking class loaders.
+        try {
             AccessController.doPrivileged(
              new PrivilegedAction() {
                 public Object run()  {
@@ -77,8 +77,8 @@ public class SingleThreadDaemonFactory implements DaemonFactory
         }
 
 
-		daemonThread.start();
-		return daemon;
-	}
+        daemonThread.start();
+        return daemon;
+    }
 }
 

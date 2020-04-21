@@ -44,9 +44,9 @@ public class RankFunctionDefinition implements AggregateDefinition {
     @Override
     public DataTypeDescriptor getAggregator(DataTypeDescriptor inputType, StringBuffer aggregatorClassName) throws StandardException {
         aggregatorClassName.append(ClassName.RankFunction);
-		/*
-		**
-		*/
+        /*
+        **
+        */
         return DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false);
     }
 }

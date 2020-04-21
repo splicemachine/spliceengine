@@ -29,121 +29,121 @@ import com.splicemachine.pipeline.context.WriteContext;
  * Created on: 8/8/13 
  */
 public class BulkWriteResult {
-		private WriteResult globalStatus;
-		private IntHashSet notRunRows;
-		private IntObjectHashMap<WriteResult> failedRows;
+        private WriteResult globalStatus;
+        private IntHashSet notRunRows;
+        private IntObjectHashMap<WriteResult> failedRows;
 
-		private transient WriteContext writeContext;
-		private transient int position;
+        private transient WriteContext writeContext;
+        private transient int position;
 
-		public BulkWriteResult() {
-				notRunRows = new IntHashSet();
-				failedRows = new IntObjectHashMap<>();
-		}
+        public BulkWriteResult() {
+                notRunRows = new IntHashSet();
+                failedRows = new IntObjectHashMap<>();
+        }
 
-		public BulkWriteResult(WriteContext writeContext, WriteResult globalStatus) {
-				notRunRows = new IntHashSet();
-				failedRows = new IntObjectHashMap<>();
-				this.writeContext = writeContext;
-				this.globalStatus = globalStatus;
-		}
+        public BulkWriteResult(WriteContext writeContext, WriteResult globalStatus) {
+                notRunRows = new IntHashSet();
+                failedRows = new IntObjectHashMap<>();
+                this.writeContext = writeContext;
+                this.globalStatus = globalStatus;
+        }
 
-		public BulkWriteResult(WriteResult globalStatus, IntHashSet notRunRows, IntObjectHashMap<WriteResult> failedRows){
-				this.notRunRows = notRunRows;
-				this.failedRows = failedRows;
-				this.globalStatus = globalStatus;
-		}
+        public BulkWriteResult(WriteResult globalStatus, IntHashSet notRunRows, IntObjectHashMap<WriteResult> failedRows){
+                this.notRunRows = notRunRows;
+                this.failedRows = failedRows;
+                this.globalStatus = globalStatus;
+        }
 
-		public BulkWriteResult(WriteResult globalStatus){
-				this();
-				this.globalStatus = globalStatus;
-		}
+        public BulkWriteResult(WriteResult globalStatus){
+                this();
+                this.globalStatus = globalStatus;
+        }
 
-		public IntObjectHashMap<WriteResult> getFailedRows() {
-				return failedRows;
-		}
+        public IntObjectHashMap<WriteResult> getFailedRows() {
+                return failedRows;
+        }
 
-		public IntHashSet getNotRunRows() {
-				return notRunRows;
-		}
+        public IntHashSet getNotRunRows() {
+                return notRunRows;
+        }
 
-		public void addResult(int pos, WriteResult result) {
-				switch (result.getCode()) {
-						case SUCCESS:
-								return; //return nothing for success
-						case NOT_RUN:
-								notRunRows.add(pos);
-								break;
-						default:
-								failedRows.put(pos,result);
-				}
-		}
+        public void addResult(int pos, WriteResult result) {
+                switch (result.getCode()) {
+                        case SUCCESS:
+                                return; //return nothing for success
+                        case NOT_RUN:
+                                notRunRows.add(pos);
+                                break;
+                        default:
+                                failedRows.put(pos,result);
+                }
+        }
 
-		public WriteResult getGlobalResult() {
-				return globalStatus;
-		}
+        public WriteResult getGlobalResult() {
+                return globalStatus;
+        }
 
-		public void setGlobalStatus(WriteResult globalStatus) {
-				this.globalStatus = globalStatus;
-		}
+        public void setGlobalStatus(WriteResult globalStatus) {
+                this.globalStatus = globalStatus;
+        }
 
-		public WriteContext getWriteContext() {
-				return writeContext;
-		}
+        public WriteContext getWriteContext() {
+                return writeContext;
+        }
 
-		public int getPosition() {
-				return position;
-		}
+        public int getPosition() {
+                return position;
+        }
 
-		public void setPosition(int position) {
-				this.position = position;
-		}
+        public void setPosition(int position) {
+                this.position = position;
+        }
 
-		@Override
-		public String toString() {
-				return "BulkWriteResult{" +
-						"globalStatus=" + (globalStatus==null?"null":globalStatus.toString()) + 
-						", notRunRows=" + (notRunRows==null?"null":notRunRows.size()) +
-						", failedRows=" + (failedRows==null?"null":failedRows.size()) +
-						", writeContext=" + (writeContext==null?"null":writeContext.toString()) +
-						'}';
-		}
+        @Override
+        public String toString() {
+                return "BulkWriteResult{" +
+                        "globalStatus=" + (globalStatus==null?"null":globalStatus.toString()) + 
+                        ", notRunRows=" + (notRunRows==null?"null":notRunRows.size()) +
+                        ", failedRows=" + (failedRows==null?"null":failedRows.size()) +
+                        ", writeContext=" + (writeContext==null?"null":writeContext.toString()) +
+                        '}';
+        }
 
-		public static Serializer<BulkWriteResult> kryoSerializer(){
-				return SERIALIZER;
-		}
+        public static Serializer<BulkWriteResult> kryoSerializer(){
+                return SERIALIZER;
+        }
 
-		private static final Serializer<BulkWriteResult> SERIALIZER = new Serializer<BulkWriteResult>() {
-				@Override
-				public void write(Kryo kryo, Output output, BulkWriteResult object) {
-						kryo.writeObject(output,object.globalStatus);
-						output.writeInt(object.notRunRows.size());
-						for(IntCursor cursor:object.notRunRows){
-								output.writeInt(cursor.value);
-						}
-						output.writeInt(object.failedRows.size());
-						for(IntObjectCursor<WriteResult> c:object.failedRows){
-								output.writeInt(c.key);
-								kryo.writeObject(output,c.value);
-						}
-				}
+        private static final Serializer<BulkWriteResult> SERIALIZER = new Serializer<BulkWriteResult>() {
+                @Override
+                public void write(Kryo kryo, Output output, BulkWriteResult object) {
+                        kryo.writeObject(output,object.globalStatus);
+                        output.writeInt(object.notRunRows.size());
+                        for(IntCursor cursor:object.notRunRows){
+                                output.writeInt(cursor.value);
+                        }
+                        output.writeInt(object.failedRows.size());
+                        for(IntObjectCursor<WriteResult> c:object.failedRows){
+                                output.writeInt(c.key);
+                                kryo.writeObject(output,c.value);
+                        }
+                }
 
-				@Override
-				public BulkWriteResult read(Kryo kryo, Input input, Class<BulkWriteResult> type) {
-						WriteResult globalStatus = kryo.readObject(input,WriteResult.class);
-						int notRunSize = input.readInt();
-						IntHashSet notRunRows = new IntHashSet(notRunSize);
-						for(int i=0;i<notRunSize;i++){
-								notRunRows.add(input.readInt());
-						}
-						int failedSize = input.readInt();
-						IntObjectHashMap<WriteResult> failedRows = new IntObjectHashMap<>(failedSize,0.9f);
-						for(int i=0;i<failedSize;i++){
-								int k = input.readInt();
-								WriteResult result = kryo.readObject(input,WriteResult.class);
-								failedRows.put(k,result);
-						}
-						return new BulkWriteResult(globalStatus,notRunRows,failedRows);
-				}
-		};
+                @Override
+                public BulkWriteResult read(Kryo kryo, Input input, Class<BulkWriteResult> type) {
+                        WriteResult globalStatus = kryo.readObject(input,WriteResult.class);
+                        int notRunSize = input.readInt();
+                        IntHashSet notRunRows = new IntHashSet(notRunSize);
+                        for(int i=0;i<notRunSize;i++){
+                                notRunRows.add(input.readInt());
+                        }
+                        int failedSize = input.readInt();
+                        IntObjectHashMap<WriteResult> failedRows = new IntObjectHashMap<>(failedSize,0.9f);
+                        for(int i=0;i<failedSize;i++){
+                                int k = input.readInt();
+                                WriteResult result = kryo.readObject(input,WriteResult.class);
+                                failedRows.put(k,result);
+                        }
+                        return new BulkWriteResult(globalStatus,notRunRows,failedRows);
+                }
+        };
 }

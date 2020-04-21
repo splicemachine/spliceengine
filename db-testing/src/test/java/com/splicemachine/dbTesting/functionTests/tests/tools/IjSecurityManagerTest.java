@@ -46,40 +46,40 @@ import com.splicemachine.dbTesting.junit.TestConfiguration;
 
 public class IjSecurityManagerTest extends BaseTestCase {
 
-	public IjSecurityManagerTest(String name) {
-		super(name);
-	}
+    public IjSecurityManagerTest(String name) {
+        super(name);
+    }
 
-	public void testRunIJ() throws Exception {
-	    /* Save the original out stream */
-	    final PrintStream out = System.out;
-	    
-	    /* Mute the test */
-	    AccessController.doPrivileged(new PrivilegedAction() {
+    public void testRunIJ() throws Exception {
+        /* Save the original out stream */
+        final PrintStream out = System.out;
+        
+        /* Mute the test */
+        AccessController.doPrivileged(new PrivilegedAction() {
             public Object run() {
                 System.setOut(new PrintStream(new TestNullOutputStream()));
                 return null;
             }
         });
-	    
-	    try {
-	        /* Run ij */
-	        ij.main(new String[]{"extinout/IjSecurityManagerTest.sql"});
-	    } catch (Exception e) { /* Should NEVER happen */
-	        fail("Failed to run ij under security manager.",e);
-	    } finally {
-	        /* Restore the original out stream */
-	        AccessController.doPrivileged(new PrivilegedAction() {
-	            public Object run() {
-	                System.setOut(out);
-	                return null;
-	            }
-	        });
-	    }
-	}
-	
-	private static Test decorateTest() {	    
-	    Test test = TestConfiguration.embeddedSuite(IjSecurityManagerTest.class);
+        
+        try {
+            /* Run ij */
+            ij.main(new String[]{"extinout/IjSecurityManagerTest.sql"});
+        } catch (Exception e) { /* Should NEVER happen */
+            fail("Failed to run ij under security manager.",e);
+        } finally {
+            /* Restore the original out stream */
+            AccessController.doPrivileged(new PrivilegedAction() {
+                public Object run() {
+                    System.setOut(out);
+                    return null;
+                }
+            });
+        }
+    }
+    
+    private static Test decorateTest() {        
+        Test test = TestConfiguration.embeddedSuite(IjSecurityManagerTest.class);
         test = new SupportFilesSetup
          (
           test,
@@ -89,10 +89,10 @@ public class IjSecurityManagerTest extends BaseTestCase {
           new String[] { "IjSecurityManagerTest.sql"}
           );
         return test;
-	}
-	public static Test suite() {		
-		TestSuite suite = new TestSuite("IjSecurityManagerTest");
-		suite.addTest(decorateTest());
-		return suite;
-	}
+    }
+    public static Test suite() {        
+        TestSuite suite = new TestSuite("IjSecurityManagerTest");
+        suite.addTest(decorateTest());
+        return suite;
+    }
 }

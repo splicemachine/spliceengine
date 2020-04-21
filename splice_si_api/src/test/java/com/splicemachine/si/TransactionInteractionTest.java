@@ -556,17 +556,17 @@ public class TransactionInteractionTest {
      */
     @Test
     public void testInsertThenScanWithinSameParentTransactionIsCorrect() throws Exception {
-    	Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
 
-    	Txn callTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE); //create the CallStatement Txn
-    	Txn insertTxn = control.beginChildTransaction(callTxn,DESTINATION_TABLE); //create the insert txn
-    	testUtility.insertAge(insertTxn,"scott",29); //insert the row
-    	insertTxn.commit();
+        Txn callTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE); //create the CallStatement Txn
+        Txn insertTxn = control.beginChildTransaction(callTxn,DESTINATION_TABLE); //create the insert txn
+        testUtility.insertAge(insertTxn,"scott",29); //insert the row
+        insertTxn.commit();
 
-    	Txn selectTxn = control.beginChildTransaction(callTxn,null); //create the select savepoint
-    	Assert.assertEquals("Incorrect results", "scott age=29 job=null",testUtility.read(selectTxn, "scott")); //validate it's visible
+        Txn selectTxn = control.beginChildTransaction(callTxn,null); //create the select savepoint
+        Assert.assertEquals("Incorrect results", "scott age=29 job=null",testUtility.read(selectTxn, "scott")); //validate it's visible
 
-    	callTxn.rollback();
+        callTxn.rollback();
     }
 
     /**
@@ -580,16 +580,16 @@ public class TransactionInteractionTest {
      */
     @Test
     public void testInsertWithChildTransactionThenScanWithParentTransactionIsCorrect() throws Exception {
-    	Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
 
-    	Txn callTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE); //create the CallStatement Txn
-    	Txn insertTxn = control.beginChildTransaction(callTxn,DESTINATION_TABLE); //create the insert txn
-    	testUtility.insertAge(insertTxn,"scott",29); //insert the row
-    	insertTxn.commit();
+        Txn callTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE); //create the CallStatement Txn
+        Txn insertTxn = control.beginChildTransaction(callTxn,DESTINATION_TABLE); //create the insert txn
+        testUtility.insertAge(insertTxn,"scott",29); //insert the row
+        insertTxn.commit();
 
-    	Assert.assertEquals("Incorrect results", "scott age=29 job=null",testUtility.read(callTxn, "scott")); //validate it's visible to the parent
+        Assert.assertEquals("Incorrect results", "scott age=29 job=null",testUtility.read(callTxn, "scott")); //validate it's visible to the parent
 
-    	callTxn.rollback();
+        callTxn.rollback();
     }
 
     /**
@@ -612,18 +612,18 @@ public class TransactionInteractionTest {
      */
     @Test
     public void testInsertWithGrandchildTransactionThenScanWithParentTransactionIsCorrect() throws Exception {
-    	Txn rootTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn rootTxn = control.beginTransaction(DESTINATION_TABLE);
 
-    	Txn callTxn = control.beginChildTransaction(rootTxn,DESTINATION_TABLE); //create the CallStatement Txn
-    	Txn selectTxn = control.beginChildTransaction(callTxn,DESTINATION_TABLE); //create the select savepoint
-    	Txn insertTxn = control.beginChildTransaction(selectTxn,DESTINATION_TABLE); //create the insert txn
-    	testUtility.insertAge(insertTxn,"scott",29); //insert the row
-    	insertTxn.commit();
-    	selectTxn.commit();
+        Txn callTxn = control.beginChildTransaction(rootTxn,DESTINATION_TABLE); //create the CallStatement Txn
+        Txn selectTxn = control.beginChildTransaction(callTxn,DESTINATION_TABLE); //create the select savepoint
+        Txn insertTxn = control.beginChildTransaction(selectTxn,DESTINATION_TABLE); //create the insert txn
+        testUtility.insertAge(insertTxn,"scott",29); //insert the row
+        insertTxn.commit();
+        selectTxn.commit();
 
-    	Assert.assertEquals("Incorrect results", "scott age=29 job=null",testUtility.read(selectTxn, "scott")); //validate it's visible
+        Assert.assertEquals("Incorrect results", "scott age=29 job=null",testUtility.read(selectTxn, "scott")); //validate it's visible
 
-    	callTxn.rollback();
+        callTxn.rollback();
     }
 
     @Test

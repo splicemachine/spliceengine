@@ -60,13 +60,13 @@ public class DoubleParser {
 
         if (str.equals(INFINITY)){
             return Double.POSITIVE_INFINITY;
-    	}
+        }
         if (str.equals(NEGINFINITY)){
             return Double.NEGATIVE_INFINITY;
-    	}
-    	if (str.equals(NAN)){
+        }
+        if (str.equals(NAN)){
             return Double.NaN;
-    	}    
+        }    
 
 
         int exp = 0;
@@ -153,10 +153,10 @@ public class DoubleParser {
     private final static double[] POS_EXPS = new double[PRE_COMPUTED_EXP_RANGE];
     private final static double[] NEG_EXPS = new double[PRE_COMPUTED_EXP_RANGE];
     static {
-    	for (int i=0; i < PRE_COMPUTED_EXP_RANGE; i++){
-    		POS_EXPS[i] = Math.pow(10.0, i);
-    		NEG_EXPS[i] = Math.pow(10.0, -i);
-    	}
+        for (int i=0; i < PRE_COMPUTED_EXP_RANGE; i++){
+            POS_EXPS[i] = Math.pow(10.0, i);
+            NEG_EXPS[i] = Math.pow(10.0, -i);
+        }
     } 
 
     // The longest number that we can reliably fit in an int is 9 digits long
@@ -174,15 +174,15 @@ public class DoubleParser {
 
     // Calculate the value of the specified exponent - reuse a precalculated value if possible
     private static double getExponentValue(int exp){
-    	if (exp > -PRE_COMPUTED_EXP_RANGE){
-    		if (exp <= 0){
-    			return NEG_EXPS[-exp];
-    		}
-    		else if (exp < PRE_COMPUTED_EXP_RANGE){
-    			return POS_EXPS[exp];
-    		}
-    	}
-    	return Math.pow(10.0, exp);
+        if (exp > -PRE_COMPUTED_EXP_RANGE){
+            if (exp <= 0){
+                return NEG_EXPS[-exp];
+            }
+            else if (exp < PRE_COMPUTED_EXP_RANGE){
+                return POS_EXPS[exp];
+            }
+        }
+        return Math.pow(10.0, exp);
     }
 
     // A number can be prefixed with a "+" but this makes no difference, so we can remove it

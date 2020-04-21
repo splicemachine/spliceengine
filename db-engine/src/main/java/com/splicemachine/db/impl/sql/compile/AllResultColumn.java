@@ -46,56 +46,56 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 public class AllResultColumn extends ResultColumn
 {
-	private TableName		tableName;
+    private TableName        tableName;
 
-	/**
-	 * This initializer is for use in the parser for a "*".
-	 * 
-	 * @param tableName	Dot expression qualifying "*"
-	 */
-	public void init(Object tableName)
-	{
-		this.tableName = (TableName) tableName;
-	}
+    /**
+     * This initializer is for use in the parser for a "*".
+     * 
+     * @param tableName    Dot expression qualifying "*"
+     */
+    public void init(Object tableName)
+    {
+        this.tableName = (TableName) tableName;
+    }
 
-	/** 
-	 * Return the full table name qualification for this node
-	 *
-	 * @return Full table name qualification as a String
-	 */
-	public String getFullTableName()
-	{
-		if (tableName == null)
-		{
-			return null;
-		}
-		else
-		{
-			return tableName.getFullTableName();
-		}
-	}
+    /** 
+     * Return the full table name qualification for this node
+     *
+     * @return Full table name qualification as a String
+     */
+    public String getFullTableName()
+    {
+        if (tableName == null)
+        {
+            return null;
+        }
+        else
+        {
+            return tableName.getFullTableName();
+        }
+    }
 
-	/**
-	 * Make a copy of this ResultColumn in a new ResultColumn
-	 *
-	 * @return	A new ResultColumn with the same contents as this one
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	// Splice fork: changed from package protected to public
-	public ResultColumn cloneMe() throws StandardException
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(columnDescriptor == null,
-					"columnDescriptor is expected to be non-null");
-		}
+    /**
+     * Make a copy of this ResultColumn in a new ResultColumn
+     *
+     * @return    A new ResultColumn with the same contents as this one
+     *
+     * @exception StandardException        Thrown on error
+     */
+    // Splice fork: changed from package protected to public
+    public ResultColumn cloneMe() throws StandardException
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(columnDescriptor == null,
+                    "columnDescriptor is expected to be non-null");
+        }
 
-		return (ResultColumn) getNodeFactory().getNode(
-									C_NodeTypes.ALL_RESULT_COLUMN,
-									tableName,
-									getContextManager());
-	}
+        return (ResultColumn) getNodeFactory().getNode(
+                                    C_NodeTypes.ALL_RESULT_COLUMN,
+                                    tableName,
+                                    getContextManager());
+    }
 
 
     public TableName getTableNameObject() {

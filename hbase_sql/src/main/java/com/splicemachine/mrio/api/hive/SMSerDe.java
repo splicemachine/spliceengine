@@ -56,7 +56,7 @@ import java.util.*;
 // TODO FIX HIVE INTEGRATION JL
 
 public class SMSerDe implements SerDe {
-	protected StructTypeInfo rowTypeInfo;
+    protected StructTypeInfo rowTypeInfo;
     protected ObjectInspector rowOI;
     protected SMSQLUtil sqlUtil = null;
 //    protected SerDeParameters serdeParams;
@@ -74,8 +74,8 @@ public class SMSerDe implements SerDe {
      */
     //@Override
     public void initialize(Configuration conf, Properties tbl) throws SerDeException {
-    	if (Log.isDebugEnabled())
-    		SpliceLogUtils.debug(Log, "initialize with conf=%s, tbl=%s",conf,tbl);
+        if (Log.isDebugEnabled())
+            SpliceLogUtils.debug(Log, "initialize with conf=%s, tbl=%s",conf,tbl);
         // Get a list of the table's column names.
         tableName = tbl.getProperty(MRConstants.SPLICE_TABLE_NAME);
         String hbaseDir = null;
@@ -83,9 +83,9 @@ public class SMSerDe implements SerDe {
             hbaseDir = conf.get(HConstants.HBASE_DIR);
         }
         if (hbaseDir == null)
-        	hbaseDir = System.getProperty(HConstants.HBASE_DIR);
+            hbaseDir = System.getProperty(HConstants.HBASE_DIR);
         if (hbaseDir == null)
-        	throw new SerDeException("hbase root directory not set, please include hbase.rootdir in config or via -D system property ...");
+            throw new SerDeException("hbase root directory not set, please include hbase.rootdir in config or via -D system property ...");
         if (conf != null) {
             conf.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableName);
             conf.set(MRConstants.SPLICE_JDBC_STR, tbl.getProperty(MRConstants.SPLICE_JDBC_STR));
@@ -103,7 +103,7 @@ public class SMSerDe implements SerDe {
         String colNamesStr = tbl.getProperty(Constants.LIST_COLUMNS);
         colNames.clear();
         for (String split: colNamesStr.split(","))
-        	colNames.add(split.toUpperCase());
+            colNames.add(split.toUpperCase());
         String colTypesStr = tbl.getProperty(Constants.LIST_COLUMN_TYPES);
         colTypes = TypeInfoUtils.getTypeInfosFromTypeString(colTypesStr);
         objectCache = new ArrayList<Object>(colTypes.size());
@@ -111,7 +111,7 @@ public class SMSerDe implements SerDe {
             tableName = tableName.trim().toUpperCase();
             try {
                 if (!sqlUtil.checkTableExists(tableName))
-                	throw new SerDeException(String.format("table %s does not exist...",tableName));
+                    throw new SerDeException(String.format("table %s does not exist...",tableName));
                 if (conf != null) {
                     ScanSetBuilder tableScannerBuilder = sqlUtil.getTableScannerBuilder(tableName, colNames);
                     conf.set(MRConstants.SPLICE_SCAN_INFO, tableScannerBuilder.base64Encode());
@@ -119,13 +119,13 @@ public class SMSerDe implements SerDe {
                   //  TableContext tableContext = sqlUtil.createTableContext(tableName, tableScannerBuilder);
                   //  conf.set(MRConstants.SPLICE_TBLE_CONTEXT, tableContext.getTableContextBase64String());
                 }
-			} catch (Exception e) {
-				throw new SerDeException(e);
-			}
+            } catch (Exception e) {
+                throw new SerDeException(e);
+            }
         } 
          
-    	if (Log.isDebugEnabled())
-    		SpliceLogUtils.debug(Log, "generating hive info colNames=%s, colTypes=%s",colNames,colTypes);
+        if (Log.isDebugEnabled())
+            SpliceLogUtils.debug(Log, "generating hive info colNames=%s, colTypes=%s",colNames,colTypes);
 
         
         rowTypeInfo = (StructTypeInfo) TypeInfoFactory.getStructTypeInfo(colNames, colTypes);
@@ -140,8 +140,8 @@ public class SMSerDe implements SerDe {
      */
     //@Override
     public Object deserialize(Writable blob) throws SerDeException {
-    	if (Log.isTraceEnabled())
-    		SpliceLogUtils.trace(Log, "deserialize " + blob);
+        if (Log.isTraceEnabled())
+            SpliceLogUtils.trace(Log, "deserialize " + blob);
         ExecRowWritable rowWritable = (ExecRowWritable) blob;
         objectCache.clear();
             ExecRow val = rowWritable.get();
@@ -151,7 +151,7 @@ public class SMSerDe implements SerDe {
             if (dvd == null || dvd.length == 0)
                 return objectCache;
             for (int i = 0; i< dvd.length; i++) {
-            	objectCache.add(hiveTypeToObject(colTypes.get(i).getTypeName(),dvd[i]));            	
+                objectCache.add(hiveTypeToObject(colTypes.get(i).getTypeName(),dvd[i]));                
             }
         return objectCache;
     }
@@ -161,8 +161,8 @@ public class SMSerDe implements SerDe {
      */
     //@Override
     public ObjectInspector getObjectInspector() throws SerDeException {
-    	if (Log.isDebugEnabled())
-    		SpliceLogUtils.trace(Log, "getObjectInspector");
+        if (Log.isDebugEnabled())
+            SpliceLogUtils.trace(Log, "getObjectInspector");
         return rowOI;
     }
 
@@ -171,8 +171,8 @@ public class SMSerDe implements SerDe {
      */
     //@Override
     public SerDeStats getSerDeStats() {
-    	if (Log.isDebugEnabled())
-    		SpliceLogUtils.trace(Log, "serdeStats");
+        if (Log.isDebugEnabled())
+            SpliceLogUtils.trace(Log, "serdeStats");
         return null;
     }
 
@@ -193,19 +193,19 @@ public class SMSerDe implements SerDe {
     //@Override
     public Writable serialize(Object obj, ObjectInspector oi)
             throws SerDeException {
-    	ExecRow row = null;
-    	int[] execRowFormatIds = null;
+        ExecRow row = null;
+        int[] execRowFormatIds = null;
         try {
-			List<NameType> nameTypes = sqlUtil.getTableStructure(tableName);
-			execRowFormatIds = sqlUtil.getExecRowFormatIds(colNames, nameTypes);
-			row = sqlUtil.getExecRow(execRowFormatIds);
-			if (row == null)
-				throw new SerDeException("ExecRow Cannot be Null");
-		} catch (SQLException | StandardException | IOException e1) {
-			throw new SerDeException(e1);
-		}    	
-    	if (Log.isTraceEnabled())
-    		SpliceLogUtils.trace(Log, "serialize with obj=%s, oi=%s",obj,oi);
+            List<NameType> nameTypes = sqlUtil.getTableStructure(tableName);
+            execRowFormatIds = sqlUtil.getExecRowFormatIds(colNames, nameTypes);
+            row = sqlUtil.getExecRow(execRowFormatIds);
+            if (row == null)
+                throw new SerDeException("ExecRow Cannot be Null");
+        } catch (SQLException | StandardException | IOException e1) {
+            throw new SerDeException(e1);
+        }        
+        if (Log.isTraceEnabled())
+            SpliceLogUtils.trace(Log, "serialize with obj=%s, oi=%s",obj,oi);
         if (oi.getCategory() != ObjectInspector.Category.STRUCT) {
             throw new SerDeException(getClass().toString()
                     + " can only serialize struct types, but we got: "
@@ -217,7 +217,7 @@ public class SMSerDe implements SerDe {
 
         try {
 
-        	DataValueDescriptor dvd;
+            DataValueDescriptor dvd;
             for (int i = 0; i < fields.size(); i++) {
                 StructField field = fields.get(i);
                 dvd = row.getColumn(i+1);
@@ -292,9 +292,9 @@ public class SMSerDe implements SerDe {
         final String lctype = trim(hiveType.toLowerCase());
 
         try {
-	        switch(lctype) {
+            switch(lctype) {
                 case "string":
-		        case "varchar":
+                case "varchar":
                     HiveVarchar hiveVarchar = null;
                     String s = dvd.getString();
                     if (s!=null) {
@@ -310,34 +310,34 @@ public class SMSerDe implements SerDe {
                         hiveChar.setValue(s);
                     }
                     return hiveChar;
-		        case "float":
-		            return dvd.getFloat();
-		        case "double":
+                case "float":
+                    return dvd.getFloat();
+                case "double":
                     return dvd.getDouble();
                 case "decimal":
                     Double d = dvd.getDouble();
                     return HiveDecimal.create(d.toString());
-		        case "boolean":
-		        	return dvd.getBoolean();
-		        case "tinyint":
+                case "boolean":
+                    return dvd.getBoolean();
+                case "tinyint":
                     return dvd.getByte();
-		        case "int":
-		        	return dvd.getInt();
-		        case "smallint":
-		        	return dvd.getShort();
-		        case "bigint":
-		        	return dvd.getLong();
-		        case "timestamp":
+                case "int":
+                    return dvd.getInt();
+                case "smallint":
+                    return dvd.getShort();
+                case "bigint":
+                    return dvd.getLong();
+                case "timestamp":
                     return dvd.getTimestamp(null);
                 case "date":
-		        	return dvd.getDate(null);
-		        case "binary":
-		        	return dvd.getBytes();
-		        default:
-		        	throw new SerDeException("Unrecognized column type: " + hiveType);
-	        }        
+                    return dvd.getDate(null);
+                case "binary":
+                    return dvd.getBytes();
+                default:
+                    throw new SerDeException("Unrecognized column type: " + hiveType);
+            }        
         } catch (StandardException se) {
-        	throw new SerDeException(se);
+            throw new SerDeException(se);
         }
     }
 

@@ -91,10 +91,10 @@ public class TransactionResolver{
             bSize<<=1;
 
         disruptor = new Disruptor<>(new EventFactory<TxnResolveEvent>() {
-			@Override
-			public TxnResolveEvent newInstance() {
-	                return new TxnResolveEvent();
-			}
+            @Override
+            public TxnResolveEvent newInstance() {
+                    return new TxnResolveEvent();
+            }
         },bSize,consumerThreads,
                 ProducerType.MULTI,
                 new BlockingWaitStrategy());
@@ -171,8 +171,8 @@ public class TransactionResolver{
 
     private void resolveCommit(TxnPartition txnPartition,TxnMessage.Txn txn) throws IOException {
         assert txn!=null;
-    	
-    	if(Txn.State.fromInt(txn.getState())!= Txn.State.COMMITTED) return; //not committed, don't do anything
+        
+        if(Txn.State.fromInt(txn.getState())!= Txn.State.COMMITTED) return; //not committed, don't do anything
         long txnId = txn.getInfo().getTxnId();
         try{
             TxnView parentView = txnSupplier.getTransaction(txn.getInfo().getParentTxnid());

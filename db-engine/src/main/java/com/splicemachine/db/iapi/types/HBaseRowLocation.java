@@ -170,8 +170,8 @@ public class HBaseRowLocation extends DataType implements RowLocation {
         return StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID;
     }
 
-	private final boolean evaluateNull()
-	{
+    private final boolean evaluateNull()
+    {
         return slice == null;
     }
 

@@ -43,28 +43,28 @@ import com.splicemachine.db.iapi.services.io.StreamStorable;
 
 public interface BitDataValue extends ConcatableDataValue, StreamStorable
 {
-	/**
-	 * The SQL concatenation '||' operator.
-	 *
-	 * @param leftOperand	String on the left hand side of '||'
-	 * @param rightOperand	String on the right hand side of '||'
-	 * @param result	The result of a previous call to this method,
-	 *					null if not called yet.
-	 *
-	 * @return	A ConcatableDataValue containing the result of the '||'
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	BitDataValue concatenate(
-			BitDataValue leftOperand,
-			BitDataValue rightOperand,
-			BitDataValue result)
-		throws StandardException;
+    /**
+     * The SQL concatenation '||' operator.
+     *
+     * @param leftOperand    String on the left hand side of '||'
+     * @param rightOperand    String on the right hand side of '||'
+     * @param result    The result of a previous call to this method,
+     *                    null if not called yet.
+     *
+     * @return    A ConcatableDataValue containing the result of the '||'
+     *
+     * @exception StandardException        Thrown on error
+     */
+    BitDataValue concatenate(
+            BitDataValue leftOperand,
+            BitDataValue rightOperand,
+            BitDataValue result)
+        throws StandardException;
 
-	/**
-	 * Stuff a BitDataValue with a Blob.
-	 */
-	void setValue(Blob value)
-		throws StandardException;
+    /**
+     * Stuff a BitDataValue with a Blob.
+     */
+    void setValue(Blob value)
+        throws StandardException;
 
 }

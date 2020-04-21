@@ -48,15 +48,15 @@ public class SpliceStringFunctions {
      */
     public static int INSTR(String srcStr, String subStr)
     {
-    	// Matches support in MySql these two arguments,
-    	// although Oracle's has some additional arguments
-    	// (starting position and occurrence count).
-    	// We could add these if we add support for
-    	// optional arguments.
-    	
-    	if (srcStr == null) return 0;
-    	if (subStr == null || subStr.isEmpty()) return 0;
-    	// Returns position starting from zero or -1 if not found
+        // Matches support in MySql these two arguments,
+        // although Oracle's has some additional arguments
+        // (starting position and occurrence count).
+        // We could add these if we add support for
+        // optional arguments.
+        
+        if (srcStr == null) return 0;
+        if (subStr == null || subStr.isEmpty()) return 0;
+        // Returns position starting from zero or -1 if not found
         int index = srcStr.indexOf(subStr);
         // Return position starting from 1 or 0 if not found
         return index + 1;
@@ -69,10 +69,10 @@ public class SpliceStringFunctions {
      * 
      * @return the capitalized String
      */
-	public static String INITCAP(String source) {
-		return WordUtils.capitalizeFully(source);
-	}
-	
+    public static String INITCAP(String source) {
+        return WordUtils.capitalizeFully(source);
+    }
+    
     /**
      * Implements logic for the SQL function CONCAT.
      * 
@@ -83,12 +83,12 @@ public class SpliceStringFunctions {
      */
     public static String CONCAT(String arg1, String arg2)
     {
-    	// Per MySql documentation, if any argument is NULL,
-    	// function returns NULL.
-    	if (arg1 == null || arg2 == null) {
-    		return null;
-    	}
-    	return arg1 + arg2;
+        // Per MySql documentation, if any argument is NULL,
+        // function returns NULL.
+        if (arg1 == null || arg2 == null) {
+            return null;
+        }
+        return arg1 + arg2;
     }
 
     /**
@@ -101,12 +101,12 @@ public class SpliceStringFunctions {
      */
     public static boolean REGEXP_LIKE(String s, String regexp)
     {
-    	try {
+        try {
 
-			return (s != null) ? patternCache.get(regexp).matcher(s).matches() : false;
-	    } catch (ExecutionException e) {
-	        throw new RuntimeException(String.format("Unable to fetch Pattern for regexp [%s]", regexp), e);
-	    }
+            return (s != null) ? patternCache.get(regexp).matcher(s).matches() : false;
+        } catch (ExecutionException e) {
+            throw new RuntimeException(String.format("Unable to fetch Pattern for regexp [%s]", regexp), e);
+        }
     }
 
     /**

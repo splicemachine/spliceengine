@@ -102,9 +102,9 @@ public interface CostEstimate extends StoreCostResult {
     /**
      * Compare this cost estimate with the given cost estimate.
      *
-     * @param other		The cost estimate to compare this one with
+     * @param other        The cost estimate to compare this one with
      *
-     * @return	< 0 if this < other, 0 if this == other, > 0 if this > other
+     * @return    < 0 if this < other, 0 if this == other, > 0 if this > other
      */
     double compare(CostEstimate other);
 
@@ -114,8 +114,8 @@ public interface CostEstimate extends StoreCostResult {
      * Add this cost estimate to another one.  This presumes that any row
      * ordering is destroyed.
      *
-     * @param addend	This cost estimate to add this one to.
-     * @param retval	If non-null, put the result here.
+     * @param addend    This cost estimate to add this one to.
+     * @param retval    If non-null, put the result here.
      *
      * @return  this + other.
      */
@@ -125,20 +125,20 @@ public interface CostEstimate extends StoreCostResult {
      * Multiply this cost estimate by a scalar, non-dimensional number.  This
      * presumes that any row ordering is destroyed.
      *
-     * @param multiplicand	The value to multiply this CostEstimate by.
-     * @param retval	If non-null, put the result here.
+     * @param multiplicand    The value to multiply this CostEstimate by.
+     * @param retval    If non-null, put the result here.
      *
-     * @return	this * multiplicand
+     * @return    this * multiplicand
      */
     CostEstimate multiply(double multiplicand, CostEstimate retval);
 
     /**
      * Divide this cost estimate by a scalar, non-dimensional number.
      *
-     * @param divisor	The value to divide this CostEstimate by.
-     * @param retval	If non-null, put the result here.
+     * @param divisor    The value to divide this CostEstimate by.
+     * @param retval    If non-null, put the result here.
      *
-     * @return	this / divisor
+     * @return    this / divisor
      */
     CostEstimate divide(double divisor, CostEstimate retval);
 

@@ -48,22 +48,22 @@ import java.io.InputStream;
  */
 public interface StreamStorable
 {
-	/**
-	  Return the on-disk stream state of the object.
-	  
-	**/
-	InputStream returnStream();
+    /**
+      Return the on-disk stream state of the object.
+      
+    **/
+    InputStream returnStream();
 
-	/**
-	  sets the on-disk stream state for the object.
-	**/
-	void setStream(InputStream newStream);
+    /**
+      sets the on-disk stream state for the object.
+    **/
+    void setStream(InputStream newStream);
 
-	/**
+    /**
      * Set the value by reading the stream and
      * converting it to an object form.
      * 
-		@exception StandardException on error
-	**/
-	void loadStream() throws StandardException;
+        @exception StandardException on error
+    **/
+    void loadStream() throws StandardException;
 }

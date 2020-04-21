@@ -71,12 +71,12 @@ public class JoinTest extends BaseJDBCTestCase {
     public void testNullabilityInValues() throws SQLException {
         Statement s = createStatement();
         assertStatementError(
-        		VALUES_WITH_NULL, s,
-        		"select a.* from (values (null)) a left outer join "+
-        		"(values ('a')) b on 1=1");
+                VALUES_WITH_NULL, s,
+                "select a.* from (values (null)) a left outer join "+
+                "(values ('a')) b on 1=1");
         assertStatementError(
-        		VALUES_WITH_NULL, s,
-        		"select a.* from (values (null)) a");
+                VALUES_WITH_NULL, s,
+                "select a.* from (values (null)) a");
 
         String[][] expectedResult = {
             {"a"},
@@ -87,9 +87,9 @@ public class JoinTest extends BaseJDBCTestCase {
             {null}
         };
         JDBC.assertUnorderedResultSet(s.executeQuery(
-        		"select a.* from (values ('a'),('b'),(cast(null as char(1)))) "
-        		+ "a left outer join (values ('c'),('d')) b on 1=1"),
-        		expectedResult);
+                "select a.* from (values ('a'),('b'),(cast(null as char(1)))) "
+                + "a left outer join (values ('c'),('d')) b on 1=1"),
+                expectedResult);
     }
 
     /**
@@ -239,7 +239,7 @@ public class JoinTest extends BaseJDBCTestCase {
 
         // Cross Join does not allow USING clause
         assertStatementError(
-        		SYNTAX_ERROR, s, "select * from t1 cross join t1 USING(c1)");
+                SYNTAX_ERROR, s, "select * from t1 cross join t1 USING(c1)");
         
         // Self join
         JDBC.assertUnorderedResultSet(

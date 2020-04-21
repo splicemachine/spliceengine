@@ -55,10 +55,10 @@ import java.util.List;
 
 public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
 {
-	public static final String SCHEMANAME_STRING = "SYSSCHEMAPERMS";
+    public static final String SCHEMANAME_STRING = "SYSSCHEMAPERMS";
 
     // Column numbers for the SYSTABLEPERMS table. 1 based
-	private static final int SCHEMAPERMSID_COL_NUM = 1;
+    private static final int SCHEMAPERMSID_COL_NUM = 1;
     private static final int GRANTEE_COL_NUM = 2;
     private static final int GRANTOR_COL_NUM = 3;
     private static final int SCHEMAID_COL_NUM = 4;
@@ -78,35 +78,35 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
     public static final int GRANTEE_SCHEMA_GRANTOR_INDEX_NUM = 0;
     public static final int SCHEMAPERMSID_INDEX_NUM = 1;
     public static final int SCHEMAID_INDEX_NUM = 2;
-	private static final int[][] indexColumnPositions =
-	{
-		{ GRANTEE_COL_NUM, SCHEMAID_COL_NUM, GRANTOR_COL_NUM},
-		{ SCHEMAPERMSID_COL_NUM },
-		{ SCHEMAID_COL_NUM }
-	};
+    private static final int[][] indexColumnPositions =
+    {
+        { GRANTEE_COL_NUM, SCHEMAID_COL_NUM, GRANTOR_COL_NUM},
+        { SCHEMAPERMSID_COL_NUM },
+        { SCHEMAID_COL_NUM }
+    };
 
     public static final int GRANTEE_COL_NUM_IN_GRANTEE_SCHEMA_GRANTOR_INDEX = 1;
 
     private static final boolean[] indexUniqueness = { true, true, false};
 
-    private	static final String[] uuids =
+    private    static final String[] uuids =
     {
          "b8450020-0103-0e39-b8e7-00000010f010" // catalog UUID
-		,"004b0021-0103-0e39-b8e7-00000010f010"	// heap UUID
-		,"c8514023-0103-0e39-b8e7-00000010f010"	// index1
-		,"80220024-010c-426e-c599-0000000f1120"	// index2
-		,"f81e0025-010c-bc85-060d-000000109ab8"	// index3
+        ,"004b0021-0103-0e39-b8e7-00000010f010"    // heap UUID
+        ,"c8514023-0103-0e39-b8e7-00000010f010"    // index1
+        ,"80220024-010c-426e-c599-0000000f1120"    // index2
+        ,"f81e0025-010c-bc85-060d-000000109ab8"    // index3
     };
 
     public SYSSCHEMAPERMSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
-	{
-		super(uuidf,ef,dvf);
-		initInfo(COLUMN_COUNT, SCHEMANAME_STRING, indexColumnPositions, indexUniqueness, uuids);
-	}
+    {
+        super(uuidf,ef,dvf);
+        initInfo(COLUMN_COUNT, SCHEMANAME_STRING, indexColumnPositions, indexUniqueness, uuids);
+    }
 
-	public ExecRow makeRow(TupleDescriptor pd, TupleDescriptor parent) throws StandardException
-	{
-		UUID						oid;
+    public ExecRow makeRow(TupleDescriptor pd, TupleDescriptor parent) throws StandardException
+    {
+        UUID                        oid;
         DataValueDescriptor grantee = null;
         DataValueDescriptor grantor = null;
         String schemaPermID = null;
@@ -131,12 +131,12 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
             oid = spd.getUUID();
             if ( oid == null )
             {
-				oid = getUUIDFactory().createUUID();
-				spd.setUUID(oid);
+                oid = getUUIDFactory().createUUID();
+                spd.setUUID(oid);
             }
             schemaPermID = oid.toString();
 
-			grantee = getAuthorizationID( spd.getGrantee());
+            grantee = getAuthorizationID( spd.getGrantee());
             grantor = getAuthorizationID( spd.getGrantor());
             schemaID = spd.getSchemaUUID().toString();
             selectPriv = spd.getSelectPriv();
@@ -165,13 +165,13 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
         return row;
     } // end of makeRow
             
-	/** builds a tuple descriptor from a row */
-	public TupleDescriptor buildDescriptor(ExecRow row,
+    /** builds a tuple descriptor from a row */
+    public TupleDescriptor buildDescriptor(ExecRow row,
                                            TupleDescriptor parentTuple,
                                            DataDictionary dataDictionary)
-		throws StandardException
+        throws StandardException
     {
-		if( SanityManager.DEBUG)
+        if( SanityManager.DEBUG)
             SanityManager.ASSERT( row.nColumns() == COLUMN_COUNT,
                                   "Wrong size row passed to SYSSCHEMAPERMSRowFactory.buildDescriptor");
 
@@ -213,19 +213,19 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
                                   "Invalid SYSSCHEMAPERMS.accessPriv column value: " + accessPriv);
         }
 
-		SchemaPermsDescriptor schemaPermsDesc =
+        SchemaPermsDescriptor schemaPermsDesc =
         new SchemaPermsDescriptor( dataDictionary,
                                          getAuthorizationID( row, GRANTEE_COL_NUM),
                                          getAuthorizationID( row, GRANTOR_COL_NUM),
                                          schemaUUID,
                                          selectPriv, deletePriv, insertPriv,
                                          updatePriv, referencesPriv, triggerPriv, modifyPriv, accessPriv);
-		schemaPermsDesc.setUUID(schemaPermsUUID);
-		return schemaPermsDesc;
+        schemaPermsDesc.setUUID(schemaPermsUUID);
+        return schemaPermsDesc;
     } // end of buildDescriptor
 
-	/** builds a column list for the catalog */
-	public SystemColumn[] buildColumnList()
+    /** builds a column list for the catalog */
+    public SystemColumn[] buildColumnList()
         throws StandardException
     {
         return new SystemColumn[] {
@@ -244,12 +244,12 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
         };
     }
 
-	/**
-	 * builds a key row given for a given index number.
-	 */
-  	public ExecIndexRow buildIndexKeyRow( int indexNumber,
+    /**
+     * builds a key row given for a given index number.
+     */
+      public ExecIndexRow buildIndexKeyRow( int indexNumber,
                                           PermissionsDescriptor perm) 
-  		throws StandardException
+          throws StandardException
     {
         ExecIndexRow row = null;
         
@@ -390,9 +390,9 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
         return false;
     } // end of removeOnePermission
     
-	/** 
-	 * @see PermissionsCatalogRowFactory#setUUIDOfThePassedDescriptor
-	 */
+    /** 
+     * @see PermissionsCatalogRowFactory#setUUIDOfThePassedDescriptor
+     */
     public void setUUIDOfThePassedDescriptor(ExecRow row, PermissionsDescriptor perm)
     throws StandardException
     {

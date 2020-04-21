@@ -21,7 +21,7 @@ import com.splicemachine.test.Transactions;
  * Since LONG VARCHAR, CLOB, TEXT should not be used as user-defined funciton's parameters,
  * These types are tested only as return value
  * @author Ao Zeng
- *		 Created on: 8/1/2018
+ *         Created on: 8/1/2018
  */
 @Category({Transactions.class,SerialTest.class})
 public class PyFunctionIT extends SpliceUnitTest {

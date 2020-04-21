@@ -41,46 +41,46 @@ import com.splicemachine.db.drda.NetworkServerControl;
  */
 public class NWServerThread extends Thread {
 
-	InetAddress inetaddr = null;
+    InetAddress inetaddr = null;
 
-	String address = "localhost";
+    String address = "localhost";
 
-	int port = 1900;
+    int port = 1900;
 
-	public NWServerThread(String address, int port) throws Exception {
-		if (!(address == null)) {
-			if (!(address.equals(""))) {
-				this.address = address;
-			}
-		}
-		if (port > 0) {
-			this.port = port;
-		}
+    public NWServerThread(String address, int port) throws Exception {
+        if (!(address == null)) {
+            if (!(address.equals(""))) {
+                this.address = address;
+            }
+        }
+        if (port > 0) {
+            this.port = port;
+        }
 
-		try {
-			inetaddr = InetAddress.getByName(address);
+        try {
+            inetaddr = InetAddress.getByName(address);
 
-		} catch (Exception e) {
-			System.out
-					.println("Invalid host address passed, cannot start server");
-			e.printStackTrace();
-			throw e;
-		}
-	}
+        } catch (Exception e) {
+            System.out
+                    .println("Invalid host address passed, cannot start server");
+            e.printStackTrace();
+            throw e;
+        }
+    }
 
-	/*
-	 * Implementation of the run() method to start the server
-	 * 
-	 */
-	public void run() {
-		try {
-			NetworkServerControl nsw = new NetworkServerControl(inetaddr, port);
-			nsw.start(new PrintWriter(System.out));
-			System.out.println("===> Derby Network Server on " + address + ":"
-					+ port + " <===");
-		} catch (Exception e) {
-			;
-			e.printStackTrace();
-		}
-	}
+    /*
+     * Implementation of the run() method to start the server
+     * 
+     */
+    public void run() {
+        try {
+            NetworkServerControl nsw = new NetworkServerControl(inetaddr, port);
+            nsw.start(new PrintWriter(System.out));
+            System.out.println("===> Derby Network Server on " + address + ":"
+                    + port + " <===");
+        } catch (Exception e) {
+            ;
+            e.printStackTrace();
+        }
+    }
 }

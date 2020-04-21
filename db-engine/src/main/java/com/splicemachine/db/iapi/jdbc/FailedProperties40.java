@@ -60,10 +60,10 @@ public class FailedProperties40 {
      * @return the created <code>Properties</code> object
      */
     public static Properties makeProperties(String name, String value) {
-	Properties p = new Properties();
-	if (name != null || value != null)
-	    p.setProperty(name, value);
-	return p;
+    Properties p = new Properties();
+    if (name != null || value != null)
+        p.setProperty(name, value);
+    return p;
     }
     /**
      * Creates a new <code>FailedProperties40</code> instance. Since
@@ -86,7 +86,7 @@ public class FailedProperties40 {
         failedProps_.put(firstKey_, ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
         while (e.hasMoreElements()) {
             failedProps_.put((String)e.nextElement(), 
-			     ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
+                 ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
         }
     }
 

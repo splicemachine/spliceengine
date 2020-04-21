@@ -474,7 +474,7 @@ public class SqlException extends Exception implements Diagnosable {
     }
     
     public void setNextException(SQLException nextException)
-    {	
+    {    
         if ( wrappedException_ != null )
         {
             wrappedException_.setNextException(nextException);

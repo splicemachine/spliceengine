@@ -103,12 +103,12 @@ public class MergeSortJoinOperation extends JoinOperation {
     protected ExecRow rightEmptyRow;
     protected static final String NAME = MergeSortJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+            return NAME;
+    }
 
-	public MergeSortJoinOperation() {
+    public MergeSortJoinOperation() {
         super();
     }
 

@@ -533,71 +533,71 @@ public class TestUtil {
 
     public static String sqlNameFromJdbc(int jdbcType) {
         switch (jdbcType) {
-            case Types.BIT 		:  return "Types.BIT";
+            case Types.BIT         :  return "Types.BIT";
             case Types.BOOLEAN  : return "Types.BOOLEAN";
-            case Types.TINYINT 	:  return "Types.TINYINT";
-            case Types.SMALLINT	:  return "SMALLINT";
-            case Types.INTEGER 	:  return "INTEGER";
-            case Types.BIGINT 	:  return "BIGINT";
+            case Types.TINYINT     :  return "Types.TINYINT";
+            case Types.SMALLINT    :  return "SMALLINT";
+            case Types.INTEGER     :  return "INTEGER";
+            case Types.BIGINT     :  return "BIGINT";
 
-            case Types.FLOAT 	:  return "Types.FLOAT";
-            case Types.REAL 	:  return "REAL";
-            case Types.DOUBLE 	:  return "DOUBLE";
+            case Types.FLOAT     :  return "Types.FLOAT";
+            case Types.REAL     :  return "REAL";
+            case Types.DOUBLE     :  return "DOUBLE";
 
-            case Types.NUMERIC 	:  return "Types.NUMERIC";
-            case Types.DECIMAL	:  return "DECIMAL";
+            case Types.NUMERIC     :  return "Types.NUMERIC";
+            case Types.DECIMAL    :  return "DECIMAL";
 
-            case Types.CHAR		:  return "CHAR";
-            case Types.VARCHAR 	:  return "VARCHAR";
-            case Types.LONGVARCHAR 	:  return "LONG VARCHAR";
+            case Types.CHAR        :  return "CHAR";
+            case Types.VARCHAR     :  return "VARCHAR";
+            case Types.LONGVARCHAR     :  return "LONG VARCHAR";
             case Types.CLOB     :  return "CLOB";
 
-            case Types.DATE 		:  return "DATE";
-            case Types.TIME 		:  return "TIME";
-            case Types.TIMESTAMP 	:  return "TIMESTAMP";
+            case Types.DATE         :  return "DATE";
+            case Types.TIME         :  return "TIME";
+            case Types.TIMESTAMP     :  return "TIMESTAMP";
 
-            case Types.BINARY			:  return "CHAR () FOR BIT DATA";
-            case Types.VARBINARY	 	:  return "VARCHAR () FOR BIT DATA";
-            case Types.LONGVARBINARY 	:  return "LONG VARCHAR FOR BIT DATA";
+            case Types.BINARY            :  return "CHAR () FOR BIT DATA";
+            case Types.VARBINARY         :  return "VARCHAR () FOR BIT DATA";
+            case Types.LONGVARBINARY     :  return "LONG VARCHAR FOR BIT DATA";
             case Types.BLOB             :  return "BLOB";
 
-            case Types.OTHER		:  return "Types.OTHER";
-            case Types.NULL		:  return "Types.NULL";
+            case Types.OTHER        :  return "Types.OTHER";
+            case Types.NULL        :  return "Types.NULL";
             default : return String.valueOf(jdbcType);
         }
     }
     public static String getNameFromJdbcType(int jdbcType) {
         switch (jdbcType) {
-            case Types.BIT 		:  return "Types.BIT";
+            case Types.BIT         :  return "Types.BIT";
             case Types.BOOLEAN  : return "Types.BOOLEAN";
-            case Types.TINYINT 	:  return "Types.TINYINT";
-            case Types.SMALLINT	:  return "Types.SMALLINT";
-            case Types.INTEGER 	:  return "Types.INTEGER";
-            case Types.BIGINT 	:  return "Types.BIGINT";
+            case Types.TINYINT     :  return "Types.TINYINT";
+            case Types.SMALLINT    :  return "Types.SMALLINT";
+            case Types.INTEGER     :  return "Types.INTEGER";
+            case Types.BIGINT     :  return "Types.BIGINT";
 
-            case Types.FLOAT 	:  return "Types.FLOAT";
-            case Types.REAL 	:  return "Types.REAL";
-            case Types.DOUBLE 	:  return "Types.DOUBLE";
+            case Types.FLOAT     :  return "Types.FLOAT";
+            case Types.REAL     :  return "Types.REAL";
+            case Types.DOUBLE     :  return "Types.DOUBLE";
 
-            case Types.NUMERIC 	:  return "Types.NUMERIC";
-            case Types.DECIMAL	:  return "Types.DECIMAL";
+            case Types.NUMERIC     :  return "Types.NUMERIC";
+            case Types.DECIMAL    :  return "Types.DECIMAL";
 
-            case Types.CHAR		:  return "Types.CHAR";
-            case Types.VARCHAR 	:  return "Types.VARCHAR";
-            case Types.LONGVARCHAR 	:  return "Types.LONGVARCHAR";
+            case Types.CHAR        :  return "Types.CHAR";
+            case Types.VARCHAR     :  return "Types.VARCHAR";
+            case Types.LONGVARCHAR     :  return "Types.LONGVARCHAR";
             case Types.CLOB     :  return "Types.CLOB";
 
-            case Types.DATE 		:  return "Types.DATE";
-            case Types.TIME 		:  return "Types.TIME";
-            case Types.TIMESTAMP 	:  return "Types.TIMESTAMP";
+            case Types.DATE         :  return "Types.DATE";
+            case Types.TIME         :  return "Types.TIME";
+            case Types.TIMESTAMP     :  return "Types.TIMESTAMP";
 
-            case Types.BINARY			:  return "Types.BINARY";
-            case Types.VARBINARY	 	:  return "Types.VARBINARY";
-            case Types.LONGVARBINARY 	:  return "Types.LONGVARBINARY";
+            case Types.BINARY            :  return "Types.BINARY";
+            case Types.VARBINARY         :  return "Types.VARBINARY";
+            case Types.LONGVARBINARY     :  return "Types.LONGVARBINARY";
             case Types.BLOB             :  return "Types.BLOB";
 
-            case Types.OTHER		:  return "Types.OTHER";
-            case Types.NULL		:  return "Types.NULL";
+            case Types.OTHER        :  return "Types.OTHER";
+            case Types.NULL        :  return "Types.NULL";
             default : return String.valueOf(jdbcType);
         }
     }
@@ -634,10 +634,10 @@ public class TestUtil {
         System.out.println(END_HTML_PAGE);
     }
 
-/*	public static void main(String[] argv)
-	{
-		testBoolArrayToHTMLTable();
-	}
+/*    public static void main(String[] argv)
+    {
+        testBoolArrayToHTMLTable();
+    }
 */
 
     /**

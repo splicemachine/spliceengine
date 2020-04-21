@@ -62,7 +62,7 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler{
     public void scheduleKeepAlive(Txn txn){
         if(shutdown) return;
 
-//				activeTxns.add(txn);
+//                activeTxns.add(txn);
         threadPool.schedule(new KeepAlive(txn),random.nextLong(maxWaitIntervalMs),TimeUnit.MILLISECONDS);
     }
 
@@ -99,15 +99,15 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler{
                 SpliceLogUtils.warn(LOG,"It has been %d ms since the last time we tried to perform"+
                         "a keep alive, which is longer than the maximum interval");
                                 /*
-								 * We are the only ones trying to keep this transaction alive. If we know
-								 * for a fact that we had to wait longer than the transaction timeout, then
-								 * we don't need to keep trying--just roll back the transaction and return.
-								 *
-								 * However, we want to leave some room for network slop here, so we err
-								 * on the side of caution, and only use this if we exceed twice the actual
-								 * keep alive window. That way, we probably never need this, but it's available
-								 * if we do.
-								 */
+                                 * We are the only ones trying to keep this transaction alive. If we know
+                                 * for a fact that we had to wait longer than the transaction timeout, then
+                                 * we don't need to keep trying--just roll back the transaction and return.
+                                 *
+                                 * However, we want to leave some room for network slop here, so we err
+                                 * on the side of caution, and only use this if we exceed twice the actual
+                                 * keep alive window. That way, we probably never need this, but it's available
+                                 * if we do.
+                                 */
                 try{
                     txn.rollback();
                 }catch(IOException e){
@@ -132,10 +132,10 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler{
                             "with the transaction system",txn.getTxnId());
             }catch(HTransactionTimeout tte){
                 LOG.error("Transaction "+txn.getTxnId()+" has timed out");
-									/*
-									 * We attempted to keep alive a transaction that has already timed out for a different
-									 * reason. Ensure that the transaction is rolled back
-									 */
+                                    /*
+                                     * We attempted to keep alive a transaction that has already timed out for a different
+                                     * reason. Ensure that the transaction is rolled back
+                                     */
                 try{
                     txn.rollback();
                 }catch(IOException e){
@@ -143,10 +143,10 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler{
                             txn.getTxnId()+" but nothing to be concerned with, since it has already timed out",e);
                 }
             }catch(IOException e){
-								/*
-								 * This could be a real problem, but we don't have anything that we can really do about this,
-								 * so we just log the error and hope it resolves itself.
-								 */
+                                /*
+                                 * This could be a real problem, but we don't have anything that we can really do about this,
+                                 * so we just log the error and hope it resolves itself.
+                                 */
                 LOG.error("Unable to keep transaction "+txn.getTxnId()+" alive. Will try again in a bit",e);
                 threadPool.schedule(this,random.nextLong(maxWaitIntervalMs),TimeUnit.MILLISECONDS);
             }

@@ -77,16 +77,16 @@ import java.sql.ResultSet;
  */
 public final class ListDataType extends DataType {
 
-	int numElements = 0;
-	DataValueDescriptor[] dvd = null;
+    int numElements = 0;
+    DataValueDescriptor[] dvd = null;
 
     @Override
-	public int getLength()
-	{
-		return numElements;
-	}
+    public int getLength()
+    {
+        return numElements;
+    }
 
-	public void setLength(int len) {
+    public void setLength(int len) {
         numElements = len;
         dvd = new DataValueDescriptor[len];
     }
@@ -144,30 +144,30 @@ public final class ListDataType extends DataType {
         setIsNull(true);
     }
 
-	/**
-		Return my format identifier.
+    /**
+        Return my format identifier.
 
-		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
+        @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
+    */
     @Override
-	public int getTypeFormatId() {
-		return StoredFormatIds.LIST_ID;
-	}
+    public int getTypeFormatId() {
+        return StoredFormatIds.LIST_ID;
+    }
 
     @Override
-	public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal(ObjectOutput out) throws IOException {
         out.writeBoolean(isNull);
-		out.writeInt(numElements);
+        out.writeInt(numElements);
         for (int i = 0; i < numElements; i++) {
             out.writeBoolean(dvd[i] != null);
             if (dvd[i] != null)
                 out.writeObject(dvd[i]);
         }
-	}
+    }
 
-	/** @see java.io.Externalizable#readExternal */
-	@Override
-	public void readExternal(ObjectInput in) throws IOException {
+    /** @see java.io.Externalizable#readExternal */
+    @Override
+    public void readExternal(ObjectInput in) throws IOException {
         isNull = in.readBoolean();
         setLength(in.readInt());
         try {
@@ -180,10 +180,10 @@ public final class ListDataType extends DataType {
             throw new IOException(
                 String.format("Class not found while deserializing %s", this.getClass().getName()), e);
         }
-	}
+    }
 
     @Override
-	public void readExternalFromArray(ArrayInputStream in) throws IOException {
+    public void readExternalFromArray(ArrayInputStream in) throws IOException {
         isNull = in.readBoolean();
         numElements = in.readInt();
         try {
@@ -195,11 +195,11 @@ public final class ListDataType extends DataType {
             throw new IOException(
                 String.format("Class not found while deserializing %s", this.getClass().getName()), e);
         }
-	}
+    }
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
 
     public void setFrom(DataValueDescriptor theValue, int index)
         throws StandardException
@@ -220,70 +220,70 @@ public final class ListDataType extends DataType {
         }
     }
 
-	/** @see DataValueDescriptor#cloneValue */
-	@Override
-	public DataValueDescriptor cloneValue(boolean forceMaterialization)
-	{
-	    ListDataType ldt = new ListDataType();
+    /** @see DataValueDescriptor#cloneValue */
+    @Override
+    public DataValueDescriptor cloneValue(boolean forceMaterialization)
+    {
+        ListDataType ldt = new ListDataType();
         ldt.setLength(numElements);
         ldt.setIsNull(getIsNull());
         for (int i = 0; i < numElements; i++)
             if (dvd[i] != null)
                 ldt.dvd[i] = dvd[i].cloneValue(forceMaterialization);
-		return ldt;
-	}
+        return ldt;
+    }
 
-	/**
-	 * @see DataValueDescriptor#getNewNull
-	 */
+    /**
+     * @see DataValueDescriptor#getNewNull
+     */
     @Override
-	public DataValueDescriptor getNewNull()
-	{
-		return new ListDataType();
-	}
+    public DataValueDescriptor getNewNull()
+    {
+        return new ListDataType();
+    }
 
 
-	/*
-	 * class interface
-	 */
+    /*
+     * class interface
+     */
 
-	/*
-	 * constructors
-	 */
+    /*
+     * constructors
+     */
 
-	/** no-arg constructor, required by Formattable */
-	public ListDataType()
-	{
-		isNull = true;
-	}
+    /** no-arg constructor, required by Formattable */
+    public ListDataType()
+    {
+        isNull = true;
+    }
 
-	public ListDataType(int numElements)
-	{
+    public ListDataType(int numElements)
+    {
         isNull = true;
         setLength(numElements);
-	}
+    }
 
-	
+    
     public DataValueDescriptor getDVD(int index) {
         return dvd[index];
     }
 
     public void setDVD(int index, DataValueDescriptor value) {
-	    dvd[index] = value;
+        dvd[index] = value;
     }
     
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
 
-	/** @see DataValueDescriptor#typePrecedence */
+    /** @see DataValueDescriptor#typePrecedence */
     @Override
-	public int typePrecedence()
-	{
-		return TypeId.LIST_PRECEDENCE;
-	}
+    public int typePrecedence()
+    {
+        return TypeId.LIST_PRECEDENCE;
+    }
  
-	private boolean predSatisfied(int result, int op)
+    private boolean predSatisfied(int result, int op)
     
     {
         switch (op) {
@@ -304,7 +304,7 @@ public final class ListDataType extends DataType {
                 return false;
         }
     }
-    /** @exception StandardException		Thrown on error */
+    /** @exception StandardException        Thrown on error */
     @Override
     public final int compare(DataValueDescriptor arg) throws StandardException {
         return compare(arg, false);
@@ -336,15 +336,15 @@ public final class ListDataType extends DataType {
     
     @Override
     public boolean compare(int op,
-						   DataValueDescriptor other,
-						   boolean orderedNulls,
-						   boolean unknownRV)
-		throws StandardException
-	{
+                           DataValueDescriptor other,
+                           boolean orderedNulls,
+                           boolean unknownRV)
+        throws StandardException
+    {
         return compare(op, other, orderedNulls, false, unknownRV);
-	}
+    }
  
-	@Override
+    @Override
     public boolean compare(int op,
                            DataValueDescriptor other,
                            boolean orderedNulls,
@@ -371,19 +371,19 @@ public final class ListDataType extends DataType {
         }
         return true;
     }
-	/*
-	 * String display of values
-	 */
+    /*
+     * String display of values
+     */
 
-	public String toString()
-	{
-	    try {
+    public String toString()
+    {
+        try {
             return getString();
         }
         catch (Exception e) {
-	        return "";
+            return "";
         }
-	}
+    }
     
     /*
      * Hash code
@@ -401,10 +401,10 @@ public final class ListDataType extends DataType {
     }
     
     @Override
-	public Format getFormat() {
-		return Format.LIST;
-		
-	}
+    public Format getFormat() {
+        return Format.LIST;
+        
+    }
     
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog(ListDataType.class);
     

@@ -20,13 +20,13 @@ package com.splicemachine.metrics;
  */
 public interface TimeMeasure {
 
-		void startTime();
+        void startTime();
 
-		long stopTime();
+        long stopTime();
 
-		long getElapsedTime();
+        long getElapsedTime();
 
-		long getStopTimestamp();
+        long getStopTimestamp();
 
-		long getStartTimestamp();
+        long getStartTimestamp();
 }

@@ -39,28 +39,28 @@ import java.sql.Types;
  */
 public class SYSTOKENSRowFactory extends CatalogRowFactory
 {
-    public static final String		TABLENAME_STRING = "SYSTOKENS";
+    public static final String        TABLENAME_STRING = "SYSTOKENS";
     public static final String      SYSTOKENS_UUID = "39ac6233-8831-4262-aa7a-84acce449ad1";
 
-    protected static final int		COLUMN_COUNT = 5;
+    protected static final int        COLUMN_COUNT = 5;
 
     /* Column #s for systablesnapshots (1 based) */
-    protected static final int		TOKEN = 1;
-    protected static final int		USERNAME = 2;
-    protected static final int		CREATIONTIME = 3;
-    protected static final int		EXPIRETIME = 4;
-    protected static final int		MAXIMUMTIME = 5;
+    protected static final int        TOKEN = 1;
+    protected static final int        USERNAME = 2;
+    protected static final int        CREATIONTIME = 3;
+    protected static final int        EXPIRETIME = 4;
+    protected static final int        MAXIMUMTIME = 5;
 
-    private	static	final	String[]	uuids =
+    private    static    final    String[]    uuids =
             {
                      SYSTOKENS_UUID                         // catalog UUID
-                    ,"122cf322-e914-4f40-b619-e2f8d78c0381"	// heap UUID
-                    ,"c34db556-b35b-4bd1-ad4c-0eaa106c91f3"	// SYSTABLESNAPSHOTS_INDEX1
+                    ,"122cf322-e914-4f40-b619-e2f8d78c0381"    // heap UUID
+                    ,"c34db556-b35b-4bd1-ad4c-0eaa106c91f3"    // SYSTABLESNAPSHOTS_INDEX1
             };
 
     protected static final int SYSTOKENS_INDEX1_ID = 0;
 
-    private	static	final	boolean[]	uniqueness = {
+    private    static    final    boolean[]    uniqueness = {
             true
     };
 
@@ -71,7 +71,7 @@ public class SYSTOKENSRowFactory extends CatalogRowFactory
 
     /////////////////////////////////////////////////////////////////////////////
     //
-    //	CONSTRUCTORS
+    //    CONSTRUCTORS
     //
     /////////////////////////////////////////////////////////////////////////////
 
@@ -83,14 +83,14 @@ public class SYSTOKENSRowFactory extends CatalogRowFactory
 
     /////////////////////////////////////////////////////////////////////////////
     //
-    //	METHODS
+    //    METHODS
     //
     /////////////////////////////////////////////////////////////////////////////
 
     /**
      * Make a SYSTABLESNAPSHOTS row
      *
-     * @return	Row suitable for inserting into SYSTABLES.
+     * @return    Row suitable for inserting into SYSTABLES.
      *
      * @exception StandardException thrown on failure
      */

@@ -21,72 +21,72 @@ import com.splicemachine.db.shared.common.error.ExceptionSeverity;
 import org.apache.log4j.Logger;
 
 public final class SpliceTransactionManagerContext extends ContextImpl {
-	private static Logger LOG = Logger.getLogger(SpliceTransactionManagerContext.class);
-	private SpliceTransactionManager transactionManager;
-	private boolean abortAll;
+    private static Logger LOG = Logger.getLogger(SpliceTransactionManagerContext.class);
+    private SpliceTransactionManager transactionManager;
+    private boolean abortAll;
 
-	public void cleanupOnError(Throwable error) throws StandardException {
+    public void cleanupOnError(Throwable error) throws StandardException {
 
-		boolean destroy = false;
+        boolean destroy = false;
 
-		if (!abortAll && (error instanceof StandardException))
-		{
-			StandardException se = (StandardException) error;
+        if (!abortAll && (error instanceof StandardException))
+        {
+            StandardException se = (StandardException) error;
 
-			// If the severity is lower than a transaction error then do nothing.
-			if (se.getSeverity() < ExceptionSeverity.TRANSACTION_SEVERITY)
-				return;
+            // If the severity is lower than a transaction error then do nothing.
+            if (se.getSeverity() < ExceptionSeverity.TRANSACTION_SEVERITY)
+                return;
 
-			// If the session is going to disappear then we want to destroy this
-			// transaction, not just abort it.
-			if (se.getSeverity() >= ExceptionSeverity.SESSION_SEVERITY)
-				destroy = true;
-		}
-		else
-		{
-			// abortAll is true or some java* error, throw away the
-			// transaction. 
-			destroy = true;
-		}
+            // If the session is going to disappear then we want to destroy this
+            // transaction, not just abort it.
+            if (se.getSeverity() >= ExceptionSeverity.SESSION_SEVERITY)
+                destroy = true;
+        }
+        else
+        {
+            // abortAll is true or some java* error, throw away the
+            // transaction. 
+            destroy = true;
+        }
 
-		if (transactionManager != null)
-		{
-			try
-			{
-				transactionManager.invalidateConglomerateCache();
-			}
-			catch (StandardException se)
-			{
-				// RESOLVE - what to do in error case.
-				LOG.error("got error while invalidating cache.", se);
-			}
+        if (transactionManager != null)
+        {
+            try
+            {
+                transactionManager.invalidateConglomerateCache();
+            }
+            catch (StandardException se)
+            {
+                // RESOLVE - what to do in error case.
+                LOG.error("got error while invalidating cache.", se);
+            }
 
-			transactionManager.closeControllers(true /* close held controllers */ );
-		}
+            transactionManager.closeControllers(true /* close held controllers */ );
+        }
 
-		if (destroy)
-		{
-			transactionManager = null;
-			popMe();
-		}
-	}
+        if (destroy)
+        {
+            transactionManager = null;
+            popMe();
+        }
+    }
 
-	// this constructor is called with the transaction
-	// controller to be saved when the context
-	// is created (when the first statement comes in, likely).
-	SpliceTransactionManagerContext(ContextManager cm,String context_id,SpliceTransactionManager transactionManager,boolean abortAll) 
-			throws StandardException {
-		super(cm, context_id);
-		this.abortAll = abortAll;
-		this.transactionManager = transactionManager;
-		transactionManager.setContext(this);
-	}
+    // this constructor is called with the transaction
+    // controller to be saved when the context
+    // is created (when the first statement comes in, likely).
+    SpliceTransactionManagerContext(ContextManager cm,String context_id,SpliceTransactionManager transactionManager,boolean abortAll) 
+            throws StandardException {
+        super(cm, context_id);
+        this.abortAll = abortAll;
+        this.transactionManager = transactionManager;
+        transactionManager.setContext(this);
+    }
 
-	public SpliceTransactionManager getTransactionManager() {
-		return transactionManager;
-	}
+    public SpliceTransactionManager getTransactionManager() {
+        return transactionManager;
+    }
 
-	void setTransactionManager(SpliceTransactionManager  transactionManager) {
-		this.transactionManager = transactionManager;
-	}
+    void setTransactionManager(SpliceTransactionManager  transactionManager) {
+        this.transactionManager = transactionManager;
+    }
 }

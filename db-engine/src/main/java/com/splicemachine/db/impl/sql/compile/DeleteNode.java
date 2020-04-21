@@ -290,7 +290,7 @@ public class DeleteNode extends DMLModStatementNode
                                     getContextManager());
 
                     rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
-                                    false		/* Not nullable */
+                                    false        /* Not nullable */
                             )
                     );
                     rowIdColumn.markGenerated();

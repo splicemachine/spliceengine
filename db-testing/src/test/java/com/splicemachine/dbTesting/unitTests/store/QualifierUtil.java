@@ -138,22 +138,22 @@ class QualifierUtil implements Qualifier
         return(this.unknownRV);
     }
 
-	/** Clear the DataValueDescriptor cache, if one exists.
-	 *  (The DataValueDescriptor can be 1 of 3 types:
-	 *		o  VARIANT		  - cannot be cached as its value can 
-	 *							vary within a scan
-	 *		o  SCAN_INVARIANT - can be cached within a scan as its
-	 *							value will not change within a scan
-	 *		o  QUERY_INVARIANT- can be cached across the life of the query
-	 *							as its value will never change
-	 *		o  CONSTANT		  - can be cached across executions
+    /** Clear the DataValueDescriptor cache, if one exists.
+     *  (The DataValueDescriptor can be 1 of 3 types:
+     *        o  VARIANT          - cannot be cached as its value can 
+     *                            vary within a scan
+     *        o  SCAN_INVARIANT - can be cached within a scan as its
+     *                            value will not change within a scan
+     *        o  QUERY_INVARIANT- can be cached across the life of the query
+     *                            as its value will never change
+     *        o  CONSTANT          - can be cached across executions
      *  
      *  @see Qualifier#getUnknownRV
-	 */
-	public void clearOrderableCache()
-	{
-		// No Orderable caching here
-	}
+     */
+    public void clearOrderableCache()
+    {
+        // No Orderable caching here
+    }
 
     @Override
     public int getVariantType() {
@@ -161,19 +161,19 @@ class QualifierUtil implements Qualifier
     }
 
     /**
-	 * This method reinitializes all the state of
-	 * the Qualifier.  It is used to distinguish between
-	 * resetting something that is query invariant
-	 * and something that is constant over every
-	 * execution of a query.  Basically, clearOrderableCache()
-	 * will only clear out its cache if it is a VARIANT
-	 * or SCAN_INVARIANT value.  However, each time a
-	 * query is executed, the QUERY_INVARIANT qualifiers need
-	 * to be reset.
-	 */
-	public void reinitialize()
-	{
-	}
+     * This method reinitializes all the state of
+     * the Qualifier.  It is used to distinguish between
+     * resetting something that is query invariant
+     * and something that is constant over every
+     * execution of a query.  Basically, clearOrderableCache()
+     * will only clear out its cache if it is a VARIANT
+     * or SCAN_INVARIANT value.  However, each time a
+     * query is executed, the QUERY_INVARIANT qualifiers need
+     * to be reset.
+     */
+    public void reinitialize()
+    {
+    }
 
     public String getText() {
         return null;

@@ -39,46 +39,46 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class DeleteOperation extends DMLWriteOperation {
-	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
-	protected  boolean cascadeDelete;
+    private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
+    protected  boolean cascadeDelete;
     protected static final String NAME = DeleteOperation.class.getSimpleName().replaceAll("Operation","");
     protected String bulkDeleteDirectory;
     protected int colMapRefItem;
     protected int[] colMap;
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+            return NAME;
+    }
 
-	public DeleteOperation(){
-		super();
-	}
+    public DeleteOperation(){
+        super();
+    }
 
-	public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
+    public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
                            double optimizerEstimatedCost, String tableVersion,
-						   String bulkDeleteDirectory, int colMapRefItem) throws StandardException, IOException {
+                           String bulkDeleteDirectory, int colMapRefItem) throws StandardException, IOException {
 
         super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.bulkDeleteDirectory = bulkDeleteDirectory;
         this.colMapRefItem = colMapRefItem;
         init();
-	}
+    }
 
-	@Override
-	public void init(SpliceOperationContext context) throws StandardException, IOException {
-		SpliceLogUtils.trace(LOG,"DeleteOperation init");
-		super.init(context);
-		heapConglom = writeInfo.getConglomerateId();
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
+        SpliceLogUtils.trace(LOG,"DeleteOperation init");
+        super.init(context);
+        heapConglom = writeInfo.getConglomerateId();
         if (colMapRefItem >= 0) {
             colMap = (int[]) context.getPreparedStatement().getSavedObject(colMapRefItem);
         }
-	}
+    }
 
     @Override
-	public String toString() {
-		return "Delete{destTable="+heapConglom+",source=" + source + "}";
-	}
+    public String toString() {
+        return "Delete{destTable="+heapConglom+",source=" + source + "}";
+    }
 
     @Override
     public String prettyPrint(int indentLevel) {

@@ -214,10 +214,10 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         s.executeUpdate("DROP TABLE t1");
 
         //Try update and drop statistics on global temporary table
-		s.executeUpdate("declare global temporary table SESSION.t1(c11 int, c12 int) on commit delete rows not logged");
-		s.executeUpdate("insert into session.t1 values(11, 1)");
+        s.executeUpdate("declare global temporary table SESSION.t1(c11 int, c12 int) on commit delete rows not logged");
+        s.executeUpdate("insert into session.t1 values(11, 1)");
         //following should fail because update/drop statistics can't be issued
-		// on global temporary tables
+        // on global temporary tables
         assertStatementError("42995", s, 
                 "CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SESSION','T1',null)");
         assertStatementError("42995", s, 
@@ -251,39 +251,39 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         
         PreparedStatement ps = prepareStatement("INSERT INTO T2 VALUES(?,?,?)");
         for (int i=0; i<1000; i++) {
-        	ps.setInt(1, i%2);
+            ps.setInt(1, i%2);
             ps.setString(2, "Tuple " +i);
             ps.setString(3, "any value");
             ps.addBatch();
         }
         ps.executeBatch();
 
-		s.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
-		
-		//Executing the query below and looking at it's plan will show that
-		//we picked index T2I1 rather than T2I2 because there are no 
-		//statistics available for T2I2 to show that it is a better index
-		ps = prepareStatement("SELECT * FROM t2 WHERE c21=? AND c22=?");
-    	ps.setInt(1, 0);
+        s.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
+        
+        //Executing the query below and looking at it's plan will show that
+        //we picked index T2I1 rather than T2I2 because there are no 
+        //statistics available for T2I2 to show that it is a better index
+        ps = prepareStatement("SELECT * FROM t2 WHERE c21=? AND c22=?");
+        ps.setInt(1, 0);
         ps.setString(2, "Tuple 4");
         JDBC.assertDrainResults(ps.executeQuery());
-		RuntimeStatisticsParser rtsp = SQLUtilities.getRuntimeStatisticsParser(s);
-		assertTrue(rtsp.usedSpecificIndexForIndexScan("T2","T2I1"));
+        RuntimeStatisticsParser rtsp = SQLUtilities.getRuntimeStatisticsParser(s);
+        assertTrue(rtsp.usedSpecificIndexForIndexScan("T2","T2I1"));
 
-		//Running the update statistics below will create statistics for T2I2
-		s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','T2','T2I2')");
+        //Running the update statistics below will create statistics for T2I2
+        s.execute("CALL SYSCS_UTIL.SYSCS_UPDATE_STATISTICS('SPLICE','T2','T2I2')");
         stats.assertIndexStats("T2I2", 1);
 
         //Rerunning the query "SELECT * FROM t2 WHERE c21=? AND c22=?" and
         //looking at it's plan will show that this time it picked up more
         //efficient index which is T2I2.
         JDBC.assertDrainResults(ps.executeQuery());
-		rtsp = SQLUtilities.getRuntimeStatisticsParser(s);
-		assertTrue(rtsp.usedSpecificIndexForIndexScan("T2","T2I2"));
+        rtsp = SQLUtilities.getRuntimeStatisticsParser(s);
+        assertTrue(rtsp.usedSpecificIndexForIndexScan("T2","T2I2"));
 
-		//Drop statistics for T2I2 and we should see that we go back to using
-		// T2I1 rather than T2I2
-		s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','T2','T2I2')");
+        //Drop statistics for T2I2 and we should see that we go back to using
+        // T2I1 rather than T2I2
+        s.execute("CALL SYSCS_UTIL.SYSCS_DROP_STATISTICS('SPLICE','T2','T2I2')");
         stats.assertIndexStats("T2I2", 0);
 
         //Rerunning the query "SELECT * FROM t2 WHERE c21=? AND c22=?" and
@@ -291,8 +291,8 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         // rather than more efficient index T2I2  because no stats exists
         // for T2I2
         JDBC.assertDrainResults(ps.executeQuery());
-		rtsp = SQLUtilities.getRuntimeStatisticsParser(s);
-		assertTrue(rtsp.usedSpecificIndexForIndexScan("T2","T2I1"));
+        rtsp = SQLUtilities.getRuntimeStatisticsParser(s);
+        assertTrue(rtsp.usedSpecificIndexForIndexScan("T2","T2I1"));
 
         //cleanup
         s.executeUpdate("DROP TABLE t2");
@@ -394,7 +394,7 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         // Helper object to obtain information about index statistics.
         IndexStatsUtil stats = new IndexStatsUtil(openDefaultConnection());
         Statement s = createStatement();
-    	
+        
         //Test - primary key constraint
         s.executeUpdate("CREATE TABLE TEST_TAB_1 (c11 int not null,"+
                 "c12 int not null, c13 int)");
@@ -408,7 +408,7 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         // create a statistics entry, since the key consist of single column.
         s.executeUpdate("ALTER TABLE TEST_TAB_1 "+
                 "ADD CONSTRAINT TEST_TAB_1_PK_1 "+
-        		"PRIMARY KEY (c11)");
+                "PRIMARY KEY (c11)");
         stats.assertNoStatsTable("TEST_TAB_1");
         s.executeUpdate("ALTER TABLE TEST_TAB_1 "+
                 "DROP CONSTRAINT TEST_TAB_1_PK_1");
@@ -419,13 +419,13 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         // test to create foreign key constraint
         s.executeUpdate("ALTER TABLE TEST_TAB_1 "+
                 "ADD CONSTRAINT TEST_TAB_1_PK_1 "+
-        		"PRIMARY KEY (c11)");
+                "PRIMARY KEY (c11)");
         stats.assertNoStatsTable("TEST_TAB_1");
 
         //Test - unique key constraint
         s.executeUpdate("ALTER TABLE TEST_TAB_1 "+
                 "ADD CONSTRAINT TEST_TAB_1_UNQ_1 "+
-        		"UNIQUE (c12)");
+                "UNIQUE (c12)");
         stats.assertNoStatsTable("TEST_TAB_1");
         s.executeUpdate("ALTER TABLE TEST_TAB_1 "+
                 "DROP CONSTRAINT TEST_TAB_1_UNQ_1");
@@ -435,7 +435,7 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         stats.assertNoStatsTable("TEST_TAB_1");
         s.executeUpdate("ALTER TABLE TEST_TAB_1 "+
                 "ADD CONSTRAINT TEST_TAB_1_PK_1 "+
-        		"PRIMARY KEY (c11)");
+                "PRIMARY KEY (c11)");
         stats.assertNoStatsTable("TEST_TAB_1");
 
         //Test - non-unique index
@@ -448,13 +448,13 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         stats.assertNoStatsTable("TEST_TAB_1");
         s.executeUpdate("ALTER TABLE TEST_TAB_1 "+
                 "ADD CONSTRAINT TEST_TAB_1_PK_1 "+
-        		"PRIMARY KEY (c11)");
+                "PRIMARY KEY (c11)");
         stats.assertNoStatsTable("TEST_TAB_1");
 
         //Test - unique key constraint on nullable column & non-nullable column
         s.executeUpdate("ALTER TABLE TEST_TAB_1 "+
                 "ADD CONSTRAINT TEST_TAB_1_UNQ_2 "+
-        		"UNIQUE (c12, c13)");
+                "UNIQUE (c12, c13)");
         stats.assertTableStats("TEST_TAB_1",2);
         s.executeUpdate("ALTER TABLE TEST_TAB_1 "+
                 "DROP CONSTRAINT TEST_TAB_1_UNQ_2");
@@ -464,7 +464,7 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         stats.assertNoStatsTable("TEST_TAB_1");
         s.executeUpdate("ALTER TABLE TEST_TAB_1 "+
                 "ADD CONSTRAINT TEST_TAB_1_PK_1 "+
-        		"PRIMARY KEY (c11)");
+                "PRIMARY KEY (c11)");
         stats.assertNoStatsTable("TEST_TAB_1");
         
         //Test - foreign key but no primary key constraint
@@ -472,7 +472,7 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         s.executeUpdate("INSERT INTO TEST_TAB_3 VALUES(1),(2)");
         s.executeUpdate("ALTER TABLE TEST_TAB_3 "+
                 "ADD CONSTRAINT TEST_TAB_3_FK_1 "+
-        		"FOREIGN KEY(c31) REFERENCES TEST_TAB_1(c11)");
+                "FOREIGN KEY(c31) REFERENCES TEST_TAB_1(c11)");
         stats.assertTableStats("TEST_TAB_3",1);
         s.executeUpdate("ALTER TABLE TEST_TAB_3 "+
                 "DROP CONSTRAINT TEST_TAB_3_FK_1");
@@ -483,13 +483,13 @@ public class UpdateStatisticsTest extends BaseJDBCTestCase {
         s.executeUpdate("INSERT INTO TEST_TAB_2 VALUES(1),(2)");
         s.executeUpdate("ALTER TABLE TEST_TAB_2 "+
                 "ADD CONSTRAINT TEST_TAB_2_PK_1 "+
-        		"PRIMARY KEY (c21)");
+                "PRIMARY KEY (c21)");
         stats.assertNoStatsTable("TEST_TAB_2");
         // DERBY-5702 Add a foreign key constraint and now we should find one
         // row of statistics for TEST_TAB_2 (for the foreign key constraint).
         s.executeUpdate("ALTER TABLE TEST_TAB_2 "+
                 "ADD CONSTRAINT TEST_TAB_2_FK_1 "+
-        		"FOREIGN KEY(c21) REFERENCES TEST_TAB_1(c11)");
+                "FOREIGN KEY(c21) REFERENCES TEST_TAB_1(c11)");
         //DERBY-5702 Like primary key earlier, adding foreign key constraint
         // didn't automatically add a statistics row for it. Have to run update
         // statistics manually to get a row added for it's stat

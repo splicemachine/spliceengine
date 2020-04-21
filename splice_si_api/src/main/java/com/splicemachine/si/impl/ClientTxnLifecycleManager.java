@@ -260,16 +260,16 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                                           TxnView parentTxn,
                                           byte[] destinationTable,
                                           TaskId taskId) throws IOException{
-		if (replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0 &&
+        if (replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0 &&
         Bytes.compareTo(destinationTable, "replication".getBytes()) != 0) {
             throw new IOException(StandardException.newException(SQLState.READ_ONLY));
         }
         /*
-		 * Create a writable transaction directly.
-		 *
-		 * This uses 2 network calls--once to get a beginTimestamp, and then once to record the
-		 * transaction to the table.
-		 */
+         * Create a writable transaction directly.
+         *
+         * This uses 2 network calls--once to get a beginTimestamp, and then once to record the
+         * transaction to the table.
+         */
         WritableTxn newTxn=new WritableTxn(timestamp ^ subId, timestamp, parentReference,
                 isolationLevel,parentTxn,this,additive,destinationTable,taskId,exceptionFactory);
         if (subId == 0) {
@@ -288,21 +288,21 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
     private Txn createReadableTransaction(Txn.IsolationLevel isolationLevel,
                                           boolean additive,
                                           TxnView parentTxn){
-		/*
-		 * Creates an elevatable, read-only transaction.
-		 *
-		 * This makes a network call if we are creating a new top-level transaction, otherwise, it
-		 * will inherit timestamp and parent transaction information from its parent
-		 *
-		 * This comes in one of two forms:
-		 * 1. top-level transaction(parentTxn ==Txn.ROOT_TRANSACTION or parentTxn == null)
-		 * 2. child transaction (parentTxn!=null && parentTxn.getTxnId()>=0)
-		 *
-		 * In case 2, we don't even need to generate a new transaction id--we'll just inherit from
-		 * the parent. However, we will need to generate a new transaction id UPON ELEVATION. We
-		 * do this by providing a subclass of the ReadOnly transaction
-		 *
-		 */
+        /*
+         * Creates an elevatable, read-only transaction.
+         *
+         * This makes a network call if we are creating a new top-level transaction, otherwise, it
+         * will inherit timestamp and parent transaction information from its parent
+         *
+         * This comes in one of two forms:
+         * 1. top-level transaction(parentTxn ==Txn.ROOT_TRANSACTION or parentTxn == null)
+         * 2. child transaction (parentTxn!=null && parentTxn.getTxnId()>=0)
+         *
+         * In case 2, we don't even need to generate a new transaction id--we'll just inherit from
+         * the parent. However, we will need to generate a new transaction id UPON ELEVATION. We
+         * do this by providing a subclass of the ReadOnly transaction
+         *
+         */
         if(parentTxn.equals(Txn.ROOT_TRANSACTION)){
             long beginTimestamp=getTimestamp();
             Txn newTxn = ReadOnlyTxn.createReadOnlyParentTransaction(beginTimestamp, beginTimestamp, isolationLevel, this, exceptionFactory, additive);

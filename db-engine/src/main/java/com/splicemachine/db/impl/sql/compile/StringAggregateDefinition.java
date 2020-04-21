@@ -43,7 +43,7 @@ import java.sql.Types;
  *
  */
 public class StringAggregateDefinition
-		implements AggregateDefinition
+        implements AggregateDefinition
 {
     private boolean isWindowFunction;
 
@@ -55,32 +55,32 @@ public class StringAggregateDefinition
         this.isWindowFunction = isWindowFunction;
     }
 
-	/**
-	 * Niladic constructor.  Does nothing.  For ease
-	 * Of use, only.
-	 */
-	public StringAggregateDefinition() { super(); }
+    /**
+     * Niladic constructor.  Does nothing.  For ease
+     * Of use, only.
+     */
+    public StringAggregateDefinition() { super(); }
 
-	/**
-	 * Determines the result datatype. We can run
-	 * count() on anything, and it always returns a
-	 * INTEGER (java.lang.Integer).
-	 *
-	 * @param inputType the input type, either a user type or a java.lang object
-	 *
-	 * @return the output Class (null if cannot operate on
-	 *	value expression of this type.
-	 */
-	public final DataTypeDescriptor	getAggregator(DataTypeDescriptor inputType,
-				StringBuffer aggregatorClass) 
-	{
+    /**
+     * Determines the result datatype. We can run
+     * count() on anything, and it always returns a
+     * INTEGER (java.lang.Integer).
+     *
+     * @param inputType the input type, either a user type or a java.lang object
+     *
+     * @return the output Class (null if cannot operate on
+     *    value expression of this type.
+     */
+    public final DataTypeDescriptor    getAggregator(DataTypeDescriptor inputType,
+                StringBuffer aggregatorClass) 
+    {
         if (isWindowFunction) {
             aggregatorClass.append(ClassName.WindowStringAggregator);
         }
         else {
             aggregatorClass.append(ClassName.StringAggregator);
         }
-		return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true);
-	}
+        return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true);
+    }
 
 }

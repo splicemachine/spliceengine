@@ -42,13 +42,13 @@ import java.util.Hashtable;
 
 public class ProviderList extends Hashtable<UUID, Provider>
 {
-	/**
-	 * Add a Provider to the list.
-	 *
-	 * @param prov	The Provider to add to the list.
-	 */
-	public void addProvider(Provider prov)
-	{
-		put (prov.getObjectID(), prov);
-	}
+    /**
+     * Add a Provider to the list.
+     *
+     * @param prov    The Provider to add to the list.
+     */
+    public void addProvider(Provider prov)
+    {
+        put (prov.getObjectID(), prov);
+    }
 }

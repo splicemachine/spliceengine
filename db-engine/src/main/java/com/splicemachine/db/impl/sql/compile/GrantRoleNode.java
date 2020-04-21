@@ -54,7 +54,7 @@ public class GrantRoleNode extends DDLStatementNode
      * @param grantees list of strings containing grantee names
      */
     public void init(Object roles,
-					 Object grantees,
+                     Object grantees,
                      Object isDefaultRole)
         throws StandardException
     {
@@ -107,9 +107,9 @@ public class GrantRoleNode extends DDLStatementNode
                         " TO: " +
                         sb2.toString() + (isDefaultRole?" AS DEFAULT": "") +
                         "\n");
-		} else {
-			return "";
-		}
+        } else {
+            return "";
+        }
     } // end of toString
 
     public String statementToString()

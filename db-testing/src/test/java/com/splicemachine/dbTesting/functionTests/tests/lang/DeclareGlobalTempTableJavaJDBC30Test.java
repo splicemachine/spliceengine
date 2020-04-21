@@ -63,7 +63,7 @@ public class DeclareGlobalTempTableJavaJDBC30Test extends BaseJDBCTestCase {
     public DeclareGlobalTempTableJavaJDBC30Test(String name)
     {
         super(name);
-    }	
+    }    
     public static Test suite() {
         TestSuite suite = new TestSuite();
         suite.addTest(TestConfiguration.embeddedSuite(
@@ -232,7 +232,7 @@ public class DeclareGlobalTempTableJavaJDBC30Test extends BaseJDBCTestCase {
         ResultSet rs2 = ps3.executeQuery();
         JDBC.assertSingleValueResultSet(rs2 , "2");
         PreparedStatement ps4 = getConnection().prepareStatement(
-                "select * from SESSION.t2", ResultSet.TYPE_FORWARD_ONLY, 		    ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT );
+                "select * from SESSION.t2", ResultSet.TYPE_FORWARD_ONLY,             ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT );
         //hold cursor open on t2 but close it before commit
         rs2 = ps4.executeQuery();
         rs2.next();
@@ -257,7 +257,7 @@ public class DeclareGlobalTempTableJavaJDBC30Test extends BaseJDBCTestCase {
      *
      *  @throws SQLException 
      */
-    public void testOnCommitPreserveRowsWithHoldability() throws SQLException	{
+    public void testOnCommitPreserveRowsWithHoldability() throws SQLException    {
         //create a statement with hold cursors over commit
         Statement s1 = getConnection().createStatement(
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
@@ -322,7 +322,7 @@ public class DeclareGlobalTempTableJavaJDBC30Test extends BaseJDBCTestCase {
         //back hence we should have t1
         getConnection().rollback(savepoint2);
         JDBC.assertSingleValueResultSet(s.executeQuery(
-                "select count(*) from SESSION.t1") , "0");	
+                "select count(*) from SESSION.t1") , "0");    
         //Rollback to the First savepoint - create table Operation is also 
         //rolled back hence there is no t1
         getConnection().rollback(savepoint1);
@@ -355,7 +355,7 @@ public class DeclareGlobalTempTableJavaJDBC30Test extends BaseJDBCTestCase {
                 "select count(*) from SESSION.t1") , "0");
         JDBC.assertSingleValueResultSet(s.executeQuery(
                 "select count(*) from SESSION.t2") , "0");
-        //Drop the Temp Table t2 Explicitly and t1 Implicitly(by rolling back)	
+        //Drop the Temp Table t2 Explicitly and t1 Implicitly(by rolling back)    
         s.executeUpdate("drop table SESSION.t2");
         rollback();
         assertStatementError("42X05" , s , "select * from SESSION.t1");
@@ -484,7 +484,7 @@ public class DeclareGlobalTempTableJavaJDBC30Test extends BaseJDBCTestCase {
         //rollback the transaction
         rollback();
         rs1 = s.executeQuery("select * from SESSION.t1");
-        JDBC.assertColumnNames(rs1 , s1);	
+        JDBC.assertColumnNames(rs1 , s1);    
         s.executeUpdate("drop table SESSION.t1");
     }
     /**
@@ -850,7 +850,7 @@ public class DeclareGlobalTempTableJavaJDBC30Test extends BaseJDBCTestCase {
         JDBC.assertSingleValueResultSet(s.executeQuery(
                 "select count(*) from SESSION.t2") , "2");
         s.executeUpdate("drop table SESSION.t2");
-    }	
+    }    
     /**
      *  Test declared temporary table with ON COMMIT DELETE ROWS and holdable 
      *  cursors and temp table as part of subquery
@@ -869,7 +869,7 @@ public class DeclareGlobalTempTableJavaJDBC30Test extends BaseJDBCTestCase {
         catch(SQLException e)
         {
             assertSQLState("42Y55" , e);
-        }	
+        }    
         s1.executeUpdate("create table t1(c11 int, c12 int)");
         s1.executeUpdate("declare global temporary table SESSION.t1(" +
                 "c11 int, c12 int) on commit delete rows not logged");

@@ -48,7 +48,7 @@ public interface CipherFactoryBuilder
      *
      * @param create    true, if the database is getting configured 
      *                  for encryption.
-     * @param props	    encryption properties/attributes to use
+     * @param props        encryption properties/attributes to use
      *                  for creating the cipher factory.
      * @param newAttrs  true, if cipher factory has to be created using 
      *                  the new attributes specified by the user. 

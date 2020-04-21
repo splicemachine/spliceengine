@@ -41,7 +41,7 @@ import com.splicemachine.db.iapi.util.ByteArray;
  *
  * Limitations:
  *   No checking for language use violations such as invalid modifiers
- *	or duplicate field names.
+ *    or duplicate field names.
  *   All classes must have a superclass; java.lang.Object must be
  *      supplied if there is no superclass.
  *
@@ -65,140 +65,140 @@ import com.splicemachine.db.iapi.util.ByteArray;
  */
 public interface ClassBuilder {
 
-	/**
-	 * add a field to this class. Fields cannot
-	 * be initialized here, they must be initialized
-	 * in the static initializer code (static fields)
-	 * or in the constructors.
-	 * <p>
-	 * Methods are added when they are created with the JavaFactory.
-	 * @param type	The type of the field in java language.
-	 * @param name	The name of the field.
-	 * @param modifiers	The | of the modifier values such as
-	 *					public, static, etc.
-	 * @see ClassBuilder#newMethodBuilder
-	 * @see #newConstructorBuilder
-	 */
-	LocalField addField(String type, String name, int modifiers);
+    /**
+     * add a field to this class. Fields cannot
+     * be initialized here, they must be initialized
+     * in the static initializer code (static fields)
+     * or in the constructors.
+     * <p>
+     * Methods are added when they are created with the JavaFactory.
+     * @param type    The type of the field in java language.
+     * @param name    The name of the field.
+     * @param modifiers    The | of the modifier values such as
+     *                    public, static, etc.
+     * @see ClassBuilder#newMethodBuilder
+     * @see #newConstructorBuilder
+     */
+    LocalField addField(String type, String name, int modifiers);
 
-	/**
-		Fully create the bytecode and load the
-		class using the ClassBuilder's ClassFactory.
+    /**
+        Fully create the bytecode and load the
+        class using the ClassBuilder's ClassFactory.
 
-		@exception StandardException Standard Derby policy
-	*/
-	GeneratedClass getGeneratedClass() throws StandardException;
+        @exception StandardException Standard Derby policy
+    */
+    GeneratedClass getGeneratedClass() throws StandardException;
 
-	/**
-	 * At the time the class is completed and bytecode
-	 * generated, if there are no constructors then
-	 * the default no-arg constructor will be defined.
-	 */
-	ByteArray getClassBytecode() throws StandardException;
+    /**
+     * At the time the class is completed and bytecode
+     * generated, if there are no constructors then
+     * the default no-arg constructor will be defined.
+     */
+    ByteArray getClassBytecode() throws StandardException;
 
-	/**
-	 * the class's unqualified name
-	 */
-	String getName();
+    /**
+     * the class's unqualified name
+     */
+    String getName();
 
-	/**
-	 * the class's qualified name
-	 */
-	String getFullName();
+    /**
+     * the class's qualified name
+     */
+    String getFullName();
 
-	/**
-	 * a method. Once it is created, parameters, thrown
-	 * exceptions, statements, and local variable declarations
-	 * must be added to it. It is put into its defining class
-	 * when it is created.
-	 * <verbatim>
-	   Java: #modifiers #returnType #methodName() {}
-	  		// modifiers is the | of the JVM constants for
-	  		// the modifiers such as static, public, etc.
+    /**
+     * a method. Once it is created, parameters, thrown
+     * exceptions, statements, and local variable declarations
+     * must be added to it. It is put into its defining class
+     * when it is created.
+     * <verbatim>
+       Java: #modifiers #returnType #methodName() {}
+              // modifiers is the | of the JVM constants for
+              // the modifiers such as static, public, etc.
        </verbatim>
-	   <p>
-	 * This is used to start a constructor as well; pass in
-	 * null for the returnType when used in that manner.
-	 *
-	 * @param modifiers the | of the Modifier
-	 *	constants representing the visibility and control of this
-	 *	method.
-	 * @param returnType the return type of the method as its
-	 *	Java language type name.
-	 * @param methodName the name of the method.
-	 *
-	 * @return the method builder.
-	 * @see java.lang.reflect.Modifier
-	 */
-	MethodBuilder newMethodBuilder(int modifiers, String returnType,
-		String methodName);
-	
-	/**
-	 * a method with parameters. Once it is created, thrown
-	 * exceptions, statements, and local variable declarations
-	 * must be added to it. It is put into its defining class
-	 * when it is created.
-	 * <verbatim>
-	   Java: #modifiers #returnType #methodName() {}
-	  		// modifiers is the | of the JVM constants for
-	  		// the modifiers such as static, public, etc.
+       <p>
+     * This is used to start a constructor as well; pass in
+     * null for the returnType when used in that manner.
+     *
+     * @param modifiers the | of the Modifier
+     *    constants representing the visibility and control of this
+     *    method.
+     * @param returnType the return type of the method as its
+     *    Java language type name.
+     * @param methodName the name of the method.
+     *
+     * @return the method builder.
+     * @see java.lang.reflect.Modifier
+     */
+    MethodBuilder newMethodBuilder(int modifiers, String returnType,
+        String methodName);
+    
+    /**
+     * a method with parameters. Once it is created, thrown
+     * exceptions, statements, and local variable declarations
+     * must be added to it. It is put into its defining class
+     * when it is created.
+     * <verbatim>
+       Java: #modifiers #returnType #methodName() {}
+              // modifiers is the | of the JVM constants for
+              // the modifiers such as static, public, etc.
        </verbatim>
-	   <p>
-	 * This is used to start a constructor as well; pass in
-	 * null for the returnType when used in that manner.
-	 *
-	 * @param modifiers the | of the Modifier
-	 *	constants representing the visibility and control of this
-	 *	method.
-	 * @param returnType the return type of the method as its
-	 *	Java language type name.
-	 * @param methodName the name of the method.
-	 * @param parms	an array of String representing the
-	 *				method's parameter types
-	 *
-	 * @return the method builder.
-	 * @see java.lang.reflect.Modifier
-	 */
-	MethodBuilder newMethodBuilder(int modifiers, String returnType,
-		String methodName, String[] parms);
+       <p>
+     * This is used to start a constructor as well; pass in
+     * null for the returnType when used in that manner.
+     *
+     * @param modifiers the | of the Modifier
+     *    constants representing the visibility and control of this
+     *    method.
+     * @param returnType the return type of the method as its
+     *    Java language type name.
+     * @param methodName the name of the method.
+     * @param parms    an array of String representing the
+     *                method's parameter types
+     *
+     * @return the method builder.
+     * @see java.lang.reflect.Modifier
+     */
+    MethodBuilder newMethodBuilder(int modifiers, String returnType,
+        String methodName, String[] parms);
 
-	/**
-	 * a constructor. Once it is created, parameters, thrown
-	 * exceptions, statements, and local variable declarations
-	 * must be added to it. It is put into its defining class
-	 * when it is created.
-	 * <verbatim>
-	   Java: #modifiers #className() {}
-	  		// modifiers is the | of the JVM constants for
-	  		// the modifiers such as static, public, etc.
-	  		// className is taken from definingClass.name()
+    /**
+     * a constructor. Once it is created, parameters, thrown
+     * exceptions, statements, and local variable declarations
+     * must be added to it. It is put into its defining class
+     * when it is created.
+     * <verbatim>
+       Java: #modifiers #className() {}
+              // modifiers is the | of the JVM constants for
+              // the modifiers such as static, public, etc.
+              // className is taken from definingClass.name()
        </verbatim>
-	 * <p>
-	 * This is used to start a constructor as well; pass in
-	 * null for the returnType when used in that manner.
-	 *
-	 * @param modifiers the | of the Modifier
-	 *	constants representing the visibility and control of this
-	 *	method.
-	 *
-	 * @return the method builder for the constructor.
-	 * @see java.lang.reflect.Modifier
-	 */
-	MethodBuilder newConstructorBuilder(int modifiers);
+     * <p>
+     * This is used to start a constructor as well; pass in
+     * null for the returnType when used in that manner.
+     *
+     * @param modifiers the | of the Modifier
+     *    constants representing the visibility and control of this
+     *    method.
+     *
+     * @return the method builder for the constructor.
+     * @see java.lang.reflect.Modifier
+     */
+    MethodBuilder newConstructorBuilder(int modifiers);
 
-	/**
-		Create a new private field and its getter and setter methods.
+    /**
+        Create a new private field and its getter and setter methods.
 
-		@param getter getter for field
-		@param setter setter for field
-		@param methodModifier modifier for method
-		@param staticField true if the field is static
-		@param type type of the field, return type of the get method and
-		parameter type of the set method.
+        @param getter getter for field
+        @param setter setter for field
+        @param methodModifier modifier for method
+        @param staticField true if the field is static
+        @param type type of the field, return type of the get method and
+        parameter type of the set method.
 
-	*/
-	void newFieldWithAccessors(String getter, String setter, int methodModifier,
-		boolean staticField, String type);
+    */
+    void newFieldWithAccessors(String getter, String setter, int methodModifier,
+        boolean staticField, String type);
 
-	boolean existsField(String javaType, String name);
+    boolean existsField(String javaType, String name);
 }

@@ -51,22 +51,22 @@ package com.splicemachine.db.iapi.types;
 public interface Orderable
 {
 
-	/**	 Ordering operation constant representing '<' **/
-	int ORDER_OP_LESSTHAN = 1;
-	/**	 Ordering operation constant representing '=' **/
-	int ORDER_OP_EQUALS = 2;
-	/**	 Ordering operation constant representing '<=' **/
-	int ORDER_OP_LESSOREQUALS = 3;
+    /**     Ordering operation constant representing '<' **/
+    int ORDER_OP_LESSTHAN = 1;
+    /**     Ordering operation constant representing '=' **/
+    int ORDER_OP_EQUALS = 2;
+    /**     Ordering operation constant representing '<=' **/
+    int ORDER_OP_LESSOREQUALS = 3;
 
-	/** 
-	 * These 2 ordering operations are used by the language layer
-	 * when flipping the operation due to type precedence rules.
-	 * (For example, 1 < 1.1 -> 1.1 > 1)
-	 */
-	/**	 Ordering operation constant representing '>' **/
-	int ORDER_OP_GREATERTHAN = 4;
-	/**	 Ordering operation constant representing '>=' **/
-	int ORDER_OP_GREATEROREQUALS = 5;
+    /** 
+     * These 2 ordering operations are used by the language layer
+     * when flipping the operation due to type precedence rules.
+     * (For example, 1 < 1.1 -> 1.1 > 1)
+     */
+    /**     Ordering operation constant representing '>' **/
+    int ORDER_OP_GREATERTHAN = 4;
+    /**     Ordering operation constant representing '>=' **/
+    int ORDER_OP_GREATEROREQUALS = 5;
 
 
 }

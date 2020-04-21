@@ -146,7 +146,7 @@ import com.splicemachine.dbTesting.junit.TestConfiguration;
  */
 
 public class BatchUpdateTest extends BaseJDBCTestCase {
-	
+    
     /** Creates a new instance of BatchUpdateTest */
     public BatchUpdateTest(String name) {
         super(name);

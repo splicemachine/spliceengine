@@ -61,20 +61,20 @@ public class ConnectWrongSubprotocolTest extends BaseJDBCTestCase {
         if (!Derby.hasTools())
             return new TestSuite("empty: no tools support");
         
-    	Properties props = new Properties();        
+        Properties props = new Properties();        
         props.setProperty("ij.connection.wrongSubprotocol", "jdbc:noone:fruitfly;create=true");
         
         Test test = TestConfiguration.embeddedSuite(ConnectWrongSubprotocolTest.class);
         
-    	return new SystemPropertyTestSetup(test, props);
+        return new SystemPropertyTestSetup(test, props);
     }
     
     public void testConnectWrongSubprotocolWithSystemProperty()
-    		throws UnsupportedEncodingException, SQLException {
-    	String emptyIjScript = "";
-    	boolean useSystemProperties = true;
-    	
-    	checkConnectWrongSubprotocol(emptyIjScript, useSystemProperties);    	
+            throws UnsupportedEncodingException, SQLException {
+        String emptyIjScript = "";
+        boolean useSystemProperties = true;
+        
+        checkConnectWrongSubprotocol(emptyIjScript, useSystemProperties);        
     }
     
     public void testConnectWrongSubprotoctestolWithoutSystemProperty()
@@ -95,7 +95,7 @@ public class ConnectWrongSubprotocolTest extends BaseJDBCTestCase {
     private String runIjScript(String ijScript, boolean useSystemProperties) 
             throws UnsupportedEncodingException, SQLException {
         ByteArrayInputStream bais = 
-        		new ByteArrayInputStream(ijScript.getBytes("US-ASCII"));
+                new ByteArrayInputStream(ijScript.getBytes("US-ASCII"));
         ByteArrayOutputStream baos = new ByteArrayOutputStream(10 * 1024);
         Connection conn = getConnection();
         

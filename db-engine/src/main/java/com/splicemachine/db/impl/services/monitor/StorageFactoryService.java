@@ -96,7 +96,7 @@ final class StorageFactoryService implements PersistentService
         this.storageFactoryClass = storageFactoryClass;
 
         Object monitorEnv = Monitor.getMonitor().getEnvironment();
-		if (monitorEnv instanceof File)
+        if (monitorEnv instanceof File)
         {
             final File relativeRoot = (File) monitorEnv;
             try
@@ -150,9 +150,9 @@ final class StorageFactoryService implements PersistentService
     } // end of constructor
 
     
-	/*
-	** Methods of PersistentService
-	*/
+    /*
+    ** Methods of PersistentService
+    */
 
     /**
      * @return true if the PersistentService has a StorageFactory, false if not.
@@ -224,23 +224,23 @@ final class StorageFactoryService implements PersistentService
         return storageFactory;
     } // end of privGetStorageFactoryInstance
         
-	/**	
-		The type of the service is 'directory'
+    /**    
+        The type of the service is 'directory'
 
-		@see PersistentService#getType
-	*/
-	public String getType()
+        @see PersistentService#getType
+    */
+    public String getType()
     {
         return subSubProtocol;
     }
 
 
-	/**
-	    Return a list of all the directoies in the system directory.
+    /**
+        Return a list of all the directoies in the system directory.
 
-		@see PersistentService#getBootTimeServices
-	*/
-	public Enumeration getBootTimeServices()
+        @see PersistentService#getBootTimeServices
+    */
+    public Enumeration getBootTimeServices()
     {
         if( home == null)
             return null;
@@ -248,29 +248,29 @@ final class StorageFactoryService implements PersistentService
     }
 
     /**
-		Open the service properties in the directory identified by the service name.
+        Open the service properties in the directory identified by the service name.
 
-		@return A Properties object or null if serviceName does not represent a valid service.
+        @return A Properties object or null if serviceName does not represent a valid service.
 
-		@exception StandardException Service appears valid but the properties cannot be created.
-	*/
-	public Properties getServiceProperties( final String serviceName, Properties defaultProperties)
-		throws StandardException
+        @exception StandardException Service appears valid but the properties cannot be created.
+    */
+    public Properties getServiceProperties( final String serviceName, Properties defaultProperties)
+        throws StandardException
     {
-		if (SanityManager.DEBUG) {
-			if (! serviceName.equals(getCanonicalServiceName(serviceName)))
-			{
-				SanityManager.THROWASSERT("serviceName (" + serviceName + 
-										  ") expected to equal getCanonicalServiceName(serviceName) (" +
-										  getCanonicalServiceName(serviceName) + ")");
-			}
-		}
+        if (SanityManager.DEBUG) {
+            if (! serviceName.equals(getCanonicalServiceName(serviceName)))
+            {
+                SanityManager.THROWASSERT("serviceName (" + serviceName + 
+                                          ") expected to equal getCanonicalServiceName(serviceName) (" +
+                                          getCanonicalServiceName(serviceName) + ")");
+            }
+        }
 
-		//recreate the service root  if requested by the user.
-		final String recreateFrom = recreateServiceRoot(serviceName, defaultProperties);
+        //recreate the service root  if requested by the user.
+        final String recreateFrom = recreateServiceRoot(serviceName, defaultProperties);
 
         final Properties serviceProperties = new Properties(defaultProperties);
-		try
+        try
         {
             AccessController.doPrivileged(
                 new PrivilegedExceptionAction()
@@ -306,31 +306,31 @@ final class StorageFactoryService implements PersistentService
                 }
                 );
 
-			return serviceProperties;
-		}
+            return serviceProperties;
+        }
         catch (PrivilegedActionException pae)
         {
             if( pae.getException() instanceof FileNotFoundException)
                 return null;
             throw Monitor.exceptionStartingModule( pae.getException());
         }
-		catch (SecurityException se) { throw Monitor.exceptionStartingModule(/*serviceName, */ se);	}
-	} // end of getServiceProperties
+        catch (SecurityException se) { throw Monitor.exceptionStartingModule(/*serviceName, */ se);    }
+    } // end of getServiceProperties
 
 
-	/**
-		@exception StandardException Properties cannot be saved.
-	*/
+    /**
+        @exception StandardException Properties cannot be saved.
+    */
 
-	public void saveServiceProperties( final String serviceName,
+    public void saveServiceProperties( final String serviceName,
                                        StorageFactory sf,
                                        final Properties properties,
                                        final boolean replace)
-		throws StandardException
+        throws StandardException
     {
-		if (SanityManager.DEBUG)
+        if (SanityManager.DEBUG)
         {
-			SanityManager.ASSERT(serviceName.equals(getCanonicalServiceName(serviceName)), serviceName);
+            SanityManager.ASSERT(serviceName.equals(getCanonicalServiceName(serviceName)), serviceName);
         }
         if( ! (sf instanceof WritableStorageFactory))
             throw StandardException.newException(SQLState.READ_ONLY_SERVICE);
@@ -407,7 +407,7 @@ final class StorageFactoryService implements PersistentService
                                 }
                             }
                         }
-		
+        
                         if (backupFile != null)
                         {
                             if (!foh.delete(backupFile, false))
@@ -425,7 +425,7 @@ final class StorageFactoryService implements PersistentService
                 );
         }
         catch( PrivilegedActionException pae) { throw (StandardException) pae.getException();}
-	} // end of saveServiceProperties
+    } // end of saveServiceProperties
 
 
     /**
@@ -437,9 +437,9 @@ final class StorageFactoryService implements PersistentService
      * @exception StandardException Properties cannot be saved.
      */
 
-	public void saveServiceProperties(final String serviceName, 
+    public void saveServiceProperties(final String serviceName, 
                                       final Properties properties)
-		throws StandardException {
+        throws StandardException {
 
         try
         {
@@ -478,7 +478,7 @@ final class StorageFactoryService implements PersistentService
 
                             throw Monitor.exceptionStartingModule(ioe);
                         }
-		
+        
                         return null;
                     }
                 }
@@ -574,64 +574,64 @@ final class StorageFactoryService implements PersistentService
     }
                 
     /*
-	**Recreates service root if required depending on which of the following
-	**attribute is specified on the conection URL:
-	** Attribute.CREATE_FROM (Create database from backup if it does not exist):
-	** When a database not exist, the service(database) root is created
-	** and the PersistentService.PROPERTIES_NAME (service.properties) file
-	** is restored from the backup.
-	** Attribute.RESTORE_FROM (Delete the whole database if it exists and then restore
-	** it from backup)
-	** Existing database root  is deleted and the new the service(database) root is created.
-	** PersistentService.PROPERTIES_NAME (service.properties) file is restored from the backup.
-	** Attribute.ROLL_FORWARD_RECOVERY_FROM:(Perform Rollforward Recovery;
-	** except for the log directory everthing else is replced  by the copy  from
-	** backup. log files in the backup are copied to the existing online log
-	** directory.):
-	** When a database not exist, the service(database) root is created.
-	** PersistentService.PROPERTIES_NAME (service.properties) file is deleted
-	** from the service dir and  recreated with the properties from backup.
-	*/
+    **Recreates service root if required depending on which of the following
+    **attribute is specified on the conection URL:
+    ** Attribute.CREATE_FROM (Create database from backup if it does not exist):
+    ** When a database not exist, the service(database) root is created
+    ** and the PersistentService.PROPERTIES_NAME (service.properties) file
+    ** is restored from the backup.
+    ** Attribute.RESTORE_FROM (Delete the whole database if it exists and then restore
+    ** it from backup)
+    ** Existing database root  is deleted and the new the service(database) root is created.
+    ** PersistentService.PROPERTIES_NAME (service.properties) file is restored from the backup.
+    ** Attribute.ROLL_FORWARD_RECOVERY_FROM:(Perform Rollforward Recovery;
+    ** except for the log directory everthing else is replced  by the copy  from
+    ** backup. log files in the backup are copied to the existing online log
+    ** directory.):
+    ** When a database not exist, the service(database) root is created.
+    ** PersistentService.PROPERTIES_NAME (service.properties) file is deleted
+    ** from the service dir and  recreated with the properties from backup.
+    */
 
-	protected String recreateServiceRoot( final String serviceName,
-										  Properties properties) throws StandardException
-	{
-		//if there are no propertues then nothing to do in this routine
-		if(properties == null) {
-			return null;
-		}
+    protected String recreateServiceRoot( final String serviceName,
+                                          Properties properties) throws StandardException
+    {
+        //if there are no propertues then nothing to do in this routine
+        if(properties == null) {
+            return null;
+        }
 
-		String restoreFrom; //location where backup copy of service properties available
-		boolean createRoot = false;
-		boolean deleteExistingRoot = false;
+        String restoreFrom; //location where backup copy of service properties available
+        boolean createRoot = false;
+        boolean deleteExistingRoot = false;
         
-		//check if user wants to create a database from a backup copy
-		restoreFrom = properties.getProperty(Attribute.CREATE_FROM);
-		if(restoreFrom !=null)
-		{
-			//create root dicretory if it  does not exist.
-			createRoot =true;
-			deleteExistingRoot = false;
-		}
+        //check if user wants to create a database from a backup copy
+        restoreFrom = properties.getProperty(Attribute.CREATE_FROM);
+        if(restoreFrom !=null)
+        {
+            //create root dicretory if it  does not exist.
+            createRoot =true;
+            deleteExistingRoot = false;
+        }
         else
-		{	//check if user requested a complete restore(version recovery) from backup
-			restoreFrom = properties.getProperty(Attribute.RESTORE_FROM);
-			//create root dir if it does not exists and  if there exists one already delete and recreate
-			if(restoreFrom !=null)
+        {    //check if user requested a complete restore(version recovery) from backup
+            restoreFrom = properties.getProperty(Attribute.RESTORE_FROM);
+            //create root dir if it does not exists and  if there exists one already delete and recreate
+            if(restoreFrom !=null)
             {
-				createRoot =true;
-				deleteExistingRoot = true;
-			}
+                createRoot =true;
+                deleteExistingRoot = true;
+            }
             else
-			{
-				//check if user has requested roll forward recovery using a backup
-				restoreFrom = properties.getProperty(Attribute.ROLL_FORWARD_RECOVERY_FROM);
-				if(restoreFrom !=null)
-				{
-					//if service root does not exist then only create one
-					//This is useful when logDevice was on some other device
-					//and the device on which data directorties existied has
-					//failed and user is trying to restore it some other device.
+            {
+                //check if user has requested roll forward recovery using a backup
+                restoreFrom = properties.getProperty(Attribute.ROLL_FORWARD_RECOVERY_FROM);
+                if(restoreFrom !=null)
+                {
+                    //if service root does not exist then only create one
+                    //This is useful when logDevice was on some other device
+                    //and the device on which data directorties existied has
+                    //failed and user is trying to restore it some other device.
                     try
                     {
                         if( AccessController.doPrivileged(
@@ -661,24 +661,24 @@ final class StorageFactoryService implements PersistentService
                     {
                         throw Monitor.exceptionStartingModule( (IOException) pae.getException());
                     }
-				}
-			}
-		}
+                }
+            }
+        }
 
-		//restore the service properties from backup
-		if(restoreFrom != null)
-		{
-			//First make sure backup service directory exists in the specified path
-			File backupRoot = new File(restoreFrom);
-			if (fileExists(backupRoot))
-			{
-				//First make sure backup have service.properties
-				File bserviceProp = new File(restoreFrom, PersistentService.PROPERTIES_NAME);
-				if(fileExists(bserviceProp))
-				{
-					//create service root if required
-					if(createRoot)
-						createServiceRoot(serviceName, deleteExistingRoot);
+        //restore the service properties from backup
+        if(restoreFrom != null)
+        {
+            //First make sure backup service directory exists in the specified path
+            File backupRoot = new File(restoreFrom);
+            if (fileExists(backupRoot))
+            {
+                //First make sure backup have service.properties
+                File bserviceProp = new File(restoreFrom, PersistentService.PROPERTIES_NAME);
+                if(fileExists(bserviceProp))
+                {
+                    //create service root if required
+                    if(createRoot)
+                        createServiceRoot(serviceName, deleteExistingRoot);
                     try
                     {
                         AccessController.doPrivileged(
@@ -709,33 +709,33 @@ final class StorageFactoryService implements PersistentService
                     }
                     catch( PrivilegedActionException pae)
                     { throw Monitor.exceptionStartingModule( (IOException)pae.getException());}
-				}
+                }
                 else
-					throw StandardException.newException(SQLState.PROPERTY_FILE_NOT_FOUND_IN_BACKUP, bserviceProp);
-			}
+                    throw StandardException.newException(SQLState.PROPERTY_FILE_NOT_FOUND_IN_BACKUP, bserviceProp);
+            }
             else
-				throw StandardException.newException(SQLState.SERVICE_DIRECTORY_NOT_IN_BACKUP, backupRoot);
+                throw StandardException.newException(SQLState.SERVICE_DIRECTORY_NOT_IN_BACKUP, backupRoot);
 
-			properties.put(Property.IN_RESTORE_FROM_BACKUP,"True");
-			if(createRoot)
-				properties.put(Property.DELETE_ROOT_ON_ERROR, "True");
-		}
-		return restoreFrom;
-	} // end of recreateServiceRoot
+            properties.put(Property.IN_RESTORE_FROM_BACKUP,"True");
+            if(createRoot)
+                properties.put(Property.DELETE_ROOT_ON_ERROR, "True");
+        }
+        return restoreFrom;
+    } // end of recreateServiceRoot
 
-	/**
-		Properties cannot be saved
-	*/
-	public String createServiceRoot(final String name, final boolean deleteExisting)
-		throws StandardException
+    /**
+        Properties cannot be saved
+    */
+    public String createServiceRoot(final String name, final boolean deleteExisting)
+        throws StandardException
     {
         if( !( rootStorageFactory instanceof WritableStorageFactory))
             throw StandardException.newException(SQLState.READ_ONLY_SERVICE);
-		// we need to create the directory before we can call
-		// getCanonicalPath() on it, because if intermediate directories
-		// need to be created the getCanonicalPath() will fail.
+        // we need to create the directory before we can call
+        // getCanonicalPath() on it, because if intermediate directories
+        // need to be created the getCanonicalPath() will fail.
 
-		Throwable t = null;
+        Throwable t = null;
         try
         {
             return getProtocolLeadIn() + (String) AccessController.doPrivileged(
@@ -789,7 +789,7 @@ final class StorageFactoryService implements PersistentService
                     }
                 }
                 );
-		}
+        }
         catch (SecurityException se) { t = se; }
         catch (PrivilegedActionException pae)
         {
@@ -837,7 +837,7 @@ final class StorageFactoryService implements PersistentService
         return sb.toString();
     } // end of getDirectoryPath
 
-	public boolean removeServiceRoot(final String serviceName)
+    public boolean removeServiceRoot(final String serviceName)
     {
         if( !( rootStorageFactory instanceof WritableStorageFactory))
             return false;
@@ -881,10 +881,10 @@ final class StorageFactoryService implements PersistentService
                 ) != null;
         }
         catch( PrivilegedActionException pae){ return false;}
-	} // end of removeServiceRoot
+    } // end of removeServiceRoot
 
-	public String getCanonicalServiceName(String name)
-		throws StandardException
+    public String getCanonicalServiceName(String name)
+        throws StandardException
     {
         int colon = name.indexOf( ':');
         // If no subsubprotocol is specified and the storage factory type isn't
@@ -921,42 +921,42 @@ final class StorageFactoryService implements PersistentService
                 }
                 );
         }
-		catch (PrivilegedActionException pae)
+        catch (PrivilegedActionException pae)
         {
-			throw Monitor.exceptionStartingModule(pae.getException());
-		}
-	} // end of getCanonicalServiceName
+            throw Monitor.exceptionStartingModule(pae.getException());
+        }
+    } // end of getCanonicalServiceName
 
-	public String getUserServiceName(String serviceName)
+    public String getUserServiceName(String serviceName)
     {
-		if (home != null)
+        if (home != null)
         {
-			// allow for file separatorChar by adding 1 to the length
-			if ((serviceName.length() > (canonicalHome.length() + 1)) && serviceName.startsWith(canonicalHome))
+            // allow for file separatorChar by adding 1 to the length
+            if ((serviceName.length() > (canonicalHome.length() + 1)) && serviceName.startsWith(canonicalHome))
             {
-				serviceName = serviceName.substring(canonicalHome.length());
-				if (serviceName.charAt(0) == separatorChar)
-					serviceName = serviceName.substring(1);
-			}
-		}
+                serviceName = serviceName.substring(canonicalHome.length());
+                if (serviceName.charAt(0) == separatorChar)
+                    serviceName = serviceName.substring(1);
+            }
+        }
 
-		return serviceName.replace( separatorChar, '/');
-	}
+        return serviceName.replace( separatorChar, '/');
+    }
 
-	public boolean isSameService(String serviceName1, String serviceName2)
+    public boolean isSameService(String serviceName1, String serviceName2)
     {
-		if (SanityManager.DEBUG)
+        if (SanityManager.DEBUG)
         {
-			try {
+            try {
             SanityManager.ASSERT(serviceName1.equals(getCanonicalServiceName(serviceName1)), serviceName1);
-			SanityManager.ASSERT(serviceName2.equals(getCanonicalServiceName(serviceName2)), serviceName2);
-			} catch (StandardException se)
-			{
-				return false;
-			}
-		}
-		return serviceName1.equals(serviceName2);
-	} // end of isSameService
+            SanityManager.ASSERT(serviceName2.equals(getCanonicalServiceName(serviceName2)), serviceName2);
+            } catch (StandardException se)
+            {
+                return false;
+            }
+        }
+        return serviceName1.equals(serviceName2);
+    } // end of isSameService
 
     /**
      * Checks if the specified file exists.
@@ -1005,7 +1005,7 @@ final class StorageFactoryService implements PersistentService
     final class DirectoryList implements Enumeration, PrivilegedAction
     {
         private String[] contents;
-        private StorageFile systemDirectory;	 
+        private StorageFile systemDirectory;     
 
         private int      index;
         private boolean  validIndex;

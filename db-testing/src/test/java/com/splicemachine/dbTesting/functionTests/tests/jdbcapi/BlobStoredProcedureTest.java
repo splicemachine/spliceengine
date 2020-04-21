@@ -83,8 +83,8 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
      * @throws a SQLException.
      */
     protected void setUp() throws SQLException, UnsupportedEncodingException {
-    	 //Byte array obatined from the string
-    	byte [] strBytes = testStr.getBytes("US-ASCII");
+         //Byte array obatined from the string
+        byte [] strBytes = testStr.getBytes("US-ASCII");
 
         //initialize the locator to a default value.
         int locator = -1;

@@ -530,7 +530,7 @@ public interface DataValueFactory
          * if non-null, as the data holder to return.
          */
         XMLDataValue getXMLDataValue(XMLDataValue previous)
-			throws StandardException;
+            throws StandardException;
 
         /**
          * Get a SQL int with a SQL null value. If the supplied value

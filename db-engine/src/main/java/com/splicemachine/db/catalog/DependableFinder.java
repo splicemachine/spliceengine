@@ -35,7 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
 /**
-	
+    
   A DependableFinder is an object that can find an in-memory
   Dependable, given the Dependable's ID.
   
@@ -51,27 +51,27 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
   */
 public interface DependableFinder
 {
-	/**
-	  *	Get the in-memory object associated with the passed-in object ID.
-	  *
+    /**
+      *    Get the in-memory object associated with the passed-in object ID.
+      *
       * @param dd DataDictionary to use for lookup.
-	  *	@param	dependableObjectID the ID of a Dependable. Used to locate that Dependable.
-	  *
-	  *	@return	the associated Dependable
-	  * @exception StandardException		thrown if the object cannot be found or on error o
-	  */
-	Dependable	getDependable(DataDictionary dd,
-								UUID dependableObjectID) throws StandardException;
+      *    @param    dependableObjectID the ID of a Dependable. Used to locate that Dependable.
+      *
+      *    @return    the associated Dependable
+      * @exception StandardException        thrown if the object cannot be found or on error o
+      */
+    Dependable    getDependable(DataDictionary dd,
+                                UUID dependableObjectID) throws StandardException;
 
-	/**
-	  * The name of the class of Dependables as a "SQL Object" which this
-	  * Finder can find.
-	  * This is a value like "Table" or "View".
-	  *	Every DependableFinder can find some class of Dependables. 
-	  *
-	  *
-	  *	@return	String type of the "SQL Object" which this Finder can find.
-	  * @see Dependable
-	  */
-	String	getSQLObjectType();
+    /**
+      * The name of the class of Dependables as a "SQL Object" which this
+      * Finder can find.
+      * This is a value like "Table" or "View".
+      *    Every DependableFinder can find some class of Dependables. 
+      *
+      *
+      *    @return    String type of the "SQL Object" which this Finder can find.
+      * @see Dependable
+      */
+    String    getSQLObjectType();
 }

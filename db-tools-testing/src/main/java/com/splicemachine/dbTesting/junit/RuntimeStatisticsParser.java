@@ -42,7 +42,7 @@ public class RuntimeStatisticsParser {
     private boolean tableScan = false;
     private final boolean indexScan;
     private final boolean indexRowToBaseRow;
-	private final boolean lastKeyIndexScan;
+    private final boolean lastKeyIndexScan;
     private String statistics = "";
     private boolean scrollInsensitive = false;
     private final HashSet qualifiers;
@@ -58,7 +58,7 @@ public class RuntimeStatisticsParser {
      * 
      */
     public RuntimeStatisticsParser(String rts) {
-    	statistics = rts;
+        statistics = rts;
         if (rts.indexOf(" at serializable isolation level ") != -1)
             isolationLevel = Connection.TRANSACTION_SERIALIZABLE;
         else if (rts.indexOf("at read uncommitted isolation level") != -1)
@@ -69,11 +69,11 @@ public class RuntimeStatisticsParser {
             isolationLevel = Connection.TRANSACTION_REPEATABLE_READ;
 
         if (rts.indexOf("Distinct Scan ResultSet") > 0) {
-        	distinctScan = true;
+            distinctScan = true;
         }
         
         if (rts.indexOf("Table Scan ResultSet") > 0) {
-        	tableScan = true;
+            tableScan = true;
         }
 
         indexScan = (rts.indexOf("Index Scan ResultSet") >= 0);
@@ -82,7 +82,7 @@ public class RuntimeStatisticsParser {
         lastKeyIndexScan = (rts.indexOf("Last Key Index Scan ResultSet") >= 0);
         
         if (rts.indexOf("Eliminate duplicates = true") > 0) {
-        	eliminatedDuplicates = true;
+            eliminatedDuplicates = true;
         }
         if (rts.indexOf("Scroll Insensitive ResultSet:") > 0)
             scrollInsensitive = true;
@@ -181,7 +181,7 @@ public class RuntimeStatisticsParser {
      * query.
      */
     public boolean usedDistinctScan() {
-    	return distinctScan;
+        return distinctScan;
     }
     
     /**
@@ -189,7 +189,7 @@ public class RuntimeStatisticsParser {
      * query.
      */
     public boolean usedTableScan() {
-    	return tableScan;
+        return tableScan;
     }
     
     /**
@@ -208,7 +208,7 @@ public class RuntimeStatisticsParser {
      *     for the passed tableName
      */
     public boolean usedSpecificIndexForIndexScan(
-    		String tableName, String indexName){
+            String tableName, String indexName){
         return (statistics.indexOf("Index Scan ResultSet for " + 
                     tableName + " using index " + indexName + " ")!= -1);
     }
@@ -241,8 +241,8 @@ public class RuntimeStatisticsParser {
 
     /**
      * Return whether or not a last key index scan result set was used
-	 * in the query. A last key index scan is a special optimization for
-	 * MIN and MAX queries against an indexed column (SELECT MAX(ID) FROM T).
+     * in the query. A last key index scan is a special optimization for
+     * MIN and MAX queries against an indexed column (SELECT MAX(ID) FROM T).
      */
     public boolean usedLastKeyIndexScan() {
         return lastKeyIndexScan;
@@ -283,7 +283,7 @@ public class RuntimeStatisticsParser {
      * duplicates
      */
     public boolean eliminatedDuplicates() {
-    	return eliminatedDuplicates;
+        return eliminatedDuplicates;
     }
     
     public boolean isScrollInsensitive(){

@@ -46,63 +46,63 @@ import java.util.*;
 
 import junit.framework.*;
 
-public	class	DerbyJUnitTest	extends	TestCase
+public    class    DerbyJUnitTest    extends    TestCase
 {
     /////////////////////////////////////////////////////////////
     //
-    //	CONSTANTS
+    //    CONSTANTS
     //
     /////////////////////////////////////////////////////////////
 
     /** If you set this startup property to true, you will get chatty output. */
-    public	static	final			String	DEBUG_FLAG = "drb.tests.debug";
+    public    static    final            String    DEBUG_FLAG = "drb.tests.debug";
 
-    public	static	final			int		SUCCESS_EXIT = 0;
-    public	static	final			int		FAILURE_EXIT = 1;
+    public    static    final            int        SUCCESS_EXIT = 0;
+    public    static    final            int        FAILURE_EXIT = 1;
 
-    public	static	final	String	DEFAULT_USER_NAME = "SPLICE";
-    public	static	final	String	DEFAULT_PASSWORD = "SPLICE";
-    public	static	final	String	DEFAULT_DATABASE_NAME = "wombat";
+    public    static    final    String    DEFAULT_USER_NAME = "SPLICE";
+    public    static    final    String    DEFAULT_PASSWORD = "SPLICE";
+    public    static    final    String    DEFAULT_DATABASE_NAME = "wombat";
 
     // because java.sql.Types.BOOLEAN doesn't exist in jdbc 2.0
-    protected	static	final			int		JDBC_BOOLEAN = 16;
+    protected    static    final            int        JDBC_BOOLEAN = 16;
 
     //
     // For dropping schema objects
     //
-    private	static	final	String	TABLE = "table";
-    private	static	final	String	FUNCTION = "function";
-    private	static	final	String	PROCEDURE = "procedure";
-    private	static	final	String	TYPE = "type";
+    private    static    final    String    TABLE = "table";
+    private    static    final    String    FUNCTION = "function";
+    private    static    final    String    PROCEDURE = "procedure";
+    private    static    final    String    TYPE = "type";
 
     //
     // These are properties for the Derby connection URL.
     //
-    private	static	final			String	CREATE_PROPERTY = "create=true";
+    private    static    final            String    CREATE_PROPERTY = "create=true";
 
     //
     // Indexes into the array of client-specific strings. E.g.,
     // DERBY_CLIENT, and EMBEDDED_CLIENT.
     //
-    public	static	final			int		DATABASE_URL = 0;
-    public	static	final			int		DRIVER_NAME = DATABASE_URL + 1;
-    public	static	final			int		FRAMEWORK_NAME = DRIVER_NAME + 1;
+    public    static    final            int        DATABASE_URL = 0;
+    public    static    final            int        DRIVER_NAME = DATABASE_URL + 1;
+    public    static    final            int        FRAMEWORK_NAME = DRIVER_NAME + 1;
 
     // indexed by DATABASE_URL and DRIVER_NAME
-    private	static	final	String[]	DERBY_CLIENT =
+    private    static    final    String[]    DERBY_CLIENT =
             {
                     "jdbc:splice://localhost:1527/",
                     "org.apache.derby.jdbc.ClientDriver",
                     "DerbyNetClient"
             };
-    private	static	final	String[]	EMBEDDED_CLIENT =
+    private    static    final    String[]    EMBEDDED_CLIENT =
             {
                     "jdbc:splice:",
                     "org.apache.derby.jdbc.EmbeddedDriver",
                     "embedded"
             };
 
-    public	static	final	String[][]	LEGAL_CLIENTS =
+    public    static    final    String[][]    LEGAL_CLIENTS =
             {
                     DERBY_CLIENT,
                     EMBEDDED_CLIENT
@@ -110,21 +110,21 @@ public	class	DerbyJUnitTest	extends	TestCase
 
     /////////////////////////////////////////////////////////////
     //
-    //	STATE
+    //    STATE
     //
     /////////////////////////////////////////////////////////////
 
-    private	static	boolean		_debug;					// if true, we print chatty diagnostics
+    private    static    boolean        _debug;                    // if true, we print chatty diagnostics
 
-    private	static	PrintStream	_outputStream = System.out;	// where to print debug output
+    private    static    PrintStream    _outputStream = System.out;    // where to print debug output
 
-    private	static	String		_databaseName;			// sandbox for tests
-    private	static	String[]	_defaultClientSettings;	// one of the clients in
+    private    static    String        _databaseName;            // sandbox for tests
+    private    static    String[]    _defaultClientSettings;    // one of the clients in
     // LEGAL_CLIENTS
 
     /////////////////////////////////////////////////////////////
     //
-    //	CONSTRUCTOR
+    //    CONSTRUCTOR
     //
     /////////////////////////////////////////////////////////////
 
@@ -133,11 +133,11 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Vacuous constructor for JUnit machinery.
      * </p>
      */
-    public	DerbyJUnitTest() {}
+    public    DerbyJUnitTest() {}
 
     /////////////////////////////////////////////////////////////
     //
-    //	PUBLIC BEHAVIOR
+    //    PUBLIC BEHAVIOR
     //
     /////////////////////////////////////////////////////////////
 
@@ -146,42 +146,42 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Return true if we're using the embedded driver.
      * </p>
      */
-    public	boolean	usingEmbeddedClient() { return ( _defaultClientSettings == EMBEDDED_CLIENT ); }
+    public    boolean    usingEmbeddedClient() { return ( _defaultClientSettings == EMBEDDED_CLIENT ); }
 
     /**
      * <p>
      * Return true if we're using the derby client
      * </p>
      */
-    public	boolean	usingDerbyClient() { return ( _defaultClientSettings == DERBY_CLIENT ); }
+    public    boolean    usingDerbyClient() { return ( _defaultClientSettings == DERBY_CLIENT ); }
 
     /**
      * <p>
      * Get the client we're using.
      * </p>
      */
-    public	static	String[]	getClientSettings() { return _defaultClientSettings; }
+    public    static    String[]    getClientSettings() { return _defaultClientSettings; }
 
     /**
      * <p>
      * Set the client we're going to use.
      * </p>
      */
-    public	static	void		setClient( String[] client ) { _defaultClientSettings = client; }
+    public    static    void        setClient( String[] client ) { _defaultClientSettings = client; }
 
     /**
      * <p>
      * Set the database name.
      * </p>
      */
-    public	static	void	setDatabaseName( String databaseName ) { _databaseName = databaseName; }
+    public    static    void    setDatabaseName( String databaseName ) { _databaseName = databaseName; }
 
     /**
      * <p>
      * Force the debugging state. Useful for debugging under the test harness.
      * </p>
      */
-    public	static	void	setDebug( boolean value ) { _debug = value; }
+    public    static    void    setDebug( boolean value ) { _debug = value; }
 
     /**
      * <p>
@@ -189,7 +189,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * chattily.
      * </p>
      */
-    public	static	boolean	parseDebug()
+    public    static    boolean    parseDebug()
     {
         _debug = Boolean.getBoolean( DEBUG_FLAG );
 
@@ -201,7 +201,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Debug code to print chatty informational messages.
      * </p>
      */
-    public	static	void	println( String text )
+    public    static    void    println( String text )
     {
         if ( _debug ) { alarm( text ); }
     }
@@ -211,7 +211,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Print a message regardless of whether we are running in debug mode.
      * </p>
      */
-    public	static	void	alarm( String text )
+    public    static    void    alarm( String text )
     {
         _outputStream.println( text );
         _outputStream.flush();
@@ -222,20 +222,20 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Print out a stack trace.
      * </p>
      */
-    public	static	void	printStackTrace( Throwable t )
+    public    static    void    printStackTrace( Throwable t )
     {
         while ( t != null )
         {
             t.printStackTrace( _outputStream );
 
-            if ( t instanceof SQLException )	{ t = ((SQLException) t).getNextException(); }
+            if ( t instanceof SQLException )    { t = ((SQLException) t).getNextException(); }
             else { break; }
         }
     }
 
     /////////////////////////////////////////////////////////////
     //
-    //	CONNECTION MANAGEMENT
+    //    CONNECTION MANAGEMENT
     //
     /////////////////////////////////////////////////////////////
 
@@ -244,9 +244,9 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Load a client driver, given its particulars.
      * </p>
      */
-    protected	static	boolean	faultInDriver( String[] clientSettings )
+    protected    static    boolean    faultInDriver( String[] clientSettings )
     {
-        String	currentClientName = clientSettings[ DRIVER_NAME ];
+        String    currentClientName = clientSettings[ DRIVER_NAME ];
 
         try {
             Class.forName( currentClientName );
@@ -265,7 +265,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Get a connection to a database, using the default client.
      * </p>
      */
-    protected	static	Connection	getConnection()
+    protected    static    Connection    getConnection()
             throws Exception
     {
         return getConnection( _defaultClientSettings, _databaseName, new Properties() );
@@ -275,11 +275,11 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Get a connection to a database, using the specified client.
      * </p>
      */
-    protected	static	Connection	getConnection
+    protected    static    Connection    getConnection
     (
-            String[]	clientSettings,
-            String		databaseName,
-            Properties	properties
+            String[]    clientSettings,
+            String        databaseName,
+            Properties    properties
     )
             throws Exception
     {
@@ -289,7 +289,7 @@ public	class	DerbyJUnitTest	extends	TestCase
         properties.put( "password", DEFAULT_PASSWORD );
         properties.put( "retreiveMessagesFromServerOnGetMessage", "true" );
 
-        Connection		conn = DriverManager.getConnection
+        Connection        conn = DriverManager.getConnection
                 ( makeDatabaseURL( clientSettings, databaseName ), properties );
 
         println( "Connection is a " + conn.getClass().getName() );
@@ -302,7 +302,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Cobble together a connection URL.
      * </p>
      */
-    private	static	String	makeDatabaseURL( String[] clientSettings, String databaseName )
+    private    static    String    makeDatabaseURL( String[] clientSettings, String databaseName )
     {
         return clientSettings[ DATABASE_URL ] + databaseName;
     }
@@ -312,29 +312,29 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Create an empty database.
      * </p>
      */
-    protected	void	createDB( String databaseName )
+    protected    void    createDB( String databaseName )
             throws Exception
     {
-        String[]	clientSettings = getClientSettings();
-        String		dbURL = makeDatabaseURL( clientSettings, databaseName );
+        String[]    clientSettings = getClientSettings();
+        String        dbURL = makeDatabaseURL( clientSettings, databaseName );
 
         dbURL = dbURL + ';' + CREATE_PROPERTY;
 
-        Properties	properties = new Properties();
+        Properties    properties = new Properties();
 
         properties.put( "user", DEFAULT_USER_NAME );
         properties.put( "password", DEFAULT_PASSWORD );
 
         faultInDriver( clientSettings );
 
-        Connection		conn = DriverManager.getConnection( dbURL, properties );
+        Connection        conn = DriverManager.getConnection( dbURL, properties );
 
         conn.close();
     }
 
     ///////////////
     //
-    //	SQL MINIONS
+    //    SQL MINIONS
     //
     ///////////////
 
@@ -343,10 +343,10 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Execute DDL statement.
      * </p>
      */
-    protected	static	void	executeDDL( Connection conn, String text )
+    protected    static    void    executeDDL( Connection conn, String text )
             throws SQLException
     {
-        PreparedStatement	ps = null;
+        PreparedStatement    ps = null;
 
         try {
             ps = prepare( conn, text );
@@ -363,10 +363,10 @@ public	class	DerbyJUnitTest	extends	TestCase
      * running in debug mode.
      * </p>
      */
-    protected	static	void	execute( Connection conn, String text )
+    protected    static    void    execute( Connection conn, String text )
             throws SQLException
     {
-        PreparedStatement	ps = prepare( conn, text );
+        PreparedStatement    ps = prepare( conn, text );
 
         ps.execute();
         close( ps );
@@ -379,7 +379,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * running in debug mode.
      * </p>
      */
-    protected	static	PreparedStatement	prepare( Connection conn, String text )
+    protected    static    PreparedStatement    prepare( Connection conn, String text )
             throws SQLException
     {
         println( "Preparing: " + text );
@@ -394,7 +394,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * running in debug mode.
      * </p>
      */
-    protected	static	CallableStatement	prepareCall( Connection conn, String text )
+    protected    static    CallableStatement    prepareCall( Connection conn, String text )
             throws SQLException
     {
         println( "Preparing procedure call: '" + text + "'" );
@@ -407,10 +407,10 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Scour out all the rows from a table.
      * </p>
      */
-    protected	static	void	truncateTable( Connection conn, String name )
+    protected    static    void    truncateTable( Connection conn, String name )
             throws SQLException
     {
-        PreparedStatement	ps = prepare( conn, "delete from " + name );
+        PreparedStatement    ps = prepare( conn, "delete from " + name );
 
         ps.execute();
     }
@@ -424,7 +424,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Do not use this method if you need to verify that the table really exists.
      * </p>
      */
-    protected	static	void	dropTable( Connection conn, String name )
+    protected    static    void    dropTable( Connection conn, String name )
     {
         dropSchemaObject( conn, TABLE, name, false );
     }
@@ -438,7 +438,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Do not use this method if you need to verify that the function really exists.
      * </p>
      */
-    protected	static	void	dropFunction( Connection conn, String name )
+    protected    static    void    dropFunction( Connection conn, String name )
     {
         dropSchemaObject( conn, FUNCTION, name, false );
     }
@@ -452,7 +452,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Do not use this method if you need to verify that the procedure really exists.
      * </p>
      */
-    protected	static	void	dropProcedure( Connection conn, String name )
+    protected    static    void    dropProcedure( Connection conn, String name )
     {
         dropSchemaObject( conn, PROCEDURE, name, false );
     }
@@ -466,7 +466,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Do not use this method if you need to verify that the UDT really exists.
      * </p>
      */
-    protected	static	void	dropUDT( Connection conn, String name )
+    protected    static    void    dropUDT( Connection conn, String name )
     {
         dropSchemaObject( conn, TYPE, name, true );
     }
@@ -480,9 +480,9 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Do not use this method if you need to verify that the object really exists.
      * </p>
      */
-    protected	static	void	dropSchemaObject( Connection conn, String genus, String objectName, boolean restrict )
+    protected    static    void    dropSchemaObject( Connection conn, String genus, String objectName, boolean restrict )
     {
-        PreparedStatement	ps = null;
+        PreparedStatement    ps = null;
 
         try {
             String text = "drop " + genus + " " + objectName;
@@ -508,7 +508,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * method if you want your test to halt on error.
      * </p>
      */
-    protected	static	void	close( ResultSet rs )
+    protected    static    void    close( ResultSet rs )
     {
         try {
             if ( rs != null ) { rs.close(); }
@@ -525,7 +525,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * method if you want your test to halt on error.
      * </p>
      */
-    protected	static	void	close( Statement statement )
+    protected    static    void    close( Statement statement )
     {
         try {
             if ( statement != null ) { statement.close(); }
@@ -542,7 +542,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * method if you want your test to halt on error.
      * </p>
      */
-    protected	static	void	close( Connection conn )
+    protected    static    void    close( Connection conn )
     {
         try {
             if ( conn != null ) { conn.close(); }
@@ -557,10 +557,10 @@ public	class	DerbyJUnitTest	extends	TestCase
      * most naturally fitting the declared SQL type.
      * </p>
      */
-    protected	Object	getColumn( ResultSet rs, String columnName, int jdbcType )
+    protected    Object    getColumn( ResultSet rs, String columnName, int jdbcType )
             throws Exception
     {
-        Object		retval = null;
+        Object        retval = null;
 
         switch( jdbcType )
         {
@@ -642,14 +642,14 @@ public	class	DerbyJUnitTest	extends	TestCase
      * comparing ResultSets against expected values.
      * </p>
      *
-     * @param	rs		The ResultSet to read.
-     * @param	param	The column number (1-based)
-     * @param	value	An object whose type is what we expect the column to be.
+     * @param    rs        The ResultSet to read.
+     * @param    param    The column number (1-based)
+     * @param    value    An object whose type is what we expect the column to be.
      */
-    protected	Object	getColumn( ResultSet rs, int param, Object value )
+    protected    Object    getColumn( ResultSet rs, int param, Object value )
             throws Exception
     {
-        Object		retval;
+        Object        retval;
 
         if ( value == null )
         {
@@ -678,10 +678,10 @@ public	class	DerbyJUnitTest	extends	TestCase
      * exercising the getXXX() methods most natural to a declared SQL type.
      * </p>
      */
-    protected	Object	getOutArg( CallableStatement cs, int arg, int jdbcType )
+    protected    Object    getOutArg( CallableStatement cs, int arg, int jdbcType )
             throws Exception
     {
-        Object		retval = null;
+        Object        retval = null;
 
         switch( jdbcType )
         {
@@ -763,7 +763,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * methods most natural for a declared SQL type.
      * </p>
      */
-    protected	void	setParameter( PreparedStatement ps, int param, int jdbcType, Object value )
+    protected    void    setParameter( PreparedStatement ps, int param, int jdbcType, Object value )
             throws Exception
     {
         if ( value == null )
@@ -851,7 +851,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * other than the most natural fit for the declared SQL type.
      * </p>
      */
-    protected	void	setParameter( PreparedStatement ps, int param, Object value )
+    protected    void    setParameter( PreparedStatement ps, int param, Object value )
             throws Exception
     {
         if ( value == null )
@@ -875,7 +875,7 @@ public	class	DerbyJUnitTest	extends	TestCase
 
     ////////////////////
     //
-    //	QUERY GENERATION
+    //    QUERY GENERATION
     //
     ////////////////////
 
@@ -885,14 +885,14 @@ public	class	DerbyJUnitTest	extends	TestCase
      * SQL text.
      * </p>
      */
-    protected	String	singleQuote( String text )
+    protected    String    singleQuote( String text )
     {
         return "'" + text + "'";
     }
 
     /////////////////////////////////////////////////////////////
     //
-    //	EXTRA ASSERTIONS
+    //    EXTRA ASSERTIONS
     //
     /////////////////////////////////////////////////////////////
 
@@ -901,17 +901,17 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Assert the values of a whole row.
      * </p>
      */
-    public	void	assertRow
+    public    void    assertRow
     ( ResultSet rs, Object[] expectedRow )
             throws Exception
     {
-        int		count = expectedRow.length;
+        int        count = expectedRow.length;
 
         for ( int i = 0; i < count; i++ )
         {
-            int			columnNumber = i + 1;
-            Object		expected = expectedRow[ i ];
-            Object		actual = getColumn( rs, columnNumber, expected );
+            int            columnNumber = i + 1;
+            Object        expected = expectedRow[ i ];
+            Object        actual = getColumn( rs, columnNumber, expected );
 
             compareObjects( "Column number " + columnNumber, expected, actual );
         }
@@ -923,12 +923,12 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Assert a scalar result from a query.
      * </p>
      */
-    public	void	assertScalar
+    public    void    assertScalar
     ( Connection conn, String queryText, Object expectedResult )
             throws Exception
     {
-        PreparedStatement	ps = prepare( conn, queryText );
-        ResultSet			rs = ps.executeQuery();
+        PreparedStatement    ps = prepare( conn, queryText );
+        ResultSet            rs = ps.executeQuery();
 
         rs.next();
 
@@ -943,11 +943,11 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Assert the values in a ResultSet for a given column across all rows.
      * </p>
      */
-    public	void	assertColumnEquals
+    public    void    assertColumnEquals
     ( ResultSet rs, int columnNumber, Object[] expectedValues )
             throws Exception
     {
-        int		count = expectedValues.length;
+        int        count = expectedValues.length;
 
         for ( int i = 0; i < count; i++ )
         {
@@ -961,11 +961,11 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Assert a column's value.
      * </p>
      */
-    public	void	assertColumnEquals
+    public    void    assertColumnEquals
     ( String message, ResultSet rs, int columnNumber, Object expectedValue )
             throws Exception
     {
-        Object	actualValue = getColumn( rs, columnNumber, expectedValue );
+        Object    actualValue = getColumn( rs, columnNumber, expectedValue );
 
         compareObjects( message, expectedValue, actualValue );
     }
@@ -975,7 +975,7 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Assert two objects are equal, allowing nulls to be equal.
      * </p>
      */
-    public	void	compareObjects( String message, Object left, Object right )
+    public    void    compareObjects( String message, Object left, Object right )
             throws Exception
     {
         message = message + "\n\t expected = " + left + "\n\t actual = " + right;
@@ -999,18 +999,18 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Assert two byte arrays are equal, allowing nulls to be equal.
      * </p>
      */
-    public	void	compareBytes( String message, Object left, Object right )
+    public    void    compareBytes( String message, Object left, Object right )
             throws Exception
     {
-        if ( left == null )	{ assertNull( message, right ); }
+        if ( left == null )    { assertNull( message, right ); }
         else { assertNotNull( right ); }
 
         if ( !(left instanceof byte[] ) ) { fail( message ); }
         if ( !(right instanceof byte[] ) ) { fail( message ); }
 
-        byte[]	leftBytes = (byte[]) left;
-        byte[]	rightBytes = (byte[]) right;
-        int		count = leftBytes.length;
+        byte[]    leftBytes = (byte[]) left;
+        byte[]    rightBytes = (byte[]) right;
+        int        count = leftBytes.length;
 
         assertEquals( message, count, rightBytes.length );
 
@@ -1025,10 +1025,10 @@ public	class	DerbyJUnitTest	extends	TestCase
      * Assert two Dates are equal, allowing nulls to be equal.
      * </p>
      */
-    public	void	compareDates( String message, Object left, Object right )
+    public    void    compareDates( String message, Object left, Object right )
             throws Exception
     {
-        if ( left == null )	{ assertNull( message, right ); }
+        if ( left == null )    { assertNull( message, right ); }
         else { assertNotNull( right ); }
 
         if ( !(left instanceof java.util.Date ) ) { fail( message ); }

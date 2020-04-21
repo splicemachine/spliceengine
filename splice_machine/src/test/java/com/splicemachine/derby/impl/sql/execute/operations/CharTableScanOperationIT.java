@@ -43,143 +43,143 @@ import java.util.List;
  * Date: 3/4/14
  */
 public class CharTableScanOperationIT {
-		private static Logger LOG = Logger.getLogger(CharTableScanOperationIT.class);
-		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-		public static final String CLASS_NAME = CharTableScanOperationIT.class.getSimpleName().toUpperCase();
-		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-		protected static SpliceTableWatcher s = new SpliceTableWatcher("s",
-						CLASS_NAME,"(i int, vc char(30))");
-		protected static SpliceTableWatcher t = new SpliceTableWatcher("t",
-						CLASS_NAME,"(i int, vc char(30))");
+        private static Logger LOG = Logger.getLogger(CharTableScanOperationIT.class);
+        protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+        public static final String CLASS_NAME = CharTableScanOperationIT.class.getSimpleName().toUpperCase();
+        protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+        protected static SpliceTableWatcher s = new SpliceTableWatcher("s",
+                        CLASS_NAME,"(i int, vc char(30))");
+        protected static SpliceTableWatcher t = new SpliceTableWatcher("t",
+                        CLASS_NAME,"(i int, vc char(30))");
 
-		@ClassRule
-		public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-						.around(spliceSchemaWatcher)
-						.around(s)
-						.around(t).around(new SpliceDataWatcher() {
-								@Override
-								protected void starting(Description description) {
-										try {
-												PreparedStatement ps =
-																spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?)",s));
+        @ClassRule
+        public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+                        .around(spliceSchemaWatcher)
+                        .around(s)
+                        .around(t).around(new SpliceDataWatcher() {
+                                @Override
+                                protected void starting(Description description) {
+                                        try {
+                                                PreparedStatement ps =
+                                                                spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?)",s));
 
-												ps.setNull(1, Types.INTEGER); ps.setNull(2,Types.CHAR);ps.addBatch();
-												ps.setInt(1,0); ps.setString(2,"0"); ps.addBatch();
-												ps.setInt(1,1); ps.setString(2,"1"); ps.addBatch();
-												ps.executeBatch();
+                                                ps.setNull(1, Types.INTEGER); ps.setNull(2,Types.CHAR);ps.addBatch();
+                                                ps.setInt(1,0); ps.setString(2,"0"); ps.addBatch();
+                                                ps.setInt(1,1); ps.setString(2,"1"); ps.addBatch();
+                                                ps.executeBatch();
 
-												ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?)",t));
+                                                ps = spliceClassWatcher.prepareStatement(String.format("insert into %s values (?,?)",t));
 
-												ps.setNull(1, Types.INTEGER); ps.setNull(2,Types.CHAR);ps.addBatch();
-												ps.setInt(1,0); ps.setString(2,"0"); ps.addBatch();
-												ps.setInt(1,1); ps.setString(2,"1"); ps.addBatch();
-												ps.executeBatch();
+                                                ps.setNull(1, Types.INTEGER); ps.setNull(2,Types.CHAR);ps.addBatch();
+                                                ps.setInt(1,0); ps.setString(2,"0"); ps.addBatch();
+                                                ps.setInt(1,1); ps.setString(2,"1"); ps.addBatch();
+                                                ps.executeBatch();
 
-										} catch (Exception e) {
-												throw new RuntimeException(e);
-										}
-								}
-						});
+                                        } catch (Exception e) {
+                                                throw new RuntimeException(e);
+                                        }
+                                }
+                        });
 
-		@Rule
-		public SpliceWatcher methodWatcher = new SpliceWatcher();
+        @Rule
+        public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-		@Test
-		public void testCanScanWithCharEquals() throws Exception {
-				//noinspection unchecked
+        @Test
+        public void testCanScanWithCharEquals() throws Exception {
+                //noinspection unchecked
 
-				List<String> correct = Arrays.asList("1");
-				String query = String.format("select vc from %s where vc = '1'",s);
-				assertScanCorrect(correct, query);
-		}
+                List<String> correct = Arrays.asList("1");
+                String query = String.format("select vc from %s where vc = '1'",s);
+                assertScanCorrect(correct, query);
+        }
 
-		@Test
-		public void testCanScanWithCharEqualsWithSpaces() throws Exception {
-				//noinspection unchecked
+        @Test
+        public void testCanScanWithCharEqualsWithSpaces() throws Exception {
+                //noinspection unchecked
 
-				List<String> correct = Arrays.asList("1");
-				String query = String.format("select vc from %s where vc = '1 '",s);
-				assertScanCorrect(correct, query);
-		}
+                List<String> correct = Arrays.asList("1");
+                String query = String.format("select vc from %s where vc = '1 '",s);
+                assertScanCorrect(correct, query);
+        }
 
 
-		@Test
-		public void testCanScanWithCharGreaterThanOrEqual() throws Exception {
-				List<String> correct = Arrays.asList("0","1");
-				assertScanCorrect(correct,String.format("select vc from %s where vc >= '0'",s));
-		}
+        @Test
+        public void testCanScanWithCharGreaterThanOrEqual() throws Exception {
+                List<String> correct = Arrays.asList("0","1");
+                assertScanCorrect(correct,String.format("select vc from %s where vc >= '0'",s));
+        }
 
-		@Test
-		public void testCanScanWithCharGreaterThanOrEqualWithSpaces() throws Exception {
-				List<String> correct = Arrays.asList("0","1");
-				assertScanCorrect(correct,String.format("select vc from %s where vc >= '0 '",s));
-		}
+        @Test
+        public void testCanScanWithCharGreaterThanOrEqualWithSpaces() throws Exception {
+                List<String> correct = Arrays.asList("0","1");
+                assertScanCorrect(correct,String.format("select vc from %s where vc >= '0 '",s));
+        }
 
-		@Test
-		public void testCanScanWithCharGreaterThan() throws Exception {
-				List<String> correct = Arrays.asList("1");
-				assertScanCorrect(correct,String.format("select vc from %s where vc > '0'",s));
-		}
+        @Test
+        public void testCanScanWithCharGreaterThan() throws Exception {
+                List<String> correct = Arrays.asList("1");
+                assertScanCorrect(correct,String.format("select vc from %s where vc > '0'",s));
+        }
 
-		@Test
-		public void testCanScanWithCharGreaterThanWithSpaces() throws Exception {
-				List<String> correct = Arrays.asList("1");
-				assertScanCorrect(correct,String.format("select vc from %s where vc > '0 '",s));
-		}
+        @Test
+        public void testCanScanWithCharGreaterThanWithSpaces() throws Exception {
+                List<String> correct = Arrays.asList("1");
+                assertScanCorrect(correct,String.format("select vc from %s where vc > '0 '",s));
+        }
 
-		@Test
-		public void testCanScanWithCharLessThan() throws Exception {
-				List<String> correct = Arrays.asList("0");
-				assertScanCorrect(correct,String.format("select vc from %s where vc < '1'",s));
-		}
+        @Test
+        public void testCanScanWithCharLessThan() throws Exception {
+                List<String> correct = Arrays.asList("0");
+                assertScanCorrect(correct,String.format("select vc from %s where vc < '1'",s));
+        }
 
-		@Test
-		public void testCanScanWithCharLessThanWithSpaces() throws Exception {
-				List<String> correct = Arrays.asList("0");
-				assertScanCorrect(correct,String.format("select vc from %s where vc < '1 '",s));
-		}
+        @Test
+        public void testCanScanWithCharLessThanWithSpaces() throws Exception {
+                List<String> correct = Arrays.asList("0");
+                assertScanCorrect(correct,String.format("select vc from %s where vc < '1 '",s));
+        }
 
-		@Test
-		public void testCanScanWithCharLessThanOrEqual() throws Exception {
-				List<String> correct = Arrays.asList("0","1");
-				assertScanCorrect(correct,String.format("select vc from %s where vc <= '1'",s));
-		}
+        @Test
+        public void testCanScanWithCharLessThanOrEqual() throws Exception {
+                List<String> correct = Arrays.asList("0","1");
+                assertScanCorrect(correct,String.format("select vc from %s where vc <= '1'",s));
+        }
 
-		@Test
-		public void testCanScanWithCharLessThanOrEqualWithSpaces() throws Exception {
-				List<String> correct = Arrays.asList("0","1");
-				assertScanCorrect(correct,String.format("select vc from %s where vc <= '1 '",s));
-		}
+        @Test
+        public void testCanScanWithCharLessThanOrEqualWithSpaces() throws Exception {
+                List<String> correct = Arrays.asList("0","1");
+                assertScanCorrect(correct,String.format("select vc from %s where vc <= '1 '",s));
+        }
 
-		@Test
-		public void testAnyWorksWithCharTypes() throws Exception {
-				/*Regression test for DB-1029*/
-				List<String> correct = Arrays.asList(null,"0","1");
-				assertScanCorrect(correct,String.format("select vc from %s where '1' = ANY ( select vc from %s)",s,t));
-		}
+        @Test
+        public void testAnyWorksWithCharTypes() throws Exception {
+                /*Regression test for DB-1029*/
+                List<String> correct = Arrays.asList(null,"0","1");
+                assertScanCorrect(correct,String.format("select vc from %s where '1' = ANY ( select vc from %s)",s,t));
+        }
 
-		protected void assertScanCorrect(List<String> correct, String query) throws Exception {
-				ResultSet rs = methodWatcher.executeQuery(query);
-				List<String> actual = Lists.newArrayListWithExpectedSize(correct.size());
-				while(rs.next()){
-						String string = rs.getString(1);
-						if(!rs.wasNull())
-								string = string.trim();
-						actual.add(string);
-				}
+        protected void assertScanCorrect(List<String> correct, String query) throws Exception {
+                ResultSet rs = methodWatcher.executeQuery(query);
+                List<String> actual = Lists.newArrayListWithExpectedSize(correct.size());
+                while(rs.next()){
+                        String string = rs.getString(1);
+                        if(!rs.wasNull())
+                                string = string.trim();
+                        actual.add(string);
+                }
 
-				Collections.sort(actual, new Comparator<String>() {
-						@Override
-						public int compare(String o1, String o2) {
-								if (o1 == null) {
-										if (o2 == null) return 0;
-										return -1;
-								} else if (o2 == null)
-										return 1;
-								else return o1.compareTo(o2);
-						}
-				});
+                Collections.sort(actual, new Comparator<String>() {
+                        @Override
+                        public int compare(String o1, String o2) {
+                                if (o1 == null) {
+                                        if (o2 == null) return 0;
+                                        return -1;
+                                } else if (o2 == null)
+                                        return 1;
+                                else return o1.compareTo(o2);
+                        }
+                });
 
-				Assert.assertEquals("Incorrect results!", correct, actual);
-		}
+                Assert.assertEquals("Incorrect results!", correct, actual);
+        }
 }

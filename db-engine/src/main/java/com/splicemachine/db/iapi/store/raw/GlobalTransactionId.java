@@ -34,12 +34,12 @@ package com.splicemachine.db.iapi.store.raw;
 import com.splicemachine.db.iapi.services.io.Formatable;
 
 /**
-	A transaction identifier that is unique among all raw stores and all
-	transactions
+    A transaction identifier that is unique among all raw stores and all
+    transactions
 
-	The equals() method for TransactionId implements by value equality.
+    The equals() method for TransactionId implements by value equality.
 
-	MT - immutable
+    MT - immutable
 */
 public interface GlobalTransactionId extends Formatable 
 {
@@ -47,27 +47,27 @@ public interface GlobalTransactionId extends Formatable
      * Obtain the format id part of the GlobalTransactionId.
      * <p>
      *
-	 * @return Format identifier. O means the OSI CCR format.
+     * @return Format identifier. O means the OSI CCR format.
      **/
-	int getFormat_Id();
+    int getFormat_Id();
 
     /**
      * Obtain the global transaction identifier part of GlobalTransactionId 
      * as an array of bytes.
      * <p>
      *
-	 * @return A byte array containing the global transaction identifier.
+     * @return A byte array containing the global transaction identifier.
      **/
-	byte[] getGlobalTransactionId();
+    byte[] getGlobalTransactionId();
 
     /**
      * Obtain the transaction branch qualifier part of the GlobalTransactionId
      * in a byte array.
      * <p>
      *
-	 * @return A byte array containing the branch qualifier of the transaction.
+     * @return A byte array containing the branch qualifier of the transaction.
      **/
-	byte[] getBranchQualifier();
+    byte[] getBranchQualifier();
 
-	/* need to write a value based HashCode() method. */
+    /* need to write a value based HashCode() method. */
 }

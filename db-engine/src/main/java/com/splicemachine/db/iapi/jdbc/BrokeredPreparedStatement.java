@@ -39,32 +39,32 @@ import java.util.Calendar;
 import java.sql.*;
 
 /**
-	JDBC 2 brokered PreparedStatement. Forwards calls off to a real prepared statement
-	obtained through the BrokeredStatementControl getRealPreparedStatement method.
+    JDBC 2 brokered PreparedStatement. Forwards calls off to a real prepared statement
+    obtained through the BrokeredStatementControl getRealPreparedStatement method.
  */
 public abstract class BrokeredPreparedStatement extends BrokeredStatement
-	implements EnginePreparedStatement
+    implements EnginePreparedStatement
 {
 
-	/**
-		SQL used to create me.
-	*/
-	final String	sql;
+    /**
+        SQL used to create me.
+    */
+    final String    sql;
 
     public BrokeredPreparedStatement(BrokeredStatementControl control, String sql) throws SQLException
     {
         super(control);
-		this.sql = sql;
+        this.sql = sql;
     }
 
-	/**
+    /**
      * A prepared SQL query is executed and its ResultSet is returned.
      *
      * @return a ResultSet that contains the data produced by the
      * query; never null
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
-	public final ResultSet executeQuery() throws SQLException
+    public final ResultSet executeQuery() throws SQLException
     {
         return wrapResultSet(getPreparedStatement().executeQuery());
     } 
@@ -76,18 +76,18 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @return either the row count for INSERT, UPDATE or DELETE; or 0
      * for SQL statements that return nothing
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
-	public final int executeUpdate() throws SQLException
+    public final int executeUpdate() throws SQLException
     {
         return getPreparedStatement().executeUpdate();
     }
 
-	public void close() throws SQLException
-	{
-	    control.closeRealPreparedStatement();
-	}
-	
+    public void close() throws SQLException
+    {
+        control.closeRealPreparedStatement();
+    }
+    
     /**
      * Set a parameter to SQL NULL.
      *
@@ -95,7 +95,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param sqlType SQL type code defined by java.sql.Types
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setNull(int parameterIndex, int sqlType) throws SQLException
     {
@@ -109,7 +109,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param sqlType SQL type code defined by java.sql.Types
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException
     {
@@ -118,13 +118,13 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
 
     /**
      * Set a parameter to a Java boolean value.  According to the JDBC API spec,
-	 * the driver converts this to a SQL BIT value when it sends it to the
-	 * database. But we don't have to do this, since the database engine
-	 * supports a boolean type.
+     * the driver converts this to a SQL BIT value when it sends it to the
+     * database. But we don't have to do this, since the database engine
+     * supports a boolean type.
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setBoolean(int parameterIndex, boolean x) throws SQLException
     {
@@ -137,7 +137,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setByte(int parameterIndex, byte x) throws SQLException
     {
@@ -150,7 +150,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setShort(int parameterIndex, short x) throws SQLException
     {
@@ -163,7 +163,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setInt(int parameterIndex, int x) throws SQLException
     {
@@ -176,7 +176,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setLong(int parameterIndex, long x) throws SQLException
     {
@@ -189,7 +189,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setFloat(int parameterIndex, float x) throws SQLException
     {
@@ -202,7 +202,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setDouble(int parameterIndex, double x) throws SQLException
     {
@@ -217,7 +217,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setBigDecimal(int parameterIndex, java.math.BigDecimal x) throws SQLException
     {
@@ -232,7 +232,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setString(int parameterIndex, String x) throws SQLException
     {
@@ -247,7 +247,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value 
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setBytes(int parameterIndex, byte[] x) throws SQLException
     {
@@ -260,7 +260,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setDate(int parameterIndex, Date x) throws SQLException
     {
@@ -273,7 +273,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setTime(int parameterIndex, Time x) throws SQLException
     {
@@ -287,7 +287,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the parameter value 
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setTimestamp(int parameterIndex, Timestamp x) throws SQLException
     {
@@ -295,13 +295,13 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
     } 
 
     /**
-	 * We do this inefficiently and read it all in here. The target type
-	 * is assumed to be a String.
+     * We do this inefficiently and read it all in here. The target type
+     * is assumed to be a String.
      * 
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the java input stream which contains the ASCII parameter value
      * @param length the number of bytes in the stream 
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException
     {
@@ -309,15 +309,15 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
     } 
 
     /**
-	 * We do this inefficiently and read it all in here. The target type
-	 * is assumed to be a String. The unicode source is assumed to be
-	 * in char[].  RESOLVE: might it be in UTF, instead? that'd be faster!
+     * We do this inefficiently and read it all in here. The target type
+     * is assumed to be a String. The unicode source is assumed to be
+     * in char[].  RESOLVE: might it be in UTF, instead? that'd be faster!
      * 
      * @param parameterIndex the first parameter is 1, the second is 2, ...  
      * @param x the java input stream which contains the
      * UNICODE parameter value 
      * @param length the number of bytes in the stream 
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      * @deprecated
      */
     public final void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException
@@ -329,7 +329,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x the java input stream which contains the binary parameter value
      * @param length the number of bytes in the stream 
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException
     {
@@ -354,7 +354,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      * previous value.  However, in some cases it is useful to immediately
      * release the resources used by the current parameter values; this can
      * be done by calling clearParameters.
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void clearParameters() throws SQLException
     {
@@ -362,26 +362,26 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
     } 
 
     /**
-	 * JDBC 2.0
-	 *
+     * JDBC 2.0
+     *
      * The number, types and properties of a ResultSet's columns
      * are provided by the getMetaData method.
      *
      * @return the description of a ResultSet's columns
      * @exception SQLException Feature not implemented for now.
      */
-	public final java.sql.ResultSetMetaData getMetaData() throws SQLException
+    public final java.sql.ResultSetMetaData getMetaData() throws SQLException
     {
         return getPreparedStatement().getMetaData();
     }
 
     /**
-	 * The interface says that the type of the Object parameter must
-	 * be compatible with the type of the targetSqlType. We check that,
-	 * and if it flies, we expect the underlying engine to do the
-	 * required conversion once we pass in the value using its type.
-	 * So, an Integer converting to a CHAR is done via setInteger()
-	 * support on the underlying CHAR type.
+     * The interface says that the type of the Object parameter must
+     * be compatible with the type of the targetSqlType. We check that,
+     * and if it flies, we expect the underlying engine to do the
+     * required conversion once we pass in the value using its type.
+     * So, an Integer converting to a CHAR is done via setInteger()
+     * support on the underlying CHAR type.
      *
      * <p>If x is null, it won't tell us its type, so we pass it on to setNull
      *
@@ -392,7 +392,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      * @param scale For java.sql.Types.DECIMAL or java.sql.Types.NUMERIC types
      *          this is the number of digits after the decimal.  For all other
      *          types this value will be ignored,
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setObject(int parameterIndex, Object x, int targetSqlType, int scale)
         throws SQLException
@@ -425,7 +425,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      *
      * @param parameterIndex The first parameter is 1, the second is 2, ...
      * @param x The object containing the input parameter value 
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final void setObject(int parameterIndex, Object x)
         throws SQLException
@@ -435,7 +435,7 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
 
     /**
      * @see java.sql.Statement#execute
-	 * @exception SQLException thrown on failure.
+     * @exception SQLException thrown on failure.
      */
     public final boolean execute() throws SQLException
     {
@@ -526,9 +526,9 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
         
     }
 
-	/*
-	** Control methods.
-	*/
+    /*
+    ** Control methods.
+    */
 
     /**
      * Access the underlying PreparedStatement. This method
@@ -538,27 +538,27 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
      * 
      */
     PreparedStatement getPreparedStatement() throws SQLException {
-		return control.getRealPreparedStatement();
-	}
+        return control.getRealPreparedStatement();
+    }
 
-	/**
-		Override the BrokeredStatement's getStatement() to always return a PreparedStatement.
-	*/
-	public final Statement getStatement() throws SQLException {
-		return getPreparedStatement();
-	}
+    /**
+        Override the BrokeredStatement's getStatement() to always return a PreparedStatement.
+    */
+    public final Statement getStatement() throws SQLException {
+        return getPreparedStatement();
+    }
 
-	/**
-		Create a duplicate PreparedStatement to this, including state, from the passed in Connection.
-	*/
-	public PreparedStatement createDuplicateStatement(Connection conn, PreparedStatement oldStatement) throws SQLException {
+    /**
+        Create a duplicate PreparedStatement to this, including state, from the passed in Connection.
+    */
+    public PreparedStatement createDuplicateStatement(Connection conn, PreparedStatement oldStatement) throws SQLException {
 
-		PreparedStatement newStatement = conn.prepareStatement(sql, resultSetType, resultSetConcurrency);
+        PreparedStatement newStatement = conn.prepareStatement(sql, resultSetType, resultSetConcurrency);
 
-		setStatementState(oldStatement, newStatement);
+        setStatementState(oldStatement, newStatement);
 
-		return newStatement;
-	}
+        return newStatement;
+    }
 
     public final long getVersionCounter() throws SQLException {
         return ((EnginePreparedStatement)getPreparedStatement()).

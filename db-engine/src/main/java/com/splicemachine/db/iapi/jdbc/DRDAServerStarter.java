@@ -92,13 +92,13 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
     private Thread serverThread;
     private static final String serverClassName = "com.splicemachine.db.impl.drda.NetworkServerControlImpl";
     private Class serverClass;
-	
-	private InetAddress listenAddress =null;
-	private int portNumber = -1;
-	private String userArg = null;
-	private String passwordArg = null;
-	private PrintWriter consoleWriter = null;
-	private String externalHostname = "";
+    
+    private InetAddress listenAddress =null;
+    private int portNumber = -1;
+    private String userArg = null;
+    private String passwordArg = null;
+    private PrintWriter consoleWriter = null;
+    private String externalHostname = "";
 
     /**
      * Try to start the DRDA server. Log an error in error log and continue if it cannot be started.
@@ -107,30 +107,30 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
 //     {
 
 
-	/**
-	 * Sets configuration information for the network server to be started.
-	 * @param listenAddress InetAddress to listen on
-	 * @param portNumber    portNumber to listen on
-	 * @param userName      the user name for actions requiring authorization
-	 * @param password      the password for actions requiring authorization
+    /**
+     * Sets configuration information for the network server to be started.
+     * @param listenAddress InetAddress to listen on
+     * @param portNumber    portNumber to listen on
+     * @param userName      the user name for actions requiring authorization
+     * @param password      the password for actions requiring authorization
      *
-	 * @throws Exception on error
-	 */
-	public void setStartInfo(InetAddress listenAddress, int portNumber,
+     * @throws Exception on error
+     */
+    public void setStartInfo(InetAddress listenAddress, int portNumber,
                              String userName, String password,
                              PrintWriter consoleWriter)
-	{
-		this.userArg = userName;
-		this.passwordArg = password;
+    {
+        this.userArg = userName;
+        this.passwordArg = password;
         setStartInfo(listenAddress, portNumber, consoleWriter, "");
     }
 
-	public void setStartInfo(InetAddress listenAddress, int portNumber, PrintWriter
+    public void setStartInfo(InetAddress listenAddress, int portNumber, PrintWriter
             consoleWriter, String externalHostname)
-	{
-		this.listenAddress = listenAddress;
-		this.portNumber = portNumber;
-		this.externalHostname = externalHostname;
+    {
+        this.listenAddress = listenAddress;
+        this.portNumber = portNumber;
+        this.externalHostname = externalHostname;
 
         // wrap the user-set consoleWriter with autoflush to true.
         // this will ensure that messages to console will be 
@@ -140,7 +140,7 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
             this.consoleWriter = new PrintWriter(consoleWriter,true);
         else
             this.consoleWriter = consoleWriter;
-	}
+    }
 
     /**
      * Find the methods to start and shutdown the server.
@@ -193,23 +193,23 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
             try
             {
                 serverConstructor = (Constructor) AccessController.doPrivileged(
-			      new PrivilegedExceptionAction() {
-						  public Object run() throws NoSuchMethodException, SecurityException
-						  {
-							  if (listenAddress == null)
-								  return serverClass.getConstructor(
+                  new PrivilegedExceptionAction() {
+                          public Object run() throws NoSuchMethodException, SecurityException
+                          {
+                              if (listenAddress == null)
+                                  return serverClass.getConstructor(
                                       new Class[]{String.class, String.class});
-							  else
-								  return
-									  serverClass.getConstructor(new
-										  Class[] {java.net.InetAddress.class,
-												   Integer.TYPE,
+                              else
+                                  return
+                                      serverClass.getConstructor(new
+                                          Class[] {java.net.InetAddress.class,
+                                                   Integer.TYPE,
                                                    String.class,
                                                    String.class,
                                                    String.class});
                           }
-					  }
-				  );
+                      }
+                  );
             }
             catch( PrivilegedActionException e)
             {
@@ -221,12 +221,12 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
             
             findStartStopMethods(serverClass);
             
-			if (listenAddress == null) {
-				server = serverConstructor.newInstance(
+            if (listenAddress == null) {
+                server = serverConstructor.newInstance(
                     new Object[]{userArg, passwordArg});
             } else {
-				server = serverConstructor.newInstance(new Object[]
-					{listenAddress, portNumber,
+                server = serverConstructor.newInstance(new Object[]
+                    {listenAddress, portNumber,
                      userArg, passwordArg, externalHostname});
             }
 
@@ -235,7 +235,7 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
         }
         catch( Exception e)
         {
-			server = null;
+            server = null;
             Monitor.getStream().printThrowable(MessageService.getTextMessage(MessageId.CONN_NETWORK_SERVER_START_EXCEPTION, e.getMessage()), e);
         }
     } // end of boot
@@ -261,37 +261,37 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
     
     public void stop()
     {
-		try {
-			if( serverThread != null && serverThread.isAlive())
-			{
-				serverShutdownMethod.invoke( server,
-											 null);
-				AccessController.doPrivileged(
-							      new PrivilegedAction() {
-								  public Object run() {
-								      serverThread.interrupt();
-								      return null;
-								  }
-							      });				
-				serverThread = null;
-			}
-		   
-		}
-		catch( InvocationTargetException ite)
+        try {
+            if( serverThread != null && serverThread.isAlive())
+            {
+                serverShutdownMethod.invoke( server,
+                                             null);
+                AccessController.doPrivileged(
+                                  new PrivilegedAction() {
+                                  public Object run() {
+                                      serverThread.interrupt();
+                                      return null;
+                                  }
+                                  });                
+                serverThread = null;
+            }
+           
+        }
+        catch( InvocationTargetException ite)
         {
             Monitor.getStream().printThrowable(MessageService.getTextMessage( MessageId.CONN_NETWORK_SERVER_SHUTDOWN_EXCEPTION, ite.getTargetException().getMessage()), ite);
         }
         catch( Exception e)
         {
             Monitor.getStream().printThrowable(MessageService.getTextMessage( MessageId.CONN_NETWORK_SERVER_SHUTDOWN_EXCEPTION, e.getMessage()), e);
-		}
-			
-		serverThread = null;
-		server = null;
-		serverClass = null;
-		listenAddress = null;
-		portNumber = -1;
-		consoleWriter = null;
-		
+        }
+            
+        serverThread = null;
+        server = null;
+        serverClass = null;
+        listenAddress = null;
+        portNumber = -1;
+        consoleWriter = null;
+        
     } // end of stop
 }

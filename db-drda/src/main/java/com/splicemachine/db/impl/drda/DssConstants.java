@@ -33,8 +33,8 @@
 package com.splicemachine.db.impl.drda;
 
 /**
-	This class defines DSS constants that are shared in the classes implementing
-	the DRDA protocol.
+    This class defines DSS constants that are shared in the classes implementing
+    the DRDA protocol.
 */
 class DssConstants
 {

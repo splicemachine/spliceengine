@@ -28,27 +28,27 @@ import org.junit.rules.TestRule;
 import java.sql.SQLException;
 
 public class LockTableConstantOperationIT extends SpliceUnitTest { 
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(LockTableConstantOperationIT.class.getSimpleName());	
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",LockTableConstantOperationIT.class.getSimpleName(),"(name varchar(40) NOT NULL, val int)");
-	
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher);
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(LockTableConstantOperationIT.class.getSimpleName());    
+    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",LockTableConstantOperationIT.class.getSimpleName(),"(name varchar(40) NOT NULL, val int)");
+    
+    @ClassRule 
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+        .around(spliceSchemaWatcher)
+        .around(spliceTableWatcher);
+    
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test (expected=SQLException.class)
     public void aquireLockThrowsException() throws Exception{
-    	try {
-    		methodWatcher.getStatement().execute(String.format("LOCK TABLE %s IN SHARE MODE",getPaddedTableReference("A")));
-    	} catch (SQLException e) {
-    		if (!e.getMessage().contains("cannot be locked")) {
-    			Assert.assertTrue("Incorrect Message Thrown for Locking",false);
-    		}
-    		throw e;
-    	}
+        try {
+            methodWatcher.getStatement().execute(String.format("LOCK TABLE %s IN SHARE MODE",getPaddedTableReference("A")));
+        } catch (SQLException e) {
+            if (!e.getMessage().contains("cannot be locked")) {
+                Assert.assertTrue("Incorrect Message Thrown for Locking",false);
+            }
+            throw e;
+        }
     }
-	
+    
 }

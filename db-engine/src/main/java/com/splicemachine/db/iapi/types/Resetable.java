@@ -42,22 +42,22 @@ import java.io.IOException;
  */
 public interface Resetable
 {
-	/**
-	 *  Reset the stream to the beginning.
-	 */
-	void resetStream() throws IOException, StandardException;
+    /**
+     *  Reset the stream to the beginning.
+     */
+    void resetStream() throws IOException, StandardException;
 
-	/**
-	 *  Initialize. Needs to be called first, before a resetable stream can
+    /**
+     *  Initialize. Needs to be called first, before a resetable stream can
      *  be used.
      *
-	 */
-	void initStream() throws StandardException;
+     */
+    void initStream() throws StandardException;
 
-	/**
-	 *  Close. Free resources (such as open containers and locks) associated
+    /**
+     *  Close. Free resources (such as open containers and locks) associated
      *  with the stream.
-	 */
-	void closeStream();
+     */
+    void closeStream();
 
 }

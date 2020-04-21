@@ -37,12 +37,12 @@ package com.splicemachine.db.iapi.error;
  * @see com.splicemachine.db.impl.jdbc.EmbedSQLException
  */
 public interface DerbySQLException {
-	
-	/**
-	 * Returns true if this instance of DerbySQLException wraps
+    
+    /**
+     * Returns true if this instance of DerbySQLException wraps
      * a StandardException object.
-	 * @return true if this exception wraps a StandardException object
-	 */
-	boolean isSimpleWrapper();
+     * @return true if this exception wraps a StandardException object
+     */
+    boolean isSimpleWrapper();
 
 }

@@ -20,6 +20,6 @@ package com.splicemachine.storage;
  */
 public interface HasPredicateFilter {
 
-		EntryPredicateFilter getFilter();
+        EntryPredicateFilter getFilter();
 
 }

@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
-import	com.splicemachine.db.catalog.DependableFinder;
+import    com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 /**
@@ -42,78 +42,78 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 public class TupleDescriptor
 {
-	//////////////////////////////////////////////////////////////////
-	//
-	//	CONSTANTS
-	//
-	//////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////
+    //
+    //    CONSTANTS
+    //
+    //////////////////////////////////////////////////////////////////
 
 
-	//////////////////////////////////////////////////////////////////
-	//
-	//	STATE
-	//
-	//////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////
+    //
+    //    STATE
+    //
+    //////////////////////////////////////////////////////////////////
 
-	public     DataDictionary      dataDictionary;
+    public     DataDictionary      dataDictionary;
 
-	//////////////////////////////////////////////////////////////////
-	//
-	//	CONSTRUCTOR
-	//
-	//////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////
+    //
+    //    CONSTRUCTOR
+    //
+    //////////////////////////////////////////////////////////////////
 
-	public	TupleDescriptor() {}
+    public    TupleDescriptor() {}
 
-	public TupleDescriptor(DataDictionary dataDictionary) {
-		this.dataDictionary = dataDictionary;
-	}
+    public TupleDescriptor(DataDictionary dataDictionary) {
+        this.dataDictionary = dataDictionary;
+    }
 
-	public DataDictionary getDataDictionary() {
-		return dataDictionary;
-	}
+    public DataDictionary getDataDictionary() {
+        return dataDictionary;
+    }
 
-	protected void setDataDictionary(DataDictionary dd) {
-		dataDictionary = dd;
-	}
+    protected void setDataDictionary(DataDictionary dd) {
+        dataDictionary = dd;
+    }
 
-	/**
-	 * Is this provider persistent?  A stored dependency will be required
-	 * if both the dependent and provider are persistent.
-	 *
-	 * @return boolean              Whether or not this provider is persistent.
-	 */
-	public boolean isPersistent() {
-		return true;
-	}
-
-
-	//////////////////////////////////////////////////////////////////
-	//
-	//	BEHAVIOR. These are only used by Replication!!
-	//
-	//////////////////////////////////////////////////////////////////
+    /**
+     * Is this provider persistent?  A stored dependency will be required
+     * if both the dependent and provider are persistent.
+     *
+     * @return boolean              Whether or not this provider is persistent.
+     */
+    public boolean isPersistent() {
+        return true;
+    }
 
 
-	DependableFinder getDependableFinder(int formatId) {
-		return dataDictionary.getDependableFinder(formatId);
-	}
+    //////////////////////////////////////////////////////////////////
+    //
+    //    BEHAVIOR. These are only used by Replication!!
+    //
+    //////////////////////////////////////////////////////////////////
 
-	DependableFinder getColumnDependableFinder(int formatId, byte[] columnBitMap) {
-		return dataDictionary.getColumnDependableFinder(formatId, columnBitMap);
-	}
-	
-	/** Each descriptor must identify itself with its type; i.e index, check
-	 * constraint whatever.
-	 */
-	public String getDescriptorType() {
-		if (SanityManager.DEBUG) {SanityManager.NOTREACHED(); }
-		return null; 
-	}
-	/* each descriptor has a name
-	 */
-	public String getDescriptorName() {
-		if (SanityManager.DEBUG) {SanityManager.NOTREACHED(); }
-		return null; 
-	}
+
+    DependableFinder getDependableFinder(int formatId) {
+        return dataDictionary.getDependableFinder(formatId);
+    }
+
+    DependableFinder getColumnDependableFinder(int formatId, byte[] columnBitMap) {
+        return dataDictionary.getColumnDependableFinder(formatId, columnBitMap);
+    }
+    
+    /** Each descriptor must identify itself with its type; i.e index, check
+     * constraint whatever.
+     */
+    public String getDescriptorType() {
+        if (SanityManager.DEBUG) {SanityManager.NOTREACHED(); }
+        return null; 
+    }
+    /* each descriptor has a name
+     */
+    public String getDescriptorName() {
+        if (SanityManager.DEBUG) {SanityManager.NOTREACHED(); }
+        return null; 
+    }
 }

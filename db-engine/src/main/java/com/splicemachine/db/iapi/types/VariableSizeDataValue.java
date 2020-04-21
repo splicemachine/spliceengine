@@ -38,29 +38,29 @@ import com.splicemachine.db.iapi.error.StandardException;
  * Datatypes that have adjustable width. 
  *
  * The following methods are defined herein:
- *		setWidth()
+ *        setWidth()
  *
  */
 public interface VariableSizeDataValue 
 {
 
-	int IGNORE_PRECISION = -1;
+    int IGNORE_PRECISION = -1;
 
-	/*
-	 * Set the width and scale (if relevant).  Sort of a poor
-	 * man's normalize.  Used when we need to normalize a datatype
-	 * but we don't want to use a NormalizeResultSet (e.g.
-	 * for an operator that can change the width/scale of a
-	 * datatype, namely CastNode).
-	 *
-	 * @param desiredWidth width
-	 * @param desiredScale scale, if relevant (ignored for strings)
-	 * @param errorOnTrunc	throw an error on truncation of value
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	void setWidth(int desiredWidth,
-				  int desiredScale,
-				  boolean errorOnTrunc)
-							throws StandardException;
+    /*
+     * Set the width and scale (if relevant).  Sort of a poor
+     * man's normalize.  Used when we need to normalize a datatype
+     * but we don't want to use a NormalizeResultSet (e.g.
+     * for an operator that can change the width/scale of a
+     * datatype, namely CastNode).
+     *
+     * @param desiredWidth width
+     * @param desiredScale scale, if relevant (ignored for strings)
+     * @param errorOnTrunc    throw an error on truncation of value
+     *
+     * @exception StandardException        Thrown on error
+     */
+    void setWidth(int desiredWidth,
+                  int desiredScale,
+                  boolean errorOnTrunc)
+                            throws StandardException;
 }

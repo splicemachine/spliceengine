@@ -40,15 +40,15 @@ import com.splicemachine.db.iapi.types.TypeId;
 
 public interface TypeCompilerFactory
 {
-	String MODULE = "com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory";
+    String MODULE = "com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory";
 
-	/**
-	 * Get a TypeCompiler corresponding to the given TypeId.
-	 *
-	 * @return	A TypeCompiler
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	TypeCompiler getTypeCompiler(TypeId typeId);
+    /**
+     * Get a TypeCompiler corresponding to the given TypeId.
+     *
+     * @return    A TypeCompiler
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    TypeCompiler getTypeCompiler(TypeId typeId);
 }
 

@@ -72,9 +72,9 @@ public class DeadlockModeTest extends BaseJDBCTestCase {
      * Creates a new instance of DeadlockModeTest
      * @param name identifier of the test
      */
-	public DeadlockModeTest(String name) {
-	    super(name);
-	}
+    public DeadlockModeTest(String name) {
+        super(name);
+    }
     
     /**
      * Tests for a deadlock on concurrent accesses to the database

@@ -29,7 +29,7 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package	com.splicemachine.db.iapi.sql.compile;
+package    com.splicemachine.db.iapi.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
@@ -88,4 +88,4 @@ public interface ASTVisitor extends Visitor {
      */
     void end(CompilationPhase phase) throws StandardException;
     
-}	
+}    

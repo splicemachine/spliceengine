@@ -49,18 +49,18 @@ import junit.framework.TestSuite;
  */
 public class ImportExportTest extends BaseJDBCTestCase {
 
-	public ImportExportTest(String name) {
-		super(name);
-	}
-	
-	public static Test suite() {
+    public ImportExportTest(String name) {
+        super(name);
+    }
+    
+    public static Test suite() {
         TestSuite suite = new TestSuite("ImportExportTest");
 
         // disabled on weme6.1 due at the moment due 
         // to problems with security exceptions.
         if (JDBC.vmSupportsJSR169())
         {
-        	return new TestSuite();
+            return new TestSuite();
         }
         suite.addTest(baseSuite("ImportExportTest:embedded"));
 
@@ -68,12 +68,12 @@ public class ImportExportTest extends BaseJDBCTestCase {
                 TestConfiguration.clientServerDecorator(
                         baseSuite("ImportExportTest:client")));    
         return suite;
-	}
-	
-	public static Test baseSuite(String name) {
-		TestSuite suite = new TestSuite(ImportExportTest.class, name);
-		Test test = new SupportFilesSetup(suite, new String[] {"functionTests/testData/ImportExport/TwoLineBadEOF.dat"} );
-		return new CleanDatabaseTestSetup(test) {
+    }
+    
+    public static Test baseSuite(String name) {
+        TestSuite suite = new TestSuite(ImportExportTest.class, name);
+        Test test = new SupportFilesSetup(suite, new String[] {"functionTests/testData/ImportExport/TwoLineBadEOF.dat"} );
+        return new CleanDatabaseTestSetup(test) {
             protected void decorateSQL(Statement s) throws SQLException {
 
                 s.execute( "create type Price external name 'com.splicemachine.dbTesting.functionTests.tests.lang.Price' language java" );
@@ -88,15 +88,15 @@ public class ImportExportTest extends BaseJDBCTestCase {
                            "external name 'com.splicemachine.dbTesting.functionTests.tests.lang.UDTTest.makeHashMap'" );
 
                 s.execute("CREATE TABLE T1 (COLUMN1 VARCHAR(5) , COLUMN2 VARCHAR(8) , " +
-						   "COLUMN3 SMALLINT , COLUMN4 CHAR(11) , COLUMN5 DATE , COLUMN6 DECIMAL(5,1) , " +
-						   "COLUMN7 DOUBLE PRECISION , COLUMN8 INT , COLUMN9 BIGINT , COLUMN10 NUMERIC , " +
-						   "COLUMN11 REAL , COLUMN12 SMALLINT , COLUMN13 TIME , COLUMN14 TIMESTAMP , "+
-						   "COLUMN15 SMALLINT , COLUMN16 VARCHAR(1), COLUMN17 PRICE)");
+                           "COLUMN3 SMALLINT , COLUMN4 CHAR(11) , COLUMN5 DATE , COLUMN6 DECIMAL(5,1) , " +
+                           "COLUMN7 DOUBLE PRECISION , COLUMN8 INT , COLUMN9 BIGINT , COLUMN10 NUMERIC , " +
+                           "COLUMN11 REAL , COLUMN12 SMALLINT , COLUMN13 TIME , COLUMN14 TIMESTAMP , "+
+                           "COLUMN15 SMALLINT , COLUMN16 VARCHAR(1), COLUMN17 PRICE)");
                 s.execute("CREATE TABLE T2 (COLUMN1 VARCHAR(5) , COLUMN2 VARCHAR(8) , " +
-						   "COLUMN3 SMALLINT, COLUMN4 CHAR(11) , COLUMN5 DATE , COLUMN6 DECIMAL(5,1) , " +
-						   "COLUMN7 DOUBLE PRECISION , COLUMN8 INT , COLUMN9 BIGINT , COLUMN10 NUMERIC , " +
-						   "COLUMN11 REAL , COLUMN12 SMALLINT , COLUMN13 TIME , COLUMN14 TIMESTAMP , "+
-						   "COLUMN15 SMALLINT , COLUMN16 VARCHAR(1), COLUMN17 PRICE)");
+                           "COLUMN3 SMALLINT, COLUMN4 CHAR(11) , COLUMN5 DATE , COLUMN6 DECIMAL(5,1) , " +
+                           "COLUMN7 DOUBLE PRECISION , COLUMN8 INT , COLUMN9 BIGINT , COLUMN10 NUMERIC , " +
+                           "COLUMN11 REAL , COLUMN12 SMALLINT , COLUMN13 TIME , COLUMN14 TIMESTAMP , "+
+                           "COLUMN15 SMALLINT , COLUMN16 VARCHAR(1), COLUMN17 PRICE)");
                 s.execute("create table T4 (   Account int,    Name   char(30), Jobdesc char(40), " +
                            "Company varchar(35), Address1 varchar(40), Address2 varchar(40), " +
                            "City    varchar(20), State   char(5), Zip char(10), Country char(10), " +
@@ -108,7 +108,7 @@ public class ImportExportTest extends BaseJDBCTestCase {
                 s.execute( "create table t6( a int, b hashmap )" );
                 }
         };
-	}
+    }
 
     /**
      * Set up the test environment.
@@ -116,75 +116,75 @@ public class ImportExportTest extends BaseJDBCTestCase {
     protected void setUp() throws Exception {
         resetTables();
     }
-	
-	public void testImportFromNonExistantFile() {
-		try {
+    
+    public void testImportFromNonExistantFile() {
+        try {
             doImport("Z", null, "T1", null, null, null, 0);
             fail();
-		} catch (SQLException e) {
-			assertSQLState("XIE04", e);
-		}
-	}
-	
-	public void testNullDataFile() {
-		try {
+        } catch (SQLException e) {
+            assertSQLState("XIE04", e);
+        }
+    }
+    
+    public void testNullDataFile() {
+        try {
             doImport(null, null, "T1", null, null, null, 0);
             fail();
-		} catch (SQLException e) {
-			assertSQLState("XIE05", e);
-		}
-	}
-	
-	public void testEmptyTable() throws SQLException {
+        } catch (SQLException e) {
+            assertSQLState("XIE05", e);
+        }
+    }
+    
+    public void testEmptyTable() throws SQLException {
         doImportAndExport(null, "T1", null, null, null);
-	}
+    }
 
-	public void testEmptyTableWithDelimitedFormat() throws SQLException {
+    public void testEmptyTableWithDelimitedFormat() throws SQLException {
         doImportAndExport(null, "T1", null, null, "8859_1");
-	}
+    }
 
-	public void testEmptyTableWithFieldCharDelimiters() throws SQLException {
+    public void testEmptyTableWithFieldCharDelimiters() throws SQLException {
         doImportAndExport(null, "T1", "\t", "|", "8859_1");
-	}
-	
-	public void testWithDefaultOptions() throws Exception {
+    }
+    
+    public void testWithDefaultOptions() throws Exception {
         doImportAndExport(null, "T1", null, null, null);
-	}
-	
-	public void testWithCodeset() throws Exception {
+    }
+    
+    public void testWithCodeset() throws Exception {
         doImportAndExport(null, "T1", null, null, "8859_1");
-	}
+    }
 
-	public void testDelimiterAndCodeset() throws Exception {
+    public void testDelimiterAndCodeset() throws Exception {
         doImportAndExport(null, "T1", "\t", "|", "8859_1");
-	}
-	
-	public void testSpecialDelimitersAndCodeset() throws Exception {
+    }
+    
+    public void testSpecialDelimitersAndCodeset() throws Exception {
         doImportAndExport(null, "T1", "%", "&", "Cp1252");
-	}
+    }
 
-	public void testSpecialDelimitersAndUTF16() throws Exception {
+    public void testSpecialDelimitersAndUTF16() throws Exception {
         doImportAndExport(null, "T1", "%", "&", "UTF-16");
-	}
-	
-	public void testInvalidEncoding() throws Exception {
-		try {
+    }
+    
+    public void testInvalidEncoding() throws Exception {
+        try {
             doImportAndExport(null, "T1", "^", "#", "INAVALID ENCODING");
             fail();
-		} catch (SQLException e) {
-			assertSQLState("XIE0I", e);
-		}
-	}
-	
-	public void testEarlyEndOfFile() throws Exception {
-		try {
+        } catch (SQLException e) {
+            assertSQLState("XIE0I", e);
+        }
+    }
+    
+    public void testEarlyEndOfFile() throws Exception {
+        try {
             doImportFromFile("extin/TwoLineBadEOF.dat", null, "T4",
                              null, null, "US-ASCII", 0);
             fail();
-		} catch (SQLException e) {
-			assertSQLState("XIE0E", e);
-		}
-	}
+        } catch (SQLException e) {
+            assertSQLState("XIE0E", e);
+        }
+    }
 
     /**
      * Test that import to a table in the default schema works if a table
@@ -301,55 +301,55 @@ public class ImportExportTest extends BaseJDBCTestCase {
         try {
             doImportFromFile( fileName, null, "T5", null, null, null, 0 );
             fail();
-		} catch (SQLException e) {
-			assertSQLState("XJ001", e);
-		}
+        } catch (SQLException e) {
+            assertSQLState("XJ001", e);
+        }
     }
 
     private void doImport(String fromTable, String toSchema, String toTable,
-			 String colDel, String charDel , 
-			 String codeset, int replace) throws SQLException 
+             String colDel, String charDel , 
+             String codeset, int replace) throws SQLException 
     {
         String fileName = (fromTable == null) ?
             null : SupportFilesSetup.getReadWrite(fromTable + ".dat").getPath();
         doImportFromFile(fileName, toSchema, toTable,
                 colDel, charDel, codeset, replace);
     }
-	
+    
     private void doImportFromFile(
              String fileName, String toSchema, String toTable,
-			 String colDel, String charDel , 
-			 String codeset, int replace) throws SQLException
+             String colDel, String charDel , 
+             String codeset, int replace) throws SQLException
     {
-		String impsql = "call SYSCS_UTIL.SYSCS_IMPORT_TABLE (? , ? , ? , ?, ? , ?, ?)";
+        String impsql = "call SYSCS_UTIL.SYSCS_IMPORT_TABLE (? , ? , ? , ?, ? , ?, ?)";
         PreparedStatement ps = prepareStatement(impsql);
         ps.setString(1, toSchema);
-		ps.setString(2, toTable);
-		ps.setString(3, fileName);
-		ps.setString(4 , colDel);
-		ps.setString(5 , charDel);
-		ps.setString(6 , codeset);
-		ps.setInt(7, replace);
-		ps.execute();
-		ps.close();
+        ps.setString(2, toTable);
+        ps.setString(3, fileName);
+        ps.setString(4 , colDel);
+        ps.setString(5 , charDel);
+        ps.setString(6 , codeset);
+        ps.setInt(7, replace);
+        ps.execute();
+        ps.close();
 
     }
 
-	private void doImportAndExport(
+    private void doImportAndExport(
               String fromSchema, String fromTable, String colDel,
-			  String charDel, 
-			  String codeset) throws SQLException 
+              String charDel, 
+              String codeset) throws SQLException 
     {
         doExport(fromSchema, fromTable, colDel, charDel, codeset);
         doImportAndVerify(fromSchema, fromTable, colDel, charDel, codeset, 0);
         // also test with replace
         doImportAndVerify(fromSchema, fromTable, colDel, charDel, codeset, 1);
     }
-	
+    
     private void doExport(String fromSchema, String fromTable, String colDel,
-			 String charDel,
-			 String codeset) throws SQLException
-	{
+             String charDel,
+             String codeset) throws SQLException
+    {
         String fileName = (fromTable == null) ?
             null : SupportFilesSetup.getReadWrite(fromTable + ".dat").getPath();
         doExportToFile(
@@ -360,34 +360,34 @@ public class ImportExportTest extends BaseJDBCTestCase {
             String fileName, String fromSchema, String fromTable,
             String colDel, String charDel, String codeset) throws SQLException
     {
-		 //DERBY-2925: need to delete existing files first.
+         //DERBY-2925: need to delete existing files first.
          if (fileName != null) {
              SupportFilesSetup.deleteFile(fileName);
          }
-		 String expsql = "call SYSCS_UTIL.SYSCS_EXPORT_TABLE (? , ? , ? , ?, ? , ?)";
+         String expsql = "call SYSCS_UTIL.SYSCS_EXPORT_TABLE (? , ? , ? , ?, ? , ?)";
          PreparedStatement ps = prepareStatement(expsql);
          ps.setString(1, fromSchema);
-		 ps.setString(2, fromTable);
+         ps.setString(2, fromTable);
          ps.setString(3, fileName);
-		 ps.setString(4 , colDel);
-		 ps.setString(5 , charDel);
-		 ps.setString(6 , codeset);
-		 ps.execute();
-		 ps.close();
+         ps.setString(4 , colDel);
+         ps.setString(5 , charDel);
+         ps.setString(6 , codeset);
+         ps.execute();
+         ps.close();
     }
-	
-	/**
-	 * doImportAndVerify checks that data which has been imported and
-	 * then exported is identical. It imports the requested data, 
-	 * which has been exported from T1. Row counts are compared, and
-	 * then the data in T2 is again exported. A bytewise comparison 
-	 * of the two files is then made to verify that the data has been
-	 * gone through the import/export process intact.
-	 */
-	private void doImportAndVerify(
+    
+    /**
+     * doImportAndVerify checks that data which has been imported and
+     * then exported is identical. It imports the requested data, 
+     * which has been exported from T1. Row counts are compared, and
+     * then the data in T2 is again exported. A bytewise comparison 
+     * of the two files is then made to verify that the data has been
+     * gone through the import/export process intact.
+     */
+    private void doImportAndVerify(
               String fromSchema, String fromTable, String colDel,
-			  String charDel , String codeset, 
-			  int replace) throws SQLException 
+              String charDel , String codeset, 
+              int replace) throws SQLException 
     {
 
         doImport(fromTable, null, "T2", colDel, charDel, codeset, replace);
@@ -397,42 +397,42 @@ public class ImportExportTest extends BaseJDBCTestCase {
                 ((fromSchema == null) ?
                     JDBC.escape(fromTable) :
                     JDBC.escape(fromSchema, fromTable)));
-		rs.next();
-		int numberOfRowsInT1 = rs.getInt(1);
-		rs.close();
-		rs = stmt.executeQuery("SELECT COUNT(*) FROM t2");
-		rs.next();
-		int numberOfRowsInT2 = rs.getInt(1);
-		rs.close();
-		stmt.close();
-		assertEquals(numberOfRowsInT1, numberOfRowsInT2);
+        rs.next();
+        int numberOfRowsInT1 = rs.getInt(1);
+        rs.close();
+        rs = stmt.executeQuery("SELECT COUNT(*) FROM t2");
+        rs.next();
+        int numberOfRowsInT2 = rs.getInt(1);
+        rs.close();
+        stmt.close();
+        assertEquals(numberOfRowsInT1, numberOfRowsInT2);
 
-		doExport(null, "T2" , colDel , charDel , codeset);
+        doExport(null, "T2" , colDel , charDel , codeset);
 
         //check whether the  exported files from T1 and T2  are same now.
-		assertEquals(SupportFilesSetup.getReadWrite(fromTable + ".dat"),
-				     SupportFilesSetup.getReadWrite("T2.dat"));
+        assertEquals(SupportFilesSetup.getReadWrite(fromTable + ".dat"),
+                     SupportFilesSetup.getReadWrite("T2.dat"));
     }
-	
-	/**
-	 * Called from {@link #setUp()}.
-	 * Ensures that the import and export operate on a consistent
-	 * set of data.
-	 */
-	private void resetTables() throws Exception {
-		runSQLCommands("delete from t1");
-		runSQLCommands("delete from t2");
-		runSQLCommands("delete from t5");
-		runSQLCommands("delete from t6");
-		runSQLCommands("INSERT INTO T1 VALUES (null,'aa',1,'a',DATE('1998-06-30'),"+
-		               "1,1,1,1,1,1,1,TIME('12:00:00'),TIMESTAMP('1998-06-30 12:00:00.0'),1,'a', makePrice() )");
+    
+    /**
+     * Called from {@link #setUp()}.
+     * Ensures that the import and export operate on a consistent
+     * set of data.
+     */
+    private void resetTables() throws Exception {
+        runSQLCommands("delete from t1");
+        runSQLCommands("delete from t2");
+        runSQLCommands("delete from t5");
+        runSQLCommands("delete from t6");
+        runSQLCommands("INSERT INTO T1 VALUES (null,'aa',1,'a',DATE('1998-06-30'),"+
+                       "1,1,1,1,1,1,1,TIME('12:00:00'),TIMESTAMP('1998-06-30 12:00:00.0'),1,'a', makePrice() )");
         runSQLCommands("INSERT INTO T1 VALUES (null,'bb',1,'b',DATE('1998-06-30'),"+
-					   "2,2,2,2,2,2,2,TIME('12:00:00'),TIMESTAMP('1998-06-30 12:00:00.0'),2,'b', makePrice() )");
+                       "2,2,2,2,2,2,2,TIME('12:00:00'),TIMESTAMP('1998-06-30 12:00:00.0'),2,'b', makePrice() )");
         runSQLCommands("INSERT INTO T1 VALUES (null,'cc',1,'c',DATE('1998-06-30'),"+
-					   "3,3,3,3,3,3,3,TIME('12:00:00'),TIMESTAMP('1998-06-30 12:00:00.0'),3,'c', makePrice())");
+                       "3,3,3,3,3,3,3,TIME('12:00:00'),TIMESTAMP('1998-06-30 12:00:00.0'),3,'c', makePrice())");
         runSQLCommands("INSERT INTO T1 VALUES (null,'dd',1,'d',DATE('1998-06-30'),"+
-					   "4,4,4,4,4,4,4,TIME('12:00:00'),TIMESTAMP('1998-06-30 12:00:00.0'),4,'d', makePrice())");
+                       "4,4,4,4,4,4,4,TIME('12:00:00'),TIMESTAMP('1998-06-30 12:00:00.0'),4,'d', makePrice())");
         runSQLCommands( "insert into t6 values( 1, makeHashMap() )" );
-	}
+    }
 
 }

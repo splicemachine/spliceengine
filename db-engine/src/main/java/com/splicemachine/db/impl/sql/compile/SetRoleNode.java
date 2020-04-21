@@ -99,7 +99,7 @@ public class SetRoleNode extends MiscellaneousStatementNode
     public ConstantAction   makeConstantAction() throws StandardException
     {
         return getGenericConstantActionFactory().
-			getSetRoleConstantAction(name, type);
+            getSetRoleConstantAction(name, type);
     }
     /**
      * Override: Generate code, need to push parameters
@@ -126,7 +126,7 @@ public class SetRoleNode extends MiscellaneousStatementNode
         acb.pushThisAsActivation(mb); // first arg
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE, (String)null,
-					  "getMiscResultSet", ClassName.ResultSet, 1);
+                      "getMiscResultSet", ClassName.ResultSet, 1);
     }
     /**
      * Generate the code to create the ParameterValueSet, if necessary,
@@ -146,7 +146,7 @@ public class SetRoleNode extends MiscellaneousStatementNode
         // parameter list size should be 1
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(parameterList != null &&
-								 parameterList.size() == 1);
+                                 parameterList.size() == 1);
         }
         ParameterNode.generateParameterValueSet (acb, 1, parameterList);
     }
@@ -173,16 +173,16 @@ public class SetRoleNode extends MiscellaneousStatementNode
     }
 
 
-	/**
-	 * Override to allow committing of reading SYSROLES,
-	 * cf. SetRoleConstantAction's call to userCommit to retain idle
-	 * state. If atomic, that commit will fail.
-	 *
-	 * @return false
-	 */
-	public boolean isAtomic() {
-		return false;
-	}
+    /**
+     * Override to allow committing of reading SYSROLES,
+     * cf. SetRoleConstantAction's call to userCommit to retain idle
+     * state. If atomic, that commit will fail.
+     *
+     * @return false
+     */
+    public boolean isAtomic() {
+        return false;
+    }
 
 
 }

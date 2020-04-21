@@ -69,7 +69,7 @@ public class UDTAliasInfo implements AliasInfo, Formatable
     ///////////////////////////////////////////////////////////////////////////////////
 
     // no-arg constructor for Formatable machinery
-	public UDTAliasInfo() {}
+    public UDTAliasInfo() {}
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -77,7 +77,7 @@ public class UDTAliasInfo implements AliasInfo, Formatable
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-	public boolean isTableFunction() {return false; }
+    public boolean isTableFunction() {return false; }
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -85,52 +85,52 @@ public class UDTAliasInfo implements AliasInfo, Formatable
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Read this object from a stream of stored objects.
-	 *
-	 * @param in read this.
-	 *
-	 * @exception IOException					thrown on error
-	 * @exception ClassNotFoundException		thrown on error
-	 */
-	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
+    /**
+     * Read this object from a stream of stored objects.
+     *
+     * @param in read this.
+     *
+     * @exception IOException                    thrown on error
+     * @exception ClassNotFoundException        thrown on error
+     */
+    public void readExternal( ObjectInput in )
+         throws IOException, ClassNotFoundException
+    {
         // as the persistent form evolves, switch on this value
         int oldVersion = in.readInt();
-	}
+    }
 
-	/**
-	 * Write this object to a stream of stored objects.
-	 *
-	 * @param out write bytes here.
-	 *
-	 * @exception IOException		thrown on error
-	 */
-	public void writeExternal( ObjectOutput out )
-		 throws IOException
-	{
-		out.writeInt( FIRST_VERSION );
-	}
+    /**
+     * Write this object to a stream of stored objects.
+     *
+     * @param out write bytes here.
+     *
+     * @exception IOException        thrown on error
+     */
+    public void writeExternal( ObjectOutput out )
+         throws IOException
+    {
+        out.writeInt( FIRST_VERSION );
+    }
  
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.UDT_INFO_V01_ID; }
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId()    { return StoredFormatIds.UDT_INFO_V01_ID; }
 
     /**
      * This is used by dblook to reconstruct the UDT-specific parts of the ddl
      * needed to recreate this alias.
      */
-	public String toString() {
-		return "LANGUAGE JAVA";
-	}
+    public String toString() {
+        return "LANGUAGE JAVA";
+    }
 
-	public String getMethodName()
-	{
-		return null;
-	}
+    public String getMethodName()
+    {
+        return null;
+    }
 }
 

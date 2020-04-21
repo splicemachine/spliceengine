@@ -129,21 +129,21 @@ public final class JDBCClient {
     */
     public boolean isEmbedded()
     {
-    	return getName().startsWith("Embedded");
+        return getName().startsWith("Embedded");
     }
     /**
      * Is this Derby's network client.
      */
     public boolean isDerbyNetClient()
     {
-    	return getName().equals(DERBYNETCLIENT.getName());
+        return getName().equals(DERBYNETCLIENT.getName());
     }
     /**
      * Is this DB2's Universal JDBC 
      */
     public boolean isDB2Client()
     {
-    	return getName().equals(DB2CLIENT.getName());
+        return getName().equals(DB2CLIENT.getName());
     }
     
     /**
@@ -151,7 +151,7 @@ public final class JDBCClient {
      */
     public String getName()
     {
-    	return frameWork;
+        return frameWork;
     }
     
     /**

@@ -24,12 +24,12 @@ import java.io.Externalizable;
  */
 public abstract class SpliceFunction2<Op extends SpliceOperation, From, From2, To>
     extends AbstractSpliceFunction<Op>
-		implements ZipperFunction<From, From2, To>, Externalizable {
+        implements ZipperFunction<From, From2, To>, Externalizable {
 
-	public SpliceFunction2() {
-	}
+    public SpliceFunction2() {
+    }
 
-	protected SpliceFunction2(OperationContext<Op> operationContext) {
+    protected SpliceFunction2(OperationContext<Op> operationContext) {
         super(operationContext);
-	}
+    }
 }

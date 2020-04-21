@@ -35,5 +35,5 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 public interface T_Bombable
 { 
-	public void lastChance() throws StandardException;
+    public void lastChance() throws StandardException;
 }

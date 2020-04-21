@@ -38,41 +38,41 @@ import com.splicemachine.db.iapi.store.access.*;
 
 public class T_ColumnOrderingImpl implements ColumnOrdering
 {
-	int columnId;
-	boolean isAscending;
+    int columnId;
+    boolean isAscending;
 
-	public	T_ColumnOrderingImpl(int columnId, boolean isAscending)
-	{
-		this.columnId = columnId;
-		this.isAscending = isAscending;
-	}
+    public    T_ColumnOrderingImpl(int columnId, boolean isAscending)
+    {
+        this.columnId = columnId;
+        this.isAscending = isAscending;
+    }
 
-	/*
-	 * Methods of ColumnOrdering
-	 */
+    /*
+     * Methods of ColumnOrdering
+     */
 
-	/**
-	@see ColumnOrdering#getColumnId
-	**/
-	public int getColumnId()
-	{
-		return this.columnId;
-	}
+    /**
+    @see ColumnOrdering#getColumnId
+    **/
+    public int getColumnId()
+    {
+        return this.columnId;
+    }
 
-	/**
-	@see ColumnOrdering#getIsAscending
-	**/
-	public boolean getIsAscending()
-	{
-		return this.isAscending;
-	}
+    /**
+    @see ColumnOrdering#getIsAscending
+    **/
+    public boolean getIsAscending()
+    {
+        return this.isAscending;
+    }
 
-	/**
-	@see ColumnOrdering#getIsNullsOrderedLow
-	**/
-	public boolean getIsNullsOrderedLow()
-	{
-		return false;
-	}
+    /**
+    @see ColumnOrdering#getIsNullsOrderedLow
+    **/
+    public boolean getIsNullsOrderedLow()
+    {
+        return false;
+    }
 }
 

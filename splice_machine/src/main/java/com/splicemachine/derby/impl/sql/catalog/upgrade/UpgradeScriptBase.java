@@ -27,7 +27,7 @@ import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
  * Created by jyuan on 10/17/14.
  */
 public class UpgradeScriptBase implements UpgradeScript {
-	protected static final Logger LOG = Logger.getLogger(UpgradeScriptBase.class);
+    protected static final Logger LOG = Logger.getLogger(UpgradeScriptBase.class);
 
     protected SpliceDataDictionary sdd;
     protected TransactionController tc;
@@ -69,9 +69,9 @@ public class UpgradeScriptBase implements UpgradeScript {
     }
 
     public void run() throws StandardException{
-    	upgradeSystemTables();
-    	upgradeSystemProcedures();
-    	upgradeSystemFunctions();
-    	upgradeSystemStoredStatements();
+        upgradeSystemTables();
+        upgradeSystemProcedures();
+        upgradeSystemFunctions();
+        upgradeSystemStoredStatements();
     }
 }

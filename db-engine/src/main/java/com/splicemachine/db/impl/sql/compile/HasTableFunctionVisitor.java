@@ -57,15 +57,15 @@ public class HasTableFunctionVisitor extends HasNodeVisitor
     ///////////////////////////////////////////////////////////////////////////////////
 
     @Override
-	public Visitable visit(Visitable node, QueryTreeNode parent)
-	{
-		if ( node instanceof FromVTI )
-		{
+    public Visitable visit(Visitable node, QueryTreeNode parent)
+    {
+        if ( node instanceof FromVTI )
+        {
             FromVTI vti = (FromVTI) node;
 
             if ( vti.isDerbyStyleTableFunction() ) { hasNode = true; }
-		}
-		return node;
-	}
+        }
+        return node;
+    }
 }
 

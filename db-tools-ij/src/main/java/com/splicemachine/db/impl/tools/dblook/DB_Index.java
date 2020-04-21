@@ -40,99 +40,99 @@ import com.splicemachine.db.tools.dblook;
 
 public class DB_Index {
 
-	/* ************************************************
-	 * Generate the DDL for all indexes in a given
-	 * database.
-	 * @param conn Connection to the source database.
-	 * @return The DDL for the indexes has been written
-	 *  to output via Logs.java.
-	 ****/
+    /* ************************************************
+     * Generate the DDL for all indexes in a given
+     * database.
+     * @param conn Connection to the source database.
+     * @return The DDL for the indexes has been written
+     *  to output via Logs.java.
+     ****/
 
-	public static void doIndexes(Connection conn)
-		throws SQLException
-	{
+    public static void doIndexes(Connection conn)
+        throws SQLException
+    {
 
-		Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery("SELECT TABLEID, CONGLOMERATENAME, " +
-			"DESCRIPTOR, SCHEMAID, ISINDEX, ISCONSTRAINT FROM SYS.SYSCONGLOMERATES " +
-			"ORDER BY TABLEID");
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT TABLEID, CONGLOMERATENAME, " +
+            "DESCRIPTOR, SCHEMAID, ISINDEX, ISCONSTRAINT FROM SYS.SYSCONGLOMERATES " +
+            "ORDER BY TABLEID");
 
-		boolean firstTime = true;
-		while (rs.next()) {
+        boolean firstTime = true;
+        while (rs.next()) {
 
-			if (!rs.getBoolean(5) ||	// (isindex == false)
-				rs.getBoolean(6))		// (isconstraint == true)
-			// then skip it.
-				continue;
+            if (!rs.getBoolean(5) ||    // (isindex == false)
+                rs.getBoolean(6))        // (isconstraint == true)
+            // then skip it.
+                continue;
 
-			String tableId = rs.getString(1);
-			String tableName = dblook.lookupTableId(tableId);
-			if (tableName == null)
-			// then tableId isn't a user table, so we can skip it.
-				continue;
-			else if (dblook.isExcludedTable(tableName))
-			// table isn't specified in user-given list.
-				continue;
+            String tableId = rs.getString(1);
+            String tableName = dblook.lookupTableId(tableId);
+            if (tableName == null)
+            // then tableId isn't a user table, so we can skip it.
+                continue;
+            else if (dblook.isExcludedTable(tableName))
+            // table isn't specified in user-given list.
+                continue;
 
-			String iSchema = dblook.lookupSchemaId(rs.getString(4));
-			if (dblook.isIgnorableSchema(iSchema))
-				continue;
+            String iSchema = dblook.lookupSchemaId(rs.getString(4));
+            if (dblook.isIgnorableSchema(iSchema))
+                continue;
 
-			if (firstTime) {
-				Logs.reportString("----------------------------------------------");
-				Logs.reportMessage("DBLOOK_IndexesHeader");
-				Logs.reportString("----------------------------------------------\n");
-			}
+            if (firstTime) {
+                Logs.reportString("----------------------------------------------");
+                Logs.reportMessage("DBLOOK_IndexesHeader");
+                Logs.reportString("----------------------------------------------\n");
+            }
 
-			String iName = dblook.addQuotes(
-				dblook.expandDoubleQuotes(rs.getString(2)));
-			iName = iSchema + "." + iName;
+            String iName = dblook.addQuotes(
+                dblook.expandDoubleQuotes(rs.getString(2)));
+            iName = iSchema + "." + iName;
 
-			StringBuffer createIndexString = createIndex(iName, tableName,
-				tableId, rs.getString(3));
+            StringBuffer createIndexString = createIndex(iName, tableName,
+                tableId, rs.getString(3));
 
-			Logs.writeToNewDDL(createIndexString.toString());
-			Logs.writeStmtEndToNewDDL();
-			Logs.writeNewlineToNewDDL();
-			firstTime = false;
+            Logs.writeToNewDDL(createIndexString.toString());
+            Logs.writeStmtEndToNewDDL();
+            Logs.writeNewlineToNewDDL();
+            firstTime = false;
 
-		}
+        }
 
-		rs.close();
-		stmt.close();
+        rs.close();
+        stmt.close();
 
-	}
+    }
 
-	/* ************************************************
-	 * Generate DDL for a specific index.
-	 * @param ixName Name of the index.
-	 * @param tableName Name of table on which the index exists.
-	 * @param tableId Id of table on which the index exists.
-	 * @param ixDescribe Column list for the index.
-	 * @return The DDL for the specified index, as a string
-	 *  buffer.
-	 ****/
+    /* ************************************************
+     * Generate DDL for a specific index.
+     * @param ixName Name of the index.
+     * @param tableName Name of table on which the index exists.
+     * @param tableId Id of table on which the index exists.
+     * @param ixDescribe Column list for the index.
+     * @return The DDL for the specified index, as a string
+     *  buffer.
+     ****/
 
-	private static StringBuffer createIndex(String ixName, String tableName,
-		String tableId, String ixDescribe) throws SQLException
-	{
+    private static StringBuffer createIndex(String ixName, String tableName,
+        String tableId, String ixDescribe) throws SQLException
+    {
 
-		StringBuffer sb = new StringBuffer("CREATE ");
-		if (ixDescribe.contains("UNIQUE"))
-			sb.append("UNIQUE ");
+        StringBuffer sb = new StringBuffer("CREATE ");
+        if (ixDescribe.contains("UNIQUE"))
+            sb.append("UNIQUE ");
 
-		// Note: We leave the keyword "BTREE" out since it's not
-		// required, and since it is not recognized by DB2.
+        // Note: We leave the keyword "BTREE" out since it's not
+        // required, and since it is not recognized by DB2.
 
-		sb.append("INDEX ");
-		sb.append(ixName);
-		sb.append(" ON ");
-		sb.append(tableName);
-		sb.append(" (");
-		sb.append(dblook.getColumnListFromDescription(tableId, ixDescribe));
-		sb.append(")");
-		return sb;
+        sb.append("INDEX ");
+        sb.append(ixName);
+        sb.append(" ON ");
+        sb.append(tableName);
+        sb.append(" (");
+        sb.append(dblook.getColumnListFromDescription(tableId, ixDescribe));
+        sb.append(")");
+        return sb;
 
-	}
+    }
 
 }

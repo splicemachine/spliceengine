@@ -347,7 +347,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     @Override
     public void pullOptPostJoinPredicates(OptimizablePredicateList optimizablePredicates) throws StandardException{
-		if (postJoinPredicates != null) {
+        if (postJoinPredicates != null) {
             for(int i=postJoinPredicates.size()-1;i>=0;i--){
                 OptimizablePredicate optPred= postJoinPredicates.getOptPredicate(i);
                 optimizablePredicates.addOptPredicate(optPred);

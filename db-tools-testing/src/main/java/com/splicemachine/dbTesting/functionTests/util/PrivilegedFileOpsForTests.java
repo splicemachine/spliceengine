@@ -58,7 +58,7 @@ import java.util.List;
  */
 public class PrivilegedFileOpsForTests {
 
-	/**
+    /**
      * Get the file length.
      *
      * @return Byte length of the file.
@@ -114,7 +114,7 @@ public class PrivilegedFileOpsForTests {
      */
     public static FileInputStream getFileInputStream(final File file) 
             throws FileNotFoundException {
-    	if (file == null) {
+        if (file == null) {
             throw new IllegalArgumentException("file cannot be <null>");
         }
         try {

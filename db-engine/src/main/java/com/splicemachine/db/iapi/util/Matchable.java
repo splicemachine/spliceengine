@@ -32,15 +32,15 @@
 package com.splicemachine.db.iapi.util;
 
 /**
-	Provides the ability for an object to
-	match a subset of a group of other objects.
-	E.g in a cache.
+    Provides the ability for an object to
+    match a subset of a group of other objects.
+    E.g in a cache.
 */
 public interface Matchable {
 
-	/**
-		Return true if the passed in object matches
-		this object.
-	*/
-	boolean match(Object other);
+    /**
+        Return true if the passed in object matches
+        this object.
+    */
+    boolean match(Object other);
 }

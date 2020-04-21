@@ -37,65 +37,65 @@ import com.splicemachine.db.io.StorageFile;
 import java.io.InputStream;
 
 /**
-	Management of file resources within	a database. Suitable for jar
-	files, images etc.
+    Management of file resources within    a database. Suitable for jar
+    files, images etc.
 
-	<P>A file resource is identified by the pair (name,generationId).
-	Name is an arbitrary String supplied by the caller. GenerationId
-	is a non-repeating sequence number constructed by the database.
-	Within a database a	(name,generationId) pair uniquely identifies
-	a version of a file resource for all time. Newer generation
-	numbers reflect newer versions of the file.
+    <P>A file resource is identified by the pair (name,generationId).
+    Name is an arbitrary String supplied by the caller. GenerationId
+    is a non-repeating sequence number constructed by the database.
+    Within a database a    (name,generationId) pair uniquely identifies
+    a version of a file resource for all time. Newer generation
+    numbers reflect newer versions of the file.
 
-	<P>A database supports the concept of a designated current version
-	of a fileResource. The management of the current version is
-	transactional. The following rules apply
-	<OL>
-	<LI>Adding a FileResource makes the added version the current
-	version
-	<LI>Removing a FileResource removes the current version of the
-	resource. After this operation the database holds no current
-	version of the FileResoure.
-	<LI>Replacing a FileResource removes the current version of the
-	resource.
-	</OL>
-	
-	<P>For the benefit of replication, a database optionally retains 
-	historic versions of stored files. These old versions are
-	useful when processing old transactions in the stage. 
+    <P>A database supports the concept of a designated current version
+    of a fileResource. The management of the current version is
+    transactional. The following rules apply
+    <OL>
+    <LI>Adding a FileResource makes the added version the current
+    version
+    <LI>Removing a FileResource removes the current version of the
+    resource. After this operation the database holds no current
+    version of the FileResoure.
+    <LI>Replacing a FileResource removes the current version of the
+    resource.
+    </OL>
+    
+    <P>For the benefit of replication, a database optionally retains 
+    historic versions of stored files. These old versions are
+    useful when processing old transactions in the stage. 
 */
 public interface FileResource {
 
     /**
        The name of the jar directory
     */
-	String JAR_DIRECTORY_NAME = "jar";
+    String JAR_DIRECTORY_NAME = "jar";
 
-	/**
-	  Add a file resource, copying from the input stream.
-	  
-	  The InputStream will be closed by this method.
-	  @param name the name of the file resource.
-	  @param source an input stream for reading the content of
-	         the file resource.
-	  @return the generationId for the file resource. This
-	  quantity increases when you replace the file resource.
+    /**
+      Add a file resource, copying from the input stream.
+      
+      The InputStream will be closed by this method.
+      @param name the name of the file resource.
+      @param source an input stream for reading the content of
+             the file resource.
+      @return the generationId for the file resource. This
+      quantity increases when you replace the file resource.
 
-	  @exception StandardException some error occured.
-	*/
-	long add(String name, InputStream source)
-		throws StandardException;
+      @exception StandardException some error occured.
+    */
+    long add(String name, InputStream source)
+        throws StandardException;
 
-	/**
-	  Remove the current generation of a file resource from
-	  the database.
+    /**
+      Remove the current generation of a file resource from
+      the database.
 
-	  @param name the name of the fileResource to remove.
-	  
-	  @exception StandardException some error occured.
-	  */
-	void remove(String name, long currentGenerationId)
-		throws StandardException;
+      @param name the name of the fileResource to remove.
+      
+      @exception StandardException some error occured.
+      */
+    void remove(String name, long currentGenerationId)
+        throws StandardException;
 
     /**
      * During hard upgrade to >= 10.9, remove a jar directory (at post-commit 
@@ -103,35 +103,35 @@ public interface FileResource {
      * @param f
      * @exception standard error policy
      */
-	void removeJarDir(String f) throws StandardException;
+    void removeJarDir(String f) throws StandardException;
     
-	/**
-	  Replace a file resource with a new version.
+    /**
+      Replace a file resource with a new version.
 
-	  <P>The InputStream will be closed by this method.
+      <P>The InputStream will be closed by this method.
 
-	  @param name the name of the file resource.
-	  @param source an input stream for reading the content of
-	  the file resource.
-	  @return the generationId for the new 'current' version of the
-	          file resource. 
-	  @exception StandardException some error occured.
-	*/
-	long replace(String name, long currentGenerationId, InputStream source)
-		throws StandardException;
+      @param name the name of the file resource.
+      @param source an input stream for reading the content of
+      the file resource.
+      @return the generationId for the new 'current' version of the
+              file resource. 
+      @exception StandardException some error occured.
+    */
+    long replace(String name, long currentGenerationId, InputStream source)
+        throws StandardException;
 
-	/**
-	  Get the StorageFile for a file resource.
-	  
-	  @param name The name of the fileResource
-	  @param generationId the generationId of the fileResource
-	  
-	  @return A StorageFile object representing the file.
-	  */
-	StorageFile getAsFile(String name, long generationId);
+    /**
+      Get the StorageFile for a file resource.
+      
+      @param name The name of the fileResource
+      @param generationId the generationId of the fileResource
+      
+      @return A StorageFile object representing the file.
+      */
+    StorageFile getAsFile(String name, long generationId);
 
     /**
      * @return the separator character to be used in file names.
      */
-	char getSeparatorChar();
+    char getSeparatorChar();
 }

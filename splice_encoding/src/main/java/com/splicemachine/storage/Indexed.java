@@ -21,30 +21,30 @@ package com.splicemachine.storage;
  */
 public interface Indexed {
 
-		/**
-		 * Returns the next set bit at or higher than {@code position}.
-		 *
-		 * @param currentPosition the position to start from
-		 * @return the index of the next set bit that has index equal to or higher than {@code position}
-		 */
-		int nextSetBit(int currentPosition);
+        /**
+         * Returns the next set bit at or higher than {@code position}.
+         *
+         * @param currentPosition the position to start from
+         * @return the index of the next set bit that has index equal to or higher than {@code position}
+         */
+        int nextSetBit(int currentPosition);
 
-		/**
-		 * @param position the position to check
-		 * @return true if the value at the position is "Scalar typed"--that is, encoded identically to a long
-		 */
-		boolean isScalarType(int position);
+        /**
+         * @param position the position to check
+         * @return true if the value at the position is "Scalar typed"--that is, encoded identically to a long
+         */
+        boolean isScalarType(int position);
 
-		/**
-		 * @param position the position to check
-		 * @return true if the value at the position is "Double typed"--that is, encoded identically to a double
-		 */
-		boolean isDoubleType(int position);
+        /**
+         * @param position the position to check
+         * @return true if the value at the position is "Double typed"--that is, encoded identically to a double
+         */
+        boolean isDoubleType(int position);
 
-		/**
-		 * @param position the position to check
-		 * @return true if the value at the position is "Float typed"--that is, encoded identically to a float
-		 */
-		boolean isFloatType(int position);
+        /**
+         * @param position the position to check
+         * @return true if the value at the position is "Float typed"--that is, encoded identically to a float
+         */
+        boolean isFloatType(int position);
 
 }

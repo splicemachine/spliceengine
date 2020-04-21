@@ -57,26 +57,26 @@ public class DB_Sequence
     ///////////////////////////////////////////////////////////////////////////////////
 
 
-	/**
+    /**
      * <p>
-	 * Generate the DDL for all sequences and output it via Logs.java.
+     * Generate the DDL for all sequences and output it via Logs.java.
      * </p>
      *
-	 * @param conn Connection to the source database.
+     * @param conn Connection to the source database.
      */
 
-	public static void doSequences( Connection conn )
-		throws SQLException
+    public static void doSequences( Connection conn )
+        throws SQLException
     {
-		PreparedStatement ps = conn.prepareStatement
+        PreparedStatement ps = conn.prepareStatement
             (
              "SELECT SCHEMAID, SEQUENCENAME, SEQUENCEDATATYPE, STARTVALUE, MINIMUMVALUE, MAXIMUMVALUE, INCREMENT, CYCLEOPTION\n" +
              "FROM SYS.SYSSEQUENCES"
              );
         ResultSet rs = ps.executeQuery();
 
-		boolean firstTime = true;
-		while (rs.next())
+        boolean firstTime = true;
+        while (rs.next())
         {
             int  col = 1;
             String schemaName = dblook.lookupSchemaId( rs.getString( col++ ) );
@@ -88,27 +88,27 @@ public class DB_Sequence
             long increment = rs.getLong( col++ );
             String cycleOption = "Y".equals( rs.getString( col++ ) ) ? "CYCLE" : "NO CYCLE";
 
-			if (firstTime)
+            if (firstTime)
             {
-				Logs.reportString("----------------------------------------------");
+                Logs.reportString("----------------------------------------------");
                 Logs.reportMessage( "DBLOOK_SequenceHeader" );
-				Logs.reportString("----------------------------------------------\n");
-			}
+                Logs.reportString("----------------------------------------------\n");
+            }
 
-			String fullName = dblook.addQuotes( dblook.expandDoubleQuotes( sequenceName ) );
-			fullName = schemaName + "." + fullName;
+            String fullName = dblook.addQuotes( dblook.expandDoubleQuotes( sequenceName ) );
+            fullName = schemaName + "." + fullName;
 
-			String creationString = createSequenceString
+            String creationString = createSequenceString
                 ( fullName, typeName, startValue, minimumValue, maximumValue, increment, cycleOption );
-			Logs.writeToNewDDL(creationString);
-			Logs.writeStmtEndToNewDDL();
-			Logs.writeNewlineToNewDDL();
-			firstTime = false;
-		}
+            Logs.writeToNewDDL(creationString);
+            Logs.writeStmtEndToNewDDL();
+            Logs.writeNewlineToNewDDL();
+            firstTime = false;
+        }
 
         rs.close();
         ps.close();
-	}
+    }
     /** Strip the trailing NOT NULL off of the string representation of a datatype */
     private static String stripNotNull( String datatypeName )
     {
@@ -117,9 +117,9 @@ public class DB_Sequence
         else { return datatypeName; }
     }
 
-	/**
+    /**
      * <p>
-	 * Generate DDL for a specific sequence.
+     * Generate DDL for a specific sequence.
      * </p>
      *
      * @param fullName Fully qualified name of the sequence
@@ -130,9 +130,9 @@ public class DB_Sequence
      * @param increment Step size of the sequence
      * @param cycleOption CYCLE or NO CYCLE
      *
-	 * @return DDL for the current stored sequence
+     * @return DDL for the current stored sequence
      */
-	private static String createSequenceString
+    private static String createSequenceString
         (
          String fullName,
          String dataTypeName,
@@ -142,8 +142,8 @@ public class DB_Sequence
          long increment,
          String cycleOption
          )
-		throws SQLException
-	{
+        throws SQLException
+    {
         String buffer = "CREATE SEQUENCE " + fullName + '\n' +
                 "    AS " + dataTypeName + '\n' +
                 "    START WITH " + Long.toString(startValue) + '\n' +
@@ -153,6 +153,6 @@ public class DB_Sequence
                 "    " + cycleOption + '\n';
 
         return buffer;
-	}
+    }
 
 }

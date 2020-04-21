@@ -45,9 +45,9 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     public static final SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("A",CLASS_NAME,"(i int,j int,k int)");
     public static final SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("B",CLASS_NAME,"(i int,j int,k int)");
     public static final SpliceTableWatcher spliceTableRegion = new SpliceTableWatcher("REGION2",CLASS_NAME,
-    	"(R_REGIONKEY INTEGER NOT NULL PRIMARY KEY, R_NAME VARCHAR(25))");
+        "(R_REGIONKEY INTEGER NOT NULL PRIMARY KEY, R_NAME VARCHAR(25))");
     public static final SpliceTableWatcher spliceTableNation = new SpliceTableWatcher("NATION2",CLASS_NAME,
-		"(N_NATIONKEY INTEGER NOT NULL PRIMARY KEY, N_NAME VARCHAR(25), N_REGIONKEY INTEGER NOT NULL)");
+        "(N_NATIONKEY INTEGER NOT NULL PRIMARY KEY, N_NAME VARCHAR(25), N_REGIONKEY INTEGER NOT NULL)");
     
     private static final String PLAN_LINE_LEADER = "->  ";
     private static final String JOIN_STRATEGY_TERMINATOR = "(";
@@ -72,7 +72,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                     try {
                         spliceClassWatcher.setAutoCommit(true);
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) values 1,2,3,4,5,6,7,8,9,10",
-							spliceTableWatcher));
+                            spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher, spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher, spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher, spliceTableWatcher));
@@ -88,7 +88,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher, spliceTableWatcher));
 
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) values 1,2,3,4,5,6,7,8,9,10",
-							spliceTableWatcher2));
+                            spliceTableWatcher2));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
@@ -104,13 +104,13 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                                 spliceTableWatcher3));
 
                         spliceClassWatcher.executeUpdate(format(
-                    		"insert into %s (r_regionkey, r_name) values " +
+                            "insert into %s (r_regionkey, r_name) values " +
                             "(0, 'AFRICA'), (1, 'AMERICA'), (2, 'ASIA'), (3, 'EUROPE'), (4, 'MIDDLE EAST'), " +
                             "(5, 'AMERICA'), (6, 'AMERICA'), (7, 'AMERICA'), (8, 'AMERICA'), (9, 'AMERICA')",
                             spliceTableRegion));
                         
                         spliceClassWatcher.executeUpdate(format(
-                    		"insert into %s (n_nationkey, n_name, n_regionkey) values " +
+                            "insert into %s (n_nationkey, n_name, n_regionkey) values " +
                             "(0, 'ALGERIA', 0), " +
                             "(1, 'ARGENTINA', 1), " +
                             "(2, 'BRAZIL', 1), " +
@@ -119,7 +119,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                             "(6, 'FRANCE', 3)",
                             spliceTableNation));
 
-						spliceClassWatcher.execute(format("call syscs_util.COLLECT_SCHEMA_STATISTICS('%s',false)",CLASS_NAME));
+                        spliceClassWatcher.execute(format("call syscs_util.COLLECT_SCHEMA_STATISTICS('%s',false)",CLASS_NAME));
                         
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -137,9 +137,9 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     public void testInnerJoinWithSubqueryFilterExactCriteria() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
             format("explain select a2.pid from %s a2 join " +
-            		  "(select person.pid from %s) as a3 " +
-            		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher));
+                      "(select person.pid from %s) as a3 " +
+                      " on a2.pid = a3.pid " + 
+                      " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher));
         int count = 0;
         while (rs.next()) {
             count++;
@@ -158,18 +158,18 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     public void testInnerJoinWithSubquery() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
               format("explain select a2.pid from %s a2 join " +
-            		  "(select person.pid from %s) as a3 " +
-            		  " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher));
+                      "(select person.pid from %s) as a3 " +
+                      " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher));
         int count = 0;
         while (rs.next()) {
             count++;
             if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(),
+                String row = rs.getString(1);
+                String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(),
                         row.indexOf(JOIN_STRATEGY_TERMINATOR));
                 Assert.assertThat("Join strategy must be either MERGE_SORT_JOIN or BROADCAST_JOIN", joinStrategy,
                         anyOf(equalTo(MERGE_SORT_JOIN), equalTo(BROADCAST_JOIN)));
-            	break;
+                break;
             }
         }
     }
@@ -180,64 +180,64 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     public void testLeftOuterJoinWithSubqueryFilterExactCriteria() throws Exception {
         fourthRowContainsQuery(
             format("explain select a2.pid from %s a2 left outer join " +
-            		  "(select person.pid from %s) as a3 " +
-            		  " on a2.pid = a3.pid " +
-            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher),
-		    LO_MERGE_SORT_JOIN, methodWatcher);
+                      "(select person.pid from %s) as a3 " +
+                      " on a2.pid = a3.pid " +
+                      " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher),
+            LO_MERGE_SORT_JOIN, methodWatcher);
     }
     
     // should be Broadcast but comes back with MergeSort?
     @Test
     public void testLeftOuterJoinWithSubquery() throws Exception {
         fourthRowContainsQuery(
-        	format("explain select a2.pid from %s a2 left outer join " +
-            		  "(select person.pid from %s) as a3 " +
-            		  " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher),
-    		LO_MERGE_SORT_JOIN, methodWatcher);
+            format("explain select a2.pid from %s a2 left outer join " +
+                      "(select person.pid from %s) as a3 " +
+                      " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher),
+            LO_MERGE_SORT_JOIN, methodWatcher);
     }
 
     @Test
     public void testRPLeftOuterJoinWithNestedSubqueries() throws Exception {
-		explainQueryNoNestedLoops(
+        explainQueryNoNestedLoops(
             format("explain SELECT a2.pid FROM %s a2 " + 
-        			  "LEFT OUTER JOIN " +
-            		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
-            				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            				  "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher));
+                      "LEFT OUTER JOIN " +
+                      "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
+                              "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
+                              "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher));
     }
     
     @Test
     public void testRPLeftOuterJoinWithNestedSubqueriesFilterExactCriteria() throws Exception {
         fourthRowContainsQuery(
             format("explain SELECT a2.pid FROM %s a2 " + 
-            		  "LEFT OUTER JOIN " +
-            		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
-            				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            				  "ON a2.PID = a3.PID " +
-            				  "WHERE a2.PID = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
-			  LO_MERGE_SORT_JOIN, methodWatcher);
+                      "LEFT OUTER JOIN " +
+                      "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
+                              "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
+                              "ON a2.PID = a3.PID " +
+                              "WHERE a2.PID = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
+              LO_MERGE_SORT_JOIN, methodWatcher);
     }
 
     @Test
     public void testInnerJoinWithNestedSubqueries() throws Exception {
-    	explainQueryNoNestedLoops(
+        explainQueryNoNestedLoops(
             format("explain SELECT a2.pid FROM %s a2 " + 
-            		  "INNER JOIN " +
-            		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
-            				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            				  "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher));
+                      "INNER JOIN " +
+                      "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
+                              "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
+                              "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher));
 //            BROADCAST_JOIN, methodWatcher);
     }
     
     @Test
     public void testInnerJoinWithNestedSubqueriesFilterExactCriteria() throws Exception {
-    	fourthRowContainsQuery(
+        fourthRowContainsQuery(
             format("explain SELECT a2.pid FROM %s a2 " + 
-            		  "INNER JOIN " +
-            		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
-            				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            				  "ON a2.PID = a3.PID" +
-            				  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
+                      "INNER JOIN " +
+                      "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
+                              "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
+                              "ON a2.PID = a3.PID" +
+                              " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
             BROADCAST_JOIN, methodWatcher);
     }
 
@@ -245,9 +245,9 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     public void testInnerJoinWithSubqueryLHSFilterExactCriteria() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
             format("explain select a2.pid from (select person.pid from %s) as a3 " +
-            		  " join %s a2 " +
-            		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2));
+                      " join %s a2 " +
+                      " on a2.pid = a3.pid " + 
+                      " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2));
         int count = 0;
         while (rs.next()) {
             count++;
@@ -267,16 +267,16 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
         ResultSet rs = methodWatcher.executeQuery(
               format("explain select a2.pid from (select person.pid from %s) as a3 " +
-            		  " join %s a2 " +
-            		  " on a2.pid = a3.pid ", spliceTableWatcher, spliceTableWatcher2));
+                      " join %s a2 " +
+                      " on a2.pid = a3.pid ", spliceTableWatcher, spliceTableWatcher2));
         int count = 0;
         while (rs.next()) {
             count++;
             if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(), row.indexOf(JOIN_STRATEGY_TERMINATOR));
+                String row = rs.getString(1);
+                String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(), row.indexOf(JOIN_STRATEGY_TERMINATOR));
                 Assert.assertTrue(MERGE_SORT_JOIN.equals(joinStrategy) || BROADCAST_JOIN.equals(joinStrategy));
-            	break;
+                break;
             }
         }
     }
@@ -287,9 +287,9 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     public void testLeftOuterJoinWithSubqueryLHSFilterExactCriteria() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
             format("explain select a2.pid from (select person.pid from %s) as a3 " +
-            		  " left outer join %s a2 " +
-            		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2));
+                      " left outer join %s a2 " +
+                      " on a2.pid = a3.pid " + 
+                      " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2));
         int count = 0;
         while (rs.next()) {
             count++;
@@ -306,64 +306,64 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
     @Test
     public void testLeftOuterJoinWithSubqueryLHS() throws Exception {
-    	fourthRowContainsQuery(
+        fourthRowContainsQuery(
             format("explain select a2.pid from (select person.pid from %s) as a3 " +
-            		  " left outer join %s a2 " +
-            		  " on a2.pid = a3.pid ", spliceTableWatcher, spliceTableWatcher2),
+                      " left outer join %s a2 " +
+                      " on a2.pid = a3.pid ", spliceTableWatcher, spliceTableWatcher2),
             LO_BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
     public void testLeftOuterJoinWithNestedSubqueryLHSFilterExactCriteria() throws Exception {
-    	fourthRowContainsQuery(
+        fourthRowContainsQuery(
             format("explain select a2.pid from " +
-            		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
-            		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            		  " left outer join %s a2 " +
-            		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
+                      "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
+                      "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
+                      " left outer join %s a2 " +
+                      " on a2.pid = a3.pid " + 
+                      " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
            BROADCAST_JOIN, methodWatcher);
     }
     
     @Test
     public void testInnerJoinWithNestedSubqueryLHSFilterExactCriteria() throws Exception {
-    	fourthRowContainsQuery(
+        fourthRowContainsQuery(
             format("explain select a2.pid from " +
-            		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
-            		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            		  " join %s a2 " +
-            		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
+                      "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
+                      "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
+                      " join %s a2 " +
+                      " on a2.pid = a3.pid " + 
+                      " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
             BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
     public void testInnerJoinWithNestedSubqueryLHS() throws Exception {
-    	fourthRowContainsQuery(
+        fourthRowContainsQuery(
             format("explain select a2.pid from " +
-            		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
-            		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            		  " join %s a2 " +
-            		  " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
+                      "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
+                      "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
+                      " join %s a2 " +
+                      " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
             BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
     public void testLeftOuterJoinWithNestedSubqueryLHS() throws Exception {
-    	fourthRowContainsQuery(
+        fourthRowContainsQuery(
             format("explain select a2.pid from " +
-            		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
-            		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            		  " left outer join %s a2 " +
-            		  " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
-    	    LO_BROADCAST_JOIN, methodWatcher);
+                      "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
+                      "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
+                      " left outer join %s a2 " +
+                      " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
+            LO_BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
     public void testNoNestedLoops1() throws Exception {
-    	// This tests DB-3608 (wrong row estimate for frequent element match of type varchar).
-    	// If it fails, do not ignore it or comment it out. Let it fail until it is fixed.
-    	explainQueryNoNestedLoops(
+        // This tests DB-3608 (wrong row estimate for frequent element match of type varchar).
+        // If it fails, do not ignore it or comment it out. Let it fail until it is fixed.
+        explainQueryNoNestedLoops(
             "explain select * from region2, nation2 where n_regionkey = r_regionkey and r_name = 'AMERICA'");
     }
     
@@ -376,17 +376,17 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     @Category(SlowTest.class)
     @Ignore("-sf- takes way too long to fail and interferes rest of build")
     public void testTenTableJoinExplainDuration() throws Exception {
-    	int size = 10;
-    	List<String> tables = new ArrayList<String>(size);
-    	List<String> joins = new ArrayList<String>(size - 1);
-    	for (int i = 0; i < size; i++) {
-	        methodWatcher.executeUpdate(format("create table tentab%s (c1 int primary key)", i));
-	        methodWatcher.executeUpdate(format("insert into tentab%s values (1)", i));
-	        tables.add(format("tentab%s", i));
-	        if (i > 0) {
-	        	joins.add(format("tentab%s.c1 = tentab%s.c1", i, i - 1));
-	        }
-		}
+        int size = 10;
+        List<String> tables = new ArrayList<String>(size);
+        List<String> joins = new ArrayList<String>(size - 1);
+        for (int i = 0; i < size; i++) {
+            methodWatcher.executeUpdate(format("create table tentab%s (c1 int primary key)", i));
+            methodWatcher.executeUpdate(format("insert into tentab%s values (1)", i));
+            tables.add(format("tentab%s", i));
+            if (i > 0) {
+                joins.add(format("tentab%s.c1 = tentab%s.c1", i, i - 1));
+            }
+        }
         System.out.println("Tables created");
         final String fromClause = Joiner.on(", ").join(tables);
         final String joinCriteria = Joiner.on(" AND ").join(joins);

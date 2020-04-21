@@ -35,14 +35,14 @@ import java.lang.reflect.InvocationTargetException;
 
 public interface InstanceGetter {
 
-	/**
-		Create an instance of a class.
+    /**
+        Create an instance of a class.
 
-		@exception InstantiationException Zero arg constructor can not be executed
-		@exception IllegalAccessException Class or zero arg constructor is not public.
-		@exception InvocationTargetException Exception throw in zero-arg constructor.
+        @exception InstantiationException Zero arg constructor can not be executed
+        @exception IllegalAccessException Class or zero arg constructor is not public.
+        @exception InvocationTargetException Exception throw in zero-arg constructor.
 
-	*/
-	Object getNewInstance()
-		throws InstantiationException, IllegalAccessException, InvocationTargetException;
+    */
+    Object getNewInstance()
+        throws InstantiationException, IllegalAccessException, InvocationTargetException;
 }

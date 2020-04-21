@@ -38,7 +38,7 @@ public class Tracer {
     }
     
     public static boolean isTracingRowRollForward() {
-    	return Tracer.fRowRollForward != null;
+        return Tracer.fRowRollForward != null;
     }
 
     public static void registerTransactionRollForward(Function<Long, Object> f) {
@@ -46,7 +46,7 @@ public class Tracer {
     }
 
     public static boolean isTracingTransactionRollForward() {
-    	return Tracer.fTransactionRollForward != null;
+        return Tracer.fTransactionRollForward != null;
     }
     
     public static void registerStatus(Function<Object[], Object> f) {
@@ -117,7 +117,7 @@ public class Tracer {
 
     public static void traceBestAccess(Object objectParam) {
         if (bestAccess != null) {
-        	bestAccess.apply(objectParam);
+            bestAccess.apply(objectParam);
         }
     }
 

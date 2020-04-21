@@ -52,7 +52,7 @@ public class Procedure {
     private final String name;
     private final int numberOutputParameters;
     private final int numResultSets;
-    private final short routineSqlControl; //can be anything from RountineAliasInfo.READS_SQL_DATA, etcprivate final boolean isDeterministic;private final com.splicemachine.db.catalog.TypeDescriptor returnType;	public Procedure()	{	}@java.lang.Override
+    private final short routineSqlControl; //can be anything from RountineAliasInfo.READS_SQL_DATA, etcprivate final boolean isDeterministic;private final com.splicemachine.db.catalog.TypeDescriptor returnType;    public Procedure()    {    }@java.lang.Override
     private final boolean isDeterministic;
     private final TypeDescriptor returnType;
     private final String ownerClass;

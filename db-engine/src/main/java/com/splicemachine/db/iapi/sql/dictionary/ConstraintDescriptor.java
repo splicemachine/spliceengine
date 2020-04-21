@@ -44,7 +44,7 @@ import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import	com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import    com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
 import java.util.Arrays;
@@ -58,275 +58,275 @@ import java.util.Arrays;
  */
 
 public abstract class ConstraintDescriptor 
-	extends TupleDescriptor
-	implements UniqueTupleDescriptor, Provider, Dependent
+    extends TupleDescriptor
+    implements UniqueTupleDescriptor, Provider, Dependent
 {
-	// used to indicate what type of constraints we 
-	// are interested in
-	public static final int ENABLED		= 1;
-	public static final int DISABLED	= 2;
-	public static final int ALL			= 3;
+    // used to indicate what type of constraints we 
+    // are interested in
+    public static final int ENABLED        = 1;
+    public static final int DISABLED    = 2;
+    public static final int ALL            = 3;
 
-	// field that we want users to be able to know about
-	public static final int SYSCONSTRAINTS_STATE_FIELD = 6;
+    // field that we want users to be able to know about
+    public static final int SYSCONSTRAINTS_STATE_FIELD = 6;
 
-	TableDescriptor		table;
-	final String				constraintName;
-	private final boolean				deferrable;
-	private final boolean				initiallyDeferred;
-	boolean				isEnabled;
-	private final int[]				referencedColumns;
-	final UUID					constraintId;
-	private final SchemaDescriptor	schemaDesc;
-	private ColumnDescriptorList	colDL;
+    TableDescriptor        table;
+    final String                constraintName;
+    private final boolean                deferrable;
+    private final boolean                initiallyDeferred;
+    boolean                isEnabled;
+    private final int[]                referencedColumns;
+    final UUID                    constraintId;
+    private final SchemaDescriptor    schemaDesc;
+    private ColumnDescriptorList    colDL;
 
-	/**
-	 * Constructor for a ConstraintDescriptor
-	 *
-	 * @param dataDictionary		The data dictionary that this descriptor lives in
-	 * @param table		The descriptor of the table the constraint is on
-	 * @param constraintName	The name of the constraint.
-	 * @param deferrable		If the constraint can be deferred.
-	 * @param initiallyDeferred If the constraint starts life deferred.
-	 * @param referencedColumns columns that the constraint references
-	 * @param constraintId		UUID of constraint
-	 * @param schemaDesc		SchemaDescriptor
-	 */
+    /**
+     * Constructor for a ConstraintDescriptor
+     *
+     * @param dataDictionary        The data dictionary that this descriptor lives in
+     * @param table        The descriptor of the table the constraint is on
+     * @param constraintName    The name of the constraint.
+     * @param deferrable        If the constraint can be deferred.
+     * @param initiallyDeferred If the constraint starts life deferred.
+     * @param referencedColumns columns that the constraint references
+     * @param constraintId        UUID of constraint
+     * @param schemaDesc        SchemaDescriptor
+     */
 
-	ConstraintDescriptor(
-		    DataDictionary dataDictionary,
-			TableDescriptor table,
-			String constraintName,
-			boolean deferrable,
-			boolean initiallyDeferred,
-			int[] referencedColumns,
-			UUID constraintId,
-			SchemaDescriptor schemaDesc,
-			boolean isEnabled
-			)
-	{
-		super( dataDictionary );
+    ConstraintDescriptor(
+            DataDictionary dataDictionary,
+            TableDescriptor table,
+            String constraintName,
+            boolean deferrable,
+            boolean initiallyDeferred,
+            int[] referencedColumns,
+            UUID constraintId,
+            SchemaDescriptor schemaDesc,
+            boolean isEnabled
+            )
+    {
+        super( dataDictionary );
 
-		this.table = table;
-		this.constraintName = constraintName;
-		this.deferrable = deferrable;
-		this.initiallyDeferred = initiallyDeferred;
-		this.referencedColumns = referencedColumns;
-		this.constraintId = constraintId;
-		this.schemaDesc = schemaDesc;
-		this.isEnabled = isEnabled;
-	}
+        this.table = table;
+        this.constraintName = constraintName;
+        this.deferrable = deferrable;
+        this.initiallyDeferred = initiallyDeferred;
+        this.referencedColumns = referencedColumns;
+        this.constraintId = constraintId;
+        this.schemaDesc = schemaDesc;
+        this.isEnabled = isEnabled;
+    }
 
 
-	/**
-	 * Gets the UUID of the table the constraint is on.
-	 *
-	 * @return	The UUID of the table the constraint is on.
-	 */
-	public UUID	getTableId()
-	{
-		return table.getUUID();
-	}
+    /**
+     * Gets the UUID of the table the constraint is on.
+     *
+     * @return    The UUID of the table the constraint is on.
+     */
+    public UUID    getTableId()
+    {
+        return table.getUUID();
+    }
 
-	/**
-	 * Gets the UUID of the constraint.
-	 *
-	 * @return	The UUID of the constraint.
-	 */
-	public UUID	getUUID()
-	{
-		return constraintId;
-	}
+    /**
+     * Gets the UUID of the constraint.
+     *
+     * @return    The UUID of the constraint.
+     */
+    public UUID    getUUID()
+    {
+        return constraintId;
+    }
 
-	/**
-	 * Gets the name of the constraint.
-	 *
-	 * @return	A String containing the name of the constraint.
-	 */
-	public String	getConstraintName()
-	{
-		return constraintName;
-	}
+    /**
+     * Gets the name of the constraint.
+     *
+     * @return    A String containing the name of the constraint.
+     */
+    public String    getConstraintName()
+    {
+        return constraintName;
+    }
 
-	/**
-	 * Gets an identifier telling what type of descriptor it is
-	 * (UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK).
-	 *
-	 * @return	An identifier telling what type of descriptor it is
-	 *		(UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK).
-	 */
-	public abstract int	getConstraintType();
+    /**
+     * Gets an identifier telling what type of descriptor it is
+     * (UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK).
+     *
+     * @return    An identifier telling what type of descriptor it is
+     *        (UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK).
+     */
+    public abstract int    getConstraintType();
 
-	public abstract UUID getConglomerateId();
+    public abstract UUID getConglomerateId();
 
-	/**
-	 * Get the text of the constraint. (Only non-null/meaningful for check
-	 * constraints.)
-	 * @return	The constraint text.
-	 */
-	public String getConstraintText()
-	{
-		return null;
-	}
+    /**
+     * Get the text of the constraint. (Only non-null/meaningful for check
+     * constraints.)
+     * @return    The constraint text.
+     */
+    public String getConstraintText()
+    {
+        return null;
+    }
 
-	/**
-	 * Returns TRUE if the constraint is deferrable
-	 * (we will probably not do deferrable constraints in the
-	 * initial release, but I want this to be part of the interface).
-	 *
-	 * @return	TRUE if the constraint is deferrable, FALSE if not
-	 */
-	public boolean	deferrable()
-	{
-		return deferrable;
-	}
+    /**
+     * Returns TRUE if the constraint is deferrable
+     * (we will probably not do deferrable constraints in the
+     * initial release, but I want this to be part of the interface).
+     *
+     * @return    TRUE if the constraint is deferrable, FALSE if not
+     */
+    public boolean    deferrable()
+    {
+        return deferrable;
+    }
 
-	/**
-	 * Returns TRUE if the constraint is initially deferred
-	 * (we will probably not do initially deferred constraints
-	 * in the initial release, but I want this to be part of the interface).
-	 *
-	 * @return	TRUE if the constraint is initially deferred,
-	 *		FALSE if not
-	 */
-	public boolean	initiallyDeferred()
-	{
-		return initiallyDeferred;
-	}
+    /**
+     * Returns TRUE if the constraint is initially deferred
+     * (we will probably not do initially deferred constraints
+     * in the initial release, but I want this to be part of the interface).
+     *
+     * @return    TRUE if the constraint is initially deferred,
+     *        FALSE if not
+     */
+    public boolean    initiallyDeferred()
+    {
+        return initiallyDeferred;
+    }
 
-	/**
-	 * Returns an array of column ids (i.e. ordinal positions) for
-	 * the columns referenced in this table for a primary key, unique
-	 * key, referential, or check constraint.
-	 *
-	 * @return	An array of column ids for those constraints that can
-	 *		be on columns (primary, unique key, referential
-	 *		constraints, and check constraints).  For check and
-	 *		unique constraints, it returns an array of columns ids
-	 *		that are referenced in the constraint.  For primary key
-	 *		and referential constraints, it returns an array of
-	 *		column ids for the columns in this table (i.e. the
-	 *		primary key columns for a primary key constraint,
-	 *		and the foreign key columns for a foreign key
-	 *		constraint.
-	 */
-	public int[]	getReferencedColumns()
-	{
-		return referencedColumns;
-	}
+    /**
+     * Returns an array of column ids (i.e. ordinal positions) for
+     * the columns referenced in this table for a primary key, unique
+     * key, referential, or check constraint.
+     *
+     * @return    An array of column ids for those constraints that can
+     *        be on columns (primary, unique key, referential
+     *        constraints, and check constraints).  For check and
+     *        unique constraints, it returns an array of columns ids
+     *        that are referenced in the constraint.  For primary key
+     *        and referential constraints, it returns an array of
+     *        column ids for the columns in this table (i.e. the
+     *        primary key columns for a primary key constraint,
+     *        and the foreign key columns for a foreign key
+     *        constraint.
+     */
+    public int[]    getReferencedColumns()
+    {
+        return referencedColumns;
+    }
 
-	/**
-	 * Does this constraint have a backing index?
-	 *
-	 * @return boolean	Whether or not there is a backing index for this constraint.
-	 */
-	public abstract boolean hasBackingIndex();
+    /**
+     * Does this constraint have a backing index?
+     *
+     * @return boolean    Whether or not there is a backing index for this constraint.
+     */
+    public abstract boolean hasBackingIndex();
 
-	/**
-	 * Get the SchemaDescriptor for the schema that this constraint
-	 * belongs to.
-	 *
-	 * @return SchemaDescriptor The SchemaDescriptor for this constraint.
-	 */
-	public SchemaDescriptor getSchemaDescriptor()
-	{
-		return schemaDesc;
-	}
+    /**
+     * Get the SchemaDescriptor for the schema that this constraint
+     * belongs to.
+     *
+     * @return SchemaDescriptor The SchemaDescriptor for this constraint.
+     */
+    public SchemaDescriptor getSchemaDescriptor()
+    {
+        return schemaDesc;
+    }
 
-	/**
-	  RESOLVE: For now the ConstraintDescriptor code stores the array of key
-	  columns in the field 'otherColumns'. Jerry plans to re-organize things.
-	  For now to minimize his rototill I've implemented this function on the
-	  old structures. All new code should use getKeyColumns to get a constraint's
-	  key columns.
-	  
-	  @see com.splicemachine.db.iapi.sql.dictionary.KeyConstraintDescriptor#getKeyColumns
-	  */
-	public int[]	getKeyColumns()
-	{
-		return getReferencedColumns();
-	}
+    /**
+      RESOLVE: For now the ConstraintDescriptor code stores the array of key
+      columns in the field 'otherColumns'. Jerry plans to re-organize things.
+      For now to minimize his rototill I've implemented this function on the
+      old structures. All new code should use getKeyColumns to get a constraint's
+      key columns.
+      
+      @see com.splicemachine.db.iapi.sql.dictionary.KeyConstraintDescriptor#getKeyColumns
+      */
+    public int[]    getKeyColumns()
+    {
+        return getReferencedColumns();
+    }
 
-	/**
-	 * Is this constraint active?
-	 *
-	 * @return true/false
-	 */
-	public boolean isEnabled()
-	{
-		return isEnabled;
-	}
+    /**
+     * Is this constraint active?
+     *
+     * @return true/false
+     */
+    public boolean isEnabled()
+    {
+        return isEnabled;
+    }
 
-	/**
-	 * Set the constraint to enabled.
-	 * Does not update the data dictionary
-	 */
-	public void setEnabled()
-	{
-		isEnabled = true;
-	}
+    /**
+     * Set the constraint to enabled.
+     * Does not update the data dictionary
+     */
+    public void setEnabled()
+    {
+        isEnabled = true;
+    }
 
-	/**
-	 * Set the constraint to disabled.
-	 * Does not update the data dictionary
-	 */
-	public void setDisabled()
-	{
-		isEnabled = false;
-	}
+    /**
+     * Set the constraint to disabled.
+     * Does not update the data dictionary
+     */
+    public void setDisabled()
+    {
+        isEnabled = false;
+    }
 
-	/**
-	 * Is this constraint referenced?  Return
-	 * false.  Overridden by ReferencedKeyConstraints.
-	 *
-	 * @return false
-	 */
-	public boolean isReferenced()
-	{
-		return false;
-	}
+    /**
+     * Is this constraint referenced?  Return
+     * false.  Overridden by ReferencedKeyConstraints.
+     *
+     * @return false
+     */
+    public boolean isReferenced()
+    {
+        return false;
+    }
 
-	/**
-	 * Get the number of enabled fks that
-	 * reference this key.  Overriden by
-	 * ReferencedKeyConstraints.
-	 *
-	 * @return the number of fks
-	 */
-	public int getReferenceCount()
-	{
-		return 0;
-	}
+    /**
+     * Get the number of enabled fks that
+     * reference this key.  Overriden by
+     * ReferencedKeyConstraints.
+     *
+     * @return the number of fks
+     */
+    public int getReferenceCount()
+    {
+        return 0;
+    }
 
-	/**
-	 * Does this constraint need to fire on this type of
-	 * DML?
-	 *
-	 * @param stmtType	the type of DML 
-	 * (StatementType.INSERT|StatementType.UPDATE|StatementType.DELETE)
-	 * @param modifiedCols	the columns modified, or null for all
-	 *
-	 * @return true/false
-	 */
-	public abstract boolean needsToFire(int stmtType, int[] modifiedCols);
+    /**
+     * Does this constraint need to fire on this type of
+     * DML?
+     *
+     * @param stmtType    the type of DML 
+     * (StatementType.INSERT|StatementType.UPDATE|StatementType.DELETE)
+     * @param modifiedCols    the columns modified, or null for all
+     *
+     * @return true/false
+     */
+    public abstract boolean needsToFire(int stmtType, int[] modifiedCols);
 
-	/**
-	 * Get the table descriptor upon which this constraint
-	 * is declared.
-	 *
-	 * @return the table descriptor
-	 */
-	public TableDescriptor getTableDescriptor()
-	{
-		return table;
-	}
+    /**
+     * Get the table descriptor upon which this constraint
+     * is declared.
+     *
+     * @return the table descriptor
+     */
+    public TableDescriptor getTableDescriptor()
+    {
+        return table;
+    }
 
-	/**
-	 * Get the column descriptors for all the columns
-	 * referenced by this constraint.
-	 *
-	 * @return the column descriptor list
-	 */
+    /**
+     * Get the column descriptors for all the columns
+     * referenced by this constraint.
+     *
+     * @return the column descriptor list
+     */
     public ColumnDescriptorList getColumnDescriptors() {
         if (colDL == null) {
             colDL = new ColumnDescriptorList();
@@ -337,92 +337,92 @@ public abstract class ConstraintDescriptor
         return colDL;
     }
 
-	/**
-	 * Indicates whether the column descriptor list is
-	 * type comparable with the constraints columns.  The
-	 * types have to be identical AND in the same order 
-	 * to succeed.
-	 *
-	 * @param otherColumns the columns to compare
-	 *
-	 * @return true/false
-	 *
-	 * @exception StandardException on error
-	 */
-	public boolean areColumnsComparable(ColumnDescriptorList otherColumns)
-		throws StandardException
-	{
-		ColumnDescriptor		myColumn;
-		ColumnDescriptor		otherColumn;
+    /**
+     * Indicates whether the column descriptor list is
+     * type comparable with the constraints columns.  The
+     * types have to be identical AND in the same order 
+     * to succeed.
+     *
+     * @param otherColumns the columns to compare
+     *
+     * @return true/false
+     *
+     * @exception StandardException on error
+     */
+    public boolean areColumnsComparable(ColumnDescriptorList otherColumns)
+        throws StandardException
+    {
+        ColumnDescriptor        myColumn;
+        ColumnDescriptor        otherColumn;
 
-		ColumnDescriptorList	myColDl = getColumnDescriptors();
+        ColumnDescriptorList    myColDl = getColumnDescriptors();
 
-		/*
-		** Check the lenghts of the lists
-		*/
-		if (otherColumns.size() != myColDl.size())
-		{
-			return false;
-		}
+        /*
+        ** Check the lenghts of the lists
+        */
+        if (otherColumns.size() != myColDl.size())
+        {
+            return false;
+        }
 
-		int mySize = myColDl.size();
-		int otherSize = otherColumns.size();
-		int index;
-		for (index = 0; index < mySize && index < otherSize; index++)
-		{
-			myColumn = (ColumnDescriptor) myColDl.elementAt(index);	
-			otherColumn = (ColumnDescriptor) otherColumns.elementAt(index);	
+        int mySize = myColDl.size();
+        int otherSize = otherColumns.size();
+        int index;
+        for (index = 0; index < mySize && index < otherSize; index++)
+        {
+            myColumn = (ColumnDescriptor) myColDl.elementAt(index);    
+            otherColumn = (ColumnDescriptor) otherColumns.elementAt(index);    
 
-			/*
-			** Just compare the types.  Note that this will
-	 		** say a decimal(x,y) != numeric(x,y) even though
-			** it does.
-			*/
-			if (!(myColumn.getType()).isExactTypeAndLengthMatch(
-					(otherColumn.getType())))
-			{
-				break;
-			}
-		}
+            /*
+            ** Just compare the types.  Note that this will
+             ** say a decimal(x,y) != numeric(x,y) even though
+            ** it does.
+            */
+            if (!(myColumn.getType()).isExactTypeAndLengthMatch(
+                    (otherColumn.getType())))
+            {
+                break;
+            }
+        }
 
-		return (index == mySize && index == otherSize);
-	}
+        return (index == mySize && index == otherSize);
+    }
 
-	/**
-	 * Does a column intersect with our referenced columns
-	 * @param columnArray columns to check
-	 * 
-	 * Note-- this is not a static method.
-	 */
-	public boolean columnIntersects(int columnArray[])
-	{
-		// call static method.
-		return doColumnsIntersect(getReferencedColumns(), columnArray);
-	}
+    /**
+     * Does a column intersect with our referenced columns
+     * @param columnArray columns to check
+     * 
+     * Note-- this is not a static method.
+     */
+    public boolean columnIntersects(int columnArray[])
+    {
+        // call static method.
+        return doColumnsIntersect(getReferencedColumns(), columnArray);
+    }
 
-	/**
-	 * Does a column in the input set intersect with
-	 * our referenced columns?
-	 *
-	 * @param otherColumns the columns to compare. If
-	 *	null, asssumed to mean all columns
-	 *
-	 * @param referencedColumns the columns referenced by the caller
-	 *
-	 * @return true/false
-	 */
-	static boolean doColumnsIntersect(int[] otherColumns, int[] referencedColumns)
-	{
-		/*
-		** It is assumed that if otherColumns is null, then
-		** all other columns are modified.  In this case,
-		** it is assumed that it intersects with some column
-	 	** of ours, so just return true.
-		*/
-		if ((otherColumns == null) || (referencedColumns == null))
-		{
-			return true;
-		}
+    /**
+     * Does a column in the input set intersect with
+     * our referenced columns?
+     *
+     * @param otherColumns the columns to compare. If
+     *    null, asssumed to mean all columns
+     *
+     * @param referencedColumns the columns referenced by the caller
+     *
+     * @return true/false
+     */
+    static boolean doColumnsIntersect(int[] otherColumns, int[] referencedColumns)
+    {
+        /*
+        ** It is assumed that if otherColumns is null, then
+        ** all other columns are modified.  In this case,
+        ** it is assumed that it intersects with some column
+         ** of ours, so just return true.
+        */
+        if ((otherColumns == null) || (referencedColumns == null))
+        {
+            return true;
+        }
 
         for (int referencedColumn : referencedColumns) {
             for (int otherColumn : otherColumns) {
@@ -431,243 +431,243 @@ public abstract class ConstraintDescriptor
                 }
             }
         }
-		return false;
-	}
+        return false;
+    }
 
-	/**
-	 * Convert the ColumnDescriptor to a String.
-	 *
-	 * @return	A String representation of this ColumnDescriptor
-	 */
+    /**
+     * Convert the ColumnDescriptor to a String.
+     *
+     * @return    A String representation of this ColumnDescriptor
+     */
 
-	public String	toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			String tableDesc =
-				"table: " +
-				table.getQualifiedName() + "(" +
-				table.getUUID()+","+
-				table.getTableType()+")";
+    public String    toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            String tableDesc =
+                "table: " +
+                table.getQualifiedName() + "(" +
+                table.getUUID()+","+
+                table.getTableType()+")";
 
-			return tableDesc + "\n"+
-				"constraintName: " + constraintName + "\n" +
-				"constraintId: " + constraintId + "\n" +
-				"deferrable: " + deferrable + "\n" +
-				"initiallyDeferred: " + initiallyDeferred + "\n" +
-				"referencedColumns: " + Arrays.toString(referencedColumns) + "\n" +
-				"schemaDesc: " + schemaDesc + "\n"
-				;
-		}
-		else
-		{
-			return "";
-		}
-	}
+            return tableDesc + "\n"+
+                "constraintName: " + constraintName + "\n" +
+                "constraintId: " + constraintId + "\n" +
+                "deferrable: " + deferrable + "\n" +
+                "initiallyDeferred: " + initiallyDeferred + "\n" +
+                "referencedColumns: " + Arrays.toString(referencedColumns) + "\n" +
+                "schemaDesc: " + schemaDesc + "\n"
+                ;
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	////////////////////////////////////////////////////////////////////
-	//
-	// PROVIDER INTERFACE
-	//
-	////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////
+    //
+    // PROVIDER INTERFACE
+    //
+    ////////////////////////////////////////////////////////////////////
 
-	/**		
-		@return the stored form of this provider
+    /**        
+        @return the stored form of this provider
 
-			@see Dependable#getDependableFinder
-	 */
-	public DependableFinder getDependableFinder() 
-	{
-	    return	getDependableFinder(StoredFormatIds.CONSTRAINT_DESCRIPTOR_FINDER_V01_ID);
-	}
+            @see Dependable#getDependableFinder
+     */
+    public DependableFinder getDependableFinder() 
+    {
+        return    getDependableFinder(StoredFormatIds.CONSTRAINT_DESCRIPTOR_FINDER_V01_ID);
+    }
 
-	/**
-	 * Return the name of this Provider.  (Useful for errors.)
-	 *
-	 * @return String	The name of this provider.
-	 */
-	public String getObjectName()
-	{
-		return constraintName;
-	}
+    /**
+     * Return the name of this Provider.  (Useful for errors.)
+     *
+     * @return String    The name of this provider.
+     */
+    public String getObjectName()
+    {
+        return constraintName;
+    }
 
-	/**
-	 * Get the provider's UUID
-	 *
-	 * @return 	The provider's UUID
-	 */
-	public UUID getObjectID()
-	{
-		return constraintId;
-	}
+    /**
+     * Get the provider's UUID
+     *
+     * @return     The provider's UUID
+     */
+    public UUID getObjectID()
+    {
+        return constraintId;
+    }
 
-	/**
-	 * Get the provider's type.
-	 *
-	 * @return char		The provider's type.
-	 */
-	public String getClassType()
-	{
-		return Dependable.CONSTRAINT;
-	}
+    /**
+     * Get the provider's type.
+     *
+     * @return char        The provider's type.
+     */
+    public String getClassType()
+    {
+        return Dependable.CONSTRAINT;
+    }
 
-	//////////////////////////////////////////////////////
-	//
-	// DEPENDENT INTERFACE
-	//
-	//////////////////////////////////////////////////////
-	/**
-	 * Check that all of the dependent's dependencies are valid.
-	 *
-	 * @return true if the dependent is currently valid
-	 */
-	public synchronized boolean isValid()
-	{
-		return true;
-	}
+    //////////////////////////////////////////////////////
+    //
+    // DEPENDENT INTERFACE
+    //
+    //////////////////////////////////////////////////////
+    /**
+     * Check that all of the dependent's dependencies are valid.
+     *
+     * @return true if the dependent is currently valid
+     */
+    public synchronized boolean isValid()
+    {
+        return true;
+    }
 
-	/**
-	 * Prepare to mark the dependent as invalid (due to at least one of
-	 * its dependencies being invalid).
-	 *
-	 * @param action	The action causing the invalidation
-	 * @param p		the provider
-	 *
-	 * @exception StandardException thrown if unable to make it invalid
-	 */
-	public void prepareToInvalidate(Provider p, int action,
-					LanguageConnectionContext lcc) 
-		throws StandardException
-	{
-		DependencyManager dm = getDataDictionary().getDependencyManager();
+    /**
+     * Prepare to mark the dependent as invalid (due to at least one of
+     * its dependencies being invalid).
+     *
+     * @param action    The action causing the invalidation
+     * @param p        the provider
+     *
+     * @exception StandardException thrown if unable to make it invalid
+     */
+    public void prepareToInvalidate(Provider p, int action,
+                    LanguageConnectionContext lcc) 
+        throws StandardException
+    {
+        DependencyManager dm = getDataDictionary().getDependencyManager();
 
-		switch (action)
-		{
-			/*
-			** A SET CONSTRAINT stmt will throw an SET_CONSTRAINTS action
-			** when enabling/disabling constraints.  We'll ignore it.
-			** Same for SET TRIGGERS
-			*/
-		    case DependencyManager.SET_CONSTRAINTS_ENABLE:
-		    case DependencyManager.SET_CONSTRAINTS_DISABLE:
-		    case DependencyManager.SET_TRIGGERS_ENABLE:
-		    case DependencyManager.SET_TRIGGERS_DISABLE:
-			//When REVOKE_PRIVILEGE gets sent (this happens for privilege 
-			//types SELECT, UPDATE, DELETE, INSERT, REFERENCES, TRIGGER), we  
-			//don't do anything here. Later in makeInvalid method, we make  
-			//the ConstraintDescriptor drop itself. 
-			//Ditto for role grant conferring a privilege.
-		    case DependencyManager.REVOKE_PRIVILEGE:
-		    case DependencyManager.REVOKE_ROLE:
-		    case DependencyManager.INTERNAL_RECOMPILE_REQUEST:
-				// Only used by Activations
-		    case DependencyManager.RECHECK_PRIVILEGES:
-				break;
+        switch (action)
+        {
+            /*
+            ** A SET CONSTRAINT stmt will throw an SET_CONSTRAINTS action
+            ** when enabling/disabling constraints.  We'll ignore it.
+            ** Same for SET TRIGGERS
+            */
+            case DependencyManager.SET_CONSTRAINTS_ENABLE:
+            case DependencyManager.SET_CONSTRAINTS_DISABLE:
+            case DependencyManager.SET_TRIGGERS_ENABLE:
+            case DependencyManager.SET_TRIGGERS_DISABLE:
+            //When REVOKE_PRIVILEGE gets sent (this happens for privilege 
+            //types SELECT, UPDATE, DELETE, INSERT, REFERENCES, TRIGGER), we  
+            //don't do anything here. Later in makeInvalid method, we make  
+            //the ConstraintDescriptor drop itself. 
+            //Ditto for role grant conferring a privilege.
+            case DependencyManager.REVOKE_PRIVILEGE:
+            case DependencyManager.REVOKE_ROLE:
+            case DependencyManager.INTERNAL_RECOMPILE_REQUEST:
+                // Only used by Activations
+            case DependencyManager.RECHECK_PRIVILEGES:
+                break;
 
-			/*
-			** Currently, the only thing we are depenedent
-			** on is another constraint or an alias..
-			*/
-			//Notice that REVOKE_PRIVILEGE_RESTRICT is not caught earlier.
-		    //It gets handled in this default: action where an exception
-		    //will be thrown. This is because, if such an invalidation 
-		    //action type is ever received by a dependent, the dependent 
-		    //should throw an exception.
-			//In Derby, at this point, REVOKE_PRIVILEGE_RESTRICT gets sent
-		    //when execute privilege on a routine is getting revoked.
-		    //Currently, in Derby, a constraint can't depend on a routine 
-		    //and hence a REVOKE_PRIVILEGE_RESTRICT invalidation action
-		    //should never be received by a ConstraintDescriptor. But this
-		    //may change in future and when it does, the code to do the right
-		    //thing is already here.
-		    default:
-				throw StandardException.newException(SQLState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT, 
-									dm.getActionString(action), 
-									p.getObjectName(), "CONSTRAINT", constraintName);
-		}
-	}
+            /*
+            ** Currently, the only thing we are depenedent
+            ** on is another constraint or an alias..
+            */
+            //Notice that REVOKE_PRIVILEGE_RESTRICT is not caught earlier.
+            //It gets handled in this default: action where an exception
+            //will be thrown. This is because, if such an invalidation 
+            //action type is ever received by a dependent, the dependent 
+            //should throw an exception.
+            //In Derby, at this point, REVOKE_PRIVILEGE_RESTRICT gets sent
+            //when execute privilege on a routine is getting revoked.
+            //Currently, in Derby, a constraint can't depend on a routine 
+            //and hence a REVOKE_PRIVILEGE_RESTRICT invalidation action
+            //should never be received by a ConstraintDescriptor. But this
+            //may change in future and when it does, the code to do the right
+            //thing is already here.
+            default:
+                throw StandardException.newException(SQLState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT, 
+                                    dm.getActionString(action), 
+                                    p.getObjectName(), "CONSTRAINT", constraintName);
+        }
+    }
 
-	/**
-	 * Mark the dependent as invalid (due to at least one of
-	 * its dependencies being invalid).  Always an error
-	 * for a constraint -- should never have gotten here.
-	 *
-	 * @param	action	The action causing the invalidation
-	 *
-	 * @exception StandardException thrown if called in sanity mode
-	 */
-	public void makeInvalid(int action, LanguageConnectionContext lcc) 
-		throws StandardException
-	{
-		/*
-		** For ConstraintDescriptor, SET_CONSTRAINTS/TRIGGERS and 
-		*  REVOKE_PRIVILEGE are the only valid actions
-		*/
+    /**
+     * Mark the dependent as invalid (due to at least one of
+     * its dependencies being invalid).  Always an error
+     * for a constraint -- should never have gotten here.
+     *
+     * @param    action    The action causing the invalidation
+     *
+     * @exception StandardException thrown if called in sanity mode
+     */
+    public void makeInvalid(int action, LanguageConnectionContext lcc) 
+        throws StandardException
+    {
+        /*
+        ** For ConstraintDescriptor, SET_CONSTRAINTS/TRIGGERS and 
+        *  REVOKE_PRIVILEGE are the only valid actions
+        */
 
-		//Let's handle REVOKE_PRIVILEGE and REVOKE_ROLE first
-		if (action == DependencyManager.REVOKE_PRIVILEGE ||
-			action == DependencyManager.REVOKE_ROLE)
-		{
-			//At this point (Derby 10.2), only a FOREIGN KEY key constraint can
-			//depend on a privilege. None of the other constraint types 
-			//can be dependent on a privilege becuse those constraint types
-			//can not reference a table/routine.
-			ConglomerateDescriptor newBackingConglomCD = drop(lcc, true);
+        //Let's handle REVOKE_PRIVILEGE and REVOKE_ROLE first
+        if (action == DependencyManager.REVOKE_PRIVILEGE ||
+            action == DependencyManager.REVOKE_ROLE)
+        {
+            //At this point (Derby 10.2), only a FOREIGN KEY key constraint can
+            //depend on a privilege. None of the other constraint types 
+            //can be dependent on a privilege becuse those constraint types
+            //can not reference a table/routine.
+            ConglomerateDescriptor newBackingConglomCD = drop(lcc, true);
 
-			lcc.getLastActivation().addWarning(
-				StandardException.newWarning(
-					SQLState.LANG_CONSTRAINT_DROPPED,
-					getConstraintName(),
-					getTableDescriptor().getName()));
+            lcc.getLastActivation().addWarning(
+                StandardException.newWarning(
+                    SQLState.LANG_CONSTRAINT_DROPPED,
+                    getConstraintName(),
+                    getTableDescriptor().getName()));
 
-			if (newBackingConglomCD != null)
-			{
-				/* Since foreign keys can never be unique, and since
-				 * we only (currently) share conglomerates if two
-				 * constraints/indexes have identical columns, dropping
-				 * a foreign key should not necessitate the creation of
-				 * another physical conglomerate.  That will change if
-				 * DERBY-2204 is implemented, but for now we don't expect
-				 * it to happen...
-				 */
-				if (SanityManager.DEBUG)
-				{
-					SanityManager.THROWASSERT(
-						"Dropped shared conglomerate due to a REVOKE " +
-						"and found that a new conglomerate was needed " +
-						"to replace it...but that shouldn't happen!");
-				}
-			}
-			return;
-		}
+            if (newBackingConglomCD != null)
+            {
+                /* Since foreign keys can never be unique, and since
+                 * we only (currently) share conglomerates if two
+                 * constraints/indexes have identical columns, dropping
+                 * a foreign key should not necessitate the creation of
+                 * another physical conglomerate.  That will change if
+                 * DERBY-2204 is implemented, but for now we don't expect
+                 * it to happen...
+                 */
+                if (SanityManager.DEBUG)
+                {
+                    SanityManager.THROWASSERT(
+                        "Dropped shared conglomerate due to a REVOKE " +
+                        "and found that a new conglomerate was needed " +
+                        "to replace it...but that shouldn't happen!");
+                }
+            }
+            return;
+        }
 
-		/*
-		** Now, handle SET_CONSTRAINTS/TRIGGERS
-		*/
-		if ((action != DependencyManager.SET_CONSTRAINTS_DISABLE) &&
-			(action != DependencyManager.SET_CONSTRAINTS_ENABLE) &&
-			(action != DependencyManager.SET_TRIGGERS_ENABLE) &&
-			(action != DependencyManager.SET_TRIGGERS_DISABLE) &&
-			(action != DependencyManager.INTERNAL_RECOMPILE_REQUEST) &&
-			(action != DependencyManager.RECHECK_PRIVILEGES)
-		   )
-		{
-			/* 
-			** We should never get here, we should have barfed on 
-			** prepareToInvalidate().
-			*/
-			if (SanityManager.DEBUG)
-			{
-				DependencyManager dm;
-		
-				dm = getDataDictionary().getDependencyManager();
-	
-				SanityManager.THROWASSERT("makeInvalid("+
-					dm.getActionString(action)+
-					") not expected to get called");
-			}
-		}
-	}
+        /*
+        ** Now, handle SET_CONSTRAINTS/TRIGGERS
+        */
+        if ((action != DependencyManager.SET_CONSTRAINTS_DISABLE) &&
+            (action != DependencyManager.SET_CONSTRAINTS_ENABLE) &&
+            (action != DependencyManager.SET_TRIGGERS_ENABLE) &&
+            (action != DependencyManager.SET_TRIGGERS_DISABLE) &&
+            (action != DependencyManager.INTERNAL_RECOMPILE_REQUEST) &&
+            (action != DependencyManager.RECHECK_PRIVILEGES)
+           )
+        {
+            /* 
+            ** We should never get here, we should have barfed on 
+            ** prepareToInvalidate().
+            */
+            if (SanityManager.DEBUG)
+            {
+                DependencyManager dm;
+        
+                dm = getDataDictionary().getDependencyManager();
+    
+                SanityManager.THROWASSERT("makeInvalid("+
+                    dm.getActionString(action)+
+                    ") not expected to get called");
+            }
+        }
+    }
     
     /**
      * Drop the constraint.  Clears dependencies, drops 
@@ -743,11 +743,11 @@ public abstract class ConstraintDescriptor
         table.removeConstraintDescriptor(this);
         return newBackingConglomCD;
     }
-	
-	/** @see TupleDescriptor#getDescriptorName */
-	public String getDescriptorName() { return constraintName; }
-	
-	public String getDescriptorType() { return "Constraint"; }
+    
+    /** @see TupleDescriptor#getDescriptorName */
+    public String getDescriptorName() { return constraintName; }
+    
+    public String getDescriptorType() { return "Constraint"; }
 
 
     public int[] getColumnOrdering() {

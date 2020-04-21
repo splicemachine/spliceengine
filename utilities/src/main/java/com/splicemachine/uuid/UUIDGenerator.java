@@ -22,9 +22,9 @@ package com.splicemachine.uuid;
  */
 public interface UUIDGenerator {
 
-		byte[] nextBytes();
+        byte[] nextBytes();
 
-		int encodedLength();
+        int encodedLength();
 
-		void next(byte[] data, int offset);
+        void next(byte[] data, int offset);
 }

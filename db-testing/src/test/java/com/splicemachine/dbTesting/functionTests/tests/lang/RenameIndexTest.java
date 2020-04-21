@@ -49,7 +49,7 @@ public class RenameIndexTest extends BaseJDBCTestCase
     }
     public static Test suite() {
         
-	return TestConfiguration.embeddedSuite(RenameIndexTest.class);
+    return TestConfiguration.embeddedSuite(RenameIndexTest.class);
     }
     protected void setUp() throws Exception {
         super.setUp();
@@ -64,8 +64,8 @@ public class RenameIndexTest extends BaseJDBCTestCase
  * @exception SQLException
  */
 public void testRenameNonExistingIndex() throws SQLException {
-	Statement s = createStatement();
-	assertStatementError("42X65" , s , "rename index i1t1 to i1rt1");
+    Statement s = createStatement();
+    assertStatementError("42X65" , s , "rename index i1t1 to i1rt1");
 }
 /**
  * Test that We cannot Rename an Index With an existing Index name.
@@ -73,12 +73,12 @@ public void testRenameNonExistingIndex() throws SQLException {
  * @exception SQLException
  */
 public void testExistingIndexName() throws SQLException {
-	Statement s = createStatement();
-	s.executeUpdate("create table t1(c11 int, c12 int)");
-	s.executeUpdate("create index i1t1 on t1(c11)");
-	s.executeUpdate("create index i2t1 on t1(c12)");
-	assertStatementError("X0Y32" , s , "rename index i1t1 to i2t1");
-	s.executeUpdate("drop table t1");
+    Statement s = createStatement();
+    s.executeUpdate("create table t1(c11 int, c12 int)");
+    s.executeUpdate("create index i1t1 on t1(c11)");
+    s.executeUpdate("create index i2t1 on t1(c12)");
+    assertStatementError("X0Y32" , s , "rename index i1t1 to i2t1");
+    s.executeUpdate("drop table t1");
 }
 /**
  * Test that We cannot Rename a System Table's Index
@@ -87,11 +87,11 @@ public void testExistingIndexName() throws SQLException {
  */
 //-- rename a system table's index
 public void testRenameSystemTableIndex() throws SQLException {
-	Statement s = createStatement();
-	s.executeUpdate("set schema sys");
-	// will fail because it is a system table
-	assertStatementError("X0Y56" , s , "rename index syscolumns_index1 to newName");
-	s.executeUpdate("set schema app");
+    Statement s = createStatement();
+    s.executeUpdate("set schema sys");
+    // will fail because it is a system table
+    assertStatementError("X0Y56" , s , "rename index syscolumns_index1 to newName");
+    s.executeUpdate("set schema app");
 }
 /**
  * Test to RENAME an INDEX when view is on a table.
@@ -99,18 +99,18 @@ public void testRenameSystemTableIndex() throws SQLException {
  * @exception SQLException
  */
 public void testRenameIndexOfView() throws SQLException {
-	Statement s = createStatement();
-	s.executeUpdate("create table t1(c11 int, c12 int)");
-	s.executeUpdate("create index t1i1 on t1(c11)");
-	s.executeUpdate("create view v1 as select * from t1");
-	ResultSet rs = s.executeQuery("select count(*) from v1");
-	JDBC.assertSingleValueResultSet(rs , "0");
-	//-- this succeeds with no exceptions
-	assertUpdateCount(s , 0 , "rename index t1i1 to t1i1r");
-	rs = s.executeQuery("select count(*) from v1");
+    Statement s = createStatement();
+    s.executeUpdate("create table t1(c11 int, c12 int)");
+    s.executeUpdate("create index t1i1 on t1(c11)");
+    s.executeUpdate("create view v1 as select * from t1");
+    ResultSet rs = s.executeQuery("select count(*) from v1");
+    JDBC.assertSingleValueResultSet(rs , "0");
+    //-- this succeeds with no exceptions
+    assertUpdateCount(s , 0 , "rename index t1i1 to t1i1r");
+    rs = s.executeQuery("select count(*) from v1");
         JDBC.assertSingleValueResultSet(rs , "0");
-	s.executeUpdate("drop view v1");
-	s.executeUpdate("drop table t1");
+    s.executeUpdate("drop view v1");
+    s.executeUpdate("drop table t1");
 }
 /**
  * Test RENAME INDEX when there is  a duplicate INDEX
@@ -119,41 +119,41 @@ public void testRenameIndexOfView() throws SQLException {
  */
 public void testDuplicateIndexWithViews() throws SQLException
 {
-	//-- another test for views
-	Statement s = createStatement();
-	s.executeUpdate("create table t1(c11 int not null primary key, c12 int)");
-	s.executeUpdate("create index i1t1 on t1(c11)");
-	s.executeUpdate("create view v1 as select * from t1");
-	
-	assertStatementError("42X65" , s , "rename index i1t1 to i1rt1");
-	assertUpdateCount(s , 0 , "drop view v1");
-	//-- even though there is no index i1t1 it still doesn't fail
-	assertUpdateCount(s , 0 , "create view v1 as select * from t1");
-	//-- this succeeds with no exceptions
-	ResultSet rs = s.executeQuery("select count(*) from v1");
+    //-- another test for views
+    Statement s = createStatement();
+    s.executeUpdate("create table t1(c11 int not null primary key, c12 int)");
+    s.executeUpdate("create index i1t1 on t1(c11)");
+    s.executeUpdate("create view v1 as select * from t1");
+    
+    assertStatementError("42X65" , s , "rename index i1t1 to i1rt1");
+    assertUpdateCount(s , 0 , "drop view v1");
+    //-- even though there is no index i1t1 it still doesn't fail
+    assertUpdateCount(s , 0 , "create view v1 as select * from t1");
+    //-- this succeeds with no exceptions
+    ResultSet rs = s.executeQuery("select count(*) from v1");
         JDBC.assertSingleValueResultSet(rs , "0");
-	assertStatementError("42X65" , s , "rename index i1rt1 to i1t1");
-	s.executeUpdate("drop view v1");
-	s.executeUpdate("drop table t1");
+    assertStatementError("42X65" , s , "rename index i1rt1 to i1t1");
+    s.executeUpdate("drop view v1");
+    s.executeUpdate("drop table t1");
 }
 /*
  * -- cannot rename an index when there is an open cursor on it
- *	
+ *    
  * @exception SQLException
  */
 public void testRenameIndexWithOpenCursor() throws SQLException {
-	Statement s = createStatement(ResultSet.TYPE_FORWARD_ONLY , ResultSet.CONCUR_UPDATABLE);	
-	s.executeUpdate("create table t1(c11 int , c12 int)");
-	s.executeUpdate("create index i1 on t1(c11)");
-	s.executeUpdate("insert into t1 values(2 , 3)");
-	s.executeUpdate("insert into t1 values(3 , 4)");
-	ResultSet rs = s.executeQuery("select * from t1");
-	rs.next();
-	assertStatementError("X0X95" , createStatement() , "rename index i1 to i1r");
-	rs.close();
-	//-- following rename should pass because cursor c1 has been closed
-	assertUpdateCount(s , 0 , "rename index i1 to i1r");
-	s.executeUpdate("drop table t1");
+    Statement s = createStatement(ResultSet.TYPE_FORWARD_ONLY , ResultSet.CONCUR_UPDATABLE);    
+    s.executeUpdate("create table t1(c11 int , c12 int)");
+    s.executeUpdate("create index i1 on t1(c11)");
+    s.executeUpdate("insert into t1 values(2 , 3)");
+    s.executeUpdate("insert into t1 values(3 , 4)");
+    ResultSet rs = s.executeQuery("select * from t1");
+    rs.next();
+    assertStatementError("X0X95" , createStatement() , "rename index i1 to i1r");
+    rs.close();
+    //-- following rename should pass because cursor c1 has been closed
+    assertUpdateCount(s , 0 , "rename index i1 to i1r");
+    s.executeUpdate("drop table t1");
 }
 /**
  * Test RENAME INDEX With Prepared Statement.
@@ -162,23 +162,23 @@ public void testRenameIndexWithOpenCursor() throws SQLException {
  */
 //-- creating a prepared statement on a table
 public void testWithPreparedStatement() throws SQLException {
-	Statement s = createStatement();	
-	s.executeUpdate("create table t1(c11 int not null primary key, c12 int)");
-	//-- bug 5685
-	s.executeUpdate("create index i1 on t1(c11)");
-	PreparedStatement pstmt = prepareStatement("select * from t1 where c11 > ?");
-	pstmt.setInt(1 , 1);
-	ResultSet rs = pstmt.executeQuery();
-	rs.next();
-	rs.close();
-	assertStatementError("42X65" , s , "rename index i1 to i1r");
-	//-- statement passes
-	pstmt.setInt(1 , 1);
-	rs = pstmt.executeQuery();
-	rs.next();
-	rs.close();
-	pstmt.close();
-	s.executeUpdate("drop table t1");
+    Statement s = createStatement();    
+    s.executeUpdate("create table t1(c11 int not null primary key, c12 int)");
+    //-- bug 5685
+    s.executeUpdate("create index i1 on t1(c11)");
+    PreparedStatement pstmt = prepareStatement("select * from t1 where c11 > ?");
+    pstmt.setInt(1 , 1);
+    ResultSet rs = pstmt.executeQuery();
+    rs.next();
+    rs.close();
+    assertStatementError("42X65" , s , "rename index i1 to i1r");
+    //-- statement passes
+    pstmt.setInt(1 , 1);
+    rs = pstmt.executeQuery();
+    rs.next();
+    rs.close();
+    pstmt.close();
+    s.executeUpdate("drop table t1");
 }
 /**
  *  column with an index on it can be renamed
@@ -186,13 +186,13 @@ public void testWithPreparedStatement() throws SQLException {
  * @exception SQLException
  */
 public void testRenameColumnWithIndex() throws SQLException {
-	Statement s = createStatement();		
-	s.executeUpdate("create table t3(c31 int not null primary key, c32 int)");
-	s.executeUpdate("create index i1_t3 on t3(c32)");
-	s.executeUpdate("rename index i1_t3 to i1_3r");
-	//-- make sure that i1_t3 did get renamed. Following rename should fail, to prove that.
-	assertStatementError("42X65" , s , "rename index i1_t3 to i1_3r");
-	s.executeUpdate("drop table t3");
+    Statement s = createStatement();        
+    s.executeUpdate("create table t3(c31 int not null primary key, c32 int)");
+    s.executeUpdate("create index i1_t3 on t3(c32)");
+    s.executeUpdate("rename index i1_t3 to i1_3r");
+    //-- make sure that i1_t3 did get renamed. Following rename should fail, to prove that.
+    assertStatementError("42X65" , s , "rename index i1_t3 to i1_3r");
+    s.executeUpdate("drop table t3");
 }
 /**
  * Test the another feature with PreparedStatement.
@@ -201,21 +201,21 @@ public void testRenameColumnWithIndex() throws SQLException {
  */
 //-- creating a prepared statement on a table
 public void testDuplicateIndexWithPreparedStatement() throws SQLException {
-	Statement s = createStatement();
-	s.executeUpdate("create table t3(c31 int not null primary key, c32 int)");
-	s.executeUpdate("create index i1_t3 on t3(c32)");
-	PreparedStatement pstmt = prepareStatement("select * from t3 where c31 > ?");
-	pstmt.setInt(1 , 1);
-	ResultSet rs = pstmt.executeQuery();
-	rs.close();
-	//-- can rename with no errors
-	assertUpdateCount(s , 0 , "rename index i1_t3 to i1_t3r");
-	//execute p3 using 'values (1)';
-	pstmt.setInt(1 , 1);
-	rs = pstmt.executeQuery();
-	rs.close();
-	assertUpdateCount(s , 0 , "rename index i1_t3r to i1_t3");
-	pstmt.close();
-	s.executeUpdate("drop table t3");
+    Statement s = createStatement();
+    s.executeUpdate("create table t3(c31 int not null primary key, c32 int)");
+    s.executeUpdate("create index i1_t3 on t3(c32)");
+    PreparedStatement pstmt = prepareStatement("select * from t3 where c31 > ?");
+    pstmt.setInt(1 , 1);
+    ResultSet rs = pstmt.executeQuery();
+    rs.close();
+    //-- can rename with no errors
+    assertUpdateCount(s , 0 , "rename index i1_t3 to i1_t3r");
+    //execute p3 using 'values (1)';
+    pstmt.setInt(1 , 1);
+    rs = pstmt.executeQuery();
+    rs.close();
+    assertUpdateCount(s , 0 , "rename index i1_t3r to i1_t3");
+    pstmt.close();
+    s.executeUpdate("drop table t3");
   }
 }

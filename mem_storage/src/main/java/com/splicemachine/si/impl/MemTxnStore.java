@@ -317,7 +317,7 @@ public class MemTxnStore implements TxnStore{
         }
     }
 
-    //		@Override
+    //        @Override
     public void timeout(long txnId) throws IOException{
         rollback(txnId);
     }

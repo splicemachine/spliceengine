@@ -26,38 +26,38 @@ import com.splicemachine.mrio.api.serde.ExecRowWritable;
 import com.splicemachine.mrio.api.serde.RowLocationWritable;
 
 public class SMHiveOutputFormat implements OutputFormat<RowLocationWritable, ExecRowWritable>, Configurable {
-	protected com.splicemachine.stream.output.SMOutputFormat outputFormat;
+    protected com.splicemachine.stream.output.SMOutputFormat outputFormat;
 
     public SMHiveOutputFormat() {}
 
-	public SMHiveOutputFormat(com.splicemachine.stream.output.SMOutputFormat outputFormat) {
-		this.outputFormat = outputFormat;
-	}
+    public SMHiveOutputFormat(com.splicemachine.stream.output.SMOutputFormat outputFormat) {
+        this.outputFormat = outputFormat;
+    }
 
-	@Override
-	public void setConf(Configuration conf) {
+    @Override
+    public void setConf(Configuration conf) {
         if (outputFormat ==null)
             outputFormat = new com.splicemachine.stream.output.SMOutputFormat();
-		outputFormat.setConf(conf);
-	}
+        outputFormat.setConf(conf);
+    }
 
-	@Override
-	public Configuration getConf() {
-		return outputFormat.getConf();
-	}
+    @Override
+    public Configuration getConf() {
+        return outputFormat.getConf();
+    }
 
-	@Override
-	public RecordWriter<RowLocationWritable, ExecRowWritable> getRecordWriter(
-			FileSystem ignored, JobConf job, String name, Progressable progress)
-			throws IOException {
+    @Override
+    public RecordWriter<RowLocationWritable, ExecRowWritable> getRecordWriter(
+            FileSystem ignored, JobConf job, String name, Progressable progress)
+            throws IOException {
         return new SMHiveRecordWriter(job);
-	}
+    }
 
-	@Override
-	public void checkOutputSpecs(FileSystem ignored, JobConf job)
-			throws IOException {
+    @Override
+    public void checkOutputSpecs(FileSystem ignored, JobConf job)
+            throws IOException {
 
-	}
+    }
 
 
 }

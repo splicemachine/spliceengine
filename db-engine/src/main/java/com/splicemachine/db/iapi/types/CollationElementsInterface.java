@@ -41,22 +41,22 @@ import com.splicemachine.db.iapi.error.StandardException;
  */
 interface CollationElementsInterface
 {
-	/**
-	 * This method translates the string into a series of collation elements.
-	 * These elements will get used in the like method.
-	 * 
-	 * @return an array of collation elements for the string
-	 * @throws StandardException
-	 */
-	int[] getCollationElementsForString() throws StandardException;
+    /**
+     * This method translates the string into a series of collation elements.
+     * These elements will get used in the like method.
+     * 
+     * @return an array of collation elements for the string
+     * @throws StandardException
+     */
+    int[] getCollationElementsForString() throws StandardException;
 
-	/**
-	 * This method returns the count of collation elements for this instance of
-	 * CollationElementsInterface. This method will return the correct value only if  
-	 * method getCollationElementsForString has been called previously on this 
-	 * instance of CollationElementsInterface. 
-	 *
-	 * @return count of collation elements for this instance of CollatorSQLChar
-	 */
-	int getCountOfCollationElements();
+    /**
+     * This method returns the count of collation elements for this instance of
+     * CollationElementsInterface. This method will return the correct value only if  
+     * method getCollationElementsForString has been called previously on this 
+     * instance of CollationElementsInterface. 
+     *
+     * @return count of collation elements for this instance of CollatorSQLChar
+     */
+    int getCountOfCollationElements();
 }

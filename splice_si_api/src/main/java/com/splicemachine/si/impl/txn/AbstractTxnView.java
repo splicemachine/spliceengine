@@ -35,13 +35,13 @@ import org.apache.log4j.Logger;
  *         Date: 8/14/14
  */
 public abstract class AbstractTxnView implements TxnView {
-	private static final Logger LOG = Logger.getLogger(AbstractTxnView.class);
+    private static final Logger LOG = Logger.getLogger(AbstractTxnView.class);
     protected long txnId;
     private long beginTimestamp;
     protected Txn.IsolationLevel isolationLevel;
 
     public AbstractTxnView() {
-    	
+        
     }
     
     public AbstractTxnView(long txnId,
@@ -95,7 +95,7 @@ public abstract class AbstractTxnView implements TxnView {
     }
 
     @Override public long getParentTxnId() {
-    	return getParentTxnView().getTxnId(); 
+        return getParentTxnView().getTxnId(); 
     }
 
     @Override
@@ -198,19 +198,19 @@ public abstract class AbstractTxnView implements TxnView {
               return isolationLevel.canSee(b.getBeginTimestamp(),lat,false);
           }
 
-		}
+        }
 
     @Override
     public ConflictType conflicts(TxnView otherTxn) {
         /*
-				 * There are two ways that a transaction does not conflict.
-				 *
-				 * 1. otherTxn.equals(this)
-				 * 2. otherTxn is on a dependent hierarchical chain of this (e.g. otherTxn is a child,grandchild, etc)
-				 * 3. this is on a dependent hierarchical chain of otherTxn
-				 *
-				 * otherwise, we conflict
-				 */
+                 * There are two ways that a transaction does not conflict.
+                 *
+                 * 1. otherTxn.equals(this)
+                 * 2. otherTxn is on a dependent hierarchical chain of this (e.g. otherTxn is a child,grandchild, etc)
+                 * 3. this is on a dependent hierarchical chain of otherTxn
+                 *
+                 * otherwise, we conflict
+                 */
         if(equivalent(otherTxn)) return ConflictType.NONE; //cannot conflict with ourself
         if(isAdditive() && otherTxn.isAdditive()){
             /*
@@ -366,19 +366,19 @@ public abstract class AbstractTxnView implements TxnView {
         return b;
     }
 
-	@Override
-	public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
-		txnId = input.readLong();
-		beginTimestamp = input.readLong();
-    	isolationLevel = IsolationLevel.fromByte(input.readByte());		
-	}
+    @Override
+    public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
+        txnId = input.readLong();
+        beginTimestamp = input.readLong();
+        isolationLevel = IsolationLevel.fromByte(input.readByte());        
+    }
 
-	@Override
-	public void writeExternal(ObjectOutput output) throws IOException {
-    	output.writeLong(txnId);
-    	output.writeLong(beginTimestamp);
-    	output.writeByte(isolationLevel.encode());    			
-	}
+    @Override
+    public void writeExternal(ObjectOutput output) throws IOException {
+        output.writeLong(txnId);
+        output.writeLong(beginTimestamp);
+        output.writeByte(isolationLevel.encode());                
+    }
 
     public void setIsolationLevel(IsolationLevel isolationLevel) {
         this.isolationLevel = isolationLevel;
@@ -386,10 +386,10 @@ public abstract class AbstractTxnView implements TxnView {
 
     @Override
     public String toString(){
-    	return String.format("%s(%s,%s)",
-    			getClass().getSimpleName(),
-    			txnId,
-    			getState());
+        return String.format("%s(%s,%s)",
+                getClass().getSimpleName(),
+                txnId,
+                getState());
     }
 
     public int getSubId() {

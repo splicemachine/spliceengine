@@ -41,7 +41,7 @@ import com.splicemachine.test.Transactions;
  * PyStoredProcedureResultSetFacotry.
  *
  * @author Ao Zeng
- *		 Created on: 6/25/2018
+ *         Created on: 6/25/2018
  */
 @Category({Transactions.class,SerialTest.class}) //made serial because it loads a jar
 public class PyProcedureIT extends SpliceUnitTest {

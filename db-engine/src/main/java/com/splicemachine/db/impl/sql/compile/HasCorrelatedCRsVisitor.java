@@ -41,105 +41,105 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
  */
 public class HasCorrelatedCRsVisitor implements Visitor
 {
-	private boolean hasCorrelatedCRs;
+    private boolean hasCorrelatedCRs;
 
-	/**
-	 * Construct a visitor
-	 */
-	public HasCorrelatedCRsVisitor()
-	{
-	}
+    /**
+     * Construct a visitor
+     */
+    public HasCorrelatedCRsVisitor()
+    {
+    }
 
 
 
-	////////////////////////////////////////////////
-	//
-	// VISITOR INTERFACE
-	//
-	////////////////////////////////////////////////
+    ////////////////////////////////////////////////
+    //
+    // VISITOR INTERFACE
+    //
+    ////////////////////////////////////////////////
 
-	/**
-	 * If we have found the target node, we are done.
-	 *
-	 * @param node 	the node to process
-	 *
-	 * @return me
-	 */
+    /**
+     * If we have found the target node, we are done.
+     *
+     * @param node     the node to process
+     *
+     * @return me
+     */
     @Override
-	public Visitable visit(Visitable node, QueryTreeNode parent)
-	{
-		if (node instanceof ColumnReference)
-		{
-			if (((ColumnReference)node).getCorrelated())
-			{
-				hasCorrelatedCRs = true;
-			}
-		}
-		else if (node instanceof VirtualColumnNode)
-		{
-			if (((VirtualColumnNode)node).getCorrelated())
-			{
-				hasCorrelatedCRs = true;
-			}
-		}
-		else if (node instanceof MethodCallNode)
-		{
-			/* trigger action references are correlated
-			 */
-			if (((MethodCallNode)node).getMethodName().equals("getTriggerExecutionContext") ||
-				((MethodCallNode)node).getMethodName().equals("TriggerOldTransitionRows") ||
-				((MethodCallNode)node).getMethodName().equals("TriggerNewTransitionRows")
-			   )
-			{
-				hasCorrelatedCRs = true;
-			}
-		}
-		return node;
-	}
+    public Visitable visit(Visitable node, QueryTreeNode parent)
+    {
+        if (node instanceof ColumnReference)
+        {
+            if (((ColumnReference)node).getCorrelated())
+            {
+                hasCorrelatedCRs = true;
+            }
+        }
+        else if (node instanceof VirtualColumnNode)
+        {
+            if (((VirtualColumnNode)node).getCorrelated())
+            {
+                hasCorrelatedCRs = true;
+            }
+        }
+        else if (node instanceof MethodCallNode)
+        {
+            /* trigger action references are correlated
+             */
+            if (((MethodCallNode)node).getMethodName().equals("getTriggerExecutionContext") ||
+                ((MethodCallNode)node).getMethodName().equals("TriggerOldTransitionRows") ||
+                ((MethodCallNode)node).getMethodName().equals("TriggerNewTransitionRows")
+               )
+            {
+                hasCorrelatedCRs = true;
+            }
+        }
+        return node;
+    }
 
-	/**
-	 * Stop traversal if we found the target node
-	 *
-	 * @return true/false
-	 */
-	public boolean stopTraversal()
-	{
-		return hasCorrelatedCRs;
-	}
+    /**
+     * Stop traversal if we found the target node
+     *
+     * @return true/false
+     */
+    public boolean stopTraversal()
+    {
+        return hasCorrelatedCRs;
+    }
 
-	public boolean skipChildren(Visitable v)
-	{
-		return false;
-	}
+    public boolean skipChildren(Visitable v)
+    {
+        return false;
+    }
 
-	public boolean visitChildrenFirst(Visitable v)
-	{
-		return false;
-	}
+    public boolean visitChildrenFirst(Visitable v)
+    {
+        return false;
+    }
 
-	////////////////////////////////////////////////
-	//
-	// CLASS INTERFACE
-	//
-	////////////////////////////////////////////////
-	/**
-	 * Indicate whether we found the node in
-	 * question
-	 *
-	 * @return true/false
-	 */
-	public boolean hasCorrelatedCRs()
-	{
-		return hasCorrelatedCRs;
-	}
+    ////////////////////////////////////////////////
+    //
+    // CLASS INTERFACE
+    //
+    ////////////////////////////////////////////////
+    /**
+     * Indicate whether we found the node in
+     * question
+     *
+     * @return true/false
+     */
+    public boolean hasCorrelatedCRs()
+    {
+        return hasCorrelatedCRs;
+    }
 
-	/**
-	 * Shortcut to set if hasCorrelatedCRs
-	 *
-	 *	@param	value	true/false
-	 */
-	public void setHasCorrelatedCRs(boolean value)
-	{
-		hasCorrelatedCRs = value;
-	}
+    /**
+     * Shortcut to set if hasCorrelatedCRs
+     *
+     *    @param    value    true/false
+     */
+    public void setHasCorrelatedCRs(boolean value)
+    {
+        hasCorrelatedCRs = value;
+    }
 }

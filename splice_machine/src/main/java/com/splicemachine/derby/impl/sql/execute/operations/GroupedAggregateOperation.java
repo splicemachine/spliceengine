@@ -66,10 +66,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     public GroupedAggregateContext groupedAggregateContext;
     protected static final String NAME = GroupedAggregateOperation.class.getSimpleName().replaceAll("Operation","");
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+            return NAME;
+    }
 
 
     public GroupedAggregateOperation() {

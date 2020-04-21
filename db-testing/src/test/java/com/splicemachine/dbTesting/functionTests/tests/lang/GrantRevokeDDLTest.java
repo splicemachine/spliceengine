@@ -52,12 +52,12 @@ import com.splicemachine.dbTesting.junit.TestConfiguration;
 
 public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
 
-	private static String[] users = { "TEST_DBO", "george", "sam", 
-			"monica", "swiper", "sam", "satheesh", "bar",
-			"mamta4", "mamta3", "mamta2", "mamta1", "sammy",
-			"user5", "user4", "user3", "user2", "user1"
-	};
-	
+    private static String[] users = { "TEST_DBO", "george", "sam", 
+            "monica", "swiper", "sam", "satheesh", "bar",
+            "mamta4", "mamta3", "mamta2", "mamta1", "sammy",
+            "user5", "user4", "user3", "user2", "user1"
+    };
+    
     /**
      * Public constructor required for running test as standalone JUnit.
      */
@@ -72,10 +72,10 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
             return new TestSuite("GrantRevokeDDLTest"); // return empty suite;
                 //test uses triggers and procedures that use DriverManager.
         TestSuite suite = new TestSuite(GrantRevokeDDLTest.class, "GrantRevokeDDL Test");
-	    Test test = new SupportFilesSetup(suite);
-	    test = new CleanDatabaseTestSetup(test);
-	    test = DatabasePropertyTestSetup.builtinAuthentication(
-				test, users, "grantrevokeddl");
+        Test test = new SupportFilesSetup(suite);
+        test = new CleanDatabaseTestSetup(test);
+        test = DatabasePropertyTestSetup.builtinAuthentication(
+                test, users, "grantrevokeddl");
         test = TestConfiguration.sqlAuthorizationDecorator(test);
         
         return test;
@@ -6542,7 +6542,7 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         
     public void testGrantRevokeDDL2() throws SQLException {
 
-    	ResultSet rs = null;
+        ResultSet rs = null;
         SQLWarning sqlWarn = null;
 
         Statement st = createStatement();
@@ -6552,7 +6552,7 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         
         st.executeUpdate("CREATE SCHEMA AUTHORIZATION USER1");
         st.executeUpdate("CREATE SCHEMA AUTHORIZATION USER2");
-    	
+        
         Connection user1 = openUserConnection("user1");
         Statement st_user1 = user1.createStatement();
         
@@ -10124,7 +10124,7 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         user1St.executeUpdate("create table t4191_table2(z int)");
         user1St.executeUpdate("create table t4191_table3(c31 int, c32 int)");
         user1St.executeUpdate("create view view_t4191_table3(v31, v32) " +
-        		"as select c31, c32 from t4191_table3");
+                "as select c31, c32 from t4191_table3");
 
         user1St.execute("grant update on t4191_table3 to public");
         user1St.execute("grant insert on t4191_table3 to public");
@@ -10132,22 +10132,22 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         //none of following DMLs will work because there is no select
         //privilege available on the view to user2.
         assertStatementError("42502", user2St, "update user1.t4191_table3 "+
-        		"set c31 = ( select max(v31) from user1.view_t4191_table3 )");
+                "set c31 = ( select max(v31) from user1.view_t4191_table3 )");
         assertStatementError("42502", user2St, "update user1.t4191_table3 "+
-        		"set c31 = ( select count(*) from user1.view_t4191_table3 )");
+                "set c31 = ( select count(*) from user1.view_t4191_table3 )");
         assertStatementError("42502", user2St, "update user1.t4191_table3 "+
-        		"set c31 = ( select 1 from user1.view_t4191_table3 )");
+                "set c31 = ( select 1 from user1.view_t4191_table3 )");
         //Following should succeed
         user2St.execute("delete from user1.t4191_table3");
 
         //Grant select privilege on view so the above DMLs will start working
         user1St.execute("grant select on view_t4191_table3 to public");
         user2St.execute("update user1.t4191_table3 "+
-        		"set c31 = ( select max(v31) from user1.view_t4191_table3 )");
+                "set c31 = ( select max(v31) from user1.view_t4191_table3 )");
         user2St.execute("update user1.t4191_table3 "+
-        		"set c31 = ( select count(*) from user1.view_t4191_table3 )");
+                "set c31 = ( select count(*) from user1.view_t4191_table3 )");
         user2St.execute("update user1.t4191_table3 "+
-        		"set c31 = ( select 1 from user1.view_t4191_table3 )");
+                "set c31 = ( select 1 from user1.view_t4191_table3 )");
 
         //none of following selects will work because there is no select
         //privilege available to user2 yet.
@@ -10160,9 +10160,9 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         assertStatementError("42502", user2St, "update user1.t4191 set x=0");
         //update with subquery should fail too
         assertStatementError("42502", user2St, "update user1.t4191 set x=" +
-		" ( select max(x) + 2 from user1.t4191 )");
+        " ( select max(x) + 2 from user1.t4191 )");
         assertStatementError("42502", user2St, "update user1.t4191 set x=" +
-		" ( select z from user1.t4191_table2 )");
+        " ( select z from user1.t4191_table2 )");
 
         //grant select on user1.t4191(x) to user2 and now the above select 
         //statements will work
@@ -10197,9 +10197,9 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         assertStatementError("42502", user2St, "update user1.t4191 set x=0");
         //update with subquery should fail too
         assertStatementError("42502", user2St, "update user1.t4191 set x=" +
-		" ( select max(x) + 2 from user1.t4191 )");
+        " ( select max(x) + 2 from user1.t4191 )");
         assertStatementError("42502", user2St, "update user1.t4191 set x=" +
-		" ( select z from user1.t4191_table2 )");
+        " ( select z from user1.t4191_table2 )");
         //grant update on user1.t4191 to user2
         user1St.execute("grant update on t4191 to user2");
         //following update will now work because it has the required update
@@ -10208,28 +10208,28 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         //folowing will still fail because there is no select privilege on 
         //user1.t4191(x)
         assertStatementError("42502", user2St, "update user1.t4191 set x=" +
-		" ( select max(x) + 2 from user1.t4191 )");
+        " ( select max(x) + 2 from user1.t4191 )");
         //following update will fail because there is no select privilege
         //on user1.t4191_table2
         assertStatementError("42502", user2St, "update user1.t4191 set x=" +
-		" ( select z from user1.t4191_table2 )");
+        " ( select z from user1.t4191_table2 )");
         user1St.execute("grant select(y) on t4191 to user2");
         //folowing will still fail because there is no select privilege on 
         //user1.t4191(x)
         assertStatementError("42502", user2St, "update user1.t4191 set x=" +
-		" ( select max(x) + 2 from user1.t4191 )");
+        " ( select max(x) + 2 from user1.t4191 )");
         user1St.execute("grant select(x) on t4191 to user2");
         //following will now work because we have all the required privileges
         assertUpdateCount(user2St, 0, "update user1.t4191 set x=" +
-		" ( select max(x) + 2 from user1.t4191 )");
+        " ( select max(x) + 2 from user1.t4191 )");
         //folowing will still fail because there is no select privilege on 
         //user1.t4191(x)
         assertStatementError("42502", user2St, "update user1.t4191 set x=" +
-		" ( select z from user1.t4191_table2 )");
+        " ( select z from user1.t4191_table2 )");
         user1St.execute("grant select on t4191_table2 to user2");
         //following will now pass
         assertUpdateCount(user2St, 0, "update user1.t4191 set x=" +
-		" ( select z from user1.t4191_table2 )");
+        " ( select z from user1.t4191_table2 )");
 
         //take away select privilege from one column and grant privilege on
         //another column in user1.t4191 to user2
@@ -10240,12 +10240,12 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         //but following update won't work because there are no select
         //privileges available to user2 on user1.t4191(x)
         assertStatementError("42502", user2St, "update user1.t4191 set x=" +
-		" ( select max(x) + 2 from user1.t4191 )");
+        " ( select max(x) + 2 from user1.t4191 )");
         user1St.execute("grant select(y) on t4191 to user2");
         //following update still won't work because the select is granted on
         //user1.t4191(y) and not user1.t4191(x)
         assertStatementError("42502", user2St, "update user1.t4191 set x=" +
-		" ( select max(x) + 2 from user1.t4191 )");
+        " ( select max(x) + 2 from user1.t4191 )");
         //following queries will still work because there is still a 
         //select privilege on user1.t4191 available to user2
         rs = user2St.executeQuery("select count(*) from user1.t4191");
@@ -10260,7 +10260,7 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         //update can succeed
         user1St.execute("grant select(x) on t4191 to user2");
         assertUpdateCount(user2St, 0, "update user1.t4191 set x=" +
-		" ( select max(x) + 2 from user1.t4191 )");
+        " ( select max(x) + 2 from user1.t4191 )");
 
         user1St.execute("drop table t4191");
         user1St.execute("drop table t4191_table2");
@@ -10394,11 +10394,11 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         Statement st_user1Connection = user1Connection.createStatement();
         
         st_user1Connection.executeUpdate(
-        		"create table user1.t11 (c111 int, c112 int, c113 int)");
+                "create table user1.t11 (c111 int, c112 int, c113 int)");
         st_user1Connection.executeUpdate(
-        		"create table user1.t12 (c121 int, c122 int)");
+                "create table user1.t12 (c121 int, c122 int)");
         st_user1Connection.executeUpdate(
-        		"create table user1.t13 (c131 int, c132 int)");        
+                "create table user1.t13 (c131 int, c132 int)");        
         st_user1Connection.executeUpdate(
                 " insert into user1.t11 values(1,2,3)");
         st_user1Connection.executeUpdate(
@@ -10423,16 +10423,16 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
                 "select c111, c113 from user1.t11");
 
         JDBC.assertFullResultSet(
-        		st_user1Connection.executeQuery(" select * from user1.t11"),
+                st_user1Connection.executeQuery(" select * from user1.t11"),
                 new String[][]{{"1","2","3"}});
         JDBC.assertEmpty(st_user1Connection.executeQuery(
                 " select * from user1.t13"));
-		st_user1Connection.executeUpdate(" insert into user1.t12 values(91,91)");
+        st_user1Connection.executeUpdate(" insert into user1.t12 values(91,91)");
         JDBC.assertFullResultSet(
-        		st_user1Connection.executeQuery(" select * from user1.t11"),
+                st_user1Connection.executeQuery(" select * from user1.t11"),
                 new String[][]{{"1","222","3"}});
         JDBC.assertFullResultSet(
-        		st_user1Connection.executeQuery(" select * from user1.t13"),
+                st_user1Connection.executeQuery(" select * from user1.t13"),
                 new String[][]{{"1","3"}});
         st_user1Connection.executeUpdate(
                 "delete from user1.t11");        
@@ -10444,16 +10444,16 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         assertStatementError("X0Y25", st_user1Connection,
                 "alter table t11 drop column c112 restrict");
         JDBC.assertFullResultSet(
-        		st_user1Connection.executeQuery(" select * from user1.t11"),
+                st_user1Connection.executeQuery(" select * from user1.t11"),
                 new String[][]{{"1","2","3"}});
         JDBC.assertEmpty(st_user1Connection.executeQuery(
                 " select * from user1.t13"));
-		st_user1Connection.executeUpdate(" insert into user1.t12 values(92,92)");
+        st_user1Connection.executeUpdate(" insert into user1.t12 values(92,92)");
         JDBC.assertFullResultSet(
-        		st_user1Connection.executeQuery(" select * from user1.t11"),
+                st_user1Connection.executeQuery(" select * from user1.t11"),
                 new String[][]{{"1","222","3"}});
         JDBC.assertFullResultSet(
-        		st_user1Connection.executeQuery(" select * from user1.t13"),
+                st_user1Connection.executeQuery(" select * from user1.t13"),
                 new String[][]{{"1","3"}});
         st_user1Connection.executeUpdate(
                 "delete from user1.t11");        
@@ -10464,16 +10464,16 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         
         st_user1Connection.executeUpdate("alter table t11 drop column c112");
         JDBC.assertFullResultSet(
-        		st_user1Connection.executeQuery(" select * from user1.t11"),
+                st_user1Connection.executeQuery(" select * from user1.t11"),
                 new String[][]{{"1","3"}});
         JDBC.assertEmpty(st_user1Connection.executeQuery(
                 " select * from user1.t13"));
-		st_user1Connection.executeUpdate(" insert into user1.t12 values(93,93)");
+        st_user1Connection.executeUpdate(" insert into user1.t12 values(93,93)");
         JDBC.assertFullResultSet(
-        		st_user1Connection.executeQuery(" select * from user1.t11"),
+                st_user1Connection.executeQuery(" select * from user1.t11"),
                 new String[][]{{"1","3"}});
         JDBC.assertFullResultSet(
-        		st_user1Connection.executeQuery(" select * from user1.t13"),
+                st_user1Connection.executeQuery(" select * from user1.t13"),
                 new String[][]{{"1","3"}});
         st_user1Connection.executeUpdate(
                 "delete from user1.t11");        
@@ -10483,24 +10483,24 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
                 " insert into user1.t11 values(1,3)");
         
         st_user1Connection.executeUpdate(
-        		"revoke insert on table user1.t13 from user2");
+                "revoke insert on table user1.t13 from user2");
         JDBC.assertFullResultSet(
-        		st_user1Connection.executeQuery(" select * from user1.t11"),
+                st_user1Connection.executeQuery(" select * from user1.t11"),
                 new String[][]{{"1","3"}});
         JDBC.assertEmpty(st_user1Connection.executeQuery(
                 " select * from user1.t13"));
-		st_user1Connection.executeUpdate(" insert into user1.t12 values(94,94)");
+        st_user1Connection.executeUpdate(" insert into user1.t12 values(94,94)");
         JDBC.assertFullResultSet(
-        		st_user1Connection.executeQuery(" select * from user1.t11"),
+                st_user1Connection.executeQuery(" select * from user1.t11"),
                 new String[][]{{"1","3"}});
         JDBC.assertEmpty(st_user1Connection.executeQuery(
-        		" select * from user1.t13"));
+                " select * from user1.t13"));
         st_user1Connection.executeUpdate(
-        		"drop table user1.t11");
+                "drop table user1.t11");
         st_user1Connection.executeUpdate(
-        		"drop table user1.t12");
+                "drop table user1.t12");
         st_user1Connection.executeUpdate(
-        		"drop table user1.t13");
+                "drop table user1.t13");
 
         st_user1Connection.executeUpdate("drop schema user1 restrict");
         st_user2Connection.executeUpdate("drop schema user2 restrict");
@@ -10518,9 +10518,9 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         Statement st_user1Connection = user1Connection.createStatement();
         
         st_user1Connection.executeUpdate(
-        		"create table user1.t11 (c111 int, c112 int)");
+                "create table user1.t11 (c111 int, c112 int)");
         st_user1Connection.executeUpdate(
-        		"create table user1.t12 (c121 int, c122 int)");
+                "create table user1.t12 (c121 int, c122 int)");
         
         Connection user2Connection = openUserConnection("user2");
         Statement st_user2Connection = user2Connection.createStatement();
@@ -10532,9 +10532,9 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
             "mode db2sql insert into user1.t11(c112) values (1)");
         
         st_user1Connection.executeUpdate(
-        		" grant insert on user1.t11 to user2");
+                " grant insert on user1.t11 to user2");
         st_user1Connection.executeUpdate(
-        		" grant trigger on user1.t12 to user2");
+                " grant trigger on user1.t12 to user2");
         
         // following create trigger should pass because user2 now has necessary
         //  privileges
@@ -10546,7 +10546,7 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         st_user1Connection.executeUpdate(
                 " insert into user1.t12 values(91,91)");
         JDBC.assertFullResultSet(
-        		st_user1Connection.executeQuery(" select * from user1.t11"),
+                st_user1Connection.executeQuery(" select * from user1.t11"),
                 new String[][]{{null, "1"}});
         
         // following should fail because there is a dependent trigger on 
@@ -10567,7 +10567,7 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         st_user1Connection.executeUpdate(
                 " insert into user1.t12 values(93,93)");
         JDBC.assertFullResultSet(
-        		st_user1Connection.executeQuery(" select * from user1.t11"),
+                st_user1Connection.executeQuery(" select * from user1.t11"),
                 new String[][]{{null}, {null}});
         st_user1Connection.executeUpdate(
                 "drop table user1.t11");

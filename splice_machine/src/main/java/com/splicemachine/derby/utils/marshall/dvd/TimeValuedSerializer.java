@@ -22,6 +22,6 @@ import java.util.Calendar;
  */
 public interface TimeValuedSerializer extends DescriptorSerializer{
 
-		void setCalendar(Calendar calendar);
+        void setCalendar(Calendar calendar);
 
 }

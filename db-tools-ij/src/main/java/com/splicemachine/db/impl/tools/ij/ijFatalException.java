@@ -40,28 +40,28 @@ import java.sql.SQLException;
 
 public class ijFatalException extends RuntimeException {
 
-	private final static String FatalException = LocalizedResource.getMessage("IJ_FataExceTerm");
-	private SQLException e;
+    private final static String FatalException = LocalizedResource.getMessage("IJ_FataExceTerm");
+    private SQLException e;
 
-	public ijFatalException() 
-	{
-		super(FatalException);
-		e = null;
-	}
+    public ijFatalException() 
+    {
+        super(FatalException);
+        e = null;
+    }
 
-	public ijFatalException(SQLException e) 
-	{
-		super(FatalException); 
-		this.e = e;
-	}
+    public ijFatalException(SQLException e) 
+    {
+        super(FatalException); 
+        this.e = e;
+    }
 
-	public String getSQLState()
-	{
-		return e.getSQLState();
-	}
-	
-	public String toString()
-	{
-		return LocalizedResource.getMessage("IJ_Fata01",e.getSQLState(),e.getMessage());
-	}
+    public String getSQLState()
+    {
+        return e.getSQLState();
+    }
+    
+    public String toString()
+    {
+        return LocalizedResource.getMessage("IJ_Fata01",e.getSQLState(),e.getMessage());
+    }
 }

@@ -94,16 +94,16 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
-	@Test
-	public void testCountOperation() throws Exception{
-		ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s", spliceTableWatcher));
-		int count =0;
-		while(rs.next()){
-			Assert.assertEquals("incorrect count returned!",stats.getCount(),rs.getInt(1));
-			count++;
-		}
-		Assert.assertEquals("incorrect number of rows returned!",1,count);
-	}
+    @Test
+    public void testCountOperation() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s", spliceTableWatcher));
+        int count =0;
+        while(rs.next()){
+            Assert.assertEquals("incorrect count returned!",stats.getCount(),rs.getInt(1));
+            count++;
+        }
+        Assert.assertEquals("incorrect number of rows returned!",1,count);
+    }
 
     @Test
     @Ignore("SF takes a long time, and doesn't actually test anything, but is helpful when trying to reproduce failure conditions")
@@ -114,37 +114,37 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
     }
 
     @Test
-	public void testSumOperation() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery(format("select sum(i) from %s", spliceTableWatcher));
-		int i=0;
-		while(rs.next()){
-			Assert.assertEquals("Incorrect sum returned!",stats.getSum(),rs.getLong(1));
-			i++;
-		}
-		Assert.assertEquals(1, i);
-	}
+    public void testSumOperation() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select sum(i) from %s", spliceTableWatcher));
+        int i=0;
+        while(rs.next()){
+            Assert.assertEquals("Incorrect sum returned!",stats.getSum(),rs.getLong(1));
+            i++;
+        }
+        Assert.assertEquals(1, i);
+    }
     
-	@Test
-	public void testMinOperation() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery(format("select min(i) from %s", spliceTableWatcher));
-		int i=0;
-		while(rs.next()){
-			Assert.assertEquals("Incorrect min returned!",stats.getMin(),rs.getInt(1));
-			i++;
-		}
-		Assert.assertEquals(1, i);
-	}
-	
-	@Test
-	public void testMaxOperation() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery(format("select max(i) from %s", spliceTableWatcher));
-		int i=0;
-		while(rs.next()){
-			Assert.assertEquals(stats.getMax(),rs.getInt(1));
-			i++;
-		}
-		Assert.assertEquals(1, i);
-	}
+    @Test
+    public void testMinOperation() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select min(i) from %s", spliceTableWatcher));
+        int i=0;
+        while(rs.next()){
+            Assert.assertEquals("Incorrect min returned!",stats.getMin(),rs.getInt(1));
+            i++;
+        }
+        Assert.assertEquals(1, i);
+    }
+    
+    @Test
+    public void testMaxOperation() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select max(i) from %s", spliceTableWatcher));
+        int i=0;
+        while(rs.next()){
+            Assert.assertEquals(stats.getMax(),rs.getInt(1));
+            i++;
+        }
+        Assert.assertEquals(1, i);
+    }
 
     @Test
     public void testQualifiedMaxOperation() throws Exception {
@@ -156,17 +156,17 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
         }
         Assert.assertEquals(1, i);
     }
-	
-	@Test
-	public void textAvgOperation() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery(format("select avg(i) from %s", spliceTableWatcher));
-		int i=0;
-		while(rs.next()){
-			Assert.assertEquals(stats.getAvg(),rs.getInt(1));
-			i++;
-		}
-		Assert.assertEquals(1, i);
-	}
+    
+    @Test
+    public void textAvgOperation() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select avg(i) from %s", spliceTableWatcher));
+        int i=0;
+        while(rs.next()){
+            Assert.assertEquals(stats.getAvg(),rs.getInt(1));
+            i++;
+        }
+        Assert.assertEquals(1, i);
+    }
 
     @Test
     public void testAvgWithExtraFieldOperation() throws Exception {
@@ -183,23 +183,23 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
     }
 
     @Test
-	public void testAllOperations() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery(format("select sum(i), avg(i), max(i), min(i) from %s", spliceTableWatcher));
-		int i=0;
-		while(rs.next()){
-			long sum = rs.getLong(1);
-			int avg = rs.getInt(2);
-			int max = rs.getInt(3);
-			int min = rs.getInt(4);
-			LOG.info(String.format("sum=%d, avg=%d,max=%d,min=%d",sum,avg,max,min));
-			Assert.assertEquals(stats.getSum(),sum);
-			Assert.assertEquals(stats.getAvg(),avg);
-			Assert.assertEquals(stats.getMax(),max);
-			Assert.assertEquals(stats.getMin(),min);
-			i++;
-		}
-		Assert.assertEquals(1, i);
-	}
+    public void testAllOperations() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select sum(i), avg(i), max(i), min(i) from %s", spliceTableWatcher));
+        int i=0;
+        while(rs.next()){
+            long sum = rs.getLong(1);
+            int avg = rs.getInt(2);
+            int max = rs.getInt(3);
+            int min = rs.getInt(4);
+            LOG.info(String.format("sum=%d, avg=%d,max=%d,min=%d",sum,avg,max,min));
+            Assert.assertEquals(stats.getSum(),sum);
+            Assert.assertEquals(stats.getAvg(),avg);
+            Assert.assertEquals(stats.getMax(),max);
+            Assert.assertEquals(stats.getMin(),min);
+            i++;
+        }
+        Assert.assertEquals(1, i);
+    }
 
     @Test
     public void testRepeatedCountsPreparedStatement() throws Exception{
@@ -265,7 +265,7 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
 
     @Test
     public void testAggregatesOnEmptyTableViaControl() throws Exception {
-	    /* Q1 test non-distinct aggregate */
+        /* Q1 test non-distinct aggregate */
         String sqlText = "select max(oid),min(score), sum(score), count(brand), count(*) from EMPTY_TABLE --splice-properties useSpark=false";
         String expected = "1  |  2  |  3  | 4 | 5 |\n" +
                 "--------------------------\n" +
@@ -312,7 +312,7 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
 
     @Test
     public void testAggregatesOnEmptyTableViaSpark() throws Exception {
-	    /* Q1 test non-distinct aggregate */
+        /* Q1 test non-distinct aggregate */
         String sqlText = "select max(oid),min(score), sum(score), count(brand), count(*) from EMPTY_TABLE --splice-properties useSpark=true";
         String expected = "1  |  2  |  3  | 4 | 5 |\n" +
                 "--------------------------\n" +
@@ -357,20 +357,20 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
         rs.close();
     }
 
-		@Test
-		public void testSelectCountDoesNotDivideByZero() throws Exception {
-				ResultSet rs = methodWatcher.executeQuery("select 66/count(*) from " +spliceTableWatcher);
+        @Test
+        public void testSelectCountDoesNotDivideByZero() throws Exception {
+                ResultSet rs = methodWatcher.executeQuery("select 66/count(*) from " +spliceTableWatcher);
 
-				int count =0;
-				int correctVal = 6;
-				while(rs.next()){
-						count++;
-						Assert.assertEquals("Incorrect count returned!", correctVal, rs.getInt(1));
-				}
-				Assert.assertEquals("Incorrect num rows returned",1,count);
-		}
+                int count =0;
+                int correctVal = 6;
+                while(rs.next()){
+                        count++;
+                        Assert.assertEquals("Incorrect count returned!", correctVal, rs.getInt(1));
+                }
+                Assert.assertEquals("Incorrect num rows returned",1,count);
+        }
 
-		@Test
+        @Test
     public void testCountNullColumns() throws Exception {
        /* regression test for Bug 416 */
         ResultSet rs = methodWatcher.executeQuery("select count(*) from "+nullTableWatcher.toString()+" where a is null");
@@ -399,8 +399,8 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
     @Test
     public void testMinMaxOnIndexedCols() throws Exception {
        /* Regression test for Bug 922 */
-    	PreparedStatement ps = spliceClassWatcher.prepareStatement("create index idx on " + nullTableWatcher + "(b)");
-    	ps.execute();
+        PreparedStatement ps = spliceClassWatcher.prepareStatement("create index idx on " + nullTableWatcher + "(b)");
+        ps.execute();
         ResultSet rs = methodWatcher.executeQuery("select min(b),max(b) from "+nullTableWatcher + " --SPLICE-PROPERTIES index=idx");
         int i=0;
         while(rs.next()){

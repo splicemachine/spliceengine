@@ -46,76 +46,76 @@ import java.io.ObjectOutput;
  */
 public class SynonymAliasInfo implements AliasInfo, Formatable
 {
-	private String schemaName = null;
-	private String tableName = null;
+    private String schemaName = null;
+    private String tableName = null;
 
-	public SynonymAliasInfo() {
-	}
+    public SynonymAliasInfo() {
+    }
 
-	/**
-		Create a SynonymAliasInfo for synonym.
-	*/
-	public SynonymAliasInfo(String schemaName, String tableName)
-	{
-		this.schemaName = schemaName;
-		this.tableName = tableName;
-	}
+    /**
+        Create a SynonymAliasInfo for synonym.
+    */
+    public SynonymAliasInfo(String schemaName, String tableName)
+    {
+        this.schemaName = schemaName;
+        this.tableName = tableName;
+    }
 
-	public String getSynonymTable() {
-		return tableName;
-	}
+    public String getSynonymTable() {
+        return tableName;
+    }
 
-	public String getSynonymSchema() {
-		return schemaName;
-	}
+    public String getSynonymSchema() {
+        return schemaName;
+    }
 
-	public boolean isTableFunction() {return false; }
+    public boolean isTableFunction() {return false; }
 
-	// Formatable methods
+    // Formatable methods
 
-	/**
-	 * Read this object from a stream of stored objects.
-	 *
-	 * @param in read this.
-	 *
-	 * @exception IOException					thrown on error
-	 * @exception ClassNotFoundException		thrown on error
-	 */
-	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
-		schemaName = (String) in.readObject();
-		tableName = (String) in.readObject();
-	}
+    /**
+     * Read this object from a stream of stored objects.
+     *
+     * @param in read this.
+     *
+     * @exception IOException                    thrown on error
+     * @exception ClassNotFoundException        thrown on error
+     */
+    public void readExternal( ObjectInput in )
+         throws IOException, ClassNotFoundException
+    {
+        schemaName = (String) in.readObject();
+        tableName = (String) in.readObject();
+    }
 
-	/**
-	 * Write this object to a stream of stored objects.
-	 *
-	 * @param out write bytes here.
-	 *
-	 * @exception IOException		thrown on error
-	 */
-	public void writeExternal( ObjectOutput out )
-		 throws IOException
-	{
-		out.writeObject(schemaName);
-		out.writeObject(tableName);
-	}
+    /**
+     * Write this object to a stream of stored objects.
+     *
+     * @param out write bytes here.
+     *
+     * @exception IOException        thrown on error
+     */
+    public void writeExternal( ObjectOutput out )
+         throws IOException
+    {
+        out.writeObject(schemaName);
+        out.writeObject(tableName);
+    }
  
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.SYNONYM_INFO_V01_ID; }
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId()    { return StoredFormatIds.SYNONYM_INFO_V01_ID; }
 
-	public String toString() {
+    public String toString() {
         return IdUtil.mkQualifiedName(schemaName, tableName);
-	}
+    }
 
-	public String getMethodName()
-	{
-		return null;
-	}
+    public String getMethodName()
+    {
+        return null;
+    }
 }
 

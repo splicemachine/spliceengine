@@ -56,108 +56,108 @@ import java.security.PrivilegedExceptionAction;
  */
 public abstract class GClass implements ClassBuilder {
 
-	protected ByteArray bytecode;
-	protected final ClassFactory cf;
-	protected final String qualifiedName;
+    protected ByteArray bytecode;
+    protected final ClassFactory cf;
+    protected final String qualifiedName;
 
 
 
-	public GClass(ClassFactory cf, String qualifiedName) {
-		this.cf = cf;
-		this.qualifiedName = qualifiedName;
-	}
-	public String getFullName() {
-		return qualifiedName;
-	}
-	public GeneratedClass getGeneratedClass() throws StandardException {
-		return cf.loadGeneratedClass(qualifiedName, getClassBytecode());
-	}
+    public GClass(ClassFactory cf, String qualifiedName) {
+        this.cf = cf;
+        this.qualifiedName = qualifiedName;
+    }
+    public String getFullName() {
+        return qualifiedName;
+    }
+    public GeneratedClass getGeneratedClass() throws StandardException {
+        return cf.loadGeneratedClass(qualifiedName, getClassBytecode());
+    }
 
-	protected void writeClassFile(String dir, boolean logMessage, Throwable t)
-		throws StandardException {
+    protected void writeClassFile(String dir, boolean logMessage, Throwable t)
+        throws StandardException {
 
-		if (SanityManager.DEBUG) {
+        if (SanityManager.DEBUG) {
 
-		if (bytecode ==  null) getClassBytecode(); // not recursing...
+        if (bytecode ==  null) getClassBytecode(); // not recursing...
 
-		if (dir == null) dir="";
+        if (dir == null) dir="";
 
-		String filename = getName(); // leave off package
+        String filename = getName(); // leave off package
 
-		filename = filename + ".class";
+        filename = filename + ".class";
 
-		final File classFile = new File(dir,filename);
+        final File classFile = new File(dir,filename);
 
-		FileOutputStream fos = null;
-		try {
-			try {
-				fos =  (FileOutputStream)AccessController.doPrivileged(
-						new PrivilegedExceptionAction() {
-							public Object run()
-							throws FileNotFoundException {
-								return new FileOutputStream(classFile);
-							}
-						});
-			} catch (PrivilegedActionException pae) {
-				throw (FileNotFoundException)pae.getCause();
-			}
-			fos.write(bytecode.getArray(),
-				bytecode.getOffset(), bytecode.getLength());
-			fos.flush();
-			if (logMessage) {
-		        // find the error stream
-		        HeaderPrintWriter errorStream = Monitor.getStream();
-				errorStream.printlnWithHeader("Wrote class "+getFullName()+" to file "+classFile.toString()+". Please provide support with the file and the following exception message: "+t);
-			}
-			fos.close();
-		} catch (IOException e) {
-			if (SanityManager.DEBUG)
-				SanityManager.THROWASSERT("Unable to write .class file", e);
-		}
-		}
-	}
+        FileOutputStream fos = null;
+        try {
+            try {
+                fos =  (FileOutputStream)AccessController.doPrivileged(
+                        new PrivilegedExceptionAction() {
+                            public Object run()
+                            throws FileNotFoundException {
+                                return new FileOutputStream(classFile);
+                            }
+                        });
+            } catch (PrivilegedActionException pae) {
+                throw (FileNotFoundException)pae.getCause();
+            }
+            fos.write(bytecode.getArray(),
+                bytecode.getOffset(), bytecode.getLength());
+            fos.flush();
+            if (logMessage) {
+                // find the error stream
+                HeaderPrintWriter errorStream = Monitor.getStream();
+                errorStream.printlnWithHeader("Wrote class "+getFullName()+" to file "+classFile.toString()+". Please provide support with the file and the following exception message: "+t);
+            }
+            fos.close();
+        } catch (IOException e) {
+            if (SanityManager.DEBUG)
+                SanityManager.THROWASSERT("Unable to write .class file", e);
+        }
+        }
+    }
 
-	final void validateType(String typeName1)
-	{
-	    if (SanityManager.DEBUG)
-	    {
+    final void validateType(String typeName1)
+    {
+        if (SanityManager.DEBUG)
+        {
             SanityManager.ASSERT(typeName1 != null);
 
             String typeName = typeName1.trim();
 
             if ("void".equals(typeName)) return;
 
-	        // first remove all array-ness
-	        while (typeName.endsWith("[]")) typeName = typeName.substring(0,typeName.length()-2);
+            // first remove all array-ness
+            while (typeName.endsWith("[]")) typeName = typeName.substring(0,typeName.length()-2);
 
             SanityManager.ASSERT(!typeName.isEmpty());
 
-	        // then check for primitive types
-	        if ("boolean".equals(typeName)) return;
-	        if ("byte".equals(typeName)) return;
-	        if ("char".equals(typeName)) return;
-	        if ("double".equals(typeName)) return;
-	        if ("float".equals(typeName)) return;
-	        if ("int".equals(typeName)) return;
-	        if ("long".equals(typeName)) return;
-	        if ("short".equals(typeName)) return;
+            // then check for primitive types
+            if ("boolean".equals(typeName)) return;
+            if ("byte".equals(typeName)) return;
+            if ("char".equals(typeName)) return;
+            if ("double".equals(typeName)) return;
+            if ("float".equals(typeName)) return;
+            if ("int".equals(typeName)) return;
+            if ("long".equals(typeName)) return;
+            if ("short".equals(typeName)) return;
 
-	        // then see if it can be found
-	        // REVISIT: this will fail if ASSERT is on and the
-	        // implementation at hand is missing the target type.
-	        // We do plan to generate classes against
-	        // different implementations from the compiler's implementation
-	        // at some point...
-			try {
-				if (cf == null)
-					Class.forName(typeName);
-				else
-					cf.loadApplicationClass(typeName);
-			} catch (ClassNotFoundException cnfe) {
-				SanityManager.THROWASSERT("Class "+typeName+" not found", cnfe);
-			}
+            // then see if it can be found
+            // REVISIT: this will fail if ASSERT is on and the
+            // implementation at hand is missing the target type.
+            // We do plan to generate classes against
+            // different implementations from the compiler's implementation
+            // at some point...
+            try {
+                if (cf == null)
+                    Class.forName(typeName);
+                else
+                    cf.loadApplicationClass(typeName);
+            } catch (ClassNotFoundException cnfe) {
+                SanityManager.THROWASSERT("Class "+typeName+" not found", cnfe);
+            }
 
-	        // all the checks succeeded, it must be okay.
+            // all the checks succeeded, it must be okay.
         }
-	}
+    }
 }

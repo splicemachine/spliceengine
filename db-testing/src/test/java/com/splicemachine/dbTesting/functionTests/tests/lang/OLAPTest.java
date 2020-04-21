@@ -53,16 +53,16 @@ import com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup;
  */ 
 public class OLAPTest extends BaseJDBCTestCase {
 
-	private final static String LANG_WINDOW_FUNCTION_CONTEXT_ERROR = "42ZC2";
-	private final static String NOT_IMPLEMENTED = "0A000";
-	private final static String LANG_SYNTAX_ERROR = "42X01";
-	private final static String LANG_COLUMN_NOT_FOUND =	"42X04";
+    private final static String LANG_WINDOW_FUNCTION_CONTEXT_ERROR = "42ZC2";
+    private final static String NOT_IMPLEMENTED = "0A000";
+    private final static String LANG_SYNTAX_ERROR = "42X01";
+    private final static String LANG_COLUMN_NOT_FOUND =    "42X04";
 
-	public OLAPTest(String name) {
-		super(name);    
-	}
+    public OLAPTest(String name) {
+        super(name);    
+    }
 
-	public static Test makeSuite() {
+    public static Test makeSuite() {
         Test clean = new CleanDatabaseTestSetup(
             new TestSuite(OLAPTest.class)) {
                 protected void decorateSQL(Statement s)
@@ -90,230 +90,230 @@ public class OLAPTest extends BaseJDBCTestCase {
                     getConnection().commit();
                 }
             };
-		return clean;
-	}
-
-
-	public static Test suite()
-    {
-		TestSuite suite = new TestSuite("OLAPTest");
-		suite.addTest(makeSuite());
-		suite.addTest(TestConfiguration.clientServerDecorator(makeSuite()));
-		return suite;
+        return clean;
     }
 
 
-	/**
-	 * Main test body
-	 * 
-	 * @throws SQLException
-	 */
-	public void testBasicOperations()
-		throws SQLException {
-		Statement s = createStatement();
-
-		/*
-		 * Positive testing of Statements
-		 */
+    public static Test suite()
+    {
+        TestSuite suite = new TestSuite("OLAPTest");
+        suite.addTest(makeSuite());
+        suite.addTest(TestConfiguration.clientServerDecorator(makeSuite()));
+        return suite;
+    }
 
 
+    /**
+     * Main test body
+     * 
+     * @throws SQLException
+     */
+    public void testBasicOperations()
+        throws SQLException {
+        Statement s = createStatement();
 
-		/*
-		 * Simple queries
-		 */		
-		ResultSet rs = s.executeQuery("select row_number() over (), t1.* from t1");
-		String[][] expectedRows = {{"1", "10", "100"}, {"2", "20", "200"}, {"3", "30", "300"}, {"4", "40", "400"}, {"5", "50", "500"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        /*
+         * Positive testing of Statements
+         */
 
-		rs = s.executeQuery("select row_number() over (), t1.* from t1 where a > 30");
-		expectedRows = new String[][]{{"1", "40", "400"}, {"2", "50", "500"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
 
-		rs = s.executeQuery("select row_number() over (), a from t1 where b > 300");
-		expectedRows = new String[][]{{"1", "40"}, {"2", "50"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
 
-		rs = s.executeQuery("select row_number() over () as r, a from t1 where b > 300");
-		expectedRows = new String[][]{{"1", "40"}, {"2", "50"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        /*
+         * Simple queries
+         */        
+        ResultSet rs = s.executeQuery("select row_number() over (), t1.* from t1");
+        String[][] expectedRows = {{"1", "10", "100"}, {"2", "20", "200"}, {"3", "30", "300"}, {"4", "40", "400"}, {"5", "50", "500"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		/* Two instances of row_number columns in the same RCL */
-		rs = s.executeQuery("select row_number() over (), row_number() over (), b from t1 where b <= 300");
-		expectedRows = new String[][]{{"1", "1", "100"}, {"2", "2", "200"}, {"3", "3", "300"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        rs = s.executeQuery("select row_number() over (), t1.* from t1 where a > 30");
+        expectedRows = new String[][]{{"1", "40", "400"}, {"2", "50", "500"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		/* Two instances of row_number columns in the same RCL, reorder columns */
-		rs = s.executeQuery("select row_number() over (), b, row_number() over (), a from t1 where b < 300 ");
-		expectedRows = new String[][]{{"1", "100", "1", "10"}, {"2", "200", "2", "20"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        rs = s.executeQuery("select row_number() over (), a from t1 where b > 300");
+        expectedRows = new String[][]{{"1", "40"}, {"2", "50"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		/* Pushing predicates (... where r ... ) too far cause this join to fail */
-		rs = s.executeQuery("select row_number() over(),x from t2,t3 where x=y");
-		expectedRows = new String[][]{{"1", "4"}, {"2", "5"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        rs = s.executeQuery("select row_number() over () as r, a from t1 where b > 300");
+        expectedRows = new String[][]{{"1", "40"}, {"2", "50"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		// DERBY-4069: ORDER BY should be applied at the cursor level, that is
-		// *after* a windowing clause in the. So, with the original ordering
-		// here, the ROW_NUMBER should come backwards:
+        /* Two instances of row_number columns in the same RCL */
+        rs = s.executeQuery("select row_number() over (), row_number() over (), b from t1 where b <= 300");
+        expectedRows = new String[][]{{"1", "1", "100"}, {"2", "2", "200"}, {"3", "3", "300"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		/* Ordering */
-		rs = s.executeQuery("select row_number() over () as r, t1.* from t1 order by b desc");
+        /* Two instances of row_number columns in the same RCL, reorder columns */
+        rs = s.executeQuery("select row_number() over (), b, row_number() over (), a from t1 where b < 300 ");
+        expectedRows = new String[][]{{"1", "100", "1", "10"}, {"2", "200", "2", "20"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		expectedRows = new String[][]{{"5", "50", "500"},
-									  {"4", "40", "400"},
-									  {"3", "30", "300"},
-									  {"2", "20", "200"},
-									  {"1", "10", "100"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        /* Pushing predicates (... where r ... ) too far cause this join to fail */
+        rs = s.executeQuery("select row_number() over(),x from t2,t3 where x=y");
+        expectedRows = new String[][]{{"1", "4"}, {"2", "5"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
         // DERBY-4069: ORDER BY should be applied at the cursor level, that is
         // *after* a windowing clause in the. So, with the original ordering
         // here, the ROW_NUMBER should come backwards:
 
-		/* Ordering on a column dropped in projection */
-		rs = s.executeQuery("select row_number() over () as r, t1.a from t1 order by b desc");
+        /* Ordering */
+        rs = s.executeQuery("select row_number() over () as r, t1.* from t1 order by b desc");
 
-		expectedRows = new String[][]{{"5", "50"},
-									  {"4", "40"},
-									  {"3", "30"},
-									  {"2", "20"},
-									  {"1", "10"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        expectedRows = new String[][]{{"5", "50", "500"},
+                                      {"4", "40", "400"},
+                                      {"3", "30", "300"},
+                                      {"2", "20", "200"},
+                                      {"1", "10", "100"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		/* Only expressions in RCL */
-		rs = s.executeQuery("select row_number() over (), row_number() over (), 2*t1.a from t1");
-		expectedRows = new String[][]{{"1", "1", "20"}, {"2", "2","40"}, {"3", "3","60"}, {"4", "4", "80"}, {"5", "5", "100"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        // DERBY-4069: ORDER BY should be applied at the cursor level, that is
+        // *after* a windowing clause in the. So, with the original ordering
+        // here, the ROW_NUMBER should come backwards:
+
+        /* Ordering on a column dropped in projection */
+        rs = s.executeQuery("select row_number() over () as r, t1.a from t1 order by b desc");
+
+        expectedRows = new String[][]{{"5", "50"},
+                                      {"4", "40"},
+                                      {"3", "30"},
+                                      {"2", "20"},
+                                      {"1", "10"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+
+        /* Only expressions in RCL */
+        rs = s.executeQuery("select row_number() over (), row_number() over (), 2*t1.a from t1");
+        expectedRows = new String[][]{{"1", "1", "20"}, {"2", "2","40"}, {"3", "3","60"}, {"4", "4", "80"}, {"5", "5", "100"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
 
 
-		/*
-		 * Subqueries
-		 */
+        /*
+         * Subqueries
+         */
 
-		/* This query returned no rows at one time */
-		rs = s.executeQuery("select * from (select row_number() over () as r,x from t2,t3 where x=y) s(r,x) where r < 3");
-		expectedRows = new String[][]{{"1", "4"}, {"2", "5"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
-		
-		rs = s.executeQuery("select * from (select row_number() over () as r, t1.* from t1) as tr where r < 3");
-		expectedRows = new String[][]{{"1", "10", "100"}, {"2", "20", "200"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        /* This query returned no rows at one time */
+        rs = s.executeQuery("select * from (select row_number() over () as r,x from t2,t3 where x=y) s(r,x) where r < 3");
+        expectedRows = new String[][]{{"1", "4"}, {"2", "5"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+        
+        rs = s.executeQuery("select * from (select row_number() over () as r, t1.* from t1) as tr where r < 3");
+        expectedRows = new String[][]{{"1", "10", "100"}, {"2", "20", "200"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		rs = s.executeQuery("select * from (select row_number() over () as r, t1.* from t1) as tr where r > 3");
-		expectedRows = new String[][]{{"4", "40", "400"}, {"5", "50", "500"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        rs = s.executeQuery("select * from (select row_number() over () as r, t1.* from t1) as tr where r > 3");
+        expectedRows = new String[][]{{"4", "40", "400"}, {"5", "50", "500"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		/* Two instances of row_number columns */
-		rs = s.executeQuery("select row_number() over(), tr.* from (select row_number() over () as r, t1.* from t1) as tr where r > 2 and r < 5");
-		expectedRows = new String[][]{{"1", "3", "30", "300"}, {"2", "4", "40", "400"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        /* Two instances of row_number columns */
+        rs = s.executeQuery("select row_number() over(), tr.* from (select row_number() over () as r, t1.* from t1) as tr where r > 2 and r < 5");
+        expectedRows = new String[][]{{"1", "3", "30", "300"}, {"2", "4", "40", "400"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		/* Two instances of row_number columns, with projection */
-		rs = s.executeQuery("select row_number() over(), tr.b from (select row_number() over () as r, t1.* from t1) as tr where r > 2 and r < 5");
-		expectedRows = new String[][]{{"1", "300"}, {"2", "400"}};
-		JDBC.assertFullResultSet(rs, expectedRows);		
+        /* Two instances of row_number columns, with projection */
+        rs = s.executeQuery("select row_number() over(), tr.b from (select row_number() over () as r, t1.* from t1) as tr where r > 2 and r < 5");
+        expectedRows = new String[][]{{"1", "300"}, {"2", "400"}};
+        JDBC.assertFullResultSet(rs, expectedRows);        
 
-		/* Column ordering */
-		rs = s.executeQuery("select * from (select t1.b, row_number() over () as r from t1) as tr where r > 3");
-		expectedRows = new String[][]{{"400", "4"}, {"500", "5"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        /* Column ordering */
+        rs = s.executeQuery("select * from (select t1.b, row_number() over () as r from t1) as tr where r > 3");
+        expectedRows = new String[][]{{"400", "4"}, {"500", "5"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		/* Column ordering with projection*/
-		rs = s.executeQuery("select b from (select t1.b, row_number() over () as r from t1) as tr where r > 3");
-		expectedRows = new String[][]{{"400"}, {"500"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
-		
-		/*
-		 * Aggregates over window functions once failed
-		 */
-		rs = s.executeQuery("select count(*) from (select row_number() over() from t1) x");
-		expectedRows = new String[][]{{"5"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        /* Column ordering with projection*/
+        rs = s.executeQuery("select b from (select t1.b, row_number() over () as r from t1) as tr where r > 3");
+        expectedRows = new String[][]{{"400"}, {"500"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+        
+        /*
+         * Aggregates over window functions once failed
+         */
+        rs = s.executeQuery("select count(*) from (select row_number() over() from t1) x");
+        expectedRows = new String[][]{{"5"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		rs = s.executeQuery("select count(*) from (select row_number() over () as r from t1) as t(r) where r <=3");
-		expectedRows = new String[][]{{"3"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
-		
-		/*
-		 * Some other joins with window functions.
-		 * Run off a smaller table t4 to reduce expected row count.
-		 */
-		rs = s.executeQuery("select row_number() over () from t1 union all select row_number() over () from t1");
-		expectedRows = new String[][]{{"1"},{"2"},{"3"},{"4"},{"5"},{"1"},{"2"},{"3"},{"4"},{"5"}};
-		JDBC.assertFullResultSet(rs, expectedRows);	
-		
-		rs = s.executeQuery("select 2 * r from (select row_number() over () from t1) x(r)");
-		expectedRows = new String[][]{{"2"},{"4"},{"6"},{"8"},{"10"},};
-		JDBC.assertFullResultSet(rs, expectedRows);
-		
-		rs = s.executeQuery("select c3, c1, c2 from " + 
-							"(select a, b, row_number() over() as r from t4) x1 (c1, c2, r1), " +
-							"(select row_number() over() as r, b, a from t4) x2 (r2, c3, c4)");
-		expectedRows = new String[][]{{"100", "10", "100"},
-										{"200", "10", "100"},																				
-										{"100", "20", "200"},
-										{"200", "20", "200"}};										
-		JDBC.assertFullResultSet(rs, expectedRows);
-					
-		rs = s.executeQuery("select c3, c1, c2 from " + 
-							"(select a, b, row_number() over() as r from t4) x1 (c1, c2, r1), " +
-							"(select row_number() over() as r, b, a from t4) x2 (r2, c3, c4), " +
-							"t4");
-		expectedRows = new String[][]{{"100", "10", "100"},
-										{"100", "10", "100"},																				
-										{"200", "10", "100"},
-										{"200", "10", "100"},
-										{"100", "20", "200"},
-										{"100", "20", "200"},
-										{"200", "20", "200"},										
-										{"200", "20", "200"}};										
-		JDBC.assertFullResultSet(rs, expectedRows);
+        rs = s.executeQuery("select count(*) from (select row_number() over () as r from t1) as t(r) where r <=3");
+        expectedRows = new String[][]{{"3"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+        
+        /*
+         * Some other joins with window functions.
+         * Run off a smaller table t4 to reduce expected row count.
+         */
+        rs = s.executeQuery("select row_number() over () from t1 union all select row_number() over () from t1");
+        expectedRows = new String[][]{{"1"},{"2"},{"3"},{"4"},{"5"},{"1"},{"2"},{"3"},{"4"},{"5"}};
+        JDBC.assertFullResultSet(rs, expectedRows);    
+        
+        rs = s.executeQuery("select 2 * r from (select row_number() over () from t1) x(r)");
+        expectedRows = new String[][]{{"2"},{"4"},{"6"},{"8"},{"10"},};
+        JDBC.assertFullResultSet(rs, expectedRows);
+        
+        rs = s.executeQuery("select c3, c1, c2 from " + 
+                            "(select a, b, row_number() over() as r from t4) x1 (c1, c2, r1), " +
+                            "(select row_number() over() as r, b, a from t4) x2 (r2, c3, c4)");
+        expectedRows = new String[][]{{"100", "10", "100"},
+                                        {"200", "10", "100"},                                                                                
+                                        {"100", "20", "200"},
+                                        {"200", "20", "200"}};                                        
+        JDBC.assertFullResultSet(rs, expectedRows);
+                    
+        rs = s.executeQuery("select c3, c1, c2 from " + 
+                            "(select a, b, row_number() over() as r from t4) x1 (c1, c2, r1), " +
+                            "(select row_number() over() as r, b, a from t4) x2 (r2, c3, c4), " +
+                            "t4");
+        expectedRows = new String[][]{{"100", "10", "100"},
+                                        {"100", "10", "100"},                                                                                
+                                        {"200", "10", "100"},
+                                        {"200", "10", "100"},
+                                        {"100", "20", "200"},
+                                        {"100", "20", "200"},
+                                        {"200", "20", "200"},                                        
+                                        {"200", "20", "200"}};                                        
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		rs = s.executeQuery("select c3, c1, c2 from "+
-							"(select a, b, row_number() over() as r from t4) x1 (c1, c2, r1), "+
-							"(select row_number() over() as r, b, a from t4) x2 (r2, c3, c4), "+
-							"t4 "+
-							"where x1.r1 = 2 * x2.r2");
-		expectedRows = new String[][]{{"100", "20", "200"}, {"100", "20", "200"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        rs = s.executeQuery("select c3, c1, c2 from "+
+                            "(select a, b, row_number() over() as r from t4) x1 (c1, c2, r1), "+
+                            "(select row_number() over() as r, b, a from t4) x2 (r2, c3, c4), "+
+                            "t4 "+
+                            "where x1.r1 = 2 * x2.r2");
+        expectedRows = new String[][]{{"100", "20", "200"}, {"100", "20", "200"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		rs = s.executeQuery("select c3, c1, c2 from "+
-							"(select a, b, row_number() over() as r from t4) x1 (c1, c2, r1), "+
-							"(select row_number() over() as r, b, a from t4) x2 (r2, c3, c4), "+
-							"t4 "+
-							"where x1.r1 = 2 * x2.r2");
-		expectedRows = new String[][]{{"100", "20", "200"}, {"100", "20", "200"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
-				
-		/* Two problematic joins reported during development */
-		rs = s.executeQuery("select c3, c1, c2 from "+
-							"(select a, b, row_number() over() as r from t4) x1 (c1, c2, r1), "+
-							"(select row_number() over() as r, b, a from t4) x2 (r2, c3, c4), "+
-							"t4 "+
-							"where x2.c4 = t4.a");
-		expectedRows = new String[][]{{"100", "10", "100"}, 
-										{"100", "20", "200"},
-										{"200", "10", "100"},
-										{"200", "20", "200"}};			
-		JDBC.assertFullResultSet(rs, expectedRows);
-		
-		rs = s.executeQuery("select c3, c1, c2 from "+
-							"(select a, b, row_number() over() as r from t1) x1 (c1, c2, r1), "+
-							"(select row_number() over() as r, b, a from t1) x2 (r2, c3, c4), "+
-							"t1 "+
-							"where x1.r1 = 2 * x2.r2 and x2.c4 = t1.a");
-		expectedRows = new String[][]{{"100", "20", "200"}, {"200", "40", "400"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        rs = s.executeQuery("select c3, c1, c2 from "+
+                            "(select a, b, row_number() over() as r from t4) x1 (c1, c2, r1), "+
+                            "(select row_number() over() as r, b, a from t4) x2 (r2, c3, c4), "+
+                            "t4 "+
+                            "where x1.r1 = 2 * x2.r2");
+        expectedRows = new String[][]{{"100", "20", "200"}, {"100", "20", "200"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+                
+        /* Two problematic joins reported during development */
+        rs = s.executeQuery("select c3, c1, c2 from "+
+                            "(select a, b, row_number() over() as r from t4) x1 (c1, c2, r1), "+
+                            "(select row_number() over() as r, b, a from t4) x2 (r2, c3, c4), "+
+                            "t4 "+
+                            "where x2.c4 = t4.a");
+        expectedRows = new String[][]{{"100", "10", "100"}, 
+                                        {"100", "20", "200"},
+                                        {"200", "10", "100"},
+                                        {"200", "20", "200"}};            
+        JDBC.assertFullResultSet(rs, expectedRows);
+        
+        rs = s.executeQuery("select c3, c1, c2 from "+
+                            "(select a, b, row_number() over() as r from t1) x1 (c1, c2, r1), "+
+                            "(select row_number() over() as r, b, a from t1) x2 (r2, c3, c4), "+
+                            "t1 "+
+                            "where x1.r1 = 2 * x2.r2 and x2.c4 = t1.a");
+        expectedRows = new String[][]{{"100", "20", "200"}, {"200", "40", "400"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
-		// Check that flattening does not happen when a window is used in a
-		// subquery
+        // Check that flattening does not happen when a window is used in a
+        // subquery
 
-		rs = s.executeQuery("select * from t5 o where o.a in " +
-							"(select x + row_number() over () from t2)");
-		expectedRows = new String[][]{{"2", "4"},
-									  {"4", "4"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        rs = s.executeQuery("select * from t5 o where o.a in " +
+                            "(select x + row_number() over () from t2)");
+        expectedRows = new String[][]{{"2", "4"},
+                                      {"4", "4"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
         // Subquery in SELECT list. DERBY-5954
         rs = s.executeQuery(
@@ -333,86 +333,86 @@ public class OLAPTest extends BaseJDBCTestCase {
         JDBC.assertFullResultSet(rs, expectedRows);
 
 
-		/*
-		 * Group by and having
-		 */
-		rs = s.executeQuery("select r from (select a, row_number() over() as r, b from t1) x group by r");
-		expectedRows = new String[][]{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
-		
-		rs = s.executeQuery("select * from (select a, row_number() over() as r, b from t1) x group by a, b, r");
-		expectedRows = new String[][]{{"10", "1", "100"}, 
-										{"20", "2", "200"},
-										{"30", "3", "300"},
-										{"40", "4", "400"},
-										{"50", "5", "500"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
-		
-		rs = s.executeQuery("select * from (select a, row_number() over() as r, b from t1) x group by b, r, a");
-		expectedRows = new String[][]{{"10", "1", "100"}, 
-										{"20", "2", "200"},
-										{"30", "3", "300"},
-										{"40", "4", "400"},
-										{"50", "5", "500"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
-		
-		rs = s.executeQuery("select * from "+
-							"(select a, row_number() over() as r, b from t1) x "+
-							"group by b, r, a "+
-							"having r > 2");
-		expectedRows = new String[][]{{"30", "3", "300"},
-										{"40", "4", "400"}, 
-										{"50", "5", "500"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
-		
-		rs = s.executeQuery("select * from "+
-							"(select a, row_number() over() as r, b from t1) x "+
-							"group by b, r, a "+
-							"having r > 2 and a >=30 "+
-							"order by a desc");
-		expectedRows = new String[][]{{"50", "5", "500"},
-										{"40", "4", "400"}, 
-										{"30", "3", "300"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
-		 
-		rs = s.executeQuery("select * from "+
-							"(select a, row_number() over() as r, b from t1) x "+
-							"group by b, r, a "+
-							"having r > 2 and a >=30 "+
-							"order by r desc");
-		expectedRows = new String[][]{{"50", "5", "500"},
-										{"40", "4", "400"}, 
-										{"30", "3", "300"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
-		
-		rs = s.executeQuery("select * from "+
-							"(select a, row_number() over() as r, b from t1) x "+
-							"group by b, r, a "+
-							"having r > 2 and a >=30 "+
-							"order by a asc, r desc");
-		expectedRows = new String[][]{{"30", "3", "300"},
-										{"40", "4", "400"}, 
-										{"50", "5", "500"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
-		
-		/* A couple of distinct queries */
-		rs = s.executeQuery("select distinct row_number() over (), 'ABC' from t1");
-		expectedRows = new String[][]{{"1", "ABC"},
-										{"2", "ABC"},
-										{"3", "ABC"},
-										{"4", "ABC"},
-										{"5", "ABC"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
-		
-		rs = s.executeQuery(
-			"select * from (select distinct row_number() over (), " +
-			"                               'ABC' from t1) tmp");
-		expectedRows = new String[][]{{"1", "ABC"},
-										{"2", "ABC"},
-										{"3", "ABC"},
-										{"4", "ABC"},
-										{"5", "ABC"}};
-		JDBC.assertFullResultSet(rs, expectedRows);
+        /*
+         * Group by and having
+         */
+        rs = s.executeQuery("select r from (select a, row_number() over() as r, b from t1) x group by r");
+        expectedRows = new String[][]{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+        
+        rs = s.executeQuery("select * from (select a, row_number() over() as r, b from t1) x group by a, b, r");
+        expectedRows = new String[][]{{"10", "1", "100"}, 
+                                        {"20", "2", "200"},
+                                        {"30", "3", "300"},
+                                        {"40", "4", "400"},
+                                        {"50", "5", "500"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+        
+        rs = s.executeQuery("select * from (select a, row_number() over() as r, b from t1) x group by b, r, a");
+        expectedRows = new String[][]{{"10", "1", "100"}, 
+                                        {"20", "2", "200"},
+                                        {"30", "3", "300"},
+                                        {"40", "4", "400"},
+                                        {"50", "5", "500"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+        
+        rs = s.executeQuery("select * from "+
+                            "(select a, row_number() over() as r, b from t1) x "+
+                            "group by b, r, a "+
+                            "having r > 2");
+        expectedRows = new String[][]{{"30", "3", "300"},
+                                        {"40", "4", "400"}, 
+                                        {"50", "5", "500"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+        
+        rs = s.executeQuery("select * from "+
+                            "(select a, row_number() over() as r, b from t1) x "+
+                            "group by b, r, a "+
+                            "having r > 2 and a >=30 "+
+                            "order by a desc");
+        expectedRows = new String[][]{{"50", "5", "500"},
+                                        {"40", "4", "400"}, 
+                                        {"30", "3", "300"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+         
+        rs = s.executeQuery("select * from "+
+                            "(select a, row_number() over() as r, b from t1) x "+
+                            "group by b, r, a "+
+                            "having r > 2 and a >=30 "+
+                            "order by r desc");
+        expectedRows = new String[][]{{"50", "5", "500"},
+                                        {"40", "4", "400"}, 
+                                        {"30", "3", "300"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+        
+        rs = s.executeQuery("select * from "+
+                            "(select a, row_number() over() as r, b from t1) x "+
+                            "group by b, r, a "+
+                            "having r > 2 and a >=30 "+
+                            "order by a asc, r desc");
+        expectedRows = new String[][]{{"30", "3", "300"},
+                                        {"40", "4", "400"}, 
+                                        {"50", "5", "500"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+        
+        /* A couple of distinct queries */
+        rs = s.executeQuery("select distinct row_number() over (), 'ABC' from t1");
+        expectedRows = new String[][]{{"1", "ABC"},
+                                        {"2", "ABC"},
+                                        {"3", "ABC"},
+                                        {"4", "ABC"},
+                                        {"5", "ABC"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
+        
+        rs = s.executeQuery(
+            "select * from (select distinct row_number() over (), " +
+            "                               'ABC' from t1) tmp");
+        expectedRows = new String[][]{{"1", "ABC"},
+                                        {"2", "ABC"},
+                                        {"3", "ABC"},
+                                        {"4", "ABC"},
+                                        {"5", "ABC"}};
+        JDBC.assertFullResultSet(rs, expectedRows);
 
         // Test explicitly declared window
         rs = s.executeQuery(
@@ -517,7 +517,7 @@ public class OLAPTest extends BaseJDBCTestCase {
         // Missing required OVER ()
         assertStatementError(
             LANG_SYNTAX_ERROR, s,
-			"select row_number() as r, * from t1 where t1.a > 2");
+            "select row_number() as r, * from t1 where t1.a > 2");
 
         // Illegal where clause, r not a named column of t1.
         assertStatementError(
@@ -565,9 +565,9 @@ public class OLAPTest extends BaseJDBCTestCase {
 
         // Illegal context: HAVING, cf. SQL 2003, section 7.10 SR 4
         assertStatementError(
-			LANG_WINDOW_FUNCTION_CONTEXT_ERROR,
-			s,
-			"select * from t4 group by a having b = row_number() over ()");
+            LANG_WINDOW_FUNCTION_CONTEXT_ERROR,
+            s,
+            "select * from t4 group by a having b = row_number() over ()");
 
         // But nested inside a subquery it should work:
         rs = s.executeQuery(

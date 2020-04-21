@@ -25,10 +25,10 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
 public class EnvUtils {
-	private static Logger LOG = Logger.getLogger(EnvUtils.class);
+    private static Logger LOG = Logger.getLogger(EnvUtils.class);
     // NOTE: JC - this constant is also defined in DataDictionary. When adding a new sys table, this
     // number will need to be increased in BOTH places.
-	private static final long FIRST_USER_TABLE_NUMBER = 1568;
+    private static final long FIRST_USER_TABLE_NUMBER = 1568;
 
     public static TableType getTableType(SConfiguration config,RegionCoprocessorEnvironment e) {
         return EnvUtils.getTableType(config, e.getRegion().getTableDescriptor().getTableName());
@@ -49,18 +49,18 @@ public class EnvUtils {
         else if(tableName.getQualifierAsString().equals(HConfiguration.TENTATIVE_TABLE))
             return TableType.DDL_TABLE;
         else {
-			try {
-				long tableNumber = Long.parseLong(tableName.getQualifierAsString());
-				if (tableNumber < FIRST_USER_TABLE_NUMBER)
-					return TableType.DERBY_SYS_TABLE;
-			} catch(NumberFormatException nfe){
+            try {
+                long tableNumber = Long.parseLong(tableName.getQualifierAsString());
+                if (tableNumber < FIRST_USER_TABLE_NUMBER)
+                    return TableType.DERBY_SYS_TABLE;
+            } catch(NumberFormatException nfe){
                 return TableType.HBASE_TABLE;
             } catch (Exception e) {
                 SpliceLogUtils.debug(LOG,tableName+" is not a number");
-			}
-			return TableType.USER_TABLE;
-		}
-	}
+            }
+            return TableType.USER_TABLE;
+        }
+    }
 
     public static boolean isMetaOrNamespaceTable(TableName tableName) {
         String qualifier = tableName.getQualifierAsString();
@@ -72,14 +72,14 @@ public class EnvUtils {
     }
 
     public static String getRegionId(HRegion region) {
-		return getRegionId(region.getRegionInfo().getRegionNameAsString());
-	}
-	
-	public static String getRegionId(String regionName) {
-		String[] tokens = regionName.split(",");
-		if (tokens.length < 1)
-			throw new RuntimeException("Invalid region name " + regionName);
-		return tokens[tokens.length - 1];
-	}
+        return getRegionId(region.getRegionInfo().getRegionNameAsString());
+    }
+    
+    public static String getRegionId(String regionName) {
+        String[] tokens = regionName.split(",");
+        if (tokens.length < 1)
+            throw new RuntimeException("Invalid region name " + regionName);
+        return tokens[tokens.length - 1];
+    }
 
 }

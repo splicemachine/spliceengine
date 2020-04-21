@@ -56,10 +56,10 @@ public class LOBTypeCompiler extends BaseTypeCompiler
         /**
          * Tell whether this type (LOB) can be converted to the given type.
          *
-		 * @see TypeCompiler#convertible
+         * @see TypeCompiler#convertible
          */
         public boolean convertible(TypeId otherType, 
-								   boolean forDataTypeFunction)
+                                   boolean forDataTypeFunction)
         {
 
             return  (otherType.isBlobTypeId());
@@ -70,10 +70,10 @@ public class LOBTypeCompiler extends BaseTypeCompiler
          *
          * @param otherType     The TypeId of the other type.
          */
-		public boolean compatible(TypeId otherType)
-		{
-				return convertible(otherType,false);
-		}
+        public boolean compatible(TypeId otherType)
+        {
+                return convertible(otherType,false);
+        }
 
         /**
          * Tell whether this type (LOB) can be stored into from the given type.
@@ -86,7 +86,7 @@ public class LOBTypeCompiler extends BaseTypeCompiler
         {
             // no automatic conversions at store time
 
-			return  (otherType.isBlobTypeId());
+            return  (otherType.isBlobTypeId());
         }
 
         /** @see TypeCompiler#interfaceName */

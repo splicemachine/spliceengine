@@ -46,9 +46,9 @@ import java.util.Dictionary;
   An PropertyFactory is typically obtained from the Monitor:
   <p>
   <blockquote><pre>
-	// Get the current validation factory.
-	PropertyFactory af;
-	af = (PropertyFactory) Monitor.findServiceModule(this, com.splicemachine.db.iapi.reference.Module.PropertyFactory);
+    // Get the current validation factory.
+    PropertyFactory af;
+    af = (PropertyFactory) Monitor.findServiceModule(this, com.splicemachine.db.iapi.reference.Module.PropertyFactory);
   </pre></blockquote>
 **/
 
@@ -61,13 +61,13 @@ public interface PropertyFactory
 
     /**
      * Add a callback for a change in any property value.
-	 * <BR>
+     * <BR>
      * The callback is made in the context of the transaction making the change.
      *
      * @param who   which object is called
      **/
-	void addPropertySetNotification(
-			PropertySetCallback who);
+    void addPropertySetNotification(
+            PropertySetCallback who);
 
     /**
      * Validate a Property set.
@@ -75,44 +75,44 @@ public interface PropertyFactory
      * Validate a Property set by calling all the registered property set
      * notification functions with .
      *
-	 * @param p Properties to validate.
-	 * @param ignore Properties to not validate in p. Usefull for properties
-	 *        that may not be set after boot. 
+     * @param p Properties to validate.
+     * @param ignore Properties to not validate in p. Usefull for properties
+     *        that may not be set after boot. 
      *
-	 * @exception StandardException Throws if p fails a check.
+     * @exception StandardException Throws if p fails a check.
      **/
-	void verifyPropertySet(
-			Properties p,
-			Properties ignore)
+    void verifyPropertySet(
+            Properties p,
+            Properties ignore)
         throws StandardException;
 
-	/**
-	 * validation a single property
-	 */
-	void validateSingleProperty(String key,
-								Serializable value,
-								Dictionary set)
-		throws StandardException;
+    /**
+     * validation a single property
+     */
+    void validateSingleProperty(String key,
+                                Serializable value,
+                                Dictionary set)
+        throws StandardException;
 
-	/**
-	   
-	 */
-	Serializable doValidateApplyAndMap(TransactionController tc,
-									   String key, Serializable value,
-									   Dictionary d, boolean dbOnlyProperty)
-		throws StandardException;
+    /**
+       
+     */
+    Serializable doValidateApplyAndMap(TransactionController tc,
+                                       String key, Serializable value,
+                                       Dictionary d, boolean dbOnlyProperty)
+        throws StandardException;
 
 
-	/**
-	  Call the property set callbacks to map a proposed property value
-	  to a value to save.
-	  <P>
-	  The caller must run this in a block synchronized on this
-	  to serialize validations with changes to the set of
-	  property callbacks
-	  */
-	Serializable doMap(String key,
-					   Serializable value,
-					   Dictionary set)
-		throws StandardException;
+    /**
+      Call the property set callbacks to map a proposed property value
+      to a value to save.
+      <P>
+      The caller must run this in a block synchronized on this
+      to serialize validations with changes to the set of
+      property callbacks
+      */
+    Serializable doMap(String key,
+                       Serializable value,
+                       Dictionary set)
+        throws StandardException;
 }

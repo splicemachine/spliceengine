@@ -124,7 +124,7 @@ import com.splicemachine.db.iapi.error.StandardException;
     qualifier[0] = new Qualifier[1];
     qualifier[1] = new Qualifier[1];
     qualifier[2] = new Qualifier[1];
-	
+    
     qualifier[0][0] = a
     qualifier[1][0] = b
     qualifier[2][0] = c
@@ -183,25 +183,25 @@ import com.splicemachine.db.iapi.error.StandardException;
 public interface Qualifier
 {
 
-	/**	
-	 * The DataValueDescriptor can be 1 of 4 types:<ul>
-	 *		<li> VARIANT		- cannot be cached as its value can vary 
-	 *							  within a scan</li>
-	 *		<li> SCAN_INVARIANT - can be cached within a scan as its value 
-	 *							  will not change within a scan </li>
-	 *		<li> QUERY_INVARIANT- can be cached across the life of the query
-	 *								as its value will never change </li>
-	 *		<li> CONSTANT 		- can be cached across executions. </li></ul>
-	 * <p>
-	 * <b>NOTE</b>: the following is guaranteed: <i> 
-	 *		VARIANT < SCAN_INVARIANT < QUERY_INVARIANT < CONSTANT
-	 */
-	int VARIANT = 0;
-	int SCAN_INVARIANT = 1;
-	int QUERY_INVARIANT = 2;
-	int CONSTANT = 3;
+    /**    
+     * The DataValueDescriptor can be 1 of 4 types:<ul>
+     *        <li> VARIANT        - cannot be cached as its value can vary 
+     *                              within a scan</li>
+     *        <li> SCAN_INVARIANT - can be cached within a scan as its value 
+     *                              will not change within a scan </li>
+     *        <li> QUERY_INVARIANT- can be cached across the life of the query
+     *                                as its value will never change </li>
+     *        <li> CONSTANT         - can be cached across executions. </li></ul>
+     * <p>
+     * <b>NOTE</b>: the following is guaranteed: <i> 
+     *        VARIANT < SCAN_INVARIANT < QUERY_INVARIANT < CONSTANT
+     */
+    int VARIANT = 0;
+    int SCAN_INVARIANT = 1;
+    int QUERY_INVARIANT = 2;
+    int CONSTANT = 3;
 
-	/** 
+    /** 
      * Get the (zero based) id of the column to be qualified.
      * <p>
      * This id is the column number of the column in the table, no matter 
@@ -209,68 +209,68 @@ public interface Qualifier
      * Note that the column being specified in the qualifier must appear in
      * the column list being fetched.
      **/
-	int getColumnId();
+    int getColumnId();
 
     int getStoragePosition();
 
-	/**
-	 * Get the value that the column is to be compared to.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	DataValueDescriptor getOrderable() throws StandardException;
+    /**
+     * Get the value that the column is to be compared to.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    DataValueDescriptor getOrderable() throws StandardException;
 
-	/** Get the operator to use in the comparison. 
+    /** Get the operator to use in the comparison. 
      *
      *  @see DataValueDescriptor#compare
      **/
-	int getOperator();
+    int getOperator();
 
-	/** Determine if the result from the compare operation should be negated.  
+    /** Determine if the result from the compare operation should be negated.  
      *  If true then only rows which fail the compare operation will qualify.
      *
      *  @see DataValueDescriptor#compare
      **/
-	boolean negateCompareResult();
+    boolean negateCompareResult();
 
-	/** Get the getOrderedNulls argument to use in the comparison. 
+    /** Get the getOrderedNulls argument to use in the comparison. 
      *  
      *  @see DataValueDescriptor#compare
      **/
     boolean getOrderedNulls();
 
-	/** Get the getOrderedNulls argument to use in the comparison.
+    /** Get the getOrderedNulls argument to use in the comparison.
      *  
      *  @see DataValueDescriptor#compare
      **/
     boolean getUnknownRV();
 
-	/** Clear the DataValueDescriptor cache, if one exists.
-	 *  (The DataValueDescriptor can be 1 of 3 types:
-	 *		o  VARIANT		  - cannot be cached as its value can 
-	 *							vary within a scan
-	 *		o  SCAN_INVARIANT - can be cached within a scan as its
-	 *							value will not change within a scan
-	 *		o  QUERY_INVARIANT- can be cached across the life of the query
-	 *							as its value will never change
-	 */
-	void clearOrderableCache();
+    /** Clear the DataValueDescriptor cache, if one exists.
+     *  (The DataValueDescriptor can be 1 of 3 types:
+     *        o  VARIANT          - cannot be cached as its value can 
+     *                            vary within a scan
+     *        o  SCAN_INVARIANT - can be cached within a scan as its
+     *                            value will not change within a scan
+     *        o  QUERY_INVARIANT- can be cached across the life of the query
+     *                            as its value will never change
+     */
+    void clearOrderableCache();
 
 
-	/** 
-	 * This method reinitializes all the state of
-	 * the Qualifier.  It is used to distinguish between
-	 * resetting something that is query invariant
-	 * and something that is constant over every
-	 * execution of a query.  Basically, clearOrderableCache()
-	 * will only clear out its cache if it is a VARIANT
-	 * or SCAN_INVARIANT value.  However, each time a
-	 * query is executed, the QUERY_INVARIANT qualifiers need
-	 * to be reset.
-	 */
-	void reinitialize();
+    /** 
+     * This method reinitializes all the state of
+     * the Qualifier.  It is used to distinguish between
+     * resetting something that is query invariant
+     * and something that is constant over every
+     * execution of a query.  Basically, clearOrderableCache()
+     * will only clear out its cache if it is a VARIANT
+     * or SCAN_INVARIANT value.  However, each time a
+     * query is executed, the QUERY_INVARIANT qualifiers need
+     * to be reset.
+     */
+    void reinitialize();
 
     String getText();
 
-	int getVariantType();
+    int getVariantType();
 }

@@ -34,7 +34,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * These SQL objects are stored in the SYS.SYSSEQUENCES table.
  */
 public class CreateSequenceConstantOperation extends DDLConstantOperation {
-	private static final Logger LOG = Logger.getLogger(CreateSequenceConstantOperation.class);
+    private static final Logger LOG = Logger.getLogger(CreateSequenceConstantOperation.class);
     private String _sequenceName;
     private String _schemaName;
     private DataTypeDescriptor _dataType;
@@ -57,11 +57,11 @@ public class CreateSequenceConstantOperation extends DDLConstantOperation {
      * @param cycle True if the generator should wrap around, false otherwise
      */
     public CreateSequenceConstantOperation (String schemaName, String sequenceName, 
-    		DataTypeDescriptor dataType, long initialValue, long stepValue,
+            DataTypeDescriptor dataType, long initialValue, long stepValue,
             long maxValue, long minValue, boolean cycle) {
-    	SpliceLogUtils.trace(LOG, "CreateSequenceConstantOperation %s.%s for data type {%s} with initialValue" +
-    			"%d, step value %d, maxValue %d, minValue %d and cycle %s",schemaName, sequenceName,
-    			dataType, initialValue, stepValue, maxValue, minValue, cycle);
+        SpliceLogUtils.trace(LOG, "CreateSequenceConstantOperation %s.%s for data type {%s} with initialValue" +
+                "%d, step value %d, maxValue %d, minValue %d and cycle %s",schemaName, sequenceName,
+                dataType, initialValue, stepValue, maxValue, minValue, cycle);
         this._schemaName = schemaName;
         this._sequenceName = sequenceName;
         this._dataType = dataType;
@@ -81,7 +81,7 @@ public class CreateSequenceConstantOperation extends DDLConstantOperation {
      */
     @Override
     public void executeConstantAction(Activation activation) throws StandardException {
-    	SpliceLogUtils.trace(LOG, "executeConstantAction");
+        SpliceLogUtils.trace(LOG, "executeConstantAction");
         SchemaDescriptor schemaDescriptor;
         LanguageConnectionContext lcc =
                 activation.getLanguageConnectionContext();

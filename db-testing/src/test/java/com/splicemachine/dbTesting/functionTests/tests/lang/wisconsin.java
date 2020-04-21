@@ -48,8 +48,8 @@ import com.splicemachine.db.tools.ij;
 public class wisconsin {
 
 
-	public static void main(String[] args) throws Throwable{
-		ij.getPropertyArg(args); 
+    public static void main(String[] args) throws Throwable{
+        ij.getPropertyArg(args); 
         Connection conn = ij.startJBMS();
         
         conn.setAutoCommit(false);
@@ -69,156 +69,156 @@ public class wisconsin {
         }
 
         inStream = new BufferedInputStream(sqlIn, 
-                utilMain.BUFFEREDFILESIZE);		
+                utilMain.BUFFEREDFILESIZE);        
 
-		ij.runScript(conn, inStream, "US-ASCII",
-			     System.out, (String) null );
-		conn.commit();
-	}
-	
-	public static void createTables(Connection conn, boolean compress)
-			throws SQLException {
+        ij.runScript(conn, inStream, "US-ASCII",
+                 System.out, (String) null );
+        conn.commit();
+    }
+    
+    public static void createTables(Connection conn, boolean compress)
+            throws SQLException {
                 createTables(conn, compress, 10000);
         }
-	public static void createTables(Connection conn, boolean compress, int numRows)
-			throws SQLException {
+    public static void createTables(Connection conn, boolean compress, int numRows)
+            throws SQLException {
 
-		Statement stmt = conn.createStatement();
-		
-		stmt.execute("create table TENKTUP1 ( unique1 int not null, " +
-											 "unique2 int not null, " +
-											 "two int, " +
-											 "four int, " +
-											 "ten int, " +
-											 "twenty int, " +
-											 "onePercent int, " +
-											 "tenPercent int, " +
-											 "twentyPercent int, " +
-											 "fiftyPercent int, " +
-											 "unique3 int, " +
-											 "evenOnePercent int, " +
-											 "oddOnePercent int, " +
-											 "stringu1 char(52) not null, " +
-											 "stringu2 char(52) not null, " +
-											 "string4 char(52) )");
-		//--insert numRows rows into TENKTUP1
-		WISCInsert wi = new WISCInsert();
-		wi.doWISCInsert(numRows, "TENKTUP1", conn);
-		
-		stmt.execute("create unique index TK1UNIQUE1 on TENKTUP1(unique1)");
-		stmt.execute("create unique index TK1UNIQUE2 on TENKTUP1(unique2)");
-		stmt.execute("create index TK1TWO on TENKTUP1(two)");
-		stmt.execute("create index TK1FOUR on TENKTUP1(four)");
-		stmt.execute("create index TK1TEN on TENKTUP1(ten)");
-		stmt.execute("create index TK1TWENTY on TENKTUP1(twenty)");
-		stmt.execute("create index TK1ONEPERCENT on TENKTUP1(onePercent)");
-		stmt.execute("create index TK1TWENTYPERCENT on TENKTUP1(twentyPercent)");
-		stmt.execute("create index TK1EVENONEPERCENT on TENKTUP1(evenOnePercent)");
-		stmt.execute("create index TK1ODDONEPERCENT on TENKTUP1(oddOnePercent)");
-		stmt.execute("create unique index TK1STRINGU1 on TENKTUP1(stringu1)");
-		stmt.execute("create unique index TK1STRINGU2 on TENKTUP1(stringu2)");
-		stmt.execute("create index TK1STRING4 on TENKTUP1(string4)");
-		
-		stmt.execute("create table TENKTUP2 (unique1 int not null, " +
-											"unique2 int not null, " +
-											"two int, " +
-											"four int, " +
-											"ten int, " +
-											"twenty int, " +
-											"onePercent int, " +
-											"tenPercent int, " +
-											"twentyPercent int, " +
-											"fiftyPercent int, " +
-											"unique3 int, " +
-											"evenOnePercent int, " +
-											"oddOnePercent int, " +
-											"stringu1 char(52), " +
-											"stringu2 char(52), " +
-											"string4 char(52) )");
-		//-- insert numRows rows into TENKTUP2
-		wi = new WISCInsert();
-		wi.doWISCInsert(numRows, "TENKTUP2", conn);
-		
-		stmt.execute("create unique index TK2UNIQUE1 on TENKTUP2(unique1)");
-		stmt.execute("create unique index TK2UNIQUE2 on TENKTUP2(unique2)");
-		
-		stmt.execute("create table ONEKTUP ( unique1 int not null, " +
-											"unique2 int not null, " +
-											"two int, " +
-											"four int, " +
-											"ten int, " +
-											"twenty int, " +
-											"onePercent int, " +
-											"tenPercent int, " +
-											"twentyPercent int, " +
-											"fiftyPercent int, " +
-											"unique3 int, " +
-											"evenOnePercent int, " +
-											"oddOnePercent int, " +
-											"stringu1 char(52), " +
-											"stringu2 char(52), " +
-											"string4 char(52) )");
-		
-		//-- insert 1000 rows into ONEKTUP
-		wi = new WISCInsert();
-		wi.doWISCInsert(1000, "ONEKTUP", conn);
-		
-		stmt.execute("create unique index ONEKUNIQUE1 on ONEKTUP(unique1)");
-		stmt.execute("create unique index ONEKUNIQUE2 on ONEKTUP(unique2)");
+        Statement stmt = conn.createStatement();
+        
+        stmt.execute("create table TENKTUP1 ( unique1 int not null, " +
+                                             "unique2 int not null, " +
+                                             "two int, " +
+                                             "four int, " +
+                                             "ten int, " +
+                                             "twenty int, " +
+                                             "onePercent int, " +
+                                             "tenPercent int, " +
+                                             "twentyPercent int, " +
+                                             "fiftyPercent int, " +
+                                             "unique3 int, " +
+                                             "evenOnePercent int, " +
+                                             "oddOnePercent int, " +
+                                             "stringu1 char(52) not null, " +
+                                             "stringu2 char(52) not null, " +
+                                             "string4 char(52) )");
+        //--insert numRows rows into TENKTUP1
+        WISCInsert wi = new WISCInsert();
+        wi.doWISCInsert(numRows, "TENKTUP1", conn);
+        
+        stmt.execute("create unique index TK1UNIQUE1 on TENKTUP1(unique1)");
+        stmt.execute("create unique index TK1UNIQUE2 on TENKTUP1(unique2)");
+        stmt.execute("create index TK1TWO on TENKTUP1(two)");
+        stmt.execute("create index TK1FOUR on TENKTUP1(four)");
+        stmt.execute("create index TK1TEN on TENKTUP1(ten)");
+        stmt.execute("create index TK1TWENTY on TENKTUP1(twenty)");
+        stmt.execute("create index TK1ONEPERCENT on TENKTUP1(onePercent)");
+        stmt.execute("create index TK1TWENTYPERCENT on TENKTUP1(twentyPercent)");
+        stmt.execute("create index TK1EVENONEPERCENT on TENKTUP1(evenOnePercent)");
+        stmt.execute("create index TK1ODDONEPERCENT on TENKTUP1(oddOnePercent)");
+        stmt.execute("create unique index TK1STRINGU1 on TENKTUP1(stringu1)");
+        stmt.execute("create unique index TK1STRINGU2 on TENKTUP1(stringu2)");
+        stmt.execute("create index TK1STRING4 on TENKTUP1(string4)");
+        
+        stmt.execute("create table TENKTUP2 (unique1 int not null, " +
+                                            "unique2 int not null, " +
+                                            "two int, " +
+                                            "four int, " +
+                                            "ten int, " +
+                                            "twenty int, " +
+                                            "onePercent int, " +
+                                            "tenPercent int, " +
+                                            "twentyPercent int, " +
+                                            "fiftyPercent int, " +
+                                            "unique3 int, " +
+                                            "evenOnePercent int, " +
+                                            "oddOnePercent int, " +
+                                            "stringu1 char(52), " +
+                                            "stringu2 char(52), " +
+                                            "string4 char(52) )");
+        //-- insert numRows rows into TENKTUP2
+        wi = new WISCInsert();
+        wi.doWISCInsert(numRows, "TENKTUP2", conn);
+        
+        stmt.execute("create unique index TK2UNIQUE1 on TENKTUP2(unique1)");
+        stmt.execute("create unique index TK2UNIQUE2 on TENKTUP2(unique2)");
+        
+        stmt.execute("create table ONEKTUP ( unique1 int not null, " +
+                                            "unique2 int not null, " +
+                                            "two int, " +
+                                            "four int, " +
+                                            "ten int, " +
+                                            "twenty int, " +
+                                            "onePercent int, " +
+                                            "tenPercent int, " +
+                                            "twentyPercent int, " +
+                                            "fiftyPercent int, " +
+                                            "unique3 int, " +
+                                            "evenOnePercent int, " +
+                                            "oddOnePercent int, " +
+                                            "stringu1 char(52), " +
+                                            "stringu2 char(52), " +
+                                            "string4 char(52) )");
+        
+        //-- insert 1000 rows into ONEKTUP
+        wi = new WISCInsert();
+        wi.doWISCInsert(1000, "ONEKTUP", conn);
+        
+        stmt.execute("create unique index ONEKUNIQUE1 on ONEKTUP(unique1)");
+        stmt.execute("create unique index ONEKUNIQUE2 on ONEKTUP(unique2)");
 
-		stmt.execute("create table BPRIME (	 unique1 int, " +
-										  	"unique2 int, " +
-											"two int, " +
-											"four int, " +
-											"ten int, " +
-											"twenty int, " +
-											"onePercent int, " +
-											"tenPercent int, " +
-											"twentyPercent int, " +
-											"fiftyPercent int, " +
-											"unique3 int, " +
-											"evenOnePercent int, " +
-											"oddOnePercent int, " +
-											"stringu1 char(52), " +
-											"stringu2 char(52), " +
-											"string4 char(52))");
+        stmt.execute("create table BPRIME (     unique1 int, " +
+                                              "unique2 int, " +
+                                            "two int, " +
+                                            "four int, " +
+                                            "ten int, " +
+                                            "twenty int, " +
+                                            "onePercent int, " +
+                                            "tenPercent int, " +
+                                            "twentyPercent int, " +
+                                            "fiftyPercent int, " +
+                                            "unique3 int, " +
+                                            "evenOnePercent int, " +
+                                            "oddOnePercent int, " +
+                                            "stringu1 char(52), " +
+                                            "stringu2 char(52), " +
+                                            "string4 char(52))");
 
-		stmt.execute("insert into BPRIME select * from TENKTUP2 where TENKTUP2.unique2 < 1000");
+        stmt.execute("insert into BPRIME select * from TENKTUP2 where TENKTUP2.unique2 < 1000");
 
-		conn.commit();
+        conn.commit();
 
-		if (!compress) {
-			return;
-		}
+        if (!compress) {
+            return;
+        }
 
-		PreparedStatement ps2 = conn.prepareStatement
-			("call SYSCS_UTIL.SYSCS_COMPRESS_TABLE(?, ?, ?)");
-		ps2.setString(1, "SPLICE");
-		ps2.setString(2, "BPRIME");
-		ps2.setInt(3, 0);
-		ps2.executeUpdate();
-		conn.commit();
+        PreparedStatement ps2 = conn.prepareStatement
+            ("call SYSCS_UTIL.SYSCS_COMPRESS_TABLE(?, ?, ?)");
+        ps2.setString(1, "SPLICE");
+        ps2.setString(2, "BPRIME");
+        ps2.setInt(3, 0);
+        ps2.executeUpdate();
+        conn.commit();
 
-		ps2.setString(1, "SPLICE");
-		ps2.setString(2, "TENKTUP1");
-		ps2.setInt(3, 0);
-		ps2.executeUpdate();
-		conn.commit();
-		
-		ps2.setString(1, "SPLICE");
-		ps2.setString(2, "TENKTUP2");
-		ps2.setInt(3, 0);
-		ps2.executeUpdate();
-		conn.commit();
+        ps2.setString(1, "SPLICE");
+        ps2.setString(2, "TENKTUP1");
+        ps2.setInt(3, 0);
+        ps2.executeUpdate();
+        conn.commit();
+        
+        ps2.setString(1, "SPLICE");
+        ps2.setString(2, "TENKTUP2");
+        ps2.setInt(3, 0);
+        ps2.executeUpdate();
+        conn.commit();
 
-		ps2.setString(1, "SPLICE");
-		ps2.setString(2, "ONEKTUP");
-		ps2.setInt(3, 0);
-		ps2.executeUpdate();
-		conn.commit();
-	}
-	
-	
+        ps2.setString(1, "SPLICE");
+        ps2.setString(2, "ONEKTUP");
+        ps2.setInt(3, 0);
+        ps2.executeUpdate();
+        conn.commit();
+    }
+    
+    
     /**
      * Open the URL for a a test resource, e.g. a policy
      * file or a SQL script.

@@ -39,22 +39,22 @@ import java.util.Arrays;
  */
 public final class  UserDescriptor extends TupleDescriptor 
 {
-	private String _userName;
-	private String _hashingScheme;
+    private String _userName;
+    private String _hashingScheme;
     private char[] _password;
     private Timestamp _lastModified;
-	
-	/**
-	 * Constructor for a UserDescriptor.
-	 *
-	 * @param dataDictionary		The data dictionary that this descriptor lives in.
-	 * @param userName  Name of the user.
-	 * @param hashingScheme How the password was hashed.
-	 * @param password  The user's password.
-	 * @param lastModified  Time that the password was last modified.
-	 */
+    
+    /**
+     * Constructor for a UserDescriptor.
+     *
+     * @param dataDictionary        The data dictionary that this descriptor lives in.
+     * @param userName  Name of the user.
+     * @param hashingScheme How the password was hashed.
+     * @param password  The user's password.
+     * @param lastModified  Time that the password was last modified.
+     */
 
-	public UserDescriptor
+    public UserDescriptor
         (
          DataDictionary dataDictionary,
          String userName,
@@ -62,9 +62,9 @@ public final class  UserDescriptor extends TupleDescriptor
          char[] password,
          Timestamp lastModified
          )
-	{
-		super( dataDictionary );
-		
+    {
+        super( dataDictionary );
+        
         _userName = userName;
         _hashingScheme = hashingScheme;
 
@@ -77,10 +77,10 @@ public final class  UserDescriptor extends TupleDescriptor
         }
         
         _lastModified = lastModified;
-	}
+    }
 
-	public String getUserName(){ return _userName; }
-	public String getHashingScheme()    { return _hashingScheme; }
+    public String getUserName(){ return _userName; }
+    public String getHashingScheme()    { return _hashingScheme; }
     public  Timestamp   getLastModified()   { return _lastModified; }
 
     /**
@@ -88,27 +88,27 @@ public final class  UserDescriptor extends TupleDescriptor
      * Zero the password after getting it so that the char[] can't be memory-sniffed.
      * </p>
      */
-	public char[]   getAndZeroPassword()
-	{
-		if (_password == null)
-				return null;
-		int length = _password.length;
+    public char[]   getAndZeroPassword()
+    {
+        if (_password == null)
+                return null;
+        int length = _password.length;
         char[] retval = new char[ length ];
         System.arraycopy( _password, 0, retval, 0, length );
         Arrays.fill( _password, (char) 0 );
 
         return retval;
-	}
+    }
 
-	//
-	// class interface
-	//
+    //
+    // class interface
+    //
 
-	
-	/** @see TupleDescriptor#getDescriptorType */
-	public String getDescriptorType() { return "User"; }
+    
+    /** @see TupleDescriptor#getDescriptorType */
+    public String getDescriptorType() { return "User"; }
 
-	/** @see TupleDescriptor#getDescriptorName */
-	public String getDescriptorName() { return _userName; }
+    /** @see TupleDescriptor#getDescriptorName */
+    public String getDescriptorName() { return _userName; }
 
 }

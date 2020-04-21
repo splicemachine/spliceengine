@@ -63,14 +63,14 @@ import org.apache.spark.sql.types.StructField;
  */
 
 public class UserType extends DataType
-						implements UserDataValue
+                        implements UserDataValue
 {
-	private Object	value = null;
+    private Object    value = null;
 
-	/*
-	** DataValueDescriptor interface
-	** (mostly implemented in DataType)
-	*/
+    /*
+    ** DataValueDescriptor interface
+    ** (mostly implemented in DataType)
+    */
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( UserType.class);
 
@@ -87,578 +87,578 @@ public class UserType extends DataType
         return sz;
     } // end of estimateMemoryUsage
 
-	public String getString()
-	{
-		if (! isNull())
-		{
-			return value.toString();
+    public String getString()
+    {
+        if (! isNull())
+        {
+            return value.toString();
 
-		}
-		else
-		{
-			return null;
-		}
-	}
+        }
+        else
+        {
+            return null;
+        }
+    }
 
-	/**
-	 * @exception StandardException thrown on failure to convert
-	 */
-	public boolean getBoolean() throws StandardException
-	{
-		if (! isNull())
-			if (value instanceof Boolean) return (Boolean) value;
-		return super.getBoolean();
-	}
+    /**
+     * @exception StandardException thrown on failure to convert
+     */
+    public boolean getBoolean() throws StandardException
+    {
+        if (! isNull())
+            if (value instanceof Boolean) return (Boolean) value;
+        return super.getBoolean();
+    }
 
-	/**
-	 * @exception StandardException thrown on failure to convert
-	 */
-	public byte getByte() throws StandardException
-	{
-		if (! isNull())
-			// REMIND: check for overflow and truncation
-			if (value instanceof Number) return ((Number)value).byteValue();
-		return super.getByte();
-	}
+    /**
+     * @exception StandardException thrown on failure to convert
+     */
+    public byte getByte() throws StandardException
+    {
+        if (! isNull())
+            // REMIND: check for overflow and truncation
+            if (value instanceof Number) return ((Number)value).byteValue();
+        return super.getByte();
+    }
 
-	/**
-	 * @exception StandardException thrown on failure to convert
-	 */
-	public short getShort() throws StandardException
-	{
-		if (! isNull())
-			// REMIND: check for overflow and truncation
-			if (value instanceof Number) return ((Number)value).shortValue();
-		return super.getShort();
-	}
+    /**
+     * @exception StandardException thrown on failure to convert
+     */
+    public short getShort() throws StandardException
+    {
+        if (! isNull())
+            // REMIND: check for overflow and truncation
+            if (value instanceof Number) return ((Number)value).shortValue();
+        return super.getShort();
+    }
 
-	/**
-	 * @exception StandardException thrown on failure to convert
-	 */
-	public int getInt() throws StandardException
-	{
-		if (! isNull())
-			// REMIND: check for overflow and truncation
-			if (value instanceof Number) return ((Number)value).intValue();
-		return super.getInt();
-	}
+    /**
+     * @exception StandardException thrown on failure to convert
+     */
+    public int getInt() throws StandardException
+    {
+        if (! isNull())
+            // REMIND: check for overflow and truncation
+            if (value instanceof Number) return ((Number)value).intValue();
+        return super.getInt();
+    }
 
-	/**
-	 * @exception StandardException thrown on failure to convert
-	 */
+    /**
+     * @exception StandardException thrown on failure to convert
+     */
 
-	public long getLong() throws StandardException
-	{
-		if (! isNull())
-			// REMIND: check for overflow and truncation
-			if (value instanceof Number) return ((Number)value).longValue();
-		return super.getLong();
-	}
-
-
-	/**
-	 * @exception StandardException thrown on failure to convert
-	 */
-	public float getFloat() throws StandardException
-	{
-		if (! isNull())
-			// REMIND: check for overflow
-			if (value instanceof Number) return ((Number)value).floatValue();
-		return super.getFloat();
-	}
+    public long getLong() throws StandardException
+    {
+        if (! isNull())
+            // REMIND: check for overflow and truncation
+            if (value instanceof Number) return ((Number)value).longValue();
+        return super.getLong();
+    }
 
 
-	/**
-	 * @exception StandardException thrown on failure to convert
-	 */
-	public double getDouble() throws StandardException
-	{
-		if (! isNull())
-			// REMIND: check for overflow
-			if (value instanceof Number) return ((Number)value).doubleValue();
-		return super.getDouble();
-	}
+    /**
+     * @exception StandardException thrown on failure to convert
+     */
+    public float getFloat() throws StandardException
+    {
+        if (! isNull())
+            // REMIND: check for overflow
+            if (value instanceof Number) return ((Number)value).floatValue();
+        return super.getFloat();
+    }
 
-	/**
-	 * @exception StandardException thrown on failure to convert
-	 */
-	public byte[] getBytes() throws StandardException
-	{
-		if (! isNull())
-			if (value instanceof byte[]) return ((byte[])value);
-		return super.getBytes();
-	}
 
-	/**
+    /**
+     * @exception StandardException thrown on failure to convert
+     */
+    public double getDouble() throws StandardException
+    {
+        if (! isNull())
+            // REMIND: check for overflow
+            if (value instanceof Number) return ((Number)value).doubleValue();
+        return super.getDouble();
+    }
 
-		@exception StandardException thrown on failure
-	 */
-	public Date	getDate( Calendar cal) throws StandardException
-	{
-		if (! isNull())
-		{
-			if (value instanceof Date) 
-				return ((Date)value);
-			else if (value instanceof Timestamp)
-				return (new SQLTimestamp((Timestamp)value).getDate(cal));
-		}
-		return super.getDate(cal);
-	}
+    /**
+     * @exception StandardException thrown on failure to convert
+     */
+    public byte[] getBytes() throws StandardException
+    {
+        if (! isNull())
+            if (value instanceof byte[]) return ((byte[])value);
+        return super.getBytes();
+    }
 
-	/**
-		@exception StandardException thrown on failure
-	 */
-	public Time	getTime( Calendar cal) throws StandardException
-	{
-		if (! isNull())
-		{
-			if (value instanceof Time) 
-				return ((Time)value);
-			else if (value instanceof Timestamp)
-				return (new SQLTimestamp((Timestamp)value).getTime(cal));
-		}
-		return super.getTime(cal);
-	}
+    /**
 
-	/**
-		@exception StandardException thrown on failure
-	 */
-	public Timestamp	getTimestamp( Calendar cal) throws StandardException
-	{
-		if (! isNull())
-		{
-			if (value instanceof Timestamp) 
-				return ((Timestamp)value);
-			else if (value instanceof Date)
-				return (new SQLDate((Date)value).getTimestamp(cal));
-			else if (value instanceof Time)
-				return (new SQLTime((Time)value).getTimestamp(cal));
-		}
-		return super.getTimestamp(cal);
-	}
+        @exception StandardException thrown on failure
+     */
+    public Date    getDate( Calendar cal) throws StandardException
+    {
+        if (! isNull())
+        {
+            if (value instanceof Date) 
+                return ((Date)value);
+            else if (value instanceof Timestamp)
+                return (new SQLTimestamp((Timestamp)value).getDate(cal));
+        }
+        return super.getDate(cal);
+    }
 
-	void setObject(Object theValue)
+    /**
+        @exception StandardException thrown on failure
+     */
+    public Time    getTime( Calendar cal) throws StandardException
+    {
+        if (! isNull())
+        {
+            if (value instanceof Time) 
+                return ((Time)value);
+            else if (value instanceof Timestamp)
+                return (new SQLTimestamp((Timestamp)value).getTime(cal));
+        }
+        return super.getTime(cal);
+    }
+
+    /**
+        @exception StandardException thrown on failure
+     */
+    public Timestamp    getTimestamp( Calendar cal) throws StandardException
+    {
+        if (! isNull())
+        {
+            if (value instanceof Timestamp) 
+                return ((Timestamp)value);
+            else if (value instanceof Date)
+                return (new SQLDate((Date)value).getTimestamp(cal));
+            else if (value instanceof Time)
+                return (new SQLTime((Time)value).getTimestamp(cal));
+        }
+        return super.getTimestamp(cal);
+    }
+
+    void setObject(Object theValue)
     {
         setValue( theValue );
     }
     
-	public Object getObject()
-	{
-		return value;
-	}
+    public Object getObject()
+    {
+        return value;
+    }
 
-	@Override
-	public Object getSparkObject() throws StandardException {
-		if (value instanceof Serializable) {
-			return SerializationUtils.serialize((Serializable) value);
-		} else {
-			return super.getSparkObject();
-		}
-	}
+    @Override
+    public Object getSparkObject() throws StandardException {
+        if (value instanceof Serializable) {
+            return SerializationUtils.serialize((Serializable) value);
+        } else {
+            return super.getSparkObject();
+        }
+    }
 
-	public int getLength()
-	{
-		return TypeDescriptor.MAXIMUM_WIDTH_UNKNOWN;
-	}
+    public int getLength()
+    {
+        return TypeDescriptor.MAXIMUM_WIDTH_UNKNOWN;
+    }
 
-	/* this is for DataType's error generator */
-	public String getTypeName()
-	{
-		return isNull() ? "JAVA_OBJECT" : ClassInspector.readableClassName(value.getClass());
-	}
-	
-	/**
-	 * Get the type name of this value,  overriding
-	 * with the passed in class name (for user/java types).
-	 */
-	String getTypeName(String className)
-	{
-		return className;
-	}
+    /* this is for DataType's error generator */
+    public String getTypeName()
+    {
+        return isNull() ? "JAVA_OBJECT" : ClassInspector.readableClassName(value.getClass());
+    }
+    
+    /**
+     * Get the type name of this value,  overriding
+     * with the passed in class name (for user/java types).
+     */
+    String getTypeName(String className)
+    {
+        return className;
+    }
 
-	/*
-	 * Storable interface, implies Externalizable, TypedFormat
-	 */
+    /*
+     * Storable interface, implies Externalizable, TypedFormat
+     */
 
-	/**
-		Return my format identifier.
+    /**
+        Return my format identifier.
 
-		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
-	public int getTypeFormatId() {
-		return StoredFormatIds.SQL_USERTYPE_ID_V3;
-	}
+        @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
+    */
+    public int getTypeFormatId() {
+        return StoredFormatIds.SQL_USERTYPE_ID_V3;
+    }
 
-	/** 
-		@exception IOException error writing data
+    /** 
+        @exception IOException error writing data
 
-	*/
-	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull());
-		if (!isNull())
-			out.writeObject(value);
-	}
+    */
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeBoolean(isNull());
+        if (!isNull())
+            out.writeObject(value);
+    }
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 * @exception ClassNotFoundException	Thrown if the class of the object
-	 *										is not found
-	 */
-	public void readExternal(ObjectInput in) 
+    /**
+     * @see java.io.Externalizable#readExternal
+     *
+     * @exception IOException    Thrown on error reading the object
+     * @exception ClassNotFoundException    Thrown if the class of the object
+     *                                        is not found
+     */
+    public void readExternal(ObjectInput in) 
         throws IOException, ClassNotFoundException
-	{
-		boolean readIsNull = in.readBoolean();
-		if (!readIsNull) {
-			/* RESOLVE: Sanity check for right class */
-			value = in.readObject();
-			isNull = evaluateNull();
-		} else {
-			restoreToNull();
-		}
-	}
-	public void readExternalFromArray(ArrayInputStream in) 
+    {
+        boolean readIsNull = in.readBoolean();
+        if (!readIsNull) {
+            /* RESOLVE: Sanity check for right class */
+            value = in.readObject();
+            isNull = evaluateNull();
+        } else {
+            restoreToNull();
+        }
+    }
+    public void readExternalFromArray(ArrayInputStream in) 
         throws IOException, ClassNotFoundException
-	{
-		/* RESOLVE: Sanity check for right class */
-		value = in.readObject();
-		isNull = evaluateNull();
-	}
+    {
+        /* RESOLVE: Sanity check for right class */
+        value = in.readObject();
+        isNull = evaluateNull();
+    }
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
 
     /** @see DataValueDescriptor#cloneValue */
     public DataValueDescriptor cloneValue(boolean forceMaterialization)
-	{
-		// Call constructor with all of our info
-		return new UserType(value);
-	}
+    {
+        // Call constructor with all of our info
+        return new UserType(value);
+    }
 
-	/**
-	 * @see DataValueDescriptor#getNewNull
-	 */
-	public DataValueDescriptor getNewNull()
-	{
-		return new UserType();
-	}
-	/**
-	 * @see com.splicemachine.db.iapi.services.io.Storable#restoreToNull
-	 *
-	 */
+    /**
+     * @see DataValueDescriptor#getNewNull
+     */
+    public DataValueDescriptor getNewNull()
+    {
+        return new UserType();
+    }
+    /**
+     * @see com.splicemachine.db.iapi.services.io.Storable#restoreToNull
+     *
+     */
 
-	public void restoreToNull()
-	{
-		value = null;
-		isNull = evaluateNull();
-	}
+    public void restoreToNull()
+    {
+        value = null;
+        isNull = evaluateNull();
+    }
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
 
-	/** 
-	 * @see DataValueDescriptor#setValueFromResultSet 
-	 *
-	 * @exception SQLException		Thrown on error
-	 */
-	public void setValueFromResultSet(ResultSet resultSet, int colNumber,
-									  boolean isNullable)
-		throws SQLException
-	{
-			value = resultSet.getObject(colNumber);
-			isNull = evaluateNull();
-	}
+    /** 
+     * @see DataValueDescriptor#setValueFromResultSet 
+     *
+     * @exception SQLException        Thrown on error
+     */
+    public void setValueFromResultSet(ResultSet resultSet, int colNumber,
+                                      boolean isNullable)
+        throws SQLException
+    {
+            value = resultSet.getObject(colNumber);
+            isNull = evaluateNull();
+    }
 
-	/**
-	 * Orderable interface
-	 *
-	 *
-	 * @see com.splicemachine.db.iapi.types.Orderable
-	 *
-	 * @exception StandardException thrown on failure
-	 */
-	public int compare(DataValueDescriptor other)
-		throws StandardException
-	{
-		/* Use compare method from dominant type, negating result
-		 * to reflect flipping of sides.
-		 */
-		if (typePrecedence() < other.typePrecedence())
-		{
-			return - (other.compare(this));
-		}
+    /**
+     * Orderable interface
+     *
+     *
+     * @see com.splicemachine.db.iapi.types.Orderable
+     *
+     * @exception StandardException thrown on failure
+     */
+    public int compare(DataValueDescriptor other)
+        throws StandardException
+    {
+        /* Use compare method from dominant type, negating result
+         * to reflect flipping of sides.
+         */
+        if (typePrecedence() < other.typePrecedence())
+        {
+            return - (other.compare(this));
+        }
 
-		boolean thisNull, otherNull;
+        boolean thisNull, otherNull;
 
-		thisNull = this.isNull();
-		otherNull = other.isNull();
+        thisNull = this.isNull();
+        otherNull = other.isNull();
 
-		/*
-		 * thisNull otherNull	return
-		 *	T		T		 	0	(this == other)
-		 *	F		T		 	-1 	(this < other)
-		 *	T		F		 	1	(this > other)
-		 */
-		if (thisNull || otherNull)
-		{
-			if (!thisNull)		// otherNull must be true
-				return -1;
-			if (!otherNull)		// thisNull must be true
-				return 1;
-			return 0;
-		}
+        /*
+         * thisNull otherNull    return
+         *    T        T             0    (this == other)
+         *    F        T             -1     (this < other)
+         *    T        F             1    (this > other)
+         */
+        if (thisNull || otherNull)
+        {
+            if (!thisNull)        // otherNull must be true
+                return -1;
+            if (!otherNull)        // thisNull must be true
+                return 1;
+            return 0;
+        }
 
-		/*
-			Neither are null compare them 
-		 */
+        /*
+            Neither are null compare them 
+         */
 
-		int comparison;
+        int comparison;
 
-		try
-		{
-			comparison = ((java.lang.Comparable) value).compareTo(other.getObject());
-		}
-		catch (ClassCastException cce)
-		{
-			throw StandardException.newException(SQLState.LANG_INVALID_COMPARE_TO, 
-						getTypeName(),
-						ClassInspector.readableClassName(other.getObject().getClass()));
-		}
-		/*
-		** compareTo() can return any negative number if less than, and
-		** any positive number if greater than.  Change to -1, 0, 1.
-		*/
-		if (comparison < 0)
-			comparison = -1;
-		else if (comparison > 0)
-			comparison = 1;
+        try
+        {
+            comparison = ((java.lang.Comparable) value).compareTo(other.getObject());
+        }
+        catch (ClassCastException cce)
+        {
+            throw StandardException.newException(SQLState.LANG_INVALID_COMPARE_TO, 
+                        getTypeName(),
+                        ClassInspector.readableClassName(other.getObject().getClass()));
+        }
+        /*
+        ** compareTo() can return any negative number if less than, and
+        ** any positive number if greater than.  Change to -1, 0, 1.
+        */
+        if (comparison < 0)
+            comparison = -1;
+        else if (comparison > 0)
+            comparison = 1;
 
-		return comparison;
-	}
+        return comparison;
+    }
 
-	/**
-		@exception StandardException thrown on error
-	 */
-	public boolean compare(int op,
-						   DataValueDescriptor other,
-						   boolean orderedNulls,
-						   boolean unknownRV)
-		throws StandardException
-	{
-		if (!orderedNulls)		// nulls are unordered
-		{
-			if (this.isNull() || other.isNull())
-				return unknownRV;
-		}
+    /**
+        @exception StandardException thrown on error
+     */
+    public boolean compare(int op,
+                           DataValueDescriptor other,
+                           boolean orderedNulls,
+                           boolean unknownRV)
+        throws StandardException
+    {
+        if (!orderedNulls)        // nulls are unordered
+        {
+            if (this.isNull() || other.isNull())
+                return unknownRV;
+        }
 
-		/* For usertypes and equal do some special processing when
-		 * neither value is null.  (Superclass will handle comparison
-		 * if either value is null.)
-		 */
-		if ( (op == ORDER_OP_EQUALS) &&
-			(! this.isNull()) && (! other.isNull()) ) 
-		{
-			// if this object implements java.lang.Comparable (JDK1.2)
-			// then we let the compareTo method handle equality
-			// if it doesn't then we use the equals() method
-			Object o = getObject();
+        /* For usertypes and equal do some special processing when
+         * neither value is null.  (Superclass will handle comparison
+         * if either value is null.)
+         */
+        if ( (op == ORDER_OP_EQUALS) &&
+            (! this.isNull()) && (! other.isNull()) ) 
+        {
+            // if this object implements java.lang.Comparable (JDK1.2)
+            // then we let the compareTo method handle equality
+            // if it doesn't then we use the equals() method
+            Object o = getObject();
 
-			if (!(o instanceof java.lang.Comparable)) 
-			{
-				return o.equals(other.getObject());
-			}
-		}
-		
+            if (!(o instanceof java.lang.Comparable)) 
+            {
+                return o.equals(other.getObject());
+            }
+        }
+        
 
-		/* Do the comparison */
-		return super.compare(op, other, orderedNulls, unknownRV);
-	}
+        /* Do the comparison */
+        return super.compare(op, other, orderedNulls, unknownRV);
+    }
 
-	/*
-	** Class interface
-	*/
+    /*
+    ** Class interface
+    */
 
-	/*
-	** Constructors
-	*/
-	/** no-arg constructor required by Formattable */
-	public UserType() {
-	}
+    /*
+    ** Constructors
+    */
+    /** no-arg constructor required by Formattable */
+    public UserType() {
+    }
 
-	public UserType(Object value)
-	{
-		this.value = value;
-		isNull = evaluateNull();
-	}
-	/**
-	 * @see UserDataValue#setValue
-	 *
-	 */
-	public void setValue(Object value)
-	{
-		this.value = value;
-		isNull = evaluateNull();
-	}
-	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
+    public UserType(Object value)
+    {
+        this.value = value;
+        isNull = evaluateNull();
+    }
+    /**
+     * @see UserDataValue#setValue
+     *
+     */
+    public void setValue(Object value)
+    {
+        this.value = value;
+        isNull = evaluateNull();
+    }
+    protected void setFrom(DataValueDescriptor theValue) throws StandardException {
 
-		setValue(theValue.getObject());
-	}
+        setValue(theValue.getObject());
+    }
 
-	/**
-	 * @see UserDataValue#setValue
-	 *
-	 */
-	public void setBigDecimal(Number theValue)
-	{
-		// needed to allow serializable BigDecimal
-		setValue((Object) theValue);
-	}
+    /**
+     * @see UserDataValue#setValue
+     *
+     */
+    public void setBigDecimal(Number theValue)
+    {
+        // needed to allow serializable BigDecimal
+        setValue((Object) theValue);
+    }
 
-	public void setValue(String theValue)
-	{
-		if (theValue == null)
-		{
-			value = null;
-		}
-		else
-		{
-			// Higher levels must have performed type checking for us.
-			value = theValue;
-		}
-		isNull = evaluateNull();
-	}
+    public void setValue(String theValue)
+    {
+        if (theValue == null)
+        {
+            value = null;
+        }
+        else
+        {
+            // Higher levels must have performed type checking for us.
+            value = theValue;
+        }
+        isNull = evaluateNull();
+    }
 
-	/*
-	** SQL Operators
-	*/
+    /*
+    ** SQL Operators
+    */
 
-	/**
-	 * The = operator as called from the language module, as opposed to
-	 * the storage module.
-	 *
-	 * @param left			The value on the left side of the =
-	 * @param right			The value on the right side of the =
-	 *
-	 * @return	A SQL boolean value telling whether the two parameters are equal
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * The = operator as called from the language module, as opposed to
+     * the storage module.
+     *
+     * @param left            The value on the left side of the =
+     * @param right            The value on the right side of the =
+     *
+     * @return    A SQL boolean value telling whether the two parameters are equal
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public BooleanDataValue equals(DataValueDescriptor left,
-							DataValueDescriptor right)
-			throws StandardException
-	{
-		return SQLBoolean.truthValue(left,
-									 right,
-									 left.compare(ORDER_OP_EQUALS, right, true, false));
-	}
+    public BooleanDataValue equals(DataValueDescriptor left,
+                            DataValueDescriptor right)
+            throws StandardException
+    {
+        return SQLBoolean.truthValue(left,
+                                     right,
+                                     left.compare(ORDER_OP_EQUALS, right, true, false));
+    }
 
-	/**
-	 * The <> operator as called from the language module, as opposed to
-	 * the storage module.
-	 *
-	 * @param left			The value on the left side of the <>
-	 * @param right			The value on the right side of the <>
-	 *
-	 * @return	A SQL boolean value telling whether the two parameters
-	 *			are not equal
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * The <> operator as called from the language module, as opposed to
+     * the storage module.
+     *
+     * @param left            The value on the left side of the <>
+     * @param right            The value on the right side of the <>
+     *
+     * @return    A SQL boolean value telling whether the two parameters
+     *            are not equal
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public BooleanDataValue notEquals(DataValueDescriptor left,
-							DataValueDescriptor right)
-			throws StandardException
-	{
-		return SQLBoolean.truthValue(left,
-									 right,
-									 !left.compare(ORDER_OP_EQUALS, right, true, false));
-	}
-
-
-
-	/*
-	** String display of value
-	*/
-
-	public String toString()
-	{
-		if (isNull())
-		{
-			return "NULL";
-		}
-		else
-		{
-			return value.toString();
-		}
-	}
-
-	/*
-	 * Hash code
-	 */
-	public int hashCode()
-	{
-		if (isNull())
-			return 0;
-		return value.hashCode();
-	}
-
-	/** @see DataValueDescriptor#typePrecedence */
-	public int	typePrecedence()
-	{
-		return TypeId.USER_PRECEDENCE;
-	}
-
-	/**
-	 * Check if the value is null.  
-	 *
-	 * @return Whether or not value is logically null.
-	 */
-	private boolean evaluateNull()
-	{
-		return (value == null);
-	}
-	
-	public Format getFormat() {
-		return Format.USERTYPE;
-	}
-
-	@Override
-	public void read(Row row, int ordinal) throws StandardException {
-		if (row.isNullAt(ordinal))
-			setToNull();
-		else {
-			isNull = false;
-			Object object = row.get(ordinal);
-			if (object instanceof byte[]) {
-				value = SerializationUtils.deserialize((byte[]) object);
-			} else {
-				value = object;
-			}
-		}
-	}
-
-	@Override
-	public StructField getStructField(String columnName) {
-		return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
-	}
+    public BooleanDataValue notEquals(DataValueDescriptor left,
+                            DataValueDescriptor right)
+            throws StandardException
+    {
+        return SQLBoolean.truthValue(left,
+                                     right,
+                                     !left.compare(ORDER_OP_EQUALS, right, true, false));
+    }
 
 
-	public void updateThetaSketch(UpdateSketch updateSketch) {
-		if (!isNull())
-		updateSketch.update(SerializationUtils.serialize(SerializationUtils.serialize((Serializable)value)));
-	}
 
-	@Override
-	public void setSparkObject(Object sparkObject) throws StandardException {
-		if (sparkObject instanceof byte[]) {
-			value = SerializationUtils.deserialize((byte[]) sparkObject);
-		} else {
-			value = sparkObject;
-		}
-	}
+    /*
+    ** String display of value
+    */
+
+    public String toString()
+    {
+        if (isNull())
+        {
+            return "NULL";
+        }
+        else
+        {
+            return value.toString();
+        }
+    }
+
+    /*
+     * Hash code
+     */
+    public int hashCode()
+    {
+        if (isNull())
+            return 0;
+        return value.hashCode();
+    }
+
+    /** @see DataValueDescriptor#typePrecedence */
+    public int    typePrecedence()
+    {
+        return TypeId.USER_PRECEDENCE;
+    }
+
+    /**
+     * Check if the value is null.  
+     *
+     * @return Whether or not value is logically null.
+     */
+    private boolean evaluateNull()
+    {
+        return (value == null);
+    }
+    
+    public Format getFormat() {
+        return Format.USERTYPE;
+    }
+
+    @Override
+    public void read(Row row, int ordinal) throws StandardException {
+        if (row.isNullAt(ordinal))
+            setToNull();
+        else {
+            isNull = false;
+            Object object = row.get(ordinal);
+            if (object instanceof byte[]) {
+                value = SerializationUtils.deserialize((byte[]) object);
+            } else {
+                value = object;
+            }
+        }
+    }
+
+    @Override
+    public StructField getStructField(String columnName) {
+        return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
+    }
+
+
+    public void updateThetaSketch(UpdateSketch updateSketch) {
+        if (!isNull())
+        updateSketch.update(SerializationUtils.serialize(SerializationUtils.serialize((Serializable)value)));
+    }
+
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+        if (sparkObject instanceof byte[]) {
+            value = SerializationUtils.deserialize((byte[]) sparkObject);
+        } else {
+            value = sparkObject;
+        }
+    }
 
 }

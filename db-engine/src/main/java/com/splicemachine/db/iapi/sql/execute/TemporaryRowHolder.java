@@ -46,39 +46,39 @@ import com.splicemachine.db.iapi.sql.Activation;
  */
 public interface TemporaryRowHolder
 {
-	/**
-	 * Insert a row
-	 *
-	 * @param inputRow the row to insert 
-	 *
-	 * @exception StandardException on error
- 	 */
-	void insert(ExecRow inputRow)
-		throws StandardException;
+    /**
+     * Insert a row
+     *
+     * @param inputRow the row to insert 
+     *
+     * @exception StandardException on error
+      */
+    void insert(ExecRow inputRow)
+        throws StandardException;
 
-	/**
-	 * Get a result set for scanning what has been inserted
- 	 * so far.
-	 *
-	 * @return a result set to use
-	 */
-	CursorResultSet getResultSet();
+    /**
+     * Get a result set for scanning what has been inserted
+      * so far.
+     *
+     * @return a result set to use
+     */
+    CursorResultSet getResultSet();
 
-	/**
-	 * Clean up
-	 *
-	 * @exception StandardException on error
-	 */
-	void close() throws StandardException;
+    /**
+     * Clean up
+     *
+     * @exception StandardException on error
+     */
+    void close() throws StandardException;
 
 
-	//returns the conglomerate number it created
-	long getTemporaryConglomId();
+    //returns the conglomerate number it created
+    long getTemporaryConglomId();
 
-	int getLastArraySlot();
-	void decrementLastArraySlot ();
-	int getState();
-	void setState(int state);
-	Activation getActivation();
-	long getConglomerateId();
+    int getLastArraySlot();
+    void decrementLastArraySlot ();
+    int getState();
+    void setState(int state);
+    Activation getActivation();
+    long getConglomerateId();
 }

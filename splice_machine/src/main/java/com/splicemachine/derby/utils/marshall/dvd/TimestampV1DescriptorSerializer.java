@@ -30,40 +30,40 @@ import java.sql.Timestamp;
  * Date: 4/2/14
  */
 public class TimestampV1DescriptorSerializer extends AbstractTimeDescriptorSerializer {
-		public static final Factory INSTANCE_FACTORY = new AbstractTimeDescriptorSerializer.Factory() {
-				@Override public DescriptorSerializer newInstance() { return new TimestampV1DescriptorSerializer(); }
-				@Override public boolean applies(int typeFormatId) { return typeFormatId == StoredFormatIds.SQL_TIMESTAMP_ID; }
-		};
+        public static final Factory INSTANCE_FACTORY = new AbstractTimeDescriptorSerializer.Factory() {
+                @Override public DescriptorSerializer newInstance() { return new TimestampV1DescriptorSerializer(); }
+                @Override public boolean applies(int typeFormatId) { return typeFormatId == StoredFormatIds.SQL_TIMESTAMP_ID; }
+        };
 
-		protected TimestampV1DescriptorSerializer() { }
+        protected TimestampV1DescriptorSerializer() { }
 
 
-		@Override
-		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
-			fieldEncoder.encodeNext(toLong(dvd.getTimestamp(null)),desc);
-		}
+        @Override
+        public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
+            fieldEncoder.encodeNext(toLong(dvd.getTimestamp(null)),desc);
+        }
 
-		@Override
-		public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
-				return Encoding.encode(toLong(dvd.getTimestamp(null)), desc);
-		}
+        @Override
+        public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
+                return Encoding.encode(toLong(dvd.getTimestamp(null)), desc);
+        }
 
-		@Override
-		public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
-				long time = fieldDecoder.decodeNextLong(desc);
-				destDvd.setValue(toTimestamp(time));
-		}
+        @Override
+        public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
+                long time = fieldDecoder.decodeNextLong(desc);
+                destDvd.setValue(toTimestamp(time));
+        }
 
-		@Override
-		public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
-				dvd.setValue(toTimestamp(Encoding.decodeLong(data, offset, desc)));
-		}
+        @Override
+        public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
+                dvd.setValue(toTimestamp(Encoding.decodeLong(data, offset, desc)));
+        }
 
-		protected long toLong(Timestamp timestamp) throws StandardException {
-				return timestamp.getTime();
-		}
+        protected long toLong(Timestamp timestamp) throws StandardException {
+                return timestamp.getTime();
+        }
 
-		protected Timestamp toTimestamp(long time) {
-				return new Timestamp(time);
-		}
+        protected Timestamp toTimestamp(long time) {
+                return new Timestamp(time);
+        }
 }

@@ -60,11 +60,11 @@ public class FirstLastValueFunctionDefinition implements AggregateDefinition {
         DataTypeDescriptor dts = inputType.getNullabilityType(true);
         TypeId compType = dts.getTypeId();
 
-		/*
-		** If the class implements orderable, then we
-		** are in business.  Return type is same as input
-		** type.
-		*/
+        /*
+        ** If the class implements orderable, then we
+        ** are in business.  Return type is same as input
+        ** type.
+        */
         if (compType.orderable(lcc.getLanguageConnectionFactory().getClassFactory())) {
 
             return dts;

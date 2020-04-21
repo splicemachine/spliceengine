@@ -70,36 +70,36 @@ public class TimestampOperatorNode extends BinaryOperatorNode
     }
 
 
-	/**
-	 * Bind this expression.  This means binding the sub-expressions,
-	 * as well as figuring out what the return type is for this expression.
-	 *
-	 * @param fromList		The FROM list for the query this
-	 *				expression is in, for binding columns.
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Bind this expression.  This means binding the sub-expressions,
+     * as well as figuring out what the return type is for this expression.
+     *
+     * @param fromList        The FROM list for the query this
+     *                expression is in, for binding columns.
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
+     *
+     * @return    The new top of the expression tree.
+     *
+     * @exception StandardException        Thrown on error
+     */
     @Override
-	public ValueNode bindExpression( FromList fromList, SubqueryList subqueryList, List<AggregateNode> aggregateVector)  throws StandardException {
-		leftOperand = leftOperand.bindExpression(fromList, subqueryList, 
-			aggregateVector);
-		rightOperand = rightOperand.bindExpression(fromList, subqueryList, 
-			aggregateVector);
+    public ValueNode bindExpression( FromList fromList, SubqueryList subqueryList, List<AggregateNode> aggregateVector)  throws StandardException {
+        leftOperand = leftOperand.bindExpression(fromList, subqueryList, 
+            aggregateVector);
+        rightOperand = rightOperand.bindExpression(fromList, subqueryList, 
+            aggregateVector);
 
-		//Set the type if there is a parameter involved here 
-		if (leftOperand.requiresTypeFromContext()) {
-			leftOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.DATE));
-		}
-		//Set the type if there is a parameter involved here 
-		if (rightOperand.requiresTypeFromContext()) {
-			rightOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.TIME));
-		}
+        //Set the type if there is a parameter involved here 
+        if (leftOperand.requiresTypeFromContext()) {
+            leftOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.DATE));
+        }
+        //Set the type if there is a parameter involved here 
+        if (rightOperand.requiresTypeFromContext()) {
+            rightOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.TIME));
+        }
 
-		TypeId leftTypeId = leftOperand.getTypeId();
+        TypeId leftTypeId = leftOperand.getTypeId();
         TypeId rightTypeId = rightOperand.getTypeId();
         if( !(leftOperand.requiresTypeFromContext() || leftTypeId.isStringTypeId() || leftTypeId.getJDBCTypeId() == Types.DATE))
             throw StandardException.newException(SQLState.LANG_BINARY_OPERATOR_NOT_SUPPORTED, 
@@ -108,27 +108,27 @@ public class TimestampOperatorNode extends BinaryOperatorNode
             throw StandardException.newException(SQLState.LANG_BINARY_OPERATOR_NOT_SUPPORTED, 
                                                  operator, leftTypeId.getSQLTypeName(), rightTypeId.getSQLTypeName());
         setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.TIMESTAMP));
-		return genSQLJavaSQLTree();
-	} // end of bindExpression
+        return genSQLJavaSQLTree();
+    } // end of bindExpression
 
     /**
-	 * Do code generation for this binary operator.
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class we're generating
-	 * @param mb	The method the code to place the code
-	 *
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+     * Do code generation for this binary operator.
+     *
+     * @param acb    The ExpressionClassBuilder for the class we're generating
+     * @param mb    The method the code to place the code
+     *
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public void generateExpression(ExpressionClassBuilder acb,
-											MethodBuilder mb)
-		throws StandardException
-	{
+    public void generateExpression(ExpressionClassBuilder acb,
+                                            MethodBuilder mb)
+        throws StandardException
+    {
         acb.pushDataValueFactory(mb);
-		leftOperand.generateExpression(acb, mb);
+        leftOperand.generateExpression(acb, mb);
         mb.cast( ClassName.DataValueDescriptor);
-		rightOperand.generateExpression(acb, mb);
+        rightOperand.generateExpression(acb, mb);
         mb.cast( ClassName.DataValueDescriptor);
         mb.callMethod( VMOpcode.INVOKEINTERFACE, null, methodName, ClassName.DateTimeDataValue, 2);
     } // end of generateExpression
@@ -136,7 +136,7 @@ public class TimestampOperatorNode extends BinaryOperatorNode
     /**
      * Return whether or not this expression tree is cloneable.
      *
-     * @return boolean	Whether or not this expression tree is cloneable.
+     * @return boolean    Whether or not this expression tree is cloneable.
      */
     public boolean isCloneable()
     {
@@ -147,9 +147,9 @@ public class TimestampOperatorNode extends BinaryOperatorNode
     /**
      * Return a clone of this node.
      *
-     * @return ValueNode	A clone of this node.
+     * @return ValueNode    A clone of this node.
      *
-     * @exception StandardException			Thrown on error
+     * @exception StandardException            Thrown on error
      */
     public ValueNode getClone() throws StandardException {
         TimestampOperatorNode newTS = (TimestampOperatorNode) getNodeFactory().getNode(

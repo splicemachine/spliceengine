@@ -31,8 +31,8 @@ import com.splicemachine.db.impl.services.stream.SingleStream;
 public class ConfiguredStream extends SingleStream {
 
     private static Logger LOG = Logger.getLogger(ConfiguredStream.class);
-	private static String SPLICE_DERBY_LOG = "splice-derby.log";
-	
+    private static String SPLICE_DERBY_LOG = "splice-derby.log";
+    
     @Override
     protected HeaderPrintWriter makeStream() {
         String errorFileLocation = PropertyUtil.getSystemProperty(Property.ERRORLOG_FILE_PROPERTY);

@@ -48,40 +48,40 @@ import java.util.Comparator;
  */
 public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comparable<ExecRow>, Comparator<ExecRow> {
 
-	/**
-	 * Clone the Row and its contents.
-	 *
-	 *
-	 * @return Row	A clone of the Row and its contents.
-	 */
-	ExecRow getClone();
-
-	/**
-	 *
-	 * Transfer results from one exec row to this row.  This is key for merge join
-	 * when we do not want to create a bunch of objects.
-	 *
-	 * @param execRow
-	 * @throws StandardException
+    /**
+     * Clone the Row and its contents.
+     *
+     *
+     * @return Row    A clone of the Row and its contents.
      */
-	void transfer(ExecRow execRow) throws StandardException  ;
+    ExecRow getClone();
 
-	/**
-	 * Clone the Row.  The cloned row will contain clones of the
-	 * specified columns and the same object as the original row
-	 * for the other columns.
-	 *
-	 * @param clonedCols	1-based FormatableBitSet representing the columns to clone.
-	 *
-	 * @return Row	A clone of the Row and its contents.
-	 */
-	ExecRow getClone(FormatableBitSet clonedCols);
+    /**
+     *
+     * Transfer results from one exec row to this row.  This is key for merge join
+     * when we do not want to create a bunch of objects.
+     *
+     * @param execRow
+     * @throws StandardException
+     */
+    void transfer(ExecRow execRow) throws StandardException  ;
 
-	/**
-	 * Get a new row with the same columns type as this one, containing nulls.
-	 *
-	 */
-	ExecRow	getNewNullRow();
+    /**
+     * Clone the Row.  The cloned row will contain clones of the
+     * specified columns and the same object as the original row
+     * for the other columns.
+     *
+     * @param clonedCols    1-based FormatableBitSet representing the columns to clone.
+     *
+     * @return Row    A clone of the Row and its contents.
+     */
+    ExecRow getClone(FormatableBitSet clonedCols);
+
+    /**
+     * Get a new row with the same columns type as this one, containing nulls.
+     *
+     */
+    ExecRow    getNewNullRow();
 
     /**
      * Reset all the <code>DataValueDescriptor</code>s in the row array to
@@ -90,47 +90,47 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
      */
     void resetRowArray();
 
-	/**
-	 * Get a clone of a DataValueDescriptor from an ExecRow.
-	 *
-	 * @param columnPosition (1 based)
-	 */
-	DataValueDescriptor cloneColumn(int columnPosition);
+    /**
+     * Get a clone of a DataValueDescriptor from an ExecRow.
+     *
+     * @param columnPosition (1 based)
+     */
+    DataValueDescriptor cloneColumn(int columnPosition);
 
-	/**
-		Get a clone of the array form of the row that Access expects.
+    /**
+        Get a clone of the array form of the row that Access expects.
 
-		@see ExecRow#getRowArray
-	*/
-	DataValueDescriptor[] getRowArrayClone();
+        @see ExecRow#getRowArray
+    */
+    DataValueDescriptor[] getRowArrayClone();
 
-	/**
-		Return the array of objects that the store needs.
-	*/
-	DataValueDescriptor[] getRowArray();
+    /**
+        Return the array of objects that the store needs.
+    */
+    DataValueDescriptor[] getRowArray();
 
-	/**
-		Set the array of objects
-	*/
-	void setRowArray(DataValueDescriptor[] rowArray);
+    /**
+        Set the array of objects
+    */
+    void setRowArray(DataValueDescriptor[] rowArray);
 
-	/**
-		Get a new DataValueDescriptor[]
-	 */
-	void getNewObjectArray();
+    /**
+        Get a new DataValueDescriptor[]
+     */
+    void getNewObjectArray();
 
-	StructType createStructType(int[] baseColumnMap);
+    StructType createStructType(int[] baseColumnMap);
 
-	org.apache.spark.sql.Row getSparkRow();
+    org.apache.spark.sql.Row getSparkRow();
 
-	ExecRow fromSparkRow(org.apache.spark.sql.Row row);
+    ExecRow fromSparkRow(org.apache.spark.sql.Row row);
 
-	long getRowSize() throws StandardException;
+    long getRowSize() throws StandardException;
 
-	long getRowSize(BitSet validColumns) throws StandardException;
+    long getRowSize(BitSet validColumns) throws StandardException;
 
-	byte[] getKey();
+    byte[] getKey();
 
-	void setKey(byte[] key);
+    void setKey(byte[] key);
 
 }

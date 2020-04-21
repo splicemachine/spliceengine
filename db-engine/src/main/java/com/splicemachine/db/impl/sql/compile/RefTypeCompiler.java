@@ -47,54 +47,54 @@ import com.splicemachine.db.iapi.reference.ClassName;
 
 public class RefTypeCompiler extends BaseTypeCompiler
 {
-	/** @see TypeCompiler#getCorrespondingPrimitiveTypeName */
-	public String getCorrespondingPrimitiveTypeName()
-	{
-		if (SanityManager.DEBUG)
-			SanityManager.THROWASSERT("getCorrespondingPrimitiveTypeName not implemented for SQLRef");
-		return null;
-	}
+    /** @see TypeCompiler#getCorrespondingPrimitiveTypeName */
+    public String getCorrespondingPrimitiveTypeName()
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.THROWASSERT("getCorrespondingPrimitiveTypeName not implemented for SQLRef");
+        return null;
+    }
 
-	/**
-	 * @see TypeCompiler#getCastToCharWidth
-	 */
-	public int getCastToCharWidth(DataTypeDescriptor dts)
-	{
-		if (SanityManager.DEBUG)
-			SanityManager.THROWASSERT( "getCastToCharWidth not implemented for SQLRef");
-		return 0;
-	}
+    /**
+     * @see TypeCompiler#getCastToCharWidth
+     */
+    public int getCastToCharWidth(DataTypeDescriptor dts)
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.THROWASSERT( "getCastToCharWidth not implemented for SQLRef");
+        return 0;
+    }
 
-	/** @see TypeCompiler#convertible */
-	public boolean convertible(TypeId otherType, 
-							   boolean forDataTypeFunction)
-	{
-		return otherType.getJDBCTypeId() == Types.VARCHAR;
-	}
+    /** @see TypeCompiler#convertible */
+    public boolean convertible(TypeId otherType, 
+                               boolean forDataTypeFunction)
+    {
+        return otherType.getJDBCTypeId() == Types.VARCHAR;
+    }
 
-	/**
-	 * Tell whether this type is compatible with the given type.
-	 *
-	 * @see TypeCompiler#compatible */
-	public boolean compatible(TypeId otherType)
-	{
-		return convertible(otherType,false);
-	}
+    /**
+     * Tell whether this type is compatible with the given type.
+     *
+     * @see TypeCompiler#compatible */
+    public boolean compatible(TypeId otherType)
+    {
+        return convertible(otherType,false);
+    }
 
-	/** @see TypeCompiler#storable */
-	public boolean storable(TypeId otherType, ClassFactory cf)
-	{
-		return otherType.isRefTypeId();
-	}
+    /** @see TypeCompiler#storable */
+    public boolean storable(TypeId otherType, ClassFactory cf)
+    {
+        return otherType.isRefTypeId();
+    }
 
-	/** @see TypeCompiler#interfaceName */
-	public String interfaceName()
-	{
-		return ClassName.RefDataValue;
-	}
+    /** @see TypeCompiler#interfaceName */
+    public String interfaceName()
+    {
+        return ClassName.RefDataValue;
+    }
 
-	String nullMethodName()
-	{
-		return "getNullRef";
-	}
+    String nullMethodName()
+    {
+        return "getNullRef";
+    }
 }

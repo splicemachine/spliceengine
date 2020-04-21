@@ -37,9 +37,9 @@ import com.splicemachine.db.iapi.error.StandardException;
  * This is a descriptor for something that is a 
  * SQL object that has the following properties:
  * <UL>
- *	<LI> resides in a schema </LI>
- *	<LI> has a name (that is unique when combined with schema) </LI>
- *	<LI> has a unique identifier (UUID) </LI>
+ *    <LI> resides in a schema </LI>
+ *    <LI> has a name (that is unique when combined with schema) </LI>
+ *    <LI> has a unique identifier (UUID) </LI>
  * </UL>
  *
  * UUIDS.
@@ -47,21 +47,21 @@ import com.splicemachine.db.iapi.error.StandardException;
  */
 public interface UniqueSQLObjectDescriptor extends UniqueTupleDescriptor
 {
-	/**
-	 * Get the name of this object.  E.g. for a table descriptor,
-	 * this will be the table name.
-	 * 
-	 * @return the name
-	 */
-	String getName();
+    /**
+     * Get the name of this object.  E.g. for a table descriptor,
+     * this will be the table name.
+     * 
+     * @return the name
+     */
+    String getName();
 
-	/**
-	 * Get the objects schema descriptor
-	 *
-	 * @return the schema descriptor
-	 *
-	 * @exception StandardException on error
-	 */
-	SchemaDescriptor getSchemaDescriptor()
-		throws StandardException;
+    /**
+     * Get the objects schema descriptor
+     *
+     * @return the schema descriptor
+     *
+     * @exception StandardException on error
+     */
+    SchemaDescriptor getSchemaDescriptor()
+        throws StandardException;
 }

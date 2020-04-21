@@ -38,52 +38,52 @@ import com.splicemachine.derby.test.framework.tables.SpliceOrderLineTable;
 
 public class MicrostrategiesDemoIT extends SpliceUnitTest { 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	public static final String CLASS_NAME = MicrostrategiesDemoIT.class.getSimpleName().toUpperCase();
-	public static final String TABLE_NAME_1 = "CUSTOMER";
-	public static final String TABLE_NAME_2 = "ORDER_LINE";	
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
-	protected static SpliceCustomerTable spliceTableWatcher1 = new SpliceCustomerTable(TABLE_NAME_1,CLASS_NAME) {
-		@Override
-		protected void starting(Description description) {
-			super.starting(description);
-			importData(getResourceDirectory()+"customer_iso.csv");
-		}
-	}; 	
-	protected static SpliceOrderLineTable spliceTableWatcher2 = new SpliceOrderLineTable(TABLE_NAME_2,CLASS_NAME) {
-		@Override
-		protected void starting(Description description) {
-			super.starting(description);
-			importData(getResourceDirectory()+"order_line_small.csv");
-		}		
-	}; 	
+    public static final String CLASS_NAME = MicrostrategiesDemoIT.class.getSimpleName().toUpperCase();
+    public static final String TABLE_NAME_1 = "CUSTOMER";
+    public static final String TABLE_NAME_2 = "ORDER_LINE";    
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);    
+    protected static SpliceCustomerTable spliceTableWatcher1 = new SpliceCustomerTable(TABLE_NAME_1,CLASS_NAME) {
+        @Override
+        protected void starting(Description description) {
+            super.starting(description);
+            importData(getResourceDirectory()+"customer_iso.csv");
+        }
+    };     
+    protected static SpliceOrderLineTable spliceTableWatcher2 = new SpliceOrderLineTable(TABLE_NAME_2,CLASS_NAME) {
+        @Override
+        protected void starting(Description description) {
+            super.starting(description);
+            importData(getResourceDirectory()+"order_line_small.csv");
+        }        
+    };     
 
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher1)
-		.around(spliceTableWatcher2);
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
-	
-	
-	@Test
-	public void testCustomerOrderJoin() throws Exception {
-		int count = 0;
-		ResultSet rs = methodWatcher.executeQuery(format(
+    @ClassRule 
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+        .around(spliceSchemaWatcher)
+        .around(spliceTableWatcher1)
+        .around(spliceTableWatcher2);
+    
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+    
+    
+    @Test
+    public void testCustomerOrderJoin() throws Exception {
+        int count = 0;
+        ResultSet rs = methodWatcher.executeQuery(format(
             "select cst_zipcode, sum(orl_qty_sold*orl_unit_price) " +
                     "from %s \n" +
-				"left outer join %s " +
+                "left outer join %s " +
                     "on orl_customer_id=cst_id group by cst_zipcode",spliceTableWatcher1,spliceTableWatcher2));
-		while (rs.next()) {
-			count++;
-		}	
-		Assert.assertEquals(217, count);
-	}
-	
-	@Test
-	public void testTransactionDemoQueries() throws Exception {
-		int count = 0;
-		methodWatcher.setAutoCommit(false);
+        while (rs.next()) {
+            count++;
+        }    
+        Assert.assertEquals(217, count);
+    }
+    
+    @Test
+    public void testTransactionDemoQueries() throws Exception {
+        int count = 0;
+        methodWatcher.setAutoCommit(false);
         try {
             ResultSet rs = methodWatcher.executeQuery(format("select orl_order_id as ORDER_ID, orl_qty_sold as QTY, orl_unit_price as UNIT_PRICE, " +
                     "orl_customer_id as CUST_ID from %s where orl_customer_id=5520",this.getTableReference(TABLE_NAME_2)));
@@ -116,5 +116,5 @@ public class MicrostrategiesDemoIT extends SpliceUnitTest {
             methodWatcher.commit();
         }
     }
-	
+    
 }

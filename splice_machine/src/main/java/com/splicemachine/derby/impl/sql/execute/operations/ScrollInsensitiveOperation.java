@@ -80,18 +80,18 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 
 public class ScrollInsensitiveOperation extends SpliceBaseOperation {
     private static Logger LOG = Logger.getLogger(ScrollInsensitiveOperation.class);
-	protected int sourceRowWidth;
-	protected SpliceOperation source;
-	protected boolean scrollable;
+    protected int sourceRowWidth;
+    protected SpliceOperation source;
+    protected boolean scrollable;
     protected boolean keepAfterCommit;
     private int maxRows;
     protected StatementContext statementContext;
     private int positionInSource;
     private int currentPosition;
     private int lastPosition;
-    private	boolean seenLast;
-    private	boolean beforeFirst = true;
-    private	boolean afterLast;
+    private    boolean seenLast;
+    private    boolean beforeFirst = true;
+    private    boolean afterLast;
 
 
     /* Reference to the target result set. Target is used for updatable result
@@ -102,33 +102,33 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 
     protected static final String NAME = ScrollInsensitiveOperation.class.getSimpleName().replaceAll("Operation","");
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+            return NAME;
+    }
 
 
     public ScrollInsensitiveOperation () {
-    	super();
+        super();
     }
     public ScrollInsensitiveOperation(SpliceOperation source,
-			  Activation activation, int resultSetNumber,
-			  int sourceRowWidth,
-			  boolean scrollable,
-			  double optimizerEstimatedRowCount,
-			  double optimizerEstimatedCost) throws StandardException {
-		super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
+              Activation activation, int resultSetNumber,
+              int sourceRowWidth,
+              boolean scrollable,
+              double optimizerEstimatedRowCount,
+              double optimizerEstimatedCost) throws StandardException {
+        super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.keepAfterCommit = activation.getResultSetHoldability();
         this.maxRows = activation.getMaxRows();
-		this.sourceRowWidth = sourceRowWidth;
-		this.source = source;
-		this.scrollable = scrollable;
+        this.sourceRowWidth = sourceRowWidth;
+        this.source = source;
+        this.scrollable = scrollable;
         if (isForUpdate()) {
             target = ((CursorActivation)activation).getTargetResultSet();
         } else {
             target = null;
         }
-	}
+    }
 
     @Override
     public void init(SpliceOperationContext context) throws IOException, StandardException{
@@ -137,43 +137,43 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
     }
 
     @Override
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("readExternal");
-		super.readExternal(in);
-		sourceRowWidth = in.readInt();
-		scrollable = in.readBoolean();
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (LOG.isTraceEnabled())
+            LOG.trace("readExternal");
+        super.readExternal(in);
+        sourceRowWidth = in.readInt();
+        scrollable = in.readBoolean();
         keepAfterCommit = in.readBoolean();
         maxRows = in.readInt();
         source = (SpliceOperation)in.readObject();
-	}
+    }
 
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("writeExternal");
-		super.writeExternal(out);
-		out.writeInt(sourceRowWidth);
-		out.writeBoolean(scrollable);
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        if (LOG.isTraceEnabled())
+            LOG.trace("writeExternal");
+        super.writeExternal(out);
+        out.writeInt(sourceRowWidth);
+        out.writeBoolean(scrollable);
         out.writeBoolean(keepAfterCommit);
         out.writeInt(maxRows);
         out.writeObject(source);
-	}
+    }
 
-	@Override
-	public List<SpliceOperation> getSubOperations() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getSubOperations");
+    @Override
+    public List<SpliceOperation> getSubOperations() {
+        if (LOG.isTraceEnabled())
+            LOG.trace("getSubOperations");
         if(source==null) return Collections.emptyList();
         else return Collections.singletonList(source);
-	}
+    }
 
-	@Override
-	public SpliceOperation getLeftOperation() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getLeftOperation");
-		return (SpliceOperation) source;
-	}
+    @Override
+    public SpliceOperation getLeftOperation() {
+        if (LOG.isTraceEnabled())
+            LOG.trace("getLeftOperation");
+        return (SpliceOperation) source;
+    }
 
     @Override
     public int[] getRootAccessedCols(long tableNumber) throws StandardException {
@@ -190,9 +190,9 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
         return "ScrollInsensitive"; //this class is never used
     }
 
-	public NoPutResultSet getSource() {
-		return this.source;
-	}
+    public NoPutResultSet getSource() {
+        return this.source;
+    }
 
     public boolean isForUpdate() {
         return source.isForUpdate();
@@ -216,34 +216,34 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
         return null;
     }
 
-    public ExecRow	setBeforeFirstRow() {
+    public ExecRow    setBeforeFirstRow() {
         currentPosition = 0;
         beforeFirst = true;
         afterLast = false;
         currentRow = null;
         return null;
     }
-    public ExecRow	getFirstRow() throws StandardException {
+    public ExecRow    getFirstRow() throws StandardException {
         checkIsOpen("first");
         attachStatementContext();
         return null;
     }
 
-    public ExecRow	getNextRowCore() throws StandardException {
+    public ExecRow    getNextRowCore() throws StandardException {
         checkIsOpen("next");
         return super.getNextRowCore();
     }
 
 
-    public ExecRow	getPreviousRow() throws StandardException {
+    public ExecRow    getPreviousRow() throws StandardException {
         checkIsOpen("previous");
         return null;
     }
-    public ExecRow	getLastRow() throws StandardException {
+    public ExecRow    getLastRow() throws StandardException {
         checkIsOpen("last");
         return null;
     }
-    public ExecRow	setAfterLastRow() throws StandardException {
+    public ExecRow    setAfterLastRow() throws StandardException {
         return null;
     }
 

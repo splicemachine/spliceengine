@@ -35,19 +35,19 @@ package com.splicemachine.db.impl.tools.ij;
  */
 public class mtTime
 {
-	public int hours;
-	public int minutes;
-	public int seconds;
+    public int hours;
+    public int minutes;
+    public int seconds;
 
-	mtTime(int hours, int minutes, int seconds)
-	{ 
-		this.hours = hours;
-		this.minutes = minutes;
-		this.seconds = seconds;
-	}
+    mtTime(int hours, int minutes, int seconds)
+    { 
+        this.hours = hours;
+        this.minutes = minutes;
+        this.seconds = seconds;
+    }
 
-	public String toString()
-	{
-		return hours+":"+minutes+":"+seconds;
-	}
+    public String toString()
+    {
+        return hours+":"+minutes+":"+seconds;
+    }
 }

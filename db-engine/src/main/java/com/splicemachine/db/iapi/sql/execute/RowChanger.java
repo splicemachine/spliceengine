@@ -41,138 +41,138 @@ import com.splicemachine.db.iapi.types.RowLocation;
   */
 public interface RowChanger
 {
-	/**
-	  Open this RowChanger.
+    /**
+      Open this RowChanger.
 
-	  <P>Note to avoid the cost of fixing indexes that do not
-	  change during update operations use openForUpdate(). 
-	  @param lockMode	The lock mode to use
-							(row or table, see TransactionController)
+      <P>Note to avoid the cost of fixing indexes that do not
+      change during update operations use openForUpdate(). 
+      @param lockMode    The lock mode to use
+                            (row or table, see TransactionController)
 
-	  @exception StandardException thrown on failure to convert
-	  */
-	void open(int lockMode)
-		 throws StandardException;
+      @exception StandardException thrown on failure to convert
+      */
+    void open(int lockMode)
+         throws StandardException;
 
-	/**
-	 * Set the row holder for this changer to use.
-	 * If the row holder is set, it wont bother 
-	 * saving copies of rows needed for deferred
-	 * processing.  Also, it will never close the
-	 * passed in rowHolder.
-	 *
-	 * @param rowHolder	the row holder
-	 */
-	void setRowHolder(TemporaryRowHolder rowHolder);
+    /**
+     * Set the row holder for this changer to use.
+     * If the row holder is set, it wont bother 
+     * saving copies of rows needed for deferred
+     * processing.  Also, it will never close the
+     * passed in rowHolder.
+     *
+     * @param rowHolder    the row holder
+     */
+    void setRowHolder(TemporaryRowHolder rowHolder);
 
-	/**
-	 * Sets the index names of the tables indices. Used for error reporting.
-	 * 
-	 * @param indexNames		Names of all the indices on this table.
-	 */
-	void setIndexNames(String[] indexNames);
+    /**
+     * Sets the index names of the tables indices. Used for error reporting.
+     * 
+     * @param indexNames        Names of all the indices on this table.
+     */
+    void setIndexNames(String[] indexNames);
 
-	/**
-	  Open this RowChanger to avoid fixing indexes that do not change
-	  during update operations. 
+    /**
+      Open this RowChanger to avoid fixing indexes that do not change
+      during update operations. 
 
-	  @param fixOnUpdate fixOnUpdat[ix] == true ==> fix index 'ix' on
-	  an update operation.
-	  @param lockMode	The lock mode to use
-							(row or table, see TransactionController)
-	  @param wait		If true, then the caller wants to wait for locks. False will be
-							when we using a nested user xaction - we want to timeout right away
-							if the parent holds the lock.  (bug 4821)
+      @param fixOnUpdate fixOnUpdat[ix] == true ==> fix index 'ix' on
+      an update operation.
+      @param lockMode    The lock mode to use
+                            (row or table, see TransactionController)
+      @param wait        If true, then the caller wants to wait for locks. False will be
+                            when we using a nested user xaction - we want to timeout right away
+                            if the parent holds the lock.  (bug 4821)
 
-	  @exception StandardException thrown on failure to convert
-	  */
-	void openForUpdate(boolean[] fixOnUpdate, int lockMode, boolean wait)
-		 throws StandardException;
+      @exception StandardException thrown on failure to convert
+      */
+    void openForUpdate(boolean[] fixOnUpdate, int lockMode, boolean wait)
+         throws StandardException;
 
-	/**
-	  Insert a row into the table and perform associated index maintenance.
+    /**
+      Insert a row into the table and perform associated index maintenance.
 
-	  @param baseRow the row.
-	  @exception StandardException		Thrown on error
-	  */
-	void insertRow(ExecRow baseRow)
-		 throws StandardException;
-		
-	/**
-	  Delete a row from the table and perform associated index maintenance.
+      @param baseRow the row.
+      @exception StandardException        Thrown on error
+      */
+    void insertRow(ExecRow baseRow)
+         throws StandardException;
+        
+    /**
+      Delete a row from the table and perform associated index maintenance.
 
-	  @param baseRow the row.
-	  @param baseRowLocation the row's base conglomerate
-	     location
-	  @exception StandardException		Thrown on error
-	  */
-	void deleteRow(ExecRow baseRow, RowLocation baseRowLocation)
-		 throws StandardException;
+      @param baseRow the row.
+      @param baseRowLocation the row's base conglomerate
+         location
+      @exception StandardException        Thrown on error
+      */
+    void deleteRow(ExecRow baseRow, RowLocation baseRowLocation)
+         throws StandardException;
 
-	/**
-	  Update a row in the table and perform associated index maintenance.
+    /**
+      Update a row in the table and perform associated index maintenance.
 
-	  @param oldBaseRow the old image of the row.
-	  @param newBaseRow the new image of the row.
-	  @param baseRowLocation the row's base conglomerate
-	     location
-	  @exception StandardException		Thrown on error
-	  */
-	void updateRow(ExecRow oldBaseRow,
-				   ExecRow newBaseRow,
-				   RowLocation baseRowLocation)
-		 throws StandardException;
+      @param oldBaseRow the old image of the row.
+      @param newBaseRow the new image of the row.
+      @param baseRowLocation the row's base conglomerate
+         location
+      @exception StandardException        Thrown on error
+      */
+    void updateRow(ExecRow oldBaseRow,
+                   ExecRow newBaseRow,
+                   RowLocation baseRowLocation)
+         throws StandardException;
 
-	/**
-	  Finish processing the changes.  This means applying the deferred
-	  inserts for updates to unique indexes.
+    /**
+      Finish processing the changes.  This means applying the deferred
+      inserts for updates to unique indexes.
 
-	  @exception StandardException		Thrown on error
-	 */
-	void finish()
-		throws StandardException;
+      @exception StandardException        Thrown on error
+     */
+    void finish()
+        throws StandardException;
 
-	/**
-	  Close this RowChanger.
+    /**
+      Close this RowChanger.
 
-	  @exception StandardException		Thrown on error
-	  */
-	void close()
-		throws StandardException;
+      @exception StandardException        Thrown on error
+      */
+    void close()
+        throws StandardException;
 
-	/** 
-	 * Return the ConglomerateController from this RowChanger.
-	 * This is useful when copying properties from heap to 
-	 * temp conglomerate on insert/update/delete.
-	 *
-	 * @return The ConglomerateController from this RowChanger.
-	 */
-	ConglomerateController getHeapConglomerateController();
+    /** 
+     * Return the ConglomerateController from this RowChanger.
+     * This is useful when copying properties from heap to 
+     * temp conglomerate on insert/update/delete.
+     *
+     * @return The ConglomerateController from this RowChanger.
+     */
+    ConglomerateController getHeapConglomerateController();
 
-	/**
-	  Open this RowChanger.
+    /**
+      Open this RowChanger.
 
-	  <P>Note to avoid the cost of fixing indexes that do not
-	  change during update operations use openForUpdate(). 
-	  @param lockMode	The lock mode to use
-							(row or table, see TransactionController)
-	  @param wait		If true, then the caller wants to wait for locks. False will be
-							when we using a nested user xaction - we want to timeout right away
-							if the parent holds the lock.  
+      <P>Note to avoid the cost of fixing indexes that do not
+      change during update operations use openForUpdate(). 
+      @param lockMode    The lock mode to use
+                            (row or table, see TransactionController)
+      @param wait        If true, then the caller wants to wait for locks. False will be
+                            when we using a nested user xaction - we want to timeout right away
+                            if the parent holds the lock.  
 
-	  @exception StandardException thrown on failure to convert
-	  */
-	void open(int lockMode, boolean wait)
-		 throws StandardException;
+      @exception StandardException thrown on failure to convert
+      */
+    void open(int lockMode, boolean wait)
+         throws StandardException;
 
-	/**
-	 * Return what column no in the input ExecRow (cf nextBaseRow argument to
-	 * #updateRow) would correspond to selected column, if any.
-	 *
-	 * @param selectedCol the column number in the base table of a selected
-	 *                    column or -1 (if selected column is not a base table
-	 *                    column, e.g. i+4).
-	 * @return column no, or -1 if not found or not a base column
-	 */
-	int findSelectedCol(int selectedCol);
+    /**
+     * Return what column no in the input ExecRow (cf nextBaseRow argument to
+     * #updateRow) would correspond to selected column, if any.
+     *
+     * @param selectedCol the column number in the base table of a selected
+     *                    column or -1 (if selected column is not a base table
+     *                    column, e.g. i+4).
+     * @return column no, or -1 if not found or not a base column
+     */
+    int findSelectedCol(int selectedCol);
 }

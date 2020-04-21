@@ -59,7 +59,7 @@ public class SYSBACKUPRowFactory extends CatalogRowFactory {
 
     protected static final int SYSBACKUP_INDEX1_ID = 0;
 
-    private	static	final	boolean[]	uniqueness = {
+    private    static    final    boolean[]    uniqueness = {
             true,
             false
     };

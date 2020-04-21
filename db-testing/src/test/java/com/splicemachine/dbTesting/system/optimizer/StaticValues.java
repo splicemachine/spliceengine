@@ -37,14 +37,14 @@ package com.splicemachine.dbTesting.system.optimizer;
  */
 public class StaticValues {
     public static String clientURL="jdbc:splice://localhost:1527/testdb;create=true";
-	public static String clientClass="com.splicemachine.db.jdbc.ClientDriver";
+    public static String clientClass="com.splicemachine.db.jdbc.ClientDriver";
 
     public static String embedURL="jdbc:splice:testdb;create=true";
-	public static String embedClass="com.splicemachine.db.jdbc.EmbeddedDriver";
+    public static String embedClass="com.splicemachine.db.jdbc.EmbeddedDriver";
 
     public static int NUM_OF_ROWS=1000; //Total number of rows expected in each table
     public static int NUM_OF_TABLES=64; //Total number of tables to be created
-    public static int ITER=2; 			//Number of iterations of each query
+    public static int ITER=2;             //Number of iterations of each query
 
     public static String queryFile="query.list"; //File name that contains the custom queries
     //SCHEMA OBJECTS

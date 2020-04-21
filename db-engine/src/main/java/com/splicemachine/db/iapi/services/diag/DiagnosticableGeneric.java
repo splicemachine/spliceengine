@@ -44,9 +44,9 @@ import java.util.Properties;
 
 public class DiagnosticableGeneric implements Diagnosticable
 {
-	/*
-	** Fields of Diagnosticable
-	*/
+    /*
+    ** Fields of Diagnosticable
+    */
     protected Object diag_object = null;
 
    
@@ -54,9 +54,9 @@ public class DiagnosticableGeneric implements Diagnosticable
     {
     }
 
-	/*
-	** Methods of Diagnosticable
-	*/
+    /*
+    ** Methods of Diagnosticable
+    */
     public void init(Object obj)
     {
         // This is the pointer to the instance of the object to work on.
@@ -73,9 +73,9 @@ public class DiagnosticableGeneric implements Diagnosticable
      * diagnostic information you would like to provide.
      * <p>
      *
-	 * @return A string with diagnostic information about the object.
+     * @return A string with diagnostic information about the object.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     public String diag()
         throws StandardException
@@ -90,7 +90,7 @@ public class DiagnosticableGeneric implements Diagnosticable
      * be provided by a real implementation.
      * <p>
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     public void diag_detail(Properties prop)
         throws StandardException

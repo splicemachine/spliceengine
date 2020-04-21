@@ -43,45 +43,45 @@ import java.util.List;
  */
 public class RevokeRoleNode extends DDLStatementNode
 {
-	private List roles;
-	private List grantees;
+    private List roles;
+    private List grantees;
 
-	/**
-	 * Initialize a RevokeRoleNode.
-	 *
-	 * @param roles list of strings containing role name to be revoked
-	 * @param grantees list of strings containing grantee names
-	 */
-	public void init(Object roles, Object grantees) throws StandardException
-	{
-		initAndCheck(null);
-		this.roles = (List) roles;
-		this.grantees = (List) grantees;
-	}
+    /**
+     * Initialize a RevokeRoleNode.
+     *
+     * @param roles list of strings containing role name to be revoked
+     * @param grantees list of strings containing grantee names
+     */
+    public void init(Object roles, Object grantees) throws StandardException
+    {
+        initAndCheck(null);
+        this.roles = (List) roles;
+        this.grantees = (List) grantees;
+    }
 
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException Standard error policy.
-	 */
-	public ConstantAction makeConstantAction() throws StandardException
-	{
-		return getGenericConstantActionFactory().
-			getRevokeRoleConstantAction( roles, grantees);
-	}
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException Standard error policy.
+     */
+    public ConstantAction makeConstantAction() throws StandardException
+    {
+        return getGenericConstantActionFactory().
+            getRevokeRoleConstantAction( roles, grantees);
+    }
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG) {
-			StringBuilder sb1 = new StringBuilder();
+    public String toString()
+    {
+        if (SanityManager.DEBUG) {
+            StringBuilder sb1 = new StringBuilder();
             for (Object role : roles) {
                 if (sb1.length() > 0) {
                     sb1.append(", ");
@@ -89,26 +89,26 @@ public class RevokeRoleNode extends DDLStatementNode
                 sb1.append(role.toString());
             }
 
-			StringBuilder sb2 = new StringBuilder();
+            StringBuilder sb2 = new StringBuilder();
             for (Object grantee : grantees) {
                 if (sb2.length() > 0) {
                     sb2.append(", ");
                 }
                 sb2.append(grantee.toString());
             }
-			return (super.toString() +
-					sb1.toString() +
-					" FROM: " +
-					sb2.toString() +
-					"\n");
-		} else {
-			return "";
-		}
-	} // end of toString
+            return (super.toString() +
+                    sb1.toString() +
+                    " FROM: " +
+                    sb2.toString() +
+                    "\n");
+        } else {
+            return "";
+        }
+    } // end of toString
 
 
-	public String statementToString()
-	{
-		return "REVOKE role";
-	}
+    public String statementToString()
+    {
+        return "REVOKE role";
+    }
 }

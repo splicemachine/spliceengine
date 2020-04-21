@@ -39,15 +39,15 @@ public interface Storable
 extends Formatable
 {
 
-	/**
-	  Return whether the value is null or not.
-	  
-	  @return true if the value is null and false otherwise.
-	**/
-	boolean isNull();
+    /**
+      Return whether the value is null or not.
+      
+      @return true if the value is null and false otherwise.
+    **/
+    boolean isNull();
 
-	/**
-	  Restore this object to its (SQL)null value.
-	**/
-	void restoreToNull();
+    /**
+      Restore this object to its (SQL)null value.
+    **/
+    void restoreToNull();
 }

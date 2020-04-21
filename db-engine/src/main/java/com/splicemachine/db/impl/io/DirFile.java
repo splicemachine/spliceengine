@@ -172,44 +172,44 @@ class DirFile extends File implements StorageFile
      *    NO_FILE_LOCK_SUPPORT if the system does not support exclusive locks.<br>
      */
     public synchronized int getExclusiveFileLock() throws StandardException
-	{
-		if (exists())
-		{
-			delete();
-		}
-		try
+    {
+        if (exists())
         {
-			//Just create an empty file
-			RandomAccessFile lockFileOpen = new RandomAccessFile( (File) this, "rw");
+            delete();
+        }
+        try
+        {
+            //Just create an empty file
+            RandomAccessFile lockFileOpen = new RandomAccessFile( (File) this, "rw");
             limitAccessToOwner();
-			lockFileOpen.getFD().sync( );
-			lockFileOpen.close();
-		}catch(IOException ioe)
-		{
-			// do nothing - it may be read only medium, who knows what the
-			// problem is
-			if (SanityManager.DEBUG)
-			{
-				SanityManager.THROWASSERT(
+            lockFileOpen.getFD().sync( );
+            lockFileOpen.close();
+        }catch(IOException ioe)
+        {
+            // do nothing - it may be read only medium, who knows what the
+            // problem is
+            if (SanityManager.DEBUG)
+            {
+                SanityManager.THROWASSERT(
                     "Unable to create Exclusive Lock File " + getPath(), ioe);
-			}
-		}
-		
-		return NO_FILE_LOCK_SUPPORT;
-	} // end of getExclusiveFileLock
+            }
+        }
+        
+        return NO_FILE_LOCK_SUPPORT;
+    } // end of getExclusiveFileLock
 
-	/**
+    /**
      * Release the resource associated with an earlier acquired exclusive lock
      *
      * @see #getExclusiveFileLock
      */
-	public synchronized void releaseExclusiveFileLock()
-	{
-		if( exists())
-		{
-			delete(); 
-		}
-	} // End of releaseExclusiveFileLock
+    public synchronized void releaseExclusiveFileLock()
+    {
+        if( exists())
+        {
+            delete(); 
+        }
+    } // End of releaseExclusiveFileLock
 
     /**
      * Get a random access (read/write) file.
@@ -307,13 +307,13 @@ class DirFile extends File implements StorageFile
         return delete();
     } // end of deleteAll
 
-	/**
-	 * @see com.splicemachine.db.io.StorageFile#getURL()
-	 */
-	public URL getURL() throws MalformedURLException {
-		
-		return toURL();
-	}
+    /**
+     * @see com.splicemachine.db.io.StorageFile#getURL()
+     */
+    public URL getURL() throws MalformedURLException {
+        
+        return toURL();
+    }
 
     public void limitAccessToOwner() {
         FileUtil.limitAccessToOwner(this);

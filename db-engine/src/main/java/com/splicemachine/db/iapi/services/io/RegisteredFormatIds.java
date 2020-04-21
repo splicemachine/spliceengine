@@ -520,10 +520,10 @@ String[] TwoByte = {
         /* 450 */   null,
 
         /* 451 */   "com.splicemachine.db.catalog.types.RoutineAliasInfo",
-		/* 452 */   null,
-		/* 453 */   "com.splicemachine.db.impl.store.raw.log.ChecksumOperation",
-		/* 454 */   "com.splicemachine.db.impl.store.raw.data.CompressSpacePageOperation10_2",
-		/* 455 */   "com.splicemachine.db.catalog.types.SynonymAliasInfo",
+        /* 452 */   null,
+        /* 453 */   "com.splicemachine.db.impl.store.raw.log.ChecksumOperation",
+        /* 454 */   "com.splicemachine.db.impl.store.raw.data.CompressSpacePageOperation10_2",
+        /* 455 */   "com.splicemachine.db.catalog.types.SynonymAliasInfo",
         /* 456 */   null,
         /* 457 */   "com.splicemachine.db.catalog.types.TypesImplInstanceGetter", // XML_TYPE_ID_IMPL
         /* 458 */   "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter, XML_ID
@@ -533,7 +533,7 @@ String[] TwoByte = {
         /* 462 */   "com.splicemachine.db.impl.sql.catalog.CoreDDFinderClassInfo",
         /* 463 */   "com.splicemachine.db.impl.sql.catalog.CoreDDFinderClassInfo",
         /* 464 */   null,
-		/* 465 */   "com.splicemachine.db.impl.store.raw.data.CompressSpacePageOperation",
+        /* 465 */   "com.splicemachine.db.impl.store.raw.data.CompressSpacePageOperation",
         /* 466 */   "com.splicemachine.db.impl.store.access.btree.index.B2I_10_3",
         /* 467 */   "com.splicemachine.db.impl.store.access.heap.Heap",
         /* 468 */   "com.splicemachine.db.iapi.types.DTSClassInfo",

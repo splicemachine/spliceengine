@@ -46,8 +46,8 @@ public class ColumnStatsFilter implements TupleFilter {
     int columnId;
     DataValueFactory dataValueFactory = null;
 
-    BooleanDataValue	trueValue;
-    BooleanDataValue	falseValue;
+    BooleanDataValue    trueValue;
+    BooleanDataValue    falseValue;
 
     public ColumnStatsFilter(int columnId) {
         this.columnId = columnId;
@@ -59,7 +59,7 @@ public class ColumnStatsFilter implements TupleFilter {
     public BooleanDataValue execute(ExecRow currentRow)
             throws StandardException
     {
-		/* 3rd column is PROVIDERID (UUID - char(36)) */
+        /* 3rd column is PROVIDERID (UUID - char(36)) */
         DataValueDescriptor col = currentRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.COLUMNID);
         int colId = col.getInt();
         if (colId == columnId) {

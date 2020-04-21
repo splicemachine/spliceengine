@@ -78,7 +78,7 @@ class CPFile extends InputStreamFile
      */
     public boolean exists()
     {
-    	return getURL() != null;
+        return getURL() != null;
     } // end of exists
 
     /**
@@ -100,33 +100,33 @@ class CPFile extends InputStreamFile
      */
     public InputStream getInputStream( ) throws FileNotFoundException
     {
-    	//System.out.println("HERE FOR " + toString());
-    	InputStream is = null;
-    	ClassLoader cl = Thread.currentThread().getContextClassLoader();
-    	if (cl != null)
-    		is = cl.getResourceAsStream(path);
-    	
-       	// don't assume the context class loader is tied
-    	// into the class loader that loaded this class.
-    	if (is == null)
-    	{
-    		cl = getClass().getClassLoader();
-    		// Javadoc indicates implementations can use
-    		// null as a return from Class.getClassLoader()
-    		// to indicate the system/bootstrap classloader.
-    		if (cl != null)
-    			is = cl.getResourceAsStream(path);
-    		else
-    			is = ClassLoader.getSystemResourceAsStream(path);
-    	}
-    	
-    	if (is == null)
-    		throw new FileNotFoundException(toString());
-    	return is;
-    	
+        //System.out.println("HERE FOR " + toString());
+        InputStream is = null;
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        if (cl != null)
+            is = cl.getResourceAsStream(path);
+        
+           // don't assume the context class loader is tied
+        // into the class loader that loaded this class.
+        if (is == null)
+        {
+            cl = getClass().getClassLoader();
+            // Javadoc indicates implementations can use
+            // null as a return from Class.getClassLoader()
+            // to indicate the system/bootstrap classloader.
+            if (cl != null)
+                is = cl.getResourceAsStream(path);
+            else
+                is = ClassLoader.getSystemResourceAsStream(path);
+        }
+        
+        if (is == null)
+            throw new FileNotFoundException(toString());
+        return is;
+        
     } // end of getInputStream
     
-	/**
+    /**
      * Return a URL for this file (resource).
      * 
      * @see com.splicemachine.db.io.StorageFile#getURL()

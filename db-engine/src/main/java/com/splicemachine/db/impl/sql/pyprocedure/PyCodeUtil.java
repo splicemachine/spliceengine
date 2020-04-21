@@ -39,7 +39,7 @@ public class PyCodeUtil{
     public static byte[] compile(String code, boolean sqlAllowed) throws Exception{
         byte[] compiledCode;
 
-	// Only make connection if the PyStored procedure is going to use the connection
+    // Only make connection if the PyStored procedure is going to use the connection
         String decoratedCode = sqlAllowed?(CONNECT + SETUP + code):(SETUP + code);
 
         StringReader codeReader = new StringReader(decoratedCode);

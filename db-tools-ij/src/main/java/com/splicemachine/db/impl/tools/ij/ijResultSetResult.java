@@ -42,48 +42,48 @@ import java.sql.SQLWarning;
  */
 public class ijResultSetResult extends ijResultImpl {
 
-	ResultSet resultSet;
-	Statement statement;
+    ResultSet resultSet;
+    Statement statement;
 
-	int[]     displayColumns = null;
-	int[]     columnWidths = null;
+    int[]     displayColumns = null;
+    int[]     columnWidths = null;
 
-	/**
-	 * Create a ijResultImpl that represents a result set.
-	 */
-	public ijResultSetResult(ResultSet r) throws SQLException {
-		resultSet = r;
-		statement = resultSet.getStatement();
-	}
+    /**
+     * Create a ijResultImpl that represents a result set.
+     */
+    public ijResultSetResult(ResultSet r) throws SQLException {
+        resultSet = r;
+        statement = resultSet.getStatement();
+    }
 
-	/**
-	 * Create a ijResultImpl that represents a result set, only
-	 * displaying a subset of the columns, using specified column widths.
-	 * 
-	 * @param r The result set to display
-	 * @param display Which column numbers to display, or null to display
-	 *                all columns.
-	 * @param widths  The widths of the columns specified in 'display', or
-	 *                null to display using default column sizes.
-	 */
-	public ijResultSetResult(ResultSet r, int[] display,
-							 int[] widths) throws SQLException {
-		resultSet = r;
-		statement = resultSet.getStatement();
+    /**
+     * Create a ijResultImpl that represents a result set, only
+     * displaying a subset of the columns, using specified column widths.
+     * 
+     * @param r The result set to display
+     * @param display Which column numbers to display, or null to display
+     *                all columns.
+     * @param widths  The widths of the columns specified in 'display', or
+     *                null to display using default column sizes.
+     */
+    public ijResultSetResult(ResultSet r, int[] display,
+                             int[] widths) throws SQLException {
+        resultSet = r;
+        statement = resultSet.getStatement();
 
-		displayColumns = display;
-		columnWidths   = widths;
-	}
+        displayColumns = display;
+        columnWidths   = widths;
+    }
 
-	public boolean isResultSet() throws SQLException { return statement==null || statement.getUpdateCount() == -1; }
+    public boolean isResultSet() throws SQLException { return statement==null || statement.getUpdateCount() == -1; }
 
-	public ResultSet getResultSet() throws SQLException { return resultSet; }
+    public ResultSet getResultSet() throws SQLException { return resultSet; }
 
-	public void closeStatement() throws SQLException { if(statement!=null) statement.close(); else resultSet.close(); }
+    public void closeStatement() throws SQLException { if(statement!=null) statement.close(); else resultSet.close(); }
 
-	public int[] getColumnDisplayList() { return displayColumns; }
-	public int[] getColumnWidthList() { return columnWidths; }
+    public int[] getColumnDisplayList() { return displayColumns; }
+    public int[] getColumnWidthList() { return columnWidths; }
 
-	public SQLWarning getSQLWarnings() throws SQLException { return resultSet.getWarnings(); }
-	public void clearSQLWarnings() throws SQLException { resultSet.clearWarnings(); }
+    public SQLWarning getSQLWarnings() throws SQLException { return resultSet.getWarnings(); }
+    public void clearSQLWarnings() throws SQLException { resultSet.clearWarnings(); }
 }

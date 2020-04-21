@@ -42,12 +42,12 @@ import java.util.Properties;
  */
 public class j9_13 extends jvm {
 
-	public String getName(){return "j9_13";}
+    public String getName(){return "j9_13";}
     public j9_13(boolean noasyncgc, boolean verbosegc, boolean noclassgc,
     long ss, long oss, long ms, long mx, String classpath, String prof,
     boolean verify, boolean noverify, boolean nojit, Vector D) {
         super(noasyncgc,verbosegc,noclassgc,ss,oss,ms,mx,classpath,prof,
-		verify,noverify,nojit,D);
+        verify,noverify,nojit,D);
     }
     // more typical use:
     public j9_13(String classpath, Vector D) {
@@ -59,16 +59,16 @@ public class j9_13 extends jvm {
     }
     // actual use
     public j9_13() {
-	Properties sp = System.getProperties();
-	String srvJvm = sp.getProperty("serverJvm");
-	if ((srvJvm!=null) && ((srvJvm.toUpperCase().startsWith("J9")) || (srvJvm.equalsIgnoreCase("wsdd5.6"))))
-	{
-		String wshome = guessWSHome();
-		// note, may have to switch to sep instead of hardcoding the slashes...
-		setJavaCmd(wshome+"/wsdd5.6/ive/bin/j9");
-	}
-	else
-		setJavaCmd("j9");
+    Properties sp = System.getProperties();
+    String srvJvm = sp.getProperty("serverJvm");
+    if ((srvJvm!=null) && ((srvJvm.toUpperCase().startsWith("J9")) || (srvJvm.equalsIgnoreCase("wsdd5.6"))))
+    {
+        String wshome = guessWSHome();
+        // note, may have to switch to sep instead of hardcoding the slashes...
+        setJavaCmd(wshome+"/wsdd5.6/ive/bin/j9");
+    }
+    else
+        setJavaCmd("j9");
     }
 
     // return the command line to invoke this VM.  The caller then adds
@@ -87,29 +87,29 @@ public class j9_13 extends jvm {
             v.addElement(st.nextToken());
         }
         return v;
-	}
+    }
 
-	public void appendOtherFlags(StringBuffer sb)
-	{
+    public void appendOtherFlags(StringBuffer sb)
+    {
 
-	Properties sp = System.getProperties();
-	String bootcp = sp.getProperty("bootcp");
-	String srvJvm = sp.getProperty("serverJvm");
-	// if we're coming in to be the server jvm for networkserver testing on j9,
-	// bootcp is null, so we need to try to setup the bootclasspath from scratch
-	// for now, assume we're only interested in doing this for wsdd5.6, worry about
-	// newer versions, multiple class libraries, or multiple releases later.
-	if ((srvJvm !=null ) && ((srvJvm.toUpperCase().startsWith("J9")) || (srvJvm.equalsIgnoreCase("wsdd5.6"))))
-	{
-		String pathsep = System.getProperty("path.separator");
-		String wshome = guessWSHome();
-		// note, may have to switch to sep instead of hardcoding the slashes...
-		sb.append(" -Xbootclasspath/a:" + wshome + "/wsdd5.6/ive/lib/jclMax/classes.zip"
-			+ pathsep + wshome + "/wsdd5.6/ive/lib/charconv.zip"
-			+ pathsep + wshome + "/wsdd5.6/ive/lib/jclMax");
-	} 
-	else
-		sb.append(" -Xbootclasspath/a:" + bootcp);
+    Properties sp = System.getProperties();
+    String bootcp = sp.getProperty("bootcp");
+    String srvJvm = sp.getProperty("serverJvm");
+    // if we're coming in to be the server jvm for networkserver testing on j9,
+    // bootcp is null, so we need to try to setup the bootclasspath from scratch
+    // for now, assume we're only interested in doing this for wsdd5.6, worry about
+    // newer versions, multiple class libraries, or multiple releases later.
+    if ((srvJvm !=null ) && ((srvJvm.toUpperCase().startsWith("J9")) || (srvJvm.equalsIgnoreCase("wsdd5.6"))))
+    {
+        String pathsep = System.getProperty("path.separator");
+        String wshome = guessWSHome();
+        // note, may have to switch to sep instead of hardcoding the slashes...
+        sb.append(" -Xbootclasspath/a:" + wshome + "/wsdd5.6/ive/lib/jclMax/classes.zip"
+            + pathsep + wshome + "/wsdd5.6/ive/lib/charconv.zip"
+            + pathsep + wshome + "/wsdd5.6/ive/lib/jclMax");
+    } 
+    else
+        sb.append(" -Xbootclasspath/a:" + bootcp);
         if (noasyncgc) warn("j9_13 does not support noasyncgc");
         if (verbosegc) sb.append(" -verbose:gc");
         if (noclassgc) warn("j9_13 does not support noclassgc");
@@ -118,12 +118,12 @@ public class j9_13 extends jvm {
         if (ms>=0) {
           sb.append(" -Xss");
           sb.append(ms);
-		  //sb.append("k");
+          //sb.append("k");
         }
         if (mx>=0) {
           sb.append(" -Xmx");
           sb.append(mx);
-		  //sb.append("k");
+          //sb.append("k");
         }
         if (classpath!=null) warn("j9_13 does not support classpath, use -Xbootclasspath,-Xbootclasspath/p,-Xbootclasspath/a"); 
         if (prof!=null) warn("j9_13 does not support prof");
@@ -132,14 +132,14 @@ public class j9_13 extends jvm {
         if (nojit) sb.append(" -Xnojit");
         if (D != null)
           for (int i=0; i<D.size();i++) {
-	        sb.append(" -D");
-	        sb.append((String)(D.elementAt(i)));
+            sb.append(" -D");
+            sb.append((String)(D.elementAt(i)));
           }
     }
-	public String getDintro() { return "-D"; }
+    public String getDintro() { return "-D"; }
 
-	protected void setSecurityProps()
-	{
-		System.out.println("Note: J9 tests do not run with security manager");		
-	}
+    protected void setSecurityProps()
+    {
+        System.out.println("Note: J9 tests do not run with security manager");        
+    }
 }

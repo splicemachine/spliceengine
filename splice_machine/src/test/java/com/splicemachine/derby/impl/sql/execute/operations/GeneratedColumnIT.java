@@ -90,9 +90,9 @@ public class GeneratedColumnIT {
                             ps.execute();
                         }
 
-												ps = spliceClassWatcher.prepareStatement(String.format("insert into %s (adr_id,adr_catid) values (DEFAULT,?)",generatedAlwaysTableStartsWith10));
-												ps.setInt(1,10*size);
-												ps.execute(); //make sure that we can add from default
+                                                ps = spliceClassWatcher.prepareStatement(String.format("insert into %s (adr_id,adr_catid) values (DEFAULT,?)",generatedAlwaysTableStartsWith10));
+                                                ps.setInt(1,10*size);
+                                                ps.execute(); //make sure that we can add from default
 
                         ps = spliceClassWatcher.prepareStatement(String.format("insert into %s (adr_catid) values ?", generatedAlwaysTableIncBy10));
                         for(int i=0;i<size;i++){

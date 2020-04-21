@@ -42,36 +42,36 @@ import java.io.PrintWriter;
  */
 public interface HeaderPrintWriter
 {
-	/**
-	 * Puts out some setup info for
-	 * the current write and the write(s) that will be put out next.
-	 * It ends with a \n\r.
-	 * <p>
-	 * All other writes to the stream use the
-	 * PrintStream interface.
-	 */
-	void printlnWithHeader(String message);
+    /**
+     * Puts out some setup info for
+     * the current write and the write(s) that will be put out next.
+     * It ends with a \n\r.
+     * <p>
+     * All other writes to the stream use the
+     * PrintStream interface.
+     */
+    void printlnWithHeader(String message);
 
-	/**
-	 * Return the header for the stream.
-	 */
-	PrintWriterGetHeader getHeader();
+    /**
+     * Return the header for the stream.
+     */
+    PrintWriterGetHeader getHeader();
 
-	/**
-	 * Gets the name of the wrapped writer or stream
-	 */
-	String getName();
+    /**
+     * Gets the name of the wrapped writer or stream
+     */
+    String getName();
 
-	void printStatement(String statement);
+    void printStatement(String statement);
 
-	/**
-	 * @see java.io.PrintWriter#println
-	 */
-	void println(String message);
+    /**
+     * @see java.io.PrintWriter#println
+     */
+    void println(String message);
 
 
-	void printThrowable(String message, Throwable t);
+    void printThrowable(String message, Throwable t);
 
-	void printThrowable(Throwable t);
+    void printThrowable(Throwable t);
 }
 

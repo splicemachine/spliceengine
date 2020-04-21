@@ -72,9 +72,9 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
     public static final int FAKE_MERGED_STATS = 4;
 
 
-    protected static final int		SYSTABLESTATISTICS_INDEX1_ID = 0;
-    protected static final int		SYSTABLESTATISTICS_INDEX2_ID = 1;
-    protected static final int		SYSTABLESTATISTICS_INDEX3_ID = 2;
+    protected static final int        SYSTABLESTATISTICS_INDEX1_ID = 0;
+    protected static final int        SYSTABLESTATISTICS_INDEX2_ID = 1;
+    protected static final int        SYSTABLESTATISTICS_INDEX3_ID = 2;
 
 
 
@@ -86,7 +86,7 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             "08264018-014b-c29b-a826-000003009390"
     };
 
-    private	static	final	boolean[]	uniqueness = {
+    private    static    final    boolean[]    uniqueness = {
             true,
             false,
             false

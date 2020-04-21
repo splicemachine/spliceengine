@@ -49,79 +49,79 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
 public class DropIndexNode extends DDLStatementNode
 {
-	private ConglomerateDescriptor	cd;
-	private TableDescriptor			td;
+    private ConglomerateDescriptor    cd;
+    private TableDescriptor            td;
 
-	public String statementToString()
-	{
-		return "DROP INDEX";
-	}
+    public String statementToString()
+    {
+        return "DROP INDEX";
+    }
 
-	/**
-	 * Bind this DropIndexNode.  This means looking up the index,
-	 * verifying it exists and getting the conglomerate number.
-	 *
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void bindStatement() throws StandardException
-	{
-		CompilerContext			cc = getCompilerContext();
-		DataDictionary			dd = getDataDictionary();
-		SchemaDescriptor		sd;
+    /**
+     * Bind this DropIndexNode.  This means looking up the index,
+     * verifying it exists and getting the conglomerate number.
+     *
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void bindStatement() throws StandardException
+    {
+        CompilerContext            cc = getCompilerContext();
+        DataDictionary            dd = getDataDictionary();
+        SchemaDescriptor        sd;
 
-		sd = getSchemaDescriptor();
+        sd = getSchemaDescriptor();
 
-		if (sd.getUUID() != null) 
-			cd = dd.getConglomerateDescriptor(getRelativeName(), sd, false);
+        if (sd.getUUID() != null) 
+            cd = dd.getConglomerateDescriptor(getRelativeName(), sd, false);
 
-		if (cd == null)
-		{
-			throw StandardException.newException(SQLState.LANG_INDEX_NOT_FOUND, getFullName());
-		}
+        if (cd == null)
+        {
+            throw StandardException.newException(SQLState.LANG_INDEX_NOT_FOUND, getFullName());
+        }
 
-		/* Get the table descriptor */
-		td = getTableDescriptor(cd.getTableID());
+        /* Get the table descriptor */
+        td = getTableDescriptor(cd.getTableID());
 
-		/* Drop index is not allowed on an index backing a constraint -
-		 * user must drop the constraint, which will drop the index.
-		 * Drop constraint drops the constraint before the index,
-		 * so it's okay to drop a backing index if we can't find its
-		 * ConstraintDescriptor.
-		 */
-		if (cd.isConstraint())
-		{
-			ConstraintDescriptor conDesc;
-			String constraintName;
+        /* Drop index is not allowed on an index backing a constraint -
+         * user must drop the constraint, which will drop the index.
+         * Drop constraint drops the constraint before the index,
+         * so it's okay to drop a backing index if we can't find its
+         * ConstraintDescriptor.
+         */
+        if (cd.isConstraint())
+        {
+            ConstraintDescriptor conDesc;
+            String constraintName;
 
-			conDesc = dd.getConstraintDescriptor(td, cd.getUUID());
-			if (conDesc != null)
-			{
-				constraintName = conDesc.getConstraintName();
-				throw StandardException.newException(SQLState.LANG_CANT_DROP_BACKING_INDEX, 
-										getFullName(), constraintName);
-			}
-		}
+            conDesc = dd.getConstraintDescriptor(td, cd.getUUID());
+            if (conDesc != null)
+            {
+                constraintName = conDesc.getConstraintName();
+                throw StandardException.newException(SQLState.LANG_CANT_DROP_BACKING_INDEX, 
+                                        getFullName(), constraintName);
+            }
+        }
 
-		/* Statement is dependent on the TableDescriptor and ConglomerateDescriptor */
-		cc.createDependency(td);
-		cc.createDependency(cd);
-	}
+        /* Statement is dependent on the TableDescriptor and ConglomerateDescriptor */
+        cc.createDependency(td);
+        cc.createDependency(cd);
+    }
 
-	// inherit generate() method from DDLStatementNode
+    // inherit generate() method from DDLStatementNode
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public ConstantAction	makeConstantAction() throws StandardException
-	{
-		return	getGenericConstantActionFactory().getDropIndexConstantAction( getFullName(),
-											 getRelativeName(),
-											 getRelativeName(),
-											 getSchemaDescriptor().getSchemaName(),
-											 td.getUUID(),
-											 td.getHeapConglomerateId());
-	}
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public ConstantAction    makeConstantAction() throws StandardException
+    {
+        return    getGenericConstantActionFactory().getDropIndexConstantAction( getFullName(),
+                                             getRelativeName(),
+                                             getRelativeName(),
+                                             getSchemaDescriptor().getSchemaName(),
+                                             td.getUUID(),
+                                             td.getHeapConglomerateId());
+    }
 }

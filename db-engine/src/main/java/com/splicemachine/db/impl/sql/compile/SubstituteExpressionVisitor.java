@@ -42,62 +42,62 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 class SubstituteExpressionVisitor implements Visitor 
 {
     protected int numSubstitutions;
-	protected ValueNode source;
-	protected ValueNode target;
-	private Class     skipOverClass;
-	
-	SubstituteExpressionVisitor(
-			ValueNode s, ValueNode t, Class skipThisClass)  
-	{
-		source = s;
-		target = t;
-		skipOverClass = skipThisClass;
-	}
+    protected ValueNode source;
+    protected ValueNode target;
+    private Class     skipOverClass;
+    
+    SubstituteExpressionVisitor(
+            ValueNode s, ValueNode t, Class skipThisClass)  
+    {
+        source = s;
+        target = t;
+        skipOverClass = skipThisClass;
+    }
 
-	/**
-	 * used by GroupByNode to process expressions by complexity level.
-	 */
-	public ValueNode getSource()
-	{
-		return source;
-	}
+    /**
+     * used by GroupByNode to process expressions by complexity level.
+     */
+    public ValueNode getSource()
+    {
+        return source;
+    }
 
     @Override
-	public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException
-	{
-		if (!(node instanceof ValueNode))
-		{
-			return node;
-		}
-		
-		ValueNode nd = (ValueNode)node;
-		if (nd.isEquivalent(source)) 
-		{
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException
+    {
+        if (!(node instanceof ValueNode))
+        {
+            return node;
+        }
+        
+        ValueNode nd = (ValueNode)node;
+        if (nd.isEquivalent(source)) 
+        {
             ++numSubstitutions;
-			return target;
-		} 
-		else 
-		{
-			return node;
-		}
-	}
+            return target;
+        } 
+        else 
+        {
+            return node;
+        }
+    }
 
     public int getNumSubstitutions() {
         return numSubstitutions;
     }
 
-	public boolean stopTraversal() 
-	{
-		return false;
-	}
+    public boolean stopTraversal() 
+    {
+        return false;
+    }
 
-	public boolean skipChildren(Visitable node) 
-	{
-		return skipOverClass != null && skipOverClass.isInstance(node);
-	}
+    public boolean skipChildren(Visitable node) 
+    {
+        return skipOverClass != null && skipOverClass.isInstance(node);
+    }
 
-	public boolean visitChildrenFirst(Visitable node)
-	{
-		return false;
-	}
+    public boolean visitChildrenFirst(Visitable node)
+    {
+        return false;
+    }
 }

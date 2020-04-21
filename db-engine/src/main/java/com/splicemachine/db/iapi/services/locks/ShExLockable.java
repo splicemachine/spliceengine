@@ -38,63 +38,63 @@ import java.util.Hashtable;
 public class ShExLockable implements Lockable
 {
 
-	public ShExLockable()
-	{		
-	}
+    public ShExLockable()
+    {        
+    }
 
-	/** @see Lockable#lockerAlwaysCompatible */
-	public boolean lockerAlwaysCompatible()
-	{
-		return true;
-	}
+    /** @see Lockable#lockerAlwaysCompatible */
+    public boolean lockerAlwaysCompatible()
+    {
+        return true;
+    }
 
-	/** @see Lockable#requestCompatible */
-	public boolean requestCompatible(Object requestedQualifier,
-											Object grantedQualifier)
-	{
-		if (SanityManager.DEBUG)
-		{
-			if (!(requestedQualifier instanceof ShExQual))
-				SanityManager.THROWASSERT(
-				"requestedQualifier is a " +
-				requestedQualifier.getClass().getName() +
-				"instead of a ShExQual.");
+    /** @see Lockable#requestCompatible */
+    public boolean requestCompatible(Object requestedQualifier,
+                                            Object grantedQualifier)
+    {
+        if (SanityManager.DEBUG)
+        {
+            if (!(requestedQualifier instanceof ShExQual))
+                SanityManager.THROWASSERT(
+                "requestedQualifier is a " +
+                requestedQualifier.getClass().getName() +
+                "instead of a ShExQual.");
 
-			if (!(grantedQualifier instanceof ShExQual))
-				SanityManager.THROWASSERT(
-				"grantedQualifier is a " +
-				grantedQualifier.getClass().getName() +
-				"instead of a ShExQual.");
-		}
+            if (!(grantedQualifier instanceof ShExQual))
+                SanityManager.THROWASSERT(
+                "grantedQualifier is a " +
+                grantedQualifier.getClass().getName() +
+                "instead of a ShExQual.");
+        }
 
-		ShExQual requested = (ShExQual) requestedQualifier;
-		ShExQual granted = (ShExQual) grantedQualifier;
+        ShExQual requested = (ShExQual) requestedQualifier;
+        ShExQual granted = (ShExQual) grantedQualifier;
 
-		return (requested.getLockState() == ShExQual.SHARED) &&
-				(granted.getLockState() == ShExQual.SHARED);
-	}
+        return (requested.getLockState() == ShExQual.SHARED) &&
+                (granted.getLockState() == ShExQual.SHARED);
+    }
 
-	/** @see Lockable#lockEvent */
-	public void lockEvent(Latch lockInfo)
-	{
-		if (SanityManager.DEBUG)
-		{
-			if (!(lockInfo.getQualifier() instanceof ShExQual))
-				SanityManager.THROWASSERT("qualifier is a " + lockInfo.getQualifier().getClass().getName() +
-				"instead of a ShExQual.");
-		}
-	}
+    /** @see Lockable#lockEvent */
+    public void lockEvent(Latch lockInfo)
+    {
+        if (SanityManager.DEBUG)
+        {
+            if (!(lockInfo.getQualifier() instanceof ShExQual))
+                SanityManager.THROWASSERT("qualifier is a " + lockInfo.getQualifier().getClass().getName() +
+                "instead of a ShExQual.");
+        }
+    }
 
-	/** @see Lockable#unlockEvent */
-	public void unlockEvent(Latch lockInfo)
-	{
-		if (SanityManager.DEBUG)
-		{
-			if (!(lockInfo.getQualifier() instanceof ShExQual))
-				SanityManager.THROWASSERT("qualifier is a " + lockInfo.getQualifier().getClass().getName() +
-				"instead of a ShExQual.");
-		}
-	}
+    /** @see Lockable#unlockEvent */
+    public void unlockEvent(Latch lockInfo)
+    {
+        if (SanityManager.DEBUG)
+        {
+            if (!(lockInfo.getQualifier() instanceof ShExQual))
+                SanityManager.THROWASSERT("qualifier is a " + lockInfo.getQualifier().getClass().getName() +
+                "instead of a ShExQual.");
+        }
+    }
 
     /**
      * This lockable want to participate in the Virtual LockTable
@@ -102,18 +102,18 @@ public class ShExLockable implements Lockable
      * Any lockable object which DOES NOT want to participate should
      * override this function.
      */
-	public boolean lockAttributes(int flag, Hashtable attributes)
-	{
+    public boolean lockAttributes(int flag, Hashtable attributes)
+    {
         if((flag & VirtualLockTable.SHEXLOCK) == 0)
             return false;
         // No containerId, but need something in there so it can print
-		attributes.put(VirtualLockTable.CONTAINERID, (long) -1);
+        attributes.put(VirtualLockTable.CONTAINERID, (long) -1);
 
-		attributes.put(VirtualLockTable.LOCKNAME, this.toString() );
+        attributes.put(VirtualLockTable.LOCKNAME, this.toString() );
 
-		attributes.put(VirtualLockTable.LOCKTYPE, "ShExLockable");
+        attributes.put(VirtualLockTable.LOCKTYPE, "ShExLockable");
 
-		return true;
-	}
+        return true;
+    }
 
 }

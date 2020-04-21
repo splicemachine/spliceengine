@@ -43,29 +43,29 @@ import com.splicemachine.db.tools.dblook;
 
 public class DB_Jar {
 
-	/* ************************************************
-	 * Generate the DDL for all jars in a given
-	 * database.
-	 * @param dbName Name of the database (for locating the jar).
-	 * @param conn Connection to the source database.
+    /* ************************************************
+     * Generate the DDL for all jars in a given
+     * database.
+     * @param dbName Name of the database (for locating the jar).
+     * @param conn Connection to the source database.
      * @param at10_9 Dictionary is at 10.9 or higher
-	 * @return The DDL for the jars has been written
-	 *  to output via Logs.java.
-	 ****/
+     * @return The DDL for the jars has been written
+     *  to output via Logs.java.
+     ****/
 
-	public static void doJars(
+    public static void doJars(
         String dbName, Connection conn, boolean at10_9)
-		throws SQLException
-	{
+        throws SQLException
+    {
 
-		String separator = System.getProperty("file.separator");
-		Statement stmt = conn.createStatement();
+        String separator = System.getProperty("file.separator");
+        Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery(
             "SELECT FILENAME, SCHEMAID, " +
             "GENERATIONID, FILEID FROM SYS.SYSFILES");
 
-		boolean firstTime = true;
-		while (rs.next()) {
+        boolean firstTime = true;
+        while (rs.next()) {
 
             StringBuilder loadJarString = new StringBuilder();
 
@@ -187,12 +187,12 @@ public class DB_Jar {
             Logs.writeStmtEndToNewDDL();
             Logs.writeNewlineToNewDDL();
             firstTime = false;
-		}
+        }
 
-		stmt.close();
-		rs.close();
+        stmt.close();
+        rs.close();
 
-	}
+    }
 
     private static void  doHeader(boolean firstTime) {
         if (firstTime) {

@@ -94,15 +94,15 @@ public class SavepointJdbc30Test extends BaseJDBCTestCase {
             "SavepointJdbc30_JSR169Test:embedded XADataSource");
             embedded.addTestSuite(SavepointJdbc30Test.class);
             embedded.addTest(getEmbeddedSuite("SavepointJdbc30_JSR169Test:"
-        			+ "embedded only XADataSource"));
+                    + "embedded only XADataSource"));
             suite.addTest(TestConfiguration.connectionXADecorator(embedded));
-            //        	 Repeat the client tests obtaining a connection from
+            //             Repeat the client tests obtaining a connection from
             // an XA data source if it is supported. This is not supported
             // under JSR169.
             client = new TestSuite("SavepointJdbc30_JSR169Test:client XADatasource");
             client.addTestSuite(SavepointJdbc30Test.class);
-            suite.addTest(TestConfiguration.clientServerDecorator(TestConfiguration.connectionXADecorator(client)));        	
-        }	
+            suite.addTest(TestConfiguration.clientServerDecorator(TestConfiguration.connectionXADecorator(client)));            
+        }    
 
         return new CleanDatabaseTestSetup(
                 DatabasePropertyTestSetup.setLockTimeouts(suite, 1, 2)) {

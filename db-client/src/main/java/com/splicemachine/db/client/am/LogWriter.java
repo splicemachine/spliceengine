@@ -1222,19 +1222,19 @@ public class LogWriter {
     }
 
     public static java.io.PrintWriter getPrintWriter(final String fileName, final boolean fileAppend) throws SqlException {
-    	java.io.PrintWriter printWriter = null;
-    	//Using an anonymous class to deal with the PrintWriter because the  
-    	//method java.security.AccessController.doPrivileged requires an 
-    	//instance of a class(which implements 
-    	//java.security.PrivilegedExceptionAction). Since getPrintWriter method
-    	//is static, we can't simply pass "this" to doPrivileged method and 
-    	//have LogWriter implement PrivilegedExceptionAction.
-    	//To get around the static nature of method getPrintWriter, have an
-    	//anonymous class implement PrivilegedExceptionAction. That class will 
-    	//do the work related to PrintWriter in it's run method and return 
-    	//PrintWriter object.
+        java.io.PrintWriter printWriter = null;
+        //Using an anonymous class to deal with the PrintWriter because the  
+        //method java.security.AccessController.doPrivileged requires an 
+        //instance of a class(which implements 
+        //java.security.PrivilegedExceptionAction). Since getPrintWriter method
+        //is static, we can't simply pass "this" to doPrivileged method and 
+        //have LogWriter implement PrivilegedExceptionAction.
+        //To get around the static nature of method getPrintWriter, have an
+        //anonymous class implement PrivilegedExceptionAction. That class will 
+        //do the work related to PrintWriter in it's run method and return 
+        //PrintWriter object.
         try {
-    	printWriter = (java.io.PrintWriter)AccessController.doPrivileged(
+        printWriter = (java.io.PrintWriter)AccessController.doPrivileged(
                 (PrivilegedExceptionAction) () -> {
                     String fileCanonicalPath = new File(fileName).getCanonicalPath();
                     return new PrintWriter(
@@ -1275,7 +1275,7 @@ public class LogWriter {
                 }
                 
                 if(value != null)
-                	properties.setProperty(propertyKey, value);
+                    properties.setProperty(propertyKey, value);
             }
         } catch (NamingException e) {
             throw new SqlException(this, 

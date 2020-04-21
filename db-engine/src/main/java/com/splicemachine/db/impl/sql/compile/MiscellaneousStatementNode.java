@@ -49,45 +49,45 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 abstract class MiscellaneousStatementNode extends StatementNode
 {
 
-	int activationKind()
-	{
-		   return StatementNode.NEED_NOTHING_ACTIVATION;
-	}
+    int activationKind()
+    {
+           return StatementNode.NEED_NOTHING_ACTIVATION;
+    }
 
-	/**
-	 * Generic generate code for all Misc statements
-	 * that need activations.
-	 *
-	 * @param acb	The ActivationClassBuilder for the class being built
-	 * @param mb the method  for the execute() method to be built
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Generic generate code for all Misc statements
+     * that need activations.
+     *
+     * @param acb    The ActivationClassBuilder for the class being built
+     * @param mb the method  for the execute() method to be built
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public void generate(ActivationClassBuilder acb,
-								MethodBuilder mb)
-							throws StandardException
-	{
-		// The generated java is the expression:
-		// return ResultSetFactory.getMiscResultSet(this )
+    public void generate(ActivationClassBuilder acb,
+                                MethodBuilder mb)
+                            throws StandardException
+    {
+        // The generated java is the expression:
+        // return ResultSetFactory.getMiscResultSet(this )
 
-		acb.pushGetResultSetFactoryExpression(mb);
+        acb.pushGetResultSetFactoryExpression(mb);
 
-		acb.pushThisAsActivation(mb); // first arg
+        acb.pushThisAsActivation(mb); // first arg
 
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getMiscResultSet",
-						ClassName.ResultSet, 1);
-	}
-	/**
-	 * Returns whether or not this Statement requires a set/clear savepoint
-	 * around its execution.  The following statement "types" do not require them:
-	 *		Cursor	- unnecessary and won't work in a read only environment
-	 *		Xact	- savepoint will get blown away underneath us during commit/rollback
-	 *
-	 * @return boolean	Whether or not this Statement requires a set/clear savepoint
-	 */
-	public boolean needsSavepoint()
-	{
-		return false;
-	}
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getMiscResultSet",
+                        ClassName.ResultSet, 1);
+    }
+    /**
+     * Returns whether or not this Statement requires a set/clear savepoint
+     * around its execution.  The following statement "types" do not require them:
+     *        Cursor    - unnecessary and won't work in a read only environment
+     *        Xact    - savepoint will get blown away underneath us during commit/rollback
+     *
+     * @return boolean    Whether or not this Statement requires a set/clear savepoint
+     */
+    public boolean needsSavepoint()
+    {
+        return false;
+    }
 }

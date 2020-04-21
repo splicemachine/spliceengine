@@ -60,10 +60,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 public interface StorageFile
 {
 
-	//constant values related to exclusive lock mechanism
+    //constant values related to exclusive lock mechanism
     int NO_FILE_LOCK_SUPPORT              = 0;
-	int EXCLUSIVE_FILE_LOCK               = 1;
-	int EXCLUSIVE_FILE_LOCK_NOT_AVAILABLE = 2;
+    int EXCLUSIVE_FILE_LOCK               = 1;
+    int EXCLUSIVE_FILE_LOCK_NOT_AVAILABLE = 2;
 
     /**
      * Get the names of all files and sub-directories in the directory named by this path name.
@@ -266,7 +266,7 @@ public interface StorageFile
      */
     int getExclusiveFileLock() throws StandardException;
 
-	/**
+    /**
      * Release the resource associated with an earlier acquired exclusive lock
      * releaseExclusiveFileLock() may delete the file
 

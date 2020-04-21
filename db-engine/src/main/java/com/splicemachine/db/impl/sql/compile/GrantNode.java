@@ -44,75 +44,75 @@ import java.util.List;
  */
 public class GrantNode extends DDLStatementNode
 {
-	private PrivilegeNode privileges;
-	private List grantees;
+    private PrivilegeNode privileges;
+    private List grantees;
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			StringBuilder sb = new StringBuilder();
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            StringBuilder sb = new StringBuilder();
             for (Object grantee : grantees) {
                 if (sb.length() > 0)
                     sb.append(",");
                 sb.append(grantee.toString());
             }
-			return super.toString() +
-				   privileges.toString() +
-				   "TO: \n" + sb.toString() + "\n";
-		}
-		else
-		{
-			return "";
-		}
-	} // end of toString
+            return super.toString() +
+                   privileges.toString() +
+                   "TO: \n" + sb.toString() + "\n";
+        }
+        else
+        {
+            return "";
+        }
+    } // end of toString
 
-	public String statementToString()
-	{
-		return "GRANT";
-	}
+    public String statementToString()
+    {
+        return "GRANT";
+    }
 
-	
-	/**
-	 * Initialize a GrantNode.
-	 *
-	 * @param privileges PrivilegesNode
-	 * @param grantees List
-	 */
-	public void init( Object privileges,
-					  Object grantees)
-	{
-		this.privileges = (PrivilegeNode) privileges;
-		this.grantees = (List) grantees;
-	}
+    
+    /**
+     * Initialize a GrantNode.
+     *
+     * @param privileges PrivilegesNode
+     * @param grantees List
+     */
+    public void init( Object privileges,
+                      Object grantees)
+    {
+        this.privileges = (PrivilegeNode) privileges;
+        this.grantees = (List) grantees;
+    }
 
-	/**
-	 * Bind this GrantNode. Resolve all table, column, and routine references.
-	 *
-	 *
-	 * @exception StandardException	Standard error policy.
-	 */
-	public void bindStatement() throws StandardException
-	{
-		privileges = (PrivilegeNode) privileges.bind( new HashMap(), grantees, true);
-	} // end of bind
+    /**
+     * Bind this GrantNode. Resolve all table, column, and routine references.
+     *
+     *
+     * @exception StandardException    Standard error policy.
+     */
+    public void bindStatement() throws StandardException
+    {
+        privileges = (PrivilegeNode) privileges.bind( new HashMap(), grantees, true);
+    } // end of bind
 
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException	Standard error policy.
-	 */
-	public ConstantAction makeConstantAction() throws StandardException
-	{
-		return getGenericConstantActionFactory().getGrantConstantAction( privileges.makePrivilegeInfo(),
-																		 grantees);
-	}
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException    Standard error policy.
+     */
+    public ConstantAction makeConstantAction() throws StandardException
+    {
+        return getGenericConstantActionFactory().getGrantConstantAction( privileges.makePrivilegeInfo(),
+                                                                         grantees);
+    }
 }

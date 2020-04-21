@@ -34,31 +34,31 @@ package com.splicemachine.db.iapi.sql.depend;
 import com.splicemachine.db.catalog.UUID;
 
 /**
-	A dependency represents a reliance of the dependent on
-	the provider for some information the dependent contains
-	or uses.  In Language, the usual case is a prepared statement
-	using information about a schema object in its executable form.
-	It needs to be notified if the schema object changes, so that
-	it can recompile against the new information.
+    A dependency represents a reliance of the dependent on
+    the provider for some information the dependent contains
+    or uses.  In Language, the usual case is a prepared statement
+    using information about a schema object in its executable form.
+    It needs to be notified if the schema object changes, so that
+    it can recompile against the new information.
  */
 public interface Dependency {
 
-	/**
-		return the provider's key for this dependency.
-		@return the provider's key for this dependency
-	 */
-	UUID getProviderKey();
+    /**
+        return the provider's key for this dependency.
+        @return the provider's key for this dependency
+     */
+    UUID getProviderKey();
 
-	/**
-		return the provider for this dependency.
-		@return the provider for this dependency
-	 */
-	Provider getProvider();
+    /**
+        return the provider for this dependency.
+        @return the provider for this dependency
+     */
+    Provider getProvider();
 
-	/**
-		return the dependent for this dependency.
-		@return the dependent for this dependency
-	 */
-	Dependent getDependent();
+    /**
+        return the dependent for this dependency.
+        @return the dependent for this dependency
+     */
+    Dependent getDependent();
 
 }

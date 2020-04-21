@@ -61,7 +61,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
  */
 class ConstantExpressionVisitor implements Visitor {
 
-    private Class	skipOverClass;
+    private Class    skipOverClass;
 
     public ConstantExpressionVisitor()
     {

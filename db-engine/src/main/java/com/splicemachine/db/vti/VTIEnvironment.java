@@ -34,11 +34,11 @@ package com.splicemachine.db.vti;
 /**
   *
   * <P>
-  *	VTIEnvironment is the state variable created by the optimizer to help it
-  *	place a Table Function in the join order.
-  *	The methods of <a href="./VTICosting.html">VTICosting</a> use this state variable in
-  *	order to pass information to each other and learn other details of the
-  *	operating environment.
+  *    VTIEnvironment is the state variable created by the optimizer to help it
+  *    place a Table Function in the join order.
+  *    The methods of <a href="./VTICosting.html">VTICosting</a> use this state variable in
+  *    order to pass information to each other and learn other details of the
+  *    operating environment.
   * </P>
   *
   * @see com.splicemachine.db.vti.VTICosting
@@ -46,34 +46,34 @@ package com.splicemachine.db.vti;
 public interface VTIEnvironment
 {
 
-	/**
-		Return true if this instance of the Table Function has been created for compilation,
-		false if it is for runtime execution.
-	*/
-	boolean isCompileTime();
+    /**
+        Return true if this instance of the Table Function has been created for compilation,
+        false if it is for runtime execution.
+    */
+    boolean isCompileTime();
 
-	/**
-		Return the SQL text of the original SQL statement.
-	*/
-	String getOriginalSQL();
+    /**
+        Return the SQL text of the original SQL statement.
+    */
+    String getOriginalSQL();
 
-	/**
-		Get the  specific JDBC isolation of the statement. If it returns Connection.TRANSACTION_NONE
-		then no isolation was specified and the connection's isolation level is implied.
-	*/
-	int getStatementIsolationLevel();
+    /**
+        Get the  specific JDBC isolation of the statement. If it returns Connection.TRANSACTION_NONE
+        then no isolation was specified and the connection's isolation level is implied.
+    */
+    int getStatementIsolationLevel();
 
-	/**
-		Saves an object associated with a key that will be maintained
-		for the lifetime of the statement plan.
-		Any previous value associated with the key is discarded.
-		Any saved object can be seen by any JDBC Connection that has a Statement object
-		that references the same statement plan.
-	*/
-	void setSharedState(String key, java.io.Serializable value);
+    /**
+        Saves an object associated with a key that will be maintained
+        for the lifetime of the statement plan.
+        Any previous value associated with the key is discarded.
+        Any saved object can be seen by any JDBC Connection that has a Statement object
+        that references the same statement plan.
+    */
+    void setSharedState(String key, java.io.Serializable value);
 
-	/**
-		Get an object associated with a key from set of objects maintained with the statement plan.
-	*/
-	Object getSharedState(String key);
+    /**
+        Get an object associated with a key from set of objects maintained with the statement plan.
+    */
+    Object getSharedState(String key);
 }

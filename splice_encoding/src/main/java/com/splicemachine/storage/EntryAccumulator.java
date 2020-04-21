@@ -23,17 +23,17 @@ import com.splicemachine.storage.index.BitIndex;
  */
 public interface EntryAccumulator<T extends EntryAccumulator<T>> {
 
-		void add(int position, byte[] data, int offset,int length);
+        void add(int position, byte[] data, int offset,int length);
 
-		void addScalar(int position, byte[] data, int offset, int length);
+        void addScalar(int position, byte[] data, int offset, int length);
 
-		void addFloat(int position, byte[] data, int offset,int length);
+        void addFloat(int position, byte[] data, int offset,int length);
 
-		void addDouble(int position, byte[] data, int offset, int length);
+        void addDouble(int position, byte[] data, int offset, int length);
 
-		BitSet getRemainingFields();
+        BitSet getRemainingFields();
 
-		boolean isFinished();
+        boolean isFinished();
 
     byte[] finish();
 
@@ -43,21 +43,21 @@ public interface EntryAccumulator<T extends EntryAccumulator<T>> {
 
     boolean hasField(int myFields);
 
-//		ByteSlice getFieldSlice(int myField);
+//        ByteSlice getFieldSlice(int myField);
 
-//		ByteSlice getField(int myField, boolean create);
+//        ByteSlice getField(int myField, boolean create);
 
-		long getFinishCount();
+        long getFinishCount();
 
-		void markOccupiedScalar(int position);
+        void markOccupiedScalar(int position);
 
-		void markOccupiedFloat(int position);
+        void markOccupiedFloat(int position);
 
-		void markOccupiedDouble(int position);
+        void markOccupiedDouble(int position);
 
-		void markOccupiedUntyped(int position);
+        void markOccupiedUntyped(int position);
 
-		boolean isInteresting(BitIndex potentialIndex);
+        boolean isInteresting(BitIndex potentialIndex);
 
-		void complete();
+        void complete();
 }

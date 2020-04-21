@@ -39,70 +39,70 @@ import java.io.ObjectStreamClass;
 
 
 /**
-	A class factory module to handle application classes
-	and generated classes.
+    A class factory module to handle application classes
+    and generated classes.
 */
 
 public interface ClassFactory {
 
-	/**
-		Add a generated class to the class manager's class repository.
+    /**
+        Add a generated class to the class manager's class repository.
 
-		@exception 	StandardException	Standard Derby error policy
+        @exception     StandardException    Standard Derby error policy
 
-	*/
-	GeneratedClass loadGeneratedClass(String fullyQualifiedName, ByteArray classDump)
-		throws StandardException;
+    */
+    GeneratedClass loadGeneratedClass(String fullyQualifiedName, ByteArray classDump)
+        throws StandardException;
 
-	/**
-		Return a ClassInspector object
-	*/
-	ClassInspector	getClassInspector();
+    /**
+        Return a ClassInspector object
+    */
+    ClassInspector    getClassInspector();
 
-	/**
-		Load an application class, or a class that is potentially an application class.
+    /**
+        Load an application class, or a class that is potentially an application class.
 
-		@exception ClassNotFoundException Class cannot be found, or
-		a SecurityException or LinkageException was thrown loading the class.
-	*/
-	Class loadApplicationClass(String className)
-		throws ClassNotFoundException;
+        @exception ClassNotFoundException Class cannot be found, or
+        a SecurityException or LinkageException was thrown loading the class.
+    */
+    Class loadApplicationClass(String className)
+        throws ClassNotFoundException;
 
-	/**
-		Load an application class, or a class that is potentially an application class.
+    /**
+        Load an application class, or a class that is potentially an application class.
 
-		@exception ClassNotFoundException Class cannot be found, or
-		a SecurityException or LinkageException was thrown loading the class.
-	*/
-	Class loadApplicationClass(ObjectStreamClass classDescriptor)
-		throws ClassNotFoundException;
+        @exception ClassNotFoundException Class cannot be found, or
+        a SecurityException or LinkageException was thrown loading the class.
+    */
+    Class loadApplicationClass(ObjectStreamClass classDescriptor)
+        throws ClassNotFoundException;
 
-	/**
-		Was the passed in class loaded by a ClassManager.
+    /**
+        Was the passed in class loaded by a ClassManager.
 
-		@return true if the class was loaded by a Derby class manager,
-		false it is was loaded by the system class loader, or another class loader.
-	*/
-	boolean isApplicationClass(Class theClass);
+        @return true if the class was loaded by a Derby class manager,
+        false it is was loaded by the system class loader, or another class loader.
+    */
+    boolean isApplicationClass(Class theClass);
 
-	/**
-		Notify the class manager that a jar file has been modified.
-		@param reload Restart any attached class loader
+    /**
+        Notify the class manager that a jar file has been modified.
+        @param reload Restart any attached class loader
 
-		@exception StandardException thrown on error
-	*/
-	void notifyModifyJar(boolean reload) throws StandardException ;
+        @exception StandardException thrown on error
+    */
+    void notifyModifyJar(boolean reload) throws StandardException ;
 
-	/**
-		Notify the class manager that the classpath has been modified.
+    /**
+        Notify the class manager that the classpath has been modified.
 
-		@exception StandardException thrown on error
-	*/
-	void notifyModifyClasspath(String classpath) throws StandardException ;
+        @exception StandardException thrown on error
+    */
+    void notifyModifyClasspath(String classpath) throws StandardException ;
 
-	/**
-		Return the in-memory "version" of the class manager. The version
-		is bumped everytime the classes are re-loaded.
-	*/
-	int getClassLoaderVersion();
+    /**
+        Return the in-memory "version" of the class manager. The version
+        is bumped everytime the classes are re-loaded.
+    */
+    int getClassLoaderVersion();
 }

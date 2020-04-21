@@ -24,5 +24,5 @@ import java.sql.SQLException;
  */
 @MXBean
 public interface StatementManagement {
-		void emptyStatementCache() throws SQLException;
+        void emptyStatementCache() throws SQLException;
 }

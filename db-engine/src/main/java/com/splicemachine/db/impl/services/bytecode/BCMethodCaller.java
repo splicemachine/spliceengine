@@ -35,11 +35,11 @@ package com.splicemachine.db.impl.services.bytecode;
  */
 class BCMethodCaller extends BCLocalField {
 
-	final short opcode;
+    final short opcode;
 
-	BCMethodCaller(short opcode, Type type, int cpi) {
-		super(type, cpi);
-		this.opcode = opcode;
-	}
+    BCMethodCaller(short opcode, Type type, int cpi) {
+        super(type, cpi);
+        this.opcode = opcode;
+    }
 }
 

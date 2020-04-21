@@ -40,53 +40,53 @@ import com.splicemachine.db.tools.dblook;
 
 public class DB_Schema {
 
-	/* ************************************************
-	 * Generate the DDL for all schemas in a given
-	 * database.
-	 * @param conn Connection to the source database.
-	 * @param tablesOnly true if we're only generating objects
-	 *  specific to a particular table (in which case
-	 *  we don't generate schemas).
-	 * @return The DDL for the schemas has been written
-	 *  to output via Logs.java.
-	 ****/
+    /* ************************************************
+     * Generate the DDL for all schemas in a given
+     * database.
+     * @param conn Connection to the source database.
+     * @param tablesOnly true if we're only generating objects
+     *  specific to a particular table (in which case
+     *  we don't generate schemas).
+     * @return The DDL for the schemas has been written
+     *  to output via Logs.java.
+     ****/
 
-	public static void doSchemas(Connection conn,
-		boolean tablesOnly) throws SQLException
-	{
+    public static void doSchemas(Connection conn,
+        boolean tablesOnly) throws SQLException
+    {
 
-		Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery("SELECT SCHEMANAME, SCHEMAID " +
-			"FROM SYS.SYSSCHEMAS");
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT SCHEMANAME, SCHEMAID " +
+            "FROM SYS.SYSSCHEMAS");
 
-		boolean firstTime = true;
-		while (rs.next()) {
+        boolean firstTime = true;
+        while (rs.next()) {
 
-			String sName = dblook.addQuotes(
-				dblook.expandDoubleQuotes(rs.getString(1)));
-			if (tablesOnly || dblook.isIgnorableSchema(sName))
-				continue;
+            String sName = dblook.addQuotes(
+                dblook.expandDoubleQuotes(rs.getString(1)));
+            if (tablesOnly || dblook.isIgnorableSchema(sName))
+                continue;
 
-			if (sName.equals("\"SPLICE\""))
-			// don't have to create this one.
-				continue;
+            if (sName.equals("\"SPLICE\""))
+            // don't have to create this one.
+                continue;
 
-			if (firstTime) {
-				Logs.reportString("----------------------------------------------");
-				Logs.reportMessage("DBLOOK_SchemasHeader");
-				Logs.reportString("----------------------------------------------\n");
-			}
+            if (firstTime) {
+                Logs.reportString("----------------------------------------------");
+                Logs.reportMessage("DBLOOK_SchemasHeader");
+                Logs.reportString("----------------------------------------------\n");
+            }
 
-			Logs.writeToNewDDL("CREATE SCHEMA " + sName);
-			Logs.writeStmtEndToNewDDL();
-			Logs.writeNewlineToNewDDL();
-			firstTime = false;
+            Logs.writeToNewDDL("CREATE SCHEMA " + sName);
+            Logs.writeStmtEndToNewDDL();
+            Logs.writeNewlineToNewDDL();
+            firstTime = false;
 
-		}
+        }
 
-		rs.close();
-		stmt.close();
+        rs.close();
+        stmt.close();
 
-	}
+    }
 
 }

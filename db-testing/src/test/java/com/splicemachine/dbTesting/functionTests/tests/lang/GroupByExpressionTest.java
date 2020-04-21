@@ -46,7 +46,7 @@ import com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup;
 public class GroupByExpressionTest extends BaseJDBCTestCase
 {
 
-	private static String[] TABLES = { 
+    private static String[] TABLES = { 
         "create table test (c1 int, c2 int, c3 int, c4 int)",
         "create table coal (vc1 varchar(2), vc2 varchar(2))",
          
@@ -138,9 +138,9 @@ public class GroupByExpressionTest extends BaseJDBCTestCase
      */
     public void testDerby4402AggregateInGroupBy() throws Exception
     {
-    	assertCompileError(
+        assertCompileError(
                 "42Y26", "select c1 from test group by sum(c3)");
-    	assertCompileError(
+        assertCompileError(
                 "42Y26", "select c1 from test group by (c1+sum(c3))");
     }
     
@@ -632,7 +632,7 @@ public class GroupByExpressionTest extends BaseJDBCTestCase
         suite.addTestSuite(GroupByExpressionTest.class);
         
         TestSetup wrapper = new CleanDatabaseTestSetup(suite) { 
-        	protected void decorateSQL(Statement s) throws SQLException
+            protected void decorateSQL(Statement s) throws SQLException
             { 
                 for (int i = 0; i < TABLES.length; i++) {
                     s.execute(TABLES[i]);

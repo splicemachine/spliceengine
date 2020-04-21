@@ -145,8 +145,8 @@ public class LobLimitsTest extends BaseJDBCTestCase {
      * @return a test suite
      */
     static Test baseSuite(final int biggestSize, final int bigSize) {
-    	//Run the suite with following properties in case we run into lock
-    	// time out issues. It will help debug the problem if timeouts occur.
+        //Run the suite with following properties in case we run into lock
+        // time out issues. It will help debug the problem if timeouts occur.
         Properties sysprops = new Properties();
         sysprops.setProperty("derby.locks.deadlockTrace", "true");
         sysprops.setProperty("derby.locks.monitor", "true");
@@ -861,10 +861,10 @@ public class LobLimitsTest extends BaseJDBCTestCase {
 
     private void deleteAndTruncateTable(String table,
             int expectedRows) throws SQLException {
-    	Statement s = createStatement();
+        Statement s = createStatement();
         //Keep the delete call to exercise delete of long blobs and clobs.
-    	// This is a separate code path through Derby compared to truncate
-    	// table code path.
+        // This is a separate code path through Derby compared to truncate
+        // table code path.
         int count = s.executeUpdate(
                 "DELETE FROM " + JDBC.escape(table));
         //DERBY-5638

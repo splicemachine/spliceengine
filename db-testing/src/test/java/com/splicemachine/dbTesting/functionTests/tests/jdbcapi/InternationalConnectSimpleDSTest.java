@@ -101,11 +101,11 @@ public class InternationalConnectSimpleDSTest extends BaseJDBCTestCase {
     }
     
     public void tearDown() {
-    	// Shutdown Derby before trying to remove the db.
-    	// Because of  DERBY-4149, just shutting down the database
-    	// is not good enough because it will fail and the 
-    	// directory won't be removed.    	
-        TestConfiguration.getCurrent().shutdownEngine();    	               
+        // Shutdown Derby before trying to remove the db.
+        // Because of  DERBY-4149, just shutting down the database
+        // is not good enough because it will fail and the 
+        // directory won't be removed.        
+        TestConfiguration.getCurrent().shutdownEngine();                       
         removeDirectory(getSystemProperty("derby.system.home") +
                 File.separator + "\u4e10");
     }

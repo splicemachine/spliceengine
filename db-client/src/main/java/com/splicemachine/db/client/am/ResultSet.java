@@ -872,7 +872,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
 
     // Live life on the edge and run unsynchronized
     public java.sql.Date getDate(int column, Calendar cal) throws SQLException {
-	    try
+        try
         {
             closeOpenStreams();
 
@@ -959,7 +959,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
     // Live life on the edge and run unsynchronized
     public java.sql.Timestamp getTimestamp(int column, Calendar calendar)
             throws SQLException {
-	    try
+        try
         {
             closeOpenStreams();
 
@@ -1086,7 +1086,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
 
     // Live life on the edge and run unsynchronized
     public byte[] getBytes(int column) throws SQLException {
-	    try
+        try
         {
             closeOpenStreams();
 
@@ -1324,7 +1324,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
 
     // Live life on the edge and run unsynchronized
     public java.sql.Array getArray(int column) throws SQLException {
-	    try
+        try
         {
             closeOpenStreams();
 
@@ -3689,12 +3689,12 @@ public abstract class ResultSet implements java.sql.ResultSet,
     private void refreshRowX() throws SqlException {
         checkForClosedResultSet("refreshRow");
         checkThatResultSetTypeIsScrollable();
-	checkForUpdatableResultSet("refreshRow");
+    checkForUpdatableResultSet("refreshRow");
         if (isBeforeFirstX() || isAfterLastX() || isOnInsertRow_) {
             throw new SqlException(agent_.logWriter_,
                 new ClientMessageId(SQLState.NO_CURRENT_ROW));
         }
-	
+    
         // this method does nothing if ResultSet is TYPE_SCROLL_INSENSITIVE
         if (resultSetType_ == java.sql.ResultSet.TYPE_SCROLL_SENSITIVE) {
             isValidCursorPosition_ = getRefreshRowset();
@@ -4723,11 +4723,11 @@ public abstract class ResultSet implements java.sql.ResultSet,
 
     private void checkUpdatePreconditions(int column,
                                           String operation)
-	throws SqlException {
+    throws SqlException {
 
         checkForClosedResultSet(operation);
         checkForValidColumnIndex(column);
-	checkForUpdatableResultSet(operation);
+    checkForUpdatableResultSet(operation);
 
         if (!isOnCurrentRow_ && !isOnInsertRow_) {
             throw new SqlException(agent_.logWriter_, 
@@ -5433,27 +5433,27 @@ public abstract class ResultSet implements java.sql.ResultSet,
             Arrays.fill(rowsetSqlca_, null);
         }
     }
-	
-	
-	private CloseFilterInputStream createCloseFilterInputStream(java.io.InputStream is) throws SqlException {
-		
-		if(is == null){
-			return null;
-		}
+    
+    
+    private CloseFilterInputStream createCloseFilterInputStream(java.io.InputStream is) throws SqlException {
+        
+        if(is == null){
+            return null;
+        }
 
-		if( currentStream == is ){
-			return currentStream;
-		}
-		
-		closeOpenStreams();
-		
-		currentStream = new CloseFilterInputStream(is);
-		
-		return currentStream;
-		
-	}
-	
-	
+        if( currentStream == is ){
+            return currentStream;
+        }
+        
+        closeOpenStreams();
+        
+        currentStream = new CloseFilterInputStream(is);
+        
+        return currentStream;
+        
+    }
+    
+    
     /**
      * Closes the current stream, if there is one.
      * <p>

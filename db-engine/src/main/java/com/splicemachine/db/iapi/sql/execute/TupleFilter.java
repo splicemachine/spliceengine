@@ -36,30 +36,30 @@ import com.splicemachine.db.iapi.types.BooleanDataValue;
 import com.splicemachine.db.iapi.error.StandardException;
 
 /**
- * 	A TupleFilter is used to qualify rows from a tuple stream.
+ *     A TupleFilter is used to qualify rows from a tuple stream.
  *
  */
 public interface TupleFilter
 {
-	/**
-	  *	Initialize a Filter with a vector of parameters.
-	  *
-	  *	@param	parameters	An ExecRow of parameter values
-	  *
-	  * @exception StandardException		Thrown on error
-	  */
-	void	init(ExecRow parameters)
-				throws StandardException;
+    /**
+      *    Initialize a Filter with a vector of parameters.
+      *
+      *    @param    parameters    An ExecRow of parameter values
+      *
+      * @exception StandardException        Thrown on error
+      */
+    void    init(ExecRow parameters)
+                throws StandardException;
 
-	/**
-	  *	Pump a row through the Filter.
-	  *
-	  *	@param	currentRow		Column values to plug into restriction
-	  *
-	  *	@return	True if the row qualifies. False otherwise.
-	  *
-	  * @exception StandardException		Thrown on error
-	  */
-	BooleanDataValue	execute(ExecRow currentRow)
-				throws StandardException;
+    /**
+      *    Pump a row through the Filter.
+      *
+      *    @param    currentRow        Column values to plug into restriction
+      *
+      *    @return    True if the row qualifies. False otherwise.
+      *
+      * @exception StandardException        Thrown on error
+      */
+    BooleanDataValue    execute(ExecRow currentRow)
+                throws StandardException;
 }

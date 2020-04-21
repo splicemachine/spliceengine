@@ -518,7 +518,7 @@ public final class HoldCursorJDBC30Test extends BaseJDBCTestCase {
         } catch (SQLException e) { assertSQLState("XCL16", e); }
         
         commit();
-	
+    
         st.close();
         stUtil.close();
     }
@@ -784,7 +784,7 @@ public final class HoldCursorJDBC30Test extends BaseJDBCTestCase {
         
         commit();
         
-        st.close();	
+        st.close();    
         stUtil.close();
     }    
     
@@ -902,7 +902,7 @@ public final class HoldCursorJDBC30Test extends BaseJDBCTestCase {
         } catch (SQLException e) { assertSQLState("XCL16", e); }
         
         commit();
-	
+    
         st.close();
         stUtil.close();
     }
@@ -1071,7 +1071,7 @@ public final class HoldCursorJDBC30Test extends BaseJDBCTestCase {
         
         commit();
         
-        st.close();	
+        st.close();    
         stUtil.close();
     }
     

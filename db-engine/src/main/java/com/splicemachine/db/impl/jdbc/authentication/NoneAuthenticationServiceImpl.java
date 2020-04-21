@@ -47,59 +47,59 @@ import java.util.Properties;
  */
 public final class NoneAuthenticationServiceImpl extends AuthenticationServiceBase implements UserAuthenticator {
 
-	//
-	// ModuleControl implementation (overriden)
-	//
+    //
+    // ModuleControl implementation (overriden)
+    //
 
-	/**
-	 *  Check if we should activate this authentication service.
-	 */
-	public boolean canSupport(Properties properties) {
+    /**
+     *  Check if we should activate this authentication service.
+     */
+    public boolean canSupport(Properties properties) {
 
-		return !requireAuthentication(properties);
-	}
+        return !requireAuthentication(properties);
+    }
 
-	/**
-	 * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot
-	 * @exception StandardException upon failure to load/boot the expected
-	 * authentication service.
-	 */
-	public void boot(boolean create, Properties properties) 
-	  throws StandardException {
+    /**
+     * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot
+     * @exception StandardException upon failure to load/boot the expected
+     * authentication service.
+     */
+    public void boot(boolean create, Properties properties) 
+      throws StandardException {
 
-		// we call the super in case there is anything to get initialized.
- 		super.boot(create, properties);
+        // we call the super in case there is anything to get initialized.
+         super.boot(create, properties);
 
-		// nothing special to be done, other than setting other than
-		// setting ourselves as being ready and loading the proper
-		// authentication scheme for this service
-		//.
-		this.setAuthenticationService(this);
-	}
+        // nothing special to be done, other than setting other than
+        // setting ourselves as being ready and loading the proper
+        // authentication scheme for this service
+        //.
+        this.setAuthenticationService(this);
+    }
 
-	/*
-	** UserAuthenticator
-	*/
+    /*
+    ** UserAuthenticator
+    */
 
-	/**
-	 * Authenticate the passed-in user's credentials.
-	 *
-	 * @param userName		The user's name used to connect to JBMS system
-	 * @param userPassword	The user's password used to connect to JBMS system
-	 * @param databaseName	The database which the user wants to connect to.
-	 * @param info			Additional jdbc connection info.
-	 */
-	public String	authenticateUser(String userName,
-								 String userPassword,
-								 String databaseName,
-								 Properties info
-									)
-	{
-		// Since this authentication service does not really provide
-		// any particular authentication, therefore we satisfy the request.
-		// and always authenticate successfully the user.
-		//
-		return userName;
-	}
+    /**
+     * Authenticate the passed-in user's credentials.
+     *
+     * @param userName        The user's name used to connect to JBMS system
+     * @param userPassword    The user's password used to connect to JBMS system
+     * @param databaseName    The database which the user wants to connect to.
+     * @param info            Additional jdbc connection info.
+     */
+    public String    authenticateUser(String userName,
+                                 String userPassword,
+                                 String databaseName,
+                                 Properties info
+                                    )
+    {
+        // Since this authentication service does not really provide
+        // any particular authentication, therefore we satisfy the request.
+        // and always authenticate successfully the user.
+        //
+        return userName;
+    }
 
 }

@@ -87,7 +87,7 @@ class ImportLobFile
                             return new RandomAccessFile(lobFile, "r");
                         }   
                     }
-                 );    	
+                 );        
             } catch (PrivilegedActionException pae) {
                 throw pae.getException();
             }
@@ -147,7 +147,7 @@ class ImportLobFile
         // to read the clob data from the file can read the 
         // with approapriate  data code set. 
         lobReader = dataCodeset == null ?
-    		new InputStreamReader(lobLimitIn) : 
+            new InputStreamReader(lobLimitIn) : 
             new InputStreamReader(lobLimitIn, dataCodeset);    
 
         // read data from the file, and return it as string. 
@@ -158,7 +158,7 @@ class ImportLobFile
             sb.append(buf , 0 , noChars);
             noChars = lobReader.read(buf , 0 , 1024);
         }
-		return sb.toString();
+        return sb.toString();
     }
 
 
@@ -180,7 +180,7 @@ class ImportLobFile
         // to read the clob data from the file can read the 
         // with approapriate  data code set. 
         lobReader = dataCodeset == null ?
-    		new InputStreamReader(lobLimitIn) : 
+            new InputStreamReader(lobLimitIn) : 
             new InputStreamReader(lobLimitIn, dataCodeset);    
 
         return lobReader;

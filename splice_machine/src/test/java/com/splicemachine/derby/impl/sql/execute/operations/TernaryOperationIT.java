@@ -52,7 +52,7 @@ public class TernaryOperationIT {
 
     // Table for 'replace' testing.
     private static final SpliceTableWatcher tableWatcherB = new SpliceTableWatcher(
-    	"B", schemaWatcher.schemaName, "(a int, b varchar(30), c varchar(30), d varchar(30), e varchar(30))");
+        "B", schemaWatcher.schemaName, "(a int, b varchar(30), c varchar(30), d varchar(30), e varchar(30))");
 
     // Table for 'timestampadd' and 'timestampdiff testing.
     private static final SpliceTableWatcher tableWatcherC = new SpliceTableWatcher(
@@ -192,19 +192,19 @@ public class TernaryOperationIT {
     @Test
     public void testReplaceFunction() throws Exception {
         int count = 0;
-	    String sCell1 = null;
-	    String sCell2 = null;
-	    ResultSet rs;
+        String sCell1 = null;
+        String sCell2 = null;
+        ResultSet rs;
 
-	    rs = methodWatcher.executeQuery("select replace(b, c, d), e from " + tableWatcherB);
-	    count = 0;
-	    while (rs.next()) {
-    		sCell1 = rs.getString(1);
+        rs = methodWatcher.executeQuery("select replace(b, c, d), e from " + tableWatcherB);
+        count = 0;
+        while (rs.next()) {
+            sCell1 = rs.getString(1);
             sCell2 = rs.getString(2);
             Assert.assertEquals("Wrong result value", sCell1, sCell2);
             count++;
-	    }
-	    Assert.assertEquals("Incorrect row count", 5, count);
+        }
+        Assert.assertEquals("Incorrect row count", 5, count);
     }
 
     @Test

@@ -38,28 +38,28 @@ package com.splicemachine.db.iapi.sql.execute;
  */
 public interface ExecCursorTableReference
 {
-	/**
-	 * Return the base name of the table
- 	 *
-	 * @return the base name
-	 */
-	String getBaseName();
+    /**
+     * Return the base name of the table
+      *
+     * @return the base name
+     */
+    String getBaseName();
 
-	/**
-	 * Return the exposed name of the table.  Exposed
-	 * name is another term for correlation name.  If
-	 * there is no correlation, this will return the base
-	 * name.
- 	 *
-	 * @return the base name
-	 */
-	String getExposedName();
+    /**
+     * Return the exposed name of the table.  Exposed
+     * name is another term for correlation name.  If
+     * there is no correlation, this will return the base
+     * name.
+      *
+     * @return the base name
+     */
+    String getExposedName();
 
 
-	/**
-	 * Return the schema for the table.  
-	 *
-	 * @return the schema name
-	 */
-	String getSchemaName();
+    /**
+     * Return the schema for the table.  
+     *
+     * @return the schema name
+     */
+    String getSchemaName();
 }

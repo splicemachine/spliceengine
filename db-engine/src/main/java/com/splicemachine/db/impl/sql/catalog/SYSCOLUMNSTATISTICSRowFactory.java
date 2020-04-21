@@ -66,7 +66,7 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
     protected static final int SYSCOLUMNSTATISTICS_INDEX2_ID = 1;
     protected static final int SYSCOLUMNSTATISTICS_INDEX3_ID = 2;
 
-    private	static	final	boolean[]	uniqueness = {
+    private    static    final    boolean[]    uniqueness = {
             true,
             false,
             false
@@ -194,7 +194,7 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
 
 
 
-    public	int	getPrimaryKeyIndexNumber() {
+    public    int    getPrimaryKeyIndexNumber() {
         return SYSCOLUMNSTATISTICS_INDEX1_ID;
     }
 

@@ -248,8 +248,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
         try {
         /*
-		 * This is relatively expensive--it's better to use the write pipeline when you need to load a lot of rows.
-		 */
+         * This is relatively expensive--it's better to use the write pipeline when you need to load a lot of rows.
+         */
             if (!tableEnvMatch || put.getAttribute(SIConstants.SI_NEEDED) == null) {
                 return;
             }

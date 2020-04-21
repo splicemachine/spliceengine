@@ -36,78 +36,78 @@ import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
- *	This class  describes actions that are ALWAYS performed for a
- *	DROP VIEW Statement at Execution time.
+ *    This class  describes actions that are ALWAYS performed for a
+ *    DROP VIEW Statement at Execution time.
  */
 public class DropViewConstantOperation extends DDLConstantOperation {
-	private static final Logger LOG = Logger.getLogger(DropViewConstantOperation.class);
-	private String fullTableName;
-	private String tableName;
-	private SchemaDescriptor sd;
+    private static final Logger LOG = Logger.getLogger(DropViewConstantOperation.class);
+    private String fullTableName;
+    private String tableName;
+    private SchemaDescriptor sd;
 
-	/**
-	 *	Make the ConstantAction for a DROP VIEW statement.
-	 *
-	 *
-	 *	@param	fullTableName		Fully qualified table name
-	 *	@param	tableName			Table name.
-	 *	@param	sd					Schema that view lives in.
-	 *
-	 */
-	public DropViewConstantOperation(String fullTableName,String tableName, SchemaDescriptor sd) {
-		SpliceLogUtils.trace(LOG, "DropViewConstantOperation fullTableName %s, tableName %s, schemaName %s",fullTableName, tableName, sd.getSchemaName());
-		this.fullTableName = fullTableName;
-		this.tableName = tableName;
-		this.sd = sd;
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(sd != null, "SchemaDescriptor is null");
-	}
+    /**
+     *    Make the ConstantAction for a DROP VIEW statement.
+     *
+     *
+     *    @param    fullTableName        Fully qualified table name
+     *    @param    tableName            Table name.
+     *    @param    sd                    Schema that view lives in.
+     *
+     */
+    public DropViewConstantOperation(String fullTableName,String tableName, SchemaDescriptor sd) {
+        SpliceLogUtils.trace(LOG, "DropViewConstantOperation fullTableName %s, tableName %s, schemaName %s",fullTableName, tableName, sd.getSchemaName());
+        this.fullTableName = fullTableName;
+        this.tableName = tableName;
+        this.sd = sd;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(sd != null, "SchemaDescriptor is null");
+    }
 
-	public	String	toString() {
-		return "DROP VIEW " + fullTableName;
-	}
+    public    String    toString() {
+        return "DROP VIEW " + fullTableName;
+    }
 
-	/**
-	 *	This is the guts of the Execution-time logic for DROP VIEW.
-	 *
-	 *	@see ConstantAction#executeConstantAction
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public void executeConstantAction( Activation activation ) throws StandardException {
-		SpliceLogUtils.trace(LOG, "executeConstantAction for activation %s",activation);
-		TableDescriptor td;
-		ViewDescriptor vd;
+    /**
+     *    This is the guts of the Execution-time logic for DROP VIEW.
+     *
+     *    @see ConstantAction#executeConstantAction
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public void executeConstantAction( Activation activation ) throws StandardException {
+        SpliceLogUtils.trace(LOG, "executeConstantAction for activation %s",activation);
+        TableDescriptor td;
+        ViewDescriptor vd;
 
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
 
-		/*
-		** Inform the data dictionary that we are about to write to it.
-		** There are several calls to data dictionary "get" methods here
-		** that might be done in "read" mode in the data dictionary, but
-		** it seemed safer to do this whole operation in "write" mode.
-		**
-		** We tell the data dictionary we're done writing at the end of
-		** the transaction.
-		*/
-		dd.startWriting(lcc);
+        /*
+        ** Inform the data dictionary that we are about to write to it.
+        ** There are several calls to data dictionary "get" methods here
+        ** that might be done in "read" mode in the data dictionary, but
+        ** it seemed safer to do this whole operation in "write" mode.
+        **
+        ** We tell the data dictionary we're done writing at the end of
+        ** the transaction.
+        */
+        dd.startWriting(lcc);
 
-		/* Get the table descriptor.  We're responsible for raising
-		 * the error if it isn't found 
-		 */
-		td = dd.getTableDescriptor(tableName, sd,
+        /* Get the table descriptor.  We're responsible for raising
+         * the error if it isn't found 
+         */
+        td = dd.getTableDescriptor(tableName, sd,
                 lcc.getTransactionExecute());
 
-		if (td == null) {
-			throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, fullTableName);
-		}
+        if (td == null) {
+            throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, fullTableName);
+        }
 
-		/* Verify that TableDescriptor represents a view */
-		if (td.getTableType() != TableDescriptor.VIEW_TYPE) {
-			throw StandardException.newException(SQLState.LANG_DROP_VIEW_ON_NON_VIEW, fullTableName);
-		}
-		vd = dd.getViewDescriptor(td);
+        /* Verify that TableDescriptor represents a view */
+        if (td.getTableType() != TableDescriptor.VIEW_TYPE) {
+            throw StandardException.newException(SQLState.LANG_DROP_VIEW_ON_NON_VIEW, fullTableName);
+        }
+        vd = dd.getViewDescriptor(td);
         invalidate(dd.getDependencyManager(),td,DependencyManager.DROP_VIEW,lcc);
 
         TransactionController tc = lcc.getTransactionExecute();
@@ -115,7 +115,7 @@ public class DropViewConstantOperation extends DDLConstantOperation {
         // Run Remotely
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         drop(lcc, sd, td, DependencyManager.DROP_VIEW, vd);
-	}
+    }
 
     public String getScopeName() {
         return String.format("Drop View %s", fullTableName);
@@ -143,28 +143,28 @@ public class DropViewConstantOperation extends DDLConstantOperation {
         DependencyManager dm = dd.getDependencyManager();
         TransactionController tc = lcc.getTransactionExecute();
 
-		/* Drop the columns */
+        /* Drop the columns */
         dd.dropAllColumnDescriptors(td.getUUID(), tc);
 
-		/* Clear the dependencies for the view */
+        /* Clear the dependencies for the view */
         dm.clearDependencies(lcc, vd);
 
-		/* Drop the view */
+        /* Drop the view */
         dd.dropViewDescriptor(vd, tc);
 
-		/* Drop all table and column permission descriptors */
+        /* Drop all table and column permission descriptors */
         dd.dropAllTableAndColPermDescriptors(td.getUUID(), tc);
 
-		/* Drop the table */
+        /* Drop the table */
         dd.dropTableDescriptor(td, sd, tc);
     }
 
     public void invalidate(DependencyManager dm, TableDescriptor td, int action, LanguageConnectionContext lcc) throws StandardException {
-        		/* Prepare all dependents to invalidate.  (This is there chance
-		 * to say that they can't be invalidated.  For example, an open
-		 * cursor referencing a table/view that the user is attempting to
-		 * drop.) If no one objects, then invalidate any dependent objects.
-		 */
+                /* Prepare all dependents to invalidate.  (This is there chance
+         * to say that they can't be invalidated.  For example, an open
+         * cursor referencing a table/view that the user is attempting to
+         * drop.) If no one objects, then invalidate any dependent objects.
+         */
         dm.invalidateFor(td, action, lcc);
     }
 }

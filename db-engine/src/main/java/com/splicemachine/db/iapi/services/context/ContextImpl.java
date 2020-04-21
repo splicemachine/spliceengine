@@ -49,57 +49,57 @@ package com.splicemachine.db.iapi.services.context;
  * information about their contents.
  */
 public abstract class ContextImpl 
-	implements Context
+    implements Context
 {
-	private final String myIdName;
-	private final ContextManager myContextManager;
+    private final String myIdName;
+    private final ContextManager myContextManager;
 
-	/*
-	 * class interface
-	 */
-	protected ContextImpl(ContextManager cm, String id) {
-		myIdName = id;
-		myContextManager = cm;
-		cm.pushContext(this);
-	}
+    /*
+     * class interface
+     */
+    protected ContextImpl(ContextManager cm, String id) {
+        myIdName = id;
+        myContextManager = cm;
+        cm.pushContext(this);
+    }
 
-	/*
-	 * Context interface
-	 */
-	/**
-	 * @see com.splicemachine.db.iapi.services.context.Context#getContextManager
-	 */
-	final public ContextManager getContextManager()
-	{
-		return myContextManager;
-	}
+    /*
+     * Context interface
+     */
+    /**
+     * @see com.splicemachine.db.iapi.services.context.Context#getContextManager
+     */
+    final public ContextManager getContextManager()
+    {
+        return myContextManager;
+    }
 
-	/**
-	 * @see com.splicemachine.db.iapi.services.context.Context#getIdName
-	 */
-	final public String getIdName()
-	{
-		return myIdName;
-	}
+    /**
+     * @see com.splicemachine.db.iapi.services.context.Context#getIdName
+     */
+    final public String getIdName()
+    {
+        return myIdName;
+    }
 
-	final public void pushMe() {
-		getContextManager().pushContext(this);
-	}
+    final public void pushMe() {
+        getContextManager().pushContext(this);
+    }
 
-	/** @see Context#popMe */
-	final public void popMe() {
-		getContextManager().popContext(this);
-	}
+    /** @see Context#popMe */
+    final public void popMe() {
+        getContextManager().popContext(this);
+    }
 
-	/**
-	 * @see Context#isLastHandler
-	 */
-	public boolean isLastHandler(int severity)
-	{
-		return false;
-	}
+    /**
+     * @see Context#isLastHandler
+     */
+    public boolean isLastHandler(int severity)
+    {
+        return false;
+    }
 
-	public StringBuffer appendErrorInfo() {
-		return null;
-	}
+    public StringBuffer appendErrorInfo() {
+        return null;
+    }
 }

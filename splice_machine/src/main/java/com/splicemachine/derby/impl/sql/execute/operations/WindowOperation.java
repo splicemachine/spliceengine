@@ -62,10 +62,10 @@ public class WindowOperation extends SpliceBaseOperation {
 
     protected static final String NAME = WindowOperation.class.getSimpleName().replaceAll("Operation","");
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+            return NAME;
+    }
 
     
     public WindowOperation() {}

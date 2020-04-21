@@ -42,12 +42,12 @@ import java.util.Properties;
  */
 public class j9dee15 extends jvm {
 
-	public String getName(){return "j9dee15";}
+    public String getName(){return "j9dee15";}
     public j9dee15(boolean noasyncgc, boolean verbosegc, boolean noclassgc,
     long ss, long oss, long ms, long mx, String classpath, String prof,
     boolean verify, boolean noverify, boolean nojit, Vector D) {
         super(noasyncgc,verbosegc,noclassgc,ss,oss,ms,mx,classpath,prof,
-		verify,noverify,nojit,D);
+        verify,noverify,nojit,D);
     }
     // more typical use:
     public j9dee15(String classpath, Vector D) {
@@ -59,16 +59,16 @@ public class j9dee15 extends jvm {
     }
     // actual use
     public j9dee15() {
-	Properties sp = System.getProperties();
-	String srvJvm = sp.getProperty("serverJvm");
-	if ((srvJvm!=null) && (srvJvm.toUpperCase().startsWith("J9")))
-	{
-		String wshome = guessWSHome();
-		// note, may have to switch to sep instead of hardcoding the slashes...
+    Properties sp = System.getProperties();
+    String srvJvm = sp.getProperty("serverJvm");
+    if ((srvJvm!=null) && (srvJvm.toUpperCase().startsWith("J9")))
+    {
+        String wshome = guessWSHome();
+        // note, may have to switch to sep instead of hardcoding the slashes...
         setJavaCmd(wshome+"/bin/j9");
-	}
-	else
-		setJavaCmd("j9");
+    }
+    else
+        setJavaCmd("j9");
     }
 
     // return the command line to invoke this VM.  The caller then adds
@@ -87,14 +87,14 @@ public class j9dee15 extends jvm {
             v.addElement(st.nextToken());
         }
         return v;
-	}
+    }
 
-	public void appendOtherFlags(StringBuffer sb)
-	{
+    public void appendOtherFlags(StringBuffer sb)
+    {
 
-	Properties sp = System.getProperties();
-	String srvJvm = sp.getProperty("serverJvm");
-	
+    Properties sp = System.getProperties();
+    String srvJvm = sp.getProperty("serverJvm");
+    
         if (noasyncgc) warn("j9dee15 does not support noasyncgc");
         if (verbosegc) sb.append(" -verbose:gc");
         if (noclassgc) warn("j9dee15 does not support noclassgc");
@@ -103,12 +103,12 @@ public class j9dee15 extends jvm {
         if (ms>=0) {
           sb.append(" -Xss");
           sb.append(ms);
-		  //sb.append("k");
+          //sb.append("k");
         }
         if (mx>=0) {
           sb.append(" -Xmx");
           sb.append(mx);
-		  //sb.append("k");
+          //sb.append("k");
         }
         if (classpath!=null) warn("j9dee15 does not support classpath, use -Xbootclasspath,-Xbootclasspath/p,-Xbootclasspath/a"); 
         if (prof!=null) warn("j9dee15 does not support prof");
@@ -117,11 +117,11 @@ public class j9dee15 extends jvm {
         if (nojit) sb.append(" -Xnojit");
         if (D != null)
           for (int i=0; i<D.size();i++) {
-	        sb.append(" -D");
-	        sb.append((String)(D.elementAt(i)));
+            sb.append(" -D");
+            sb.append((String)(D.elementAt(i)));
           }
     }
-	public String getDintro() { return "-D"; }
+    public String getDintro() { return "-D"; }
 
 
 }

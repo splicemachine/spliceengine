@@ -55,70 +55,70 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 public interface Statement
 {
 
-	/**
-	 * Generates an execution plan without executing it.
-	 *
-	 * @return A PreparedStatement that allows execution of the execution
-	 *	   plan.
-	 * @exception StandardException	Thrown if this is an
-	 *	   execution-only version of the module (the prepare() method
-	 *	   relies on compilation).
-	 */
-	PreparedStatement	prepare(LanguageConnectionContext lcc) throws StandardException;
-	/**
-	 * Generates an execution plan without executing it.
-	 *
-	 * @param 	lcc			the language connection context
-	 * @param 	allowInternalSyntax	If this statement is for a metadata call then 
-	 *	   we will allow internal sql syntax on such statement. This internal
-	 *	   sql syntax is not available to a user sql statement.
-	 *
-	 * @return A PreparedStatement that allows execution of the execution
-	 *	   plan.
-	 * @exception StandardException	Thrown if this is an
-	 *	   execution-only version of the module (the prepare() method
-	 *	   relies on compilation).
-	 */
-	PreparedStatement	prepare(LanguageConnectionContext lcc, boolean allowInternalSyntax) throws StandardException;
-	
-	/**
-	 * Generates an execution plan given a set of named parameters.
-	 * For generating a storable prepared statement (which
-	 * has some extensions over a standard prepared statement).
-	 *
-	 * @param 	lcc					Compiler state variable.
-	 * @param 	ps					Prepared statement
-	 * @param	paramDefaults		Default parameter values to use for
-	 *								optimization
-	 * @param	spsSchema schema of the stored prepared statement
-	 *
-	 * @return A Storable PreparedStatement that allows execution of the execution
-	 *	   plan.
-	 * @exception StandardException	Thrown if this is an
-	 *	   execution-only version of the module (the prepare() method
-	 *	   relies on compilation).
-	 */
-	PreparedStatement	prepareStorable
-	(
-			LanguageConnectionContext lcc,
-			PreparedStatement ps,
-			Object[] paramDefaults,
-			SchemaDescriptor spsSchema,
-			boolean internalSQL
-	)
-		throws StandardException;
+    /**
+     * Generates an execution plan without executing it.
+     *
+     * @return A PreparedStatement that allows execution of the execution
+     *       plan.
+     * @exception StandardException    Thrown if this is an
+     *       execution-only version of the module (the prepare() method
+     *       relies on compilation).
+     */
+    PreparedStatement    prepare(LanguageConnectionContext lcc) throws StandardException;
+    /**
+     * Generates an execution plan without executing it.
+     *
+     * @param     lcc            the language connection context
+     * @param     allowInternalSyntax    If this statement is for a metadata call then 
+     *       we will allow internal sql syntax on such statement. This internal
+     *       sql syntax is not available to a user sql statement.
+     *
+     * @return A PreparedStatement that allows execution of the execution
+     *       plan.
+     * @exception StandardException    Thrown if this is an
+     *       execution-only version of the module (the prepare() method
+     *       relies on compilation).
+     */
+    PreparedStatement    prepare(LanguageConnectionContext lcc, boolean allowInternalSyntax) throws StandardException;
+    
+    /**
+     * Generates an execution plan given a set of named parameters.
+     * For generating a storable prepared statement (which
+     * has some extensions over a standard prepared statement).
+     *
+     * @param     lcc                    Compiler state variable.
+     * @param     ps                    Prepared statement
+     * @param    paramDefaults        Default parameter values to use for
+     *                                optimization
+     * @param    spsSchema schema of the stored prepared statement
+     *
+     * @return A Storable PreparedStatement that allows execution of the execution
+     *       plan.
+     * @exception StandardException    Thrown if this is an
+     *       execution-only version of the module (the prepare() method
+     *       relies on compilation).
+     */
+    PreparedStatement    prepareStorable
+    (
+            LanguageConnectionContext lcc,
+            PreparedStatement ps,
+            Object[] paramDefaults,
+            SchemaDescriptor spsSchema,
+            boolean internalSQL
+    )
+        throws StandardException;
 
-	/**
-	 *	Return the SQL string that this statement is for.
-	 *
-	 *	@return the SQL string this statement is for.
-	 */
-	String getSource();
+    /**
+     *    Return the SQL string that this statement is for.
+     *
+     *    @return the SQL string this statement is for.
+     */
+    String getSource();
 
 
-	/**
-	 * Return the String of session property values set when the plan is compiled
-	 * @return the String of session property values set when the plan is compiled
-	 */
-	String getSessionPropertyValues();
+    /**
+     * Return the String of session property values set when the plan is compiled
+     * @return the String of session property values set when the plan is compiled
+     */
+    String getSessionPropertyValues();
 }

@@ -427,7 +427,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
         }
         catch (Throwable t)
         {
-			throw handleMyExceptions(t);
+            throw handleMyExceptions(t);
         }
         finally
         {
@@ -540,7 +540,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
         }
         catch (Throwable t)
         {
-			throw handleMyExceptions(t);
+            throw handleMyExceptions(t);
         }
         finally
         {
@@ -599,7 +599,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
         }
         catch (Throwable t)
         {
-			throw handleMyExceptions(t);
+            throw handleMyExceptions(t);
         }
         finally
         {
@@ -674,7 +674,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
             }
         } catch (Throwable t)
         {
-			throw handleMyExceptions(t);
+            throw handleMyExceptions(t);
         }
         finally
         {
@@ -783,7 +783,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
             }
         } catch (Throwable t)
         {
-			throw handleMyExceptions(t);
+            throw handleMyExceptions(t);
         }
         finally
         {
@@ -837,7 +837,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
       Convert exceptions where needed before calling handleException to convert
       them to SQLExceptions.
     */
-	private SQLException handleMyExceptions(Throwable t)
+    private SQLException handleMyExceptions(Throwable t)
         throws SQLException
     {
         if (t instanceof StandardException)
@@ -849,7 +849,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
             }
         }
         return handleException(t);
-	}
+    }
 
 
    /*
@@ -861,21 +861,21 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
             myStream.closeStream();
     }
 
-	/**
+    /**
     Following methods are for the new JDBC 3.0 methods in java.sql.Blob
     (see the JDBC 3.0 spec). We have the JDBC 3.0 methods in Local20
     package, so we don't have to have a new class in Local30.
     The new JDBC 3.0 methods don't make use of any new JDBC3.0 classes and
     so this will work fine in jdbc2.0 configuration.
-	*/
+    */
 
-	/////////////////////////////////////////////////////////////////////////
-	//
-	//	JDBC 3.0	-	New public methods
-	//
-	/////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////
+    //
+    //    JDBC 3.0    -    New public methods
+    //
+    /////////////////////////////////////////////////////////////////////////
 
-	/**
+    /**
      * Writes the given array of bytes to the BLOB value that this Blob object
      * represents, starting at position pos, and returns the number of bytes
      * written.
@@ -886,10 +886,10 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
      * @return The number of bytes written to the BLOB.
      * @throws SQLException if writing the bytes to the BLOB fails
      * @since 1.4
-	 */
-	public int setBytes(long pos, byte[] bytes) throws SQLException {
+     */
+    public int setBytes(long pos, byte[] bytes) throws SQLException {
             return setBytes(pos, bytes, 0, bytes.length);
-	}
+    }
 
     /**
      * Writes all or part of the given array of byte array to the BLOB value
@@ -909,7 +909,7 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
      * @throws IndexOutOfBoundsException if {@code len} is larger than
      *       {@code bytes.length - offset}
      * @since 1.4
-	 */
+     */
     public int setBytes(long pos,
             byte[] bytes,
             int offset,
@@ -967,8 +967,8 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
     * @param pos - the position in the BLOB object at which to start writing
     * @return a java.io.OutputStream object to which data can be written 
     * @exception SQLException Feature not implemented for now.
-	*/
-	public java.io.OutputStream setBinaryStream (long pos)
+    */
+    public java.io.OutputStream setBinaryStream (long pos)
                                     throws SQLException {
             checkValidity ();
             if (pos - 1 > length())
@@ -998,9 +998,9 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
             catch (StandardException se) {
                 throw Util.generateCsSQLException (se);
             }
-	}
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Truncates the BLOB value that this Blob object represents to be len bytes
@@ -1009,10 +1009,10 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
     * @param len - the length, in bytes, to which the BLOB value that this Blob
     * object represents should be truncated
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void truncate(long len)
+    */
+    public void truncate(long len)
                                         throws SQLException
-	{
+    {
             if (len > length())
                 throw Util.generateCsSQLException(
                     SQLState.BLOB_LENGTH_TOO_LONG, len);
@@ -1035,11 +1035,11 @@ final class EmbedBlob extends ConnectionChild implements Blob, EngineLOB
             catch (StandardException se) {
                 throw Util.generateCsSQLException (se);
             }
-	}
+    }
 
     /////////////////////////////////////////////////////////////////////////
     //
-    //	JDBC 4.0	-	New public methods
+    //    JDBC 4.0    -    New public methods
     //
     /////////////////////////////////////////////////////////////////////////
     /**

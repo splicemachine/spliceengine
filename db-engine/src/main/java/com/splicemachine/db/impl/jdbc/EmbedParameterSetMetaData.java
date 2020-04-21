@@ -59,19 +59,19 @@ public class EmbedParameterSetMetaData implements EngineParameterMetaData
     private final DataTypeDescriptor[] types;
     private final int paramCount;
 
-	//////////////////////////////////////////////////////////////
-	//
-	// CONSTRUCTORS
-	//
-	//////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////
+    //
+    // CONSTRUCTORS
+    //
+    //////////////////////////////////////////////////////////////
     protected EmbedParameterSetMetaData(ParameterValueSet pvs, DataTypeDescriptor[] types)  {
-		int paramCount;
-		paramCount = pvs.getParameterCount();
-		this.pvs = pvs;
-		this.paramCount = paramCount;
-		this.types = types;
-	}
-	/**
+        int paramCount;
+        paramCount = pvs.getParameterCount();
+        this.pvs = pvs;
+        this.paramCount = paramCount;
+        this.types = types;
+    }
+    /**
     *
     * Retrieves the number of parameters in the PreparedStatement object for which
     * this ParameterMetaData object contains information.
@@ -79,10 +79,10 @@ public class EmbedParameterSetMetaData implements EngineParameterMetaData
     * @return the number of parameters
     */
     public int getParameterCount() {
-   		return paramCount;
+           return paramCount;
     }
 
-	/**
+    /**
     *
     * Retrieves whether null values are allowed in the designated parameter.
     *
@@ -93,15 +93,15 @@ public class EmbedParameterSetMetaData implements EngineParameterMetaData
     * @exception SQLException if a database access error occurs
     */
     public int isNullable(int param) throws SQLException {
-   		checkPosition(param);
+           checkPosition(param);
 
-   		if (types[param - 1].isNullable())
-			return JDBC30Translation.PARAMETER_NULLABLE;
-   		else
-			return JDBC30Translation.PARAMETER_NO_NULLS;
+           if (types[param - 1].isNullable())
+            return JDBC30Translation.PARAMETER_NULLABLE;
+           else
+            return JDBC30Translation.PARAMETER_NO_NULLS;
     }
 
-	/**
+    /**
     *
     * Retrieves whether values for the designated parameter can be signed numbers.
     *
@@ -110,12 +110,12 @@ public class EmbedParameterSetMetaData implements EngineParameterMetaData
     * @exception SQLException if a database access error occurs
     */
     public boolean isSigned(int param) throws SQLException {
-   		checkPosition(param);
+           checkPosition(param);
 
-   		return types[param - 1].getTypeId().isNumericTypeId();
+           return types[param - 1].getTypeId().isNumericTypeId();
     }
 
-	/**
+    /**
     *
     * Retrieves the designated parameter's number of decimal digits.
     *
@@ -124,24 +124,24 @@ public class EmbedParameterSetMetaData implements EngineParameterMetaData
     * @exception SQLException if a database access error occurs
     */
     public int getPrecision(int param) throws SQLException {
-   		checkPosition(param);
+           checkPosition(param);
 
-		int outparamPrecision = -1;
-	   
-   		if (((param == 1) && pvs.hasReturnOutputParameter()))
-		{
-			outparamPrecision = pvs.getPrecision(param);
-		}
+        int outparamPrecision = -1;
+       
+           if (((param == 1) && pvs.hasReturnOutputParameter()))
+        {
+            outparamPrecision = pvs.getPrecision(param);
+        }
 
         if (outparamPrecision == -1)
         {
             return DataTypeUtilities.getPrecision(types[param - 1]);
         }
 
-		return outparamPrecision;
+        return outparamPrecision;
     }
-		
-	/**
+        
+    /**
     *
     * Retrieves the designated parameter's number of digits to right of the decimal point.
     *
@@ -150,15 +150,15 @@ public class EmbedParameterSetMetaData implements EngineParameterMetaData
     * @exception SQLException if a database access error occurs
     */
     public int getScale(int param) throws SQLException {
-   		checkPosition(param);
+           checkPosition(param);
 
-		if (((param == 1) && pvs.hasReturnOutputParameter()))
-			return pvs.getScale(param);
-   		return types[param - 1].getScale();
+        if (((param == 1) && pvs.hasReturnOutputParameter()))
+            return pvs.getScale(param);
+           return types[param - 1].getScale();
 
     }
 
-	/**
+    /**
     *
     * Retrieves the designated parameter's SQL type.
     *
@@ -167,12 +167,12 @@ public class EmbedParameterSetMetaData implements EngineParameterMetaData
     * @exception SQLException if a database access error occurs
     */
     public int getParameterType(int param) throws SQLException {
-   		checkPosition(param);
+           checkPosition(param);
 
-   		return types[param - 1].getTypeId().getJDBCTypeId();
+           return types[param - 1].getTypeId().getJDBCTypeId();
     }
 
-	/**
+    /**
     *
     * Retrieves the designated parameter's database-specific type name.
     *
@@ -182,12 +182,12 @@ public class EmbedParameterSetMetaData implements EngineParameterMetaData
     * @exception SQLException if a database access error occurs
     */
     public String getParameterTypeName(int param) throws SQLException {
-   		checkPosition(param);
+           checkPosition(param);
 
-   		return types[param - 1].getTypeId().getSQLTypeName();
+           return types[param - 1].getTypeId().getSQLTypeName();
     }
 
-	/**
+    /**
     *
     * Retrieves the fully-qualified name of the Java class whose instances should be
     * passed to the method PreparedStatement.setObject.
@@ -200,12 +200,12 @@ public class EmbedParameterSetMetaData implements EngineParameterMetaData
     * @exception SQLException if a database access error occurs
     */
     public String getParameterClassName(int param) throws SQLException {
-   		checkPosition(param);
+           checkPosition(param);
 
-   		return types[param - 1].getTypeId().getResultSetMetaDataTypeName();
+           return types[param - 1].getTypeId().getResultSetMetaDataTypeName();
     }
 
-	/**
+    /**
     *
     * Retrieves the designated parameter's mode.
     *
@@ -216,28 +216,28 @@ public class EmbedParameterSetMetaData implements EngineParameterMetaData
     * @exception SQLException if a database access error occurs
     */
     public int getParameterMode(int param) throws SQLException {
-   		checkPosition(param);
+           checkPosition(param);
 
-   		//bug 4857 - only the return parameter is of type OUT. All the other output
-   		//parameter are IN_OUT (it doesn't matter if their value is set or not).
-   		if ((param == 1) && pvs.hasReturnOutputParameter())//only the first parameter can be of return type
-				return JDBC30Translation.PARAMETER_MODE_OUT;
-   		return pvs.getParameterMode(param);
+           //bug 4857 - only the return parameter is of type OUT. All the other output
+           //parameter are IN_OUT (it doesn't matter if their value is set or not).
+           if ((param == 1) && pvs.hasReturnOutputParameter())//only the first parameter can be of return type
+                return JDBC30Translation.PARAMETER_MODE_OUT;
+           return pvs.getParameterMode(param);
     }
 
 
     // Check the position number for a parameter and throw an exception if
     // it is out of range.
     private void checkPosition(int parameterIndex) throws SQLException {
-   		/* Check that the parameterIndex is in range. */
-   		if (parameterIndex < 1 ||
-				parameterIndex > paramCount) {
+           /* Check that the parameterIndex is in range. */
+           if (parameterIndex < 1 ||
+                parameterIndex > paramCount) {
 
-			/* This message matches the one used by the DBMS */
-			throw Util.generateCsSQLException(
+            /* This message matches the one used by the DBMS */
+            throw Util.generateCsSQLException(
             SQLState.LANG_INVALID_PARAM_POSITION,
                     parameterIndex, paramCount);
-		}
+        }
     }
 }
 

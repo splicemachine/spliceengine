@@ -39,19 +39,19 @@ import javax.transaction.xa.Xid;
 class DRDAXid implements Xid
 {
 
-	private final int format_id;
-	private final byte[] global_id;
-	private final byte[] branch_id;
+    private final int format_id;
+    private final byte[] global_id;
+    private final byte[] branch_id;
 
 
-	DRDAXid(int formatid, byte[] globalid, byte[] branchid)
-	{
+    DRDAXid(int formatid, byte[] globalid, byte[] branchid)
+    {
 
-		format_id = formatid;
-		global_id = globalid;
-		branch_id = branchid;
-		
-	}
+        format_id = formatid;
+        global_id = globalid;
+        branch_id = branchid;
+        
+    }
 
     /**
      * Obtain the format id part of the Xid.
@@ -69,7 +69,7 @@ class DRDAXid implements Xid
      * bytes.
      * <p>
      *
-	 * @return A byte array containing the global transaction identifier.
+     * @return A byte array containing the global transaction identifier.
      **/
     public byte[] getGlobalTransactionId()
     {
@@ -80,47 +80,47 @@ class DRDAXid implements Xid
      * Obtain the transaction branch qualifier part of the Xid in a byte array.
      * <p>
      *
-	 * @return A byte array containing the branch qualifier of the transaction.
+     * @return A byte array containing the branch qualifier of the transaction.
      **/
     public byte[] getBranchQualifier()
     {
         return(branch_id);
     }
 
-	public String toString()
-	{
+    public String toString()
+    {
 
-		return "{DRDAXid: " +
+        return "{DRDAXid: " +
             "formatId("     + format_id   + "), " +
             "globalTransactionId(" +  convertToHexString(global_id) + ")" +
             "branchQualifier(" +  convertToHexString(branch_id) + ")";
-	}
+    }
 
 
-	/**
-	 * convert byte array to a Hex string
-	 * 
-	 * @param buf buffer to  convert
-	 * @return hex string representation of byte array
-	 */
-	private static String convertToHexString(byte [] buf)
-	{
-		if (buf == null)
-			return null;
-		StringBuilder str = new StringBuilder();
-		str.append("0x");
-		String val;
-		int byteVal;
-		for (int i = 0; i < buf.length; i++)
-		{
-			byteVal = buf[i] & 0xff;
-			val = Integer.toHexString(byteVal);
-			if (val.length() < 2)
-				str.append("0");
-			str.append(val);
-		}
-		return str.toString();
-	}
+    /**
+     * convert byte array to a Hex string
+     * 
+     * @param buf buffer to  convert
+     * @return hex string representation of byte array
+     */
+    private static String convertToHexString(byte [] buf)
+    {
+        if (buf == null)
+            return null;
+        StringBuilder str = new StringBuilder();
+        str.append("0x");
+        String val;
+        int byteVal;
+        for (int i = 0; i < buf.length; i++)
+        {
+            byteVal = buf[i] & 0xff;
+            val = Integer.toHexString(byteVal);
+            if (val.length() < 2)
+                str.append("0");
+            str.append(val);
+        }
+        return str.toString();
+    }
 }
 
 

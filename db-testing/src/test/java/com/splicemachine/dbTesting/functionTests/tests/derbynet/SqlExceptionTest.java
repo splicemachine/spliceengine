@@ -299,10 +299,10 @@ public class SqlExceptionTest extends BaseJDBCTestCase
     }
 
     public static Test suite() {
-    	if ( JDBC.vmSupportsJSR169())
-    		// see DERBY-2157 for details
-    		return new TestSuite("empty SqlExceptionTest - client not supported on JSR169");
-    	else
+        if ( JDBC.vmSupportsJSR169())
+            // see DERBY-2157 for details
+            return new TestSuite("empty SqlExceptionTest - client not supported on JSR169");
+        else
         {
             Test test = TestConfiguration.defaultSuite(SqlExceptionTest.class);
             return test;

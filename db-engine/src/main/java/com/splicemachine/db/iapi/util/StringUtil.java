@@ -373,12 +373,12 @@ public class StringUtil{
         String result=source;
         int index;
 
-		/* Find the first occurrence of adjacent quotes. */
+        /* Find the first occurrence of adjacent quotes. */
         index=result.indexOf(quotes);
 
-		/* Replace each occurrence with a single quote and begin the
+        /* Replace each occurrence with a single quote and begin the
          * search for the next occurrence from where we left off.
-		 */
+         */
         while(index!=-1){
             result=result.substring(0,index+1)+ result.substring(index+2);
             index=result.indexOf(quotes,index+1);
@@ -451,10 +451,10 @@ public class StringUtil{
             return indent.toString()+"null";
         }
 
-		/*
-		 * Sadly, we can't use java.util.regexp here since it's not supported
-		 * by Foundation 1.1
-		 */
+        /*
+         * Sadly, we can't use java.util.regexp here since it's not supported
+         * by Foundation 1.1
+         */
 
         formatted=doRegExpA(formatted,indent.toString());
 

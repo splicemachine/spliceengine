@@ -34,36 +34,36 @@ package com.splicemachine.db.iapi.services.io;
 import java.io.OutputStream;
 
 /**
-	An OutputStream that simply discards all data written to it.
+    An OutputStream that simply discards all data written to it.
 */
 
 public final class NullOutputStream extends OutputStream {
 
-	/*
-	** Methods of OutputStream
-	*/
+    /*
+    ** Methods of OutputStream
+    */
 
-	/**
-		Discard the data.
+    /**
+        Discard the data.
 
-		@see OutputStream#write
-	*/
-	public  void write(int b)  {
-	}
+        @see OutputStream#write
+    */
+    public  void write(int b)  {
+    }
 
-	/**
-		Discard the data.
+    /**
+        Discard the data.
 
-		@see OutputStream#write
-	*/
-	public void write(byte b[]) {
-	}
+        @see OutputStream#write
+    */
+    public void write(byte b[]) {
+    }
 
-	/**
-		Discard the data.
+    /**
+        Discard the data.
 
-		@see OutputStream#write
-	*/
-	public void write(byte b[], int off, int len)  {
-	}
+        @see OutputStream#write
+    */
+    public void write(byte b[], int off, int len)  {
+    }
 }

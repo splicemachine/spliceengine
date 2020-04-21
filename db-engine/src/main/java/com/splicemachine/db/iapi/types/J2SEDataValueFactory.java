@@ -44,50 +44,50 @@ import com.splicemachine.db.iapi.error.StandardException;
  */
 public class J2SEDataValueFactory extends DataValueFactoryImpl
 {
-	public J2SEDataValueFactory() {
-	}
+    public J2SEDataValueFactory() {
+    }
 
-   	public void boot(boolean create, Properties properties) throws StandardException {
-   		
-    	super.boot(create, properties);
-   	}
-	
-	public NumberDataValue getDecimalDataValue(Long value,
-			NumberDataValue previous) throws StandardException {
-		if (previous == null)
-			previous = new SQLDecimal();
+       public void boot(boolean create, Properties properties) throws StandardException {
+           
+        super.boot(create, properties);
+       }
+    
+    public NumberDataValue getDecimalDataValue(Long value,
+            NumberDataValue previous) throws StandardException {
+        if (previous == null)
+            previous = new SQLDecimal();
 
-		previous.setValue(value);
-		return previous;
-	}
+        previous.setValue(value);
+        return previous;
+    }
 
-	public NumberDataValue getDecimalDataValue(String value)
-			throws StandardException {
-		if (value != null)
-			return new SQLDecimal(value);
-		else
-			return new SQLDecimal();
-	}
+    public NumberDataValue getDecimalDataValue(String value)
+            throws StandardException {
+        if (value != null)
+            return new SQLDecimal(value);
+        else
+            return new SQLDecimal();
+    }
 
-	public NumberDataValue getNullDecimal(NumberDataValue dataValue) {
-		if (dataValue == null) {
-			return new SQLDecimal();
-		} else {
-			dataValue.setToNull();
-			return dataValue;
-		}
-	}
+    public NumberDataValue getNullDecimal(NumberDataValue dataValue) {
+        if (dataValue == null) {
+            return new SQLDecimal();
+        } else {
+            dataValue.setToNull();
+            return dataValue;
+        }
+    }
 
-	public NumberDataValue getNullDecimal(NumberDataValue dataValue, int precision, int scale) {
-		if (dataValue == null) {
-			SQLDecimal sqlDecimal = new SQLDecimal();
-			sqlDecimal.setPrecision(precision);
-			sqlDecimal.setScale(scale);
-			return sqlDecimal;
-		} else {
-			dataValue.setToNull();
-			return dataValue;
-		}
-	}
+    public NumberDataValue getNullDecimal(NumberDataValue dataValue, int precision, int scale) {
+        if (dataValue == null) {
+            SQLDecimal sqlDecimal = new SQLDecimal();
+            sqlDecimal.setPrecision(precision);
+            sqlDecimal.setScale(scale);
+            return sqlDecimal;
+        } else {
+            dataValue.setToNull();
+            return dataValue;
+        }
+    }
 
 }

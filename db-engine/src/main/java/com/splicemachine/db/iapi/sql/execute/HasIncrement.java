@@ -35,16 +35,16 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 public interface HasIncrement {
 
-	/**
-	 * increment will get the auto-incremented value of the columnPosition
+    /**
+     * increment will get the auto-incremented value of the columnPosition
    * specified for the target table. If increment is non-zero we will also update
    * the autoincrement value.
    *
-   * @param columnPosition	position of the column in the table (1-based)
-   * @param increment				the amount to increment by
+   * @param columnPosition    position of the column in the table (1-based)
+   * @param increment                the amount to increment by
    *
    * @throws StandardException if anything goes wrong
-	 */
-	DataValueDescriptor increment(int columnPosition, long increment)
-		throws StandardException;
+     */
+    DataValueDescriptor increment(int columnPosition, long increment)
+        throws StandardException;
 }

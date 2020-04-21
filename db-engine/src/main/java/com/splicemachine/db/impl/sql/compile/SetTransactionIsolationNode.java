@@ -49,69 +49,69 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
 public class SetTransactionIsolationNode extends TransactionStatementNode
 {
-	private int		isolationLevel;
+    private int        isolationLevel;
 
-	/**
-	 * Initializer for SetTransactionIsolationNode
-	 *
-	 * @param isolationLevel		The new isolation level
-	 */
-	public void init(Object isolationLevel)
-	{
-		this.isolationLevel = (Integer) isolationLevel;
-	}
+    /**
+     * Initializer for SetTransactionIsolationNode
+     *
+     * @param isolationLevel        The new isolation level
+     */
+    public void init(Object isolationLevel)
+    {
+        this.isolationLevel = (Integer) isolationLevel;
+    }
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			return "isolationLevel: " + isolationLevel + "\n" +
-				super.toString();
-		}
-		else
-		{
-			return "";
-		}
-	}
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            return "isolationLevel: " + isolationLevel + "\n" +
+                super.toString();
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	public String statementToString()
-	{
-		return "SET TRANSACTION ISOLATION";
-	}
+    public String statementToString()
+    {
+        return "SET TRANSACTION ISOLATION";
+    }
 
-	/**
-	 * generates a the code.
-	 *
-	 * @param acb the activation class builder for this statement
-	 * @param mb	The method for the method to be built
-	 * @exception StandardException thrown if generation fails
-	 */
-	public void generate(ActivationClassBuilder acb,
-								MethodBuilder mb)
-							throws StandardException
-	{
-		acb.pushGetResultSetFactoryExpression(mb);
+    /**
+     * generates a the code.
+     *
+     * @param acb the activation class builder for this statement
+     * @param mb    The method for the method to be built
+     * @exception StandardException thrown if generation fails
+     */
+    public void generate(ActivationClassBuilder acb,
+                                MethodBuilder mb)
+                            throws StandardException
+    {
+        acb.pushGetResultSetFactoryExpression(mb);
 
-		acb.pushThisAsActivation(mb);
+        acb.pushThisAsActivation(mb);
 
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getSetTransactionResultSet", ClassName.ResultSet, 1);
-	}
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getSetTransactionResultSet", ClassName.ResultSet, 1);
+    }
 
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public ConstantAction	makeConstantAction() throws StandardException
-	{
-		return getGenericConstantActionFactory().getSetTransactionIsolationConstantAction(isolationLevel);
-	}
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public ConstantAction    makeConstantAction() throws StandardException
+    {
+        return getGenericConstantActionFactory().getSetTransactionIsolationConstantAction(isolationLevel);
+    }
 }

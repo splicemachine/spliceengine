@@ -47,271 +47,271 @@ import java.io.ObjectInput;
 import java.io.IOException;
 
 /**
- *	This is the Column descriptor that is passed from Compilation to Execution
- *	for CREATE TABLE statements.
+ *    This is the Column descriptor that is passed from Compilation to Execution
+ *    for CREATE TABLE statements.
  *
- *	@version 0.1
+ *    @version 0.1
  */
 
 public class ColumnInfo implements Formatable {
-	/********************************************************
-	**
-	**	This class implements Formatable. That means that it
-	**	can write itself to and from a formatted stream. If
-	**	you add more fields to this class, make sure that you
-	**	also write/read them with the writeExternal()/readExternal()
-	**	methods.
-	**
-	**	If, inbetween releases, you add more fields to this class,
-	**	then you should bump the version number emitted by the getTypeFormatId()
-	**	method.
-	**
-	********************************************************/
+    /********************************************************
+    **
+    **    This class implements Formatable. That means that it
+    **    can write itself to and from a formatted stream. If
+    **    you add more fields to this class, make sure that you
+    **    also write/read them with the writeExternal()/readExternal()
+    **    methods.
+    **
+    **    If, inbetween releases, you add more fields to this class,
+    **    then you should bump the version number emitted by the getTypeFormatId()
+    **    method.
+    **
+    ********************************************************/
 
-	public  int							action;
-	public	String						name;
-	public	DataTypeDescriptor			dataType;
-	public	DefaultInfo					defaultInfo;
+    public  int                            action;
+    public    String                        name;
+    public    DataTypeDescriptor            dataType;
+    public    DefaultInfo                    defaultInfo;
     public    ProviderInfo[]            providers;
-	public	DataValueDescriptor			defaultValue;
-	public	UUID						newDefaultUUID;
-	public	UUID						oldDefaultUUID;
-	// autoinc columns.
-	public long 						autoincStart;
-	public long 						autoincInc;
-	//if this is an autoincrement column, then following variable will have CREATE or
-	//MODIFY_COLUMN_DEFAULT_RESTART or MODIFY_COLUMN_DEFAULT_INCREMENT. Otherwise,
-	//this variable will be set to -1.
-	public long 						autoinc_create_or_modify_Start_Increment = -1;
-	public int 							partitionPosition;
+    public    DataValueDescriptor            defaultValue;
+    public    UUID                        newDefaultUUID;
+    public    UUID                        oldDefaultUUID;
+    // autoinc columns.
+    public long                         autoincStart;
+    public long                         autoincInc;
+    //if this is an autoincrement column, then following variable will have CREATE or
+    //MODIFY_COLUMN_DEFAULT_RESTART or MODIFY_COLUMN_DEFAULT_INCREMENT. Otherwise,
+    //this variable will be set to -1.
+    public long                         autoinc_create_or_modify_Start_Increment = -1;
+    public int                             partitionPosition;
 
-	//This indicates column is for CREATE TABLE
-	public static final int CREATE					= 0;
-	public static final int DROP					= 1;
-	public static final int MODIFY_COLUMN_TYPE      = 2;
-	public static final int MODIFY_COLUMN_CONSTRAINT = 3;
-	public static final int MODIFY_COLUMN_CONSTRAINT_NOT_NULL = 4;
-	//This indicates column is for ALTER TABLE to change the start value of autoinc column 
-	public static final int MODIFY_COLUMN_DEFAULT_RESTART	= 5;
-	//This indicates column is for ALTER TABLE to change the increment value of autoinc column 
-	public static final int MODIFY_COLUMN_DEFAULT_INCREMENT	= 6;
-	public static final int MODIFY_COLUMN_DEFAULT_VALUE	= 7;
-	public static final int MODIFY_COLUMN_PARTITION_POSITION	= 8;
+    //This indicates column is for CREATE TABLE
+    public static final int CREATE                    = 0;
+    public static final int DROP                    = 1;
+    public static final int MODIFY_COLUMN_TYPE      = 2;
+    public static final int MODIFY_COLUMN_CONSTRAINT = 3;
+    public static final int MODIFY_COLUMN_CONSTRAINT_NOT_NULL = 4;
+    //This indicates column is for ALTER TABLE to change the start value of autoinc column 
+    public static final int MODIFY_COLUMN_DEFAULT_RESTART    = 5;
+    //This indicates column is for ALTER TABLE to change the increment value of autoinc column 
+    public static final int MODIFY_COLUMN_DEFAULT_INCREMENT    = 6;
+    public static final int MODIFY_COLUMN_DEFAULT_VALUE    = 7;
+    public static final int MODIFY_COLUMN_PARTITION_POSITION    = 8;
 
-	// CONSTRUCTORS
+    // CONSTRUCTORS
 
-	/**
-	 * Public niladic constructor. Needed for Formatable interface to work.
-	 *
-	 */
-    public	ColumnInfo() {}
+    /**
+     * Public niladic constructor. Needed for Formatable interface to work.
+     *
+     */
+    public    ColumnInfo() {}
 
-	/**
-	 *	Make one of these puppies.
-	 *
-	 *  @param name			Column name.
-	 *  @param dataType		Column type.
-	 *  @param defaultValue	Column default value.
-	 *  @param defaultInfo	Column default info.
-	 *  @param providers   Array of providers that this column depends on.
-	 *  @param newDefaultUUID	New UUID for default.
-	 *  @param oldDefaultUUID	Old UUID for default.
-	 *	@param action		Action (create, modify default, etc.)
-	 * 	@param autoincStart Start of autoincrement values.
-	 *  @param autoincInc	Increment of autoincrement values-- if parameter
-	 *						is 0, it implies that this is not an autoincrement
-	 *						value.
-	 */
-	public	ColumnInfo(
-		               String						name,
-					   DataTypeDescriptor			dataType,
-					   DataValueDescriptor			defaultValue,
-					   DefaultInfo					defaultInfo,
-					   ProviderInfo[]					providers,
-					   UUID							newDefaultUUID,
-					   UUID							oldDefaultUUID,
-					   int							action,
-					   long							autoincStart,
-					   long							autoincInc,
-					   long							autoinc_create_or_modify_Start_Increment,
-					   int 							partitionPosition)
-	{
-		this.name = name;
-		this.dataType = dataType;
-		this.defaultValue = defaultValue;
-		this.defaultInfo = defaultInfo;
+    /**
+     *    Make one of these puppies.
+     *
+     *  @param name            Column name.
+     *  @param dataType        Column type.
+     *  @param defaultValue    Column default value.
+     *  @param defaultInfo    Column default info.
+     *  @param providers   Array of providers that this column depends on.
+     *  @param newDefaultUUID    New UUID for default.
+     *  @param oldDefaultUUID    Old UUID for default.
+     *    @param action        Action (create, modify default, etc.)
+     *     @param autoincStart Start of autoincrement values.
+     *  @param autoincInc    Increment of autoincrement values-- if parameter
+     *                        is 0, it implies that this is not an autoincrement
+     *                        value.
+     */
+    public    ColumnInfo(
+                       String                        name,
+                       DataTypeDescriptor            dataType,
+                       DataValueDescriptor            defaultValue,
+                       DefaultInfo                    defaultInfo,
+                       ProviderInfo[]                    providers,
+                       UUID                            newDefaultUUID,
+                       UUID                            oldDefaultUUID,
+                       int                            action,
+                       long                            autoincStart,
+                       long                            autoincInc,
+                       long                            autoinc_create_or_modify_Start_Increment,
+                       int                             partitionPosition)
+    {
+        this.name = name;
+        this.dataType = dataType;
+        this.defaultValue = defaultValue;
+        this.defaultInfo = defaultInfo;
         this.providers = providers;
-		this.newDefaultUUID = newDefaultUUID;
-		this.oldDefaultUUID = oldDefaultUUID;
-		this.action = action;
-		this.autoincStart = autoincStart;
-		this.autoincInc = autoincInc;
-		this.autoinc_create_or_modify_Start_Increment = autoinc_create_or_modify_Start_Increment;
-		this.partitionPosition = partitionPosition;
-	}
+        this.newDefaultUUID = newDefaultUUID;
+        this.oldDefaultUUID = oldDefaultUUID;
+        this.action = action;
+        this.autoincStart = autoincStart;
+        this.autoincInc = autoincInc;
+        this.autoinc_create_or_modify_Start_Increment = autoinc_create_or_modify_Start_Increment;
+        this.partitionPosition = partitionPosition;
+    }
 
-	// Formatable methods
+    // Formatable methods
 
-	/**
-	 * Read this object from a stream of stored objects.
-	 *
-	 * @param in read this.
-	 *
-	 * @exception IOException					thrown on error
-	 * @exception ClassNotFoundException		thrown on error
-	 */
-	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException {
+    /**
+     * Read this object from a stream of stored objects.
+     *
+     * @param in read this.
+     *
+     * @exception IOException                    thrown on error
+     * @exception ClassNotFoundException        thrown on error
+     */
+    public void readExternal( ObjectInput in )
+         throws IOException, ClassNotFoundException {
 
-		name = in.readUTF();
-		dataType = (DataTypeDescriptor) in.readObject();
-		defaultValue = (DataValueDescriptor) in.readObject();
-		defaultInfo = (DefaultInfo) in.readObject();
-		newDefaultUUID = (UUID) in.readObject();
-		oldDefaultUUID = (UUID)in.readObject();
-		action = in.readInt();
-		autoincStart = in.readLong();
-		autoincInc = in.readLong();
-		providers = new ProviderInfo[in.readInt()];
-		for (int i = 0; i< providers.length;i++) {
-			providers[i] = (ProviderInfo) in.readObject();
-		}
-	}
+        name = in.readUTF();
+        dataType = (DataTypeDescriptor) in.readObject();
+        defaultValue = (DataValueDescriptor) in.readObject();
+        defaultInfo = (DefaultInfo) in.readObject();
+        newDefaultUUID = (UUID) in.readObject();
+        oldDefaultUUID = (UUID)in.readObject();
+        action = in.readInt();
+        autoincStart = in.readLong();
+        autoincInc = in.readLong();
+        providers = new ProviderInfo[in.readInt()];
+        for (int i = 0; i< providers.length;i++) {
+            providers[i] = (ProviderInfo) in.readObject();
+        }
+    }
 
-	/**
-	 * Write this object to a stream of stored objects.
-	 *
-	 * @param out write bytes here.
-	 *
-	 * @exception IOException		thrown on error
-	 */
-	public void writeExternal( ObjectOutput out )
-		 throws IOException {
-		out.writeUTF(name);
-		out.writeObject(dataType);
-		out.writeObject(defaultValue);
-		out.writeObject(defaultInfo);
-		out.writeObject(newDefaultUUID);
-		out.writeObject(oldDefaultUUID);
-		out.writeInt(action);
-		out.writeLong(autoincStart);
-		out.writeLong(autoincInc);
-		int providerLength = providers==null?0:providers.length;
-		out.writeInt(providerLength);
-		for (int i = 0; i< providerLength;i++) {
-			out.writeObject(providers[i]);
-		}
-	}
+    /**
+     * Write this object to a stream of stored objects.
+     *
+     * @param out write bytes here.
+     *
+     * @exception IOException        thrown on error
+     */
+    public void writeExternal( ObjectOutput out )
+         throws IOException {
+        out.writeUTF(name);
+        out.writeObject(dataType);
+        out.writeObject(defaultValue);
+        out.writeObject(defaultInfo);
+        out.writeObject(newDefaultUUID);
+        out.writeObject(oldDefaultUUID);
+        out.writeInt(action);
+        out.writeLong(autoincStart);
+        out.writeLong(autoincInc);
+        int providerLength = providers==null?0:providers.length;
+        out.writeInt(providerLength);
+        for (int i = 0; i< providerLength;i++) {
+            out.writeObject(providers[i]);
+        }
+    }
  
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.COLUMN_INFO_V02_ID; }
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId()    { return StoredFormatIds.COLUMN_INFO_V02_ID; }
 
-	/*
-	  Object methods.
-	  */
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			String	traceName;
-			String  traceDataType;
-			String  traceDefaultValue;
-			String  traceDefaultInfo;
-			String  traceNewDefaultUUID;
-			String  traceOldDefaultUUID;
-			String  traceAction;
-			String  traceAI;
-			if (name == null)
-			{
-				traceName = "name: null ";
-			}
-			else
-			{
-				traceName = "name: "+name+" ";
-			}
+    /*
+      Object methods.
+      */
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            String    traceName;
+            String  traceDataType;
+            String  traceDefaultValue;
+            String  traceDefaultInfo;
+            String  traceNewDefaultUUID;
+            String  traceOldDefaultUUID;
+            String  traceAction;
+            String  traceAI;
+            if (name == null)
+            {
+                traceName = "name: null ";
+            }
+            else
+            {
+                traceName = "name: "+name+" ";
+            }
 
-			if (dataType == null)
-			{
-				traceDataType = "dataType: null ";
-			}
-			else
-			{
-				traceDataType = "dataType: "+dataType+" ";
-			}
+            if (dataType == null)
+            {
+                traceDataType = "dataType: null ";
+            }
+            else
+            {
+                traceDataType = "dataType: "+dataType+" ";
+            }
 
-			if (defaultValue == null)
-			{
-				traceDefaultValue = "defaultValue: null ";
-			}
-			else
-			{
-				traceDefaultValue = "defaultValue: "+defaultValue+" ";
-			}
+            if (defaultValue == null)
+            {
+                traceDefaultValue = "defaultValue: null ";
+            }
+            else
+            {
+                traceDefaultValue = "defaultValue: "+defaultValue+" ";
+            }
 
-			if (defaultInfo == null)
-			{
-				traceDefaultInfo = "defaultInfo: null ";
-			}
-			else
-			{
-				traceDefaultInfo = "defaultInfo: "+defaultInfo+" ";
-			}
+            if (defaultInfo == null)
+            {
+                traceDefaultInfo = "defaultInfo: null ";
+            }
+            else
+            {
+                traceDefaultInfo = "defaultInfo: "+defaultInfo+" ";
+            }
 
-			if (newDefaultUUID == null)
-			{
-				traceNewDefaultUUID = "newDefaultUUID: null ";
-			}
-			else
-			{
-				traceNewDefaultUUID = "newDefaultUUID: "+newDefaultUUID+" ";
-			}
+            if (newDefaultUUID == null)
+            {
+                traceNewDefaultUUID = "newDefaultUUID: null ";
+            }
+            else
+            {
+                traceNewDefaultUUID = "newDefaultUUID: "+newDefaultUUID+" ";
+            }
 
-			if (oldDefaultUUID == null)
-			{
-				traceOldDefaultUUID = "oldDefaultUUID: null ";
-			}
-			else
-			{
-				traceOldDefaultUUID = "oldDefaultUUID: "+oldDefaultUUID+" ";
-			}
+            if (oldDefaultUUID == null)
+            {
+                traceOldDefaultUUID = "oldDefaultUUID: null ";
+            }
+            else
+            {
+                traceOldDefaultUUID = "oldDefaultUUID: "+oldDefaultUUID+" ";
+            }
 
-			traceAction = "action: "+action+" ";
+            traceAction = "action: "+action+" ";
 
-			if (autoincInc != 0)
-			{
-				traceAI = "autoincrement, start: " + autoincStart +
-					" increment:" + autoincInc;
-			}
-			else
-			{
-				traceAI = "NOT autoincrement";
-			}
-			return "ColumnInfo: ("+traceName+traceDataType+traceDefaultValue+
-							   traceDefaultInfo+traceNewDefaultUUID+traceOldDefaultUUID+traceAction+traceAI+")";
-		}
-		else
-		{
-			return "";
-		}
-	}
+            if (autoincInc != 0)
+            {
+                traceAI = "autoincrement, start: " + autoincStart +
+                    " increment:" + autoincInc;
+            }
+            else
+            {
+                traceAI = "NOT autoincrement";
+            }
+            return "ColumnInfo: ("+traceName+traceDataType+traceDefaultValue+
+                               traceDefaultInfo+traceNewDefaultUUID+traceOldDefaultUUID+traceAction+traceAI+")";
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	public ColumnInfo clone() {
-		return new ColumnInfo(
-				name,
-				dataType,
-				defaultValue,
-				defaultInfo,
-				providers,
-				newDefaultUUID,
-				oldDefaultUUID,
-				action,
-				autoincStart,
-				autoincInc,
-				autoinc_create_or_modify_Start_Increment,
-				partitionPosition);
-	}
+    public ColumnInfo clone() {
+        return new ColumnInfo(
+                name,
+                dataType,
+                defaultValue,
+                defaultInfo,
+                providers,
+                newDefaultUUID,
+                oldDefaultUUID,
+                action,
+                autoincStart,
+                autoincInc,
+                autoinc_create_or_modify_Start_Increment,
+                partitionPosition);
+    }
 }

@@ -39,38 +39,38 @@ import com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup;
 import com.splicemachine.dbTesting.junit.TestConfiguration;
 
 /**
- *	Test that runs the SURTest_ij.sql script and compares the output 
- *	to SURTest_ij.out.
+ *    Test that runs the SURTest_ij.sql script and compares the output 
+ *    to SURTest_ij.out.
  */
 public final class SURijTest extends ScriptTestCase {
 
-	/**
-	 * The test script
-	 */
-	private static final String[] TESTS = { "SURTest_ij" };
-	
-	
-	/**
-	 * Constructor that runs a single script.
-	 * 
-	 * @param script - the name of the script
-	 */
-	private SURijTest(String script) {
-		super(script);
-	}
+    /**
+     * The test script
+     */
+    private static final String[] TESTS = { "SURTest_ij" };
+    
+    
+    /**
+     * Constructor that runs a single script.
+     * 
+     * @param script - the name of the script
+     */
+    private SURijTest(String script) {
+        super(script);
+    }
 
-	
-	/**
-	 * Return the suite that runs the script.
-	 */
-	public static Test suite() {
+    
+    /**
+     * Return the suite that runs the script.
+     */
+    public static Test suite() {
 
-		TestSuite suite = new TestSuite("SURijTest");
-		suite.addTest(TestConfiguration
-				.clientServerDecorator(new CleanDatabaseTestSetup(
-						new SURijTest(TESTS[0]))));
+        TestSuite suite = new TestSuite("SURijTest");
+        suite.addTest(TestConfiguration
+                .clientServerDecorator(new CleanDatabaseTestSetup(
+                        new SURijTest(TESTS[0]))));
         suite.addTest(new CleanDatabaseTestSetup(
                         new SURijTest(TESTS[0])));
-		return suite;
-	}
+        return suite;
+    }
 }

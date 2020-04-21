@@ -34,7 +34,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  *         Created on: 4/29/13
  */
 public class CreateConstraintAction extends CreateConstraintConstantAction {
-	private static final Logger LOG = Logger.getLogger(CreateConstraintAction.class);
+    private static final Logger LOG = Logger.getLogger(CreateConstraintAction.class);
     /**
      * Make one of these puppies.
      *
@@ -56,12 +56,12 @@ public class CreateConstraintAction extends CreateConstraintConstantAction {
      */
     public CreateConstraintAction(String constraintName, int constraintType, boolean forCreateTable, String tableName, UUID tableId, String schemaName, String[] columnNames, ConstantAction indexAction, String constraintText, boolean enabled, ConstraintInfo otherConstraint, ProviderInfo[] providerInfo) {
         super(constraintName, constraintType, forCreateTable, tableName, tableId, schemaName, columnNames, indexAction, constraintText, enabled, otherConstraint, providerInfo);
-    	SpliceLogUtils.trace(LOG, "CreateConstraintAction with name %s for table %s",constraintName,tableName);
+        SpliceLogUtils.trace(LOG, "CreateConstraintAction with name %s for table %s",constraintName,tableName);
     }
 
     @Override
     protected UUID manageIndexAction(TableDescriptor td, UUIDFactory uuidFactory, Activation activation) throws StandardException {
-    	SpliceLogUtils.trace(LOG, "manageIndexAction for table %s with activation %s",td,activation);
+        SpliceLogUtils.trace(LOG, "manageIndexAction for table %s with activation %s",td,activation);
         if(indexAction instanceof CreateIndexConstantOperation){
             String backingIndexName;
             CreateIndexConstantOperation cio = (CreateIndexConstantOperation)indexAction;

@@ -79,32 +79,32 @@ public final class SecurityManagerSetup extends TestSetup {
         JVM_HAS_SUBJECT_AUTHORIZATION = JDBC.haveClass("javax.security.auth.Subject");
     }
     
-	
-	private static final Properties classPathSet = new Properties();
+    
+    private static final Properties classPathSet = new Properties();
     
     /**
      * True if the classes are loaded from jars.
      */
     static boolean isJars;
-	
-	/**
-	 * True if a security manager was installed outside of the
-	 * control of this class and BaseTestCase.
-	 */
-	private static final boolean externalSecurityManagerInstalled;
-	
-	static {
-		// Determine what the set of properties
-		// describing the environment is.
-		externalSecurityManagerInstalled = determineClasspath();
+    
+    /**
+     * True if a security manager was installed outside of the
+     * control of this class and BaseTestCase.
+     */
+    private static final boolean externalSecurityManagerInstalled;
+    
+    static {
+        // Determine what the set of properties
+        // describing the environment is.
+        externalSecurityManagerInstalled = determineClasspath();
         
-	}
-	
-	private final String decoratorPolicyResource;
+    }
+    
+    private final String decoratorPolicyResource;
     /** An additional policy to install (may be {@code null}). */
     private final String additionalPolicyResource;
-	private SecurityManager decoratorSecurityManager = null;
-	
+    private SecurityManager decoratorSecurityManager = null;
+    
     public SecurityManagerSetup(Test test, String policyResource) {
         this(test, policyResource, false);
     }
@@ -132,61 +132,61 @@ public final class SecurityManagerSetup extends TestSetup {
         }
     }
 
-	/**
-	 * Use custom policy and SecurityManager
-	 * 
-	 * @param test - Test to wrap
-	 * @param policyResource - policy resource. If null use default testing policy
-	 * @param securityManager - Custom SecurityManager if null use the system security manager
-	 */
-	public SecurityManagerSetup(Test test, String policyResource, SecurityManager securityManager)
-	{
+    /**
+     * Use custom policy and SecurityManager
+     * 
+     * @param test - Test to wrap
+     * @param policyResource - policy resource. If null use default testing policy
+     * @param securityManager - Custom SecurityManager if null use the system security manager
+     */
+    public SecurityManagerSetup(Test test, String policyResource, SecurityManager securityManager)
+    {
         this(test, policyResource, false);
-		this.decoratorSecurityManager = securityManager;
-	}
-	
-	/**
-	 * Get a decorator that will ensure no security manger
-	 * is installed to run a test. Not supported for suites.
-	 * <BR>
-	 * An empty suite is returned if a security manager was installed
-	 * externally, i.e. not under the control of the BaseTestCase
-	 * and this code. In this case the code can not support the
-	 * mode of no security manager as it may not have enough information
-	 * to re-install the security manager. So the passed in test
-	 * will be skipped.
+        this.decoratorSecurityManager = securityManager;
+    }
+    
+    /**
+     * Get a decorator that will ensure no security manger
+     * is installed to run a test. Not supported for suites.
+     * <BR>
+     * An empty suite is returned if a security manager was installed
+     * externally, i.e. not under the control of the BaseTestCase
+     * and this code. In this case the code can not support the
+     * mode of no security manager as it may not have enough information
+     * to re-install the security manager. So the passed in test
+     * will be skipped.
      * 
      * @param test Test to run without a security manager. Note that
      * this must be an instance of BaseTestCase as this call depends
      * on setup code in that class. Arbitrary Test instances cannot be passed in.
-	 */
-	public static Test noSecurityManager(Test test)
-	{
-		if (externalSecurityManagerInstalled)
-			return new TestSuite("skipped due to external security manager "
+     */
+    public static Test noSecurityManager(Test test)
+    {
+        if (externalSecurityManagerInstalled)
+            return new TestSuite("skipped due to external security manager "
                     + test.toString());
         return new SecurityManagerSetup(test, NO_POLICY);
-	}
+    }
 
-	/**
-	 * "Install" no security manager.
-	 * 
-	 */
-	static void noSecurityManager()
-	{
+    /**
+     * "Install" no security manager.
+     * 
+     */
+    static void noSecurityManager()
+    {
         installSecurityManager(NO_POLICY);
-	}
-	
-	/**
+    }
+    
+    /**
      * Install specific policy file with the security manager
-	 * including the special case of no security manager.
-	 */
+     * including the special case of no security manager.
+     */
     protected void setUp()
             throws IOException {
         String resource = getEffectivePolicyResource(
                 decoratorPolicyResource, additionalPolicyResource);
         installSecurityManager(resource, decoratorSecurityManager);
-	}
+    }
     
     protected void tearDown() throws Exception
     {
@@ -197,7 +197,7 @@ public final class SecurityManagerSetup extends TestSetup {
             uninstallSecurityManager();
         }
     }
-	
+    
     /**
      * Return the name of the default policy.
      */
@@ -206,60 +206,60 @@ public final class SecurityManagerSetup extends TestSetup {
         return "com/splicemachine/dbTesting/functionTests/util/derby_tests.policy";
     }
 
-	/**
-	 * Install a SecurityManager with the default test policy
-	 * file:
-	 * org/apache/derbyTesting/functionTests/util/derby_tests.policy
-	 * 
-	 */
-	static void installSecurityManager()
-	{
-		installSecurityManager( getDefaultPolicy() );
-	}
+    /**
+     * Install a SecurityManager with the default test policy
+     * file:
+     * org/apache/derbyTesting/functionTests/util/derby_tests.policy
+     * 
+     */
+    static void installSecurityManager()
+    {
+        installSecurityManager( getDefaultPolicy() );
+    }
 
-	private static void installSecurityManager(String policyFile) {
-	   installSecurityManager(policyFile, System.getSecurityManager());
-	}
+    private static void installSecurityManager(String policyFile) {
+       installSecurityManager(policyFile, System.getSecurityManager());
+    }
 
-	private static void installSecurityManager(String policyFile, final SecurityManager sm)
-			 {
-	    
-		if (externalSecurityManagerInstalled)
-			return;
-		
-		Properties set = new Properties(classPathSet);
-		setSecurityPolicy(set, policyFile);
+    private static void installSecurityManager(String policyFile, final SecurityManager sm)
+             {
+        
+        if (externalSecurityManagerInstalled)
+            return;
+        
+        Properties set = new Properties(classPathSet);
+        setSecurityPolicy(set, policyFile);
 
-		SecurityManager currentsm = System.getSecurityManager();
-		if (currentsm != null) {
-			// SecurityManager installed, see if it has the same settings.
+        SecurityManager currentsm = System.getSecurityManager();
+        if (currentsm != null) {
+            // SecurityManager installed, see if it has the same settings.
 
-			String  newPolicyProperty = set.getProperty("java.security.policy" );
-			if ( newPolicyProperty == null ) { newPolicyProperty = ""; } 
+            String  newPolicyProperty = set.getProperty("java.security.policy" );
+            if ( newPolicyProperty == null ) { newPolicyProperty = ""; } 
                                                    
-			String  oldPolicyProperty = BaseTestCase.getSystemProperty("java.security.policy");
-			SecurityManager oldSecMan = System.getSecurityManager();
+            String  oldPolicyProperty = BaseTestCase.getSystemProperty("java.security.policy");
+            SecurityManager oldSecMan = System.getSecurityManager();
 
-			if ( oldPolicyProperty == null ) { oldPolicyProperty = ""; }
+            if ( oldPolicyProperty == null ) { oldPolicyProperty = ""; }
 
-			if ( newPolicyProperty.equals( oldPolicyProperty ) &&
-			        oldSecMan == sm) { return; }
-			
-			// Uninstall the current manager.
-			uninstallSecurityManager();
-		}
-		
-		// Set the system properties from the desired set.
-		for (Enumeration e = set.propertyNames(); e.hasMoreElements();) {
-			String key = (String) e.nextElement();
-			BaseTestCase.setSystemProperty(key, set.getProperty(key));
-		}
-		
-		// Check indicator for no security manager
+            if ( newPolicyProperty.equals( oldPolicyProperty ) &&
+                    oldSecMan == sm) { return; }
+            
+            // Uninstall the current manager.
+            uninstallSecurityManager();
+        }
+        
+        // Set the system properties from the desired set.
+        for (Enumeration e = set.propertyNames(); e.hasMoreElements();) {
+            String key = (String) e.nextElement();
+            BaseTestCase.setSystemProperty(key, set.getProperty(key));
+        }
+        
+        // Check indicator for no security manager
         if (NO_POLICY.equals(set.getProperty("java.security.policy")))
-			return;
-		
-		// and install
+            return;
+        
+        // and install
         AccessController.doPrivileged(new PrivilegedAction() {
 
 
@@ -271,74 +271,74 @@ public final class SecurityManagerSetup extends TestSetup {
                     Policy.getPolicy().refresh();
                     return null;
                 }
-		});
+        });
         println("installed policy " + policyFile);
-	}
-	
-	private static void setSecurityPolicy(Properties set,
-			String policyResource)
-	{
+    }
+    
+    private static void setSecurityPolicy(Properties set,
+            String policyResource)
+    {
         if (NO_POLICY.equals(policyResource)) {
-			set.setProperty("java.security.policy", policyResource);
-			return;
-		}
+            set.setProperty("java.security.policy", policyResource);
+            return;
+        }
         try {
             URL policyURL = getResourceURL(policyResource);
             set.setProperty("java.security.policy", policyURL.toExternalForm());
         } catch (MalformedURLException mue) {
             BaseTestCase.alarm("Unreadable policy URL: " + policyResource);
         }
-	}
-	
-	/**
-	 * Determine the settings of the classpath in order to configure
-	 * the variables used in the testing policy files.
-	 * Looks for three items:
-	 * 
-	 * Location of derbyTesting.jar via this class
-	 * Location of db.jar via com.splicemachine.db.jdbc.EmbeddedSimpleDataSource
-	 * Location of derbyclient.jar via com.splicemachine.db.jdbc.ClientDataSource
-	 * 
-	 * Two options are supported, either all are in jar files or
-	 * all are on the classpath. Properties are set as follows:
-	 * 
-	 * <P>
-	 * Classpath:
-	 * <BR>
-	 * derbyTesting.codeclasses set to URL of classes folder
+    }
+    
+    /**
+     * Determine the settings of the classpath in order to configure
+     * the variables used in the testing policy files.
+     * Looks for three items:
+     * 
+     * Location of derbyTesting.jar via this class
+     * Location of db.jar via com.splicemachine.db.jdbc.EmbeddedSimpleDataSource
+     * Location of derbyclient.jar via com.splicemachine.db.jdbc.ClientDataSource
+     * 
+     * Two options are supported, either all are in jar files or
+     * all are on the classpath. Properties are set as follows:
+     * 
+     * <P>
+     * Classpath:
+     * <BR>
+     * derbyTesting.codeclasses set to URL of classes folder
      * <BR>
      * derbyTesting.ppcodeclasses set to URL of the 'classes.pptesting' folder
      * if it exists on the classpath. The existence of the package private tests
      * is determined via com.splicemachine.db.PackagePrivateTestSuite
-	 * <P>
-	 * Jar files:
-	 * <BR>
-	 * derbyTesting.codejar - URL of db.jar,
-	 * derbynet.jar and derbytools.jar, all assumed to be in the
-	 * same location.
-	 * <BR>
-	 * derbyTesting.clientjar - URL of derbyclient.jar
-	 * <BR>
-	 * derbyTesting.testjar - URL of derbyTesting.jar
+     * <P>
+     * Jar files:
+     * <BR>
+     * derbyTesting.codejar - URL of db.jar,
+     * derbynet.jar and derbytools.jar, all assumed to be in the
+     * same location.
+     * <BR>
+     * derbyTesting.clientjar - URL of derbyclient.jar
+     * <BR>
+     * derbyTesting.testjar - URL of derbyTesting.jar
      * <BR>
      * derbyTesting.testjarpath - File system path to derbyTesting.jar
      * if the jar has a URL with a file protocol.
-	 * 
-	 */
-	private static boolean determineClasspath()
-	{
-		// Security manager already installed, assume that
-		// it is set up correctly.
-		if (System.getSecurityManager() != null) {		
-			return true;
-		}
+     * 
+     */
+    private static boolean determineClasspath()
+    {
+        // Security manager already installed, assume that
+        // it is set up correctly.
+        if (System.getSecurityManager() != null) {        
+            return true;
+        }
 
-		//We need the junit classes to instantiate this class, so the
-		//following should not cause runtime errors.
+        //We need the junit classes to instantiate this class, so the
+        //following should not cause runtime errors.
         URL junit = getURL(junit.framework.Test.class);
         if (junit != null)
             classPathSet.setProperty("derbyTesting.junit", junit.toExternalForm());
-	
+    
         // Load indirectly so we don't need ant-junit.jar at compile time.
         URL antjunit = getURL("org.apache.tools.ant.taskdefs.optional.junit.JUnitTestRunner");
         if (antjunit != null)
@@ -350,7 +350,7 @@ public final class SecurityManagerSetup extends TestSetup {
         if (emma != null) {
             classPathSet.setProperty("emma.active", "");
         }
-		
+        
         /* When inserting XML values that use external DTD's, the JAXP
          * parser needs permission to read the DTD files.  So here we set
          * a property to hold the location of the JAXP implementation
@@ -361,17 +361,17 @@ public final class SecurityManagerSetup extends TestSetup {
         if (jaxp != null)
             classPathSet.setProperty("derbyTesting.jaxpjar", jaxp);
 
-		URL testing = getURL(SecurityManagerSetup.class);
+        URL testing = getURL(SecurityManagerSetup.class);
         URL ppTesting = null;
         // Only try to load PackagePrivateTestSuite if the running JVM is
         // Java 1.5 or newer (class version 49 = Java 1.5).
         if (BaseTestCase.getClassVersionMajor() >= 49) {
             ppTesting = getURL("com.splicemachine.db.PackagePrivateTestSuite");
         }
-		boolean isClasspath = testing.toExternalForm().endsWith("/");
-		if (isClasspath) {
-			classPathSet.setProperty("derbyTesting.codeclasses",
-					testing.toExternalForm());
+        boolean isClasspath = testing.toExternalForm().endsWith("/");
+        if (isClasspath) {
+            classPathSet.setProperty("derbyTesting.codeclasses",
+                    testing.toExternalForm());
             // ppTesting can be null, for instance if 'classes.pptesting' is
             // not on the classpath.
             if (ppTesting != null) {
@@ -379,31 +379,31 @@ public final class SecurityManagerSetup extends TestSetup {
                     ppTesting.toExternalForm());
             }
             isJars = false;
-			return false;
-		}
-		classPathSet.setProperty("derbyTesting.testjar", stripJar(testing));
+            return false;
+        }
+        classPathSet.setProperty("derbyTesting.testjar", stripJar(testing));
         if (testing.getProtocol().equals("file")) {
            File f = new File(testing.getPath());
            classPathSet.setProperty("derbyTesting.testjarpath",
                                                f.getAbsolutePath());
         }
         isJars = true;
-		
-		URL derby = getURL("com.splicemachine.db.jdbc.EmbeddedSimpleDataSource");
+        
+        URL derby = getURL("com.splicemachine.db.jdbc.EmbeddedSimpleDataSource");
         if (derby != null)
-		    classPathSet.setProperty("derbyTesting.codejar", stripJar(derby));
+            classPathSet.setProperty("derbyTesting.codejar", stripJar(derby));
 
-		// if we attempt to check on availability of the ClientDataSource with 
-		// JSR169, attempts will be made to load classes not supported in
-		// that environment, such as javax.naming.Referenceable. See DERBY-2269.
-		if (!JDBC.vmSupportsJSR169()) {
-		    URL client = getURL("com.splicemachine.db.jdbc.ClientDataSource");
-		    if(client != null)
-		        classPathSet.setProperty("derbyTesting.clientjar", stripJar(client));
-		}
-	
-		return false;
-	}
+        // if we attempt to check on availability of the ClientDataSource with 
+        // JSR169, attempts will be made to load classes not supported in
+        // that environment, such as javax.naming.Referenceable. See DERBY-2269.
+        if (!JDBC.vmSupportsJSR169()) {
+            URL client = getURL("com.splicemachine.db.jdbc.ClientDataSource");
+            if(client != null)
+                classPathSet.setProperty("derbyTesting.clientjar", stripJar(client));
+        }
+    
+        return false;
+    }
     
     /**
      * Return the policy file system properties for use
@@ -416,18 +416,18 @@ public final class SecurityManagerSetup extends TestSetup {
     {
         return classPathSet;
     }
-	
-	/**
-	 * Strip off the last token which will be the jar name.
-	 * The returned string includes the trailing slash.
-	 * @param url
-	 * @return the jar name from the URL as a String
-	 */
-	private static String stripJar(URL url)
-	{
-		String ef = url.toExternalForm();
-		return ef.substring(0, ef.lastIndexOf('/') + 1);
-	}
+    
+    /**
+     * Strip off the last token which will be the jar name.
+     * The returned string includes the trailing slash.
+     * @param url
+     * @return the jar name from the URL as a String
+     */
+    private static String stripJar(URL url)
+    {
+        String ef = url.toExternalForm();
+        return ef.substring(0, ef.lastIndexOf('/') + 1);
+    }
     
     /**
      * Get the URL of the code base from a class name.
@@ -440,16 +440,16 @@ public final class SecurityManagerSetup extends TestSetup {
             return null;
         }
     }
-	
-	/**
-	 * Get the URL of the code base from a class.
-	 */
-	static URL getURL(final Class cl)
-	{
-		return (URL)
+    
+    /**
+     * Get the URL of the code base from a class.
+     */
+    static URL getURL(final Class cl)
+    {
+        return (URL)
             AccessController.doPrivileged(new PrivilegedAction() {
 
-			public Object run() {
+            public Object run() {
 
                 /* It's possible that the class does not have a "codeSource"
                  * associated with it (ex. if it is embedded within the JVM,
@@ -459,10 +459,10 @@ public final class SecurityManagerSetup extends TestSetup {
                 if (cl.getProtectionDomain().getCodeSource() == null)
                     return null;
 
-				return cl.getProtectionDomain().getCodeSource().getLocation();
-			}
-		});
-	}
+                return cl.getProtectionDomain().getCodeSource().getLocation();
+            }
+        });
+    }
 
     /**
      * Remove the security manager.

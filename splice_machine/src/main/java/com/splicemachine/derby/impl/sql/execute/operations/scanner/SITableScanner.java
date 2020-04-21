@@ -294,7 +294,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     }
 
     /*********************************************************************************************************************/
-		/*Private helper methods*/
+        /*Private helper methods*/
     private SIFilterFactory createFilterFactory(TxnView txn, long demarcationPoint,
                                                 boolean ignoreRecentTransactions) {
         TxnView txnView = txn;
@@ -400,10 +400,10 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     protected void setRowLocation(DataCell sampleKv) throws StandardException {
         if(indexName!=null && template.nColumns() > 0 && template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
             /*
-			 * If indexName !=null, then we are currently scanning an index,
-			 * so our RowLocation should point to the main table, and not to the
-			 * index (that we're actually scanning)
-			 */
+             * If indexName !=null, then we are currently scanning an index,
+             * so our RowLocation should point to the main table, and not to the
+             * index (that we're actually scanning)
+             */
             if (template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID) {
                 currentRowLocation = (RowLocation) template.getColumn(template.nColumns());
             } else {

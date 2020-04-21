@@ -28,13 +28,13 @@ import com.splicemachine.db.io.StorageFactory;
 
 public class SpliceLocalFileResource extends SpliceBaseFileResource {
 
-	public SpliceLocalFileResource(StorageFactory storageFactory) {
-		super(storageFactory);
-	}
+    public SpliceLocalFileResource(StorageFactory storageFactory) {
+        super(storageFactory);
+    }
 
-	@Override
-	protected void syncOutputStream(OutputStream os) throws IOException {
-		if(os instanceof FileOutputStream)
-			((FileOutputStream) os).getFD().sync();
-	}
+    @Override
+    protected void syncOutputStream(OutputStream os) throws IOException {
+        if(os instanceof FileOutputStream)
+            ((FileOutputStream) os).getFD().sync();
+    }
 }

@@ -1495,11 +1495,11 @@ public class StreamingColumnTest extends BaseJDBCTestCase {
             fail("Attempting to reuse stream should have thrown an exception!");
         } catch (SQLException sqle) {
             if (usingDerbyNetClient()) {
-            	// DERBY-4315.  This SQLState is wrong for client.
-            	// It should throw XJ001 like embedded.
-            	// Also client inserts bad data.
-            	// Remove special case when DERBY-4315
-            	// is fixed.
+                // DERBY-4315.  This SQLState is wrong for client.
+                // It should throw XJ001 like embedded.
+                // Also client inserts bad data.
+                // Remove special case when DERBY-4315
+                // is fixed.
                 assertSQLState("XN017", sqle);                
             } else {
                 assertSQLState("XJ001", sqle);
@@ -1573,13 +1573,13 @@ public class StreamingColumnTest extends BaseJDBCTestCase {
             }
         } catch (SQLException sqle) {
             if (usingDerbyNetClient()) {
-            	// DERBY-4315.  This SQLState is wrong for client.
-            	// It should have the same behavior as embedded.
-            	// That may rquire some additional work in addition
-            	// to DERBY-4315. 
-            	// Remove special case when DERBY-4315
-            	// is fixed or at least throw XJ001 and
-            	// avoid bad data insert.
+                // DERBY-4315.  This SQLState is wrong for client.
+                // It should have the same behavior as embedded.
+                // That may rquire some additional work in addition
+                // to DERBY-4315. 
+                // Remove special case when DERBY-4315
+                // is fixed or at least throw XJ001 and
+                // avoid bad data insert.
 
                 // DERBY-4531: Depending on whether the finalizer has been run
                 //             or not, the SQLState will differ.

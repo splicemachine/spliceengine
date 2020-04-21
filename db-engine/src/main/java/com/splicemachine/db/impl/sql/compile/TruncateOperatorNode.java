@@ -104,24 +104,24 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
     }
 
     /**
-	 * Bind this expression.  This means binding the sub-expressions,
-	 * as well as figuring out what the return type is for this expression.
-	 *
-	 * @param fromList		The FROM list for the query this
-	 *				expression is in, for binding columns.
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+     * Bind this expression.  This means binding the sub-expressions,
+     * as well as figuring out what the return type is for this expression.
+     *
+     * @param fromList        The FROM list for the query this
+     *                expression is in, for binding columns.
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
+     *
+     * @return    The new top of the expression tree.
+     *
+     * @exception StandardException        Thrown on error
+     */
     @Override
-	public ValueNode bindExpression(FromList fromList,
+    public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
                                     List<AggregateNode> aggregateVector) throws StandardException {
-		leftOperand = leftOperand.bindExpression(fromList, subqueryList, aggregateVector);
-		rightOperand = rightOperand.bindExpression(fromList, subqueryList, aggregateVector);
+        leftOperand = leftOperand.bindExpression(fromList, subqueryList, aggregateVector);
+        rightOperand = rightOperand.bindExpression(fromList, subqueryList, aggregateVector);
 
         int operandType = leftOperand.getTypeId().getJDBCTypeId();
         Pair typeMethod = TYPES_TO_METHOD_NAMES.get(operandType);
@@ -138,41 +138,41 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
             rightOperand = (ValueNode) getCompilerContext().getNodeFactory().getNode(C_NodeTypes.INT_CONSTANT_NODE, 0, getContextManager());
         }
 
-		//Set the type if there is a parameter involved here
-		if (leftOperand.requiresTypeFromContext()) {
-			leftOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType));
-		}
-		//Set the type if there is a parameter involved here
-		if (rightOperand != null && rightOperand.requiresTypeFromContext()) {
-			rightOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(rightOperand.getTypeId().getJDBCTypeId()));
-		}
+        //Set the type if there is a parameter involved here
+        if (leftOperand.requiresTypeFromContext()) {
+            leftOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType));
+        }
+        //Set the type if there is a parameter involved here
+        if (rightOperand != null && rightOperand.requiresTypeFromContext()) {
+            rightOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(rightOperand.getTypeId().getJDBCTypeId()));
+        }
 
-		checkParameterTypes();
+        checkParameterTypes();
 
-		DataTypeDescriptor typeDescriptor = leftOperand.getTypeServices();
-		if (typeDescriptor == null) {
-		    typeDescriptor = DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType);
-		}
-		setType(typeDescriptor);
-		return genSQLJavaSQLTree();
-	} // end of bindExpression
+        DataTypeDescriptor typeDescriptor = leftOperand.getTypeServices();
+        if (typeDescriptor == null) {
+            typeDescriptor = DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType);
+        }
+        setType(typeDescriptor);
+        return genSQLJavaSQLTree();
+    } // end of bindExpression
 
     /**
-	 * Do code generation for this binary operator.
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class we're generating
-	 * @param mb	The method the code to place the code
-	 *
-	 *
-	 * @exception com.splicemachine.db.iapi.error.StandardException		Thrown on error
-	 */
+     * Do code generation for this binary operator.
+     *
+     * @param acb    The ExpressionClassBuilder for the class we're generating
+     * @param mb    The method the code to place the code
+     *
+     *
+     * @exception com.splicemachine.db.iapi.error.StandardException        Thrown on error
+     */
 
-	public void generateExpression(ExpressionClassBuilder acb,
-											MethodBuilder mb) throws StandardException {
+    public void generateExpression(ExpressionClassBuilder acb,
+                                            MethodBuilder mb) throws StandardException {
         acb.pushDataValueFactory(mb);
-		leftOperand.generateExpression(acb, mb);
+        leftOperand.generateExpression(acb, mb);
         mb.cast(ClassName.DataValueDescriptor);
-		rightOperand.generateExpression(acb, mb);
+        rightOperand.generateExpression(acb, mb);
         mb.cast(ClassName.DataValueDescriptor);
         mb.callMethod(VMOpcode.INVOKEINTERFACE, null, methodName, methodClassname, 2);
     } // end of generateExpression

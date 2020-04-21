@@ -35,47 +35,47 @@ import com.splicemachine.mrio.api.serde.RowLocationWritable;
  *
  */
 public class SMHiveInputFormat implements InputFormat<RowLocationWritable, ExecRowWritable>, Configurable {
-	protected com.splicemachine.mrio.api.core.SMInputFormat inputFormat;
+    protected com.splicemachine.mrio.api.core.SMInputFormat inputFormat;
 
-	@Override
-	public void setConf(Configuration conf) {
-		if (inputFormat ==null)
-			inputFormat = new com.splicemachine.mrio.api.core.SMInputFormat();
-		inputFormat.setConf(conf);
-	}
+    @Override
+    public void setConf(Configuration conf) {
+        if (inputFormat ==null)
+            inputFormat = new com.splicemachine.mrio.api.core.SMInputFormat();
+        inputFormat.setConf(conf);
+    }
 
-	@Override
-	public Configuration getConf() {
-		return inputFormat.getConf();
-	}
+    @Override
+    public Configuration getConf() {
+        return inputFormat.getConf();
+    }
 
-	@Override
-	public InputSplit[] getSplits(JobConf job, int numSplits)
-			throws IOException {
-		try {
-			List<org.apache.hadoop.mapreduce.InputSplit> splits = inputFormat.getSplits(new SMHIveContextWrapper(job));
-			InputSplit[] returnSplits = new InputSplit[splits.size()];
-			for (int i = 0; i< splits.size(); i++ ) {
-				returnSplits[i] = new SMHiveSplit((SMSplit)splits.get(i), new Path("dummy"));
-			}
-			return returnSplits;
-		} catch (InterruptedException e) {
-			throw new IOException(e);
-		}
-	}
+    @Override
+    public InputSplit[] getSplits(JobConf job, int numSplits)
+            throws IOException {
+        try {
+            List<org.apache.hadoop.mapreduce.InputSplit> splits = inputFormat.getSplits(new SMHIveContextWrapper(job));
+            InputSplit[] returnSplits = new InputSplit[splits.size()];
+            for (int i = 0; i< splits.size(); i++ ) {
+                returnSplits[i] = new SMHiveSplit((SMSplit)splits.get(i), new Path("dummy"));
+            }
+            return returnSplits;
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
+    }
 
-	@Override
-	public RecordReader<RowLocationWritable, ExecRowWritable> getRecordReader(
-			InputSplit split, JobConf job, Reporter reporter)
-			throws IOException {
-		try {
-			SMSplit smSplit = ((SMHiveSplit)split).getSMSplit();
-			SMRecordReaderImpl delegate = inputFormat.getRecordReader(((SMHiveSplit) split).getSMSplit(), job);
-			delegate.init(job, smSplit);
-			return new SMHiveRecordReader(delegate);
-		} catch (InterruptedException e) {
-			throw new IOException(e);
-		}
-	}
+    @Override
+    public RecordReader<RowLocationWritable, ExecRowWritable> getRecordReader(
+            InputSplit split, JobConf job, Reporter reporter)
+            throws IOException {
+        try {
+            SMSplit smSplit = ((SMHiveSplit)split).getSMSplit();
+            SMRecordReaderImpl delegate = inputFormat.getRecordReader(((SMHiveSplit) split).getSMSplit(), job);
+            delegate.init(job, smSplit);
+            return new SMHiveRecordReader(delegate);
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
+    }
 
 }

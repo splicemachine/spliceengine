@@ -1885,8 +1885,8 @@ public final class OuterJoinTest extends BaseJDBCTestCase
 
         st.executeUpdate(
             "CREATE TABLE properties ("
-            + "	name VARCHAR(50),"
-            + "	value VARCHAR(200))");
+            + "    name VARCHAR(50),"
+            + "    value VARCHAR(200))");
         
         st.executeUpdate(
             " INSERT INTO properties VALUES ('businessName', "
@@ -1898,8 +1898,8 @@ public final class OuterJoinTest extends BaseJDBCTestCase
         
         st.executeUpdate(
             " CREATE TABLE inventory ("
-            + "	itemno INT NOT NULL PRIMARY KEY,"
-            + "	capacity INT"
+            + "    itemno INT NOT NULL PRIMARY KEY,"
+            + "    capacity INT"
             + ")");
         
         st.executeUpdate("INSERT INTO inventory VALUES (1, 2)");
@@ -1930,12 +1930,12 @@ public final class OuterJoinTest extends BaseJDBCTestCase
         
         st.executeUpdate(
             " CREATE TABLE reservations ("
-            + "	itemno INT CONSTRAINT inventory_fk REFERENCES inventory,"
-            + "	slot TIME CONSTRAINT timeslots_fk REFERENCES timeslots,"
-            + "	resdate DATE NOT NULL,"
-            + "	name VARCHAR(100) NOT NULL,"
-            + "	quantity INT,"
-            + "	CONSTRAINT reservations_u UNIQUE(name, resdate))");
+            + "    itemno INT CONSTRAINT inventory_fk REFERENCES inventory,"
+            + "    slot TIME CONSTRAINT timeslots_fk REFERENCES timeslots,"
+            + "    resdate DATE NOT NULL,"
+            + "    name VARCHAR(100) NOT NULL,"
+            + "    quantity INT,"
+            + "    CONSTRAINT reservations_u UNIQUE(name, resdate))");
         
         st.executeUpdate(
             " INSERT INTO reservations VALUES(6, '17:00:00', "
@@ -1955,7 +1955,7 @@ public final class OuterJoinTest extends BaseJDBCTestCase
         
         st.executeUpdate(
             " INSERT INTO reservations VALUES(1, '17:30:00', "
-            + "'2000-07-13', 'Gates', 	 2)");
+            + "'2000-07-13', 'Gates',      2)");
         
         st.executeUpdate(
             " INSERT INTO reservations VALUES(2, '17:30:00', "
@@ -2028,8 +2028,8 @@ public final class OuterJoinTest extends BaseJDBCTestCase
 
         st.executeUpdate(
             "CREATE TABLE properties ("
-            + "	name VARCHAR(50),"
-            + "	value VARCHAR(200))");
+            + "    name VARCHAR(50),"
+            + "    value VARCHAR(200))");
         
         st.executeUpdate(
             " INSERT INTO properties VALUES ('businessName', "
@@ -2041,8 +2041,8 @@ public final class OuterJoinTest extends BaseJDBCTestCase
         
         st.executeUpdate(
             " CREATE TABLE inventory ("
-            + "	itemno INT NOT NULL PRIMARY KEY,"
-            + "	capacity INT"
+            + "    itemno INT NOT NULL PRIMARY KEY,"
+            + "    capacity INT"
             + ")");
         
         st.executeUpdate("INSERT INTO inventory VALUES (1, 2)");
@@ -2073,12 +2073,12 @@ public final class OuterJoinTest extends BaseJDBCTestCase
         
         st.executeUpdate(
             " CREATE TABLE reservations ("
-            + "	itemno INT CONSTRAINT inventory_fk REFERENCES inventory,"
-            + "	slot TIME CONSTRAINT timeslots_fk REFERENCES timeslots,"
-            + "	resdate DATE NOT NULL,"
-            + "	name VARCHAR(100) NOT NULL,"
-            + "	quantity INT,"
-            + "	CONSTRAINT reservations_u UNIQUE(name, resdate))");
+            + "    itemno INT CONSTRAINT inventory_fk REFERENCES inventory,"
+            + "    slot TIME CONSTRAINT timeslots_fk REFERENCES timeslots,"
+            + "    resdate DATE NOT NULL,"
+            + "    name VARCHAR(100) NOT NULL,"
+            + "    quantity INT,"
+            + "    CONSTRAINT reservations_u UNIQUE(name, resdate))");
         
         st.executeUpdate(
             " INSERT INTO reservations VALUES(6, '17:00:00', "
@@ -2098,7 +2098,7 @@ public final class OuterJoinTest extends BaseJDBCTestCase
         
         st.executeUpdate(
             " INSERT INTO reservations VALUES(1, '17:30:00', "
-            + "'2000-07-13', 'Gates', 	 2)");
+            + "'2000-07-13', 'Gates',      2)");
         
         st.executeUpdate(
             " INSERT INTO reservations VALUES(2, '17:30:00', "
@@ -2262,7 +2262,7 @@ public final class OuterJoinTest extends BaseJDBCTestCase
         rs = st.executeQuery(
             "select cor1.*, cor2.* from ttab1 cor1 left outer "
             + "join ttab2 on (b = d),"
-            + "		ttab1 left outer join ttab2 cor2 on (b = d)");
+            + "        ttab1 left outer join ttab2 cor2 on (b = d)");
 
         expColNames = new String [] {"A", "B", "C", "D"};
         JDBC.assertColumnNames(rs, expColNames);
@@ -2280,7 +2280,7 @@ public final class OuterJoinTest extends BaseJDBCTestCase
         rs = st.executeQuery(
             " select cor1.*, cor2.* from ttab1 cor1 left outer "
             + "join ttab2 on (b = d),"
-            + "		ttab1 left outer join ttab2 cor2 on (b = cor2.d)");
+            + "        ttab1 left outer join ttab2 cor2 on (b = cor2.d)");
 
         expColNames = new String [] {"A", "B", "C", "D"};
         JDBC.assertColumnNames(rs, expColNames);
@@ -2300,7 +2300,7 @@ public final class OuterJoinTest extends BaseJDBCTestCase
         rs = st.executeQuery(
             "select cor1.*, cor2.* from ttab1 left outer join "
             + "ttab2 on (b = d), "
-            + "		ttab1 cor1 left outer join ttab2 cor2 on (cor1.b = cor2.d)");
+            + "        ttab1 cor1 left outer join ttab2 cor2 on (cor1.b = cor2.d)");
 
         expColNames = new String [] {"A", "B", "C", "D"};
         JDBC.assertColumnNames(rs, expColNames);

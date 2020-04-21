@@ -95,6 +95,6 @@ public class DropSequenceNode extends DDLStatementNode {
      */
     public ConstantAction makeConstantAction() throws StandardException {
         return getGenericConstantActionFactory().getDropSequenceConstantAction(getSchemaDescriptor(), getRelativeName());
-	}
+    }
 
 }

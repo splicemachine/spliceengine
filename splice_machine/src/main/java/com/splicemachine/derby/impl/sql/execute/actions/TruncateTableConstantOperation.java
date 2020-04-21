@@ -162,14 +162,14 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         compressHeapCC.close();
 
             /*
-		    ** Inform the data dictionary that we are about to write to it.
-		    ** There are several calls to data dictionary "get" methods here
-		    ** that might be done in "read" mode in the data dictionary, but
-		    ** it seemed safer to do this whole operation in "write" mode.
-		    **
-		    ** We tell the data dictionary we're done writing at the end of
-		    ** the transaction.
-		     */
+            ** Inform the data dictionary that we are about to write to it.
+            ** There are several calls to data dictionary "get" methods here
+            ** that might be done in "read" mode in the data dictionary, but
+            ** it seemed safer to do this whole operation in "write" mode.
+            **
+            ** We tell the data dictionary we're done writing at the end of
+            ** the transaction.
+             */
         dd.startWriting(lcc);
 
 
@@ -191,7 +191,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                         properties,
                         TransactionController.IS_DEFAULT);
 
-		    /* Set up index info to perform truncate on them*/
+            /* Set up index info to perform truncate on them*/
         int numIndexes = getAffectedIndexes(td);
 
 

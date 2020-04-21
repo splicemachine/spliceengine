@@ -46,55 +46,55 @@ import com.splicemachine.dbTesting.junit.JDBC;
  */
 public class CurrentOfTest extends BaseJDBCTestCase {
 
-	
-	/**
+    
+    /**
      * Public constructor required for running test as standalone JUnit.
      */
-	public CurrentOfTest(String name) {
-		super(name);
-	}
-	/**
+    public CurrentOfTest(String name) {
+        super(name);
+    }
+    /**
      * Create a suite of tests.
      */
-	public static Test suite() {
-		TestSuite suite = new TestSuite("CurrentOfTest");
-		suite.addTestSuite(CurrentOfTest.class);
-		//To run the test in both embedded and client/server mode
-		//commenting it for the time being sicne the test fails in the client/server mode
-		//return   TestConfiguration.defaultSuite(CurrentOfTest.class);
-		return suite;
-	}
-	 /**
+    public static Test suite() {
+        TestSuite suite = new TestSuite("CurrentOfTest");
+        suite.addTestSuite(CurrentOfTest.class);
+        //To run the test in both embedded and client/server mode
+        //commenting it for the time being sicne the test fails in the client/server mode
+        //return   TestConfiguration.defaultSuite(CurrentOfTest.class);
+        return suite;
+    }
+     /**
      * Set the fixture up with tables t and s and insert 4 rows in table t.
      */
-	protected void setUp() throws SQLException {
-		getConnection().setAutoCommit(false);
-		Statement stmt = createStatement();
-		stmt.executeUpdate("create table t (i int, c char(50))");
-		stmt.executeUpdate("create table s (i int, c char(50))");
-		stmt.executeUpdate("insert into t values (1956, 'hello world')");
-		stmt.executeUpdate("insert into t values (456, 'hi yourself')");
-		stmt.executeUpdate("insert into t values (180, 'rubber ducky')");
-		stmt.executeUpdate("insert into t values (3, 'you are the one')");
-		stmt.close();
-		commit();
-	}
-	/**
+    protected void setUp() throws SQLException {
+        getConnection().setAutoCommit(false);
+        Statement stmt = createStatement();
+        stmt.executeUpdate("create table t (i int, c char(50))");
+        stmt.executeUpdate("create table s (i int, c char(50))");
+        stmt.executeUpdate("insert into t values (1956, 'hello world')");
+        stmt.executeUpdate("insert into t values (456, 'hi yourself')");
+        stmt.executeUpdate("insert into t values (180, 'rubber ducky')");
+        stmt.executeUpdate("insert into t values (3, 'you are the one')");
+        stmt.close();
+        commit();
+    }
+    /**
      * Tear-down the fixture by removing the tables
      */
-	protected void tearDown() throws Exception {
+    protected void tearDown() throws Exception {
         JDBC.dropSchema(getConnection().getMetaData(),
                 getTestConfiguration().getUserName());
-		super.tearDown();
-	}
-	
-	/**
+        super.tearDown();
+    }
+    
+    /**
      * Test read only statements.
-	 */
-	public void testReadOnlyCursors() throws SQLException {
-		
-		String[] readOnlySQL = 
-		{
+     */
+    public void testReadOnlyCursors() throws SQLException {
+        
+        String[] readOnlySQL = 
+        {
             "select I, C from t for read only",
             "select I, C from t for fetch only",
             "select I, C FROM T ORDER BY 1",
@@ -109,7 +109,7 @@ public class CurrentOfTest extends BaseJDBCTestCase {
             // TEST: Update of cursor with a subquery
             "select I, C from t where I in (select I from t)"
                    
-		};
+        };
         
         // NOTE: JDK 1.4 javadoc for ResultSet.getCursorName()
         // says it will throw an execption if the statement
@@ -141,84 +141,84 @@ public class CurrentOfTest extends BaseJDBCTestCase {
             cursor.close();
             select.close();
         }
-	}
-	/**
+    }
+    /**
     * Test delete with the current of statements.
     * Also do some negative testing to see whether correct
     * exceptions are thrown or not.
     * @throws Exception
     */
-	public void testDelete() throws SQLException {
-		PreparedStatement select, delete;
-		Statement delete1,delete2;
-		ResultSet cursor;
-		String tableRows = "select i, c from t for read only";
-		
-		delete1 = createStatement();
-		Object[][] expectedRows = new Object[][]{{new String("1956"),new String("hello world")},                                       
-												 {new String("456"),new String("hi yourself")},                                       
-												 {new String("180"),new String("rubber ducky")},                                      
-												 {new String("3"),new String("you are the one")}}; 
-		JDBC.assertFullResultSet(delete1.executeQuery(tableRows), expectedRows, true);
-		
-		select = prepareStatement("select i, c from t for update");
-		cursor = select.executeQuery(); // cursor is now open
+    public void testDelete() throws SQLException {
+        PreparedStatement select, delete;
+        Statement delete1,delete2;
+        ResultSet cursor;
+        String tableRows = "select i, c from t for read only";
+        
+        delete1 = createStatement();
+        Object[][] expectedRows = new Object[][]{{new String("1956"),new String("hello world")},                                       
+                                                 {new String("456"),new String("hi yourself")},                                       
+                                                 {new String("180"),new String("rubber ducky")},                                      
+                                                 {new String("3"),new String("you are the one")}}; 
+        JDBC.assertFullResultSet(delete1.executeQuery(tableRows), expectedRows, true);
+        
+        select = prepareStatement("select i, c from t for update");
+        cursor = select.executeQuery(); // cursor is now open
 
-		// would like to test a delete attempt before the cursor
-		// is open, but finagling to get the cursor name would
-		// destroy the spirit of the rest of the tests,
-		// which want to operate against the generated name.
+        // would like to test a delete attempt before the cursor
+        // is open, but finagling to get the cursor name would
+        // destroy the spirit of the rest of the tests,
+        // which want to operate against the generated name.
 
-		// TEST: cursor and target table mismatch
+        // TEST: cursor and target table mismatch
 
-		assertCompileError("42X28","delete from s where current of " + cursor.getCursorName()); 
-		
-		// TEST: find the cursor during compilation
-		delete = prepareStatement("delete from t where current of "
-				+ cursor.getCursorName());
-		// TEST: delete before the cursor is on a row
-		assertStatementError("24000", delete);
-		cursor.next();
-		assertEquals(1956, cursor.getInt(1));
-		
-		// TEST: find the cursor during execution and it is on a row
-		assertUpdateCount(delete, 1);
-		// skip a row and delete another row so that two rows will
-		// have been removed from the table when we are done.
-		// skip this row
-		cursor.next();
-		assertEquals(456, cursor.getInt(1));
-		cursor.next();
-		assertEquals(180, cursor.getInt(1));
-		assertUpdateCount(delete, 1);
-		
-		// TEST: delete past the last row
-		cursor.next();// skip this row
-		assertEquals(3, cursor.getInt(1));
-		assertFalse(cursor.next());
-		if (usingEmbedded())
-			assertStatementError("24000", delete);
-		else
-			assertStatementError("42X30", delete);
-		
-		
-		// TEST: delete off a closed cursor
-		// Once this is closed then the cursor no longer exists.
-		cursor.close();
-		if (usingEmbedded())
-			assertStatementError("42X30", delete);
-		else 
-			assertStatementError("XCL16", delete);
-		
-		// TEST: no cursor with that name exists
-		delete2 = createStatement();
-		assertStatementError("42X30", delete2,"delete from t where current of myCursor" );
-		expectedRows = new Object[][]{{new String("456"),new String("hi yourself")},                                       
-				   					  {new String("3"),new String("you are the one")}}; 
-		JDBC.assertFullResultSet(delete1.executeQuery(tableRows), expectedRows, true);
-		delete.close();
-		delete2.close();
-		select.close();
+        assertCompileError("42X28","delete from s where current of " + cursor.getCursorName()); 
+        
+        // TEST: find the cursor during compilation
+        delete = prepareStatement("delete from t where current of "
+                + cursor.getCursorName());
+        // TEST: delete before the cursor is on a row
+        assertStatementError("24000", delete);
+        cursor.next();
+        assertEquals(1956, cursor.getInt(1));
+        
+        // TEST: find the cursor during execution and it is on a row
+        assertUpdateCount(delete, 1);
+        // skip a row and delete another row so that two rows will
+        // have been removed from the table when we are done.
+        // skip this row
+        cursor.next();
+        assertEquals(456, cursor.getInt(1));
+        cursor.next();
+        assertEquals(180, cursor.getInt(1));
+        assertUpdateCount(delete, 1);
+        
+        // TEST: delete past the last row
+        cursor.next();// skip this row
+        assertEquals(3, cursor.getInt(1));
+        assertFalse(cursor.next());
+        if (usingEmbedded())
+            assertStatementError("24000", delete);
+        else
+            assertStatementError("42X30", delete);
+        
+        
+        // TEST: delete off a closed cursor
+        // Once this is closed then the cursor no longer exists.
+        cursor.close();
+        if (usingEmbedded())
+            assertStatementError("42X30", delete);
+        else 
+            assertStatementError("XCL16", delete);
+        
+        // TEST: no cursor with that name exists
+        delete2 = createStatement();
+        assertStatementError("42X30", delete2,"delete from t where current of myCursor" );
+        expectedRows = new Object[][]{{new String("456"),new String("hi yourself")},                                       
+                                         {new String("3"),new String("you are the one")}}; 
+        JDBC.assertFullResultSet(delete1.executeQuery(tableRows), expectedRows, true);
+        delete.close();
+        delete2.close();
+        select.close();
         
         // Test a cursor where not all the columns can be updated.
         // Positioned DELETE is still allowed.
@@ -235,111 +235,111 @@ public class CurrentOfTest extends BaseJDBCTestCase {
         select.close();
         
 
-		// TEST: attempt to do positioned delete before cursor execute'd
-		// TBD
+        // TEST: attempt to do positioned delete before cursor execute'd
+        // TBD
 
-	}
-	/**
-	    * Test update with the current of statements.
-	    * Also do some negative testing to see whether correct
-	    * exceptions are thrown or not.
-	    * @throws Exception
-	    */
-	public void testUpdate() throws SQLException {
-		PreparedStatement select;
-		PreparedStatement update;
-		Statement select1,update2;
-		ResultSet cursor;
-		String tableRows = "select i, c from t for read only";
+    }
+    /**
+        * Test update with the current of statements.
+        * Also do some negative testing to see whether correct
+        * exceptions are thrown or not.
+        * @throws Exception
+        */
+    public void testUpdate() throws SQLException {
+        PreparedStatement select;
+        PreparedStatement update;
+        Statement select1,update2;
+        ResultSet cursor;
+        String tableRows = "select i, c from t for read only";
 
-		// these are basic tests without a where clause on the select.
-		// all rows are in and stay in the cursor's set when updated.
+        // these are basic tests without a where clause on the select.
+        // all rows are in and stay in the cursor's set when updated.
 
-		// because there is no order by (nor can there be)
-		// the fact that this test prints out rows may someday
-		// be a problem. When that day comes, the row printing
-		// can (should) be removed from this test.
+        // because there is no order by (nor can there be)
+        // the fact that this test prints out rows may someday
+        // be a problem. When that day comes, the row printing
+        // can (should) be removed from this test.
 
-		// TEST: Updated column not found in for update of list
+        // TEST: Updated column not found in for update of list
 
-		select = prepareStatement("select I, C from t for update of I");
-		cursor = select.executeQuery(); // cursor is now open
-		assertCompileError("42X31", "update t set C = 'abcde' where current of "+ cursor.getCursorName());
-		cursor.close();
-		select.close();
+        select = prepareStatement("select I, C from t for update of I");
+        cursor = select.executeQuery(); // cursor is now open
+        assertCompileError("42X31", "update t set C = 'abcde' where current of "+ cursor.getCursorName());
+        cursor.close();
+        select.close();
 
-		//Making sure we have the correct rows in the table to begin with
-		select1 = createStatement();
-		Object[][] expectedRows = new Object[][]{{new String("1956"),new String("hello world")},                                       
-				 {new String("456"),new String("hi yourself")},                                       
-				 {new String("180"),new String("rubber ducky")},                                      
-				 {new String("3"),new String("you are the one")}}; 
-		JDBC.assertFullResultSet(select1.executeQuery(tableRows), expectedRows, true);	
-		
-		select = prepareStatement("select I, C from t for update");
-		cursor = select.executeQuery(); // cursor is now open
+        //Making sure we have the correct rows in the table to begin with
+        select1 = createStatement();
+        Object[][] expectedRows = new Object[][]{{new String("1956"),new String("hello world")},                                       
+                 {new String("456"),new String("hi yourself")},                                       
+                 {new String("180"),new String("rubber ducky")},                                      
+                 {new String("3"),new String("you are the one")}}; 
+        JDBC.assertFullResultSet(select1.executeQuery(tableRows), expectedRows, true);    
+        
+        select = prepareStatement("select I, C from t for update");
+        cursor = select.executeQuery(); // cursor is now open
 
-		// would like to test a update attempt before the cursor
-		// is open, but finagling to get the cursor name would
-		// destroy the spirit of the rest of the tests,
-		// which want to operate against the generated name.
+        // would like to test a update attempt before the cursor
+        // is open, but finagling to get the cursor name would
+        // destroy the spirit of the rest of the tests,
+        // which want to operate against the generated name.
 
-		// TEST: cursor and target table mismatch
+        // TEST: cursor and target table mismatch
 
-		assertCompileError("42X29","update s set i=1 where current of " + cursor.getCursorName());
+        assertCompileError("42X29","update s set i=1 where current of " + cursor.getCursorName());
 
-		// TEST: find the cursor during compilation
-		update = prepareStatement("update t set i=i+10, c='Gumby was here' where current of "
-				+ cursor.getCursorName());
+        // TEST: find the cursor during compilation
+        update = prepareStatement("update t set i=i+10, c='Gumby was here' where current of "
+                + cursor.getCursorName());
 
-		// TEST: update before the cursor is on a row
-		assertStatementError("24000", update);
+        // TEST: update before the cursor is on a row
+        assertStatementError("24000", update);
 
-		// TEST: find the cursor during execution and it is on a row
-		cursor.next();
-		assertEquals(1956,cursor.getInt(1));
-		assertUpdateCount(update, 1);
+        // TEST: find the cursor during execution and it is on a row
+        cursor.next();
+        assertEquals(1956,cursor.getInt(1));
+        assertUpdateCount(update, 1);
 
-		// TEST: update an already updated row; expect it to succeed.
-		// will it have a cumulative effect?
-		assertUpdateCount(update, 1);
-		// skip a row and update another row so that two rows will
-		// have been removed from the table when we are done.
-		cursor.next(); // skip this row
-		assertEquals(456,cursor.getInt(1));
-		cursor.next();
-		assertEquals(180,cursor.getInt(1));
-		assertUpdateCount(update, 1);
+        // TEST: update an already updated row; expect it to succeed.
+        // will it have a cumulative effect?
+        assertUpdateCount(update, 1);
+        // skip a row and update another row so that two rows will
+        // have been removed from the table when we are done.
+        cursor.next(); // skip this row
+        assertEquals(456,cursor.getInt(1));
+        cursor.next();
+        assertEquals(180,cursor.getInt(1));
+        assertUpdateCount(update, 1);
 
-		// TEST: update past the last row
-		cursor.next(); // skip this row
-		assertEquals(3,cursor.getInt(1));
-		assertFalse(cursor.next());
-		assertStatementError("24000", update);
+        // TEST: update past the last row
+        cursor.next(); // skip this row
+        assertEquals(3,cursor.getInt(1));
+        assertFalse(cursor.next());
+        assertStatementError("24000", update);
 
-		// TEST: update off a closed cursor
-		cursor.close();
-		select.close();
-		assertStatementError("42X30", update);
-		update.close();
+        // TEST: update off a closed cursor
+        cursor.close();
+        select.close();
+        assertStatementError("42X30", update);
+        update.close();
 
-		// TEST: no cursor with that name exists
-		update2 = createStatement();
-		assertStatementError("42X30", update2,"update t set i=1 where current of nosuchcursor");
-		update2.close();
-		
-		//Verifyin we have the correct updated rows in the table at the end
-		expectedRows = new Object[][]{{new String("1976"),new String("Gumby was here")},                                       
-				 {new String("456"),new String("hi yourself")},                                       
-				 {new String("190"),new String("Gumby was here")},                                      
-				 {new String("3"),new String("you are the one")}}; 
-		JDBC.assertFullResultSet(select1.executeQuery(tableRows), expectedRows, true);
-		// TEST: attempt to do positioned update before cursor execute'd
-		// TBD
-		
-		cursor.close();
+        // TEST: no cursor with that name exists
+        update2 = createStatement();
+        assertStatementError("42X30", update2,"update t set i=1 where current of nosuchcursor");
+        update2.close();
+        
+        //Verifyin we have the correct updated rows in the table at the end
+        expectedRows = new Object[][]{{new String("1976"),new String("Gumby was here")},                                       
+                 {new String("456"),new String("hi yourself")},                                       
+                 {new String("190"),new String("Gumby was here")},                                      
+                 {new String("3"),new String("you are the one")}}; 
+        JDBC.assertFullResultSet(select1.executeQuery(tableRows), expectedRows, true);
+        // TEST: attempt to do positioned update before cursor execute'd
+        // TBD
+        
+        cursor.close();
 
-	}
+    }
     
     /**
      * Test the positioned update correctly recompiles when an index is added.
@@ -467,12 +467,12 @@ public class CurrentOfTest extends BaseJDBCTestCase {
         return firstRowI;
     }
 
-	/**
-	 * Change the current cursor from the one the positioned
+    /**
+     * Change the current cursor from the one the positioned
      * UPDATE and DELETE was compiled against to one that only has a
      * subset of the columns being updatable.
-	 */
-	public void testCursorChangeUpdateList() throws SQLException {
+     */
+    public void testCursorChangeUpdateList() throws SQLException {
         
         // Update will fail
         cursorChange(
@@ -489,7 +489,7 @@ public class CurrentOfTest extends BaseJDBCTestCase {
                 "DELETE FROM t WHERE CURRENT OF ",
                 "select I, C from t for update of I"
                 );
-	}
+    }
     
     /**
      * Change the current cursor from the one the positioned
@@ -584,50 +584,50 @@ public class CurrentOfTest extends BaseJDBCTestCase {
      * If an error is expected then two rows will be updated
      * or deleted.
      */
-	private void cursorChange(String sqlState,
+    private void cursorChange(String sqlState,
             String cursorName,
             String initialCursor,
             String positionedStatement,
             String changeToCursor) throws SQLException {
 
-		PreparedStatement select = prepareStatement(initialCursor);
-		if (cursorName != null)
-			select.setCursorName(cursorName);
+        PreparedStatement select = prepareStatement(initialCursor);
+        if (cursorName != null)
+            select.setCursorName(cursorName);
 
-		ResultSet cursor = select.executeQuery(); // cursor is now open
+        ResultSet cursor = select.executeQuery(); // cursor is now open
 
-		// TEST: find the cursor during compilation
-		cursorName = cursor.getCursorName();
-		PreparedStatement update = prepareStatement(
+        // TEST: find the cursor during compilation
+        cursorName = cursor.getCursorName();
+        PreparedStatement update = prepareStatement(
                 positionedStatement + cursorName);
-		assertTrue(cursor.next());
-		assertUpdateCount(update, 1);
-		cursor.close();
+        assertTrue(cursor.next());
+        assertUpdateCount(update, 1);
+        cursor.close();
 
-		// now prepare the a cursor with the same name but different SQL.
-		PreparedStatement selectdd = prepareStatement(changeToCursor);
-		selectdd.setCursorName(cursorName);
-		cursor = selectdd.executeQuery();
-		assertTrue(cursor.next());
+        // now prepare the a cursor with the same name but different SQL.
+        PreparedStatement selectdd = prepareStatement(changeToCursor);
+        selectdd.setCursorName(cursorName);
+        cursor = selectdd.executeQuery();
+        assertTrue(cursor.next());
         if (sqlState != null)
-		    assertStatementError(sqlState,update);
+            assertStatementError(sqlState,update);
         else
             assertUpdateCount(update, 1);
 
-		cursor.close();
-		
-		// now execute the original statement again and the positioned update
-		// will work.
-		cursor = select.executeQuery();
-		cursor.next();
-		assertUpdateCount(update, 1);
+        cursor.close();
+        
+        // now execute the original statement again and the positioned update
+        // will work.
+        cursor = select.executeQuery();
+        cursor.next();
+        assertUpdateCount(update, 1);
 
-		cursor.close();
-		update.close();
-		selectdd.close();
-		select.close();
+        cursor.close();
+        update.close();
+        selectdd.close();
+        select.close();
 
-	}
+    }
     
     /*
     ** Routines

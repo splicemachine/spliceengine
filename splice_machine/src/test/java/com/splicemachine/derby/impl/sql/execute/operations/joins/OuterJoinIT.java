@@ -111,11 +111,11 @@ public class OuterJoinIT extends SpliceUnitTest {
                             ps.executeUpdate();
                         }
                         String insertT1 = "insert into %s values (null, null, null, null, null, null, null, null),"
-                        		+ "(1, 1, 1e1, 1e1, '11111', '11111 11', '11111', '11111 11')," +
-                        		"(2, 2, 2e1, 2e1, '22222', '22222 22', '22222', '22222 22')";                        
+                                + "(1, 1, 1e1, 1e1, '11111', '11111 11', '11111', '11111 11')," +
+                                "(2, 2, 2e1, 2e1, '22222', '22222 22', '22222', '22222 22')";                        
                         String insertT2 = "insert into %s values (null, null, null, null, null, null, null, null),"
-                        		+ "(3, 3, 3e1, 3e1, '33333', '33333 33', '33333', '33333 33')," +
-                        		"(4, 4, 4e1, 4e1, '44444', '44444 44','44444', '44444 44')";                        
+                                + "(3, 3, 3e1, 3e1, '33333', '33333 33', '33333', '33333 33')," +
+                                "(4, 4, 4e1, 4e1, '44444', '44444 44','44444', '44444 44')";                        
                         String insertDupes = "insert into %s select * from t1 union all select * from t2";
                         Statement statement = spliceClassWatcher.getStatement();
                         statement.executeUpdate(format(insertT1,t1));
@@ -252,10 +252,10 @@ public class OuterJoinIT extends SpliceUnitTest {
         while (rs.next()) {
             j++;
             LOG.info(String.format("cc.sa=%s,count=%dd", rs.getString(1), rs.getInt(2)));
-			Assert.assertNotNull(rs.getString(1));
-			if (!rs.getString(1).equals("9")) {
-				Assert.assertEquals(1l,rs.getLong(2));
-			}
+            Assert.assertNotNull(rs.getString(1));
+            if (!rs.getString(1).equals("9")) {
+                Assert.assertEquals(1l,rs.getLong(2));
+            }
         }
         Assert.assertEquals(10, j);
     }
@@ -419,12 +419,12 @@ public class OuterJoinIT extends SpliceUnitTest {
     
     @Test
     public void testUnionLeftJoinedToTable() throws Exception {
-    	ResultSet rs = methodWatcher.executeQuery("select * from (select * from t1 union select * from t2) x2 left join t2 on x2.i = t2.i");
-    	int count = 0;
-    	while (rs.next()) {
-    		count++;
-    	}
-    	Assert.assertEquals("Returned the wrong number of rows", 5,count);
+        ResultSet rs = methodWatcher.executeQuery("select * from (select * from t1 union select * from t2) x2 left join t2 on x2.i = t2.i");
+        int count = 0;
+        while (rs.next()) {
+            count++;
+        }
+        Assert.assertEquals("Returned the wrong number of rows", 5,count);
     }
 
     @Test
@@ -461,12 +461,12 @@ public class OuterJoinIT extends SpliceUnitTest {
     
     @Test
     public void testLeftOuterCreateTableAs() throws Exception {
-    	try {
-    		methodWatcher.executeUpdate("create table "+CLASS_NAME+".foo as select t3.*"
-    				+ " from "+CLASS_NAME+".t3 left join "+CLASS_NAME+".t4 on t3.parentId = t4.id with data");    		
-    	} finally {
-    		methodWatcher.executeUpdate("drop table "+CLASS_NAME+".foo");
-    	}
+        try {
+            methodWatcher.executeUpdate("create table "+CLASS_NAME+".foo as select t3.*"
+                    + " from "+CLASS_NAME+".t3 left join "+CLASS_NAME+".t4 on t3.parentId = t4.id with data");            
+        } finally {
+            methodWatcher.executeUpdate("drop table "+CLASS_NAME+".foo");
+        }
     }
 
     @Test

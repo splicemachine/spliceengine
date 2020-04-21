@@ -48,7 +48,7 @@ package com.splicemachine.dbTesting.unitTests.util;
  * <LI> void <B>set</B>(byte[] bytes, int position) to set a bit</LI>
  * <LI> void <B>clear</B>(byte[] bytes, int position) to clear a bit</LI>
  * <LI> boolean <B>get</B>(byte[] bytes, int position) to get the 
- *		bit status </LI> </UL>
+ *        bit status </LI> </UL>
  * <p>
  * Since these methods effectively allow a SQL BIT to be
  * considered as an array of booleans, all offsets (position
@@ -64,92 +64,92 @@ package com.splicemachine.dbTesting.unitTests.util;
  */ 
 public class BitUtil
 {
-	/**
-	 * Set the bit at the specified position
-	 *
-	 * @param bytes		the byte array
-	 * @param position	the bit to set, starting from zero
-	 *
-	 * @return the byte array with the set bit
-	 *
-	 * @exception IndexOutOfBoundsException on bad position
-	 */
-	public static byte[] set(byte[] bytes, int position)
-	{
-		if (position >= 0)
-		{
-			int bytepos = position >> 3;
-			if (bytepos < bytes.length)
-			{
-				int bitpos = 7 - (position % 8);
+    /**
+     * Set the bit at the specified position
+     *
+     * @param bytes        the byte array
+     * @param position    the bit to set, starting from zero
+     *
+     * @return the byte array with the set bit
+     *
+     * @exception IndexOutOfBoundsException on bad position
+     */
+    public static byte[] set(byte[] bytes, int position)
+    {
+        if (position >= 0)
+        {
+            int bytepos = position >> 3;
+            if (bytepos < bytes.length)
+            {
+                int bitpos = 7 - (position % 8);
 
-				bytes[bytepos] |= (1 << bitpos);
-				return bytes;
-			}
-		}
-		throw new IndexOutOfBoundsException(Integer.toString(position));
-	}
+                bytes[bytepos] |= (1 << bitpos);
+                return bytes;
+            }
+        }
+        throw new IndexOutOfBoundsException(Integer.toString(position));
+    }
 
-	/**
-	 * Clear the bit at the specified position
-	 *
-	 * @param bytes		the byte array
-	 * @param position	the bit to clear, starting from zero
-	 *
-	 * @return the byte array with the cleared bit
-	 *
-	 * @exception IndexOutOfBoundsException on bad position
-	 */
-	public static byte[] clear(byte[] bytes, int position)
-	{
-		if (position >= 0)
-		{
-			int bytepos = position >> 3;
-			if (bytepos < bytes.length)
-			{
-				int bitpos = 7 - (position % 8);
-				bytes[bytepos] &= ~(1 << bitpos);
-				return bytes;
-			}
-		}
-		
-		throw new IndexOutOfBoundsException(Integer.toString(position));
-	}
+    /**
+     * Clear the bit at the specified position
+     *
+     * @param bytes        the byte array
+     * @param position    the bit to clear, starting from zero
+     *
+     * @return the byte array with the cleared bit
+     *
+     * @exception IndexOutOfBoundsException on bad position
+     */
+    public static byte[] clear(byte[] bytes, int position)
+    {
+        if (position >= 0)
+        {
+            int bytepos = position >> 3;
+            if (bytepos < bytes.length)
+            {
+                int bitpos = 7 - (position % 8);
+                bytes[bytepos] &= ~(1 << bitpos);
+                return bytes;
+            }
+        }
+        
+        throw new IndexOutOfBoundsException(Integer.toString(position));
+    }
 
-	/**
-	 * Check to see if the specified bit is set
-	 *
-	 * @param bytes		the byte array
-	 * @param position	the bit to check, starting from zero
-	 *
-	 * @return true/false
-	 *
-	 * @exception IndexOutOfBoundsException on bad position
-	 */
-	public static boolean get(byte[] bytes, int position)
-	{
-		if (position >= 0)
-		{
-			int bytepos = position >> 3;
-			if (bytepos < bytes.length)
-			{
-				int bitpos = 7 - (position % 8);
-				return ((bytes[bytepos] & (1 << bitpos)) != 0);
-			}
-		}
-		throw new IndexOutOfBoundsException(Integer.toString(position));
-	}
+    /**
+     * Check to see if the specified bit is set
+     *
+     * @param bytes        the byte array
+     * @param position    the bit to check, starting from zero
+     *
+     * @return true/false
+     *
+     * @exception IndexOutOfBoundsException on bad position
+     */
+    public static boolean get(byte[] bytes, int position)
+    {
+        if (position >= 0)
+        {
+            int bytepos = position >> 3;
+            if (bytepos < bytes.length)
+            {
+                int bitpos = 7 - (position % 8);
+                return ((bytes[bytepos] & (1 << bitpos)) != 0);
+            }
+        }
+        throw new IndexOutOfBoundsException(Integer.toString(position));
+    }
 
-	private static char[] hex_table = {
+    private static char[] hex_table = {
                 '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
                 'a', 'b', 'c', 'd', 'e', 'f'
             };
 
-	/**
-		Convert a byte array to a human-readable String for debugging purposes.
-	*/
-	public static String hexDump(byte[] data)
-	{
+    /**
+        Convert a byte array to a human-readable String for debugging purposes.
+    */
+    public static String hexDump(byte[] data)
+    {
             byte byte_value;
 
 
@@ -204,5 +204,5 @@ public class BitUtil
             }
             return(str.toString());
 
-	}
+    }
 }

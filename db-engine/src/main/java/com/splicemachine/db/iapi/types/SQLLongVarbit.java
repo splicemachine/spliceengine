@@ -43,109 +43,109 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 public class SQLLongVarbit extends SQLVarbit
 {
 
-	public String getTypeName()
-	{
-		return TypeId.LONGVARBIT_NAME;
-	}
+    public String getTypeName()
+    {
+        return TypeId.LONGVARBIT_NAME;
+    }
 
-	/**
-	 * Return max memory usage for a SQL LongVarbit
-	 */
-	int getMaxMemoryUsage()
-	{
-		return Limits.DB2_LONGVARCHAR_MAXWIDTH;
-	}
+    /**
+     * Return max memory usage for a SQL LongVarbit
+     */
+    int getMaxMemoryUsage()
+    {
+        return Limits.DB2_LONGVARCHAR_MAXWIDTH;
+    }
 
-	/**
-	 * @see DataValueDescriptor#getNewNull
-	 */
-	public DataValueDescriptor getNewNull()
-	{
-		return new SQLLongVarbit();
-	}
+    /**
+     * @see DataValueDescriptor#getNewNull
+     */
+    public DataValueDescriptor getNewNull()
+    {
+        return new SQLLongVarbit();
+    }
 
-	/**
-		Return my format identifier.
+    /**
+        Return my format identifier.
 
-		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
-	public int getTypeFormatId()
-	{
-		return StoredFormatIds.SQL_LONGVARBIT_ID;
-	}
-
-
-	/*
-	 * Orderable interface
-	 */
+        @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
+    */
+    public int getTypeFormatId()
+    {
+        return StoredFormatIds.SQL_LONGVARBIT_ID;
+    }
 
 
-	/*
-	 * Column interface
-	 */
+    /*
+     * Orderable interface
+     */
 
 
-	/*
-	 * class interface
-	 */
+    /*
+     * Column interface
+     */
 
-	/*
-	 * constructors
-	 */
-	public SQLLongVarbit()
-	{
-	}
 
-	public SQLLongVarbit(byte[] val)
-	{
-		super(val);
-	}
+    /*
+     * class interface
+     */
 
-	/**
-	 * Normalization method - this method may be called when putting
-	 * a value into a SQLVarbit, for example, when inserting into a SQLVarbit
-	 * column.  See NormalizeResultSet in execution.
-	 *
-	 * This overrides SQLBit -- the difference is that we don't
-	 * expand SQLVarbits to fit the target.
-	 * 
-	 * @param desiredType	The type to normalize the source column to
-	 * @param source		The value to normalize
-	 *
-	 *
-	 * @exception StandardException				Thrown for null into
-	 *											non-nullable column, and for
-	 *											truncation error
-	 */
+    /*
+     * constructors
+     */
+    public SQLLongVarbit()
+    {
+    }
 
-	public void normalize(
-				DataTypeDescriptor desiredType,
-				DataValueDescriptor source)
-					throws StandardException
-	{
-		if (source instanceof SQLLongVarbit) {
-			// avoid creating an object in memory if a matching type.
-			// this may be a stream.
-			SQLLongVarbit other = (SQLLongVarbit) source;
-			this.stream = other.stream;
-			this.dataValue = other.dataValue;
-		}
-		else
-			setValue(source.getBytes());
-	}
+    public SQLLongVarbit(byte[] val)
+    {
+        super(val);
+    }
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /**
+     * Normalization method - this method may be called when putting
+     * a value into a SQLVarbit, for example, when inserting into a SQLVarbit
+     * column.  See NormalizeResultSet in execution.
+     *
+     * This overrides SQLBit -- the difference is that we don't
+     * expand SQLVarbits to fit the target.
+     * 
+     * @param desiredType    The type to normalize the source column to
+     * @param source        The value to normalize
+     *
+     *
+     * @exception StandardException                Thrown for null into
+     *                                            non-nullable column, and for
+     *                                            truncation error
+     */
 
-	/** @see DataValueDescriptor#typePrecedence */
-	public int typePrecedence()
-	{
-		return TypeId.LONGVARBIT_PRECEDENCE;
-	}
-	
-	public Format getFormat() {
-		return Format.LONGVARBIT;
-	}
-	
+    public void normalize(
+                DataTypeDescriptor desiredType,
+                DataValueDescriptor source)
+                    throws StandardException
+    {
+        if (source instanceof SQLLongVarbit) {
+            // avoid creating an object in memory if a matching type.
+            // this may be a stream.
+            SQLLongVarbit other = (SQLLongVarbit) source;
+            this.stream = other.stream;
+            this.dataValue = other.dataValue;
+        }
+        else
+            setValue(source.getBytes());
+    }
+
+    /*
+     * DataValueDescriptor interface
+     */
+
+    /** @see DataValueDescriptor#typePrecedence */
+    public int typePrecedence()
+    {
+        return TypeId.LONGVARBIT_PRECEDENCE;
+    }
+    
+    public Format getFormat() {
+        return Format.LONGVARBIT;
+    }
+    
 }

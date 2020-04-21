@@ -35,16 +35,16 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.io.StorageFile;
 
 /**
-	Abstract out the loading of JarFiles.
+    Abstract out the loading of JarFiles.
 */
 
 public interface JarReader {
 
-	/**
-	 * Get the StorageFile for an installed jar file.
-	*/
-	StorageFile getJarFile(String schemaName, String sqlName)
-		throws StandardException;
+    /**
+     * Get the StorageFile for an installed jar file.
+    */
+    StorageFile getJarFile(String schemaName, String sqlName)
+        throws StandardException;
 
 
 }

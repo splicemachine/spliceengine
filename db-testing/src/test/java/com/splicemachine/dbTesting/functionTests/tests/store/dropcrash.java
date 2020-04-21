@@ -133,7 +133,7 @@ public class dropcrash extends BaseTest
      * number.  This will result in conglomerate 8320 not having it's 
      * associate data file c2080.dat.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     public void drop_crash_drop_table(Connection conn)
         throws SQLException
@@ -177,7 +177,7 @@ public class dropcrash extends BaseTest
     {
         dropcrash test = new dropcrash();
 
-   		ij.getPropertyArg(argv); 
+           ij.getPropertyArg(argv); 
         Connection conn = ij.startJBMS();
         conn.setAutoCommit(false);
 
@@ -187,9 +187,9 @@ public class dropcrash extends BaseTest
         }
         catch (SQLException sqle)
         {
-			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
-			sqle.printStackTrace(System.out);
-		}
+            sqle.printStackTrace(System.out);
+        }
     }
 }

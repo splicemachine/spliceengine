@@ -78,216 +78,216 @@ import com.splicemachine.db.shared.common.reference.MessageId;
  */
 public class SingleStream implements InfoStreams, ModuleControl {
 
-	/*
-	** Instance fields
-	*/
-	private HeaderPrintWriter theStream;
+    /*
+    ** Instance fields
+    */
+    private HeaderPrintWriter theStream;
 
 
-	/**
-		  The no-arg public constructor for ModuleControl's use.
-	 */
-	public SingleStream() {
-	}
+    /**
+          The no-arg public constructor for ModuleControl's use.
+     */
+    public SingleStream() {
+    }
 
-	/**
-	 * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot
-	 */
-	public void boot(boolean create, Properties properties) {
-		theStream = makeStream();
-	}
+    /**
+     * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot
+     */
+    public void boot(boolean create, Properties properties) {
+        theStream = makeStream();
+    }
 
 
-	/**
-	 * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#stop
-	 */
-	public void stop()	{
-		((BasicHeaderPrintWriter) theStream).complete();
-	}
+    /**
+     * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#stop
+     */
+    public void stop()    {
+        ((BasicHeaderPrintWriter) theStream).complete();
+    }
 
-	/*
-	 * InfoStreams interface
-	 */
+    /*
+     * InfoStreams interface
+     */
 
-	/**
-	 * @see com.splicemachine.db.iapi.services.stream.InfoStreams#stream
-	 */
-	public HeaderPrintWriter stream() {
-		return theStream;
-	}
+    /**
+     * @see com.splicemachine.db.iapi.services.stream.InfoStreams#stream
+     */
+    public HeaderPrintWriter stream() {
+        return theStream;
+    }
 
-	//
-	// class interface
-	//
+    //
+    // class interface
+    //
 
-	/**
-		Make the stream; note that service properties override
-		application and system properties.
+    /**
+        Make the stream; note that service properties override
+        application and system properties.
 
-	 */
-	protected HeaderPrintWriter makeStream() {
+     */
+    protected HeaderPrintWriter makeStream() {
 
-		// get the header
-		PrintWriterGetHeader header = makeHeader();
-		HeaderPrintWriter hpw = makeHPW(header);
+        // get the header
+        PrintWriterGetHeader header = makeHeader();
+        HeaderPrintWriter hpw = makeHPW(header);
 
-		// If hpw == null then no properties were specified for the stream
-		// so use/create the default stream.
-		if (hpw == null)
-			hpw = createDefaultStream(header);
-		return hpw;
-	}
+        // If hpw == null then no properties were specified for the stream
+        // so use/create the default stream.
+        if (hpw == null)
+            hpw = createDefaultStream(header);
+        return hpw;
+    }
 
-	/**
-		Return a new header object.
-	*/
-	private PrintWriterGetHeader makeHeader() {
+    /**
+        Return a new header object.
+    */
+    private PrintWriterGetHeader makeHeader() {
 
-		return new BasicGetLogHeader(true, true, (String) null);
-	}
+        return new BasicGetLogHeader(true, true, (String) null);
+    }
 
-	/**
-		create a HeaderPrintWriter based on the header.
-		Will still need to determine the target type.
-	 */
-	private HeaderPrintWriter makeHPW(PrintWriterGetHeader header) {
+    /**
+        create a HeaderPrintWriter based on the header.
+        Will still need to determine the target type.
+     */
+    private HeaderPrintWriter makeHPW(PrintWriterGetHeader header) {
 
-		// the type of target is based on which property is used
-		// to set it. choices are file, method, field, stream
+        // the type of target is based on which property is used
+        // to set it. choices are file, method, field, stream
 
-		String target = PropertyUtil.
+        String target = PropertyUtil.
                    getSystemProperty(Property.ERRORLOG_FILE_PROPERTY);
-		if (target!=null)
-			return makeFileHPW(target, header);
+        if (target!=null)
+            return makeFileHPW(target, header);
 
-		target = PropertyUtil.
+        target = PropertyUtil.
                    getSystemProperty(Property.ERRORLOG_METHOD_PROPERTY);
-		if (target!=null) 
-			return makeMethodHPW(target, header);
+        if (target!=null) 
+            return makeMethodHPW(target, header);
 
-		target = PropertyUtil.
+        target = PropertyUtil.
                    getSystemProperty(Property.ERRORLOG_FIELD_PROPERTY);
-		if (target!=null) 
-			return makeFieldHPW(target, header);
+        if (target!=null) 
+            return makeFieldHPW(target, header);
 
-		return null;
-	}
+        return null;
+    }
 
-	
-	private HeaderPrintWriter makeMethodHPW(String methodInvocation,
-											PrintWriterGetHeader header) {
+    
+    private HeaderPrintWriter makeMethodHPW(String methodInvocation,
+                                            PrintWriterGetHeader header) {
 
-		int lastDot = methodInvocation.lastIndexOf('.');
-		String className = methodInvocation.substring(0, lastDot);
-		String methodName = methodInvocation.substring(lastDot+1);
+        int lastDot = methodInvocation.lastIndexOf('.');
+        String className = methodInvocation.substring(0, lastDot);
+        String methodName = methodInvocation.substring(lastDot+1);
 
-		Throwable t;
-		try {
-			Class theClass = Class.forName(className);
+        Throwable t;
+        try {
+            Class theClass = Class.forName(className);
 
-			try {
-				Method theMethod = theClass.getMethod(methodName,  new Class[0]);
+            try {
+                Method theMethod = theClass.getMethod(methodName,  new Class[0]);
 
-				if (!Modifier.isStatic(theMethod.getModifiers())) {
-					HeaderPrintWriter hpw = useDefaultStream(header);
-					hpw.printlnWithHeader(theMethod.toString() + " is not static");
-					return hpw;
-				}
+                if (!Modifier.isStatic(theMethod.getModifiers())) {
+                    HeaderPrintWriter hpw = useDefaultStream(header);
+                    hpw.printlnWithHeader(theMethod.toString() + " is not static");
+                    return hpw;
+                }
 
-				try {
-					return makeValueHPW(theMethod, theMethod.invoke((Object) null, 
-						new Object[0]), header, methodInvocation);
-				} catch (IllegalAccessException | IllegalArgumentException iae) {
-					t = iae;
-				} catch (InvocationTargetException ite) {
-					t = ite.getTargetException();
-				}
+                try {
+                    return makeValueHPW(theMethod, theMethod.invoke((Object) null, 
+                        new Object[0]), header, methodInvocation);
+                } catch (IllegalAccessException | IllegalArgumentException iae) {
+                    t = iae;
+                } catch (InvocationTargetException ite) {
+                    t = ite.getTargetException();
+                }
 
-			} catch (NoSuchMethodException nsme) {
-				t = nsme;
-			}
-		} catch (ClassNotFoundException | SecurityException cnfe) {
-			t = cnfe;
-		}
+            } catch (NoSuchMethodException nsme) {
+                t = nsme;
+            }
+        } catch (ClassNotFoundException | SecurityException cnfe) {
+            t = cnfe;
+        }
         return useDefaultStream(header, t);
 
-	}
+    }
 
 
-	private HeaderPrintWriter makeFieldHPW(String fieldAccess,
-											PrintWriterGetHeader header) {
+    private HeaderPrintWriter makeFieldHPW(String fieldAccess,
+                                            PrintWriterGetHeader header) {
 
-		int lastDot = fieldAccess.lastIndexOf('.');
-		String className = fieldAccess.substring(0, lastDot);
-		String fieldName = fieldAccess.substring(lastDot+1,
-							  fieldAccess.length());
+        int lastDot = fieldAccess.lastIndexOf('.');
+        String className = fieldAccess.substring(0, lastDot);
+        String fieldName = fieldAccess.substring(lastDot+1,
+                              fieldAccess.length());
 
-		Throwable t;
-		try {
-			Class theClass = Class.forName(className);
+        Throwable t;
+        try {
+            Class theClass = Class.forName(className);
 
-			try {
-				Field theField = theClass.getField(fieldName);
-		
-				if (!Modifier.isStatic(theField.getModifiers())) {
-					HeaderPrintWriter hpw = useDefaultStream(header);
-					hpw.printlnWithHeader(theField.toString() + " is not static");
-					return hpw;
-				}
+            try {
+                Field theField = theClass.getField(fieldName);
+        
+                if (!Modifier.isStatic(theField.getModifiers())) {
+                    HeaderPrintWriter hpw = useDefaultStream(header);
+                    hpw.printlnWithHeader(theField.toString() + " is not static");
+                    return hpw;
+                }
 
-				try {
-					return makeValueHPW(theField, theField.get((Object) null), 
-						header, fieldAccess);
-				} catch (IllegalAccessException | IllegalArgumentException iae) {
-					t = iae;
-				}
+                try {
+                    return makeValueHPW(theField, theField.get((Object) null), 
+                        header, fieldAccess);
+                } catch (IllegalAccessException | IllegalArgumentException iae) {
+                    t = iae;
+                }
 
             } catch (NoSuchFieldException nsfe) {
-				t = nsfe;
-			}
-		} catch (ClassNotFoundException | SecurityException cnfe) {
-			t = cnfe;
-		}
+                t = nsfe;
+            }
+        } catch (ClassNotFoundException | SecurityException cnfe) {
+            t = cnfe;
+        }
         return useDefaultStream(header, t);
 
-		/*
-			If we decide it is a bad idea to use reflect and need
-			an alternate implementation, we can hard-wire those
-			fields that we desire to give configurations access to,
-			like so:
+        /*
+            If we decide it is a bad idea to use reflect and need
+            an alternate implementation, we can hard-wire those
+            fields that we desire to give configurations access to,
+            like so:
 
-		if ("java.lang.System.out".equals(fieldAccess))
-		 	os = System.out;
-		else if ("java.lang.System.err".equals(fieldAccess))
-		 	os = System.err;
-		*/
-	}
+        if ("java.lang.System.out".equals(fieldAccess))
+             os = System.out;
+        else if ("java.lang.System.err".equals(fieldAccess))
+             os = System.err;
+        */
+    }
 
-	private HeaderPrintWriter makeValueHPW(Member whereFrom, Object value,
-		PrintWriterGetHeader header, String name) {
+    private HeaderPrintWriter makeValueHPW(Member whereFrom, Object value,
+        PrintWriterGetHeader header, String name) {
 
-		return new BasicHeaderPrintWriter(null, header, false, name);
-	}
+        return new BasicHeaderPrintWriter(null, header, false, name);
+    }
  
 
-	/**
-		Used when no configuration information exists for a stream.
-	*/
-	private HeaderPrintWriter createDefaultStream(PrintWriterGetHeader header) {
-		return makeFileHPW("derby.log", header);
-	}
+    /**
+        Used when no configuration information exists for a stream.
+    */
+    private HeaderPrintWriter createDefaultStream(PrintWriterGetHeader header) {
+        return makeFileHPW("derby.log", header);
+    }
 
-	/**
-		Used when creating a stream creates an error.
-	*/
-	private HeaderPrintWriter useDefaultStream(PrintWriterGetHeader header) {
+    /**
+        Used when creating a stream creates an error.
+    */
+    private HeaderPrintWriter useDefaultStream(PrintWriterGetHeader header) {
 
-		return new BasicHeaderPrintWriter(null, header, false, "System.err");
-	}
+        return new BasicHeaderPrintWriter(null, header, false, "System.err");
+    }
 
-	private HeaderPrintWriter useDefaultStream(PrintWriterGetHeader header, Throwable t) {
+    private HeaderPrintWriter useDefaultStream(PrintWriterGetHeader header, Throwable t) {
 
-		HeaderPrintWriter hpw = useDefaultStream(header);
+        HeaderPrintWriter hpw = useDefaultStream(header);
 
         while (t != null) {
             Throwable causedBy = t.getCause();
@@ -298,17 +298,17 @@ public class SingleStream implements InfoStreams, ModuleControl {
             t = causedBy;
         }
 
-		return hpw;
-	}
+        return hpw;
+    }
 
-	/*
-	** Priv block code, moved out of the old Java2 version.
-	*/
+    /*
+    ** Priv block code, moved out of the old Java2 version.
+    */
 
     private String PBfileName;
     private PrintWriterGetHeader PBheader;
 
-	private HeaderPrintWriter makeFileHPW(String fileName, PrintWriterGetHeader header)
+    private HeaderPrintWriter makeFileHPW(String fileName, PrintWriterGetHeader header)
     {
         this.PBfileName = fileName;
         this.PBheader = header;

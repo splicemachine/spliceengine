@@ -58,7 +58,7 @@ public class DenseCompressedBitIndex implements BitIndex {
     }
 
     public static BitIndex compress(BitSet bitSet, BitSet scalarFields,BitSet floatFields,BitSet doubleFields){
-				return new DenseCompressedBitIndex(bitSet,scalarFields,floatFields,doubleFields);
+                return new DenseCompressedBitIndex(bitSet,scalarFields,floatFields,doubleFields);
     }
 
     public int length() {
@@ -324,12 +324,12 @@ public class DenseCompressedBitIndex implements BitIndex {
 
         DenseCompressedBitIndex that = (DenseCompressedBitIndex) o;
 
-				return bitSet.equals(that.bitSet) &&
-								doubleFields.equals(that.doubleFields)&&
-								floatFields.equals(that.floatFields) &&
-								scalarFields.equals(that.scalarFields);
+                return bitSet.equals(that.bitSet) &&
+                                doubleFields.equals(that.doubleFields)&&
+                                floatFields.equals(that.floatFields) &&
+                                scalarFields.equals(that.scalarFields);
 
-		}
+        }
 
     @Override
     public int hashCode() {
@@ -411,7 +411,7 @@ public class DenseCompressedBitIndex implements BitIndex {
         return new DenseCompressedBitIndex(bitSet,lengthDelimitedFields,floatFields,doubleFields);
     }
     
-		public static void main(String... args) throws Exception{
+        public static void main(String... args) throws Exception{
         BitSet set = new BitSet();
         set.set(0);
 //        set.set(1);

@@ -67,35 +67,35 @@ import java.lang.reflect.*;
 
 
 /*
-	To run, put the following line in db.properties
-	derby.module.test.T_Cipher=com.splicemachine.dbTesting.unitTests.crypto.T_Cipher
+    To run, put the following line in db.properties
+    derby.module.test.T_Cipher=com.splicemachine.dbTesting.unitTests.crypto.T_Cipher
 
-	and run java com.splicemachine.dbTesting.unitTests.harness.UnitTestMain
+    and run java com.splicemachine.dbTesting.unitTests.harness.UnitTestMain
 
 */
 public class T_Cipher extends T_Generic
 {
-	private static final String testService = "CipherText";
+    private static final String testService = "CipherText";
 
-	CipherProvider enEngine;
-	CipherProvider deEngine;
-	Key secretKey;
-	byte[] IV;
+    CipherProvider enEngine;
+    CipherProvider deEngine;
+    Key secretKey;
+    byte[] IV;
 
-	CipherFactory factory;
+    CipherFactory factory;
     
-	public T_Cipher()
-	{
-		super();
-	}
+    public T_Cipher()
+    {
+        super();
+    }
 
-	/*
-	** Methods required by T_Generic
-	*/
+    /*
+    ** Methods required by T_Generic
+    */
 
-	public String getModuleToTestProtocolName() {
-		return Module.CipherFactoryBuilder;
-	}
+    public String getModuleToTestProtocolName() {
+        return Module.CipherFactoryBuilder;
+    }
 
     protected String getAlgorithm()
     {
@@ -104,114 +104,114 @@ public class T_Cipher extends T_Generic
 
     protected String getProvider()
     {
-	// allow for alternate providers
-	String testProvider = 
-		
-    	(String) AccessController.doPrivileged(new PrivilegedAction() {
-		    public Object run()  {
-		    	return System.getProperty("testEncryptionProvider");
-		    }
-	    });
-	
-	if (testProvider != null) 
-		return testProvider;
-	else
-		return null;	
+    // allow for alternate providers
+    String testProvider = 
+        
+        (String) AccessController.doPrivileged(new PrivilegedAction() {
+            public Object run()  {
+                return System.getProperty("testEncryptionProvider");
+            }
+        });
+    
+    if (testProvider != null) 
+        return testProvider;
+    else
+        return null;    
 
     }
 
-	public void runTests() throws T_Fail {
+    public void runTests() throws T_Fail {
 
-		File testFile = new File("extinout/T_Cipher.data");
-		deleteFile(testFile);
+        File testFile = new File("extinout/T_Cipher.data");
+        deleteFile(testFile);
 
-		String bootPassword = "a secret, don't tell anyone";
+        String bootPassword = "a secret, don't tell anyone";
 
-		try
-		{
-			RandomAccessFile file = new RandomAccessFile(testFile, "rw");
+        try
+        {
+            RandomAccessFile file = new RandomAccessFile(testFile, "rw");
 
-			setupCiphers(bootPassword);
+            setupCiphers(bootPassword);
 
-			// run thru some in patterns
-			int patternLength = 8192;
-			byte[] pattern = new byte[patternLength];
-			for (int i = 0; i < patternLength; i++)
-				pattern[i] = (byte)(i & 0xFF);
+            // run thru some in patterns
+            int patternLength = 8192;
+            byte[] pattern = new byte[patternLength];
+            for (int i = 0; i < patternLength; i++)
+                pattern[i] = (byte)(i & 0xFF);
 
-			test(pattern, 0, 8, file);	// test short patterns
-			test(pattern, 8, 8, file);
-			test(pattern, 1, 16, file);
+            test(pattern, 0, 8, file);    // test short patterns
+            test(pattern, 8, 8, file);
+            test(pattern, 1, 16, file);
 
-			test(pattern, 0, patternLength, file); // test long pattern
-			test(pattern, 0, patternLength/2, file);
-			test(pattern, 1, patternLength/2, file);
-			test(pattern, 2, patternLength/2, file);
-			test(pattern, 3, patternLength/2, file);
+            test(pattern, 0, patternLength, file); // test long pattern
+            test(pattern, 0, patternLength/2, file);
+            test(pattern, 1, patternLength/2, file);
+            test(pattern, 2, patternLength/2, file);
+            test(pattern, 3, patternLength/2, file);
 
-			file.seek(0);
-			check(pattern, 0, 8, file);	// file offset 0
-			check(pattern, 8, 8, file);	// file offset 8
-			check(pattern, 1, 16, file);	// file offset 16
-			check(pattern, 0, patternLength, file);	// file offset 32
-			check(pattern, 0, patternLength/2, file);// file offset 32+patternLength
-			check(pattern, 1, patternLength/2, file);// file offset 32+patternLength+(patternLength/2)
-			check(pattern, 2, patternLength/2, file);// file offset 32+(2*patternLength)
-			check(pattern, 3, patternLength/2, file);// file offset 32+(2*patternLength)+(patternLength/2);
+            file.seek(0);
+            check(pattern, 0, 8, file);    // file offset 0
+            check(pattern, 8, 8, file);    // file offset 8
+            check(pattern, 1, 16, file);    // file offset 16
+            check(pattern, 0, patternLength, file);    // file offset 32
+            check(pattern, 0, patternLength/2, file);// file offset 32+patternLength
+            check(pattern, 1, patternLength/2, file);// file offset 32+patternLength+(patternLength/2)
+            check(pattern, 2, patternLength/2, file);// file offset 32+(2*patternLength)
+            check(pattern, 3, patternLength/2, file);// file offset 32+(2*patternLength)+(patternLength/2);
 
-			REPORT("starting random test");
+            REPORT("starting random test");
 
-			// now do some random testing from file
-			file.seek(32+patternLength);
-			check(pattern, 0, patternLength/2, file);
+            // now do some random testing from file
+            file.seek(32+patternLength);
+            check(pattern, 0, patternLength/2, file);
 
-			file.seek(32);
-			check(pattern, 0, patternLength, file);
+            file.seek(32);
+            check(pattern, 0, patternLength, file);
 
-			file.seek(32+(2*patternLength));
-			check(pattern, 2, patternLength/2, file);
+            file.seek(32+(2*patternLength));
+            check(pattern, 2, patternLength/2, file);
 
-			file.seek(0);
-			check(pattern, 0, 8, file);
+            file.seek(0);
+            check(pattern, 0, 8, file);
 
-			file.seek(16);
-			check(pattern, 1, 16, file);
+            file.seek(16);
+            check(pattern, 1, 16, file);
 
-			file.seek(32+(2*patternLength)+(patternLength/2));
-			check(pattern, 3, patternLength/2, file);
+            file.seek(32+(2*patternLength)+(patternLength/2));
+            check(pattern, 3, patternLength/2, file);
 
-			file.seek(8);
-			check(pattern, 8, 8, file);
+            file.seek(8);
+            check(pattern, 8, 8, file);
 
-			file.seek(32+patternLength+(patternLength/2));
-			check(pattern, 1, patternLength/2, file);
+            file.seek(32+patternLength+(patternLength/2));
+            check(pattern, 1, patternLength/2, file);
 
-			file.close();
-		}
-		catch (StandardException se)
-		{
-			se.printStackTrace(System.out);
-			throw T_Fail.exceptionFail(se);
-		}
-		catch (IOException ioe)
-		{
-			throw T_Fail.exceptionFail(ioe);
-		}
-
-
-		PASS("T_Cipher");
-	}
+            file.close();
+        }
+        catch (StandardException se)
+        {
+            se.printStackTrace(System.out);
+            throw T_Fail.exceptionFail(se);
+        }
+        catch (IOException ioe)
+        {
+            throw T_Fail.exceptionFail(ioe);
+        }
 
 
-	protected void setupCiphers(String bootPassword) throws T_Fail, StandardException
-	{
+        PASS("T_Cipher");
+    }
+
+
+    protected void setupCiphers(String bootPassword) throws T_Fail, StandardException
+    {
         // set properties for testing
         Properties props = new Properties();
         props.put("encryptionAlgorithm",getAlgorithm());
         String provider = getProvider();
         if (provider != null)
             props.put("encryptionProvider",getProvider());
-		props.put("bootPassword", bootPassword);
+        props.put("bootPassword", bootPassword);
 
         REPORT("encryption algorithm used : " + getAlgorithm());
         REPORT("encryption provider used : " + provider);
@@ -221,65 +221,65 @@ public class T_Cipher extends T_Generic
 
         factory = cb.createCipherFactory(true, props, false);
 
-		if (factory == null)
-			throw T_Fail.testFailMsg("cannot find Cipher factory ");
+        if (factory == null)
+            throw T_Fail.testFailMsg("cannot find Cipher factory ");
 
-		enEngine = factory.createNewCipher(CipherFactory.ENCRYPT);
-		deEngine = factory.createNewCipher(CipherFactory.DECRYPT);
+        enEngine = factory.createNewCipher(CipherFactory.ENCRYPT);
+        deEngine = factory.createNewCipher(CipherFactory.DECRYPT);
 
-		if (enEngine == null)
-			throw T_Fail.testFailMsg("cannot create encryption engine");
-		if (deEngine == null)
-			throw T_Fail.testFailMsg("cannot create decryption engine");
-	}
+        if (enEngine == null)
+            throw T_Fail.testFailMsg("cannot create encryption engine");
+        if (deEngine == null)
+            throw T_Fail.testFailMsg("cannot create decryption engine");
+    }
 
-	protected void test(byte[] cleartext, int offset, int length,
-					  RandomAccessFile outfile)
-		 throws T_Fail, StandardException, IOException
-	{
-		byte[] ciphertext = new byte[length];
-		System.arraycopy(cleartext, offset, ciphertext, 0, length);
+    protected void test(byte[] cleartext, int offset, int length,
+                      RandomAccessFile outfile)
+         throws T_Fail, StandardException, IOException
+    {
+        byte[] ciphertext = new byte[length];
+        System.arraycopy(cleartext, offset, ciphertext, 0, length);
 
-		if (enEngine.encrypt(ciphertext, 0, length, ciphertext, 0) != length)
-			throw T_Fail.testFailMsg("encrypted text length != length");
+        if (enEngine.encrypt(ciphertext, 0, length, ciphertext, 0) != length)
+            throw T_Fail.testFailMsg("encrypted text length != length");
 
-		if (byteArrayIdentical(ciphertext, cleartext, offset, length))
-			throw T_Fail.testFailMsg("encryption just made a copy of the clear text");
+        if (byteArrayIdentical(ciphertext, cleartext, offset, length))
+            throw T_Fail.testFailMsg("encryption just made a copy of the clear text");
 
-		outfile.write(ciphertext);
+        outfile.write(ciphertext);
 
-		// now decrypt it and check
-		deEngine.decrypt(ciphertext, 0, length, ciphertext, 0);
-		if (byteArrayIdentical(ciphertext, cleartext, offset, length) == false)
-			throw T_Fail.testFailMsg("decryption did not yield the same clear text");
-	}
+        // now decrypt it and check
+        deEngine.decrypt(ciphertext, 0, length, ciphertext, 0);
+        if (byteArrayIdentical(ciphertext, cleartext, offset, length) == false)
+            throw T_Fail.testFailMsg("decryption did not yield the same clear text");
+    }
 
-	protected void check(byte[] cleartext, int offset, int length,
-					   RandomAccessFile infile)
-		 throws IOException, T_Fail, StandardException
-	{
-		byte[] ciphertext = new byte[length];
-		infile.read(ciphertext);
+    protected void check(byte[] cleartext, int offset, int length,
+                       RandomAccessFile infile)
+         throws IOException, T_Fail, StandardException
+    {
+        byte[] ciphertext = new byte[length];
+        infile.read(ciphertext);
 
-		if (deEngine.decrypt(ciphertext, 0, length, ciphertext, 0) != length)
-			throw T_Fail.testFailMsg("decrypted text length != length");
+        if (deEngine.decrypt(ciphertext, 0, length, ciphertext, 0) != length)
+            throw T_Fail.testFailMsg("decrypted text length != length");
 
-		if (byteArrayIdentical(ciphertext, cleartext, offset, length) == false)
-			throw T_Fail.testFailMsg("decryption did not yield the same clear text");
+        if (byteArrayIdentical(ciphertext, cleartext, offset, length) == false)
+            throw T_Fail.testFailMsg("decryption did not yield the same clear text");
 
-	}
+    }
 
-	// see if 2 byte arrays are identical
-	protected boolean byteArrayIdentical(byte[] compare, byte[] original,
-									  int offset, int length)
-	{
-		for (int i = 0; i < length; i++)
-		{
-			if (compare[i] != original[offset+i])
-				return false;
-		}
-		return true;
-	}
+    // see if 2 byte arrays are identical
+    protected boolean byteArrayIdentical(byte[] compare, byte[] original,
+                                      int offset, int length)
+    {
+        for (int i = 0; i < length; i++)
+        {
+            if (compare[i] != original[offset+i])
+                return false;
+        }
+        return true;
+    }
 
 
     /*
@@ -352,22 +352,22 @@ public class T_Cipher extends T_Generic
             java.security.Provider cryptixProvider = (java.security.Provider) jceClass.newInstance();
             java.security.Security.addProvider(cryptixProvider);
 
-		    byte[] userkey = "a secret".getBytes();
+            byte[] userkey = "a secret".getBytes();
             System.out.println("userkey length is " + userkey.length);
             Key secretKey = (Key) (new SecretKeySpec(userkey, "DES"));
-		    byte[] IV = "anivspec".getBytes();
+            byte[] IV = "anivspec".getBytes();
 
             Cipher enCipher = Cipher.getInstance("DES/CBC/NoPadding","Cryptix");
             Cipher deCipher = Cipher.getInstance("DES/CBC/NoPadding","Cryptix");
-			IvParameterSpec ivspec = new IvParameterSpec(IV);
+            IvParameterSpec ivspec = new IvParameterSpec(IV);
 
             enCipher.init(Cipher.ENCRYPT_MODE,secretKey,ivspec);
             deCipher.init(Cipher.DECRYPT_MODE,secretKey,ivspec);
 
             int patternLength = 8;
             byte[] pattern = new byte[patternLength];
-			for (int i = 0; i < patternLength; i++)
-				pattern[i] = (byte)(i & 0xFF);
+            for (int i = 0; i < patternLength; i++)
+                pattern[i] = (byte)(i & 0xFF);
 
             byte[] cipherOutput1 = new byte[patternLength];
             byte[] cipherOutput2 = new byte[patternLength];
@@ -499,22 +499,22 @@ public class T_Cipher extends T_Generic
             java.security.Provider myProvider = (java.security.Provider) jceClass.newInstance();
             java.security.Security.addProvider(myProvider);
 
-		    byte[] userkey = "a secreta secreta secret".getBytes();
+            byte[] userkey = "a secreta secreta secret".getBytes();
             System.out.println("userkey length is " + userkey.length);
             Key secretKey = (Key) (new SecretKeySpec(userkey, "DESede"));
-		    byte[] IV = "anivspec".getBytes();
+            byte[] IV = "anivspec".getBytes();
 
             Cipher enCipher = Cipher.getInstance("DESede/PCBC/NoPadding","SunJCE");
             Cipher deCipher = Cipher.getInstance("DESede/PCBC/NoPadding","SunJCE");
-			IvParameterSpec ivspec = new IvParameterSpec(IV);
+            IvParameterSpec ivspec = new IvParameterSpec(IV);
 
             enCipher.init(Cipher.ENCRYPT_MODE,secretKey,ivspec);
             deCipher.init(Cipher.DECRYPT_MODE,secretKey,ivspec);
 
             int patternLength = 24;
             byte[] pattern = new byte[patternLength];
-			for (int i = 0; i < patternLength; i++)
-				pattern[i] = (byte)(i & 0xFF);
+            for (int i = 0; i < patternLength; i++)
+                pattern[i] = (byte)(i & 0xFF);
 
             byte[] cipherOutput1 = new byte[patternLength];
             byte[] cipherOutput2 = new byte[patternLength];
@@ -561,22 +561,22 @@ public class T_Cipher extends T_Generic
             // IAIK p=new IAIK();
             // iaik.security.provider.IAIK.getMd5();
 
-		    byte[] userkey = "a secret".getBytes();
+            byte[] userkey = "a secret".getBytes();
             System.out.println("userkey length is " + userkey.length);
             Key secretKey = (Key) (new SecretKeySpec(userkey, "DES"));
-		    byte[] IV = "anivspec".getBytes();
+            byte[] IV = "anivspec".getBytes();
 
             Cipher enCipher = Cipher.getInstance("DES/CBC/NoPadding","IAIK");
             Cipher deCipher = Cipher.getInstance("DES/CBC/NoPadding","IAIK");
-			IvParameterSpec ivspec = new IvParameterSpec(IV);
+            IvParameterSpec ivspec = new IvParameterSpec(IV);
 
             enCipher.init(Cipher.ENCRYPT_MODE,secretKey,ivspec);
             deCipher.init(Cipher.DECRYPT_MODE,secretKey,ivspec);
 
             int patternLength = 8;
             byte[] pattern = new byte[patternLength];
-			for (int i = 0; i < patternLength; i++)
-				pattern[i] = (byte)(i & 0xFF);
+            for (int i = 0; i < patternLength; i++)
+                pattern[i] = (byte)(i & 0xFF);
 
             byte[] cipherOutput1 = new byte[patternLength];
             byte[] cipherOutput2 = new byte[patternLength];
@@ -614,19 +614,19 @@ public class T_Cipher extends T_Generic
             System.out.println("index " + i + " : " + array[i]);
     }
     */
-	
-	/**
-	 * Delete a file in a Privileged block as these tests are
-	 * run under the embedded engine code.
-	 */
-	private void deleteFile(final File f)
-	{
-	   	AccessController.doPrivileged(new PrivilegedAction() {
-		    public Object run()  {
-		    	if (f.exists())
-		    	    f.delete();
-		    	return null;
-		    }
-	    });
-	}
+    
+    /**
+     * Delete a file in a Privileged block as these tests are
+     * run under the embedded engine code.
+     */
+    private void deleteFile(final File f)
+    {
+           AccessController.doPrivileged(new PrivilegedAction() {
+            public Object run()  {
+                if (f.exists())
+                    f.delete();
+                return null;
+            }
+        });
+    }
 }

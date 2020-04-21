@@ -44,33 +44,33 @@ import com.splicemachine.db.iapi.services.io.FormatableInstanceGetter;
  */
 public class CoreDDFinderClassInfo extends FormatableInstanceGetter {
 
-	public Object getNewInstance() 
-	{
-		switch (fmtId) 
-		{
-			/* DependableFinders */
-			case StoredFormatIds.ALIAS_DESCRIPTOR_FINDER_V01_ID: 
-			case StoredFormatIds.CONGLOMERATE_DESCRIPTOR_FINDER_V01_ID:
-			case StoredFormatIds.CONSTRAINT_DESCRIPTOR_FINDER_V01_ID:
-			case StoredFormatIds.DEFAULT_DESCRIPTOR_FINDER_V01_ID:
-			case StoredFormatIds.FILE_INFO_FINDER_V01_ID:
-			case StoredFormatIds.SCHEMA_DESCRIPTOR_FINDER_V01_ID:
-			case StoredFormatIds.SPS_DESCRIPTOR_FINDER_V01_ID:
-			case StoredFormatIds.TABLE_DESCRIPTOR_FINDER_V01_ID:
-			case StoredFormatIds.TRIGGER_DESCRIPTOR_FINDER_V01_ID:
-			case StoredFormatIds.VIEW_DESCRIPTOR_FINDER_V01_ID:
-			case StoredFormatIds.TABLE_PERMISSION_FINDER_V01_ID:
-			case StoredFormatIds.ROUTINE_PERMISSION_FINDER_V01_ID:
-			case StoredFormatIds.COLUMNS_PERMISSION_FINDER_V01_ID:
-		    case StoredFormatIds.SEQUENCE_DESCRIPTOR_FINDER_V01_ID:
-		    case StoredFormatIds.PERM_DESCRIPTOR_FINDER_V01_ID:
-		    case StoredFormatIds.ROLE_GRANT_FINDER_V01_ID:
-				return new DDdependableFinder(fmtId);
-			case StoredFormatIds.COLUMN_DESCRIPTOR_FINDER_V01_ID:
-				return new DDColumnDependableFinder(fmtId);
-			default:
-				return null;
-		}
+    public Object getNewInstance() 
+    {
+        switch (fmtId) 
+        {
+            /* DependableFinders */
+            case StoredFormatIds.ALIAS_DESCRIPTOR_FINDER_V01_ID: 
+            case StoredFormatIds.CONGLOMERATE_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.CONSTRAINT_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.DEFAULT_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.FILE_INFO_FINDER_V01_ID:
+            case StoredFormatIds.SCHEMA_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.SPS_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.TABLE_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.TRIGGER_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.VIEW_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.TABLE_PERMISSION_FINDER_V01_ID:
+            case StoredFormatIds.ROUTINE_PERMISSION_FINDER_V01_ID:
+            case StoredFormatIds.COLUMNS_PERMISSION_FINDER_V01_ID:
+            case StoredFormatIds.SEQUENCE_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.PERM_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.ROLE_GRANT_FINDER_V01_ID:
+                return new DDdependableFinder(fmtId);
+            case StoredFormatIds.COLUMN_DESCRIPTOR_FINDER_V01_ID:
+                return new DDColumnDependableFinder(fmtId);
+            default:
+                return null;
+        }
 
-	}
+    }
 }

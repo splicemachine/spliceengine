@@ -48,35 +48,35 @@ import junit.framework.TestSuite;
  */
 public abstract class ScriptTestCase extends CanonTestCase {
 
-	private final String inputEncoding;
-	private final String user;
+    private final String inputEncoding;
+    private final String user;
     private boolean useSystemProperties = false;
     private Locale oldLocale;
 
     /**
-	 * Create a ScriptTestCase to run a single test
+     * Create a ScriptTestCase to run a single test
      * using a connection obtained from getConnection()
-	 * @param script Base name of the .sql script
+     * @param script Base name of the .sql script
      * @param useSystemProperties Whether to use system properties for this test
-	 * excluding the .sql suffix.
-	 */
-	public ScriptTestCase(String script, boolean useSystemProperties)
-	{
+     * excluding the .sql suffix.
+     */
+    public ScriptTestCase(String script, boolean useSystemProperties)
+    {
         this(script, null, null, null);
         this.useSystemProperties = useSystemProperties;
-	}
+    }
 
-	/**
-	 * Create a ScriptTestCase to run a single test
+    /**
+     * Create a ScriptTestCase to run a single test
      * using a connection obtained from getConnection()
-	 * @param script Base name of the .sql script
-	 * excluding the .sql suffix.
-	 */
-	public ScriptTestCase(String script)
-	{
+     * @param script Base name of the .sql script
+     * excluding the .sql suffix.
+     */
+    public ScriptTestCase(String script)
+    {
         this(script, null, null, null);
-	}
-	
+    }
+    
     /**
      * Create a ScriptTestCase to run a single test
      * using a connection obtained from getConnection() with a
@@ -109,75 +109,75 @@ public abstract class ScriptTestCase extends CanonTestCase {
         setSystemProperty("ij.showNoCountForSelect", "true");
         inputEncoding = (inputEnc == null) ? DEFAULT_ENCODING : inputEnc;
 
-		this.user = user;
+        this.user = user;
     }
 
     /**
-	 * Return the folder (last element of the package) where
-	 * the .sql script lives, e.g. lang.
-	 */
-	protected String getArea() {
-		
-		String name =  getClass().getName();
-		
-		int lastDot = name.lastIndexOf('.');
-		
-		name = name.substring(0, lastDot);
-		
-		lastDot = name.lastIndexOf('.');
-		
-		return name.substring(lastDot+1);
-	}
-		
-	/**
-	 * Get a decorator to setup the ij in order
-	 * to run the test. A sub-class must decorate
-	 * its suite using this call.
-	 */
-	public static Test getIJConfig(Test test)
-	{
+     * Return the folder (last element of the package) where
+     * the .sql script lives, e.g. lang.
+     */
+    protected String getArea() {
+        
+        String name =  getClass().getName();
+        
+        int lastDot = name.lastIndexOf('.');
+        
+        name = name.substring(0, lastDot);
+        
+        lastDot = name.lastIndexOf('.');
+        
+        return name.substring(lastDot+1);
+    }
+        
+    /**
+     * Get a decorator to setup the ij in order
+     * to run the test. A sub-class must decorate
+     * its suite using this call.
+     */
+    public static Test getIJConfig(Test test)
+    {
         // Need the tools to run the scripts as this
         // test uses ij as the script runner.
         if (!Derby.hasTools())
             return new TestSuite("empty: no tools support");
             
-		// No decorator needed currently.
-		return test;
-	}
-	
-	/**
-	 * Run the test, using the resource as the input.
-	 * Compare to the master file using a very simple
-	 * line by line comparision. Fails at the first
-	 * difference. If a failure occurs the output
-	 * is written into the current directory as
-	 * testScript.out, otherwise the output is only
-	 * kept in memory.
-	 * @throws Throwable 
-	 */
-	public void runTest() throws Throwable
-	{
-		String resource =
-			"com/splicemachine/dbTesting/functionTests/tests/"
-			+ getArea() + "/"
-			+ getName() + ".sql";
-		
-		String canon =
-			"com/splicemachine/dbTesting/functionTests/master/"
-			+ getName() + ".out";
+        // No decorator needed currently.
+        return test;
+    }
+    
+    /**
+     * Run the test, using the resource as the input.
+     * Compare to the master file using a very simple
+     * line by line comparision. Fails at the first
+     * difference. If a failure occurs the output
+     * is written into the current directory as
+     * testScript.out, otherwise the output is only
+     * kept in memory.
+     * @throws Throwable 
+     */
+    public void runTest() throws Throwable
+    {
+        String resource =
+            "com/splicemachine/dbTesting/functionTests/tests/"
+            + getArea() + "/"
+            + getName() + ".sql";
+        
+        String canon =
+            "com/splicemachine/dbTesting/functionTests/master/"
+            + getName() + ".out";
 
-		URL sql = getTestResource(resource);
-		assertNotNull("SQL script missing: " + resource, sql);
-		
-		InputStream sqlIn = openTestResource(sql);
+        URL sql = getTestResource(resource);
+        assertNotNull("SQL script missing: " + resource, sql);
+        
+        InputStream sqlIn = openTestResource(sql);
 
-		Connection conn;
+        Connection conn;
 
-		if (user != null) {
-			conn = openUserConnection(user);
-		} else {
-			conn = getConnection();
-		}
+        if (user != null) {
+            conn = openUserConnection(user);
+        } else {
+            conn = getConnection();
+        }
 
         final String outputEnc;
         final String derby_ui_codeset = getSystemProperty("derby.ui.codeset");
@@ -197,21 +197,21 @@ public abstract class ScriptTestCase extends CanonTestCase {
             outputEnc = outputEncoding;
         }
         
-//		com.splicemachine.db.tools.ij.runScript(
-//				conn,
-//				sqlIn,
-//				inputEncoding,
+//        com.splicemachine.db.tools.ij.runScript(
+//                conn,
+//                sqlIn,
+//                inputEncoding,
 //                getOutputStream(),
-//				outputEnc,
+//                outputEnc,
 //                useSystemProperties);
-		
-		if (!conn.isClosed() && !conn.getAutoCommit())
-		    conn.commit();
-		
-		sqlIn.close();
+        
+        if (!conn.isClosed() && !conn.getAutoCommit())
+            conn.commit();
+        
+        sqlIn.close();
         
         this.compareCanon(canon);
-	}
+    }
     
     /**
      * Set up the new locale for the test

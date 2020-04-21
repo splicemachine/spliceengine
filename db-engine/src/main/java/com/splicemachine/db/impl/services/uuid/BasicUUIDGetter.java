@@ -39,8 +39,8 @@ import com.splicemachine.db.iapi.services.io.FormatableInstanceGetter;
 
 public class BasicUUIDGetter extends FormatableInstanceGetter
 {
-	public Object getNewInstance() {
-		return new BasicUUID();
-	}
+    public Object getNewInstance() {
+        return new BasicUUID();
+    }
 }
 

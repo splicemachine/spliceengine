@@ -29,31 +29,31 @@ import com.splicemachine.metrics.Timer;
  */
 public interface Sleeper {
 
-		void sleep(long wait) throws InterruptedException;
+        void sleep(long wait) throws InterruptedException;
 
-		TimeView getSleepStats();
+        TimeView getSleepStats();
 
-		Sleeper THREAD_SLEEPER = new Sleeper() {
-				@Override public void sleep(long wait) throws InterruptedException { Thread.sleep(wait); }
-				@Override public TimeView getSleepStats() { return Metrics.noOpTimeView(); }
-		};
+        Sleeper THREAD_SLEEPER = new Sleeper() {
+                @Override public void sleep(long wait) throws InterruptedException { Thread.sleep(wait); }
+                @Override public TimeView getSleepStats() { return Metrics.noOpTimeView(); }
+        };
 
-		class TimedSleeper implements Sleeper{
-				private final Timer sleepTimer;
-				private final Sleeper delegate;
+        class TimedSleeper implements Sleeper{
+                private final Timer sleepTimer;
+                private final Sleeper delegate;
 
-				public TimedSleeper(Sleeper delegate,MetricFactory metricFactory) {
-						this.delegate = delegate;
-						this.sleepTimer = metricFactory.newTimer();
-				}
+                public TimedSleeper(Sleeper delegate,MetricFactory metricFactory) {
+                        this.delegate = delegate;
+                        this.sleepTimer = metricFactory.newTimer();
+                }
 
-				@Override
-				public void sleep(long wait) throws InterruptedException {
-						sleepTimer.startTiming();
-						delegate.sleep(wait);
-						sleepTimer.tick(1);
-				}
+                @Override
+                public void sleep(long wait) throws InterruptedException {
+                        sleepTimer.startTiming();
+                        delegate.sleep(wait);
+                        sleepTimer.tick(1);
+                }
 
-				@Override public TimeView getSleepStats() { return sleepTimer.getTime(); }
-		}
+                @Override public TimeView getSleepStats() { return sleepTimer.getTime(); }
+        }
 }

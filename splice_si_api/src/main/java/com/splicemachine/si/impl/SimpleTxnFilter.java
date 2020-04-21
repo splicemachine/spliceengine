@@ -184,32 +184,32 @@ public class SimpleTxnFilter implements TxnFilter{
             return;
 
         /*
-		 * We want to resolve the transaction related
-		 * to this version of the data.
-		 *
-		 * The point of the commit timestamp column (and thus the read resolution)
-		 * is that the transaction is known to be committed, and requires NO FURTHER
-		 * information to ensure its visibility (e.g. that all we need to ensure visibility
-		 * is the commit timestamp itself).
-		 *
-		 * We only enter this method if we DO NOT have a commit timestamp for this version
-		 * of the data. In this case, we want to determine if we can or cannot resolve
-		 * this column as committed (and thus add a commit timestamp entry). If the data
-		 * was written by a dependent child transaction, the proper commit timestamp is
-		 * NOT the commit timestamp of the child, it is the commit timestamp of the parent,
-		 * which means that we'll need to use the effective commit timestamp and the effective
-		 * state to determine whether or not to read-resolve the entry.
-		 *
-		 * This means that we will NOT writes from dependent child transactions until their
-		 * parent transaction has been committed.
-		 */
+         * We want to resolve the transaction related
+         * to this version of the data.
+         *
+         * The point of the commit timestamp column (and thus the read resolution)
+         * is that the transaction is known to be committed, and requires NO FURTHER
+         * information to ensure its visibility (e.g. that all we need to ensure visibility
+         * is the commit timestamp itself).
+         *
+         * We only enter this method if we DO NOT have a commit timestamp for this version
+         * of the data. In this case, we want to determine if we can or cannot resolve
+         * this column as committed (and thus add a commit timestamp entry). If the data
+         * was written by a dependent child transaction, the proper commit timestamp is
+         * NOT the commit timestamp of the child, it is the commit timestamp of the parent,
+         * which means that we'll need to use the effective commit timestamp and the effective
+         * state to determine whether or not to read-resolve the entry.
+         *
+         * This means that we will NOT writes from dependent child transactions until their
+         * parent transaction has been committed.
+         */
         long ts=element.version();//dataStore.getOpFactory().getTimestamp(element);
         if(!visitedTxnIds.add(ts)){
-			/*
-			 * We've already visited this version of the row data, so there's no
-			 * point in read-resolving this entry. This saves us from a
-			 * potentially expensive transactionStore read.
-			 */
+            /*
+             * We've already visited this version of the row data, so there's no
+             * point in read-resolving this entry. This saves us from a
+             * potentially expensive transactionStore read.
+             */
             return;
         }
 
@@ -229,15 +229,15 @@ public class SimpleTxnFilter implements TxnFilter{
     }
 
     private DataFilter.ReturnCode checkVisibility(DataCell data) throws IOException{
-		/*
-		 * First, we check to see if we are covered by a tombstone--that is,
-		 * if keyValue has a timestamp <= the timestamp of a tombstone AND our isolationLevel
-		 * allows us to see the tombstone, then this row no longer exists for us, and
-		 * we should just skip the column.
-		 *
-		 * Otherwise, we just look at the transaction of the entry's visibility to us--if
-		 * it matches, then we can see it.
-		 */
+        /*
+         * First, we check to see if we are covered by a tombstone--that is,
+         * if keyValue has a timestamp <= the timestamp of a tombstone AND our isolationLevel
+         * allows us to see the tombstone, then this row no longer exists for us, and
+         * we should just skip the column.
+         *
+         * Otherwise, we just look at the transaction of the entry's visibility to us--if
+         * it matches, then we can see it.
+         */
         long timestamp=data.version();//dataStore.getOpFactory().getTimestamp(data);
         if (ignoreTxnSupplier != null && ignoreTxnSupplier.shouldIgnore(timestamp))
             return DataFilter.ReturnCode.SKIP;
@@ -296,10 +296,10 @@ public class SimpleTxnFilter implements TxnFilter{
 
     private void addToTombstoneCache(DataCell data) throws IOException{
         long txnId=data.version();
-		/*
-		 * Only add a tombstone to our list if it's actually visible,
-		 * otherwise there's no point, since we can't see it anyway.
-		 */
+        /*
+         * Only add a tombstone to our list if it's actually visible,
+         * otherwise there's no point, since we can't see it anyway.
+         */
         boolean empty = tombstonedTxnRow == null;
         boolean antiTombstoned = antiTombstonedTxnRow != null && antiTombstonedTxnRow == txnId;
         if(empty && !antiTombstoned && isVisible(txnId)) {

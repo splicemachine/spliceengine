@@ -458,19 +458,19 @@ public class classlister {
                 System.out.println(className);
             }
 
-		/*
+        /*
             com.splicemachine.db.iapi.reference.ClassName &
-			RegisteredFormatIds has a list of all registered classes, If we pull this in then
-			we will pull in the complete set of classes. So we add this to our list but don't
-			dependency check it.
-		*/
+            RegisteredFormatIds has a list of all registered classes, If we pull this in then
+            we will pull in the complete set of classes. So we add this to our list but don't
+            dependency check it.
+        */
             boolean dontCheckDependencies = false;
-		/*
-		if (className.equals("com.splicemachine.db.iapi.reference.ClassName") ||
-			className.equals("com.splicemachine.db.iapi.services.io.RegisteredFormatIds")) {
-			dontCheckDependencies = true;
-		}
-		*/
+        /*
+        if (className.equals("com.splicemachine.db.iapi.reference.ClassName") ||
+            className.equals("com.splicemachine.db.iapi.services.io.RegisteredFormatIds")) {
+            dontCheckDependencies = true;
+        }
+        */
 
 
             try {

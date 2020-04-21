@@ -87,44 +87,44 @@ public class SimpleSparkVersion implements SparkVersion {
     public boolean greaterThanOrEqualTo(SparkVersion otherValue) {
         if (this.getMajorVersionNumber() > otherValue.getMajorVersionNumber())
             return true;
-    	else if (this.getMajorVersionNumber() == otherValue.getMajorVersionNumber()) {
-    	    if (this.getMinorVersionNumber() > otherValue.getMinorVersionNumber()) {
-    	        return true;
+        else if (this.getMajorVersionNumber() == otherValue.getMajorVersionNumber()) {
+            if (this.getMinorVersionNumber() > otherValue.getMinorVersionNumber()) {
+                return true;
             }
-    	    else if (this.getMinorVersionNumber() == otherValue.getMinorVersionNumber()) {
-    	        if (this.getPatchVersionNumber() >= otherValue.getPatchVersionNumber()) {
-    	            return true;
+            else if (this.getMinorVersionNumber() == otherValue.getMinorVersionNumber()) {
+                if (this.getPatchVersionNumber() >= otherValue.getPatchVersionNumber()) {
+                    return true;
                 }
-    	        else
-    	            return false;
+                else
+                    return false;
             }
-    	    else
-    	        return false;
+            else
+                return false;
         }
-    	else
-    	    return false;
+        else
+            return false;
     }
 
     @Override
     public boolean lessThan(SparkVersion otherValue) {
         if (this.getMajorVersionNumber() < otherValue.getMajorVersionNumber())
             return true;
-    	else if (this.getMajorVersionNumber() == otherValue.getMajorVersionNumber()) {
-    	    if (this.getMinorVersionNumber() < otherValue.getMinorVersionNumber()) {
-    	        return true;
+        else if (this.getMajorVersionNumber() == otherValue.getMajorVersionNumber()) {
+            if (this.getMinorVersionNumber() < otherValue.getMinorVersionNumber()) {
+                return true;
             }
-    	    else if (this.getMinorVersionNumber() == otherValue.getMinorVersionNumber()) {
-    	        if (this.getPatchVersionNumber() < otherValue.getPatchVersionNumber()) {
-    	            return true;
+            else if (this.getMinorVersionNumber() == otherValue.getMinorVersionNumber()) {
+                if (this.getPatchVersionNumber() < otherValue.getPatchVersionNumber()) {
+                    return true;
                 }
-    	        else
-    	            return false;
+                else
+                    return false;
             }
-    	    else
-    	        return false;
+            else
+                return false;
         }
-    	else
-    	    return false;
+        else
+            return false;
     }
 
     @Override

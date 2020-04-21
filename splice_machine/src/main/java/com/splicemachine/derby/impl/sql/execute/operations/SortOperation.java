@@ -66,7 +66,7 @@ public class SortOperation extends SpliceBaseOperation{
      */
     @Deprecated
     public SortOperation(){
-//		SpliceLogUtils.trace(LOG, "instantiated without parameters");
+//        SpliceLogUtils.trace(LOG, "instantiated without parameters");
     }
 
     public SortOperation(SpliceOperation s,

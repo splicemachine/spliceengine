@@ -40,7 +40,7 @@ public interface TxnDecoder {
 
     TxnMessage.Txn decode(RegionTxnStore txnStore,List<Cell> keyValues) throws IOException;
 
-	Put encodeForPut(TxnMessage.TxnInfo txn,byte[] rowKey) throws IOException;
+    Put encodeForPut(TxnMessage.TxnInfo txn,byte[] rowKey) throws IOException;
 
     TxnMessage.Txn decodeV1(RegionTxnStore txnStore,long txnId, Result result) throws IOException;
 

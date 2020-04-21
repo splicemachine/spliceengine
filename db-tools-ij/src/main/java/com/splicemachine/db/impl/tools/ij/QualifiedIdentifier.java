@@ -34,23 +34,23 @@ package com.splicemachine.db.impl.tools.ij;
  * A qualified identifier made of a session name and a local name
  */
 class QualifiedIdentifier {
-	private String sessionName;
-	private String localName;
+    private String sessionName;
+    private String localName;
 
-	QualifiedIdentifier(String sessionName, String localName) {
-		this.sessionName = sessionName;
-		this.localName = localName;
-	}
-	
-	public String getLocalName() {
-		return localName;
-	}
-	
-	public String getSessionName() {
-		return sessionName;
-	}
-	
-	public String toString() {
-		return localName + "@" + sessionName;
-	}
+    QualifiedIdentifier(String sessionName, String localName) {
+        this.sessionName = sessionName;
+        this.localName = localName;
+    }
+    
+    public String getLocalName() {
+        return localName;
+    }
+    
+    public String getSessionName() {
+        return sessionName;
+    }
+    
+    public String toString() {
+        return localName + "@" + sessionName;
+    }
 }

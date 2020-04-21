@@ -204,7 +204,7 @@ public class SelectivityUtil {
             // get the column number at this position
             /* Is there a pushable equality predicate on this key column?
              * (IS NULL is also acceptable)
-			 */
+             */
             List<Predicate> optimizableEqualityPredicateList =
                     restrictionList.getOptimizableEqualityPredicateList(innerTable, curCol, true);
 

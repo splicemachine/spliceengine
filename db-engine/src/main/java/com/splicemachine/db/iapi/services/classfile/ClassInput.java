@@ -36,25 +36,25 @@ import java.io.DataInputStream;
 import java.io.IOException;
 
 
-/**	A wrapper around DataInputStream to provide input functions in terms
+/**    A wrapper around DataInputStream to provide input functions in terms
     of the types defined on pages 83.
  */
 
 class ClassInput extends DataInputStream {
 
-	ClassInput(InputStream in) {
-		super(in);
-	}
+    ClassInput(InputStream in) {
+        super(in);
+    }
 
-	int getU2() throws IOException {
-		return readUnsignedShort();
-	}
-	int getU4() throws IOException {
-		return readInt();
-	}
-	byte[] getU1Array(int count) throws IOException {
-		byte[] b = new byte[count];
-		readFully(b);
-		return b;
-	}
+    int getU2() throws IOException {
+        return readUnsignedShort();
+    }
+    int getU4() throws IOException {
+        return readInt();
+    }
+    byte[] getU1Array(int count) throws IOException {
+        byte[] b = new byte[count];
+        readFully(b);
+        return b;
+    }
 }

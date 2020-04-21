@@ -39,7 +39,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
  * </p>
  * An XADataSource is a factory for XAConnection objects.  It represents a
  * RM in a DTP environment.  An object that implements the XADataSource
- * interface is typically registered with a JNDI service provider.   	
+ * interface is typically registered with a JNDI service provider.       
  * <P>
  * Use ClientXADataSource40 if your application runs at JDBC level 4.0 (or higher).
  * Use ClientXADataSource
@@ -55,7 +55,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
  */
 public class ClientXADataSource40 extends ClientXADataSource {
     
-	/**
+    /**
      * Returns false unless <code>interfaces</code> is implemented 
      * 
      * @param  interfaces             a Class defining an interface.

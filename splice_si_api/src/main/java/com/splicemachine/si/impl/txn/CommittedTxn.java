@@ -29,8 +29,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Date: 6/23/14
  */
 public class CommittedTxn extends InheritingTxnView {
-		@SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION")
-		public CommittedTxn(long beginTimestamp, long endTimestamp){
-			super(Txn.ROOT_TRANSACTION,beginTimestamp,beginTimestamp,Txn.ROOT_TRANSACTION.getIsolationLevel(),false,false,false,false,endTimestamp,endTimestamp, Txn.State.COMMITTED);
-		}
+        @SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION")
+        public CommittedTxn(long beginTimestamp, long endTimestamp){
+            super(Txn.ROOT_TRANSACTION,beginTimestamp,beginTimestamp,Txn.ROOT_TRANSACTION.getIsolationLevel(),false,false,false,false,endTimestamp,endTimestamp, Txn.State.COMMITTED);
+        }
 }

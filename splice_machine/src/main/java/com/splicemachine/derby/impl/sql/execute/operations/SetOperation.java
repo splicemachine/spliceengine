@@ -56,7 +56,7 @@ public class SetOperation extends NoRowsOperation {
     /**
      * Make the Operation for a SET statement.
      *
-     *  @param getColumnDVDsMethodNames	The names of the methods used to access the columns in the NEW row, separated by periods.
+     *  @param getColumnDVDsMethodNames    The names of the methods used to access the columns in the NEW row, separated by periods.
      */
     public SetOperation(Activation activation,
                         String getColumnDVDsMethodNames,
@@ -69,7 +69,7 @@ public class SetOperation extends NoRowsOperation {
         init();
     }
 
-    public	String	toString() {
+    public    String    toString() {
         return "SET: ";
     }
 
@@ -105,7 +105,7 @@ public class SetOperation extends NoRowsOperation {
     /**
       @see java.io.Externalizable#readExternal
       @exception IOException thrown on error
-      @exception ClassNotFoundException	thrown on error
+      @exception ClassNotFoundException    thrown on error
      */
     public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
             // Read in the serialized class version, but don't use it (for now).

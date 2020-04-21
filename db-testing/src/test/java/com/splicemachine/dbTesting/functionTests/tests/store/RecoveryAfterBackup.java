@@ -86,11 +86,11 @@ public class RecoveryAfterBackup
             // Shut down database
             System.out.println("Shutting down database ...");
             try {
-            	TestUtil.getConnection("", "shutdown=true");
+                TestUtil.getConnection("", "shutdown=true");
             } catch(SQLException sqle) {
                 if (sqle.getSQLState() != null 
                     && sqle.getSQLState().equals("XJ015")) {
-					System.out.println("Database shutdown completed");
+                    System.out.println("Database shutdown completed");
                 } else {
                     throw sqle;
                 }
@@ -100,7 +100,7 @@ public class RecoveryAfterBackup
             System.out.println("Starting restore with roll-forward recovery..");
             String dbName = "hairynosedwombat";
             String connAttrs = 
-            	"rollForwardRecoveryFrom=extinout/mybackup/hairynosedwombat";
+                "rollForwardRecoveryFrom=extinout/mybackup/hairynosedwombat";
             conn = TestUtil.getConnection(dbName, connAttrs);
 
             // After restore table should contain all records inserted above

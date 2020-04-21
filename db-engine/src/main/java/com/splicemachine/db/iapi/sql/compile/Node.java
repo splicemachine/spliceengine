@@ -44,28 +44,28 @@ public interface Node {
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1) throws StandardException;
 
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1, Object arg2) throws StandardException;
 
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1, Object arg2, Object arg3) throws StandardException;
 
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1, Object arg2, Object arg3, Object arg4)
             throws StandardException;
@@ -73,7 +73,7 @@ public interface Node {
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5)
             throws StandardException;
@@ -81,7 +81,7 @@ public interface Node {
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1, Object arg2, Object arg3,
               Object arg4, Object arg5, Object arg6)
@@ -90,7 +90,7 @@ public interface Node {
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1, Object arg2, Object arg3, Object arg4,
               Object arg5, Object arg6, Object arg7)
@@ -99,7 +99,7 @@ public interface Node {
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1, Object arg2, Object arg3, Object arg4,
               Object arg5, Object arg6, Object arg7, Object arg8)
@@ -108,7 +108,7 @@ public interface Node {
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5,
               Object arg6, Object arg7, Object arg8, Object arg9)
@@ -117,7 +117,7 @@ public interface Node {
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5,
               Object arg6, Object arg7, Object arg8, Object arg9, Object arg10)
@@ -126,7 +126,7 @@ public interface Node {
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5,
               Object arg6, Object arg7, Object arg8, Object arg9, Object arg10,
@@ -136,7 +136,7 @@ public interface Node {
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5,
               Object arg6, Object arg7, Object arg8, Object arg9, Object arg10,
@@ -146,7 +146,7 @@ public interface Node {
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5,
               Object arg6, Object arg7, Object arg8, Object arg9, Object arg10,
@@ -156,7 +156,7 @@ public interface Node {
     /**
      * Initialize a query tree node.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     void init(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5,
               Object arg6, Object arg7, Object arg8, Object arg9, Object arg10,

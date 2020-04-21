@@ -27,11 +27,11 @@ package com.splicemachine.metrics;
  */
 public interface Counter {
 
-		void increment();
+        void increment();
 
-		void add(long value);
+        void add(long value);
 
-		long getTotal();
+        long getTotal();
 
-		boolean isActive();
+        boolean isActive();
 }

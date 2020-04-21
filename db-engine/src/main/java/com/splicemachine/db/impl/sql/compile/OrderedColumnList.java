@@ -50,14 +50,14 @@ public abstract class OrderedColumnList extends QueryTreeNodeVector<OrderedColum
 
         ordering=new IndexColumnOrder[numCols];
 
-		/*
+        /*
             order by is fun, in that we need to ensure
-			there are no duplicates in the list.  later copies
-			of an earlier entry are considered purely redundant,
-			they won't affect the result, so we can drop them.
-			We don't know how many columns are in the source,
-			so we use a hashtable for lookup of the positions
-		*/
+            there are no duplicates in the list.  later copies
+            of an earlier entry are considered purely redundant,
+            they won't affect the result, so we can drop them.
+            We don't know how many columns are in the source,
+            so we use a hashtable for lookup of the positions
+        */
         Set<Integer> hashColumns=new HashSet<>();
 
         actualCols=0;
@@ -77,10 +77,10 @@ public abstract class OrderedColumnList extends QueryTreeNodeVector<OrderedColum
             }
         }
 
-		/*
-			If there were duplicates removed, we need
-			to shrink the array down to what we used.
-		*/
+        /*
+            If there were duplicates removed, we need
+            to shrink the array down to what we used.
+        */
         if(actualCols<numCols){
             IndexColumnOrder[] newOrdering=new IndexColumnOrder[actualCols];
             System.arraycopy(ordering,0,newOrdering,0,actualCols);

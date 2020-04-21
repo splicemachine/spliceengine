@@ -54,10 +54,10 @@ public class ExportOperation extends SpliceBaseOperation {
     protected static final String NAME = ExportOperation.class.getSimpleName().replaceAll("Operation","");
     private static final Logger LOG = Logger.getLogger(ExportOperation.class);
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+            return NAME;
+    }
     
     public ExportOperation() {
     }

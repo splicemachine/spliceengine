@@ -33,12 +33,12 @@ package com.splicemachine.dbTesting.functionTests.util;
 
 public interface ExtendingInterface extends Runnable {
 
-	int INTERFACE_FIELD = 7541;
+    int INTERFACE_FIELD = 7541;
 
-	/**
-		Force an ambigutity with Object's wait.
-	*/
-	void wait(int a, long b);
+    /**
+        Force an ambigutity with Object's wait.
+    */
+    void wait(int a, long b);
 
-	Object eimethod(Object a);
+    Object eimethod(Object a);
 }

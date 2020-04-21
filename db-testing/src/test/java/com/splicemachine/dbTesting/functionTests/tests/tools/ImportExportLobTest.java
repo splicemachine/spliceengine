@@ -69,7 +69,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
             (SupportFilesSetup.getReadWrite("books.del")).getPath();
         lobsFileName = 
             (SupportFilesSetup.getReadWrite("books_lobs.dat")).getPath();
-	lobsFileName2 =
+    lobsFileName2 =
             (SupportFilesSetup.getReadWrite("unql_books_lobs.dat")).getPath();
     }
 
@@ -103,9 +103,9 @@ public class ImportExportLobTest extends ImportExportBaseTest
                               "C1 varchar(20)," + 
                               "C2 varchar(20)," +
                               "C3 varchar(20))");
-		    s.execute("CREATE TABLE derby_2925_lob(id int," +
-			      "name varchar(30), content clob," +
-			      "pic blob)");
+            s.execute("CREATE TABLE derby_2925_lob(id int," +
+                  "name varchar(30), content clob," +
+                  "pic blob)");
                 }
             };
     }
@@ -134,7 +134,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
         throws SQLException, IOException
     {
         doExportTable("SPLICE", "BOOKS", fileName, null, null , null);
-	    doImportTable("SPLICE", "BOOKS_IMP", fileName, null, null, null, 0);
+        doImportTable("SPLICE", "BOOKS_IMP", fileName, null, null, null, 0);
         verifyData(" * ");
     }
 
@@ -148,7 +148,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
     {
         doExportQuery("select * from BOOKS", fileName,
                       null, null , null);
-	    doImportData(null, "BOOKS_IMP", null, null, fileName, 
+        doImportData(null, "BOOKS_IMP", null, null, fileName, 
                      null, null, null, 0);
         verifyData(" * ");
 
@@ -156,14 +156,14 @@ public class ImportExportLobTest extends ImportExportBaseTest
         doImportData(null, "BOOKS_IMP", "PIC, CONTENT, NAME, ID", 
                      "4, 3, 2, 1",  fileName, null, null, null, 1);
         verifyData("PIC, CONTENT, NAME, ID");
-	
-	//DERBY-2925: need to delete export files first
-	SupportFilesSetup.deleteFile(fileName);
+    
+    //DERBY-2925: need to delete export files first
+    SupportFilesSetup.deleteFile(fileName);
 
         // test with  non-default delimiters. 
         doExportQuery("select * from BOOKS_IMP", fileName,
                       ";", "%" , null);
-	    doImportData(null, "BOOKS_IMP", null, null, fileName, 
+        doImportData(null, "BOOKS_IMP", null, null, fileName, 
                      ";", "%", null, 1);
 
     }
@@ -188,7 +188,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
                      fileName, null, null, null, 1);
         verifyData("ID, CONTENT, NAME");
 
-	//DERBY-2925: need to delete export files first
+    //DERBY-2925: need to delete export files first
         SupportFilesSetup.deleteFile(fileName);
 
         // test with  non-default delimiters. 
@@ -232,7 +232,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
         // export the invalid hex strings from the table to a file. 
         doExportTable("SPLICE", "HEX_TAB", fileName, null, null , null);
 
-	//DERBY-2925: need to delete export files first
+    //DERBY-2925: need to delete export files first
         SupportFilesSetup.deleteFile(fileName);
 
         // attempt to import the invalid hex string data into a table 
@@ -249,7 +249,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
              assertSQLState("XIE0N", e);
         }
 
-	//DERBY-2925: need to delete export files first
+    //DERBY-2925: need to delete export files first
         SupportFilesSetup.deleteFile(fileName);
 
         try {
@@ -264,7 +264,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
             assertSQLState("XIE0N", e);
         }
 
-	//DERBY-2925: need to delete export files first
+    //DERBY-2925: need to delete export files first
         SupportFilesSetup.deleteFile(fileName);
 
         try {
@@ -291,7 +291,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
     {
         doExportTableLobsToExtFile("SPLICE", "BOOKS", fileName,
                                    null, null , null, lobsFileName);
-	    doImportTableLobsFromExtFile("SPLICE", "BOOKS_IMP", fileName,
+        doImportTableLobsFromExtFile("SPLICE", "BOOKS_IMP", fileName,
                                      null, null, null, 0);
         verifyData(" * ");
     }
@@ -311,7 +311,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
         // the main export file is created. And also perform import/export
         // using "UTF-16" code set.
        
-	// delete the export files.
+    // delete the export files.
         SupportFilesSetup.deleteFile(lobsFileName2);
  
         doExportTableLobsToExtFile("SPLICE", "BOOKS", fileName,
@@ -339,7 +339,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
     {
         doExportQueryLobsToExtFile("select * from BOOKS", fileName,
                                   null, null, "8859_1", lobsFileName);
-	    doImportDataLobsFromExtFile(null, "BOOKS_IMP", null, null, fileName, 
+        doImportDataLobsFromExtFile(null, "BOOKS_IMP", null, null, fileName, 
                                    null, null , "8859_1", 0);
         verifyData(" * ");
 
@@ -348,14 +348,14 @@ public class ImportExportLobTest extends ImportExportBaseTest
                                   "4, 3, 2, 1", fileName, null, null, "8859_1", 1);
         verifyData("PIC, CONTENT, NAME, ID");
 
-	//DERBY-2925: need to delete export files first
+    //DERBY-2925: need to delete export files first
         SupportFilesSetup.deleteFile(fileName);
         SupportFilesSetup.deleteFile(lobsFileName);
 
         // test with  non-default delimiters. 
         doExportQueryLobsToExtFile("select * from BOOKS_IMP", fileName,
                                    ";", "%" , null, lobsFileName);
-	    doImportDataLobsFromExtFile(null, "BOOKS_IMP", null, null, fileName, 
+        doImportDataLobsFromExtFile(null, "BOOKS_IMP", null, null, fileName, 
                                   ";", "%", null, 1);
 
     }
@@ -381,7 +381,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
                                   "1, 3, 2", fileName, null, null, null, 1);
         verifyData("ID, CONTENT, NAME");
 
-	//DERBY-2925: need to delete export files first
+    //DERBY-2925: need to delete export files first
         SupportFilesSetup.deleteFile(fileName);
         SupportFilesSetup.deleteFile(lobsFileName);
 
@@ -408,7 +408,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
             assertSQLState("XIE0J", e);
         }
 
-	//DERBY-2925: need to delete export files first
+    //DERBY-2925: need to delete export files first
         SupportFilesSetup.deleteFile(fileName);
         SupportFilesSetup.deleteFile(lobsFileName);
 
@@ -420,7 +420,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
             assertSQLState("XIE0J", e);
         }
 
-	//DERBY-2925: need to delete export files first
+    //DERBY-2925: need to delete export files first
         SupportFilesSetup.deleteFile(fileName);
         SupportFilesSetup.deleteFile(lobsFileName);
 
@@ -466,7 +466,7 @@ public class ImportExportLobTest extends ImportExportBaseTest
             assertSQLState("XIE0Q", e);
         }
 
-	//DERBY-2925: need to delete export files first
+    //DERBY-2925: need to delete export files first
         SupportFilesSetup.deleteFile(fileName);
 
         // export of lob data into an external file.
@@ -487,31 +487,31 @@ public class ImportExportLobTest extends ImportExportBaseTest
     }
 
     public void testDerby2955ExportQueryLobs()
-	throws SQLException
+    throws SQLException
     {
-	doExportTableLobsToExtFile("SPLICE", "DERBY_2925_LOB", fileName,
+    doExportTableLobsToExtFile("SPLICE", "DERBY_2925_LOB", fileName,
                                    "\t", "|", "UTF-16",
                                    lobsFileName);
-	try {
-       	    doExportTableLobsToExtFile("SPLICE", "DERBY_2925_LOB", fileName,
+    try {
+               doExportTableLobsToExtFile("SPLICE", "DERBY_2925_LOB", fileName,
                                    "\t", "|", "UTF-16",
                                    lobsFileName);
-	    fail("export should have failed as the data file exists.");
-	}
-	catch (SQLException e) {
+        fail("export should have failed as the data file exists.");
+    }
+    catch (SQLException e) {
             assertSQLState("XIE0S", e);
         }
 
-	//DERBY-2925: need to delete export files first
+    //DERBY-2925: need to delete export files first
         SupportFilesSetup.deleteFile(fileName);
         SupportFilesSetup.deleteFile(lobsFileName);
 
-	doExportTableLobsToExtFile("SPLICE", "DERBY_2925_LOB", fileName,
+    doExportTableLobsToExtFile("SPLICE", "DERBY_2925_LOB", fileName,
                                    "\t", "|", "UTF-16",
                                    lobsFileName);
         // delete the data file, and then perform export
-	// export should fail with lob file already exists error. 
-	SupportFilesSetup.deleteFile(fileName);
+    // export should fail with lob file already exists error. 
+    SupportFilesSetup.deleteFile(fileName);
 
         try {
             doExportTableLobsToExtFile("SPLICE", "DERBY_2925_LOB", fileName,

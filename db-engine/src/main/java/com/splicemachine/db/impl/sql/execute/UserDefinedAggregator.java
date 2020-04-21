@@ -55,7 +55,7 @@ import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.shared.common.udt.UDTBase;
 
 /**
-	Aggregator for user-defined aggregates. Wraps the application-supplied
+    Aggregator for user-defined aggregates. Wraps the application-supplied
     implementation of com.splicemachine.db.agg.Aggregator.
  */
 public final class UserDefinedAggregator  extends UDTBase implements ExecAggregator
@@ -94,14 +94,14 @@ public final class UserDefinedAggregator  extends UDTBase implements ExecAggrega
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-		public ExecAggregator setup( ClassFactory classFactory, String aggregateName, DataTypeDescriptor resultType )
-		{
-				try {
-						setup( classFactory.loadApplicationClass( aggregateName ), resultType );
-				}
-				catch (ClassNotFoundException cnfe) { logAggregatorInstantiationError( aggregateName, cnfe ); }
-				return this;
-		}
+        public ExecAggregator setup( ClassFactory classFactory, String aggregateName, DataTypeDescriptor resultType )
+        {
+                try {
+                        setup( classFactory.loadApplicationClass( aggregateName ), resultType );
+                }
+                catch (ClassNotFoundException cnfe) { logAggregatorInstantiationError( aggregateName, cnfe ); }
+                return this;
+        }
 
     /** Initialization logic shared by setup() and newAggregator() */
     private void    setup( Class udaClass, DataTypeDescriptor resultType )
@@ -117,117 +117,117 @@ public final class UserDefinedAggregator  extends UDTBase implements ExecAggrega
         _resultType = resultType;
     }
 
-	public boolean didEliminateNulls() { return _eliminatedNulls; }
+    public boolean didEliminateNulls() { return _eliminatedNulls; }
 
     @SuppressWarnings("unchecked")
-	public void accumulate( DataValueDescriptor addend, Object ga ) 
-		throws StandardException
-	{
-		if ( (addend == null) || addend.isNull() )
+    public void accumulate( DataValueDescriptor addend, Object ga ) 
+        throws StandardException
+    {
+        if ( (addend == null) || addend.isNull() )
         {
-			_eliminatedNulls = true;
-			return;
-		}
+            _eliminatedNulls = true;
+            return;
+        }
 
         Object  value = addend.getObject();
 
         _aggregator.accumulate( value );
-	}
+    }
 
-		@SuppressWarnings("unchecked")
-		public void merge(ExecAggregator addend)
-						throws StandardException
-		{
-				if(addend==null) return; //ignore null entries
-				UserDefinedAggregator  other = (UserDefinedAggregator) addend;
+        @SuppressWarnings("unchecked")
+        public void merge(ExecAggregator addend)
+                        throws StandardException
+        {
+                if(addend==null) return; //ignore null entries
+                UserDefinedAggregator  other = (UserDefinedAggregator) addend;
 
-				_aggregator.merge( other._aggregator );
-		}
+                _aggregator.merge( other._aggregator );
+        }
 
-	/**
-	 * Return the result of the aggregation. .
-	 *
-	 * @return the aggregated result (could be a Java null).
-	 */
-	public DataValueDescriptor getResult() throws StandardException
-	{
+    /**
+     * Return the result of the aggregation. .
+     *
+     * @return the aggregated result (could be a Java null).
+     */
+    public DataValueDescriptor getResult() throws StandardException
+    {
         Object  javaReturnValue = _aggregator.terminate();
         DataValueDescriptor dvd = _resultType.getNull();
         if ( javaReturnValue == null ) {
-        	return dvd;
+            return dvd;
         }
 
         dvd.setObjectForCast( javaReturnValue, true, javaReturnValue.getClass().getName() );
 
         return dvd;
-	}
+    }
 
-	/**
-	 */
-	public ExecAggregator newAggregator()
-	{
-		UserDefinedAggregator   uda = new UserDefinedAggregator();
+    /**
+     */
+    public ExecAggregator newAggregator()
+    {
+        UserDefinedAggregator   uda = new UserDefinedAggregator();
 
         uda.setup( _aggregator.getClass(), _resultType );
 
         return uda;
-	}
+    }
 
-	/////////////////////////////////////////////////////////////
-	// 
-	// FORMATABLE INTERFACE
-	// 
-	/////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////
+    // 
+    // FORMATABLE INTERFACE
+    // 
+    /////////////////////////////////////////////////////////////
 
-	/** 
-	 *
-	 * @exception IOException on error
-	 */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		out.writeInt( SECOND_VERSION );
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ObjectOutputStream oos = new ObjectOutputStream(baos);
-		oos.writeObject( _aggregator);
-		oos.flush();
-		byte [] bytes = baos.toByteArray();
-		oos.close();
-		out.writeInt(bytes.length);
-		out.write(baos.toByteArray());
+    /** 
+     *
+     * @exception IOException on error
+     */
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeInt( SECOND_VERSION );
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject( _aggregator);
+        oos.flush();
+        byte [] bytes = baos.toByteArray();
+        oos.close();
+        out.writeInt(bytes.length);
+        out.write(baos.toByteArray());
         out.writeObject( _resultType );
         out.writeBoolean( _eliminatedNulls );
-	}
+    }
 
-	/** 
-	 * @see java.io.Externalizable#readExternal 
-	 *
-	 * @exception IOException on error
-	 */
-	public void readExternal(ObjectInput in) 
-		throws IOException, ClassNotFoundException
-	{
-		int v = in.readInt();
-		if (v == FIRST_VERSION) {
-			_aggregator = (Aggregator) in.readObject();
-		} else {
-			byte[] bytes = new byte[in.readInt()];
-			if (bytes.length > 0) {
-				in.readFully(bytes);
-				ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bytes));
-				_aggregator = (Aggregator) ois.readObject();
-				ois.close();
-			}
-		}
+    /** 
+     * @see java.io.Externalizable#readExternal 
+     *
+     * @exception IOException on error
+     */
+    public void readExternal(ObjectInput in) 
+        throws IOException, ClassNotFoundException
+    {
+        int v = in.readInt();
+        if (v == FIRST_VERSION) {
+            _aggregator = (Aggregator) in.readObject();
+        } else {
+            byte[] bytes = new byte[in.readInt()];
+            if (bytes.length > 0) {
+                in.readFully(bytes);
+                ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bytes));
+                _aggregator = (Aggregator) ois.readObject();
+                ois.close();
+            }
+        }
         _resultType = (DataTypeDescriptor) in.readObject();
         _eliminatedNulls = in.readBoolean();
-	}
+    }
 
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.AGG_USER_ADAPTOR_V01_ID; }
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId()    { return StoredFormatIds.AGG_USER_ADAPTOR_V01_ID; }
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -247,7 +247,7 @@ public final class UserDefinedAggregator  extends UDTBase implements ExecAggrega
              t.getMessage()
              );
 
-		Monitor.getStream().printThrowable( errorMessage , t);
+        Monitor.getStream().printThrowable( errorMessage , t);
     }
 
     @Override
@@ -259,9 +259,9 @@ public final class UserDefinedAggregator  extends UDTBase implements ExecAggrega
         return _aggregator;
     }
 
-	@Override
-	public boolean isUserDefinedAggregator() {
-		return true;
-	}
+    @Override
+    public boolean isUserDefinedAggregator() {
+        return true;
+    }
 
 }

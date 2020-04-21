@@ -38,89 +38,89 @@ import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 
 class BasicUnitTest implements UnitTest
 {
-	String traceMessage;
-	int testType;
-	int testDuration;
-	boolean result;
-	Error exception;
+    String traceMessage;
+    int testType;
+    int testDuration;
+    boolean result;
+    Error exception;
 
-	BasicUnitTest(String traceMessage,
-				  int testType,
-				  int testDuration,
-				  boolean result,
-				  Error exception){
-		this.traceMessage = traceMessage;
-		this.testType = testType;
-		this.testDuration = testDuration;
-		this.result = result;
-		this.exception = exception;
-	}
+    BasicUnitTest(String traceMessage,
+                  int testType,
+                  int testDuration,
+                  boolean result,
+                  Error exception){
+        this.traceMessage = traceMessage;
+        this.testType = testType;
+        this.testDuration = testDuration;
+        this.result = result;
+        this.exception = exception;
+    }
 
-	public String toString(){
-		return ("testType: "+testType+" testDuration: "+
-			testDuration+" traceMessage: "+traceMessage+
-			" result: "+result+" exception: "+exception);
-	}
-
-
-	public boolean Execute (HeaderPrintWriter output) {
-	
-		output.printlnWithHeader(toString());
-		if (exception != null)
-			throw exception;
-	
-		return result;
-	}
+    public String toString(){
+        return ("testType: "+testType+" testDuration: "+
+            testDuration+" traceMessage: "+traceMessage+
+            " result: "+result+" exception: "+exception);
+    }
 
 
+    public boolean Execute (HeaderPrintWriter output) {
+    
+        output.printlnWithHeader(toString());
+        if (exception != null)
+            throw exception;
+    
+        return result;
+    }
 
-	public int UnitTestDuration(){
-		return testDuration;
-	}
 
-	public int UnitTestType(){
-		return testType;
-	}
 
-	private void executeCatch(HeaderPrintWriter output){
-		 try{
-			 Execute(output);
-		 }
-		 catch (Error e){
-			 System.out.println("Caught exception:"+ e);
-		 }
-	}
+    public int UnitTestDuration(){
+        return testDuration;
+    }
+
+    public int UnitTestType(){
+        return testType;
+    }
+
+    private void executeCatch(HeaderPrintWriter output){
+         try{
+             Execute(output);
+         }
+         catch (Error e){
+             System.out.println("Caught exception:"+ e);
+         }
+    }
 
 /*
 
-	public static void main(String[] Args){
+    public static void main(String[] Args){
 
-		OutputStreamWriter osw = new OutputStreamWriter(System.out);
-		BasicGetLogHeader glh = new BasicGetLogHeader(
-				true, true, "hi" );
-		BasicHeaderPrintWriter hpw = new BasicHeaderPrintWriter(osw,glh);
+        OutputStreamWriter osw = new OutputStreamWriter(System.out);
+        BasicGetLogHeader glh = new BasicGetLogHeader(
+                true, true, "hi" );
+        BasicHeaderPrintWriter hpw = new BasicHeaderPrintWriter(osw,glh);
  
-		 
-		BasicUnitTest t1 = 
-			  new BasicUnitTest("hi Eric",1,1,true,null);
-				  
-		t1.executeCatch(hpw);
+         
+        BasicUnitTest t1 = 
+              new BasicUnitTest("hi Eric",1,1,true,null);
+                  
+        t1.executeCatch(hpw);
 
-		BasicUnitTest t2 = 
-			 new BasicUnitTest("hi my dear boy",1,1,true,null);
+        BasicUnitTest t2 = 
+             new BasicUnitTest("hi my dear boy",1,1,true,null);
 
-		t2.executeCatch(hpw);
+        t2.executeCatch(hpw);
 
-		BasicUnitTest t3 = 
-			 new BasicUnitTest("hi my dear boy",1,1,true,
-				new Error("bogus Error"));
+        BasicUnitTest t3 = 
+             new BasicUnitTest("hi my dear boy",1,1,true,
+                new Error("bogus Error"));
 
-		t3.executeCatch(hpw);
+        t3.executeCatch(hpw);
 
-		
+        
 
-	}
-	
+    }
+    
 */
 }
 

@@ -258,8 +258,8 @@ public class SpliceWatcher extends TestWatcher {
     }
     
     public boolean execute(String sql) throws Exception {
-    	Statement s = getStatement();
-    	return s.execute(sql);
+        Statement s = getStatement();
+        return s.execute(sql);
     }
 
     public int executeUpdate(String sql, String userName, String password) throws Exception {
@@ -323,13 +323,13 @@ public class SpliceWatcher extends TestWatcher {
     public long getConglomId(String tableName, String schemaName) throws Exception {
            /*
             * This is a needlessly-complicated and annoying way of doing this,
-	        * because *when it was written*, the metadata information was kind of all messed up
-	        * and doing a join between systables and sysconglomerates resulted in an error. When you are
-	        * looking at this code and going WTF?!? feel free to try cleaning up the SQL. If you get a bunch of
-	        * wonky errors, then we haven't fixed the underlying issue yet. If you don't, then you just cleaned up
-	        * some ugly-ass code. Good luck to you.
-	        *
-	        */
+            * because *when it was written*, the metadata information was kind of all messed up
+            * and doing a join between systables and sysconglomerates resulted in an error. When you are
+            * looking at this code and going WTF?!? feel free to try cleaning up the SQL. If you get a bunch of
+            * wonky errors, then we haven't fixed the underlying issue yet. If you don't, then you just cleaned up
+            * some ugly-ass code. Good luck to you.
+            *
+            */
         PreparedStatement ps = prepareStatement("select c.conglomeratenumber from " +
                 "sys.systables t, sys.sysconglomerates c,sys.sysschemas s " +
                 "where t.tableid = c.tableid " +

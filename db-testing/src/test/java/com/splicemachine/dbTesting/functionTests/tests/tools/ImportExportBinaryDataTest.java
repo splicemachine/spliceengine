@@ -90,10 +90,10 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
                               "C1 varchar(20)," + 
                               "C2 varchar(20)," +
                               "C3 varchar(20))");
-		    // Create a table to test
-		    // DERBY-2925: Prevent export from overwriting existing files
-		    s.execute("create table derby_2925_tab(a varchar( 50 )," +
-			      "b varchar( 50 ))");
+            // Create a table to test
+            // DERBY-2925: Prevent export from overwriting existing files
+            s.execute("create table derby_2925_tab(a varchar( 50 )," +
+                  "b varchar( 50 ))");
 
                 }
             };
@@ -116,7 +116,7 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
      * @throws Exception
      */
     protected void tearDown() throws Exception {
-	SupportFilesSetup.deleteFile(fileName);
+    SupportFilesSetup.deleteFile(fileName);
         super.tearDown();
 
     }
@@ -129,7 +129,7 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
         throws SQLException, IOException
     {
         doExportTable("SPLICE", "BIN_TAB", fileName, null, null , null);
-	    doImportTable("SPLICE", "BIN_TAB_IMP", fileName, null, null, null, 0);
+        doImportTable("SPLICE", "BIN_TAB_IMP", fileName, null, null, null, 0);
         verifyData(" * ");
     }
     
@@ -137,18 +137,18 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
      * Bulk insert into a table should recreate the indexes correctly rather
      * than ignoring the unique nullable property of the index.
      * In the following test case, we have an empty table in which we are
-     * 	trying to do an import from a file with one row worth's data.
-     * 	This combination used to cause bulk insert functionality to 
-     * 	recreate index incorrectly for unique nullable index. This allowed
-     * 	duplicate rows for unique nullable index. Fix for DERBY-4677 resolves
-     * 	the issue.
+     *     trying to do an import from a file with one row worth's data.
+     *     This combination used to cause bulk insert functionality to 
+     *     recreate index incorrectly for unique nullable index. This allowed
+     *     duplicate rows for unique nullable index. Fix for DERBY-4677 resolves
+     *     the issue.
      * @throws SQLException
      */
     public void testDerby4677BulkInsertIntoEmptyTable() throws SQLException {
         Connection con = getConnection();
         Statement stmt = con.createStatement();
         stmt.executeUpdate("CREATE TABLE TABLE1(NAME1 INT UNIQUE, "+
-        		"name2 int unique not null, name3 int primary key)");
+                "name2 int unique not null, name3 int primary key)");
         stmt.executeUpdate("INSERT INTO TABLE1 VALUES(1,11,111)");
         String dataFileName =
             (SupportFilesSetup.getReadWrite("data_file.dat")).getPath();
@@ -158,33 +158,33 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
         doImportTable("SPLICE", "TABLE1", dataFileName, null, null, "UTF-16",0);
         //following should run into problem because of constraint on name1
         assertStatementError("23505", stmt,
-        		"INSERT INTO TABLE1 VALUES(1,22,222)");
+                "INSERT INTO TABLE1 VALUES(1,22,222)");
         //following should run into problem because of constraint on name2
         assertStatementError("23505", stmt,
-        		"INSERT INTO TABLE1 VALUES(3,11,333)");
+                "INSERT INTO TABLE1 VALUES(3,11,333)");
         //following should run into problem because of constraint on name3
         assertStatementError("23505", stmt,
-        		"INSERT INTO TABLE1 VALUES(4,44,111)");
+                "INSERT INTO TABLE1 VALUES(4,44,111)");
         stmt.executeUpdate("DROP TABLE TABLE1");    
-    	SupportFilesSetup.deleteFile(dataFileName);
+        SupportFilesSetup.deleteFile(dataFileName);
     }
     
     /**
      * Bulk insert into a table should recreate the indexes correctly rather
      * than ignoring the unique nullable property of the index.
      * In the following test case, we have an empty table in which we are
-     * 	trying to do an import from an empty file with the REPLACE option.
-     * 	This combination used to cause bulk insert functionality to 
-     * 	recreate index incorrectly for unique nullable index. This allowed
-     * 	duplicate rows for unique nullable index. Fix for DERBY-4677 resolves
-     * 	the issue.
+     *     trying to do an import from an empty file with the REPLACE option.
+     *     This combination used to cause bulk insert functionality to 
+     *     recreate index incorrectly for unique nullable index. This allowed
+     *     duplicate rows for unique nullable index. Fix for DERBY-4677 resolves
+     *     the issue.
      * @throws SQLException
      */
     public void testDerby4677BulkInsertWithReplace() throws SQLException {
         Connection con = getConnection();
         Statement stmt = con.createStatement();
         stmt.executeUpdate("CREATE TABLE TABLE1(NAME1 INT UNIQUE, "+
-        		"name2 int unique not null, name3 int primary key)");
+                "name2 int unique not null, name3 int primary key)");
         String emptyFileName =
             (SupportFilesSetup.getReadWrite("empty_file.dat")).getPath();
         //there is no data in TABLE1 so empty_file.dat will be empty 
@@ -195,15 +195,15 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
         stmt.executeUpdate("INSERT INTO TABLE1 VALUES(1,11,111)");
         //following should run into problem because of constraint on name1
         assertStatementError("23505", stmt,
-        		"INSERT INTO TABLE1 VALUES(1,22,222)");
+                "INSERT INTO TABLE1 VALUES(1,22,222)");
         //following should run into problem because of constraint on name2
         assertStatementError("23505", stmt,
-        		"INSERT INTO TABLE1 VALUES(3,11,333)");
+                "INSERT INTO TABLE1 VALUES(3,11,333)");
         //following should run into problem because of constraint on name3
         assertStatementError("23505", stmt,
-        		"INSERT INTO TABLE1 VALUES(4,44,111)");
+                "INSERT INTO TABLE1 VALUES(4,44,111)");
         stmt.executeUpdate("DROP TABLE TABLE1");    
-    	SupportFilesSetup.deleteFile(emptyFileName);
+        SupportFilesSetup.deleteFile(emptyFileName);
     }
 
     
@@ -216,7 +216,7 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
     {
         doExportQuery("select * from BIN_TAB", fileName,
                       null, null , null);
-	    doImportData(null, "BIN_TAB_IMP", null, null, fileName, 
+        doImportData(null, "BIN_TAB_IMP", null, null, fileName, 
                      null, null, null, 0);
         verifyData(" * ");
 
@@ -224,14 +224,14 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
         doImportData(null, "BIN_TAB_IMP", "C_LVBD, C_VBD, C_BD, ID", 
                      "4, 3, 2, 1",  fileName, null, null, null, 1);
         verifyData("C_LVBD, C_VBD, C_BD, ID");
-	
-	//DERBY-2925: need to delete existing files first.
-	SupportFilesSetup.deleteFile(fileName);
+    
+    //DERBY-2925: need to delete existing files first.
+    SupportFilesSetup.deleteFile(fileName);
 
         // test with  non-default delimiters. 
         doExportQuery("select * from BIN_TAB", fileName,
                       ";", "%" , null);
-	    doImportData(null, "BIN_TAB_IMP", null, null, fileName, 
+        doImportData(null, "BIN_TAB_IMP", null, null, fileName, 
                      ";", "%", null, 1);
 
     }
@@ -255,9 +255,9 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
         doImportData(null, "BIN_TAB_IMP", "ID, C_VBD, C_BD", "1, 3, 2",
                      fileName, null, null, null, 1);
         verifyData("ID, C_VBD, C_BD");
-	
-	//DERBY-2925: need to delete the file first
-	SupportFilesSetup.deleteFile(fileName);
+    
+    //DERBY-2925: need to delete the file first
+    SupportFilesSetup.deleteFile(fileName);
         // test with  non-default delimiters. 
         doExportQuery("select id, c_bd, c_vbd, c_lvbd from BIN_TAB",  
                       fileName,  "$", "!" , null);
@@ -279,7 +279,7 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
         } catch (SQLException e) {
             assertSQLState("XIE0J", e);
         }
-	SupportFilesSetup.deleteFile(fileName);
+    SupportFilesSetup.deleteFile(fileName);
         try {
             doExportQuery("select * from BIN_TAB", fileName,
                           "|", "f", null);
@@ -287,14 +287,14 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
         } catch (SQLException e) {
             assertSQLState("XIE0J", e);
         }
-	SupportFilesSetup.deleteFile(fileName);
+    SupportFilesSetup.deleteFile(fileName);
         try {
             doExportTable("SPLICE", "BIN_TAB", fileName, "B", null , null);
             fail();
         } catch (SQLException e) {
             assertSQLState("XIE0J", e);
         }
-	SupportFilesSetup.deleteFile(fileName);
+    SupportFilesSetup.deleteFile(fileName);
         doExportTable("SPLICE", "BIN_TAB", fileName, null, null , null);
 
         try {
@@ -385,24 +385,24 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
     public void testDerby2925ExportTable()
         throws SQLException
     {
-	doExportTable("SPLICE", "DERBY_2925_TAB", fileName, null, null , null);
-	
-	try {
-	    doExportTable("SPLICE", "DERBY_2925_TAB", fileName, null, null , null);
-	    fail("export should have failed on existing data file.");
-	}
-	catch (SQLException e) {
-	    assertSQLState("XIE0S", e);
-	}
+    doExportTable("SPLICE", "DERBY_2925_TAB", fileName, null, null , null);
+    
+    try {
+        doExportTable("SPLICE", "DERBY_2925_TAB", fileName, null, null , null);
+        fail("export should have failed on existing data file.");
+    }
+    catch (SQLException e) {
+        assertSQLState("XIE0S", e);
+    }
 
     // should not be able to subvert the check by turning the file name into an url
-	try {
-	    doExportTable("SPLICE", "DERBY_2925_TAB", "file:" + fileName, null, null , null);
-	    fail("export should have failed on existing data file.");
-	}
-	catch (SQLException e) {
-	    assertSQLState("XIE0S", e);
-	}
+    try {
+        doExportTable("SPLICE", "DERBY_2925_TAB", "file:" + fileName, null, null , null);
+        fail("export should have failed on existing data file.");
+    }
+    catch (SQLException e) {
+        assertSQLState("XIE0S", e);
+    }
 
     }
     /*
@@ -413,11 +413,11 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
     public void testDerby2925ExportQuery()
         throws SQLException
     {
-	doExportQuery("select * from DERBY_2925_TAB", fileName,
+    doExportQuery("select * from DERBY_2925_TAB", fileName,
                       null, null , null);
         try {
-	    doExportQuery("select * from DERBY_2925_TAB", fileName,
-                      	  null, null , null);
+        doExportQuery("select * from DERBY_2925_TAB", fileName,
+                            null, null , null);
             fail("exportQuery should have failed on existing data file.");
         }
         catch (SQLException e) {
@@ -486,5 +486,5 @@ public class ImportExportBinaryDataTest extends ImportExportBaseTest {
         s.executeUpdate("insert into bin_tab values " + 
                         "(13, X'212C3B24', X'2422412221', " + 
                         "  X'212421222C23B90A2124')");
-	}
+    }
 }

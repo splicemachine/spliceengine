@@ -138,28 +138,28 @@ public abstract class Restriction implements Serializable
         /** Derby serializes these objects in PreparedStatements */
         public static final long serialVersionUID = -8205388794606605844L;
         
-        /**	 Ordering operation constant representing '<' **/
+        /**     Ordering operation constant representing '<' **/
         public static final int ORDER_OP_LESSTHAN = 0;
 
-        /**	 Ordering operation constant representing '=' **/
+        /**     Ordering operation constant representing '=' **/
         public static final int ORDER_OP_EQUALS = 1;
 
-        /**	 Ordering operation constant representing '<=' **/
+        /**     Ordering operation constant representing '<=' **/
         public static final int ORDER_OP_LESSOREQUALS = 2;
 
-        /**	 Ordering operation constant representing '>' **/
+        /**     Ordering operation constant representing '>' **/
         public static final int ORDER_OP_GREATERTHAN = 3;
 
-        /**	 Ordering operation constant representing '>=' **/
+        /**     Ordering operation constant representing '>=' **/
         public static final int ORDER_OP_GREATEROREQUALS = 4;
 
-        /**	 Ordering operation constant representing 'IS NULL' **/
+        /**     Ordering operation constant representing 'IS NULL' **/
         public static final int ORDER_OP_ISNULL = 5;
 
-        /**	 Ordering operation constant representing 'IS NOT NULL' **/
+        /**     Ordering operation constant representing 'IS NOT NULL' **/
         public static final int ORDER_OP_ISNOTNULL = 6;
 
-        /**	 Ordering operation constant representing '!=' **/
+        /**     Ordering operation constant representing '!=' **/
         public static final int ORDER_OP_NOT_EQUALS = 7;
 
         // Visible forms of the constants above

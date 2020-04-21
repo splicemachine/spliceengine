@@ -1478,8 +1478,8 @@ public class ResultSetTest  extends Wrapper41Test
      * Tests that <code>ResultSet.getHoldability()</code> has the
      * correct behaviour.
      * 
-     * @throws SQLException	Thrown if some unexpected error happens
-     * @throws Exception	Thrown if some unexpected error happens
+     * @throws SQLException    Thrown if some unexpected error happens
+     * @throws Exception    Thrown if some unexpected error happens
      */
     public void testGetHoldability() throws SQLException, Exception {
         
@@ -1560,7 +1560,7 @@ public class ResultSetTest  extends Wrapper41Test
      * Tests that <code>ResultSet.isClosed()</code> returns the
      * correct value in different situations.
      *
-     * @throws SQLException	Thrown if some unexpected error happens
+     * @throws SQLException    Thrown if some unexpected error happens
      */
     public void testIsClosed() throws SQLException{
         
@@ -1643,10 +1643,10 @@ public class ResultSetTest  extends Wrapper41Test
      * Test that an exception is thrown when methods are called
      * on a closed result set (DERBY-1060).
      *
-     * @throws SQLException	Thrown if some unexpected error happens
+     * @throws SQLException    Thrown if some unexpected error happens
      */
     public void testExceptionWhenClosed() 
-	throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, SQLException {
+    throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, SQLException {
         
             // create a result set and close it
             Statement stmt = createStatement();
@@ -1683,8 +1683,8 @@ public class ResultSetTest  extends Wrapper41Test
                         rs.getClass().getMethod(name, params.get(name));
                     try {
                         method.invoke(rs, args.get(name));
-			fail("Unexpected Failure: method.invoke(rs, " + 
-					args.get(name) + ") should have failed.");
+            fail("Unexpected Failure: method.invoke(rs, " + 
+                    args.get(name) + ") should have failed.");
                     } catch (InvocationTargetException ite) {
                         Throwable cause = ite.getCause();
                         if (cause instanceof SQLException) {
@@ -1710,7 +1710,7 @@ public class ResultSetTest  extends Wrapper41Test
      * Case 2: isWrapperFor returns false and we call unwrap
      *
      *
-     * @throws SQLException	Thrown if some unexpected error happens
+     * @throws SQLException    Thrown if some unexpected error happens
      */
     public void testWrapper() throws SQLException {
         PreparedStatement ps = prepareStatement("select count(*) from sys.systables");
@@ -1719,11 +1719,11 @@ public class ResultSetTest  extends Wrapper41Test
         
         //The if succeeds and we call the unwrap method on the conn object        
         if(rs.isWrapperFor(wrap_class)) {
-        	ResultSet rs1 = 
-                	(ResultSet)rs.unwrap(wrap_class);
+            ResultSet rs1 = 
+                    (ResultSet)rs.unwrap(wrap_class);
         }
         else {
-        	assertFalse("isWrapperFor wrongly returns false", rs.isWrapperFor(wrap_class));
+            assertFalse("isWrapperFor wrongly returns false", rs.isWrapperFor(wrap_class));
         } 
         //Being Test for Case2
         //test for the case when isWrapper returns false

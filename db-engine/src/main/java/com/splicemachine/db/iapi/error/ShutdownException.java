@@ -32,13 +32,13 @@
 package com.splicemachine.db.iapi.error;
 
 /**
-	A ShutdownException is a runtime exception that is used
-	to notify code that the system has/is being shut down.
+    A ShutdownException is a runtime exception that is used
+    to notify code that the system has/is being shut down.
 */
 
 public final class ShutdownException extends RuntimeException {
 
-	public ShutdownException() {
-		super("");
-	}
+    public ShutdownException() {
+        super("");
+    }
 }

@@ -32,25 +32,25 @@
 package com.splicemachine.db.iapi.services.locks;
 
 /**
-	Constants for the LockFactory
+    Constants for the LockFactory
 */
 public interface C_LockFactory {
 
-	/**
-		Timeout value that indicates wait for the lock or latch forever.
-	*/
-	int WAIT_FOREVER = -1;
+    /**
+        Timeout value that indicates wait for the lock or latch forever.
+    */
+    int WAIT_FOREVER = -1;
 
-	/**
-		Timeout value that indicates wait for the lock according to
-		db.locks.waitTimeout.
-	*/
-	int TIMED_WAIT = -2;
+    /**
+        Timeout value that indicates wait for the lock according to
+        db.locks.waitTimeout.
+    */
+    int TIMED_WAIT = -2;
 
-	/**
-		Timeout value that indicates do not wait for the lock or latch at all
-		*/
-	int NO_WAIT = 0;
+    /**
+        Timeout value that indicates do not wait for the lock or latch at all
+        */
+    int NO_WAIT = 0;
 }
 
 

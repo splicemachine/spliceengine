@@ -39,15 +39,15 @@ import java.io.IOException;
 class SwitchablePrintStream extends PrintStream {
     
     public SwitchablePrintStream( OutputStream firstStream ){
-	super( firstStream );
+    super( firstStream );
     }
     
     
     public void switchOutput( OutputStream newStream ) throws IOException{
-	
-	out.flush();
-	out = newStream ;
-	
+    
+    out.flush();
+    out = newStream ;
+    
     }
     
 }

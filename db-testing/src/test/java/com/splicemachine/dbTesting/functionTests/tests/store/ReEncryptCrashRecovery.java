@@ -103,16 +103,16 @@ public class ReEncryptCrashRecovery
     private boolean verbose = false;
 
 
-	ReEncryptCrashRecovery() {
+    ReEncryptCrashRecovery() {
         
-	}
+    }
 
 
     /*
-	 * Test (re)encrytpion crash/recovery scenarios. 
-	 */
-	private void runTest() throws Exception {
-		logMessage("Begin  ReEncryptCrashRecovery Test");
+     * Test (re)encrytpion crash/recovery scenarios. 
+     */
+    private void runTest() throws Exception {
+        logMessage("Begin  ReEncryptCrashRecovery Test");
 
         if (SanityManager.DEBUG) {
             if (verbose) 
@@ -178,7 +178,7 @@ public class ReEncryptCrashRecovery
         insert(conn, TEST_TABLE_NAME, 100);
         conn.commit();
         conn.close();
-		shutdown();
+        shutdown();
 
         // following cases of (re) encryption should be rolled back. 
         int passwordKey = (reEncrypt ? OLD : NONE );
@@ -336,9 +336,9 @@ public class ReEncryptCrashRecovery
     /*
       Set to true if we want the re-encryption to crash just 
       before the commit.
-	*/
+    */
 
-	public static final String TEST_REENCRYPT_CRASH_BEFORE_COMMT  = 
+    public static final String TEST_REENCRYPT_CRASH_BEFORE_COMMT  = 
         SanityManager.DEBUG ? "TEST_REENCRYPT_CRASH_BEFORE_COMMT" : null ;
     public static final String TEST_REENCRYPT_CRASH_AFTER_COMMT  = 
         SanityManager.DEBUG ? "TEST_REENCRYPT_CRASH_AFTER_COMMT" : null ;
@@ -420,31 +420,31 @@ public class ReEncryptCrashRecovery
     void createTable(Connection conn, 
                      String tableName) throws SQLException {
 
-			Statement s = conn.createStatement();
-			s.executeUpdate("CREATE TABLE " + tableName + 
-							"(id INT," +
-							"name CHAR(200))");
-			s.executeUpdate("create index " + tableName + "_id_idx on " + 
-							tableName + "(id)");
-			s.close();
+            Statement s = conn.createStatement();
+            s.executeUpdate("CREATE TABLE " + tableName + 
+                            "(id INT," +
+                            "name CHAR(200))");
+            s.executeUpdate("create index " + tableName + "_id_idx on " + 
+                            tableName + "(id)");
+            s.close();
     }
 
 
     /**
-	 * Run some consistency checks.
+     * Run some consistency checks.
      * @param  conn  connection to the database.
-	 * @param  tableName  consistency checks are performed on this table.
+     * @param  tableName  consistency checks are performed on this table.
      * @exception SQLException if any database exception occurs.
-	 */
-	void runConsistencyChecker(Connection conn, 
+     */
+    void runConsistencyChecker(Connection conn, 
                                String tableName) throws SQLException {
-		Statement stmt = conn.createStatement();
-		stmt.execute("values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE',  'EMP')");
+        Statement stmt = conn.createStatement();
+        stmt.execute("values SYSCS_UTIL.SYSCS_CHECK_TABLE('SPLICE',  'EMP')");
         // check the data in the EMP table.
         select(conn, tableName);
-	}
+    }
 
-    		
+            
     /**
      * Insert some rows into the specified table.
      * @param  conn  connection to the database.
@@ -462,7 +462,7 @@ public class ReEncryptCrashRecovery
                                                      " VALUES(?,?)");
         int startId = findMax(conn, tableName);
         for (int i = startId; i < rowCount; i++) {
-			
+            
             ps.setInt(1, i); // ID
             ps.setString(2 , "skywalker" + i);
             ps.executeUpdate();
@@ -482,7 +482,7 @@ public class ReEncryptCrashRecovery
     {
         Statement s = conn.createStatement();
         ResultSet rs = s.executeQuery("SELECT max(ID) from " +  
-										  tableName);
+                                          tableName);
         rs.next();
         int max = rs.getInt(1);
         rs.close();
@@ -500,10 +500,10 @@ public class ReEncryptCrashRecovery
     void select(Connection conn , 
                 String tableName) throws SQLException 
     {
-		
+        
         Statement s = conn.createStatement();
         ResultSet rs = s.executeQuery("SELECT ID, name from " +  
-										  tableName + " order by id" );
+                                          tableName + " order by id" );
         int count = 0;
         int id = 0;
         while(rs.next())
@@ -653,20 +653,20 @@ public class ReEncryptCrashRecovery
 
 
     /**
-	 * Shutdown the datbase
-	 */
-	void shutdown() {
+     * Shutdown the datbase
+     */
+    void shutdown() {
 
         if (verbose)
             logMessage("Shutdown " + currentTestDatabase);
-		try{
-			//shutdown
-			TestUtil.getConnection(currentTestDatabase, "shutdown=true");
-		}catch(SQLException se){
-			if (se.getSQLState() == null || !(se.getSQLState().equals("08006")))
+        try{
+            //shutdown
+            TestUtil.getConnection(currentTestDatabase, "shutdown=true");
+        }catch(SQLException se){
+            if (se.getSQLState() == null || !(se.getSQLState().equals("08006")))
             {
                 // database was not shutdown properly
-				dumpSQLException(se);
+                dumpSQLException(se);
             }
         }
         
@@ -675,30 +675,30 @@ public class ReEncryptCrashRecovery
 
     /**
      * dump the SQLException to the standard output.
-	 */
-	private void dumpSQLException(SQLException sqle) {
-		
-		com.splicemachine.db.tools.JDBCDisplayUtil.	ShowSQLException(System.out, sqle);
-		sqle.printStackTrace(System.out);
-	}
+     */
+    private void dumpSQLException(SQLException sqle) {
+        
+        com.splicemachine.db.tools.JDBCDisplayUtil.    ShowSQLException(System.out, sqle);
+        sqle.printStackTrace(System.out);
+    }
 
 
     void logMessage(String str)
     {
         System.out.println(str);
     }
-	
-	
-	public static void main(String[] argv) throws Throwable {
-		
+    
+    
+    public static void main(String[] argv) throws Throwable {
+        
         ReEncryptCrashRecovery test = new ReEncryptCrashRecovery();
         try {
             test.runTest();
         }
         catch (SQLException sqle) {
-			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
-			sqle.printStackTrace(System.out);
-		}
+            sqle.printStackTrace(System.out);
+        }
     }
 }

@@ -40,27 +40,27 @@ import java.sql.SQLException;
 
 public class ConnectionUtil {
 
-	/**
-		Get the current LanguageConnectionContext.
-		Used by public api code that needs to ensure it
-		is in the context of a SQL connection.
+    /**
+        Get the current LanguageConnectionContext.
+        Used by public api code that needs to ensure it
+        is in the context of a SQL connection.
 
-		@exception SQLException Caller is not in the context of a connection.
-	*/
-	public static LanguageConnectionContext getCurrentLCC()
-		throws SQLException {
+        @exception SQLException Caller is not in the context of a connection.
+    */
+    public static LanguageConnectionContext getCurrentLCC()
+        throws SQLException {
 
-			LanguageConnectionContext lcc = (LanguageConnectionContext)
-				ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+            LanguageConnectionContext lcc = (LanguageConnectionContext)
+                ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
 
-			if (lcc == null)
-				throw new SQLException(
-							// No current connection
-							MessageService.getTextMessage(
-											SQLState.NO_CURRENT_CONNECTION),
-							SQLState.NO_CURRENT_CONNECTION,
-							ExceptionSeverity.SESSION_SEVERITY);
+            if (lcc == null)
+                throw new SQLException(
+                            // No current connection
+                            MessageService.getTextMessage(
+                                            SQLState.NO_CURRENT_CONNECTION),
+                            SQLState.NO_CURRENT_CONNECTION,
+                            ExceptionSeverity.SESSION_SEVERITY);
 
-			return lcc;
-	}
+            return lcc;
+    }
 }

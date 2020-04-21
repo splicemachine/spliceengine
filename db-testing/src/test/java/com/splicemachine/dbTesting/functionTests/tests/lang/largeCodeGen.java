@@ -50,7 +50,7 @@ import com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup;
 
 public class largeCodeGen extends BaseJDBCTestCase
 {
-	private static boolean TEST_QUERY_EXECUTION = true;
+    private static boolean TEST_QUERY_EXECUTION = true;
     
    
     
@@ -74,12 +74,12 @@ public class largeCodeGen extends BaseJDBCTestCase
     protected void setUp() throws SQLException
     {
         getConnection().setAutoCommit(false);
-    	Statement stmt = createStatement();
-		
-		String createSQL = 	"create table t0 " +
-		"(si smallint,i int, bi bigint, r real, f float, d double precision, n5_2 numeric(5,2), dec10_3 decimal(10,3), ch20 char(3),vc varchar(20), lvc long varchar)";
-		stmt.executeUpdate(createSQL);	
-		stmt.executeUpdate("insert into t0 values(2,3,4,5.3,5.3,5.3,31.13,123456.123, 'one','one','one')");
+        Statement stmt = createStatement();
+        
+        String createSQL =     "create table t0 " +
+        "(si smallint,i int, bi bigint, r real, f float, d double precision, n5_2 numeric(5,2), dec10_3 decimal(10,3), ch20 char(3),vc varchar(20), lvc long varchar)";
+        stmt.executeUpdate(createSQL);    
+        stmt.executeUpdate("insert into t0 values(2,3,4,5.3,5.3,5.3,31.13,123456.123, 'one','one','one')");
         stmt.close();
         commit();
     }
@@ -94,61 +94,61 @@ public class largeCodeGen extends BaseJDBCTestCase
     }
     
     
-	/**
-	 * Prepares and executes query against table t0 with n parameters
-	 * The assumption is that the query will always return our one row
-	 * of data inserted into the t0 table.
-	 * 
-	 * @param testName
-	 * @param sqlBuffer  - StringBuffer with SQL Text
-	 * @param numParams  - Number of parameters
-	 * @param paramValue - Parameter value
-	 * @return true if the check fails
-	 */
-	private boolean checkT0Query(String testName, 
-				StringBuffer sqlBuffer, int numParams, int paramValue) {
-		PreparedStatement ps;
-		try {
-			ps = prepareStatement(sqlBuffer.toString());
-			if (TEST_QUERY_EXECUTION)
-			{
-				for (int i = 1; i <= numParams; i++)
-				{	
-					ps.setInt(i, paramValue);
-				}
-				ResultSet rs = ps.executeQuery();
-				rs.next();
-				checkRowData(rs);
-				rs.close();
-			}
-			ps.close();
+    /**
+     * Prepares and executes query against table t0 with n parameters
+     * The assumption is that the query will always return our one row
+     * of data inserted into the t0 table.
+     * 
+     * @param testName
+     * @param sqlBuffer  - StringBuffer with SQL Text
+     * @param numParams  - Number of parameters
+     * @param paramValue - Parameter value
+     * @return true if the check fails
+     */
+    private boolean checkT0Query(String testName, 
+                StringBuffer sqlBuffer, int numParams, int paramValue) {
+        PreparedStatement ps;
+        try {
+            ps = prepareStatement(sqlBuffer.toString());
+            if (TEST_QUERY_EXECUTION)
+            {
+                for (int i = 1; i <= numParams; i++)
+                {    
+                    ps.setInt(i, paramValue);
+                }
+                ResultSet rs = ps.executeQuery();
+                rs.next();
+                checkRowData(rs);
+                rs.close();
+            }
+            ps.close();
             commit();
-			return false;
-		}catch (SQLException e)
-		{
+            return false;
+        }catch (SQLException e)
+        {
             // The top level exception is expected to be
             // the "user-friendly" query is too complex
             // rather than some linkage error.
             assertSQLState("42ZA0", e);
-			return true;
-			
-		}
-	}
+            return true;
+            
+        }
+    }
 
-	/**
+    /**
      * Test many logical operators in the where clause.  
-	 */
-	public void testLogicalOperators()  throws SQLException {
-		 
+     */
+    public void testLogicalOperators()  throws SQLException {
+         
        int passCount = 0;
-		 for (int count = 700; count <= 10000 ; count += 100)
-		 {
-			 // keep testing until it fails
-			 if (logicalOperators(count))
-				 break;
+         for (int count = 700; count <= 10000 ; count += 100)
+         {
+             // keep testing until it fails
+             if (logicalOperators(count))
+                 break;
              
              passCount = count;
-		 }
+         }
          
         // svn 372388 trunk - passed @ 400
         // Fix to DERBY-921 - passed @ 800
@@ -157,98 +157,98 @@ public class largeCodeGen extends BaseJDBCTestCase
                 800, passCount);
         
      
-		 // 10,000 causes Stack overflow and database corruption
-		 //testLogicalOperators(con, 10000);
-	}
+         // 10,000 causes Stack overflow and database corruption
+         //testLogicalOperators(con, 10000);
+    }
 
-	
-	/**
-	 * Tests numParam parameter markers in a where clause
-	 * 
-	 * @param  numOperands 
-	 */
-	private boolean logicalOperators(int numOperands) throws SQLException {
-		
-		// First with parameters
-		String pred =  "(si = ? AND si = ? )";
-		String testName = "Logical operators with " + numOperands + " parameters";
-		StringBuffer sqlBuffer = new StringBuffer((numOperands * 20) + 512);
-		sqlBuffer.append("SELECT * FROM T0 WHERE " + pred );
-		for (int i = 2; i < numOperands; i+=2)
-		{
-			sqlBuffer.append(" OR " + pred);
-		}
-		return checkT0Query(testName, sqlBuffer, numOperands, 2);
-		
-		
-		
-		
-	}
-	
-	public void testInClause()  throws SQLException {
-	  
-		// DERBY-739 raised number of parameters from 2700 to 3400
+    
+    /**
+     * Tests numParam parameter markers in a where clause
+     * 
+     * @param  numOperands 
+     */
+    private boolean logicalOperators(int numOperands) throws SQLException {
+        
+        // First with parameters
+        String pred =  "(si = ? AND si = ? )";
+        String testName = "Logical operators with " + numOperands + " parameters";
+        StringBuffer sqlBuffer = new StringBuffer((numOperands * 20) + 512);
+        sqlBuffer.append("SELECT * FROM T0 WHERE " + pred );
+        for (int i = 2; i < numOperands; i+=2)
+        {
+            sqlBuffer.append(" OR " + pred);
+        }
+        return checkT0Query(testName, sqlBuffer, numOperands, 2);
+        
+        
+        
+        
+    }
+    
+    public void testInClause()  throws SQLException {
+      
+        // DERBY-739 raised number of parameters from 2700 to 3400
         // svn 372388 trunk - passed @ 3400
         // So perform a quick check there.
         assertFalse("IN clause with 3400 parameters ", inClause(3400));
         
         int passCount = 0;
-		 for (int count = 97000; count <= 200000 ; count += 1000)
-		 {
- 			 // keep testing until it fails.
-			 if (inClause(count))
-			 	break;
+         for (int count = 97000; count <= 200000 ; count += 1000)
+         {
+              // keep testing until it fails.
+             if (inClause(count))
+                 break;
              passCount = count;
-		 }
+         }
          
         // fixes for DERBY-766 to split methods with individual statements
         // bumps the limit to 98,000 parameters.
         assertEquals("IN clause change from previous limit", 98000, passCount);
-	}	
-	
-	/**
-	 * Test in clause with many parameters
-	 *
-	 * @param numParams Number of parameters to test
-	 * @return true if the test fails
-	 * @throws SQLException
-	 */
-	private boolean inClause(int numParams) throws SQLException {
-		String testName = "IN clause with " + numParams + " parameters";
-		StringBuffer sqlBuffer = new StringBuffer((numParams * 20) + 512);
-		sqlBuffer.append("SELECT * FROM T0 WHERE SI IN ("  );
-		for (int i = 1; i < numParams; i++)
-		{
-			sqlBuffer.append("?, ");
-		}
-		sqlBuffer.append("?)");
-		return checkT0Query(testName, sqlBuffer, numParams, 2); 	
-	}
-	
-	public void testUnions() throws SQLException
-	{ 		
-		String viewName = "v0";		
-		Statement stmt = createStatement();
+    }    
+    
+    /**
+     * Test in clause with many parameters
+     *
+     * @param numParams Number of parameters to test
+     * @return true if the test fails
+     * @throws SQLException
+     */
+    private boolean inClause(int numParams) throws SQLException {
+        String testName = "IN clause with " + numParams + " parameters";
+        StringBuffer sqlBuffer = new StringBuffer((numParams * 20) + 512);
+        sqlBuffer.append("SELECT * FROM T0 WHERE SI IN ("  );
+        for (int i = 1; i < numParams; i++)
+        {
+            sqlBuffer.append("?, ");
+        }
+        sqlBuffer.append("?)");
+        return checkT0Query(testName, sqlBuffer, numParams, 2);     
+    }
+    
+    public void testUnions() throws SQLException
+    {         
+        String viewName = "v0";        
+        Statement stmt = createStatement();
         
-		StringBuffer createView = new StringBuffer("create view " + viewName + 
-												   " as select * from t0 " );
-		for (int i = 1; i < 100; i ++)
-		{
-			createView.append(" UNION ALL (SELECT * FROM t0 )");
-		}
-		//System.out.println(createViewString);
-		stmt.executeUpdate(createView.toString());
+        StringBuffer createView = new StringBuffer("create view " + viewName + 
+                                                   " as select * from t0 " );
+        for (int i = 1; i < 100; i ++)
+        {
+            createView.append(" UNION ALL (SELECT * FROM t0 )");
+        }
+        //System.out.println(createViewString);
+        stmt.executeUpdate(createView.toString());
         commit();
-		
+        
        int passCount = 0;
-		for (int count = 1000; count <= 1000; count += 1000)
-		{
- 			// keep testing until it fails
-			if (largeUnionSelect(viewName, count))
-				break;
+        for (int count = 1000; count <= 1000; count += 1000)
+        {
+             // keep testing until it fails
+            if (largeUnionSelect(viewName, count))
+                break;
             passCount = count;
            
-		}
+        }
         
         // 10000 gives a different constant pool error
         // DERBY-1315 gives out of memory error.
@@ -267,69 +267,69 @@ public class largeCodeGen extends BaseJDBCTestCase
     }
     
     private boolean largeUnionSelect(String viewName,
-    		int numUnions) throws SQLException
-	{
+            int numUnions) throws SQLException
+    {
 
-    	// There are 100 unions in each view so round to the nearest 100
-		
-		String unionClause = " UNION ALL (SELECT * FROM " + viewName + ")";
+        // There are 100 unions in each view so round to the nearest 100
+        
+        String unionClause = " UNION ALL (SELECT * FROM " + viewName + ")";
 
-		StringBuffer selectSQLBuffer  =
-			new StringBuffer(((numUnions/100) * unionClause.length()) + 512);
-		
-		selectSQLBuffer.append("select * from t0 ");
-		
-		for (int i = 1; i < numUnions/100;i++)
-		{
-			selectSQLBuffer.append(unionClause);
-		}	
-		
-		try {
-		// Ready to execute the problematic query 
-		String selectSQL = selectSQLBuffer.toString();
-		//System.out.println(selectSQL);
+        StringBuffer selectSQLBuffer  =
+            new StringBuffer(((numUnions/100) * unionClause.length()) + 512);
+        
+        selectSQLBuffer.append("select * from t0 ");
+        
+        for (int i = 1; i < numUnions/100;i++)
+        {
+            selectSQLBuffer.append(unionClause);
+        }    
+        
+        try {
+        // Ready to execute the problematic query 
+        String selectSQL = selectSQLBuffer.toString();
+        //System.out.println(selectSQL);
         PreparedStatement pstmt = prepareStatement(selectSQL);
         if (largeCodeGen.TEST_QUERY_EXECUTION)
         {
-	        ResultSet rs = pstmt.executeQuery();
-			int numRows = 0;
-			while (rs.next())
-			{
-				numRows++;
-				if ((numRows % 100) == 0)
-				checkRowData(rs);
-			}
+            ResultSet rs = pstmt.executeQuery();
+            int numRows = 0;
+            while (rs.next())
+            {
+                numRows++;
+                if ((numRows % 100) == 0)
+                checkRowData(rs);
+            }
             rs.close();
-	        commit();
+            commit();
         }
         pstmt.close();
         return false;
      
-		} catch (SQLException sqle)
-		{
+        } catch (SQLException sqle)
+        {
             // The top level exception is expected to be
             // the "user-friendly" query is too complex
             // rather than some linkage error.
             assertSQLState("42ZA0", sqle);
 
-			return true;
-			
-		}
+            return true;
+            
+        }
 
       }
 
-	// Check the data on the positioned row against what we inserted.
-	private static void checkRowData(ResultSet rs) throws SQLException
-	{
-		//" values(2,3,4,5.3,5.3,5.3,31.13,123456.123, 'one','one','one')");
-		String[] values = {"2", "3", "4", "5.3","5.3","5.3","31.13","123456.123",
-						   "one","one","one"};
-		for (int i = 1; i <= 11; i ++)
-		{
+    // Check the data on the positioned row against what we inserted.
+    private static void checkRowData(ResultSet rs) throws SQLException
+    {
+        //" values(2,3,4,5.3,5.3,5.3,31.13,123456.123, 'one','one','one')");
+        String[] values = {"2", "3", "4", "5.3","5.3","5.3","31.13","123456.123",
+                           "one","one","one"};
+        for (int i = 1; i <= 11; i ++)
+        {
             assertEquals("Result set data value: ",
                     values[i-1], rs.getString(i));
-		}
-	}
+        }
+    }
     
     /**
      * Test an INSERT statement with a large number of rows in the VALUES clause.

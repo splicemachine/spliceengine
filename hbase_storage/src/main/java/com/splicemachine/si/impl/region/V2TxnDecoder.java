@@ -171,11 +171,11 @@ public class V2TxnDecoder implements TxnDecoder{
 
         if(state==Txn.State.ACTIVE){
                                 /*
-								 * We need to check that the transaction hasn't been timed out (and therefore rolled back). This
-								 * happens if the keepAliveTime is older than the configured transaction timeout. Of course,
-								 * there is some network latency which could cause small keep alives to be problematic. To help out,
-								 * we allow a little fudge factor in the timeout
-								 */
+                                 * We need to check that the transaction hasn't been timed out (and therefore rolled back). This
+                                 * happens if the keepAliveTime is older than the configured transaction timeout. Of course,
+                                 * there is some network latency which could cause small keep alives to be problematic. To help out,
+                                 * we allow a little fudge factor in the timeout
+                                 */
             state=txnStore.adjustStateForTimeout(state,keepAliveKv);
         }
         long kaTime=decodeKeepAlive(keepAliveKv,false);
@@ -229,27 +229,27 @@ public class V2TxnDecoder implements TxnDecoder{
     }
 
     /*
-	 * Encodes transaction objects using the new, packed Encoding format
-	 *
-	 * The new way is a (more) compact representation which uses the Values CF (V) and compact qualifiers (using
-	 * the Encoding.encodeX() methods) as follows:
-	 *
-	 * "d"	--	packed tuple of (beginTimestamp,parentTxnId,isDependent,additive,isolationLevel)
-	 * "c"	--	counter (using a packed integer representation)
-	 * "k"	--	keepAlive timestamp
-	 * "t"	--	commit timestamp
-	 * "g"	--	globalCommitTimestamp
-	 * "s"	--	state
-	 * "v"  --  taskId
-	 *
-	 * The additional columns are kept separate so that they may be updated(and read) independently without
-	 * reading and decoding the entire transaction.
-	 *
-	 * In the new format, if a transaction has been written to the table, then it automatically allows writes
-	 *
-	 * order: c,d,e,g,k,s,t,v
-	 * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,taskId
-	 */
+     * Encodes transaction objects using the new, packed Encoding format
+     *
+     * The new way is a (more) compact representation which uses the Values CF (V) and compact qualifiers (using
+     * the Encoding.encodeX() methods) as follows:
+     *
+     * "d"    --    packed tuple of (beginTimestamp,parentTxnId,isDependent,additive,isolationLevel)
+     * "c"    --    counter (using a packed integer representation)
+     * "k"    --    keepAlive timestamp
+     * "t"    --    commit timestamp
+     * "g"    --    globalCommitTimestamp
+     * "s"    --    state
+     * "v"  --  taskId
+     *
+     * The additional columns are kept separate so that they may be updated(and read) independently without
+     * reading and decoding the entire transaction.
+     *
+     * In the new format, if a transaction has been written to the table, then it automatically allows writes
+     *
+     * order: c,d,e,g,k,s,t,v
+     * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,taskId
+     */
     public org.apache.hadoop.hbase.client.Put encodeForPut(TxnMessage.TxnInfo txnInfo,byte[] rowKey) throws IOException{
         org.apache.hadoop.hbase.client.Put put=new org.apache.hadoop.hbase.client.Put(rowKey);
         MultiFieldEncoder metaFieldEncoder=MultiFieldEncoder.create(5);
@@ -334,11 +334,11 @@ public class V2TxnDecoder implements TxnDecoder{
         }
         if(state==Txn.State.ACTIVE){
             /*
-			 * We need to check that the transaction hasn't been timed out (and therefore rolled back). This
- 			 * happens if the keepAliveTime is older than the configured transaction timeout. Of course,
- 			 * there is some network latency which could cause small keep alives to be problematic. To help out,
- 			 * we allow a little fudge factor in the timeout
- 			 */
+             * We need to check that the transaction hasn't been timed out (and therefore rolled back). This
+              * happens if the keepAliveTime is older than the configured transaction timeout. Of course,
+              * there is some network latency which could cause small keep alives to be problematic. To help out,
+              * we allow a little fudge factor in the timeout
+              */
             state=txnStore.adjustStateForTimeout(state,keepAliveKv);
         }
         long kaTime=decodeKeepAlive(keepAliveKv,false);

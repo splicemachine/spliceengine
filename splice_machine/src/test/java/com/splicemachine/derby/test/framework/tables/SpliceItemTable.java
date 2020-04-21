@@ -17,8 +17,8 @@ package com.splicemachine.derby.test.framework.tables;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 
 public class SpliceItemTable extends SpliceTableWatcher {
-	public static final String TABLE_NAME = "ITEM";
-	public static final String CREATE_STRING = "(itm_id INT," +
+    public static final String TABLE_NAME = "ITEM";
+    public static final String CREATE_STRING = "(itm_id INT," +
             "itm_name VARCHAR(128)," +
             "itm_long_desc VARCHAR(32672)," +
             "itm_foreign_name VARCHAR(128)," +
@@ -47,11 +47,11 @@ public class SpliceItemTable extends SpliceTableWatcher {
             "itm_itm_long_desc_ja VARCHAR(32672)," +
             "itm_long_desc_sch VARCHAR(32672)," +
             "itm_long_desc_ko VARCHAR(32672))";
-	public SpliceItemTable(String schemaName) {
-		this(TABLE_NAME,schemaName);
-	}
-	public SpliceItemTable(String itemName, String schemaName) {
-		super(itemName,schemaName,CREATE_STRING);
-	}	
-	
+    public SpliceItemTable(String schemaName) {
+        this(TABLE_NAME,schemaName);
+    }
+    public SpliceItemTable(String itemName, String schemaName) {
+        super(itemName,schemaName,CREATE_STRING);
+    }    
+    
 }

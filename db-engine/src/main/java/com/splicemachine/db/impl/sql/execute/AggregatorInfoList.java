@@ -46,84 +46,84 @@ import java.util.ArrayList;
  *
  */
 public class AggregatorInfoList extends ArrayList<AggregatorInfo> implements Formatable  {
-	/********************************************************
-	**
-	**	This class implements Formatable. That means that it
-	**	can write itself to and from a formatted stream. If
-	**	you add more fields to this class, make sure that you
-	**	also write/read them with the writeExternal()/readExternal()
-	**	methods.
-	**
-	**	If, inbetween releases, you add more fields to this class,
-	**	then you should bump the version number emitted by the getTypeFormatId()
-	**	method.  OR, since this is something that is used
-	**	in stored prepared statements, it is ok to change it
-	**	if you make sure that stored prepared statements are
-	**	invalidated across releases.
-	**
-	********************************************************/
+    /********************************************************
+    **
+    **    This class implements Formatable. That means that it
+    **    can write itself to and from a formatted stream. If
+    **    you add more fields to this class, make sure that you
+    **    also write/read them with the writeExternal()/readExternal()
+    **    methods.
+    **
+    **    If, inbetween releases, you add more fields to this class,
+    **    then you should bump the version number emitted by the getTypeFormatId()
+    **    method.  OR, since this is something that is used
+    **    in stored prepared statements, it is ok to change it
+    **    if you make sure that stored prepared statements are
+    **    invalidated across releases.
+    **
+    ********************************************************/
 
-	/**
-	 * Niladic constructor for Formatable
-	 */
-	public AggregatorInfoList() {}
+    /**
+     * Niladic constructor for Formatable
+     */
+    public AggregatorInfoList() {}
 
-	/**
-	 * Indicate whether i have a distinct or not.
-	 *
-	 * @return indicates if there is a distinct
-	 */
-	public boolean hasDistinct() {
-		for(AggregatorInfo aggInfo : this){
-			if(aggInfo.isDistinct()){
-				return true;
-			}
-		}
-		return false;
-	}
+    /**
+     * Indicate whether i have a distinct or not.
+     *
+     * @return indicates if there is a distinct
+     */
+    public boolean hasDistinct() {
+        for(AggregatorInfo aggInfo : this){
+            if(aggInfo.isDistinct()){
+                return true;
+            }
+        }
+        return false;
+    }
 
-	//////////////////////////////////////////////
-	//
-	// FORMATABLE
-	//
-	//////////////////////////////////////////////
+    //////////////////////////////////////////////
+    //
+    // FORMATABLE
+    //
+    //////////////////////////////////////////////
 
-	/** @exception  IOException thrown on error */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		int count = size();
-		out.writeInt(count);
-		for(AggregatorInfo aggregatorInfo : this){
-			out.writeObject(aggregatorInfo);
-		}
-	}
+    /** @exception  IOException thrown on error */
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        int count = size();
+        out.writeInt(count);
+        for(AggregatorInfo aggregatorInfo : this){
+            out.writeObject(aggregatorInfo);
+        }
+    }
 
-	/** 
-	 * @see java.io.Externalizable#readExternal 
-	 *
-	 * @exception IOException on error	
-	 * @exception ClassNotFoundException on error	
-	 */
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		int count = in.readInt();
+    /** 
+     * @see java.io.Externalizable#readExternal 
+     *
+     * @exception IOException on error    
+     * @exception ClassNotFoundException on error    
+     */
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        int count = in.readInt();
 
-		ensureCapacity(count);
-		for (int i = 0; i < count; i++) {
-			AggregatorInfo agg = (AggregatorInfo)in.readObject();
-			add(agg);
-		}	
-	}
+        ensureCapacity(count);
+        for (int i = 0; i < count; i++) {
+            AggregatorInfo agg = (AggregatorInfo)in.readObject();
+            add(agg);
+        }    
+    }
 
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.AGG_INFO_LIST_V01_ID; }
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId()    { return StoredFormatIds.AGG_INFO_LIST_V01_ID; }
 
-	///////////////////////////////////////////////////////////////
-	//
-	// OBJECT INTERFACE
-	//
-	///////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////
+    //
+    // OBJECT INTERFACE
+    //
+    ///////////////////////////////////////////////////////////////
 }

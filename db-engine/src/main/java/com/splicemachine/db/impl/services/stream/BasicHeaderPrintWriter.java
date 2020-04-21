@@ -44,80 +44,80 @@ import java.io.OutputStream;
  * <p>
  *
  * STUB: Should include code to emit a new line before a header
- *			which is not the first thing on the line.
+ *            which is not the first thing on the line.
  *
  */
 class BasicHeaderPrintWriter 
-	implements HeaderPrintWriter
+    implements HeaderPrintWriter
 {
-	private static final Logger LOG = Logger.getLogger("splice-derby");
-	private static final Logger LOG_STATEMENT = Logger.getLogger("splice-derby.statement");
+    private static final Logger LOG = Logger.getLogger("splice-derby");
+    private static final Logger LOG_STATEMENT = Logger.getLogger("splice-derby.statement");
 
-	private final PrintWriterGetHeader headerGetter;
-	private final String name;
+    private final PrintWriterGetHeader headerGetter;
+    private final String name;
 
-	// constructors
+    // constructors
 
-	/**
-	 * the constructor sets up the HeaderPrintWriter. 
-	 * <p>
-	 * @param writeTo       Where to write to.
-	 * @param headerGetter	Object to get headers for output lines.
-	 * @param canClose      If true, {@link #complete} will also close writeTo
-	 * @param writerName    Name of writeTo, e.g. a file name
-	 *
-	 * @see	PrintWriterGetHeader
-	 */
-	BasicHeaderPrintWriter(Writer writeTo,
-			PrintWriterGetHeader headerGetter, boolean canClose, String writerName){
-		this.headerGetter = headerGetter;
-		this.name = writerName;
-	}
+    /**
+     * the constructor sets up the HeaderPrintWriter. 
+     * <p>
+     * @param writeTo       Where to write to.
+     * @param headerGetter    Object to get headers for output lines.
+     * @param canClose      If true, {@link #complete} will also close writeTo
+     * @param writerName    Name of writeTo, e.g. a file name
+     *
+     * @see    PrintWriterGetHeader
+     */
+    BasicHeaderPrintWriter(Writer writeTo,
+            PrintWriterGetHeader headerGetter, boolean canClose, String writerName){
+        this.headerGetter = headerGetter;
+        this.name = writerName;
+    }
 
-	/*
-	 * HeaderPrintWriter interface (partial; remaining methods
-	 * come from the PrintWriter supertype).
-	 */
-	public synchronized void printlnWithHeader(String message)
-	{
-		LOG.info(headerGetter.getHeader() + message);
-	}
+    /*
+     * HeaderPrintWriter interface (partial; remaining methods
+     * come from the PrintWriter supertype).
+     */
+    public synchronized void printlnWithHeader(String message)
+    {
+        LOG.info(headerGetter.getHeader() + message);
+    }
 
-	public PrintWriterGetHeader getHeader()
-	{
-		return headerGetter;
-	}
+    public PrintWriterGetHeader getHeader()
+    {
+        return headerGetter;
+    }
 
-	public String getName(){
-		return name;
-	}
+    public String getName(){
+        return name;
+    }
 
-	@Override
-	public void printStatement(String statement) {
-		LOG_STATEMENT.info(statement);
-	}
+    @Override
+    public void printStatement(String statement) {
+        LOG_STATEMENT.info(statement);
+    }
 
-	@Override
-	public void println(String message) {
-		LOG.info(message);
-	}
+    @Override
+    public void println(String message) {
+        LOG.info(message);
+    }
 
-	@Override
-	public void printThrowable(String message, Throwable t) {
-		LOG.error(message, t);
-	}
+    @Override
+    public void printThrowable(String message, Throwable t) {
+        LOG.error(message, t);
+    }
 
-	@Override
-	public void printThrowable(Throwable t) {
-		printThrowable("Unexpected exception", t);
-	}
+    @Override
+    public void printThrowable(Throwable t) {
+        printThrowable("Unexpected exception", t);
+    }
 
-	/**
-	 * Flushes stream, and optionally also closes it if constructed
-	 * with canClose equal to true.
-	 */
+    /**
+     * Flushes stream, and optionally also closes it if constructed
+     * with canClose equal to true.
+     */
 
-	void complete() {
-	}
+    void complete() {
+    }
 }
 

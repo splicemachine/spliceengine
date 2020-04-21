@@ -62,22 +62,22 @@ public class ODBCMetadataGenerator {
     // Types of changes that are possible.  There are four
     // types that we handle here:
     //
-    //	1. Column rename:
-    //		Rename a column to have an ODBC-specified name.
-    //		For ex. change "SCALE" to "DECIMAL_DIGITS"
-    //	2. Where clause:
-    //		Change the where clause of the query. For ex.
-    //		used to change getCrossReference "T.TABLENAME=?"
-    //		to "T.TABLENAME LIKE ?" since JDBC and ODBC specs
-    //		differ on whether table name must be set or not
-    //	3. Type and/or value change:
-    //		Cast a column to an OBDC-specified type.  At time
-    //		of writing, this was just for casting INTs to
-    //		SMALLINTs; OR modify an existing JDBC value
-    //		to match the ODBC specification.
-    //	4. Additional column(s):
-    //		Add a new, ODBC-specified column to an existing
-    //		result set.
+    //    1. Column rename:
+    //        Rename a column to have an ODBC-specified name.
+    //        For ex. change "SCALE" to "DECIMAL_DIGITS"
+    //    2. Where clause:
+    //        Change the where clause of the query. For ex.
+    //        used to change getCrossReference "T.TABLENAME=?"
+    //        to "T.TABLENAME LIKE ?" since JDBC and ODBC specs
+    //        differ on whether table name must be set or not
+    //    3. Type and/or value change:
+    //        Cast a column to an OBDC-specified type.  At time
+    //        of writing, this was just for casting INTs to
+    //        SMALLINTs; OR modify an existing JDBC value
+    //        to match the ODBC specification.
+    //    4. Additional column(s):
+    //        Add a new, ODBC-specified column to an existing
+    //        result set.
 
     private final byte COL_RENAME_CHANGE = 0x01;
     private final byte TYPE_VALUE_CHANGE = 0x02;
@@ -165,8 +165,8 @@ public class ODBCMetadataGenerator {
      * queries, and then generate the ODBC-compliant versions
      * where needed.
      * @return ODBC-compliant metadata statements have been
-     *  	generated and written out to "odbc_metadata.properties"
-     *		in the running directory.
+     *      generated and written out to "odbc_metadata.properties"
+     *        in the running directory.
      */
     public static void main(String[] arguments) throws IOException {
 

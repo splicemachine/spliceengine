@@ -62,34 +62,34 @@ public abstract class GlobalXact {
 
     public boolean equals(Object other) 
     {
-		if (other == this)
-			return true;
+        if (other == this)
+            return true;
 
-		if (other instanceof GlobalXact) {
-	
-			GlobalXact other_xact = (GlobalXact) other;
-		
-			return(
-				   java.util.Arrays.equals(
-									other_xact.global_id,
-									this.global_id)          &&
-				   java.util.Arrays.equals(
-									other_xact.branch_id,
-									this.branch_id)          &&
-				   other_xact.format_id == this.format_id);
-		
-	    }
+        if (other instanceof GlobalXact) {
+    
+            GlobalXact other_xact = (GlobalXact) other;
+        
+            return(
+                   java.util.Arrays.equals(
+                                    other_xact.global_id,
+                                    this.global_id)          &&
+                   java.util.Arrays.equals(
+                                    other_xact.branch_id,
+                                    this.branch_id)          &&
+                   other_xact.format_id == this.format_id);
+        
+        }
 
-		return false;	
+        return false;    
     }
 
     public String toString()
     {
-		StringBuilder globalhex = new StringBuilder();
-		StringBuilder branchhex = new StringBuilder();
-		if (global_id != null) 
-	    {
-			int mask = 0;
+        StringBuilder globalhex = new StringBuilder();
+        StringBuilder branchhex = new StringBuilder();
+        if (global_id != null) 
+        {
+            int mask = 0;
             for (byte aGlobal_id : global_id) {
                 mask = (aGlobal_id & 0xFF);
                 if (mask < 16) {
@@ -98,11 +98,11 @@ public abstract class GlobalXact {
                     globalhex.append(Integer.toHexString(mask));
                 }
             }
-	    }
-	
-		if (branch_id != null)
-	    {
-			int mask = 0;
+        }
+    
+        if (branch_id != null)
+        {
+            int mask = 0;
             for (byte aBranch_id : branch_id) {
                 mask = (aBranch_id & 0xFF);
                 if (mask < 16) {
@@ -111,10 +111,10 @@ public abstract class GlobalXact {
                     branchhex.append(Integer.toHexString(mask));
                 }
             }
-	    }
+        }
 
-		return("(" + format_id + "," + globalhex + "," + branchhex + ")");
-	
+        return("(" + format_id + "," + globalhex + "," + branchhex + ")");
+    
     }
 
 
@@ -125,9 +125,9 @@ public abstract class GlobalXact {
     **/
     public int hashCode()
     {
-		// make sure hash does not overflow int, the only unknown is
-		// format_id.  Lop off top bits.
-		int hash = global_id.length + branch_id.length + (format_id & 0xFFFFFFF);
+        // make sure hash does not overflow int, the only unknown is
+        // format_id.  Lop off top bits.
+        int hash = global_id.length + branch_id.length + (format_id & 0xFFFFFFF);
 
         for (byte aGlobal_id : global_id) {
             hash += aGlobal_id;
@@ -135,8 +135,8 @@ public abstract class GlobalXact {
         for (byte aBranch_id : branch_id) {
             hash += aBranch_id;
         }
-	
-		return(hash);
+    
+        return(hash);
     }
     
 }

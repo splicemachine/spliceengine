@@ -63,18 +63,18 @@ final class EmbedXAConnection40 extends EmbedXAConnection
      * @param password 
      * @param requestPassword 
      */
-    	EmbedXAConnection40 (EmbeddedDataSource ds, ResourceAdapter ra, 
+        EmbedXAConnection40 (EmbeddedDataSource ds, ResourceAdapter ra, 
                 String user, String password, 
                 boolean requestPassword) throws SQLException {
-		super(ds, ra, user, password, requestPassword);
-	}
+        super(ds, ra, user, password, requestPassword);
+    }
     /**
      * Removes the specified <code>StatementEventListener</code> from the list of 
      * components that will be notified when the driver detects that a 
      * <code>PreparedStatement</code> has been closed or is invalid.
      * <p> 
      * 
-     * @param listener	the component which implements the
+     * @param listener    the component which implements the
      * <code>StatementEventListener</code> interface that was previously 
      * registered with this <code>PooledConnection</code> object
      * <p>
@@ -95,7 +95,7 @@ final class EmbedXAConnection40 extends EmbedXAConnection
      * <code>PooledConnection</code> object.
      * <p>
      * 
-     * @param listener	an component which implements the 
+     * @param listener    an component which implements the 
      * <code>StatementEventListener</code> interface that is to be registered
      * with this <code>PooledConnection</code> object
      * <p>

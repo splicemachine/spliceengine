@@ -156,26 +156,26 @@ public class SQLUtilities {
         return parser;
     }
 
-	// Note: This array is accessed in lang.NullIfTest
-	public static String[] SQLTypes =
-	{
-	        "SMALLINT",
-	        "INTEGER",
-	        "BIGINT",
-	        "DECIMAL(10,5)",
-	        "REAL",
-	        "DOUBLE",
-	        "CHAR(60)",
-	        "VARCHAR(60)",
-	        "LONG VARCHAR",
-	        "CHAR(60) FOR BIT DATA",
-	        "VARCHAR(60) FOR BIT DATA",
-	        "LONG VARCHAR FOR BIT DATA",
-	        "CLOB(1k)",
-	        "DATE",
-	        "TIME",
-	        "TIMESTAMP",
-	        "BLOB(1k)",
-	};
+    // Note: This array is accessed in lang.NullIfTest
+    public static String[] SQLTypes =
+    {
+            "SMALLINT",
+            "INTEGER",
+            "BIGINT",
+            "DECIMAL(10,5)",
+            "REAL",
+            "DOUBLE",
+            "CHAR(60)",
+            "VARCHAR(60)",
+            "LONG VARCHAR",
+            "CHAR(60) FOR BIT DATA",
+            "VARCHAR(60) FOR BIT DATA",
+            "LONG VARCHAR FOR BIT DATA",
+            "CLOB(1k)",
+            "DATE",
+            "TIME",
+            "TIMESTAMP",
+            "BLOB(1k)",
+    };
     
 }

@@ -44,36 +44,36 @@ import com.splicemachine.db.iapi.sql.Activation;
 
 public final class StatementRoutinePermission extends StatementPermission
 {
-	private UUID routineUUID;
+    private UUID routineUUID;
 
-	public StatementRoutinePermission( UUID routineUUID)
-	{
-		this.routineUUID = routineUUID;
-	}
-									 
-	/**
-	 * Return routine UUID for this access descriptor
-	 *
-	 * @return	Routine UUID
-	 */
-	public UUID getRoutineUUID()
-	{
-		return routineUUID;
-	}
+    public StatementRoutinePermission( UUID routineUUID)
+    {
+        this.routineUUID = routineUUID;
+    }
+                                     
+    /**
+     * Return routine UUID for this access descriptor
+     *
+     * @return    Routine UUID
+     */
+    public UUID getRoutineUUID()
+    {
+        return routineUUID;
+    }
 
-	/**
-	 * @see StatementPermission#check
-	 */
-	public void check( LanguageConnectionContext lcc,
-					   boolean forGrant,
-					   Activation activation) throws StandardException
-	{
+    /**
+     * @see StatementPermission#check
+     */
+    public void check( LanguageConnectionContext lcc,
+                       boolean forGrant,
+                       Activation activation) throws StandardException
+    {
         genericCheck( lcc, forGrant, activation, "EXECUTE" );
-	}
+    }
 
-	/**
-	 * @see StatementPermission#isCorrectPermission
-	 */
+    /**
+     * @see StatementPermission#isCorrectPermission
+     */
     public boolean isCorrectPermission( PermissionsDescriptor raw )
     {
         if ( (raw == null) || !( raw instanceof RoutinePermsDescriptor) ) { return false; }
@@ -83,34 +83,34 @@ public final class StatementRoutinePermission extends StatementPermission
         return pd.getHasExecutePermission();
     }
 
-	/**
-	 * @see StatementPermission#getPrivilegedObject
-	 */
+    /**
+     * @see StatementPermission#getPrivilegedObject
+     */
     public PrivilegedSQLObject getPrivilegedObject( DataDictionary dd ) throws StandardException
     { return dd.getAliasDescriptor( routineUUID); }
 
-	/**
-	 * @see StatementPermission#getPermissionDescriptor
-	 */
-	public PermissionsDescriptor getPermissionDescriptor(String authid, DataDictionary dd)
-	throws StandardException
-	{
-		return dd.getRoutinePermissions(routineUUID,authid);
-	}
+    /**
+     * @see StatementPermission#getPermissionDescriptor
+     */
+    public PermissionsDescriptor getPermissionDescriptor(String authid, DataDictionary dd)
+    throws StandardException
+    {
+        return dd.getRoutinePermissions(routineUUID,authid);
+    }
 
-	/**
-	 * @see StatementPermission#getObjectType
-	 */
+    /**
+     * @see StatementPermission#getObjectType
+     */
     public String getObjectType() { return "ROUTINE"; }
 
-	public String toString()
-	{
-		return "StatementRoutinePermission: " + routineUUID;
-	}
+    public String toString()
+    {
+        return "StatementRoutinePermission: " + routineUUID;
+    }
 
-	@Override
-	public Type getType() {
-		return Type.ROUTINE;
-	}
+    @Override
+    public Type getType() {
+        return Type.ROUTINE;
+    }
 
 }

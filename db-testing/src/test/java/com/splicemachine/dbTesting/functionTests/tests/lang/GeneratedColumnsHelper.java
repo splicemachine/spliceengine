@@ -152,13 +152,13 @@ public class GeneratedColumnsHelper extends BaseJDBCTestCase
         ps.close();
     }
     
-	protected	static	ResultSet	executeQuery( Statement stmt, String text )
-		throws SQLException
-	{
-		println( "Executing '" + text + "'" );
+    protected    static    ResultSet    executeQuery( Statement stmt, String text )
+        throws SQLException
+    {
+        println( "Executing '" + text + "'" );
 
         return stmt.executeQuery( text );
-	}
+    }
 
     /**
      * Prepare a statement and report its sql text.

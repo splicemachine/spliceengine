@@ -45,7 +45,7 @@ import java.lang.reflect.Field;
  * To turn off output in ij, use the command line
  * property of -DURLCheck=false.
  *
- * param anURL	 The URL used to connect to a database.
+ * param anURL     The URL used to connect to a database.
  *
  */
 
@@ -102,7 +102,7 @@ public class URLCheck {
     }
 
   }
-	public Properties getAttributes(String url, Properties props) throws Exception {
+    public Properties getAttributes(String url, Properties props) throws Exception {
 
         String protocol = "";
 
@@ -119,20 +119,20 @@ public class URLCheck {
         else
             validProps = null;
 
-		
-		//Parse the url into attributes and put them in a Properties object.
-		StringTokenizer st = new StringTokenizer(url.substring(protocol.length()), ";:\"");
-		attributes = new Vector();
-		while (st.hasMoreTokens()) {
+        
+        //Parse the url into attributes and put them in a Properties object.
+        StringTokenizer st = new StringTokenizer(url.substring(protocol.length()), ";:\"");
+        attributes = new Vector();
+        while (st.hasMoreTokens()) {
       AttributeHolder anAttribute = new AttributeHolder();
       String anAtt = "";
       String aValue = "";
-	  String aToken = st.nextToken();
+      String aToken = st.nextToken();
       //The "=" is the seperator between key and value.
-	  int eqPos = aToken.indexOf('=');
-	  if (eqPos == -1) {
-		  //If there is no "=" this is not an attribute
-		  continue;
+      int eqPos = aToken.indexOf('=');
+      if (eqPos == -1) {
+          //If there is no "=" this is not an attribute
+          continue;
       }
       else {
         anAtt = (aToken.substring(0, eqPos)).trim();
@@ -144,17 +144,17 @@ public class URLCheck {
       anAttribute.setToken(aToken);
       attributes.addElement(anAttribute);
       props.put(anAtt, aToken);
-	}
-		return props;
-	}
+    }
+        return props;
+    }
 
   public static Vector getBooleanAttributes(){
     if (booleanAttributes == null) {
       booleanAttributes = new Vector();
-		  booleanAttributes.addElement(Attribute.DATA_ENCRYPTION);
-		  booleanAttributes.addElement(Attribute.CREATE_ATTR);
-		  booleanAttributes.addElement(Attribute.SHUTDOWN_ATTR);
-		  booleanAttributes.addElement(Attribute.UPGRADE_ATTR);
+          booleanAttributes.addElement(Attribute.DATA_ENCRYPTION);
+          booleanAttributes.addElement(Attribute.CREATE_ATTR);
+          booleanAttributes.addElement(Attribute.SHUTDOWN_ATTR);
+          booleanAttributes.addElement(Attribute.UPGRADE_ATTR);
     }
     return booleanAttributes;
   }

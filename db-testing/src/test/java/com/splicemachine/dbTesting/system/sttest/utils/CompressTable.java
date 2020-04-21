@@ -45,63 +45,63 @@ import com.splicemachine.dbTesting.system.sttest.tools.MemCheck;
  * This class is used to compress the table to retrieve the space after deletion
  */
 public class CompressTable {
-	
-	static boolean startByIJ = false;
-	
-	static String dbURL = "jdbc:splice:testDB";
-	
-	static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
-	
-	public static void main(String[] args) throws SQLException, IOException,
-	InterruptedException, Exception, Throwable {
-		Connection conn = null;
-		Date d = null;
-		
-		Class.forName(driver).newInstance();
-		
-		try {
-			conn = mystartJBMS();
-		} catch (Throwable t) {
-			return;
-		}
-		MemCheck mc = new MemCheck(200000);
-		mc.start();
-		compress(conn);
-		System.exit(0);
-	}
-	
-	static public Connection mystartJBMS() throws Throwable {
-		Connection conn = null;
-		if (startByIJ == true)
-			conn = ij.startJBMS();
-		else
-			try {
-				conn = DriverManager.getConnection(dbURL + ";create=false");
-				conn.setAutoCommit(false);
-			} catch (SQLException se) {
-				System.out.println("connect failed  for " + dbURL);
-				JDBCDisplayUtil.ShowException(System.out, se);
-			}
-			return (conn);
-	}
-	
-	static synchronized void compress(Connection conn)
-	throws java.lang.Exception {
-		System.out.println("compressing table");
-		try {
-			conn.setAutoCommit(true);
-			CallableStatement cs = conn
-				.prepareCall("CALL SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE(?, ?, ?, ?, ?)");
-			cs.setString(1, "SPLICE");
-			cs.setString(2, "DATATYPES");
-			cs.setShort(3, (short) 1);
-			cs.setShort(4, (short) 1);
-			cs.setShort(5, (short) 1);
-			cs.execute();
-			cs.close();
-		} catch (SQLException se) {
-			System.out.println("compress table: FAIL -- unexpected exception:");
-			JDBCDisplayUtil.ShowException(System.out, se);
-		}
-	}
+    
+    static boolean startByIJ = false;
+    
+    static String dbURL = "jdbc:splice:testDB";
+    
+    static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
+    
+    public static void main(String[] args) throws SQLException, IOException,
+    InterruptedException, Exception, Throwable {
+        Connection conn = null;
+        Date d = null;
+        
+        Class.forName(driver).newInstance();
+        
+        try {
+            conn = mystartJBMS();
+        } catch (Throwable t) {
+            return;
+        }
+        MemCheck mc = new MemCheck(200000);
+        mc.start();
+        compress(conn);
+        System.exit(0);
+    }
+    
+    static public Connection mystartJBMS() throws Throwable {
+        Connection conn = null;
+        if (startByIJ == true)
+            conn = ij.startJBMS();
+        else
+            try {
+                conn = DriverManager.getConnection(dbURL + ";create=false");
+                conn.setAutoCommit(false);
+            } catch (SQLException se) {
+                System.out.println("connect failed  for " + dbURL);
+                JDBCDisplayUtil.ShowException(System.out, se);
+            }
+            return (conn);
+    }
+    
+    static synchronized void compress(Connection conn)
+    throws java.lang.Exception {
+        System.out.println("compressing table");
+        try {
+            conn.setAutoCommit(true);
+            CallableStatement cs = conn
+                .prepareCall("CALL SYSCS_UTIL.SYSCS_INPLACE_COMPRESS_TABLE(?, ?, ?, ?, ?)");
+            cs.setString(1, "SPLICE");
+            cs.setString(2, "DATATYPES");
+            cs.setShort(3, (short) 1);
+            cs.setShort(4, (short) 1);
+            cs.setShort(5, (short) 1);
+            cs.execute();
+            cs.close();
+        } catch (SQLException se) {
+            System.out.println("compress table: FAIL -- unexpected exception:");
+            JDBCDisplayUtil.ShowException(System.out, se);
+        }
+    }
 }

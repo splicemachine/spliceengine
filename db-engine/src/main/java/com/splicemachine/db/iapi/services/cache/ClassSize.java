@@ -224,7 +224,7 @@ public class ClassSize
             return 0;
         
         if( SanityManager.DEBUG)
-			SanityManager.ASSERT( catalog != null, "The class size catalog could not be initialized.");
+            SanityManager.ASSERT( catalog != null, "The class size catalog could not be initialized.");
         
         int[] coeff = (int[]) catalog.get( cls.getName());
         if( coeff == null)

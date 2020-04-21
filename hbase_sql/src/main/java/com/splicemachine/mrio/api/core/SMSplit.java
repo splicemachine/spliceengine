@@ -27,51 +27,51 @@ import com.splicemachine.access.HConfiguration;
 //import org.apache.hadoop.mapred.SplitLocationInfo;
 
 public class SMSplit extends FileSplit {
-	protected TableSplit split;
-	  public SMSplit() throws IOException{
-		    super(FSUtils.getRootDir(HConfiguration.unwrapDelegate()), 0, 0,null);
-		    split = new TableSplit();
-		  }
-	  
-		  public SMSplit(TableSplit split) throws IOException{
-		    super(FSUtils.getRootDir(HConfiguration.unwrapDelegate()), 0, 0, null);
-		    this.split = split;
-		  }
+    protected TableSplit split;
+      public SMSplit() throws IOException{
+            super(FSUtils.getRootDir(HConfiguration.unwrapDelegate()), 0, 0,null);
+            split = new TableSplit();
+          }
+      
+          public SMSplit(TableSplit split) throws IOException{
+            super(FSUtils.getRootDir(HConfiguration.unwrapDelegate()), 0, 0, null);
+            this.split = split;
+          }
 
-		  public TableSplit getSplit() {
-		    return this.split;
-		  }
+          public TableSplit getSplit() {
+            return this.split;
+          }
 
-		@Override
-		public long getLength() {
-			return this.split.getLength();
-		}
+        @Override
+        public long getLength() {
+            return this.split.getLength();
+        }
 
-		@Override
-		public String toString() {
-			return this.split.toString();
-		}
+        @Override
+        public String toString() {
+            return this.split.toString();
+        }
 
-		@Override
-		public void write(DataOutput out) throws IOException {
-			this.split.write(out);
-		}
+        @Override
+        public void write(DataOutput out) throws IOException {
+            this.split.write(out);
+        }
 
-		@Override
-		public void readFields(DataInput in) throws IOException {
-			this.split.readFields(in);
-		}
+        @Override
+        public void readFields(DataInput in) throws IOException {
+            this.split.readFields(in);
+        }
 
-		@Override
-		public String[] getLocations() throws IOException {
-			return this.split.getLocations();
-		}
+        @Override
+        public String[] getLocations() throws IOException {
+            return this.split.getLocations();
+        }
 
-		/*
-		@Override
-		public SplitLocationInfo[] getLocationInfo() throws IOException {
-			return this.split.getLocationInfo();
-		}
-	*/
-		
+        /*
+        @Override
+        public SplitLocationInfo[] getLocationInfo() throws IOException {
+            return this.split.getLocationInfo();
+        }
+    */
+        
 }

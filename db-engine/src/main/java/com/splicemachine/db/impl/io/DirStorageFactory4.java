@@ -91,7 +91,7 @@ public class DirStorageFactory4 extends DirStorageFactory
         return new DirFile4((DirFile) directoryName, fileName);
     }
 
-	
+    
     /**
      * This method tests whether the "rws" and "rwd" modes are implemented. If
      * the "rws" and "rwd" modes are supported then the database engine will
@@ -106,6 +106,6 @@ public class DirStorageFactory4 extends DirStorageFactory
     {
         return true;
     }
-	
+    
 
 }

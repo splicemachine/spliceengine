@@ -40,13 +40,13 @@ public class SpliceUnitTest {
     private static Pattern outputRowsP = Pattern.compile("outputRows=[0-9]+\\.?[0-9]*");
     private static Pattern scannedRowsP = Pattern.compile("scannedRows=[0-9]+\\.?[0-9]*");
 
-	public String getSchemaName() {
-		Class<?> enclosingClass = getClass().getEnclosingClass();
-		if (enclosingClass != null)
-		    return enclosingClass.getSimpleName().toUpperCase();
-		else
-		    return getClass().getSimpleName().toUpperCase();
-	}
+    public String getSchemaName() {
+        Class<?> enclosingClass = getClass().getEnclosingClass();
+        if (enclosingClass != null)
+            return enclosingClass.getSimpleName().toUpperCase();
+        else
+            return getClass().getSimpleName().toUpperCase();
+    }
 
     /**
      * Load a table with given values
@@ -63,31 +63,31 @@ public class SpliceUnitTest {
     }
 
     public String getTableReference(String tableName) {
-		return getSchemaName() + "." + tableName;
-	}
+        return getSchemaName() + "." + tableName;
+    }
 
-	public String getPaddedTableReference(String tableName) {
-		return " " + getSchemaName() + "." + tableName.toUpperCase()+ " ";
-	}
+    public String getPaddedTableReference(String tableName) {
+        return " " + getSchemaName() + "." + tableName.toUpperCase()+ " ";
+    }
 
-	
-	public static int resultSetSize(ResultSet rs) throws Exception {
-		int i = 0;
-		while (rs.next()) {
-			i++;
-		}
-		return i;
-	}
+    
+    public static int resultSetSize(ResultSet rs) throws Exception {
+        int i = 0;
+        while (rs.next()) {
+            i++;
+        }
+        return i;
+    }
 
     public static int columnWidth(ResultSet rs ) throws SQLException {
         return rs.getMetaData().getColumnCount();
     }
 
-	public static String format(String format, Object...args) {
-		return String.format(format, args);
-	}
-	public static String getBaseDirectory() {
-		String userDir = System.getProperty("user.dir");
+    public static String format(String format, Object...args) {
+        return String.format(format, args);
+    }
+    public static String getBaseDirectory() {
+        String userDir = System.getProperty("user.dir");
         /*
          * The ITs can run in multiple different locations based on the different architectures
          * that are available, but the actual test data files are located in the splice_machine directory; thus,
@@ -123,11 +123,11 @@ public class SpliceUnitTest {
             }
         }
         return nioPath.toString();
-	}
+    }
 
     public static String getResourceDirectory() {
-		return getBaseDirectory()+"/src/test/test-data/";
-	}
+        return getBaseDirectory()+"/src/test/test-data/";
+    }
 
     public static String getHbaseRootDirectory() {
         return getHBaseDirectory()+"/target/hbase";
@@ -173,8 +173,8 @@ public class SpliceUnitTest {
     }
     
     public static String getHiveWarehouseDirectory() {
-		return getBaseDirectory()+"/user/hive/warehouse";
-	}
+        return getBaseDirectory()+"/user/hive/warehouse";
+    }
 
     public static class MyWatcher extends SpliceTableWatcher {
 

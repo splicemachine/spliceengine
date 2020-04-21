@@ -67,7 +67,7 @@ public class PoolXADSCreateShutdownDBTest extends BaseJDBCTestCase {
     
     static String DBNotFoundState;
 
-	private String ShutdownState = "08006";
+    private String ShutdownState = "08006";
     
     public PoolXADSCreateShutdownDBTest(String name) {
         super(name);

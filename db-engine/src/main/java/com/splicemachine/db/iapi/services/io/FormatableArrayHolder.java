@@ -45,137 +45,137 @@ import java.lang.reflect.Array;
  */
 public class FormatableArrayHolder implements Formatable
 {
-	/********************************************************
-	**
-	**	This class implements Formatable. That means that it
-	**	can write itself to and from a formatted stream. If
-	**	you add more fields to this class, make sure that you
-	**	also write/read them with the writeExternal()/readExternal()
-	**	methods.
-	**
-	**	If, inbetween releases, you add more fields to this class,
-	**	then you should bump the version number emitted by the getTypeFormatId()
-	**	method.
-	**
-	********************************************************/
+    /********************************************************
+    **
+    **    This class implements Formatable. That means that it
+    **    can write itself to and from a formatted stream. If
+    **    you add more fields to this class, make sure that you
+    **    also write/read them with the writeExternal()/readExternal()
+    **    methods.
+    **
+    **    If, inbetween releases, you add more fields to this class,
+    **    then you should bump the version number emitted by the getTypeFormatId()
+    **    method.
+    **
+    ********************************************************/
 
-	// the array
-	private Object[] array;
-	
-	/**
-	 * Niladic constructor for formatable
-	 */
-	public FormatableArrayHolder() 
-	{
-	}
+    // the array
+    private Object[] array;
+    
+    /**
+     * Niladic constructor for formatable
+     */
+    public FormatableArrayHolder() 
+    {
+    }
 
-	/**
-	 * Construct a FormatableArrayHolder using the input
-	 * array.
-	 *
-	 * @param array the array to hold
-	 */
-	public FormatableArrayHolder(Object[] array)
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(array != null, 
-					"array input to constructor is null, code can't handle this.");
-		}
+    /**
+     * Construct a FormatableArrayHolder using the input
+     * array.
+     *
+     * @param array the array to hold
+     */
+    public FormatableArrayHolder(Object[] array)
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(array != null, 
+                    "array input to constructor is null, code can't handle this.");
+        }
 
-		this.array = array;
-	}
+        this.array = array;
+    }
 
-	/**
-	 * Set the held array to the input array.
-	 *
-	 * @param array the array to hold
-	 */
-	public void setArray(Object[] array)
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(array != null, 
-					"array input to setArray() is null, code can't handle this.");
-		}
+    /**
+     * Set the held array to the input array.
+     *
+     * @param array the array to hold
+     */
+    public void setArray(Object[] array)
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(array != null, 
+                    "array input to setArray() is null, code can't handle this.");
+        }
 
-		this.array = array;
-	}
+        this.array = array;
+    }
 
-	/**
-	 * Get the held array of formatables, and return
-	 * it in an array of type inputClass.
-	 *
-	 * @param inputClass	the class to use for the returned array
-	 *
-	 * @return an array of formatables
-	 */
-	public Object[] getArray(Class inputClass)
-	{
-		Object[] outArray = (Object[])Array.newInstance(inputClass, array.length);
-		
-		/*
-		** HACK: on as400 the following arraycopy() throws an
-		** ArrayStoreException because the output array isn't
-		** assignment compatible with the input array.  This
-		** is a bug on as400, but to get around it we are
-		** going to do an element by element copy.
-		*/
-		//System.arraycopy(array, 0, outArray, 0, outArray.length);
-		System.arraycopy(array, 0, outArray, 0, outArray.length);
+    /**
+     * Get the held array of formatables, and return
+     * it in an array of type inputClass.
+     *
+     * @param inputClass    the class to use for the returned array
+     *
+     * @return an array of formatables
+     */
+    public Object[] getArray(Class inputClass)
+    {
+        Object[] outArray = (Object[])Array.newInstance(inputClass, array.length);
+        
+        /*
+        ** HACK: on as400 the following arraycopy() throws an
+        ** ArrayStoreException because the output array isn't
+        ** assignment compatible with the input array.  This
+        ** is a bug on as400, but to get around it we are
+        ** going to do an element by element copy.
+        */
+        //System.arraycopy(array, 0, outArray, 0, outArray.length);
+        System.arraycopy(array, 0, outArray, 0, outArray.length);
 
-		return outArray;
-	}
+        return outArray;
+    }
 
-	//////////////////////////////////////////////
-	//
-	// FORMATABLE
-	//
-	//////////////////////////////////////////////
-	/**
-	 * Write this array out
-	 *
-	 * @param out write bytes here
-	 *
- 	 * @exception IOException thrown on error
-	 */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(array != null, "Array is null, which isn't expected");
-		}
+    //////////////////////////////////////////////
+    //
+    // FORMATABLE
+    //
+    //////////////////////////////////////////////
+    /**
+     * Write this array out
+     *
+     * @param out write bytes here
+     *
+      * @exception IOException thrown on error
+     */
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(array != null, "Array is null, which isn't expected");
+        }
 
-		ArrayUtil.writeArrayLength(out, array);
-		ArrayUtil.writeArrayItems(out, array);
-	}
+        ArrayUtil.writeArrayLength(out, array);
+        ArrayUtil.writeArrayItems(out, array);
+    }
 
-	/**
-	 * Read this array from a stream of stored objects.
-	 *
-	 * @param in read this.
-	 *
-	 * @exception IOException					thrown on error
-	 * @exception ClassNotFoundException		thrown on error
-	 */
-	public void readExternal(ObjectInput in)
-		throws IOException, ClassNotFoundException
-	{
-		array = new Object[ArrayUtil.readArrayLength(in)];
-		ArrayUtil.readArrayItems(in, array);
-	}
-	public void readExternal(ArrayInputStream in)
-		throws IOException, ClassNotFoundException
-	{
-		array = new Formatable[ArrayUtil.readArrayLength(in)];
-		ArrayUtil.readArrayItems(in, array);
-	}
-	
-	
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.FORMATABLE_ARRAY_HOLDER_V01_ID; }
+    /**
+     * Read this array from a stream of stored objects.
+     *
+     * @param in read this.
+     *
+     * @exception IOException                    thrown on error
+     * @exception ClassNotFoundException        thrown on error
+     */
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    {
+        array = new Object[ArrayUtil.readArrayLength(in)];
+        ArrayUtil.readArrayItems(in, array);
+    }
+    public void readExternal(ArrayInputStream in)
+        throws IOException, ClassNotFoundException
+    {
+        array = new Formatable[ArrayUtil.readArrayLength(in)];
+        ArrayUtil.readArrayItems(in, array);
+    }
+    
+    
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId()    { return StoredFormatIds.FORMATABLE_ARRAY_HOLDER_V01_ID; }
 }

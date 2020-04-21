@@ -254,9 +254,9 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
                 try{
                     /*
                      * Checks if the client has disconnected while acquiring this lock.
-				     * If it has, we need to ensure that our lock is released (if it has been
-	 			     * acquired).
-    				 */
+                     * If it has, we need to ensure that our lock is released (if it has been
+                      * acquired).
+                     */
                     serverControl.ensureNetworkOpen();
                 }catch(IOException ioe){
                     if(!shouldContinue) //the lock was acquired, so it needs to be unlocked

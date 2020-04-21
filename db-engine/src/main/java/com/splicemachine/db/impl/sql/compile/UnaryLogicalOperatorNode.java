@@ -70,21 +70,21 @@ public abstract class UnaryLogicalOperatorNode extends UnaryOperatorNode{
                                     List<AggregateNode> aggregateVector) throws StandardException{
         bindOperand(fromList,subqueryList, aggregateVector);
 
-		/*
-		** Logical operators work only on booleans.  If the operand 
-		** is not boolean, throw an exception.
-		**
-		** For now, this exception will never happen, because the grammar
-		** does not allow arbitrary expressions with NOT.  But when
-		** we start allowing generalized boolean expressions, we will modify
-		** the grammar, so this test will become useful.
-		*/
+        /*
+        ** Logical operators work only on booleans.  If the operand 
+        ** is not boolean, throw an exception.
+        **
+        ** For now, this exception will never happen, because the grammar
+        ** does not allow arbitrary expressions with NOT.  But when
+        ** we start allowing generalized boolean expressions, we will modify
+        ** the grammar, so this test will become useful.
+        */
 
         if(!operand.getTypeServices().getTypeId().isBooleanTypeId()){
             throw StandardException.newException(SQLState.LANG_UNARY_LOGICAL_NON_BOOLEAN);
         }
 
-		/* Set the type info */
+        /* Set the type info */
         setFullTypeInfo();
 
         return this;
@@ -100,13 +100,13 @@ public abstract class UnaryLogicalOperatorNode extends UnaryOperatorNode{
     protected void setFullTypeInfo() throws StandardException{
         boolean nullableResult;
 
-		/*
-		** Set the result type of this comparison operator based on the
-		** operands.  The result type is always SQLBoolean - the only question
-		** is whether it is nullable or not.  If either of the operands is
-		** nullable, the result of the comparison must be nullable, too, so
-		** we can represent the unknown truth value.
-		*/
+        /*
+        ** Set the result type of this comparison operator based on the
+        ** operands.  The result type is always SQLBoolean - the only question
+        ** is whether it is nullable or not.  If either of the operands is
+        ** nullable, the result of the comparison must be nullable, too, so
+        ** we can represent the unknown truth value.
+        */
         nullableResult=operand.getTypeServices().isNullable();
         setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID,nullableResult));
     }

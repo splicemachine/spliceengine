@@ -42,15 +42,15 @@ import java.util.Map;
 
 
 /**
-	JDBC 2 brokered CallableStatement
+    JDBC 2 brokered CallableStatement
  */
 public abstract class BrokeredCallableStatement extends BrokeredPreparedStatement
           implements CallableStatement
 {
 
-	public BrokeredCallableStatement(BrokeredStatementControl control, String sql) throws SQLException {
-		super(control,sql);
-	}
+    public BrokeredCallableStatement(BrokeredStatementControl control, String sql) throws SQLException {
+        super(control,sql);
+    }
 
     public final void registerOutParameter(int parameterIndex,
                                      int sqlType)
@@ -229,9 +229,9 @@ public abstract class BrokeredCallableStatement extends BrokeredPreparedStatemen
         getCallableStatement().registerOutParameter( paramIndex, sqlType, typeName);
     }
 
-	/*
-	** Control methods
-	*/
+    /*
+    ** Control methods
+    */
 
     /**
      * Access the underlying CallableStatement. This method
@@ -241,9 +241,9 @@ public abstract class BrokeredCallableStatement extends BrokeredPreparedStatemen
      * 
      */
     final CallableStatement getCallableStatement() throws SQLException {
-		return control.getRealCallableStatement();
-	}
-	
+        return control.getRealCallableStatement();
+    }
+    
     /**
      * Access the underlying PreparedStatement. This method
      * is package protected to restrict access to the underlying
@@ -252,19 +252,19 @@ public abstract class BrokeredCallableStatement extends BrokeredPreparedStatemen
      * 
      */
     final PreparedStatement getPreparedStatement() throws SQLException {
-		return getCallableStatement();
-	}
-	/**
-		Create a duplicate CalableStatement to this, including state, from the passed in Connection.
-	*/
-	public CallableStatement createDuplicateStatement(Connection conn, CallableStatement oldStatement) throws SQLException {
+        return getCallableStatement();
+    }
+    /**
+        Create a duplicate CalableStatement to this, including state, from the passed in Connection.
+    */
+    public CallableStatement createDuplicateStatement(Connection conn, CallableStatement oldStatement) throws SQLException {
 
-		CallableStatement newStatement = conn.prepareCall(sql, resultSetType, resultSetConcurrency);
+        CallableStatement newStatement = conn.prepareCall(sql, resultSetType, resultSetConcurrency);
 
-		setStatementState(oldStatement, newStatement);
+        setStatementState(oldStatement, newStatement);
 
-		return newStatement;
-	}
+        return newStatement;
+    }
 
     //@Override
     public void registerOutParameter(String parameterName,int sqlType) throws SQLException{

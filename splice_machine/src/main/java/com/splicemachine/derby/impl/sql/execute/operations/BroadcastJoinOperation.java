@@ -111,10 +111,10 @@ public class BroadcastJoinOperation extends JoinOperation{
     protected long leftSequenceId;
     protected static final String NAME = BroadcastJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+            return NAME;
+    }
 
     public BroadcastJoinOperation() {
         super();

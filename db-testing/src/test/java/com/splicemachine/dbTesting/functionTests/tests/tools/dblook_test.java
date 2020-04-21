@@ -75,9 +75,9 @@ public class dblook_test {
     protected static String territoryBased = "";
     protected static String expectedCollation = "UCS_BASIC";
 
-	/* **********************************************
-	 * main:
-	 ****/
+    /* **********************************************
+     * main:
+     ****/
 
     public static void main (String[] args) {
 
@@ -88,10 +88,10 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * doTest
-	 * Run a full test of the dblook utility.
-	 ****/
+    /* **********************************************
+     * doTest
+     * Run a full test of the dblook utility.
+     ****/
 
     protected void doTest() {
 
@@ -126,18 +126,18 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * createTestDatabase:
-	 * Using the creation script created as part of
-	 * the test package, create the database that
-	 * will be used as the basis for all dblook
-	 * tests.
-	 * @param scriptName The name of the sql script
-	 *  to use for creating the test database.
-	 * @return The test database has been created
-	 *  in the current test directory, which is
-	 *  "./dblook/" (as created by the harness).
-	 ****/
+    /* **********************************************
+     * createTestDatabase:
+     * Using the creation script created as part of
+     * the test package, create the database that
+     * will be used as the basis for all dblook
+     * tests.
+     * @param scriptName The name of the sql script
+     *  to use for creating the test database.
+     * @return The test database has been created
+     *  in the current test directory, which is
+     *  "./dblook/" (as created by the harness).
+     ****/
 
     protected void createTestDatabase(String scriptName)
             throws Exception
@@ -151,7 +151,7 @@ public class dblook_test {
                     "old test db before creating a new one...");
         }
 
-		Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
+        Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
         jdbcProtocol = "jdbc:splice:";
         createDBFromDDL(testDBName, scriptName);
 
@@ -162,16 +162,16 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * runDBLook:
-	 * Runs a series of tests using dblook on
-	 * the received database.
-	 * @param dbName The name of the database on which to
-	 *   run the tests.
-	 * @return A series of tests intended to verify
-	 *  the full functionality of the dblook utility
-	 *  has been run.
-	 ****/
+    /* **********************************************
+     * runDBLook:
+     * Runs a series of tests using dblook on
+     * the received database.
+     * @param dbName The name of the database on which to
+     *   run the tests.
+     * @return A series of tests intended to verify
+     *  the full functionality of the dblook utility
+     *  has been run.
+     ****/
 
     private void runDBLook(String dbName)
             throws Exception
@@ -219,16 +219,16 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * runAllTests:
-	 * Makes the call to execute each of the desired
-	 * tests.
-	 * @param dbName The name of the database on which to
-	 *   run the tests.
-	 * @param newDBName The name of the database to be
-	 *  created from the DDL that is generated (by
-	 *  dblook) for the source database.
-	 ****/
+    /* **********************************************
+     * runAllTests:
+     * Makes the call to execute each of the desired
+     * tests.
+     * @param dbName The name of the database on which to
+     *   run the tests.
+     * @param newDBName The name of the database to be
+     *  created from the DDL that is generated (by
+     *  dblook) for the source database.
+     ****/
 
     protected void runAllTests(String dbName,
                                String newDBName) throws Exception
@@ -247,32 +247,32 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * runTest:
-	 * Runs dblook on the source database with a
-	 * specific set of parameters, then uses the
-	 * resultant DDL to create a new database, and
-	 * dumps the system catalogs for that database
-	 * to file.  Finally, the new database is deleted
-	 * in preparation for subsequent calls to this
-	 * method.
-	 * @param whichTest An indication of which test to run;
-	 *  each test number has a different set of
-	 *  parameters.
-	 * @param dbName The name of the source database.
-	 * @param newDBName The name of the database to be
-	 *  created from the DDL that is generated (by
-	 *  dblook) for the source database.
-	 * @return dblook has been executed using the
-	 *  parameters associated with the given test,
-	 *  and that DDL has been written to a ".sql"
-	 *  file named after the source database;
-	 *  a new database has been created from the
-	 *  ".sql" generated by dblook; the system
-	 *  catalogs for that new database have been
-	 *  dumped to output; and the new database has
-	 *  been deleted.
-	 ****/
+    /* **********************************************
+     * runTest:
+     * Runs dblook on the source database with a
+     * specific set of parameters, then uses the
+     * resultant DDL to create a new database, and
+     * dumps the system catalogs for that database
+     * to file.  Finally, the new database is deleted
+     * in preparation for subsequent calls to this
+     * method.
+     * @param whichTest An indication of which test to run;
+     *  each test number has a different set of
+     *  parameters.
+     * @param dbName The name of the source database.
+     * @param newDBName The name of the database to be
+     *  created from the DDL that is generated (by
+     *  dblook) for the source database.
+     * @return dblook has been executed using the
+     *  parameters associated with the given test,
+     *  and that DDL has been written to a ".sql"
+     *  file named after the source database;
+     *  a new database has been created from the
+     *  ".sql" generated by dblook; the system
+     *  catalogs for that new database have been
+     *  dumped to output; and the new database has
+     *  been deleted.
+     ****/
 
     protected void runTest(int whichTest, String dbName,
                            String newDBName)
@@ -281,13 +281,13 @@ public class dblook_test {
         try {
 
             switch(whichTest) {
-                case 2:		lookTwo(dbName); break;
-                case 3:		lookThree(dbName); break;
-                case 4:		lookFour(dbName); break;
-                case 5:		lookFive(dbName); break;
-                case 6:		lookSix(dbName); break;
-                case 7:		lookSeven(dbName); break;
-                default:	break;
+                case 2:        lookTwo(dbName); break;
+                case 3:        lookThree(dbName); break;
+                case 4:        lookFour(dbName); break;
+                case 5:        lookFive(dbName); break;
+                case 6:        lookSix(dbName); break;
+                case 7:        lookSeven(dbName); break;
+                default:    break;
             }
 
             dumpFileToSysOut("dblook.log");
@@ -317,16 +317,16 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * lookOne:
-	 * Use dblook to generate FULL DDL for a given
-	 * database.
-	 * @param dbName The name of the source database (i.e.
-	 *  the database for which the DDL is generated).
-	 * @return The full DDL for the source database
-	 *  has been generated and written to a file
-	 *  called <dbName + ".sql">.
-	 ****/
+    /* **********************************************
+     * lookOne:
+     * Use dblook to generate FULL DDL for a given
+     * database.
+     * @param dbName The name of the source database (i.e.
+     *  the database for which the DDL is generated).
+     * @return The full DDL for the source database
+     *  has been generated and written to a file
+     *  called <dbName + ".sql">.
+     ****/
 
     private void lookOne(String dbName)
             throws Exception
@@ -345,17 +345,17 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * lookTwo:
-	 * Use dblook to generate DDL for all objects 
-	 * in the source database with schema 'BAR',
-	 * excluding views:
-	 *  -z bar -noview
-	 * @param dbName The name of the source database (i.e.
-	 *  the database for which the DDL is generated).
-	 * @return The appropriate DDL has been generated
-	 *  and written to a file called <dbName + ".sql">.
-	 ****/
+    /* **********************************************
+     * lookTwo:
+     * Use dblook to generate DDL for all objects 
+     * in the source database with schema 'BAR',
+     * excluding views:
+     *  -z bar -noview
+     * @param dbName The name of the source database (i.e.
+     *  the database for which the DDL is generated).
+     * @return The appropriate DDL has been generated
+     *  and written to a file called <dbName + ".sql">.
+     ****/
 
     private void lookTwo(String dbName)
             throws Exception
@@ -376,16 +376,16 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * lookThree:
-	 * Use dblook to generate DDL for all objects
-	 * in the source database, using Network
-	 * Server.
-	 * @param dbName The name of the source database (i.e.
-	 *  the database for which the DDL is generated).
-	 * @return The appropriate DDL has been generated
-	 *  and written to a file called <dbName + ".sql">.
-	 ****/
+    /* **********************************************
+     * lookThree:
+     * Use dblook to generate DDL for all objects
+     * in the source database, using Network
+     * Server.
+     * @param dbName The name of the source database (i.e.
+     *  the database for which the DDL is generated).
+     * @return The appropriate DDL has been generated
+     *  and written to a file called <dbName + ".sql">.
+     ****/
 
     private void lookThree(String dbName)
             throws Exception
@@ -431,18 +431,18 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * lookFour:
-	 * Use dblook to generate DDL for all objects 
-	 * in the source database with schema 'BAR'
-	 * that are related to tables 'T3', 'tWithKeys',
-	 * and 'MULTI WORD NAME'.
-	 *  -z bar -t t3 "\"tWithKeys\"" "Multi word name"
-	 * @param dbName The name of the source database (i.e.
-	 *  the database for which the DDL is generated).
-	 * @return The appropriate DDL has been generated
-	 *  and written to a file called <dbName + ".sql">.
-	 ****/
+    /* **********************************************
+     * lookFour:
+     * Use dblook to generate DDL for all objects 
+     * in the source database with schema 'BAR'
+     * that are related to tables 'T3', 'tWithKeys',
+     * and 'MULTI WORD NAME'.
+     *  -z bar -t t3 "\"tWithKeys\"" "Multi word name"
+     * @param dbName The name of the source database (i.e.
+     *  the database for which the DDL is generated).
+     * @return The appropriate DDL has been generated
+     *  and written to a file called <dbName + ".sql">.
+     ****/
 
     private void lookFour(String dbName)
             throws Exception
@@ -464,18 +464,18 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * lookFive:
-	 * Use dblook to generate DDL for all objects 
-	 * in the source database (with any schema)
-	 * that are related to table 'T1' and 'TWITHKEYS'
-	 * (with no matches existing for the latter).
-	 * 	-t t1 "tWithKeys"
-	 * @param dbName The name of the source database (i.e.
-	 *  the database for which the DDL is generated).
-	 * @return The appropriate DDL has been generated
-	 *  and written to a file called <dbName + ".sql">.
-	 ****/
+    /* **********************************************
+     * lookFive:
+     * Use dblook to generate DDL for all objects 
+     * in the source database (with any schema)
+     * that are related to table 'T1' and 'TWITHKEYS'
+     * (with no matches existing for the latter).
+     *     -t t1 "tWithKeys"
+     * @param dbName The name of the source database (i.e.
+     *  the database for which the DDL is generated).
+     * @return The appropriate DDL has been generated
+     *  and written to a file called <dbName + ".sql">.
+     ****/
 
     private void lookFive(String dbName)
             throws Exception
@@ -495,16 +495,16 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * lookSix:
-	 * Call dblook with an invalid url, to make
-	 * sure that errors are printed to log.
-	 *   -d <dbName> // missing protocol.
-	 * @param dbName The name of the source database (i.e.
-	 *  the database for which the DDL is generated).
-	 * @return The appropriate DDL has been generated
-	 *  and written to a file called <dbName + ".sql">.
-	 ****/
+    /* **********************************************
+     * lookSix:
+     * Call dblook with an invalid url, to make
+     * sure that errors are printed to log.
+     *   -d <dbName> // missing protocol.
+     * @param dbName The name of the source database (i.e.
+     *  the database for which the DDL is generated).
+     * @return The appropriate DDL has been generated
+     *  and written to a file called <dbName + ".sql">.
+     ****/
 
     private void lookSix(String dbName)
             throws Exception
@@ -521,16 +521,16 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * lookSeven:
-	 * Use dblook to generate DDL for all objects 
-	 * in the source database with schema '"Quoted"Schema"'.
-	 *  -z \"\"Quoted\"Schema\"\"
-	 * @param dbName The name of the source database (i.e.
-	 *  the database for which the DDL is generated).
-	 * @return The appropriate DDL has been generated
-	 *  and written to a file called <dbName + ".sql">.
-	 ****/
+    /* **********************************************
+     * lookSeven:
+     * Use dblook to generate DDL for all objects 
+     * in the source database with schema '"Quoted"Schema"'.
+     *  -z \"\"Quoted\"Schema\"\"
+     * @param dbName The name of the source database (i.e.
+     *  the database for which the DDL is generated).
+     * @return The appropriate DDL has been generated
+     *  and written to a file called <dbName + ".sql">.
+     ****/
 
     private void lookSeven(String dbName)
             throws Exception
@@ -550,15 +550,15 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * go:
-	 * Makes the call to execute the dblook command
-	 * using the received arguments.
-	 * @param dbName The name of the source database (i.e.
-	 *  the database for which the DDL is generated).
-	 * @args The list of arguments with which to execute
-	 *  the dblook command.
-	 ****/
+    /* **********************************************
+     * go:
+     * Makes the call to execute the dblook command
+     * using the received arguments.
+     * @param dbName The name of the source database (i.e.
+     *  the database for which the DDL is generated).
+     * @args The list of arguments with which to execute
+     *  the dblook command.
+     ****/
 
     private void go(String dbName, String [] args) {
 
@@ -692,24 +692,24 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * dumpSysCatalogs:
-	 * Takes a database name and dumps ALL of the
-	 * system catalogs for that database, with the
-	 * exception of SYSSTATISTICS.  This allows us
-	 * to look at the full contents of a database's
-	 * schema (without using dblook, of course)
-	 * so that we can see if the databases created
-	 * from the DDL generated by dblook have been
-	 * built correctly--if they have all of the
-	 * correct system catalog information, then
-	 * the databases themselves must be correct.
-	 * @param dbName The name of the database for which
-	 *  we are dumping the system catalogs.
-	 * @return All of the system catalogs for
-	 *  the received database have been dumped
-	 *  to output.
-	 ****/
+    /* **********************************************
+     * dumpSysCatalogs:
+     * Takes a database name and dumps ALL of the
+     * system catalogs for that database, with the
+     * exception of SYSSTATISTICS.  This allows us
+     * to look at the full contents of a database's
+     * schema (without using dblook, of course)
+     * so that we can see if the databases created
+     * from the DDL generated by dblook have been
+     * built correctly--if they have all of the
+     * correct system catalog information, then
+     * the databases themselves must be correct.
+     * @param dbName The name of the database for which
+     *  we are dumping the system catalogs.
+     * @return All of the system catalogs for
+     *  the received database have been dumped
+     *  to output.
+     ****/
 
     private void dumpSysCatalogs(String dbName)
             throws Exception
@@ -879,28 +879,28 @@ public class dblook_test {
             "SYSCS_UTIL",
             "SQLJ"};
 
-	/* **********************************************
-	 * dumpResultSet:
-	 * Iterates through the received result set and
-	 * dumps ALL columns in ALL rows of that result
-	 * set to output.  Since no order is guaranteed
-	 * in the received result set, we have to generate
-	 * unique "ids" for each row in the result, and
-	 * then use those ids to determine what order the
-	 * rows will be output.  Failure to do so will
-	 * lead to diffs in the test for rows that occur
-	 * out of order.  The unique id's must NOT
-	 * depend on system-generated id's, as the
-	 * latter will vary for every run of the test,
-	 * and thus will lead to different orderings
-	 * every time (which we don't want).
-	 *
-	 * @param rs The result set that is being dumped.
-	 * @param idToNameMap Mapping of various ids to
-	 *  object names; used in forming unique ids.
-	 * @param conn Connection from which the result set
-	 *  originated.
-	 ****/
+    /* **********************************************
+     * dumpResultSet:
+     * Iterates through the received result set and
+     * dumps ALL columns in ALL rows of that result
+     * set to output.  Since no order is guaranteed
+     * in the received result set, we have to generate
+     * unique "ids" for each row in the result, and
+     * then use those ids to determine what order the
+     * rows will be output.  Failure to do so will
+     * lead to diffs in the test for rows that occur
+     * out of order.  The unique id's must NOT
+     * depend on system-generated id's, as the
+     * latter will vary for every run of the test,
+     * and thus will lead to different orderings
+     * every time (which we don't want).
+     *
+     * @param rs The result set that is being dumped.
+     * @param idToNameMap Mapping of various ids to
+     *  object names; used in forming unique ids.
+     * @param conn Connection from which the result set
+     *  originated.
+     ****/
 
     private void dumpResultSet (ResultSet rs,
                                 HashMap idToNameMap, Connection conn)
@@ -950,7 +950,7 @@ public class dblook_test {
                     break;
                 }
                 else if (colName.equals("JAVACLASSNAME") && (value != null) &&
-					(value.indexOf("com.splicemachine.db") != -1) &&
+                    (value.indexOf("com.splicemachine.db") != -1) &&
                         (value.indexOf(".util.") == -1)) {
                     // this is a -- hack -- to see if the alias is a
                     // a system alias, needed because aliases
@@ -1059,28 +1059,28 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * dumpColumnData:
-	 * Stores the value for a specific column of
-	 * some result set.  If the value needs to
-	 * be filtered (to remove system-generated ids
-	 * that would otherwise cause diffs with the
-	 * master), that filtering is done here.
-	 * @param colName Name of the column whose value we're
-	 *  writing.
-	 * @param value Value that we're writing.
-	 * @param mappedName: Name corresponding to the value,
-	 *  for cases where the value is actually an
-	 *  object id (then we want to write the name
-	 *  instead).
-	 * rowValues a list of column values for the
-	 *  current row of the result set.
-	 * @return The (possibly filtered) value of the
-	 *  received column has been added to the
-	 *  "rowVals" array list, and the corresponding
-	 *  piece of the row's unique name has been
-	 *  returned, if one exists.
-	 ****/
+    /* **********************************************
+     * dumpColumnData:
+     * Stores the value for a specific column of
+     * some result set.  If the value needs to
+     * be filtered (to remove system-generated ids
+     * that would otherwise cause diffs with the
+     * master), that filtering is done here.
+     * @param colName Name of the column whose value we're
+     *  writing.
+     * @param value Value that we're writing.
+     * @param mappedName: Name corresponding to the value,
+     *  for cases where the value is actually an
+     *  object id (then we want to write the name
+     *  instead).
+     * rowValues a list of column values for the
+     *  current row of the result set.
+     * @return The (possibly filtered) value of the
+     *  received column has been added to the
+     *  "rowVals" array list, and the corresponding
+     *  piece of the row's unique name has been
+     *  returned, if one exists.
+     ****/
 
     private String dumpColumnData(String colName,
                                   String value, String mappedName, ArrayList rowVals)
@@ -1147,32 +1147,32 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * handleDuplicateRow:
-	 * If we get here, then despite our efforts (while
-	 * dumping the system catalogs for a database), we
-	 * still have a duplicate row id.  So, as a last
-	 * resort we just use the ENTIRE row as a 'row id'.
-	 * In the rare-but-possible case that the entire
-	 * row is a duplicate (as can happen with the
-	 * SYSDEPENDS table), then we tag a simple number
-	 * onto the latest row's id, so that the row will
-	 * still show up multiple times--and since the rows
-	 * are identical, it doesn't matter which comes
-	 * 'first'.
-	 * @param newRow The most recently-fetched row from
-	 *  the database system catalogs.
-	 * @param oldRow The row that was replaced when the
-	 *  newRow was inserted (because they had the
-	 *  same row id), or "null" if we were already
-	 *  here once for this row id, and so just want
-	 *  insert a new row.
-	 * @param orderedRows The ordered set of rows, into
-	 *  which oldRow and newRow need to be inserted.
-	 * @return oldRow and newRow have been inserted
-	 *  into orderedRows, and each has a (truly)
-	 *  unique id with it.
-	 ****/
+    /* **********************************************
+     * handleDuplicateRow:
+     * If we get here, then despite our efforts (while
+     * dumping the system catalogs for a database), we
+     * still have a duplicate row id.  So, as a last
+     * resort we just use the ENTIRE row as a 'row id'.
+     * In the rare-but-possible case that the entire
+     * row is a duplicate (as can happen with the
+     * SYSDEPENDS table), then we tag a simple number
+     * onto the latest row's id, so that the row will
+     * still show up multiple times--and since the rows
+     * are identical, it doesn't matter which comes
+     * 'first'.
+     * @param newRow The most recently-fetched row from
+     *  the database system catalogs.
+     * @param oldRow The row that was replaced when the
+     *  newRow was inserted (because they had the
+     *  same row id), or "null" if we were already
+     *  here once for this row id, and so just want
+     *  insert a new row.
+     * @param orderedRows The ordered set of rows, into
+     *  which oldRow and newRow need to be inserted.
+     * @return oldRow and newRow have been inserted
+     *  into orderedRows, and each has a (truly)
+     *  unique id with it.
+     ****/
 
     private void handleDuplicateRow(
             ArrayList newRow, ArrayList oldRow,
@@ -1211,17 +1211,17 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * createDBFromDDL:
-	 * Read from the given script and use it to create
-	 * a new database of the given name.
-	 * @param newDBName Name of the database to be created.
-	 * @param scriptName Name of the script containing the
-	 *  DDL from which the new database will be created.
-	 * @return New database has been created from
-	 *   the script; any commands in the script that
-	 *   failed to execute have been echoed to output.
-	 ****/
+    /* **********************************************
+     * createDBFromDDL:
+     * Read from the given script and use it to create
+     * a new database of the given name.
+     * @param newDBName Name of the database to be created.
+     * @param scriptName Name of the script containing the
+     *  DDL from which the new database will be created.
+     * @return New database has been created from
+     *   the script; any commands in the script that
+     *   failed to execute have been echoed to output.
+     ****/
 
     private void createDBFromDDL(String newDBName,
                                  String scriptName) throws Exception
@@ -1273,11 +1273,11 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * writeOut:
-	 * Write the received string to some output.
-	 * @param str String to write.
-	 ****/
+    /* **********************************************
+     * writeOut:
+     * Write the received string to some output.
+     * @param str String to write.
+     ****/
 
     private static void writeOut(String str) {
 
@@ -1286,19 +1286,19 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * loadIdMappings:
-	 * Load mappings of object ids to object names
-	 * for purposes of having meaningful output
-	 * and for creating unique ids on the rows of
-	 * the system catalogs.
-	 * @param stmt Statement on a connection to the
-	 *  database being examined.
-	 * @param conn Connection to the database being
-	 *   examined.
-	 * @return A HashMap with all relevant id-to-
-	 *  name mappings has been returned.
-	 ****/
+    /* **********************************************
+     * loadIdMappings:
+     * Load mappings of object ids to object names
+     * for purposes of having meaningful output
+     * and for creating unique ids on the rows of
+     * the system catalogs.
+     * @param stmt Statement on a connection to the
+     *  database being examined.
+     * @param conn Connection to the database being
+     *   examined.
+     * @return A HashMap with all relevant id-to-
+     *  name mappings has been returned.
+     ****/
 
     private HashMap loadIdMappings(Statement stmt,
                                    Connection conn) throws Exception {
@@ -1328,22 +1328,22 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * getDependsData:
-	 * Forms a string containing detailed information
-	 * about a row in the SYSDEPENDS table, and returns
-	 * that string.
-	 * @param rs Result set with SYSDEPENDS rows; current
-	 *  row is the one for which we're getting the
-	 *  data.
-	 * @param conn Connection to the database being
-	 *   examined.
-	 * @param idToNameMap mapping of object ids to names
-	 *  for the database in question.
-	 * @return Schema, type and name of both the Provider
-	 *   and the Dependent for the current row of
-	 *   SYSDEPENDS have been returned as a string.
-	 ****/
+    /* **********************************************
+     * getDependsData:
+     * Forms a string containing detailed information
+     * about a row in the SYSDEPENDS table, and returns
+     * that string.
+     * @param rs Result set with SYSDEPENDS rows; current
+     *  row is the one for which we're getting the
+     *  data.
+     * @param conn Connection to the database being
+     *   examined.
+     * @param idToNameMap mapping of object ids to names
+     *  for the database in question.
+     * @return Schema, type and name of both the Provider
+     *   and the Dependent for the current row of
+     *   SYSDEPENDS have been returned as a string.
+     ****/
 
     private String getDependsData(ResultSet rs,
                                   Connection conn, HashMap idToNameMap)
@@ -1371,24 +1371,24 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * getHiddenDependsData:
-	 * Returns a string containing the schema and
-	 * name of the object having the received id.
-	 * All object ids received by this message come
-	 * from rows of the SYSDEPENDS table.
-	 * @param type Type of the object that has the received
-	 *   object id.
-	 * @param id Id of the object in question.
-	 * @param stmt Statement from the database in question.
-	 * @param idToNameMap mapping of ids to names for
-	 *  the database in question.
-	 * @isProvider True if we're getting data for a
-	 *  Provider object; false if we're getting data for
-	 *  a Dependent object.
-	 * @return Schema, type, and name for the object with
-	 *   the received id have been returned as a string.
-	 ****/
+    /* **********************************************
+     * getHiddenDependsData:
+     * Returns a string containing the schema and
+     * name of the object having the received id.
+     * All object ids received by this message come
+     * from rows of the SYSDEPENDS table.
+     * @param type Type of the object that has the received
+     *   object id.
+     * @param id Id of the object in question.
+     * @param stmt Statement from the database in question.
+     * @param idToNameMap mapping of ids to names for
+     *  the database in question.
+     * @isProvider True if we're getting data for a
+     *  Provider object; false if we're getting data for
+     *  a Dependent object.
+     * @return Schema, type, and name for the object with
+     *   the received id have been returned as a string.
+     ****/
 
     private String getHiddenDependsData(String type,
                                         String id, Statement pStmt, HashMap idToNameMap)
@@ -1456,15 +1456,15 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * deleteDB:
-	 * Deletes the database with the received name
-	 * from the test directory.
-	 * @param dbName Name of the database to be deleted.
-	 * @return Database has been completely deleted;
-	 *   if deletion failed for any reason, a message
-	 *   saying so has been printed to output.
-	 ****/
+    /* **********************************************
+     * deleteDB:
+     * Deletes the database with the received name
+     * from the test directory.
+     * @param dbName Name of the database to be deleted.
+     * @return Database has been completely deleted;
+     *   if deletion failed for any reason, a message
+     *   saying so has been printed to output.
+     ****/
 
     private void deleteDB(String dbName)
             throws Exception
@@ -1509,15 +1509,15 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * deleteFile:
-	 * Delete everything in a given directory, then
-	 * delete the directory itself (recursive).
-	 * @param aFile File object representing the directory
-	 *  to be deleted.
-	 * @return the directory corresponding to aFile
-	 *  has been deleted, as have all of its contents.
-	 ****/
+    /* **********************************************
+     * deleteFile:
+     * Delete everything in a given directory, then
+     * delete the directory itself (recursive).
+     * @param aFile File object representing the directory
+     *  to be deleted.
+     * @return the directory corresponding to aFile
+     *  has been deleted, as have all of its contents.
+     ****/
 
     private void deleteFile(File aFile)
             throws Exception
@@ -1550,19 +1550,19 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * renameDbLookLog:
-	 * Checks if the logfile of dblook exists and
-	 * tries to rename it to prevent possible 
-	 * next tests from failing. The log should not be 
-	 * deleted because the output may be examined in 
-	 * case a test fails.
-	 * The new name of dblook.log should be dblook_testname#.log,
-	 * where # is a 'version' number. The 'version' number is
-	 * needed because the same test may be run multiple
-	 * times with different parameters.
-	 * @param nameOfTest Name of the finished test.
-	 ****/
+    /* **********************************************
+     * renameDbLookLog:
+     * Checks if the logfile of dblook exists and
+     * tries to rename it to prevent possible 
+     * next tests from failing. The log should not be 
+     * deleted because the output may be examined in 
+     * case a test fails.
+     * The new name of dblook.log should be dblook_testname#.log,
+     * where # is a 'version' number. The 'version' number is
+     * needed because the same test may be run multiple
+     * times with different parameters.
+     * @param nameOfTest Name of the finished test.
+     ****/
 
     protected static void renameDbLookLog(String nameOfTest)
     {
@@ -1583,14 +1583,14 @@ public class dblook_test {
         }
     }
 
-	/* **********************************************
-	 * dumpFileToSysOut:
-	 * Checks to see if the received file is empty,
-	 * and prints a message saying so.
-	 * @param fName Name of the file to be written to output.
-	 * @return The contents of the specified file have
-	 *   been written to System.out.
-	 ****/
+    /* **********************************************
+     * dumpFileToSysOut:
+     * Checks to see if the received file is empty,
+     * and prints a message saying so.
+     * @param fName Name of the file to be written to output.
+     * @return The contents of the specified file have
+     *   been written to System.out.
+     ****/
 
     private void dumpFileToSysOut(String fName) {
 
@@ -1626,18 +1626,18 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * isSystemGenerated:
-	 * Returns true if the received string looks like
-	 * it is a system-generated string.  We assume
-	 * it's system-generated if either 1) it starts
-	 * with the letters "SQL", in which case it's a
-	 * system-name, or 2) it has a dash in it, in which
-	 * case it's a system id.
-	 * @param str The string to check.
-	 * @return True if we assume the string is system-
-	 *  generated, false otherwise.
-	 ****/
+    /* **********************************************
+     * isSystemGenerated:
+     * Returns true if the received string looks like
+     * it is a system-generated string.  We assume
+     * it's system-generated if either 1) it starts
+     * with the letters "SQL", in which case it's a
+     * system-name, or 2) it has a dash in it, in which
+     * case it's a system id.
+     * @param str The string to check.
+     * @return True if we assume the string is system-
+     *  generated, false otherwise.
+     ****/
 
     private boolean isSystemGenerated(String str) {
 
@@ -1646,45 +1646,45 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * looksLikeSysGenName:
-	 * See if the received string looks like it is
-	 * a system-generated name.  There are two types
-	 * of system-generated names: 1) visible names,
-	 * which start with "SQL", and 2) hidden names,
-	 * which exist for Stored Statements that are
-	 * used to back triggers; these names start with
-	 * "TRIGGERACTN_" and then have a UUID.
-	 * NOTE: This test assumes that none of object names
-	 * provided in "dblook_makeDB.sql" satisfy
-	 * either of these conditions.  If they do, they
-	 * will be filtered out of the test output.
-	 * @param val The string value in question.
-	 * @return True if the value looks like it is a system-
-	 *  generated name; false otherwise.
-	 ****/
+    /* **********************************************
+     * looksLikeSysGenName:
+     * See if the received string looks like it is
+     * a system-generated name.  There are two types
+     * of system-generated names: 1) visible names,
+     * which start with "SQL", and 2) hidden names,
+     * which exist for Stored Statements that are
+     * used to back triggers; these names start with
+     * "TRIGGERACTN_" and then have a UUID.
+     * NOTE: This test assumes that none of object names
+     * provided in "dblook_makeDB.sql" satisfy
+     * either of these conditions.  If they do, they
+     * will be filtered out of the test output.
+     * @param val The string value in question.
+     * @return True if the value looks like it is a system-
+     *  generated name; false otherwise.
+     ****/
 
     private boolean looksLikeSysGenName(String val) {
 
         return ((val != null) &&
-                ((val.trim().indexOf("SQL") == 0) || 			// case 1.
-                        ((val.trim().indexOf("TRIGGERACTN_") == 0) &&	// case 2.
+                ((val.trim().indexOf("SQL") == 0) ||             // case 1.
+                        ((val.trim().indexOf("TRIGGERACTN_") == 0) &&    // case 2.
                                 (val.indexOf("-") != -1))));
 
     }
 
-	/* **********************************************
-	 * looksLikeSysGenId:
-	 * See if the received string looks like it is
-	 * a system-generated id (i.e. contains a dash (-)).
-	 * NOTE: This test assumes that none of object names
-	 * provided in "dblook_makeDB.sql" will contain
-	 * dashes.  If they do, then they will be filtered out
-	 * in the test output.
-	 * @param val The string value in question.
-	 * @return True if the value looks like it is a system-
-	 *  generated id; false otherwise.
-	 ****/
+    /* **********************************************
+     * looksLikeSysGenId:
+     * See if the received string looks like it is
+     * a system-generated id (i.e. contains a dash (-)).
+     * NOTE: This test assumes that none of object names
+     * provided in "dblook_makeDB.sql" will contain
+     * dashes.  If they do, then they will be filtered out
+     * in the test output.
+     * @param val The string value in question.
+     * @return True if the value looks like it is a system-
+     *  generated id; false otherwise.
+     ****/
 
     private boolean looksLikeSysGenId(String val) {
 
@@ -1692,19 +1692,19 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * columnHoldsObjectName:
-	 * Return true if the received column, which is from
-	 * some system table, holds the _name_ of a database
-	 * object (table, constraint, etc.).  Typically, we
-	 * can just look for the keyword "NAME"; the exception
-	 * is aliases, where the name is held in a column called
-	 * ALIAS.
-	 * @param colName Name of the column in question.
-	 * @return True if the column name indicates that it
-	 *  holds the _name_ of a database object; false if the
-	 *  column name indicates that it holds something else.
-	 ****/
+    /* **********************************************
+     * columnHoldsObjectName:
+     * Return true if the received column, which is from
+     * some system table, holds the _name_ of a database
+     * object (table, constraint, etc.).  Typically, we
+     * can just look for the keyword "NAME"; the exception
+     * is aliases, where the name is held in a column called
+     * ALIAS.
+     * @param colName Name of the column in question.
+     * @return True if the column name indicates that it
+     *  holds the _name_ of a database object; false if the
+     *  column name indicates that it holds something else.
+     ****/
 
     private boolean columnHoldsObjectName(String colName) {
 
@@ -1713,12 +1713,12 @@ public class dblook_test {
 
     }
 
-	/* **********************************************
-	 * printAsHeader:
-	 * Print the received string to output as a
-	 * header.
-	 * @param str String to print.
-	 ****/
+    /* **********************************************
+     * printAsHeader:
+     * Print the received string to output as a
+     * header.
+     * @param str String to print.
+     ****/
 
     private void printAsHeader(String str) {
 

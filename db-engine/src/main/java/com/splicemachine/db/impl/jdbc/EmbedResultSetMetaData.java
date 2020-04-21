@@ -64,52 +64,52 @@ import java.sql.Types;
  */
 public class EmbedResultSetMetaData implements ResultSetMetaData {
 
-	private final ResultColumnDescriptor[] columnInfo;
+    private final ResultColumnDescriptor[] columnInfo;
 
-	//
-	// constructor
-	//
-	public EmbedResultSetMetaData(ResultColumnDescriptor[] columnInfo) {
-		this.columnInfo = columnInfo;
-	}
+    //
+    // constructor
+    //
+    public EmbedResultSetMetaData(ResultColumnDescriptor[] columnInfo) {
+        this.columnInfo = columnInfo;
+    }
 
-	//
-	// ResultSetMetaData interface
-	//
+    //
+    // ResultSetMetaData interface
+    //
 
     /**
      * What's the number of columns in the ResultSet?
      *
      * @return the number
      */
-	public final int getColumnCount()	{
-		return columnInfo.length;
-	}
+    public final int getColumnCount()    {
+        return columnInfo.length;
+    }
 
     /**
      * Is the column automatically numbered, thus read-only?
      *
      * @param column the first column is 1, the second is 2, ...
      * @return true if so
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      *
      */
-	public final boolean isAutoIncrement(int column) throws SQLException	{
+    public final boolean isAutoIncrement(int column) throws SQLException    {
         validColumnNumber(column);
-		ResultColumnDescriptor rcd = columnInfo[column - 1];
-		return rcd.isAutoincrement();
-	}
+        ResultColumnDescriptor rcd = columnInfo[column - 1];
+        return rcd.isAutoincrement();
+    }
 
     /**
      * Does a column's case matter?
      *
      * @param column the first column is 1, the second is 2, ...
      * @return true if so
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final boolean isCaseSensitive(int column) throws SQLException	{
-	  return DataTypeUtilities.isCaseSensitive(getColumnTypeDescriptor(column));
-	}
+    public final boolean isCaseSensitive(int column) throws SQLException    {
+      return DataTypeUtilities.isCaseSensitive(getColumnTypeDescriptor(column));
+    }
 
 
     /**
@@ -117,49 +117,49 @@ public class EmbedResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return true if so
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final boolean isSearchable(int column) throws SQLException	{
-		validColumnNumber(column);
+    public final boolean isSearchable(int column) throws SQLException    {
+        validColumnNumber(column);
 
-		// we have no restrictions yet, so this is always true
-		// might eventually be false for e.g. extra-long columns?
-		return true;
-	}
+        // we have no restrictions yet, so this is always true
+        // might eventually be false for e.g. extra-long columns?
+        return true;
+    }
 
     /**
      * Is the column a cash value?
      *
      * @param column the first column is 1, the second is 2, ...
      * @return true if so
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final boolean isCurrency(int column) throws SQLException	{
+    public final boolean isCurrency(int column) throws SQLException    {
 
-		return DataTypeUtilities.isCurrency(getColumnTypeDescriptor(column));
-	}
+        return DataTypeUtilities.isCurrency(getColumnTypeDescriptor(column));
+    }
 
     /**
      * Can you put a NULL in this column?
      *
      * @param column the first column is 1, the second is 2, ...
      * @return columnNoNulls, columnNullable or columnNullableUnknown
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final int isNullable(int column) throws SQLException	{
-		return DataTypeUtilities.isNullable(getColumnTypeDescriptor(column));
-	}
+    public final int isNullable(int column) throws SQLException    {
+        return DataTypeUtilities.isNullable(getColumnTypeDescriptor(column));
+    }
 
     /**
      * Is the column a signed number?
      *
      * @param column the first column is 1, the second is 2, ...
      * @return true if so
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final boolean isSigned(int column) throws SQLException	{
-		return DataTypeUtilities.isSigned(getColumnTypeDescriptor(column));
-	}
+    public final boolean isSigned(int column) throws SQLException    {
+        return DataTypeUtilities.isSigned(getColumnTypeDescriptor(column));
+    }
 
 
     /**
@@ -167,11 +167,11 @@ public class EmbedResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return max width
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final int getColumnDisplaySize(int column) throws SQLException	{
-		return DataTypeUtilities.getColumnDisplaySize(getColumnTypeDescriptor(column));
-	}
+    public final int getColumnDisplaySize(int column) throws SQLException    {
+        return DataTypeUtilities.getColumnDisplaySize(getColumnTypeDescriptor(column));
+    }
 
     /**
      * What's the suggested column title for use in printouts and
@@ -179,15 +179,15 @@ public class EmbedResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return true if so
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final String getColumnLabel(int column) throws SQLException {
-		ResultColumnDescriptor cd = columnInfo[column - 1];
-		String s = cd.getName();
+    public final String getColumnLabel(int column) throws SQLException {
+        ResultColumnDescriptor cd = columnInfo[column - 1];
+        String s = cd.getName();
 
-		// we could get fancier than this, but it's simple
-    	return (s==null? "Column"+Integer.toString(column) : s);
-	}
+        // we could get fancier than this, but it's simple
+        return (s==null? "Column"+Integer.toString(column) : s);
+    }
 
 
     /**
@@ -195,15 +195,15 @@ public class EmbedResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return column name
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final String getColumnName(int column) throws SQLException	{
-		ResultColumnDescriptor cd = columnInfo[column - 1];
-		String s = cd.getName();
-		// database returns null when no column name to differentiate from empty name
-    	return (s==null? "" : s);
+    public final String getColumnName(int column) throws SQLException    {
+        ResultColumnDescriptor cd = columnInfo[column - 1];
+        String s = cd.getName();
+        // database returns null when no column name to differentiate from empty name
+        return (s==null? "" : s);
 
-	}
+    }
 
 
     /**
@@ -211,26 +211,26 @@ public class EmbedResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return schema name or "" if not applicable
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final String getSchemaName(int column) throws SQLException	{
-		ResultColumnDescriptor cd = columnInfo[column - 1];
+    public final String getSchemaName(int column) throws SQLException    {
+        ResultColumnDescriptor cd = columnInfo[column - 1];
 
-		String s = cd.getSourceSchemaName();
-		// database returns null when no schema name to differentiate from empty name
-		return (s==null? "" : s);
-	}
+        String s = cd.getSourceSchemaName();
+        // database returns null when no schema name to differentiate from empty name
+        return (s==null? "" : s);
+    }
 
     /**
      * What's a column's number of decimal digits?
      *
      * @param column the first column is 1, the second is 2, ...
      * @return precision
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final int getPrecision(int column) throws SQLException	{
-		return DataTypeUtilities.getDigitPrecision(getColumnTypeDescriptor(column));
-	}
+    public final int getPrecision(int column) throws SQLException    {
+        return DataTypeUtilities.getDigitPrecision(getColumnTypeDescriptor(column));
+    }
 
 
     /**
@@ -238,39 +238,39 @@ public class EmbedResultSetMetaData implements ResultSetMetaData {
      *
      * @param column the first column is 1, the second is 2, ...
      * @return scale
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final int getScale(int column) throws SQLException	{
-		DataTypeDescriptor dtd = getColumnTypeDescriptor(column);
-		// REMIND -- check it is valid to ask for scale
-		return dtd.getScale();
-	}
+    public final int getScale(int column) throws SQLException    {
+        DataTypeDescriptor dtd = getColumnTypeDescriptor(column);
+        // REMIND -- check it is valid to ask for scale
+        return dtd.getScale();
+    }
 
     /**
      * What's a column's table name?
      *
      * @return table name or "" if not applicable
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final String getTableName(int column) throws SQLException {
-		ResultColumnDescriptor cd = columnInfo[column - 1];
-		String s = cd.getSourceTableName();
+    public final String getTableName(int column) throws SQLException {
+        ResultColumnDescriptor cd = columnInfo[column - 1];
+        String s = cd.getSourceTableName();
 
-		// database returns null when no table name to differentiate from empty name
-		return (s==null? "" : s);
-	}
+        // database returns null when no table name to differentiate from empty name
+        return (s==null? "" : s);
+    }
 
     /**
      * What's a column's table's catalog name?
      *
      * @param column the first column is 1, the second is 2, ...
      * @return column name or "" if not applicable.
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final String getCatalogName(int column) throws SQLException {
-		validColumnNumber(column);
-		return "";
-	}
+    public final String getCatalogName(int column) throws SQLException {
+        validColumnNumber(column);
+        return "";
+    }
 
     /**
      * What's a column's SQL type?
@@ -278,100 +278,100 @@ public class EmbedResultSetMetaData implements ResultSetMetaData {
      * @param column the first column is 1, the second is 2, ...
      * @return SQL type
      * @see Types
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final int getColumnType(int column) throws SQLException {
-		DataTypeDescriptor dtd = getColumnTypeDescriptor(column);
-		return dtd.getTypeId().getJDBCTypeId();
-	}
+    public final int getColumnType(int column) throws SQLException {
+        DataTypeDescriptor dtd = getColumnTypeDescriptor(column);
+        return dtd.getTypeId().getJDBCTypeId();
+    }
 
     /**
      * What's a column's data source specific type name?
      *
      * @param column the first column is 1, the second is 2, ...
      * @return type name
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final String getColumnTypeName(int column) throws SQLException	{
-		DataTypeDescriptor dtd = getColumnTypeDescriptor(column);
-		return dtd.getTypeId().getSQLTypeName();
-	}
+    public final String getColumnTypeName(int column) throws SQLException    {
+        DataTypeDescriptor dtd = getColumnTypeDescriptor(column);
+        return dtd.getTypeId().getSQLTypeName();
+    }
 
     /**
      * Is a column definitely not writable?
      *
      * @param column the first column is 1, the second is 2, ...
      * @return true if so
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final boolean isReadOnly(int column) throws SQLException {
-		validColumnNumber(column);
+    public final boolean isReadOnly(int column) throws SQLException {
+        validColumnNumber(column);
 
-		// we just don't know if it is a base table column or not
-		return false;
-	}
+        // we just don't know if it is a base table column or not
+        return false;
+    }
 
     /**
      * Is it possible for a write on the column to succeed?
      *
      * @param column the first column is 1, the second is 2, ...
      * @return true if so
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final boolean isWritable(int column) throws SQLException {
-		validColumnNumber(column);
-		return columnInfo[column - 1].updatableByCursor();
-	}
+    public final boolean isWritable(int column) throws SQLException {
+        validColumnNumber(column);
+        return columnInfo[column - 1].updatableByCursor();
+    }
 
     /**
      * Will a write on the column definitely succeed?
      *
      * @param column the first column is 1, the second is 2, ...
      * @return true if so
-	 * @exception SQLException thrown on failure
+     * @exception SQLException thrown on failure
      */
-	public final boolean isDefinitelyWritable(int column) throws SQLException	{
-		validColumnNumber(column);
+    public final boolean isDefinitelyWritable(int column) throws SQLException    {
+        validColumnNumber(column);
 
-		// we just don't know if it is a base table column or not
-		return false;
-	}
+        // we just don't know if it is a base table column or not
+        return false;
+    }
 
-//	@Override
-	public <T> T unwrap(Class<T> iface) throws SQLException{
-		throw new UnsupportedOperationException();
-	}
+//    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException{
+        throw new UnsupportedOperationException();
+    }
 
-//	@Override
-	public boolean isWrapperFor(Class<?> iface) throws SQLException{
-		throw new UnsupportedOperationException();
-	}
+//    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException{
+        throw new UnsupportedOperationException();
+    }
 
-	/*
-	 * class interface
-	 */
+    /*
+     * class interface
+     */
 
-	private void validColumnNumber(int column) throws SQLException {
-	  if (column < 1 ||
-		        column > getColumnCount() )
-			    throw Util.generateCsSQLException(
+    private void validColumnNumber(int column) throws SQLException {
+      if (column < 1 ||
+                column > getColumnCount() )
+                throw Util.generateCsSQLException(
                       SQLState.COLUMN_NOT_FOUND, column);
-	}
+    }
 
-	private DataTypeDescriptor getColumnTypeDescriptor(int column) throws SQLException 
-	{
-		validColumnNumber(column);
+    private DataTypeDescriptor getColumnTypeDescriptor(int column) throws SQLException 
+    {
+        validColumnNumber(column);
 
-		ResultColumnDescriptor cd = columnInfo[column - 1];
+        ResultColumnDescriptor cd = columnInfo[column - 1];
 
-		return cd.getType();
-	}
+        return cd.getType();
+    }
 
-	/////////////////////////////////////////////////////////////////////////
-	//
-	//	JDBC 2.0	-	New public methods
-	//
-	/////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////
+    //
+    //    JDBC 2.0    -    New public methods
+    //
+    /////////////////////////////////////////////////////////////////////////
 
     /**
      * JDBC 2.0
@@ -380,26 +380,26 @@ public class EmbedResultSetMetaData implements ResultSetMetaData {
      * are manufactured if ResultSet.getObject() is called to retrieve a value 
      * from the column.  ResultSet.getObject() may return a subClass of the
      * class returned by this method.
-	 *
-	 * @exception SQLException Feature not inplemented for now.
+     *
+     * @exception SQLException Feature not inplemented for now.
      */
     public final String getColumnClassName(int column) throws SQLException {
-		
-		return getColumnTypeDescriptor(column).getTypeId().getResultSetMetaDataTypeName();
-	}
+        
+        return getColumnTypeDescriptor(column).getTypeId().getResultSetMetaDataTypeName();
+    }
 
 
-	public static ResultColumnDescriptor getResultColumnDescriptor(String name, int jdcbTypeId, boolean nullable) {
+    public static ResultColumnDescriptor getResultColumnDescriptor(String name, int jdcbTypeId, boolean nullable) {
 
-		return new GenericColumnDescriptor(
-			name, DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdcbTypeId, nullable));
-	}
-	public static ResultColumnDescriptor getResultColumnDescriptor(String name, int jdcbTypeId, boolean nullable, int length) {
+        return new GenericColumnDescriptor(
+            name, DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdcbTypeId, nullable));
+    }
+    public static ResultColumnDescriptor getResultColumnDescriptor(String name, int jdcbTypeId, boolean nullable, int length) {
 
-		return new GenericColumnDescriptor(
-			name, DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdcbTypeId, nullable, length));
-	}
-	public static ResultColumnDescriptor getResultColumnDescriptor(String name, DataTypeDescriptor dtd) {
-		return new GenericColumnDescriptor(name, dtd);
-	}
+        return new GenericColumnDescriptor(
+            name, DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdcbTypeId, nullable, length));
+    }
+    public static ResultColumnDescriptor getResultColumnDescriptor(String name, DataTypeDescriptor dtd) {
+        return new GenericColumnDescriptor(name, dtd);
+    }
 }

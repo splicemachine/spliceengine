@@ -65,7 +65,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
     }
 
     public static Test suite() {
-	return TestConfiguration.defaultSuite(DeclareGlobalTempTableJavaTest.class);
+    return TestConfiguration.defaultSuite(DeclareGlobalTempTableJavaTest.class);
     }
     protected void setUp() throws Exception {
         super.setUp();
@@ -96,9 +96,9 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         assertUpdateCount(s , 0 , "set schema SESSION");
         // This used to cause NullPointerException before.
         assertUpdateCount(s, 0, "create table DERBY1706(c11 int)");
- 	assertUpdateCount(s, 0, "drop table DERBY1706");
+     assertUpdateCount(s, 0, "drop table DERBY1706");
         assertUpdateCount(s, 0, "set schema SPLICE");
- 	assertUpdateCount(s, 0, "drop schema SESSION restrict");
+     assertUpdateCount(s, 0, "drop schema SESSION restrict");
     }
 
     /**
@@ -271,7 +271,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         // Alter Table is allowed on physical tables in SESSION schema
         assertUpdateCount(s, 0, "ALTER TABLE SESSION.t2 add column c22 int");
         // Lock Table is allowed on physical tables in SESSION schema
-  	assertUpdateCount(s , 0 , "LOCK TABLE SESSION.t2 IN EXCLUSIVE MODE");
+      assertUpdateCount(s , 0 , "LOCK TABLE SESSION.t2 IN EXCLUSIVE MODE");
         // Rename Table is allowed on physical tables in SESSION schema
         assertUpdateCount(s , 0 , "RENAME TABLE SESSION.t2 TO t3");
         // Lock column is allowed on physical tables in SESSION schema
@@ -382,7 +382,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         // Before commit t3 has 2 columns.
         JDBC.assertSingleValueResultSet(rs3 , "2");
         // commiting the above statements
-	commit();
+    commit();
         // The 2 rows from t2 got deleted
         rs2 = s.executeQuery("select count(*) from SESSION.t2");
         JDBC.assertSingleValueResultSet(rs2 , "0");
@@ -472,7 +472,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         assertUpdateCount(s, 3, "insert into SESSION.t2 (select * from t1 where c11>4)");
         assertUpdateCount(s, 7, "insert into SESSION.t2 select * from SESSION.t2");
         ResultSet rs1 = s.executeQuery("select sum(c21) from SESSION.t2");
-	JDBC.assertSingleValueResultSet(rs1 , "56");
+    JDBC.assertSingleValueResultSet(rs1 , "56");
         assertUpdateCount(s , 0 , "DECLARE GLOBAL TEMPORARY TABLE SESSION.t3(c21 int, c22 char(2) not null) on commit delete rows not logged");
         assertUpdateCount(s , 1 , "insert into SESSION.t3 values (1, 'aa')");
         // test inserting a null value into a non null column
@@ -606,7 +606,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         // been deleted
         rs1 = s.executeQuery("select count(*) from SESSION.t2");
         JDBC.assertSingleValueResultSet(rs1 , "1");
-	// cleanup
+    // cleanup
         assertUpdateCount(s , 0 , "DROP TABLE SESSION.t2");
         assertUpdateCount(s , 0 , "drop schema SESSION restrict");
     }
@@ -679,13 +679,13 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         Connection con2 = openDefaultConnection();
         Statement s2 = con2.createStatement();
         // creating the temp table with same name (t2) in the Sesond Connection
-	assertUpdateCount(s2 , 0 , "DECLARE GLOBAL TEMPORARY TABLE SESSION.t2(c21 int) not logged");
+    assertUpdateCount(s2 , 0 , "DECLARE GLOBAL TEMPORARY TABLE SESSION.t2(c21 int) not logged");
         assertUpdateCount(s2, 1, "insert into SESSION.t2 values(99)");
         // dropping temp table t2 defined for con1
         assertUpdateCount(s1 , 0 , "DROP TABLE SESSION.t2");
         // dropping temp table t2 defined for con2
         assertUpdateCount(s2 , 0 , "DROP TABLE SESSION.t2");
-	s2.close();
+    s2.close();
         con2.close();
     }
     /**
@@ -730,10 +730,10 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         pStmt.execute();
         pStmt.close();
         ResultSet rs1 = s.executeQuery("select * from SESSION.t2");
-	rs1.next();
-	ResultSetMetaData rsmd = rs1.getMetaData();
-	assertEquals(2 , rsmd.getColumnCount());
- 	//JDBC.assertSingleValueResultSet(rs1 , "1");
+    rs1.next();
+    ResultSetMetaData rsmd = rs1.getMetaData();
+    assertEquals(2 , rsmd.getColumnCount());
+     //JDBC.assertSingleValueResultSet(rs1 , "1");
         // drop the temp table t2
         assertUpdateCount(s , 0 , "DROP TABLE SESSION.t2");
         // recreate the temp table t2 with 3 columns
@@ -745,7 +745,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         pStmt.execute();
         rs1 = s.executeQuery("select * from SESSION.t2");
         rs1.next();
-	rsmd = rs1.getMetaData();
+    rsmd = rs1.getMetaData();
         assertEquals(3 , rsmd.getColumnCount());
         // drop the temp table t2
         assertUpdateCount(s , 0 , "DROP TABLE SESSION.t2");
@@ -861,7 +861,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
     public void testRollbackBehavior2() throws SQLException {
         Statement s = createStatement();
         // create a temp table t2
-    	assertUpdateCount(s , 0 , "DECLARE GLOBAL TEMPORARY TABLE SESSION.t2(c21 int, c22 int) on commit preserve rows not logged");
+        assertUpdateCount(s , 0 , "DECLARE GLOBAL TEMPORARY TABLE SESSION.t2(c21 int, c22 int) on commit preserve rows not logged");
         PreparedStatement pStmt = prepareStatement("insert into SESSION.t2 values (?, ?)");
         pStmt.setInt(1, 21);
         pStmt.setInt(2, 1);
@@ -875,7 +875,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         rollback();
         // now select will pass
         ResultSet rs2 = s.executeQuery("select count(*) from SESSION.t2");
-        JDBC.assertSingleValueResultSet(rs2 , "0");	
+        JDBC.assertSingleValueResultSet(rs2 , "0");    
         assertUpdateCount(s , 0 , "DROP TABLE SESSION.t2");
         commit();
     }
@@ -893,7 +893,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         assertUpdateCount(s, 1, "insert into session.t2 values(1,1,1)");
         ResultSet rs1 = s.executeQuery("select * from SESSION.t2");
         rs1.next();
-	ResultSetMetaData rsmd = rs1.getMetaData();
+    ResultSetMetaData rsmd = rs1.getMetaData();
         assertEquals(3 , rsmd.getColumnCount());
         // drop the temp table t2 with 3 columns.
         assertUpdateCount(s , 0 , "DROP TABLE SESSION.t2");
@@ -903,7 +903,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         assertUpdateCount(s, 1, "insert into session.t2 values(1,1)");
         rs1 = s.executeQuery("select * from SESSION.t2");
         rs1.next();
-	rsmd = rs1.getMetaData();
+    rsmd = rs1.getMetaData();
         assertEquals(2 , rsmd.getColumnCount());
         // commit point
         commit();
@@ -913,8 +913,8 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         assertUpdateCount(s , 0 , "DECLARE GLOBAL TEMPORARY TABLE SESSION.t2(c21 int) on commit delete rows not logged");
         assertUpdateCount(s, 1, "insert into session.t2 values(1)");
         rs1 = s.executeQuery("select * from SESSION.t2");
-	rs1.next();
-	rsmd = rs1.getMetaData();
+    rs1.next();
+    rsmd = rs1.getMetaData();
         assertEquals(1 , rsmd.getColumnCount());
         rs1.close();
         // rollback to the last committed point
@@ -922,7 +922,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         // Now we have the temp table with 2 columns.
         rs1 = s.executeQuery("select * from SESSION.t2");
         rs1.next();
-	rsmd = rs1.getMetaData();
+    rsmd = rs1.getMetaData();
         assertEquals(2 , rsmd.getColumnCount());
         rs1.close();
         assertUpdateCount(s , 0 , "DROP TABLE SESSION.t2");
@@ -966,19 +966,19 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         rollback();
         // After rollback t2 should have nothing.
         ResultSet rs1 = s.executeQuery("select count(*) from SESSION.t2");
-	JDBC.assertSingleValueResultSet(rs1 , "0");
+    JDBC.assertSingleValueResultSet(rs1 , "0");
         // temp table t3 should have no rows because attempt was made to delete
         // from it even though nothing actually got deleted from it in the transaction
         rs1 = s.executeQuery("select count(*) from SESSION.t3");
-	JDBC.assertSingleValueResultSet(rs1 , "0");
+    JDBC.assertSingleValueResultSet(rs1 , "0");
         // temp table t4 should have its data intact because it was not touched
         // in the transaction that got rolled back
         rs1 = s.executeQuery("select count(*) from SESSION.t4");
-	JDBC.assertSingleValueResultSet(rs1 , "3");
+    JDBC.assertSingleValueResultSet(rs1 , "3");
         // temp table t5 should have its data intact because it was only used in
         // where clause and not touched in the transaction that got rolled back
         rs1 = s.executeQuery("select count(*) from SESSION.t5");
-	JDBC.assertSingleValueResultSet(rs1 , "3");
+    JDBC.assertSingleValueResultSet(rs1 , "3");
         // temp table t6 got dropped as part of rollback of this transaction
         // since it was declared in this same transaction
         assertStatementError("42X05", s, "select * from SESSION.t6");
@@ -998,7 +998,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         Statement s = createStatement();
         assertUpdateCount(s , 0 , "DECLARE GLOBAL TEMPORARY TABLE SESSION.t2(c21 int) on commit delete rows not logged");
        ResultSet rs1 = s.executeQuery("select count(*) from sys.systables where CAST(tablename AS VARCHAR(128)) like 'T2'");
-	JDBC.assertSingleValueResultSet(rs1 , "0");
+    JDBC.assertSingleValueResultSet(rs1 , "0");
         // drop the temp table t2
         assertUpdateCount(s , 0 , "DROP TABLE SESSION.t2");
         // create a physical table in SESSION schema
@@ -1010,7 +1010,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         assertUpdateCount(s , 0 , "CREATE TABLE SESSION.t2(c21 int, c22 int)");
         rs1 = s.executeQuery("select count(*) from sys.systables where CAST(tablename AS VARCHAR(128)) like 'T2'");
         // System Catalog contains the physical tables from SESSION schema.
-	JDBC.assertSingleValueResultSet(rs1 , "1");
+    JDBC.assertSingleValueResultSet(rs1 , "1");
         assertUpdateCount(s , 0 , "DROP TABLE SESSION.t2");
         assertUpdateCount(s , 0 , "drop schema SESSION restrict");
     }
@@ -1029,7 +1029,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         }
         assertUpdateCount(s , 0 , "DECLARE GLOBAL TEMPORARY TABLE SESSION.t2(c21 int) on commit delete rows not logged");
         ResultSet rs1 = s.executeQuery("select count(schemaname) from sys.sysschemas where CAST(schemaname AS VARCHAR(128)) like 'SESSION'");
-	JDBC.assertSingleValueResultSet(rs1 , "0");
+    JDBC.assertSingleValueResultSet(rs1 , "0");
         assertUpdateCount(s , 0 , "DROP TABLE SESSION.t2");
     }
     /**
@@ -1071,7 +1071,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         assertUpdateCount(s , 1 , "insert into SESSION.t2 values(21, 1)");
         assertUpdateCount(s , 1 , "insert into SESSION.t2 values(22, 1)");
         ResultSet rs1 = s.executeQuery("select count(*) from SESSION.t2");
-	JDBC.assertSingleValueResultSet(rs1 , "2");
+    JDBC.assertSingleValueResultSet(rs1 , "2");
         PreparedStatement pStmt1 = prepareStatement("select c21 from session.t2 for update");
         ResultSet rs2 = pStmt1.executeQuery();
         rs2.next();
@@ -1100,7 +1100,7 @@ public class DeclareGlobalTempTableJavaTest extends BaseJDBCTestCase {
         assertUpdateCount(s , 1 , "insert into SESSION.t2 values(21, 1)");
         assertUpdateCount(s , 1 , "insert into SESSION.t2 values(22, 1)");
         ResultSet rs1 = s.executeQuery("select count(*) from SESSION.t2");
-	JDBC.assertSingleValueResultSet(rs1 , "2");
+    JDBC.assertSingleValueResultSet(rs1 , "2");
         PreparedStatement pStmt1 = prepareStatement("select c21 from session.t2 for update");
         ResultSet rs2 = pStmt1.executeQuery();
         rs2.next();

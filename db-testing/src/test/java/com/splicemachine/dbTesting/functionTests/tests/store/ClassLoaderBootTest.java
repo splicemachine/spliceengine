@@ -59,7 +59,7 @@ import com.splicemachine.dbTesting.junit.SystemPropertyTestSetup;
 public class ClassLoaderBootTest extends BaseJDBCTestCase {
 
     private static URL derbyClassLocation; 
-	static {
+    static {
         // find the location of db jar file or location
         // of classes. 
         CodeSource cs;
@@ -74,7 +74,7 @@ public class ClassLoaderBootTest extends BaseJDBCTestCase {
             derbyClassLocation = null;        
         else 
             derbyClassLocation = cs.getLocation();
-	}
+    }
         
 
     private ClassLoader loader_1;
@@ -160,7 +160,7 @@ public class ClassLoaderBootTest extends BaseJDBCTestCase {
     /* 
      * Test booting a database, that was alreadt booted by another class loader.
      */
-	public void testBootingAnAlreadyBootedDatabase() throws SQLException 
+    public void testBootingAnAlreadyBootedDatabase() throws SQLException 
     {
         //
         // This test relies on a bug fix in Java 6. Java 5 does not have this
@@ -202,7 +202,7 @@ public class ClassLoaderBootTest extends BaseJDBCTestCase {
      * Test booting a database, that was  booted and shutdown 
      * by another class loader.
      */
-	public void testBootingDatabaseShutdownByAnotherCLR() throws SQLException 
+    public void testBootingDatabaseShutdownByAnotherCLR() throws SQLException 
     {
         // first boot the database using one loader and shutdown and then 
         // attempt to boot it using another loader, it should boot.
@@ -234,11 +234,11 @@ public class ClassLoaderBootTest extends BaseJDBCTestCase {
     }
 
 
-	private static void assertPreventDualBoot(SQLException ne) {
-		assertNotNull(ne);
-		String state = ne.getSQLState();
-		assertTrue("Unexpected SQLState:" + state, state.equals("XSDB6"));
-	}
+    private static void assertPreventDualBoot(SQLException ne) {
+        assertNotNull(ne);
+        String state = ne.getSQLState();
+        assertTrue("Unexpected SQLState:" + state, state.equals("XSDB6"));
+    }
 
 
 
@@ -248,7 +248,7 @@ public class ClassLoaderBootTest extends BaseJDBCTestCase {
      * that Derby classes are loaded from the URL specified
      */
     public class DerbyURLClassLoader extends URLClassLoader {
-	
+    
         /**
          * @see java.net.URLClassLoader#URLClassLoader(URL[] urls)
          */
@@ -263,9 +263,9 @@ public class ClassLoaderBootTest extends BaseJDBCTestCase {
          */
         public DerbyURLClassLoader(URL[] urls, ClassLoader parent) {
             super(urls, parent);
-	
+    
         }
-	
+    
         /**
          *@see java.net.URLClassLoader#URLClassLoader(java.net.URL[], 
          *      java.lang.ClassLoader, java.net.URLStreamHandlerFactory)
@@ -273,9 +273,9 @@ public class ClassLoaderBootTest extends BaseJDBCTestCase {
         public DerbyURLClassLoader(URL[] urls, ClassLoader parent,
                                    URLStreamHandlerFactory factory) {
             super(urls, parent, factory);
-		
+        
         }
-	
+    
         /* Override the parent class loader to filter out any db
          * jars in the classpath.  Any classes that start with 
          * "com.splicemachine.db" will load  from the URLClassLoader
@@ -292,8 +292,8 @@ public class ClassLoaderBootTest extends BaseJDBCTestCase {
                 // to ensure loading from the desired source
                 if (!name.startsWith("com.splicemachine.db")) {
                     cl = getParent().loadClass(name);
-		    	}
-		    }
+                }
+            }
             if (cl == null) cl = findClass(name);
             if (cl == null) throw new ClassNotFoundException();
             if (resolve) resolveClass(cl);

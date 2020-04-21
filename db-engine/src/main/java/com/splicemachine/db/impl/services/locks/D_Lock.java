@@ -50,9 +50,9 @@ public class D_Lock implements Diagnosticable
 
     /* Private/Protected methods of This class: */
 
-	/*
-	** Methods of Diagnosticable
-	*/
+    /*
+    ** Methods of Diagnosticable
+    */
     public void init(Object obj)
     {
         lock = (Lock) obj;
@@ -60,7 +60,7 @@ public class D_Lock implements Diagnosticable
 
     /**
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     public String diag()
         throws StandardException
@@ -75,6 +75,6 @@ public class D_Lock implements Diagnosticable
                 " count=" + lock.count + " ";
     }
 
-	public void diag_detail(Properties prop) {}
+    public void diag_detail(Properties prop) {}
 }
 

@@ -52,80 +52,80 @@ public class RunSuite
     static Vector suitesToRun; // Vector of suites to run
 
     // Properties which may be specified
-	static String jvmName = "";
-	static String javaCmd = "java";
-	static String jvmflags = ""; // jvm flags as one string
-	static String javaVersion;
-	static String classpath;
-	static String classpathServer;
-	static String testJavaFlags = ""; // formerly systest_javaflags
-	static String testSpecialProps = ""; 
-	static String userdir;
-	static String framework;
-	static String runwithibmjvm;
-	static String excludeJCC;
-	static boolean useprocess = true;
-	static boolean skipsed = false;
-	static String systemdiff = "false";
-	static String topSuiteName = "";
-	static String outputdir; // location of output (default is userdir)
-	static String outcopy = "false"; // true if support files should go to outDir
-	static String canondir; // location of master dir (default is master)
-	static String bootcp; //  path for j9 bootclasspath setting
-	static String serverJvm; //  path for j9 bootclasspath setting
-	static String hostName; // needs to be settable for IPV6 testing; localhost otherwise. 
-	static String testEncoding; // setting the encoding.
-	static String ijdefaultResourcePackage; // for ij tests only
-	static String debug; // for setting verbose mode to pass down to RunTest
+    static String jvmName = "";
+    static String javaCmd = "java";
+    static String jvmflags = ""; // jvm flags as one string
+    static String javaVersion;
+    static String classpath;
+    static String classpathServer;
+    static String testJavaFlags = ""; // formerly systest_javaflags
+    static String testSpecialProps = ""; 
+    static String userdir;
+    static String framework;
+    static String runwithibmjvm;
+    static String excludeJCC;
+    static boolean useprocess = true;
+    static boolean skipsed = false;
+    static String systemdiff = "false";
+    static String topSuiteName = "";
+    static String outputdir; // location of output (default is userdir)
+    static String outcopy = "false"; // true if support files should go to outDir
+    static String canondir; // location of master dir (default is master)
+    static String bootcp; //  path for j9 bootclasspath setting
+    static String serverJvm; //  path for j9 bootclasspath setting
+    static String hostName; // needs to be settable for IPV6 testing; localhost otherwise. 
+    static String testEncoding; // setting the encoding.
+    static String ijdefaultResourcePackage; // for ij tests only
+    static String debug; // for setting verbose mode to pass down to RunTest
     static String timeout; // to allow killing a hanging test
     static String shutdownurl; //used mainly by useprocess=false tests
-	static String reportstderr; // can set to disable (to turn off JIT errors, etc.)
-	static Properties suiteProperties;
-	static Properties specialProperties;
+    static String reportstderr; // can set to disable (to turn off JIT errors, etc.)
+    static Properties suiteProperties;
+    static Properties specialProperties;
 
-	// Output variables
+    // Output variables
     static PrintWriter pwOut = null; // for writing suite output
     static File outDir; // test out dir
     static File runDir; // where the suite/tests are run
     static File outFile; // suite output file
 
-	public static void main(String[] args) throws Exception
-	{
-		if ((System.getProperty("java.vm.name") != null) && System.getProperty("java.vm.name").equals("J9"))
-		{
-		 		javaCmd = "j9";
-				String javaHome = System.getProperty("java.home");
-		}
-		String j9config = System.getProperty("com.ibm.oti.configuration");
-		if (j9config != null) 
-			if (j9config.equals("foun10")) 
-				jvmName="j9_foundation";
-			else if (j9config.equals("foun11")) 
-				jvmName="j9_foundation11";
-			else if (j9config.equals("max"))
-				jvmName="j9_13";
-			else if (j9config.equals("dee"))
-				jvmName="j9dee15";
+    public static void main(String[] args) throws Exception
+    {
+        if ((System.getProperty("java.vm.name") != null) && System.getProperty("java.vm.name").equals("J9"))
+        {
+                 javaCmd = "j9";
+                String javaHome = System.getProperty("java.home");
+        }
+        String j9config = System.getProperty("com.ibm.oti.configuration");
+        if (j9config != null) 
+            if (j9config.equals("foun10")) 
+                jvmName="j9_foundation";
+            else if (j9config.equals("foun11")) 
+                jvmName="j9_foundation11";
+            else if (j9config.equals("max"))
+                jvmName="j9_13";
+            else if (j9config.equals("dee"))
+                jvmName="j9dee15";
 
-	    String suiteName = args[0];
-	    if ( suiteName == null )
-	    {
-	        System.out.println("No suite name argument.");
-	        System.exit(1);
-	    }
-	    topSuiteName = suiteName;
-	    System.out.println("Top suite: " + suiteName);
+        String suiteName = args[0];
+        if ( suiteName == null )
+        {
+            System.out.println("No suite name argument.");
+            System.exit(1);
+        }
+        topSuiteName = suiteName;
+        System.out.println("Top suite: " + suiteName);
 
-	    // suiteName may be one suite or a list of suites
+        // suiteName may be one suite or a list of suites
         suitesToRun = new Vector();
 
         // Get properties set in the suite's properties file
-		suiteProperties = getSuiteProperties(suiteName, true);
+        suiteProperties = getSuiteProperties(suiteName, true);
 
-		// There may be system properties which will override
-		// the suiteProperties. This will make it easier when you
-		// do not want to edit the suite props for a special case
-		getSystemProperties();
+        // There may be system properties which will override
+        // the suiteProperties. This will make it easier when you
+        // do not want to edit the suite props for a special case
+        getSystemProperties();
 
         // Get any special properties that are not the usual
         // expected properties (we separate these from suiteProperties
@@ -157,29 +157,29 @@ public class RunSuite
             " " + endTime + " *******");
         pwOut.close();
         
-		String genrep = System.getProperty("genrep");
-		boolean isGenrep = true;
-		if (genrep!=null) isGenrep = "true".equalsIgnoreCase(genrep);
-		if (isGenrep) 
-		{
-		    String[] genargs = new String[6];
-		    genargs[0] = args[0];
-		    genargs[1] = jvmName;
-		    genargs[2] = javaCmd;
-		    genargs[3] = classpath;
-		    genargs[4] = framework;
-		    if (useprocess)
-		        genargs[5] = "true";
-		    else
-		        genargs[5] = "false";
-		    GenerateReport.main(genargs);
-		}
-	}
+        String genrep = System.getProperty("genrep");
+        boolean isGenrep = true;
+        if (genrep!=null) isGenrep = "true".equalsIgnoreCase(genrep);
+        if (isGenrep) 
+        {
+            String[] genargs = new String[6];
+            genargs[0] = args[0];
+            genargs[1] = jvmName;
+            genargs[2] = javaCmd;
+            genargs[3] = classpath;
+            genargs[4] = framework;
+            if (useprocess)
+                genargs[5] = "true";
+            else
+                genargs[5] = "false";
+            GenerateReport.main(genargs);
+        }
+    }
 
     static void getSuitesList(String topparent, boolean isTop)
         throws Exception, ClassNotFoundException, IOException
     {
-		// Get the suite properties if it exists
+        // Get the suite properties if it exists
         Properties p;
         if ( (suites == null) || (suites.isEmpty()) )
         {
@@ -197,8 +197,8 @@ public class RunSuite
         {
             isTop = false;
             // Build the Vector from suites string
-	        StringTokenizer st = new StringTokenizer(suites);
-	        String subparent = "";
+            StringTokenizer st = new StringTokenizer(suites);
+            String subparent = "";
             while (st.hasMoreTokens())
             {
                 subparent = st.nextToken();
@@ -286,14 +286,14 @@ public class RunSuite
         // which get propagated to any subsuites
         if (isTop == true)
         {
-			String tmpjvmName=jvmName;	
+            String tmpjvmName=jvmName;    
             jvmName = p.getProperty("jvm");
-		    if ( (jvmName == null) || (jvmName.isEmpty()) )
-		    {
-		        javaVersion = System.getProperty("java.version");
-		    }
-		    else
-		        javaVersion = jvmName;
+            if ( (jvmName == null) || (jvmName.isEmpty()) )
+            {
+                javaVersion = System.getProperty("java.version");
+            }
+            else
+                javaVersion = jvmName;
 
             // for j9, we cannot just use java.version.
             String javavmVersion;
@@ -301,19 +301,19 @@ public class RunSuite
                 javavmVersion = (System.getProperty("java.vm.version"));
             else
                 javavmVersion = javaVersion;
-    		    
-		    JavaVersionHolder jvh = new JavaVersionHolder(javavmVersion);
-		    String majorVersion = jvh.getMajorVersion();
-		    String minorVersion = jvh.getMinorVersion();
+                
+            JavaVersionHolder jvh = new JavaVersionHolder(javavmVersion);
+            String majorVersion = jvh.getMajorVersion();
+            String minorVersion = jvh.getMinorVersion();
             int iminor = jvh.getMinorNumber();
             int imajor = jvh.getMajorNumber();
-    		
-		    if ( (iminor < 2) && (imajor < 2) )
-		        jvmName = "currentjvm";
-		    else
-		        jvmName = "jdk" + majorVersion + minorVersion;
-		if ( tmpjvmName != null)
-			jvmName= tmpjvmName;
+            
+            if ( (iminor < 2) && (imajor < 2) )
+                jvmName = "currentjvm";
+            else
+                jvmName = "jdk" + majorVersion + minorVersion;
+        if ( tmpjvmName != null)
+            jvmName= tmpjvmName;
             javaCmd = p.getProperty("javaCmd");
             jvmflags = p.getProperty("jvmflags");
             testJavaFlags = p.getProperty("testJavaFlags");
@@ -321,17 +321,17 @@ public class RunSuite
             classpath = p.getProperty("classpath");
             classpathServer = p.getProperty("classpathServer");
             framework = p.getProperty("framework");
-		    String usepr = p.getProperty("useprocess");
-		    if (usepr != null)
-		    {
-		        usepr = usepr.toLowerCase();
-		        if (usepr.equals("false"))
-		            useprocess = false;
-		        else
-		            useprocess = true;
-		    }
-		    else
-		        useprocess = true;
+            String usepr = p.getProperty("useprocess");
+            if (usepr != null)
+            {
+                usepr = usepr.toLowerCase();
+                if (usepr.equals("false"))
+                    useprocess = false;
+                else
+                    useprocess = true;
+            }
+            else
+                useprocess = true;
 
             String nosed = p.getProperty("skipsed");
             if (nosed != null)
@@ -360,7 +360,7 @@ public class RunSuite
             testEncoding = p.getProperty("derbyTesting.encoding");
         }
         suites = p.getProperty("suites");
-		return p;
+        return p;
     }
 
     private static void getSystemProperties()
@@ -371,152 +371,152 @@ public class RunSuite
         String searchCP = sp.getProperty("ij.searchClassPath");
         if (searchCP != null)
             suiteProperties.put("ij.searchClassPath", searchCP);
-		String frm = sp.getProperty("framework");
-		if ( (frm != null) && (!frm.equals("embedded")) )
-		{
-		    framework = frm;
-		    suiteProperties.put("framework", framework);
-		}
-		String j = sp.getProperty("jvm");
-		if (j != null)
-		    suiteProperties.put("jversion", j);
-		
-		String jcmd = sp.getProperty("javaCmd");
-		if ((System.getProperty("java.vm.name") != null) && System.getProperty("java.vm.name").equals("J9"))
-			jcmd = "j9";
-		if (jcmd != null)
-		{
-		    javaCmd = jcmd;
-		    suiteProperties.put("javaCmd", javaCmd);
-		}
-		// get System properties for jvmflags, and put them to the end, thus
-		// when the time comes to have this converted into actual jvm flags
-		// the ones given at the command line will overwrite whatever's in the suite
-		String jflags = sp.getProperty("jvmflags");
-		if (jvmflags != null && !jvmflags.isEmpty())
-		{
-		  //DERBY-4680 Make sure ^ does not get appended to jvmflags
-		    if (jflags != null && !jflags.isEmpty())
-		    		suiteProperties.put("jvmflags", (jvmflags + "^" + jflags));
-			else
-		    		suiteProperties.put("jvmflags", jvmflags);
-		}
-		else
-		{
-			if (jflags != null && !jflags.isEmpty())
-		    		suiteProperties.put("jvmflags", jflags);
-		}
-		String testflags = sp.getProperty("testJavaFlags");
-		if (testflags != null)
-		{
-		    if (testJavaFlags == null || testJavaFlags.isEmpty())
-		        testJavaFlags = testflags;
-		    else // add to testJavaFlags
-		        testJavaFlags = testJavaFlags + "^" + testflags;
-		    suiteProperties.put("testJavaFlags", testJavaFlags);
-		}
-		String testprops = sp.getProperty("testSpecialProps");
-		if (testprops != null)
-		{
-		    if (testSpecialProps == null || testSpecialProps.isEmpty())
-		        testSpecialProps = testprops;
-		    else // add to testSpecialProps
-		        testSpecialProps = testSpecialProps + "^" + testprops;
-		    suiteProperties.put("testSpecialProps", testSpecialProps);
-		}
-		String clpth = sp.getProperty("classpath");
-		if (clpth != null)
-		{
-		    classpath = clpth;
-		    suiteProperties.put("classpath", classpath);
-		}
-		String clsrv = sp.getProperty("classpathServer");
-		if ( (clsrv != null) && (!clsrv.startsWith("${")) )
-		{
-		    classpathServer = clsrv;
-		    suiteProperties.put("classpathServer", clsrv);
-		}
-		String usesys = sp.getProperty("usesystem");
-		if (usesys != null)
-		    suiteProperties.put("usesystem", usesys);
-		String jarf = sp.getProperty("jarfile");
-		if (jarf != null)
-		    suiteProperties.put("jarfile", jarf);
-		String upgtest = sp.getProperty("upgradetest");
-		if (upgtest != null)
-		    suiteProperties.put("upgradetest", upgtest);
-		String rep = sp.getProperty("replication");
-		if (rep != null)
-		    suiteProperties.put("replication", rep);
-		String encrypt = sp.getProperty("encryption");
-		if (encrypt != null)
-		    suiteProperties.put("encryption", encrypt);
-		String encryptAlgorithm = sp.getProperty("testEncryptionAlgorithm");
-		if (encryptAlgorithm != null)
-		    suiteProperties.put("testEncryptionAlgorithm", encryptAlgorithm);
-		String jdk12test = sp.getProperty("jdk12test");
-		if (jdk12test != null)
-		    suiteProperties.put("jdk12test", jdk12test);
-		String jdk12ex = sp.getProperty("jdk12exttest");
-		if (jdk12ex != null)
-		    suiteProperties.put("jdk12exttest", jdk12ex);
-		String runwithibmjvm = sp.getProperty("runwithibmjvm");
-		if (runwithibmjvm != null)
-		    suiteProperties.put("runwithibmjvm", runwithibmjvm);
-		String excludeJCC = sp.getProperty("excludeJCC");
-		if (excludeJCC != null)
-		    suiteProperties.put("excludeJCC", excludeJCC);
-		String keep = sp.getProperty("keepfiles");
-		if (keep != null)
-		    suiteProperties.put("keepfiles", keep);
-		String outd = sp.getProperty("outputdir");
-		if (outd != null)
-		{
-		    outputdir = outd;
-		    suiteProperties.put("outputdir", outputdir);
-		}
-		String canond = sp.getProperty("canondir");
-		if (canond != null)
-		{
-		    canondir = canond;
-		    suiteProperties.put("canondir", canondir);
-		}
-		String j9bootcp = sp.getProperty("bootcp");
-		if (j9bootcp != null)
-		{
-		    bootcp = j9bootcp;
-		    suiteProperties.put("bootcp", bootcp);
-		}
-		String hostname = sp.getProperty("hostName");
-		if (hostname != null)
-			suiteProperties.put("hostName", hostname);
-		String serverJvm = sp.getProperty("serverJvm");
-		if (serverJvm != null)
-		    suiteProperties.put("serverJvm", serverJvm);
-		String cmlTestEncoding = sp.getProperty("derbyTesting.encoding");
-		if (cmlTestEncoding != null)
-		    suiteProperties.put("derbyTesting.encoding", cmlTestEncoding);
+        String frm = sp.getProperty("framework");
+        if ( (frm != null) && (!frm.equals("embedded")) )
+        {
+            framework = frm;
+            suiteProperties.put("framework", framework);
+        }
+        String j = sp.getProperty("jvm");
+        if (j != null)
+            suiteProperties.put("jversion", j);
+        
+        String jcmd = sp.getProperty("javaCmd");
+        if ((System.getProperty("java.vm.name") != null) && System.getProperty("java.vm.name").equals("J9"))
+            jcmd = "j9";
+        if (jcmd != null)
+        {
+            javaCmd = jcmd;
+            suiteProperties.put("javaCmd", javaCmd);
+        }
+        // get System properties for jvmflags, and put them to the end, thus
+        // when the time comes to have this converted into actual jvm flags
+        // the ones given at the command line will overwrite whatever's in the suite
+        String jflags = sp.getProperty("jvmflags");
+        if (jvmflags != null && !jvmflags.isEmpty())
+        {
+          //DERBY-4680 Make sure ^ does not get appended to jvmflags
+            if (jflags != null && !jflags.isEmpty())
+                    suiteProperties.put("jvmflags", (jvmflags + "^" + jflags));
+            else
+                    suiteProperties.put("jvmflags", jvmflags);
+        }
+        else
+        {
+            if (jflags != null && !jflags.isEmpty())
+                    suiteProperties.put("jvmflags", jflags);
+        }
+        String testflags = sp.getProperty("testJavaFlags");
+        if (testflags != null)
+        {
+            if (testJavaFlags == null || testJavaFlags.isEmpty())
+                testJavaFlags = testflags;
+            else // add to testJavaFlags
+                testJavaFlags = testJavaFlags + "^" + testflags;
+            suiteProperties.put("testJavaFlags", testJavaFlags);
+        }
+        String testprops = sp.getProperty("testSpecialProps");
+        if (testprops != null)
+        {
+            if (testSpecialProps == null || testSpecialProps.isEmpty())
+                testSpecialProps = testprops;
+            else // add to testSpecialProps
+                testSpecialProps = testSpecialProps + "^" + testprops;
+            suiteProperties.put("testSpecialProps", testSpecialProps);
+        }
+        String clpth = sp.getProperty("classpath");
+        if (clpth != null)
+        {
+            classpath = clpth;
+            suiteProperties.put("classpath", classpath);
+        }
+        String clsrv = sp.getProperty("classpathServer");
+        if ( (clsrv != null) && (!clsrv.startsWith("${")) )
+        {
+            classpathServer = clsrv;
+            suiteProperties.put("classpathServer", clsrv);
+        }
+        String usesys = sp.getProperty("usesystem");
+        if (usesys != null)
+            suiteProperties.put("usesystem", usesys);
+        String jarf = sp.getProperty("jarfile");
+        if (jarf != null)
+            suiteProperties.put("jarfile", jarf);
+        String upgtest = sp.getProperty("upgradetest");
+        if (upgtest != null)
+            suiteProperties.put("upgradetest", upgtest);
+        String rep = sp.getProperty("replication");
+        if (rep != null)
+            suiteProperties.put("replication", rep);
+        String encrypt = sp.getProperty("encryption");
+        if (encrypt != null)
+            suiteProperties.put("encryption", encrypt);
+        String encryptAlgorithm = sp.getProperty("testEncryptionAlgorithm");
+        if (encryptAlgorithm != null)
+            suiteProperties.put("testEncryptionAlgorithm", encryptAlgorithm);
+        String jdk12test = sp.getProperty("jdk12test");
+        if (jdk12test != null)
+            suiteProperties.put("jdk12test", jdk12test);
+        String jdk12ex = sp.getProperty("jdk12exttest");
+        if (jdk12ex != null)
+            suiteProperties.put("jdk12exttest", jdk12ex);
+        String runwithibmjvm = sp.getProperty("runwithibmjvm");
+        if (runwithibmjvm != null)
+            suiteProperties.put("runwithibmjvm", runwithibmjvm);
+        String excludeJCC = sp.getProperty("excludeJCC");
+        if (excludeJCC != null)
+            suiteProperties.put("excludeJCC", excludeJCC);
+        String keep = sp.getProperty("keepfiles");
+        if (keep != null)
+            suiteProperties.put("keepfiles", keep);
+        String outd = sp.getProperty("outputdir");
+        if (outd != null)
+        {
+            outputdir = outd;
+            suiteProperties.put("outputdir", outputdir);
+        }
+        String canond = sp.getProperty("canondir");
+        if (canond != null)
+        {
+            canondir = canond;
+            suiteProperties.put("canondir", canondir);
+        }
+        String j9bootcp = sp.getProperty("bootcp");
+        if (j9bootcp != null)
+        {
+            bootcp = j9bootcp;
+            suiteProperties.put("bootcp", bootcp);
+        }
+        String hostname = sp.getProperty("hostName");
+        if (hostname != null)
+            suiteProperties.put("hostName", hostname);
+        String serverJvm = sp.getProperty("serverJvm");
+        if (serverJvm != null)
+            suiteProperties.put("serverJvm", serverJvm);
+        String cmlTestEncoding = sp.getProperty("derbyTesting.encoding");
+        if (cmlTestEncoding != null)
+            suiteProperties.put("derbyTesting.encoding", cmlTestEncoding);
                 String upgradejarpath = sp.getProperty("derbyTesting.jar.path");
                 if (upgradejarpath != null)
                     suiteProperties.put("derbyTesting.jar.path", upgradejarpath);
-		String testout = sp.getProperty("testoutname");
-		if (testout != null)
-		    suiteProperties.put("testoutname", testout);
-		String mtdir = sp.getProperty("mtestdir"); // used by multi tests
-		if (mtdir != null)
-		    suiteProperties.put("mtestdir", mtdir);
-		String usepr = sp.getProperty("useprocess");
-		if (usepr != null)
-		{
-		    // Some platforms cannot handle process exec
-		    usepr = usepr.toLowerCase();
-		    if (usepr.equals("false"))
-		    {
-		        useprocess = false;
-		        suiteProperties.put("useprocess", usepr);
-		    }
-		}
-		
+        String testout = sp.getProperty("testoutname");
+        if (testout != null)
+            suiteProperties.put("testoutname", testout);
+        String mtdir = sp.getProperty("mtestdir"); // used by multi tests
+        if (mtdir != null)
+            suiteProperties.put("mtestdir", mtdir);
+        String usepr = sp.getProperty("useprocess");
+        if (usepr != null)
+        {
+            // Some platforms cannot handle process exec
+            usepr = usepr.toLowerCase();
+            if (usepr.equals("false"))
+            {
+                useprocess = false;
+                suiteProperties.put("useprocess", usepr);
+            }
+        }
+        
         String nosed = sp.getProperty("skipsed");
         if (nosed != null)
         {
@@ -528,35 +528,35 @@ public class RunSuite
                 suiteProperties.put("skipsed", nosed);
             }
         }
-		
-		String sysdiff = sp.getProperty("systemdiff");
-		if (sysdiff != null)
-		{
-		    // Use system diff if set to true
-		    sysdiff = sysdiff.toLowerCase();
-		    if (sysdiff.equals("true"))
-		        suiteProperties.put("systemdiff", "true");
-		}
-		String defrespckg = sp.getProperty("ij.defaultResourcePackage");
-		if (defrespckg != null)
-		    suiteProperties.put("ij.defaultResourcePackage", defrespckg);
-		String outcpy = sp.getProperty("outcopy");
-		if (outcpy != null)
-		    suiteProperties.put("outcopy", outcpy);
-		String topsuite = sp.getProperty("suitename");
-		if (topsuite != null)
-		    suiteProperties.put("suitename", topsuite);
-		else
-		    suiteProperties.put("suitename", topSuiteName);
+        
+        String sysdiff = sp.getProperty("systemdiff");
+        if (sysdiff != null)
+        {
+            // Use system diff if set to true
+            sysdiff = sysdiff.toLowerCase();
+            if (sysdiff.equals("true"))
+                suiteProperties.put("systemdiff", "true");
+        }
+        String defrespckg = sp.getProperty("ij.defaultResourcePackage");
+        if (defrespckg != null)
+            suiteProperties.put("ij.defaultResourcePackage", defrespckg);
+        String outcpy = sp.getProperty("outcopy");
+        if (outcpy != null)
+            suiteProperties.put("outcopy", outcpy);
+        String topsuite = sp.getProperty("suitename");
+        if (topsuite != null)
+            suiteProperties.put("suitename", topsuite);
+        else
+            suiteProperties.put("suitename", topSuiteName);
         String dbug = sp.getProperty("verbose");
-		if (dbug != null)
-		    suiteProperties.put("verbose", dbug);
-		String reporterr = sp.getProperty("reportstderr");
-		if (reporterr != null)
-		    suiteProperties.put("reportstderr", reporterr);
-		String tout = sp.getProperty("timeout");
-		if (tout != null)
-		    suiteProperties.put("timeout", tout);
+        if (dbug != null)
+            suiteProperties.put("verbose", dbug);
+        String reporterr = sp.getProperty("reportstderr");
+        if (reporterr != null)
+            suiteProperties.put("reportstderr", reporterr);
+        String tout = sp.getProperty("timeout");
+        if (tout != null)
+            suiteProperties.put("timeout", tout);
     }
 
     private static void setOutput(String suiteName)
@@ -568,21 +568,21 @@ public class RunSuite
         if ( (outputdir == null) || (outputdir.isEmpty()) )
         {
             tmpoutDir =
-		        new File((new File(userdir)).getCanonicalPath());
-		}
+                new File((new File(userdir)).getCanonicalPath());
+        }
         else
         {
             tmpoutDir =
                 new File((new File(outputdir)).getCanonicalPath());
-		}
+        }
         outDir = tmpoutDir;
         outDir.mkdir();
         
-		// runDir is where the suites/tests are run and where
-		// any support files or scripts will be expected to live
-		runDir =
-		    new File((new File(userdir)).getCanonicalPath());
-		    
+        // runDir is where the suites/tests are run and where
+        // any support files or scripts will be expected to live
+        runDir =
+            new File((new File(userdir)).getCanonicalPath());
+            
         // Set the suite property outputdir
         suiteProperties.put("outputdir", outDir.getCanonicalPath());
 

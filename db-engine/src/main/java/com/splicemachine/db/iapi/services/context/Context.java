@@ -66,38 +66,38 @@ import com.splicemachine.db.iapi.error.StandardException;
  */
 public interface Context
 {
-	/**
-	 * Returns the context manager that has stored this
-	 * context in its stack.
-	 */
-	ContextManager getContextManager();
+    /**
+     * Returns the context manager that has stored this
+     * context in its stack.
+     */
+    ContextManager getContextManager();
 
-	/**
-	 * Returns the current id name associated
-	 * with this context. Contexts are placed into
-	 * stacks by id, in a context manager. Null
-	 * if the context is not assigned to an id.
-	 * Contexts known by context managers are always
-	 * assigned to an id.
-	 * <p>
-	 * A default Id name should be defined in each
-	 * specific context interface as a static final
-	 * field with the name CONTEXT_ID. For example,
-	 * see com.splicemachine.db.iapi.sql.compile.CompilerContext.CONTEXT_ID.
-	 * @see com.splicemachine.db.iapi.sql.compile.CompilerContext
-	 */
-	String getIdName();
+    /**
+     * Returns the current id name associated
+     * with this context. Contexts are placed into
+     * stacks by id, in a context manager. Null
+     * if the context is not assigned to an id.
+     * Contexts known by context managers are always
+     * assigned to an id.
+     * <p>
+     * A default Id name should be defined in each
+     * specific context interface as a static final
+     * field with the name CONTEXT_ID. For example,
+     * see com.splicemachine.db.iapi.sql.compile.CompilerContext.CONTEXT_ID.
+     * @see com.splicemachine.db.iapi.sql.compile.CompilerContext
+     */
+    String getIdName();
 
-	/**
-	 * Contexts will be passed errors that are caught
-	 * by the outer system when they are serious enough
-	 * to require corrective action. They will be told
-	 * what the error is, so that they can react appropriately.
-	 * Most of the time, the contexts will react by either
-	 * doing nothing or by removing themselves from the
-	 * context manager. If there are no other references
-	 * to the context, removing itself from the manager
-	 * equates to freeing it.
+    /**
+     * Contexts will be passed errors that are caught
+     * by the outer system when they are serious enough
+     * to require corrective action. They will be told
+     * what the error is, so that they can react appropriately.
+     * Most of the time, the contexts will react by either
+     * doing nothing or by removing themselves from the
+     * context manager. If there are no other references
+     * to the context, removing itself from the manager
+     * equates to freeing it.
      * <BR>
      * On an exception that is session severity or greater
      * the Context must push itself off the stack. This is
@@ -105,49 +105,49 @@ public interface Context
      * are no Contexts on the stack that potentially hold
      * references to objects, thus delaying their garbage
      * collection.
-	 * <p>
-	 * Contexts must release all their resources before
-	 * removing themselves from their context manager.
-	 * <p>
-	 * The context manager 
-	 * will "unwind" the contexts during cleanup in the
-	 * reverse order they were placed on its global stack.
-	 *
-	 * <P>
-	 * If error is an instance of StandardException then an implementation
-	 * of this method may throw a new exception if and only if the new exception
-	 * is an instance of StandardException that is more severe than the original error
-	 * or the new exception is a not an instance of StandardException (e.g java.lang.NullPointerException).
-	 *
-	 * @exception StandardException thrown if cleanup goes awry
-	 */
-	void cleanupOnError(Throwable error)
-		throws StandardException;
+     * <p>
+     * Contexts must release all their resources before
+     * removing themselves from their context manager.
+     * <p>
+     * The context manager 
+     * will "unwind" the contexts during cleanup in the
+     * reverse order they were placed on its global stack.
+     *
+     * <P>
+     * If error is an instance of StandardException then an implementation
+     * of this method may throw a new exception if and only if the new exception
+     * is an instance of StandardException that is more severe than the original error
+     * or the new exception is a not an instance of StandardException (e.g java.lang.NullPointerException).
+     *
+     * @exception StandardException thrown if cleanup goes awry
+     */
+    void cleanupOnError(Throwable error)
+        throws StandardException;
 
-	/**
-		Push myself onto my context stack.
-	*/
-	void pushMe();
+    /**
+        Push myself onto my context stack.
+    */
+    void pushMe();
 
-	/**
-		Pop myself of the context stack.
-	*/
-	void popMe();
+    /**
+        Pop myself of the context stack.
+    */
+    void popMe();
 
-	/**
-	 * Return whether or not this context is the "last" handler for a
-	 * the specified severity level.  Previously, the context manager would march
-	 * through all of the contexts in cleanupOnError() and call each of 
-	 * their cleanupOnError() methods.  That did not work with server side
-	 * JDBC, especially for a StatementException, because outer contexts
-	 * could get cleaned up incorrectly.  This functionality is specific
-	 * to the Language system.  Any non-language system contexts should
-	 * return ExceptionSeverity.NOT_APPLICABLE_SEVERITY.
-	 *
-	 * NOTE: Both the LanguageConnectionContext and the JDBC Connection Context are
-	 * interested in session level errors because they both have clean up to do.
-	 * This method allows both of them to return false so that all such handlers
-	 * under them can do their clean up.
-	 */
-	boolean isLastHandler(int severity);
+    /**
+     * Return whether or not this context is the "last" handler for a
+     * the specified severity level.  Previously, the context manager would march
+     * through all of the contexts in cleanupOnError() and call each of 
+     * their cleanupOnError() methods.  That did not work with server side
+     * JDBC, especially for a StatementException, because outer contexts
+     * could get cleaned up incorrectly.  This functionality is specific
+     * to the Language system.  Any non-language system contexts should
+     * return ExceptionSeverity.NOT_APPLICABLE_SEVERITY.
+     *
+     * NOTE: Both the LanguageConnectionContext and the JDBC Connection Context are
+     * interested in session level errors because they both have clean up to do.
+     * This method allows both of them to return false so that all such handlers
+     * under them can do their clean up.
+     */
+    boolean isLastHandler(int severity);
 }

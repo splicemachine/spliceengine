@@ -41,20 +41,20 @@ import java.util.ArrayList;
 public class ConglomerateDescriptorList extends ArrayList<ConglomerateDescriptor>
 {
 
-	/**
-	 * Get a conglomerate descriptor by its number
-	 *
-	 * @param conglomerateNumber	The number of the conglomerate we're looking for
-	 *
-	 * @return	The ConglomerateDescriptor if found in this list,
-	 *		null if not found.
-	 */
-	public ConglomerateDescriptor getConglomerateDescriptor(long conglomerateNumber)
-	{
-		ConglomerateDescriptor conglomerateDescriptor;
-		ConglomerateDescriptor	returnValue = null;
+    /**
+     * Get a conglomerate descriptor by its number
+     *
+     * @param conglomerateNumber    The number of the conglomerate we're looking for
+     *
+     * @return    The ConglomerateDescriptor if found in this list,
+     *        null if not found.
+     */
+    public ConglomerateDescriptor getConglomerateDescriptor(long conglomerateNumber)
+    {
+        ConglomerateDescriptor conglomerateDescriptor;
+        ConglomerateDescriptor    returnValue = null;
 
-		int size = size();
+        int size = size();
         for (ConglomerateDescriptor conglomerateDescriptor1 : this) {
             conglomerateDescriptor = (ConglomerateDescriptor) conglomerateDescriptor1;
             if (conglomerateNumber == conglomerateDescriptor.getConglomerateNumber()) {
@@ -63,25 +63,25 @@ public class ConglomerateDescriptorList extends ArrayList<ConglomerateDescriptor
             }
         }
 
-		return returnValue;
-	}
+        return returnValue;
+    }
 
-	/**
-	 * Get an array of conglomerate descriptors with the given conglomerate
-	 * number.  We get more than one descriptors if duplicate indexes share
-	 * one conglomerate.
-	 *
-	 * @param conglomerateNumber	The number of the conglomerate
-	 *
-	 * @return	Array of ConglomerateDescriptors if found in this list,
-	 *		size 0 array if not found.
-	 */
-	public ConglomerateDescriptor[] getConglomerateDescriptors(long conglomerateNumber)
-	{
-		ConglomerateDescriptor conglomerateDescriptor;
+    /**
+     * Get an array of conglomerate descriptors with the given conglomerate
+     * number.  We get more than one descriptors if duplicate indexes share
+     * one conglomerate.
+     *
+     * @param conglomerateNumber    The number of the conglomerate
+     *
+     * @return    Array of ConglomerateDescriptors if found in this list,
+     *        size 0 array if not found.
+     */
+    public ConglomerateDescriptor[] getConglomerateDescriptors(long conglomerateNumber)
+    {
+        ConglomerateDescriptor conglomerateDescriptor;
 
-		int size = size(), j = 0;
-		ConglomerateDescriptor[] draft = new ConglomerateDescriptor[size];
+        int size = size(), j = 0;
+        ConglomerateDescriptor[] draft = new ConglomerateDescriptor[size];
 
         for (ConglomerateDescriptor conglomerateDescriptor1 : this) {
             conglomerateDescriptor = (ConglomerateDescriptor) conglomerateDescriptor1;
@@ -89,30 +89,30 @@ public class ConglomerateDescriptorList extends ArrayList<ConglomerateDescriptor
                 draft[j++] = conglomerateDescriptor;
         }
 
-		if (j == size)
-			return draft;
-		ConglomerateDescriptor[] returnValue = new ConglomerateDescriptor[j];
+        if (j == size)
+            return draft;
+        ConglomerateDescriptor[] returnValue = new ConglomerateDescriptor[j];
         System.arraycopy(draft, 0, returnValue, 0, j);
 
-		return returnValue;
-	}
+        return returnValue;
+    }
 
 
-	/**
-	 * Get a conglomerate descriptor by its Name
-	 *
-	 * @param conglomerateName	The Name of the conglomerate we're looking for
-	 *
-	 * @return	The ConglomerateDescriptor if found in this list,
-	 *		null if not found.
-	 */
+    /**
+     * Get a conglomerate descriptor by its Name
+     *
+     * @param conglomerateName    The Name of the conglomerate we're looking for
+     *
+     * @return    The ConglomerateDescriptor if found in this list,
+     *        null if not found.
+     */
 
-	public ConglomerateDescriptor getConglomerateDescriptor(String conglomerateName)
-	{
-		ConglomerateDescriptor conglomerateDescriptor;
-		ConglomerateDescriptor	returnValue = null;
+    public ConglomerateDescriptor getConglomerateDescriptor(String conglomerateName)
+    {
+        ConglomerateDescriptor conglomerateDescriptor;
+        ConglomerateDescriptor    returnValue = null;
 
-		int size = size();
+        int size = size();
         for (ConglomerateDescriptor conglomerateDescriptor1 : this) {
             conglomerateDescriptor = (ConglomerateDescriptor) conglomerateDescriptor1;
             if (conglomerateName.equals(conglomerateDescriptor.getConglomerateName())) {
@@ -121,39 +121,39 @@ public class ConglomerateDescriptorList extends ArrayList<ConglomerateDescriptor
             }
         }
 
-		return returnValue;
-	}
+        return returnValue;
+    }
 
-	/**
-	 * Get a conglomerate descriptor by its UUID String
-	 *
-	 * @param uuid	The UUID of the conglomerate we're looking for
-	 *
-	 * @return	The ConglomerateDescriptor if found in this list,
-	 *		null if not found.
-	 * @exception   StandardException thrown on failure
-	 */
+    /**
+     * Get a conglomerate descriptor by its UUID String
+     *
+     * @param uuid    The UUID of the conglomerate we're looking for
+     *
+     * @return    The ConglomerateDescriptor if found in this list,
+     *        null if not found.
+     * @exception   StandardException thrown on failure
+     */
 
-	public ConglomerateDescriptor getConglomerateDescriptor(UUID uuid)
-						throws StandardException
-	{
-		ConglomerateDescriptor conglomerateDescriptor;
-		ConglomerateDescriptor	returnValue = null;
+    public ConglomerateDescriptor getConglomerateDescriptor(UUID uuid)
+                        throws StandardException
+    {
+        ConglomerateDescriptor conglomerateDescriptor;
+        ConglomerateDescriptor    returnValue = null;
 
-		int size = size();
-		for (int index = 0; index < size; index++)
-		{
-			conglomerateDescriptor = (ConglomerateDescriptor) get(index);
+        int size = size();
+        for (int index = 0; index < size; index++)
+        {
+            conglomerateDescriptor = (ConglomerateDescriptor) get(index);
 
-			if (uuid.equals(conglomerateDescriptor.getUUID()))
-			{
-				returnValue = conglomerateDescriptor;
-				break;
-			}
-		}
+            if (uuid.equals(conglomerateDescriptor.getUUID()))
+            {
+                returnValue = conglomerateDescriptor;
+                break;
+            }
+        }
 
-		return returnValue;
-	}
+        return returnValue;
+    }
 
     public ConglomerateDescriptor getBaseConglomerateDescriptor() {
         ConglomerateDescriptor conglomerateDescriptor;
@@ -167,83 +167,83 @@ public class ConglomerateDescriptorList extends ArrayList<ConglomerateDescriptor
         throw new RuntimeException("Missing Base Conglomerate");
     }
 
-	/**
-	 * Get an array of conglomerate descriptors by a UUID String.  We get
-	 * more than one descriptors if duplicate indexes share one conglomerate.
-	 *
-	 * @param uuid	The UUID of the conglomerate
-	 *
-	 * @return	Array of ConglomerateDescriptors if found in this list,
-	 *		size 0 array if not found.
-	 */
-	public ConglomerateDescriptor[] getConglomerateDescriptors(UUID uuid)
-	{
-		ConglomerateDescriptor conglomerateDescriptor;
+    /**
+     * Get an array of conglomerate descriptors by a UUID String.  We get
+     * more than one descriptors if duplicate indexes share one conglomerate.
+     *
+     * @param uuid    The UUID of the conglomerate
+     *
+     * @return    Array of ConglomerateDescriptors if found in this list,
+     *        size 0 array if not found.
+     */
+    public ConglomerateDescriptor[] getConglomerateDescriptors(UUID uuid)
+    {
+        ConglomerateDescriptor conglomerateDescriptor;
 
-		int size = size(), j = 0;
-		ConglomerateDescriptor[] draft = new ConglomerateDescriptor[size];
+        int size = size(), j = 0;
+        ConglomerateDescriptor[] draft = new ConglomerateDescriptor[size];
 
-		for (int index = 0; index < size; index++)
-		{
-			conglomerateDescriptor = (ConglomerateDescriptor) get(index);
-			if (uuid.equals(conglomerateDescriptor.getUUID()))
-				draft[j++] = conglomerateDescriptor;
-		}
+        for (int index = 0; index < size; index++)
+        {
+            conglomerateDescriptor = (ConglomerateDescriptor) get(index);
+            if (uuid.equals(conglomerateDescriptor.getUUID()))
+                draft[j++] = conglomerateDescriptor;
+        }
 
-		if (j == size)
-			return draft;
-		ConglomerateDescriptor[] returnValue = new ConglomerateDescriptor[j];
+        if (j == size)
+            return draft;
+        ConglomerateDescriptor[] returnValue = new ConglomerateDescriptor[j];
         System.arraycopy(draft, 0, returnValue, 0, j);
 
-		return returnValue;
-	}
+        return returnValue;
+    }
 
-	/**
-	 * Remove the specified conglomerate descriptor from the
-	 * conglomerate descriptor list.  If the descriptor
-	 * is not found, no errors are issued.
-	 *
-	 * @param tableID table uuid, ignored
-	 * @param cgDesc the conglomerate
-	 *
-	 * @exception   StandardException thrown on failure
-	 */
-	public void dropConglomerateDescriptor(UUID tableID, ConglomerateDescriptor cgDesc) 
-						throws StandardException
-	{
-		for (Iterator iterator = iterator(); iterator.hasNext(); )
-		{
-			ConglomerateDescriptor localCgDesc = (ConglomerateDescriptor) iterator.next();
-			if (localCgDesc.getConglomerateNumber() == cgDesc.getConglomerateNumber() &&
-				localCgDesc.getConglomerateName().equals(cgDesc.getConglomerateName()) &&
-				localCgDesc.getSchemaID().equals(cgDesc.getSchemaID()))
-			{
-				iterator.remove();
-				break;
-			}
-		}
-	}
+    /**
+     * Remove the specified conglomerate descriptor from the
+     * conglomerate descriptor list.  If the descriptor
+     * is not found, no errors are issued.
+     *
+     * @param tableID table uuid, ignored
+     * @param cgDesc the conglomerate
+     *
+     * @exception   StandardException thrown on failure
+     */
+    public void dropConglomerateDescriptor(UUID tableID, ConglomerateDescriptor cgDesc) 
+                        throws StandardException
+    {
+        for (Iterator iterator = iterator(); iterator.hasNext(); )
+        {
+            ConglomerateDescriptor localCgDesc = (ConglomerateDescriptor) iterator.next();
+            if (localCgDesc.getConglomerateNumber() == cgDesc.getConglomerateNumber() &&
+                localCgDesc.getConglomerateName().equals(cgDesc.getConglomerateName()) &&
+                localCgDesc.getSchemaID().equals(cgDesc.getSchemaID()))
+            {
+                iterator.remove();
+                break;
+            }
+        }
+    }
 
-	/**
-	 * Remove the specified conglomerate descriptor from the
-	 * conglomerate descriptor list.  If the descriptor
-	 * is not found, no errors are issued.
-	 *
-	 * @param conglomerateID table uuid, ignored
-	 *
-	 * @exception   StandardException thrown on failure
-	 */
-	public void dropConglomerateDescriptorByUUID(UUID conglomerateID) 
-						throws StandardException
-	{
-		for (Iterator iterator = iterator(); iterator.hasNext(); )
-		{
-			ConglomerateDescriptor localCgDesc = (ConglomerateDescriptor) iterator.next();
-			if ( conglomerateID.equals( localCgDesc.getUUID() ) )
-			{
-				iterator.remove();
-				break;
-			}
-		}
-	}
+    /**
+     * Remove the specified conglomerate descriptor from the
+     * conglomerate descriptor list.  If the descriptor
+     * is not found, no errors are issued.
+     *
+     * @param conglomerateID table uuid, ignored
+     *
+     * @exception   StandardException thrown on failure
+     */
+    public void dropConglomerateDescriptorByUUID(UUID conglomerateID) 
+                        throws StandardException
+    {
+        for (Iterator iterator = iterator(); iterator.hasNext(); )
+        {
+            ConglomerateDescriptor localCgDesc = (ConglomerateDescriptor) iterator.next();
+            if ( conglomerateID.equals( localCgDesc.getUUID() ) )
+            {
+                iterator.remove();
+                break;
+            }
+        }
+    }
 }

@@ -35,15 +35,15 @@ import java.util.List;
 
 public class LastIndexKeyOperation extends ScanOperation {
         private static Logger LOG = Logger.getLogger(LastIndexKeyOperation.class);
-	    private int[] baseColumnMap;
-	    protected static final String NAME = LastIndexKeyOperation.class.getSimpleName().replaceAll("Operation","");
+        private int[] baseColumnMap;
+        protected static final String NAME = LastIndexKeyOperation.class.getSimpleName().replaceAll("Operation","");
 
-		@Override
-		public String getName() {
-				return NAME;
-		}
+        @Override
+        public String getName() {
+                return NAME;
+        }
 
-		public LastIndexKeyOperation() {
+        public LastIndexKeyOperation() {
         super();
     }
 
@@ -83,7 +83,7 @@ public class LastIndexKeyOperation extends ScanOperation {
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
-	    this.baseColumnMap = operationInformation.getBaseColumnMap();
+        this.baseColumnMap = operationInformation.getBaseColumnMap();
     }
 
     @Override

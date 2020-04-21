@@ -37,22 +37,22 @@ package com.splicemachine.db.iapi.sql;
  */
 public interface LanguageProperties
 {
-	/*
-	** BulkFetch
-	**
-	** The default size needs some explaining.  As
-	** of 7/14/98, the most efficient way for access
-	** to return rows from a table is basically by
-	** reading/qualifying/returning all the rows in
-	** one page.  If you are read in many many rows
-	** at a time the performance gain is only marginally
-	** better.  Anyway, since even a small number of
-	** rows per read helps, and since there is no good
-	** way to get access to retrieve the rows page
-	** by page, we use 16 totally arbitrarily.  Ultimately,
-	** this should be dynamically sized -- in which
-	** case we wouldn't need this default.
-	*/
+    /*
+    ** BulkFetch
+    **
+    ** The default size needs some explaining.  As
+    ** of 7/14/98, the most efficient way for access
+    ** to return rows from a table is basically by
+    ** reading/qualifying/returning all the rows in
+    ** one page.  If you are read in many many rows
+    ** at a time the performance gain is only marginally
+    ** better.  Anyway, since even a small number of
+    ** rows per read helps, and since there is no good
+    ** way to get access to retrieve the rows page
+    ** by page, we use 16 totally arbitrarily.  Ultimately,
+    ** this should be dynamically sized -- in which
+    ** case we wouldn't need this default.
+    */
     String BULK_FETCH_PROP = "derby.language.bulkFetchDefault";
     String BULK_FETCH_DEFAULT = "16";
     int BULK_FETCH_DEFAULT_INT = 16;

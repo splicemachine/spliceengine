@@ -36,68 +36,68 @@ import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.error.StandardException;
 
 /**
- *	This interface describes the columns in a referenced constraint. Added
- *	to be the protocol version of ConstraintInfo.
+ *    This interface describes the columns in a referenced constraint. Added
+ *    to be the protocol version of ConstraintInfo.
  *
  * @version 0.1
  */
 
-public interface ConsInfo	extends	Formatable
+public interface ConsInfo    extends    Formatable
 {
-	/**
-	  *	This ConsInfo describes columns in a referenced table. What is
-	  *	the schema that the referenced table lives in?
-	  *
-	  *	@param	dd	data dictionary to search for schema
-	  *
-	  *	@return	schema that referenced table lives in
-	  *	@exception	StandardException thrown on oops
-	  */
-	SchemaDescriptor getReferencedTableSchemaDescriptor(DataDictionary dd)
-		throws StandardException;
+    /**
+      *    This ConsInfo describes columns in a referenced table. What is
+      *    the schema that the referenced table lives in?
+      *
+      *    @param    dd    data dictionary to search for schema
+      *
+      *    @return    schema that referenced table lives in
+      *    @exception    StandardException thrown on oops
+      */
+    SchemaDescriptor getReferencedTableSchemaDescriptor(DataDictionary dd)
+        throws StandardException;
 
-	/**
-	  *	This ConsInfo describes columns in a referenced table. What is
-	  *	that table?
-	  *
-	  *	@param	dd	data dictionary to search for table
-	  *
-	  *	@return	referenced table
-	  *	@exception	StandardException thrown on oops
-	  */
-	TableDescriptor getReferencedTableDescriptor(DataDictionary dd)
-		throws StandardException;
+    /**
+      *    This ConsInfo describes columns in a referenced table. What is
+      *    that table?
+      *
+      *    @param    dd    data dictionary to search for table
+      *
+      *    @return    referenced table
+      *    @exception    StandardException thrown on oops
+      */
+    TableDescriptor getReferencedTableDescriptor(DataDictionary dd)
+        throws StandardException;
 
-	/**
-	  *	This ConsInfo describes columns in a referenced table. What are
-	  *	their names?
-	  *
-	  *	@return	array of referenced column names
-	  */
-	String[] getReferencedColumnNames();
+    /**
+      *    This ConsInfo describes columns in a referenced table. What are
+      *    their names?
+      *
+      *    @return    array of referenced column names
+      */
+    String[] getReferencedColumnNames();
 
-	/**
-	  *	Get the name of the table that these column live in.
-	  *
-	  *	@return	referenced table name
-	  */
-	String getReferencedTableName();
+    /**
+      *    Get the name of the table that these column live in.
+      *
+      *    @return    referenced table name
+      */
+    String getReferencedTableName();
 
 
-	/**
-	  *	Get the referential Action for an Update.
-	  *
-	  *	@return	referential Action for update
-	  */
+    /**
+      *    Get the referential Action for an Update.
+      *
+      *    @return    referential Action for update
+      */
 
-	int getReferentialActionUpdateRule();
-	
-	/**
-	  *	Get the referential Action for a Delete.
-	  *
-	  *	@return	referential Action Delete rule
-	  */
-	int getReferentialActionDeleteRule();
+    int getReferentialActionUpdateRule();
+    
+    /**
+      *    Get the referential Action for a Delete.
+      *
+      *    @return    referential Action Delete rule
+      */
+    int getReferentialActionDeleteRule();
 
 }
 

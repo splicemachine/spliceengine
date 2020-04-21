@@ -27,24 +27,24 @@ import javax.management.MXBean;
 @MXBean
 public interface DatabasePropertyManagement {
 
-	/**
-	 * Get the value of a database property.
-	 *
-	 * @param key  key of the database property
-	 *
-	 * @return value of the database property
-	 *
-	 * @throws SQLException
-	 */
-	String getDatabaseProperty(String key) throws SQLException;
+    /**
+     * Get the value of a database property.
+     *
+     * @param key  key of the database property
+     *
+     * @return value of the database property
+     *
+     * @throws SQLException
+     */
+    String getDatabaseProperty(String key) throws SQLException;
 
-	/**
-	 * Set the value of a database property.
-	 *
-	 * @param key  key of the database property
-	 * @param value  value of the database property
-	 *
-	 * @throws SQLException
-	 */
-	void setDatabaseProperty(String key,String value) throws SQLException;
+    /**
+     * Set the value of a database property.
+     *
+     * @param key  key of the database property
+     * @param value  value of the database property
+     *
+     * @throws SQLException
+     */
+    void setDatabaseProperty(String key,String value) throws SQLException;
 }

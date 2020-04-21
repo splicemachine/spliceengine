@@ -29,20 +29,20 @@ import java.util.concurrent.*;
  * Date: 2/27/14
  */
 public class Type1UUIDGeneratorTest {
-//		@Test
-//		public void testCanGenerateUUIDsInRecurringBlocksWithoutDuplicationLots() throws Exception {
-//				UUIDGenerator generator = Type1UUID.newGenerator(128);
-//				Set<byte[]> uuids = Sets.newTreeSet(Bytes.BYTES_COMPARATOR);
-//				for(int i=0;i<1000000;i++){
-//						byte[] next = generator.nextBytes();
-//						Assert.assertFalse(String.format("uuid %s already seen",Bytes.toStringBinary(next)), uuids.contains(next));
-//						uuids.add(next);
-//				}
-//		}
+//        @Test
+//        public void testCanGenerateUUIDsInRecurringBlocksWithoutDuplicationLots() throws Exception {
+//                UUIDGenerator generator = Type1UUID.newGenerator(128);
+//                Set<byte[]> uuids = Sets.newTreeSet(Bytes.BYTES_COMPARATOR);
+//                for(int i=0;i<1000000;i++){
+//                        byte[] next = generator.nextBytes();
+//                        Assert.assertFalse(String.format("uuid %s already seen",Bytes.toStringBinary(next)), uuids.contains(next));
+//                        uuids.add(next);
+//                }
+//        }
 
-		@Test
-		public void testCanGenerateUUIDsInRecurringBlocksWithoutDuplication() throws Exception {
-				UUIDGenerator generator = Type1UUID.newGenerator(128);
+        @Test
+        public void testCanGenerateUUIDsInRecurringBlocksWithoutDuplication() throws Exception {
+                UUIDGenerator generator = Type1UUID.newGenerator(128);
         Map<Long,Map<Long,Boolean>> uuids = new HashMap<Long, Map<Long, Boolean>>(){
             @Override
             public Map<Long, Boolean> get(Object key) {
@@ -54,34 +54,34 @@ public class Type1UUIDGeneratorTest {
                 return longBooleanMap;
             }
         };
-				for(int i=0;i<2*Short.MAX_VALUE;i++){
-						byte[] next = generator.nextBytes();
+                for(int i=0;i<2*Short.MAX_VALUE;i++){
+                        byte[] next = generator.nextBytes();
             long high = Bytes.toLong(next);
             long low = Bytes.toLong(next,8);
             Map<Long, Boolean> longBooleanMap = uuids.get(high);
             Assert.assertFalse("uuidSet already contains entry " + high + "" + low, longBooleanMap.containsKey(low));
             uuids.get(high).put(low, Boolean.TRUE);
-				}
-		}
+                }
+        }
 
-		@Test
-		public void testNoDuplicatesManyThreadsSameJVM() throws Exception {
-				int numThreads=10;
-				final int numIterations = 160000;
-				ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-				final ConcurrentMap<Long,ConcurrentMap<Long,Boolean>> existing
+        @Test
+        public void testNoDuplicatesManyThreadsSameJVM() throws Exception {
+                int numThreads=10;
+                final int numIterations = 160000;
+                ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+                final ConcurrentMap<Long,ConcurrentMap<Long,Boolean>> existing
                 = new ConcurrentHashMap<Long,ConcurrentMap<Long,Boolean>>();
-				List<Future<Boolean>> futures = new ArrayList<Future<Boolean>>(numThreads);
-				final CyclicBarrier startBarrier = new CyclicBarrier(numThreads+1);
-				for(int i=0;i<numThreads;i++){
-						futures.add(executor.submit(new Callable<Boolean>() {
-								@Override
-								public Boolean call() throws Exception {
-										startBarrier.await(); //wait for everyone to force contention
-										UUIDGenerator generator = Type1UUID.newGenerator(128);
-										for(int i=0;i<numIterations;i++){
-												long time = System.currentTimeMillis();
-												byte[] uuid = generator.nextBytes();
+                List<Future<Boolean>> futures = new ArrayList<Future<Boolean>>(numThreads);
+                final CyclicBarrier startBarrier = new CyclicBarrier(numThreads+1);
+                for(int i=0;i<numThreads;i++){
+                        futures.add(executor.submit(new Callable<Boolean>() {
+                                @Override
+                                public Boolean call() throws Exception {
+                                        startBarrier.await(); //wait for everyone to force contention
+                                        UUIDGenerator generator = Type1UUID.newGenerator(128);
+                                        for(int i=0;i<numIterations;i++){
+                                                long time = System.currentTimeMillis();
+                                                byte[] uuid = generator.nextBytes();
                         long nextUuidHigh = Bytes.toLong(uuid);
                         long nextUuidLow = Bytes.toLong(uuid,8);
 
@@ -92,36 +92,36 @@ public class Type1UUIDGeneratorTest {
                             if(entry==null)
                                 entry = newMap;
                         }
-												if(entry.putIfAbsent(nextUuidLow,true)!=null){
+                                                if(entry.putIfAbsent(nextUuidLow,true)!=null){
                             String uuidStr = Long.toString(nextUuidHigh)+Long.toString(nextUuidLow);
-														System.out.printf("     already present!i=%d,value=%s, time=%d,count=%d%n",
-																		i, uuidStr, time, Bytes.toShort(uuid, 14));
-														return false;  //uh-oh, duplicates!
-												}
-										}
-										return true;
-								}
-						}));
-				}
+                                                        System.out.printf("     already present!i=%d,value=%s, time=%d,count=%d%n",
+                                                                        i, uuidStr, time, Bytes.toShort(uuid, 14));
+                                                        return false;  //uh-oh, duplicates!
+                                                }
+                                        }
+                                        return true;
+                                }
+                        }));
+                }
 
-				startBarrier.await(); //tell everyone to start
-				for(Future<Boolean> future:futures){
-						Assert.assertTrue("Duplicate entry found!",future.get());
-				}
+                startBarrier.await(); //tell everyone to start
+                for(Future<Boolean> future:futures){
+                        Assert.assertTrue("Duplicate entry found!",future.get());
+                }
         int totalSize = 0;
         for(Map.Entry<Long,ConcurrentMap<Long,Boolean>> entry:existing.entrySet()){
             totalSize+=entry.getValue().size();
         }
 
-				//make sure that the correct number of uuids were generated
-				Assert.assertEquals("Incorrect number of uuids generated!", numThreads * numIterations, totalSize);
-		}
+                //make sure that the correct number of uuids were generated
+                Assert.assertEquals("Incorrect number of uuids generated!", numThreads * numIterations, totalSize);
+        }
 
 
-		@Test
-		public void testRepeatedNoDuplicatedManyThreadsSameJVM() throws Exception {
-				for(int i=0;i<10;i++){
-						testNoDuplicatesManyThreadsSameJVM();
-				}
-		}
+        @Test
+        public void testRepeatedNoDuplicatedManyThreadsSameJVM() throws Exception {
+                for(int i=0;i<10;i++){
+                        testNoDuplicatesManyThreadsSameJVM();
+                }
+        }
 }

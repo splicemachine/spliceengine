@@ -32,7 +32,7 @@
 package com.splicemachine.db.catalog;
 
 /**
- *	
+ *    
  * This interface describes an index.
  * 
  * It is used in the column SYS.SYSCONGLOMERATES.DESCRIPTOR
@@ -43,103 +43,103 @@ package com.splicemachine.db.catalog;
  */
 public interface IndexDescriptor
 {
-	/**
-	 * Returns true if the index is unique.
-	 */
-	boolean			isUnique();
-	/**
-	 * Returns true if the index is duplicate keys only for null key parts. 
+    /**
+     * Returns true if the index is unique.
+     */
+    boolean            isUnique();
+    /**
+     * Returns true if the index is duplicate keys only for null key parts. 
      * This is effective only if isUnique is false.
-	 */
-	boolean			isUniqueWithDuplicateNulls();
+     */
+    boolean            isUniqueWithDuplicateNulls();
 
-	/**
-	 * Returns an array of column positions in the base table.  Each index
-	 * column corresponds to a column position in the base table, except
-	 * the column representing the location of the row in the base table.
-	 * The returned array holds the column positions in the
-	 * base table, so, if entry 2 is the number 4, the second
-	 * column in the index is the fourth column in the table.
-	 */
-	int[]	baseColumnPositions();
+    /**
+     * Returns an array of column positions in the base table.  Each index
+     * column corresponds to a column position in the base table, except
+     * the column representing the location of the row in the base table.
+     * The returned array holds the column positions in the
+     * base table, so, if entry 2 is the number 4, the second
+     * column in the index is the fourth column in the table.
+     */
+    int[]    baseColumnPositions();
 
-	/**
+    /**
      * Returns the postion of a column.
      * <p>
-	 * Returns the position of a column within the key (1-based).
-	 * 0 means that the column is not in the key.  Same as the above
-	 * method, but it uses int instead of Integer.
-	 */
-	int getKeyColumnPosition(int heapColumnPosition);
+     * Returns the position of a column within the key (1-based).
+     * 0 means that the column is not in the key.  Same as the above
+     * method, but it uses int instead of Integer.
+     */
+    int getKeyColumnPosition(int heapColumnPosition);
 
-	/**
-	 * Returns the number of ordered columns.  
+    /**
+     * Returns the number of ordered columns.  
      * <p>
-	 * In the future, it will be
-	 * possible to store non-ordered columns in an index.  These will be
-	 * useful for covered queries.  The ordered columns will be at the
-	 * beginning of the index row, and they will be followed by the
-	 * non-ordered columns.
-	 *
-	 * For now, all columns in an index must be ordered.
-	 */
-	int				numberOfOrderedColumns();
+     * In the future, it will be
+     * possible to store non-ordered columns in an index.  These will be
+     * useful for covered queries.  The ordered columns will be at the
+     * beginning of the index row, and they will be followed by the
+     * non-ordered columns.
+     *
+     * For now, all columns in an index must be ordered.
+     */
+    int                numberOfOrderedColumns();
 
-	/**
-	 * Returns the type of the index.  For now, we only support B-Trees,
-	 * so the value "BTREE" is returned.
-	 */
-	String			indexType();
+    /**
+     * Returns the type of the index.  For now, we only support B-Trees,
+     * so the value "BTREE" is returned.
+     */
+    String            indexType();
 
-	/**
-	 * Returns array of boolean telling asc/desc info for each index
-	 * key column for convenience of using together with baseColumnPositions
-	 * method.  Both methods return an array with subscript starting from 0.
-	 */
-	boolean[]	isAscending();
+    /**
+     * Returns array of boolean telling asc/desc info for each index
+     * key column for convenience of using together with baseColumnPositions
+     * method.  Both methods return an array with subscript starting from 0.
+     */
+    boolean[]    isAscending();
 
-	/**
-	 * Returns true if the specified column is ascending in the index
-	 * (1-based).
-	 */
-	boolean			isAscending(Integer keyColumnPosition);
+    /**
+     * Returns true if the specified column is ascending in the index
+     * (1-based).
+     */
+    boolean            isAscending(Integer keyColumnPosition);
 
-	/**
-	 * Returns true if the specified column is descending in the index
-	 * (1-based).  In the current release, only ascending columns are
-	 * supported.
-	 */
-	boolean			isDescending(Integer keyColumnPosition);
+    /**
+     * Returns true if the specified column is descending in the index
+     * (1-based).  In the current release, only ascending columns are
+     * supported.
+     */
+    boolean            isDescending(Integer keyColumnPosition);
 
-	/**
-	 * set the baseColumnPositions field of the index descriptor.  This
-	 * is for updating the field in operations such as "alter table drop
-	 * column" where baseColumnPositions is changed.
-	 */
-	void     setBaseColumnPositions(int[] baseColumnPositions);
+    /**
+     * set the baseColumnPositions field of the index descriptor.  This
+     * is for updating the field in operations such as "alter table drop
+     * column" where baseColumnPositions is changed.
+     */
+    void     setBaseColumnPositions(int[] baseColumnPositions);
 
-	/**
-	 * set the isAscending field of the index descriptor.  This
-	 * is for updating the field in operations such as "alter table drop
-	 * column" where isAscending is changed.
-	 */
-	void     setIsAscending(boolean[] isAscending);
+    /**
+     * set the isAscending field of the index descriptor.  This
+     * is for updating the field in operations such as "alter table drop
+     * column" where isAscending is changed.
+     */
+    void     setIsAscending(boolean[] isAscending);
 
-	/**
-	 * set the numberOfOrderedColumns field of the index descriptor.  This
-	 * is for updating the field in operations such as "alter table drop
-	 * column" where numberOfOrderedColumns is changed.
-	 */
-	void     setNumberOfOrderedColumns(int numberOfOrderedColumns);
+    /**
+     * set the numberOfOrderedColumns field of the index descriptor.  This
+     * is for updating the field in operations such as "alter table drop
+     * column" where numberOfOrderedColumns is changed.
+     */
+    void     setNumberOfOrderedColumns(int numberOfOrderedColumns);
 
     /**
      * Checks whether the index descriptor is a primary key.
      * @return
      */
-	boolean isPrimaryKey();
+    boolean isPrimaryKey();
 
-	boolean excludeNulls();
+    boolean excludeNulls();
 
-	boolean excludeDefaults();
+    boolean excludeDefaults();
 
 }

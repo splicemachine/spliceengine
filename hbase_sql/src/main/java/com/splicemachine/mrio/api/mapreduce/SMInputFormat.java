@@ -33,31 +33,31 @@ import com.splicemachine.mrio.api.serde.RowLocationWritable;
  *
  */
 public class SMInputFormat extends InputFormat<RowLocationWritable, ExecRowWritable> implements Configurable {
-	protected com.splicemachine.mrio.api.core.SMInputFormat inputFormat;
-	
-	@Override
-	public void setConf(Configuration conf) {
-		if (inputFormat == null)
-			inputFormat = new com.splicemachine.mrio.api.core.SMInputFormat();
-		inputFormat.setConf(conf);
-	}
+    protected com.splicemachine.mrio.api.core.SMInputFormat inputFormat;
+    
+    @Override
+    public void setConf(Configuration conf) {
+        if (inputFormat == null)
+            inputFormat = new com.splicemachine.mrio.api.core.SMInputFormat();
+        inputFormat.setConf(conf);
+    }
 
-	@Override
-	public Configuration getConf() {
-		return inputFormat.getConf();
-	}
+    @Override
+    public Configuration getConf() {
+        return inputFormat.getConf();
+    }
 
-	@Override
-	public List<InputSplit> getSplits(JobContext context) throws IOException,
-			InterruptedException {
-		return inputFormat.getSplits(context);
-	}
+    @Override
+    public List<InputSplit> getSplits(JobContext context) throws IOException,
+            InterruptedException {
+        return inputFormat.getSplits(context);
+    }
 
-	@Override
-	public RecordReader<RowLocationWritable, ExecRowWritable> createRecordReader(
-			InputSplit split, TaskAttemptContext context) throws IOException,
-			InterruptedException {
-		return new SMWrappedRecordReader((SMRecordReaderImpl)inputFormat.createRecordReader(split, context));
-	}
+    @Override
+    public RecordReader<RowLocationWritable, ExecRowWritable> createRecordReader(
+            InputSplit split, TaskAttemptContext context) throws IOException,
+            InterruptedException {
+        return new SMWrappedRecordReader((SMRecordReaderImpl)inputFormat.createRecordReader(split, context));
+    }
 
 }

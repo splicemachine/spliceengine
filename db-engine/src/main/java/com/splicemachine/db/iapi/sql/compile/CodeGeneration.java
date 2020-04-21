@@ -37,5 +37,5 @@ package com.splicemachine.db.iapi.sql.compile;
  */
 public interface CodeGeneration
 {
-	String GENERATED_PACKAGE_PREFIX = "com.splicemachine.db.exe.";
+    String GENERATED_PACKAGE_PREFIX = "com.splicemachine.db.exe.";
 }

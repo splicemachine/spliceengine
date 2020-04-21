@@ -16,10 +16,10 @@ package com.splicemachine.derby.test.framework.tables;
 
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 
-public class SpliceCustomerTable extends SpliceTableWatcher {	
-	public static final String TABLE_NAME = "CUSTOMER";
-	
-	public static final String CREATE_STRING = "(cst_id int, " +
+public class SpliceCustomerTable extends SpliceTableWatcher {    
+    public static final String TABLE_NAME = "CUSTOMER";
+    
+    public static final String CREATE_STRING = "(cst_id int, " +
             "cst_last_name varchar(255), " +
             "cst_first_name varchar(255)," +
             "cst_gender_id smallint, " +
@@ -41,13 +41,13 @@ public class SpliceCustomerTable extends SpliceTableWatcher {
             "cst_tenure int, " +
             "cst_recency int, " +
             "cst_status_id int)";
-	
-	public SpliceCustomerTable(String schemaName) {
-		this(TABLE_NAME,schemaName);
-	}
+    
+    public SpliceCustomerTable(String schemaName) {
+        this(TABLE_NAME,schemaName);
+    }
 
-	public SpliceCustomerTable(String tableName, String schemaName) {
-		super(tableName,schemaName,CREATE_STRING);
-	}
-	
+    public SpliceCustomerTable(String tableName, String schemaName) {
+        super(tableName,schemaName,CREATE_STRING);
+    }
+    
 }

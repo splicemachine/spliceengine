@@ -19,41 +19,41 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import java.util.Arrays;
 
 public class FormatableBitSetUtils {
-	public static int currentRowPositionFromBaseRow(FormatableBitSet accessedCols, int baseRowPosition) {
-		if (accessedCols == null)
-			return baseRowPosition;
-		int position = 0;
-		for (int i = 0; i<baseRowPosition;i++) {
-			if (accessedCols.isSet(i))
-					position++;
-		}
-		return position;
-	}
+    public static int currentRowPositionFromBaseRow(FormatableBitSet accessedCols, int baseRowPosition) {
+        if (accessedCols == null)
+            return baseRowPosition;
+        int position = 0;
+        for (int i = 0; i<baseRowPosition;i++) {
+            if (accessedCols.isSet(i))
+                    position++;
+        }
+        return position;
+    }
 
     public static int currentRowPositionFromBaseRow(int[] accessedColMap, int baseRowPosition) {
         return accessedColMap[baseRowPosition];
     }
 
-		public static int[] toIntArray(FormatableBitSet validColumns) {
-				if(validColumns==null) return null;
-				int[] destArray = new int[validColumns.getLength()];
-				Arrays.fill(destArray, -1);
-				for(int i=validColumns.anySetBit();i>=0;i=validColumns.anySetBit(i)){
-						destArray[i] = i;
-				}
-				return destArray;
-		}
+        public static int[] toIntArray(FormatableBitSet validColumns) {
+                if(validColumns==null) return null;
+                int[] destArray = new int[validColumns.getLength()];
+                Arrays.fill(destArray, -1);
+                for(int i=validColumns.anySetBit();i>=0;i=validColumns.anySetBit(i)){
+                        destArray[i] = i;
+                }
+                return destArray;
+        }
 
-	public static int[] toCompactedIntArray(FormatableBitSet validColumns) {
-		if(validColumns == null) return null;
-		int[] result = new int[validColumns.getNumBitsSet()];
-		int count = 0;
-		for (int i = validColumns.anySetBit(); i >= 0; i = validColumns.anySetBit(i)) {
-			result[count] = i;
-			count++;
-		}
-		return result;
-	}
+    public static int[] toCompactedIntArray(FormatableBitSet validColumns) {
+        if(validColumns == null) return null;
+        int[] result = new int[validColumns.getNumBitsSet()];
+        int count = 0;
+        for (int i = validColumns.anySetBit(); i >= 0; i = validColumns.anySetBit(i)) {
+            result[count] = i;
+            count++;
+        }
+        return result;
+    }
 
     public static FormatableBitSet fromIntArray(int bitSetSize, int[] columns){
         FormatableBitSet bitSet = new FormatableBitSet(bitSetSize);

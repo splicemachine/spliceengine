@@ -52,46 +52,46 @@ import java.util.TreeMap;
  */
 public class DoubleBufferedSumAggregator extends SumAggregator{
 
-		private final double[] buffer;
-		private final int length;
-		private int position;
+        private final double[] buffer;
+        private final int length;
+        private int position;
 
         private java.util.TreeMap<Integer, MutableDouble> sumTree;
         private boolean isNull = true;
 
         public DoubleBufferedSumAggregator(int bufferSize) {
-        	this(bufferSize, null);
-		}
-		public DoubleBufferedSumAggregator(int bufferSize, TreeMap<Integer, MutableDouble> tree) {
-			    if (tree == null)
+            this(bufferSize, null);
+        }
+        public DoubleBufferedSumAggregator(int bufferSize, TreeMap<Integer, MutableDouble> tree) {
+                if (tree == null)
                     sumTree = new TreeMap<>();
-			    else
-					sumTree = tree;
-				int s = 1;
-				while(s<bufferSize){
-						s<<=1;
-				}
-				buffer = new double[s];
-				this.length = s-1;
-				position = 0;
-		}
+                else
+                    sumTree = tree;
+                int s = 1;
+                while(s<bufferSize){
+                        s<<=1;
+                }
+                buffer = new double[s];
+                this.length = s-1;
+                position = 0;
+        }
 
-		@Override
-		protected void accumulate(DataValueDescriptor addend) throws StandardException {
-				buffer[position] = addend.getDouble();
-				incrementPosition();
-		}
+        @Override
+        protected void accumulate(DataValueDescriptor addend) throws StandardException {
+                buffer[position] = addend.getDouble();
+                incrementPosition();
+        }
 
-		public void addDirect(double l) throws StandardException {
-				buffer[position] = l;
-				incrementPosition();
-		}
+        public void addDirect(double l) throws StandardException {
+                buffer[position] = l;
+                incrementPosition();
+        }
 
-		@Override
-		public void merge(ExecAggregator addend) throws StandardException {
-			if(addend==null) return; //treat null entries as zero
-				//In Splice, we should never see a different type of an ExecAggregator
-			DoubleBufferedSumAggregator other = (DoubleBufferedSumAggregator)addend;
+        @Override
+        public void merge(ExecAggregator addend) throws StandardException {
+            if(addend==null) return; //treat null entries as zero
+                //In Splice, we should never see a different type of an ExecAggregator
+            DoubleBufferedSumAggregator other = (DoubleBufferedSumAggregator)addend;
 
             MutableDouble item;
             if (!other.sumTree.isEmpty())
@@ -108,67 +108,67 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
                 buffer[position] = other.buffer[i];
                 incrementPosition();
             }
-		}
+        }
 
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				//Need to sum up all the intermediate values before serializing
-				if(position!=0){
-						try {
-								sum(position);
-						} catch (StandardException e) {
-								throw new IOException(e);
-						}
-						position=0;
-				}
-				out.writeBoolean(eliminatedNulls);
-				out.writeBoolean(isNull);
-				out.writeObject(sumTree);
-		}
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+                //Need to sum up all the intermediate values before serializing
+                if(position!=0){
+                        try {
+                                sum(position);
+                        } catch (StandardException e) {
+                                throw new IOException(e);
+                        }
+                        position=0;
+                }
+                out.writeBoolean(eliminatedNulls);
+                out.writeBoolean(isNull);
+                out.writeObject(sumTree);
+        }
 
-		@Override
-		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-				this.eliminatedNulls = in.readBoolean();
-				this.isNull = in.readBoolean();
-				this.sumTree = (TreeMap<Integer, MutableDouble>) in.readObject();
-		}
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+                this.eliminatedNulls = in.readBoolean();
+                this.isNull = in.readBoolean();
+                this.sumTree = (TreeMap<Integer, MutableDouble>) in.readObject();
+        }
 
-		@Override
-		public DataValueDescriptor getResult() throws StandardException {
+        @Override
+        public DataValueDescriptor getResult() throws StandardException {
                 if (value == null) {
                     value = new SQLDouble();
                 }
-				if(position!=0){
-					sum(position);
-					position=0;
-				}
-				if (sumTree.isEmpty())
+                if(position!=0){
+                    sum(position);
+                    position=0;
+                }
+                if (sumTree.isEmpty())
                     value.setToNull();
-				else
-				    value.setValue(collectFinalSum());
-				return value;
-		}
+                else
+                    value.setValue(collectFinalSum());
+                return value;
+        }
 
-		private double collectFinalSum() throws StandardException {
-			double tempSum = 0.0d;
-			for (Map.Entry<Integer, MutableDouble> s : sumTree.entrySet()) {
-				tempSum += s.getValue().doubleValue();
-			}
-			tempSum = NumberDataType.normalizeDOUBLE(tempSum);
-			return tempSum;
-		}
+        private double collectFinalSum() throws StandardException {
+            double tempSum = 0.0d;
+            for (Map.Entry<Integer, MutableDouble> s : sumTree.entrySet()) {
+                tempSum += s.getValue().doubleValue();
+            }
+            tempSum = NumberDataType.normalizeDOUBLE(tempSum);
+            return tempSum;
+        }
 
-		public void init(double sum,boolean eliminatedNulls) throws StandardException {
-        	    if (sum != 0.0d)
-			        addDirect(sum);
-				this.eliminatedNulls = eliminatedNulls;
-				this.isNull = false;
-		}
+        public void init(double sum,boolean eliminatedNulls) throws StandardException {
+                if (sum != 0.0d)
+                    addDirect(sum);
+                this.eliminatedNulls = eliminatedNulls;
+                this.isNull = false;
+        }
 
-		@Override
-		public ExecAggregator newAggregator() {
-				return new DoubleBufferedSumAggregator(buffer.length);
-		}
+        @Override
+        public ExecAggregator newAggregator() {
+                return new DoubleBufferedSumAggregator(buffer.length);
+        }
 
                 private void sum(int bufferLength) throws StandardException { 
                     for (int i=0;i<bufferLength;i++) {
@@ -183,29 +183,29 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
                         else
                             entry.setValue(entry.doubleValue() + buffer[i]);
                     }
-					position = 0;
-		}
+                    position = 0;
+        }
 
-		private void incrementPosition() throws StandardException {
-				int newposition = (position+1) & length;
-				if(newposition==0){
-						sum(buffer.length);
-				}
-				position = newposition;
-				isNull = false;
-		}
+        private void incrementPosition() throws StandardException {
+                int newposition = (position+1) & length;
+                if(newposition==0){
+                        sum(buffer.length);
+                }
+                position = newposition;
+                isNull = false;
+        }
 
       public String toString() {
          String bufferInfo = isNull ? null : (position < 25 && position > 0 ? 
                                                 Arrays.toString(Arrays.copyOfRange(buffer, 0, position))
                                                 : String.format("%s buffered", position));
          try {
-			 return "DoubleBufferedSumAggregator: " + (isNull ? "NULL" :
-				 String.format("{ sum=%s buffer=%s }", collectFinalSum(), bufferInfo));
-		 }
+             return "DoubleBufferedSumAggregator: " + (isNull ? "NULL" :
+                 String.format("{ sum=%s buffer=%s }", collectFinalSum(), bufferInfo));
+         }
          catch (StandardException e) {
-         	return "Overflow";
-		 }
+             return "Overflow";
+         }
       }
 
 }

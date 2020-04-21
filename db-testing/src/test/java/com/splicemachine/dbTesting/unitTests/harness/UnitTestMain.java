@@ -36,11 +36,11 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import java.util.Properties;
 
 /** 
-	A very simple class to boot up a system based upon a configuration file
-	passed in as the first argument. The optional second argument is taken
-	as a boolean. If the argument is missing or false, the configuration
-	is started, otherwise the configuration is created.
-	
+    A very simple class to boot up a system based upon a configuration file
+    passed in as the first argument. The optional second argument is taken
+    as a boolean. If the argument is missing or false, the configuration
+    is started, otherwise the configuration is created.
+    
 
     Usage: java com.splicemachine.dbTesting.unitTests.harness.UnitTestMain config-file [true]
 **/
@@ -48,14 +48,14 @@ import java.util.Properties;
 
 public class UnitTestMain  { 
 
-	public static void main(String args[]) {
+    public static void main(String args[]) {
 
 
-		Properties bootProperties = new Properties();
+        Properties bootProperties = new Properties();
 
-		// request that a unit test manager service is started
-		bootProperties.put("derby.service.unitTestManager", UnitTestManager.MODULE);
+        // request that a unit test manager service is started
+        bootProperties.put("derby.service.unitTestManager", UnitTestManager.MODULE);
 
-		Monitor.startMonitor(bootProperties, System.err);
-	}
+        Monitor.startMonitor(bootProperties, System.err);
+    }
 }

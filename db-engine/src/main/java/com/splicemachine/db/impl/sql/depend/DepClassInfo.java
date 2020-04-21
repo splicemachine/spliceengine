@@ -37,13 +37,13 @@ import com.splicemachine.db.iapi.services.io.FormatableInstanceGetter;
 // lifted from TypeFactoryImpl.DTSClassInfo
 public class DepClassInfo extends FormatableInstanceGetter {
 
-	public Object getNewInstance() {
-		switch (fmtId) 
-		{
-			case StoredFormatIds.PROVIDER_INFO_V02_ID:
-				return new BasicProviderInfo();
-			default:
-				return null;
-		}
-	}
+    public Object getNewInstance() {
+        switch (fmtId) 
+        {
+            case StoredFormatIds.PROVIDER_INFO_V02_ID:
+                return new BasicProviderInfo();
+            default:
+                return null;
+        }
+    }
 }

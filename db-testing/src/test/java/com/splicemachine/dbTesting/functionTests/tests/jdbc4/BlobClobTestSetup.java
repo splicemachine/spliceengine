@@ -121,7 +121,7 @@ public class BlobClobTestSetup
      */
     public static Blob getSampleBlob(Connection con) 
         throws SQLException {
-		InputStream blobInput = new ByteArrayInputStream(blobData, 0, blobData.length);
+        InputStream blobInput = new ByteArrayInputStream(blobData, 0, blobData.length);
         PreparedStatement pStmt = 
             con.prepareStatement("update BLOBCLOB set BLOBDATA = ? where ID = ?");
         try {
@@ -151,7 +151,7 @@ public class BlobClobTestSetup
      */
     public static Clob getSampleClob(Connection con) 
         throws SQLException {
-		Reader clobInput = new StringReader(clobData);
+        Reader clobInput = new StringReader(clobData);
         PreparedStatement pStmt = 
             con.prepareStatement("update BLOBCLOB set CLOBDATA = ? where ID = ?");
         try {

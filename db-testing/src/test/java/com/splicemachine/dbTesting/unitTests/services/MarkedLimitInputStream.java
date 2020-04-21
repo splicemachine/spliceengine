@@ -52,12 +52,12 @@ public class MarkedLimitInputStream extends com.splicemachine.db.iapi.services.i
     protected int blockLength;
 
 
-	public MarkedLimitInputStream(DataInputStream in)
+    public MarkedLimitInputStream(DataInputStream in)
         throws IOException
     {
-		super(in);
+        super(in);
         start();
-	}
+    }
 
     private void start()
         throws IOException
@@ -80,7 +80,7 @@ public class MarkedLimitInputStream extends com.splicemachine.db.iapi.services.i
 
     }
 
-	public int read()
+    public int read()
         throws IOException
     {
         int i = super.read();
@@ -100,41 +100,41 @@ public class MarkedLimitInputStream extends com.splicemachine.db.iapi.services.i
         {
             return i;
         }
-	}
+    }
 
 
-	public int read(byte b[], int off, int len)
+    public int read(byte b[], int off, int len)
         throws IOException
     {
-		if (isLastBlock)
+        if (isLastBlock)
         {
             // get as many bytes as we can, superclass may return less
             // bytes than we asked for without good reason
-	        int m = 0;
-	        while (m < len)
+            int m = 0;
+            while (m < len)
             {
-	            int count = super.read(b, off + m, len - m);
-	            if (count < 0)
+                int count = super.read(b, off + m, len - m);
+                if (count < 0)
                 {
-		            break;
+                    break;
                 }
-	            m += count;
-	        }
-			return m;
+                m += count;
+            }
+            return m;
         }
 
         // read until either get back all the bytes we asked for
         // or until we get -1
-	    int n = 0;
-	    while (n < len)
+        int n = 0;
+        while (n < len)
         {
-	        int count = super.read(b, off + n, len - n);
-	        if (count < 0)
+            int count = super.read(b, off + n, len - n);
+            if (count < 0)
             {
-		        break;
+                break;
             }
-	        n += count;
-	    }
+            n += count;
+        }
 
         if (SanityManager.DEBUG)
         {
@@ -155,7 +155,7 @@ public class MarkedLimitInputStream extends com.splicemachine.db.iapi.services.i
         }
 
         return n + this.read(b, off+n, len-n);
-	}
+    }
 
 
     public long skip(long count)
@@ -169,16 +169,16 @@ public class MarkedLimitInputStream extends com.splicemachine.db.iapi.services.i
         // long n = super.skip(count);
         // read until either skip all the bytes we asked to
         // or until we get a result which is <= 0
-	    long n = 0;
-	    while (n < count)
+        long n = 0;
+        while (n < count)
         {
-	        long c = super.skip(count-n);
-	        if (c <= 0)
+            long c = super.skip(count-n);
+            if (c <= 0)
             {
-		        break;
+                break;
             }
-	        n += c;
-	    }
+            n += c;
+        }
 
         if (SanityManager.DEBUG)
         {

@@ -34,25 +34,25 @@ package com.splicemachine.db.iapi.services.uuid;
 import com.splicemachine.db.catalog.UUID;
 
 /*
-	Internal comment (not for user documentation):
+    Internal comment (not for user documentation):
   Although this is an abstract interface, I believe that the
   underlying implementation of UUID will have to be DCE UUID.
   This is because the string versions of UUIDs get stored in
   the source code.  In other words, no matter what implementation
   is used for UUIDs, strings that look like this
   <blockquote><pre>
-	E4900B90-DA0E-11d0-BAFE-0060973F0942
+    E4900B90-DA0E-11d0-BAFE-0060973F0942
   </blockquote></pre>
   will always have to be turned into universally unique objects
   by the recreateUUID method
  */
 /**
-	
+    
   Generates and recreates unique identifiers.
   
   An example of such an identifier is:
   <blockquote><pre>
-	E4900B90-DA0E-11d0-BAFE-0060973F0942
+    E4900B90-DA0E-11d0-BAFE-0060973F0942
   </blockquote></pre>
   These resemble DCE UUIDs, but use a different implementation.
   <P>
@@ -63,17 +63,17 @@ import com.splicemachine.db.catalog.UUID;
  **/
 public interface UUIDFactory 
 {
-	/**
-	  Create a new UUID.  The resulting object is guaranteed
-	  to be unique "across space and time".
-	  @return		The UUID.
-	**/
-	UUID createUUID();
+    /**
+      Create a new UUID.  The resulting object is guaranteed
+      to be unique "across space and time".
+      @return        The UUID.
+    **/
+    UUID createUUID();
 
-	/**
-	  Recreate a UUID from a string produced by UUID.toString.
-	  @return		The UUID.
-	**/
-	UUID recreateUUID(String uuidstring);
+    /**
+      Recreate a UUID from a string produced by UUID.toString.
+      @return        The UUID.
+    **/
+    UUID recreateUUID(String uuidstring);
 }
 

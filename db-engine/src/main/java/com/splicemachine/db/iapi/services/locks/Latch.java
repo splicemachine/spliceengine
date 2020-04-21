@@ -32,24 +32,24 @@
 package com.splicemachine.db.iapi.services.locks;
 
 /**
-	A Latch represents a latch held in the lock manager.
+    A Latch represents a latch held in the lock manager.
 */
 public interface Latch {
 
-	/**	
-		Get the compatibility space the latch is held in.
-	*/
-	CompatibilitySpace getCompatabilitySpace();
+    /**    
+        Get the compatibility space the latch is held in.
+    */
+    CompatibilitySpace getCompatabilitySpace();
 
-	/**
-		Gte the object the latch is held on.
-	*/
-	Lockable getLockable();
+    /**
+        Gte the object the latch is held on.
+    */
+    Lockable getLockable();
 
-	/**
-		Get the qualifier used when the latch was obtained.
-	*/
-	Object getQualifier();
+    /**
+        Get the qualifier used when the latch was obtained.
+    */
+    Object getQualifier();
 
-	int getCount();
+    int getCount();
 }

@@ -91,10 +91,10 @@ public class NsTest extends Thread {
     // embedded mode
 
     public static final String driver = new String(
-	"com.splicemachine.db.jdbc.ClientDriver");
+    "com.splicemachine.db.jdbc.ClientDriver");
 
     public static final String embedDriver = new String(
-	"com.splicemachine.db.jdbc.EmbeddedDriver");
+    "com.splicemachine.db.jdbc.EmbeddedDriver");
 
     public static Properties prop = new Properties();
 
@@ -485,16 +485,16 @@ public class NsTest extends Thread {
         System.out.println("-----------------------------");
         System.out.println("");
         System.out.println("SUCCESSFUL: ");
-        System.out.println("	Number of INSERTS = " + numInserts);
-        System.out.println("	Number of UPDATES = " + numUpdates);
-        System.out.println("	Number of DELETES = " + numDeletes);
-        System.out.println("	Number of SELECTS = " + numSelects);
+        System.out.println("    Number of INSERTS = " + numInserts);
+        System.out.println("    Number of UPDATES = " + numUpdates);
+        System.out.println("    Number of DELETES = " + numDeletes);
+        System.out.println("    Number of SELECTS = " + numSelects);
         System.out.println("");
         System.out.println("FAILED: ");
-        System.out.println("	Number of failed INSERTS = " + numFailedInserts);
-        System.out.println("	Number of failed UPDATES = " + numFailedUpdates);
-        System.out.println("	Number of failed DELETES = " + numFailedDeletes);
-        System.out.println("	Number of failed SELECTS = " + numFailedSelects);
+        System.out.println("    Number of failed INSERTS = " + numFailedInserts);
+        System.out.println("    Number of failed UPDATES = " + numFailedUpdates);
+        System.out.println("    Number of failed DELETES = " + numFailedDeletes);
+        System.out.println("    Number of failed SELECTS = " + numFailedSelects);
         System.out.println("");
         System.out.println("  Note that this may not be the same as the server side connections made\n"
                 + "   to the database especially if connection pooling is employed");

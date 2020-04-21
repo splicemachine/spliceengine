@@ -56,9 +56,9 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,CLASS_NAME, 
-    		"(col1 int, col2 int, col3 int, col4 int, col5 int, col6 int, col7 int, col8 int, col9 int,"
-    		+ "col10 int, col11 int, col12 int, col13 int, col14 int, col15 int, col16 int, col17 int, col18 int,"
-    		+ "col19 int, col20 int)");
+            "(col1 int, col2 int, col3 int, col4 int, col5 int, col6 int, col7 int, col8 int, col9 int,"
+            + "col10 int, col11 int, col12 int, col13 int, col14 int, col15 int, col16 int, col17 int, col18 int,"
+            + "col19 int, col20 int)");
     protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_NAME_9, CLASS_NAME, "(a1 int default 999, b1 varchar(20) default ' ', c1 int)");
 

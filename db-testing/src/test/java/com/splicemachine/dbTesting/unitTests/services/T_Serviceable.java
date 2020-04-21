@@ -37,101 +37,101 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.daemon.*;
 
 /**
-	This test implements serviceable for testing.  To facility testing, when
-	this object is being serviced, it will synchronize on itself and notity all
-	waiters.  Test driver may wait on this object and check timesServiced to
-	make sure the background daemon has run.
+    This test implements serviceable for testing.  To facility testing, when
+    this object is being serviced, it will synchronize on itself and notity all
+    waiters.  Test driver may wait on this object and check timesServiced to
+    make sure the background daemon has run.
 */
 public class T_Serviceable implements Serviceable
 {
-	// synchronized on this to look at the number 
-	// of times this object has been serviced
-	protected int timesServiced;
+    // synchronized on this to look at the number 
+    // of times this object has been serviced
+    protected int timesServiced;
 
-	// constant for checking
-	protected final int timesRequeue;
-	protected final boolean onDemandOnly;
-	protected final boolean subscribed;
+    // constant for checking
+    protected final int timesRequeue;
+    protected final boolean onDemandOnly;
+    protected final boolean subscribed;
 
-	// use this to unsubscribe
-	protected int clientNumber;
+    // use this to unsubscribe
+    protected int clientNumber;
 
-	// test enqueueing, t = number of times to requeue
-	public T_Serviceable(int t)
-	{
-		timesServiced = 0;
-		timesRequeue = t;
-		onDemandOnly = false;	// not looked at
-		subscribed = false;
-		clientNumber = -1;
-	}
+    // test enqueueing, t = number of times to requeue
+    public T_Serviceable(int t)
+    {
+        timesServiced = 0;
+        timesRequeue = t;
+        onDemandOnly = false;    // not looked at
+        subscribed = false;
+        clientNumber = -1;
+    }
 
-	// test subscription 
-	public T_Serviceable(boolean onDemandOnly)
-	{
-		timesServiced = 0;
-		timesRequeue = 0;		// not looked at
-		this.onDemandOnly = onDemandOnly;
-		subscribed = true;
-	}
+    // test subscription 
+    public T_Serviceable(boolean onDemandOnly)
+    {
+        timesServiced = 0;
+        timesRequeue = 0;        // not looked at
+        this.onDemandOnly = onDemandOnly;
+        subscribed = true;
+    }
 
-	protected void setClientNumber(int n)
-	{
-		clientNumber = n;
-	}
+    protected void setClientNumber(int n)
+    {
+        clientNumber = n;
+    }
 
-	protected int getClientNumber()
-	{
-		return clientNumber;
-	}
+    protected int getClientNumber()
+    {
+        return clientNumber;
+    }
 
-	/*
-	 *  Serviceable interface
-	 */
-	public synchronized int performWork(ContextManager context) 
-	{
-		context.toString();	// make sure context manager is not null;
+    /*
+     *  Serviceable interface
+     */
+    public synchronized int performWork(ContextManager context) 
+    {
+        context.toString();    // make sure context manager is not null;
 
-		timesServiced++;
-		notifyAll();			// notify anyone waiting for me to be serviced
+        timesServiced++;
+        notifyAll();            // notify anyone waiting for me to be serviced
 
-		if (!subscribed && timesRequeue > timesServiced)
-			return Serviceable.REQUEUE;
-		else
-			return Serviceable.DONE;
-	}
-	
-	public boolean serviceASAP()
-	{
-		return true;
-	}
-
-
-	// @return true, if this work needs to be done on a user thread immediately
-	public boolean serviceImmediately()
-	{
-		return false;
-	}	
+        if (!subscribed && timesRequeue > timesServiced)
+            return Serviceable.REQUEUE;
+        else
+            return Serviceable.DONE;
+    }
+    
+    public boolean serviceASAP()
+    {
+        return true;
+    }
 
 
-	/*
-	 * test utilities
-	 */
+    // @return true, if this work needs to be done on a user thread immediately
+    public boolean serviceImmediately()
+    {
+        return false;
+    }    
 
-	protected synchronized void t_wait(int n)
-	{
-		try
-		{
-			while (timesServiced < n)
-				wait();
-		}
-		catch (InterruptedException ie) {}
-	}
 
-	protected synchronized void t_check(int n) throws T_Fail
-	{
-		if (timesServiced != n)
-			throw T_Fail.testFailMsg("Expect to be serviced " + n + " times, instead serviced " + timesServiced);
-	}
+    /*
+     * test utilities
+     */
+
+    protected synchronized void t_wait(int n)
+    {
+        try
+        {
+            while (timesServiced < n)
+                wait();
+        }
+        catch (InterruptedException ie) {}
+    }
+
+    protected synchronized void t_check(int n) throws T_Fail
+    {
+        if (timesServiced != n)
+            throw T_Fail.testFailMsg("Expect to be serviced " + n + " times, instead serviced " + timesServiced);
+    }
 
 }

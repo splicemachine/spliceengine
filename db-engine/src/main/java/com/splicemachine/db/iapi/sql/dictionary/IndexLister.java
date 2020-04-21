@@ -41,7 +41,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 public class IndexLister{
     ////////////////////////////////////////////////////////////////////////
     //
-    //	STATE
+    //    STATE
     //
     ////////////////////////////////////////////////////////////////////////
 
@@ -56,7 +56,7 @@ public class IndexLister{
 
     ////////////////////////////////////////////////////////////////////////
     //
-    //	CONSTRUCTORS
+    //    CONSTRUCTORS
     //
     ////////////////////////////////////////////////////////////////////////
 
@@ -72,7 +72,7 @@ public class IndexLister{
 
     ////////////////////////////////////////////////////////////////////////
     //
-    //	INDEXLISTER METHODS
+    //    INDEXLISTER METHODS
     //
     ////////////////////////////////////////////////////////////////////////
 
@@ -159,7 +159,7 @@ public class IndexLister{
 
     ////////////////////////////////////////////////////////////////////////
     //
-    //	MINIONS
+    //    MINIONS
     //
     ////////////////////////////////////////////////////////////////////////
 
@@ -174,11 +174,11 @@ public class IndexLister{
 
         ConglomerateDescriptor[] cds= tableDescriptor.getConglomerateDescriptors();
 
-		/* from one end of work space, we record distinct conglomerate
+        /* from one end of work space, we record distinct conglomerate
          * numbers for comparison while we iterate; from the other end of
-		 * work space, we record duplicate indexes' indexes in "cds" array,
-		 * so that we can skip them in later round.
-		 */
+         * work space, we record duplicate indexes' indexes in "cds" array,
+         * so that we can skip them in later round.
+         */
         long[] workSpace=new long[cds.length-1];  // 1 heap
         int distinctIndexCount=0, duplicateIndex=workSpace.length-1;
 

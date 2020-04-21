@@ -38,117 +38,117 @@ import com.splicemachine.db.iapi.services.locks.C_LockFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 
 /**
-	A Lock represents a granted or waiting lock request.
+    A Lock represents a granted or waiting lock request.
 
-	<BR>
-	MT - Mutable - Immutable identity : Thread Aware
+    <BR>
+    MT - Mutable - Immutable identity : Thread Aware
 */
 
 public final class ActiveLock extends Lock {
 
-	/**
-		Set to true if the object waiting on this thread should wake up,
-		MT - mutable - java synchronized(this)
-	*/
-	byte wakeUpNow;
+    /**
+        Set to true if the object waiting on this thread should wake up,
+        MT - mutable - java synchronized(this)
+    */
+    byte wakeUpNow;
 
-	/**
-		Set to true if the Lock potentially could be granted.
+    /**
+        Set to true if the Lock potentially could be granted.
 
-		MT - mutable - single thread required
-	*/
-	boolean potentiallyGranted;
+        MT - mutable - single thread required
+    */
+    boolean potentiallyGranted;
 
-	/**
-		If true then this lock can be granted even if
-		it is not the first lock request on the wait queue.
-		This can occur if the compatibility space already holds
-		a lock on the object.
-	*/
-	protected boolean canSkip;
+    /**
+        If true then this lock can be granted even if
+        it is not the first lock request on the wait queue.
+        This can occur if the compatibility space already holds
+        a lock on the object.
+    */
+    protected boolean canSkip;
 
-	/**
-		Initialize the lock, should be seen as part of the constructor. A future
-		version of this class may become mutable - mutable identity.
+    /**
+        Initialize the lock, should be seen as part of the constructor. A future
+        version of this class may become mutable - mutable identity.
 
-		MT - single thread required
-	*/
-	protected ActiveLock(CompatibilitySpace space, Lockable ref,
-						 Object qualifier) {
-		super(space, ref, qualifier);
-	}
+        MT - single thread required
+    */
+    protected ActiveLock(CompatibilitySpace space, Lockable ref,
+                         Object qualifier) {
+        super(space, ref, qualifier);
+    }
 
-	/**	
-		Set the potentially granted flag, returns true if the
-		flag changed its state.
+    /**    
+        Set the potentially granted flag, returns true if the
+        flag changed its state.
 
-		MT - single thread required
-	*/
-	protected boolean setPotentiallyGranted() {
-		if (!potentiallyGranted) {
-			potentiallyGranted = true;
-			return true;
-		}
-		return false;
-	}
+        MT - single thread required
+    */
+    protected boolean setPotentiallyGranted() {
+        if (!potentiallyGranted) {
+            potentiallyGranted = true;
+            return true;
+        }
+        return false;
+    }
 
-	/**	
-		Clear the potentially granted flag.
+    /**    
+        Clear the potentially granted flag.
 
-		MT - single thread required
-	*/
-	protected void clearPotentiallyGranted() {
-		potentiallyGranted = false;
-	}
+        MT - single thread required
+    */
+    protected void clearPotentiallyGranted() {
+        potentiallyGranted = false;
+    }
 
-	/**
-		Wait for a lock to be granted, returns when the lock is granted.
-		<P>
-		The sleep wakeup scheme depends on the two booleans wakeUpNow & potentiallyGranted.
-		  
-		MT - Single thread required - and assumed to be the thread requesting the lock.
+    /**
+        Wait for a lock to be granted, returns when the lock is granted.
+        <P>
+        The sleep wakeup scheme depends on the two booleans wakeUpNow & potentiallyGranted.
+          
+        MT - Single thread required - and assumed to be the thread requesting the lock.
 
-		@return true if the wait ended early (ie. someone else woke us up).
+        @return true if the wait ended early (ie. someone else woke us up).
 
-		@exception StandardException timeout, deadlock or thread interrupted
-	*/
-	protected synchronized byte waitForGrant(int timeout)
-		throws StandardException
-	{
+        @exception StandardException timeout, deadlock or thread interrupted
+    */
+    protected synchronized byte waitForGrant(int timeout)
+        throws StandardException
+    {
 
-		if (wakeUpNow == Constants.WAITING_LOCK_IN_WAIT) {
+        if (wakeUpNow == Constants.WAITING_LOCK_IN_WAIT) {
 
-			try {
+            try {
 
 
-				if (timeout == C_LockFactory.WAIT_FOREVER) {
-					wait();
-				}
-				else if (timeout > 0) {
-					wait(timeout);
-				}
+                if (timeout == C_LockFactory.WAIT_FOREVER) {
+                    wait();
+                }
+                else if (timeout > 0) {
+                    wait(timeout);
+                }
 
-			} catch (InterruptedException ie) {
+            } catch (InterruptedException ie) {
                 wakeUpNow = Constants.WAITING_LOCK_INTERRUPTED;
-			}
-		}
+            }
+        }
 
-		byte why = wakeUpNow;
-		wakeUpNow = Constants.WAITING_LOCK_IN_WAIT;
-		return why;
-	}
+        byte why = wakeUpNow;
+        wakeUpNow = Constants.WAITING_LOCK_IN_WAIT;
+        return why;
+    }
 
-	/**
-		Wake up anyone sleeping on this lock.
+    /**
+        Wake up anyone sleeping on this lock.
 
-		MT - Thread Safe
-	*/
-	protected synchronized void wakeUp(byte why) {
-		// If we were picked as a deadlock victim then don't
-		// override the wakeup reason with another one.
-		if (wakeUpNow != Constants.WAITING_LOCK_DEADLOCK)
-			wakeUpNow = why;
-		notify();
-	}
+        MT - Thread Safe
+    */
+    protected synchronized void wakeUp(byte why) {
+        // If we were picked as a deadlock victim then don't
+        // override the wakeup reason with another one.
+        if (wakeUpNow != Constants.WAITING_LOCK_DEADLOCK)
+            wakeUpNow = why;
+        notify();
+    }
 }
 

@@ -38,27 +38,27 @@ import com.splicemachine.db.iapi.error.StandardException;
 */
 public  class T_CacheException extends T_StandardException {
 
-	public static final int		ERROR = 0;
-	public static final int     INVALID_KEY = 1;
-	public static final int		IDENTITY_FAIL = 2;
+    public static final int        ERROR = 0;
+    public static final int     INVALID_KEY = 1;
+    public static final int        IDENTITY_FAIL = 2;
 
-	protected int type;
+    protected int type;
 
-		
-	protected T_CacheException(String message, int type) {
-		super("cache.S", message);
-		this.type = type;
-	}
+        
+    protected T_CacheException(String message, int type) {
+        super("cache.S", message);
+        this.type = type;
+    }
 
-	public static StandardException invalidKey() {
-		return new T_CacheException("invalid key passed", INVALID_KEY);
-	}
-	public static StandardException identityFail() {
-		return new T_CacheException("identity change failed", IDENTITY_FAIL);
-	}
+    public static StandardException invalidKey() {
+        return new T_CacheException("invalid key passed", INVALID_KEY);
+    }
+    public static StandardException identityFail() {
+        return new T_CacheException("identity change failed", IDENTITY_FAIL);
+    }
 
-	protected int getType() {
-		return type;
-	}
+    protected int getType() {
+        return type;
+    }
 }
 

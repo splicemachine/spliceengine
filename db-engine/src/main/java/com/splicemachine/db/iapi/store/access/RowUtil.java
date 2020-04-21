@@ -89,8 +89,8 @@ import java.util.Vector;
        returns false.
   <LI> Column N is in the partial row if validColumns.isSet(N) returns true.
   <LI> If column N is in the partial row then it maps to row[N].
-	   If N >= row.length then the column is taken as non existent for an
-	   insert or update, and not fetched on a fetch.
+       If N >= row.length then the column is taken as non existent for an
+       insert or update, and not fetched on a fetch.
   </UL>
   If row.length is greater than the number of columns indicated by validColumns
   the extra entries are ignored.
@@ -98,77 +98,77 @@ import java.util.Vector;
 **/
 public class RowUtil
 {
-	private RowUtil() {}
+    private RowUtil() {}
 
-	/**
-		An object that can be used on a fetch to indicate no fields
-		need to be fetched.
-	*/
-	public static final DataValueDescriptor[] EMPTY_ROW = 
+    /**
+        An object that can be used on a fetch to indicate no fields
+        need to be fetched.
+    */
+    public static final DataValueDescriptor[] EMPTY_ROW = 
         new DataValueDescriptor[0];
 
-	/**
-		An object that can be used on a fetch as a FormatableBitSet to indicate no fields
-		need to be fetched.
-	*/
-	public static final FormatableBitSet EMPTY_ROW_BITSET  = 
+    /**
+        An object that can be used on a fetch as a FormatableBitSet to indicate no fields
+        need to be fetched.
+    */
+    public static final FormatableBitSet EMPTY_ROW_BITSET  = 
         new FormatableBitSet(0);
 
-	/**
-		Get the object for a column identifer (0 based) from a complete or 
+    /**
+        Get the object for a column identifer (0 based) from a complete or 
         partial row.
 
-		@param row the row
-		@param columnList valid columns in the row
-		@param columnId which column to return (0 based)
+        @param row the row
+        @param columnList valid columns in the row
+        @param columnId which column to return (0 based)
 
-		@return the obejct for the column, or null if the column is not represented.
-	*/
-	public static DataValueDescriptor getColumn(
+        @return the obejct for the column, or null if the column is not represented.
+    */
+    public static DataValueDescriptor getColumn(
     DataValueDescriptor[]   row, 
     FormatableBitSet                 columnList, 
     int                     columnId) 
     {
 
-		if (columnList == null)
-			return columnId < row.length ? row[columnId] : null;
+        if (columnList == null)
+            return columnId < row.length ? row[columnId] : null;
 
 
-		if (!(columnList.getLength() > columnId && columnList.isSet(columnId)))
-			return null;
+        if (!(columnList.getLength() > columnId && columnList.isSet(columnId)))
+            return null;
 
         return columnId < row.length ? row[columnId] : null;
 
-	}
+    }
 
-	public static Object getColumn(
+    public static Object getColumn(
     Object[]   row, 
     FormatableBitSet                 columnList, 
     int                     columnId) 
     {
 
-		if (columnList == null)
-			return columnId < row.length ? row[columnId] : null;
+        if (columnList == null)
+            return columnId < row.length ? row[columnId] : null;
 
 
-		if (!(columnList.getLength() > columnId && columnList.isSet(columnId)))
-			return null;
+        if (!(columnList.getLength() > columnId && columnList.isSet(columnId)))
+            return null;
 
         return columnId < row.length ? row[columnId] : null;
 
-	}
+    }
 
-	/**
-		Get a FormatableBitSet representing all the columns represented in
-		a qualifier list.
+    /**
+        Get a FormatableBitSet representing all the columns represented in
+        a qualifier list.
 
-		@return a FormatableBitSet describing the valid columns.
-	*/
-	public static FormatableBitSet getQualifierBitSet(Qualifier[][] qualifiers) 
+        @return a FormatableBitSet describing the valid columns.
+    */
+    public static FormatableBitSet getQualifierBitSet(Qualifier[][] qualifiers) 
     {
-		FormatableBitSet qualifierColumnList = new FormatableBitSet();
+        FormatableBitSet qualifierColumnList = new FormatableBitSet();
 
-		if (qualifiers != null) 
+        if (qualifiers != null) 
         {
             for (Qualifier[] qualifier : qualifiers) {
                 for (int j = 0; j < qualifier.length; j++) {
@@ -179,10 +179,10 @@ public class RowUtil
                     qualifierColumnList.set(colId);
                 }
             }
-		}
+        }
 
-		return qualifierColumnList;
-	}
+        return qualifierColumnList;
+    }
 
     /**
      * Get the number of columns represented by a FormatableBitSet.
@@ -198,7 +198,7 @@ public class RowUtil
      *                           
      * @param columnList valid columns in the row
      *
-	 * @return The number of columns represented in the FormatableBitSet.
+     * @return The number of columns represented in the FormatableBitSet.
      **/
     public static int getNumberOfColumns(
     int     maxColumnNumber,
@@ -209,8 +209,8 @@ public class RowUtil
 
         int max_col_number = columnList.getLength();
 
-		if (maxColumnNumber > 0 && maxColumnNumber < max_col_number)
-			max_col_number = maxColumnNumber;
+        if (maxColumnNumber > 0 && maxColumnNumber < max_col_number)
+            max_col_number = maxColumnNumber;
 
         int ret_num_cols = 0;
 
@@ -223,73 +223,73 @@ public class RowUtil
         return(ret_num_cols);
     }
 
-	/**
-		See if a row actually contains no columns.
-		Returns true if row is null or row.length is zero.
+    /**
+        See if a row actually contains no columns.
+        Returns true if row is null or row.length is zero.
 
-		@return true if row is empty.
-	*/
-	public static boolean isRowEmpty(
+        @return true if row is empty.
+    */
+    public static boolean isRowEmpty(
     DataValueDescriptor[]   row) {
 
         return row == null || row.length == 0;
 
     }
 
-	/**
-		Return the column number of the first column out of range, or a number
+    /**
+        Return the column number of the first column out of range, or a number
         less than zero if all columns are in range.
-	*/
-	public static int columnOutOfRange(
+    */
+    public static int columnOutOfRange(
     DataValueDescriptor[]   row, 
     FormatableBitSet                 columnList, 
     int                     maxColumns) 
     {
 
-		if (columnList == null) {
-			if (row.length > maxColumns)
-				return maxColumns;
+        if (columnList == null) {
+            if (row.length > maxColumns)
+                return maxColumns;
 
-			return -1;
-		}
+            return -1;
+        }
 
-		int size = columnList.getLength();
-		for (int i = maxColumns; i < size; i++) {
-			if (columnList.isSet(i))
-				return i;
-		}
+        int size = columnList.getLength();
+        for (int i = maxColumns; i < size; i++) {
+            if (columnList.isSet(i))
+                return i;
+        }
 
-		return -1;
-	}
+        return -1;
+    }
 
-	/**
-		Get the next valid column after or including start column.
-		Returns -1 if no valid columns exist after startColumn
-	*/
-	public static int nextColumn(
+    /**
+        Get the next valid column after or including start column.
+        Returns -1 if no valid columns exist after startColumn
+    */
+    public static int nextColumn(
     Object[]   row, 
     FormatableBitSet                 columnList, 
     int                     startColumn) 
     {
 
-		if (columnList != null) {
+        if (columnList != null) {
 
-			int size = columnList.getLength();
+            int size = columnList.getLength();
 
-			for (; startColumn < size; startColumn++) {
-				if (columnList.isSet(startColumn)) {
-					return startColumn;
-				}
-			}
+            for (; startColumn < size; startColumn++) {
+                if (columnList.isSet(startColumn)) {
+                    return startColumn;
+                }
+            }
 
-			return -1;
-		}
+            return -1;
+        }
 
-		if (row == null)
-			return -1;
+        if (row == null)
+            return -1;
 
-		return startColumn < row.length ? startColumn : -1;
-	}
+        return startColumn < row.length ? startColumn : -1;
+    }
 
     /**************************************************************************
      * Public Methods dealing with cloning and row copying util functions
@@ -306,12 +306,12 @@ public class RowUtil
      * of "new" empty rows.
      * <p>
      *
-	 * @return The new row.
+     * @return The new row.
      *
      * @param column_list A bit set indicating which columns to include in row.
      * @param format_ids  an array of format id's, one per column in row.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     public static DataValueDescriptor[] newTemplate(
     DataValueFactory    dvf,
@@ -323,7 +323,7 @@ public class RowUtil
         int                   num_cols = format_ids.length;
         DataValueDescriptor[] ret_row  = new DataValueDescriptor[num_cols];
 
-		int column_listSize = 
+        int column_listSize = 
             (column_list == null) ? 0 : column_list.getLength();
 
         for (int i = 0; i < num_cols; i++)
@@ -355,14 +355,14 @@ public class RowUtil
      * method on each of the DataValueDescriptor objects.  
      * <p>
      *
-	 * @return The new row.
+     * @return The new row.
      *
      * @param  template            An array of DataValueDescriptor objects 
      *                             each of which can be used to create a new 
      *                             instance of the appropriate type to build a 
      *                             new empty template row.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     public static DataValueDescriptor[] newRowFromTemplate(
     DataValueDescriptor[]    template) 
@@ -383,7 +383,7 @@ public class RowUtil
             }
         }
 
-		return columns;
+        return columns;
     }
 
 
@@ -392,7 +392,7 @@ public class RowUtil
      * <p>
      * For debugging only. 
      *
-	 * @return The string version of row.
+     * @return The string version of row.
      *
      * @param row The row.
      *
@@ -433,7 +433,7 @@ public class RowUtil
      * return string version of a HashTable returned from a FetchSet.
      * <p>
      *
-	 * @return The string version of row.
+     * @return The string version of row.
      *
      *
      **/
@@ -505,19 +505,19 @@ public class RowUtil
      * (qual[qual.length - 1][0] or  qual[1][1] ... or  qual[1][2])
      *
      * 
-	 * @return true if the row qualifies.
+     * @return true if the row qualifies.
      *
      * @param row               The row being qualified.
      * @param qual_list         2 dimensional array representing conjunctive
      *                          normal form of simple qualifiers.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	public static final boolean qualifyRow(
+    public static final boolean qualifyRow(
     DataValueDescriptor[]        row, 
     Qualifier[][]   qual_list)
-		 throws StandardException
-	{
+         throws StandardException
+    {
         boolean     row_qualifies = true;
 
         if (SanityManager.DEBUG)

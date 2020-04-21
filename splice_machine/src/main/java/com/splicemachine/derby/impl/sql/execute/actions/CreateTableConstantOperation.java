@@ -78,17 +78,17 @@ import java.util.concurrent.TimeoutException;
 public class CreateTableConstantOperation extends DDLConstantOperation {
     private static final Logger LOG = Logger.getLogger(CreateTableConstantOperation.class);
 
-    private char					lockGranularity;
-    private boolean					onCommitDeleteRows; //If true, on commit delete rows else on commit preserve rows of temporary table.
-    private boolean					onRollbackDeleteRows; //If true, on rollback delete rows from temp table if it was logically modified in that UOW. true is the only supported value
-    private String					tableName;
-    private String					schemaName;
-    private int						tableType;
-    private ColumnInfo[]			columnInfo;
+    private char                    lockGranularity;
+    private boolean                    onCommitDeleteRows; //If true, on commit delete rows else on commit preserve rows of temporary table.
+    private boolean                    onRollbackDeleteRows; //If true, on rollback delete rows from temp table if it was logically modified in that UOW. true is the only supported value
+    private String                    tableName;
+    private String                    schemaName;
+    private int                        tableType;
+    private ColumnInfo[]            columnInfo;
     // Contains CreateConstraintConstantOperation elements, but array ref is ConstraintConstantOperation[]
-    protected ConstraintConstantOperation[]	constraintActions;
+    protected ConstraintConstantOperation[]    constraintActions;
     private boolean isExternal;
-    private Properties				properties;
+    private Properties                properties;
     private String delimited;
     private String escaped;
     private String lines;
@@ -107,30 +107,30 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
 
     /**
-     *	Make the ConstantAction for a CREATE TABLE statement.
+     *    Make the ConstantAction for a CREATE TABLE statement.
      *
-     *  @param schemaName	name for the schema that table lives in.
-     *  @param tableName	Name of table.
-     *  @param tableType	Type of table (e.g., BASE, global temporary table).
-     *  @param columnInfo	Information on all the columns in the table.
-     *		 (REMIND tableDescriptor ignored)
-     *  @param constraintActions	CreateConstraintConstantAction[] for constraints
-     *  @param properties	Optional table properties
-     * @param lockGranularity	The lock granularity.
-     * @param onCommitDeleteRows	If true, on commit delete rows else on commit preserve rows of temporary table.
-     * @param onRollbackDeleteRows	If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
+     *  @param schemaName    name for the schema that table lives in.
+     *  @param tableName    Name of table.
+     *  @param tableType    Type of table (e.g., BASE, global temporary table).
+     *  @param columnInfo    Information on all the columns in the table.
+     *         (REMIND tableDescriptor ignored)
+     *  @param constraintActions    CreateConstraintConstantAction[] for constraints
+     *  @param properties    Optional table properties
+     * @param lockGranularity    The lock granularity.
+     * @param onCommitDeleteRows    If true, on commit delete rows else on commit preserve rows of temporary table.
+     * @param onRollbackDeleteRows    If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
      */
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public CreateTableConstantOperation(
-            String			schemaName,
-            String			tableName,
-            int				tableType,
-            ColumnInfo[]	columnInfo,
+            String            schemaName,
+            String            tableName,
+            int                tableType,
+            ColumnInfo[]    columnInfo,
             ConstantAction[] constraintActions,
-            Properties		properties,
-            char			lockGranularity,
-            boolean			onCommitDeleteRows,
-            boolean			onRollbackDeleteRows,
+            Properties        properties,
+            char            lockGranularity,
+            boolean            onCommitDeleteRows,
+            boolean            onRollbackDeleteRows,
             boolean isExternal,
             String delimited,
             String escaped,
@@ -195,17 +195,17 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
 
     /**
-     *	This is the guts of the Execution-time logic for CREATE TABLE.
+     *    This is the guts of the Execution-time logic for CREATE TABLE.
      *
-     *	@see ConstantAction#executeConstantAction
+     *    @see ConstantAction#executeConstantAction
      *
-     * @exception StandardException		Thrown on failure
+     * @exception StandardException        Thrown on failure
      */
     @Override
     public void executeConstantAction( Activation activation ) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeConstantAction");
 
-		    /* Mark the activation as being for create table */
+            /* Mark the activation as being for create table */
         activation.setForCreateTable();
 
         createTable(activation);
@@ -310,10 +310,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             throw StandardException.plainWrapException(e);
         }
         /* create the conglomerate to hold the table's rows
-		 * RESOLVE - If we ever have a conglomerate creator
-		 * that lets us specify the conglomerate number then
-		 * we will need to handle it here.
-		 */
+         * RESOLVE - If we ever have a conglomerate creator
+         * that lets us specify the conglomerate number then
+         * we will need to handle it here.
+         */
         long conglomId = tc.createConglomerate(storedAs!=null,
                 "heap", // we're requesting a heap conglomerate
                 template.getRowArray(), // row template
@@ -370,14 +370,14 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         // Save the TableDescriptor off in the Activation
         activation.setDDLTableDescriptor(td);
 
-				/*
-				 * NOTE: We must write the columns out to the system
-				 * tables before any of the conglomerates, including
-				 * the heap, since we read the columns before the
-				 * conglomerates when building a TableDescriptor.
-				 * This will hopefully reduce the probability of
-				 * a deadlock involving those system tables.
-				 */
+                /*
+                 * NOTE: We must write the columns out to the system
+                 * tables before any of the conglomerates, including
+                 * the heap, since we read the columns before the
+                 * conglomerates when building a TableDescriptor.
+                 * This will hopefully reduce the probability of
+                 * a deadlock involving those system tables.
+                 */
 
         // for each column, stuff system.column
         int index = 1;
@@ -385,10 +385,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnInfo.length];
         for (int ix = 0; ix < columnInfo.length; ix++) {
             UUID defaultUUID = columnInfo[ix].newDefaultUUID;
-						/*
-						 * Generate a UUID for the default, if one exists
-						 * and there is no default id yet.
-						 */
+                        /*
+                         * Generate a UUID for the default, if one exists
+                         * and there is no default id yet.
+                         */
             if (columnInfo[ix].defaultInfo != null && defaultUUID == null) {
                 defaultUUID = dd.getUUIDFactory().createUUID();
             }
@@ -456,7 +456,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         ConglomerateDescriptorList conglomList = td.getConglomerateDescriptorList();
         conglomList.add(cgd);
 
-		    /* Create any constraints */
+            /* Create any constraints */
         if (constraintActions != null) {
             /*
              * Do everything but FK constraints first,

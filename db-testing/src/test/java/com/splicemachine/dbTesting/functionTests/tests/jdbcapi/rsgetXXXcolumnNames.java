@@ -57,7 +57,7 @@ public class rsgetXXXcolumnNames {
                         // make the initial connection.
                         ij.getPropertyArg(args);
                         con = ij.startJBMS();
-					
+                    
 
                         stmt = con.createStatement(); 
 
@@ -65,66 +65,66 @@ public class rsgetXXXcolumnNames {
                         String[] testObjects = {"table caseiscol"};
                         TestUtil.cleanUpTest(stmt, testObjects);
 
-			con.setAutoCommit(false);                        			              
+            con.setAutoCommit(false);                                                  
 
-			// create a table with two columns, their names differ in they being in different cases.
+            // create a table with two columns, their names differ in they being in different cases.
                         stmt.executeUpdate("create table caseiscol(COL1 int ,\"col1\" int)");
 
-   			con.commit();
-   			
-			stmt.executeUpdate("insert into caseiscol values (1,346)");
+               con.commit();
+               
+            stmt.executeUpdate("insert into caseiscol values (1,346)");
 
-			con.commit();
+            con.commit();
 
                         // select data from this table for updating
-			stmt1 = con.prepareStatement("select COL1, \"col1\" from caseiscol FOR UPDATE",ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-		        rs = stmt1.executeQuery();
+            stmt1 = con.prepareStatement("select COL1, \"col1\" from caseiscol FOR UPDATE",ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+                rs = stmt1.executeQuery();
 
-			// Get the data and disply it before updating.
+            // Get the data and disply it before updating.
                         System.out.println("Before updation...");
-			while(rs.next()) {
-			   System.out.println("ResultSet is: "+rs.getObject(1));
-			   System.out.println("ResultSet is: "+rs.getObject(2));
-			}
+            while(rs.next()) {
+               System.out.println("ResultSet is: "+rs.getObject(1));
+               System.out.println("ResultSet is: "+rs.getObject(2));
+            }
                         rs.close();
-			rs = stmt1.executeQuery();
-			while(rs.next()) {
-			   // Update the two columns with different data.
-			   // Since update is case insensitive only the first column should get updated in both cases.
-			   rs.updateInt("col1",100);
-			   rs.updateInt("COL1",900);
-			   rs.updateRow();
-			}
-			rs.close();
+            rs = stmt1.executeQuery();
+            while(rs.next()) {
+               // Update the two columns with different data.
+               // Since update is case insensitive only the first column should get updated in both cases.
+               rs.updateInt("col1",100);
+               rs.updateInt("COL1",900);
+               rs.updateRow();
+            }
+            rs.close();
 
-			System.out.println("After update...");
-			rs = stmt1.executeQuery();
+            System.out.println("After update...");
+            rs = stmt1.executeQuery();
 
-			// Display the data after updating. Only the first column should have the updated value.
-			while(rs.next()) {
-			   System.out.println("Column Number 1: "+rs.getInt(1));
-			   System.out.println("Column Number 2: "+rs.getInt(2));
-			}
-			rs.close();
-			rs = stmt1.executeQuery();
-			while(rs.next()) {
-			   // Again checking for case insensitive behaviour here, should display the data in the first column.
-			   System.out.println("Col COL1: "+rs.getInt("COL1"));
-			   System.out.println("Col col1: "+rs.getInt("col1"));
-			}
-			rs.close();
+            // Display the data after updating. Only the first column should have the updated value.
+            while(rs.next()) {
+               System.out.println("Column Number 1: "+rs.getInt(1));
+               System.out.println("Column Number 2: "+rs.getInt(2));
+            }
+            rs.close();
+            rs = stmt1.executeQuery();
+            while(rs.next()) {
+               // Again checking for case insensitive behaviour here, should display the data in the first column.
+               System.out.println("Col COL1: "+rs.getInt("COL1"));
+               System.out.println("Col col1: "+rs.getInt("col1"));
+            }
+            rs.close();
             stmt1.close();
             stmt.close();
             con.commit();
             con.close();
- 		} catch(SQLException sqle) {
- 		   dumpSQLExceptions(sqle);
- 		   sqle.printStackTrace();
- 		} catch(Throwable e) {
- 		   System.out.println("FAIL -- unexpected exception: "+e.getMessage());
+         } catch(SQLException sqle) {
+            dumpSQLExceptions(sqle);
+            sqle.printStackTrace();
+         } catch(Throwable e) {
+            System.out.println("FAIL -- unexpected exception: "+e.getMessage());
                    e.printStackTrace();
 
- 		}
+         }
      }
      
      static private void dumpSQLExceptions (SQLException se) {

@@ -862,12 +862,12 @@ final public class GenericActivationHolder implements Activation
         return ac.datasetProcessorType();
     }
 
-	@Override
-	public boolean isSubStatement() { return isSubStatement; }
+    @Override
+    public boolean isSubStatement() { return isSubStatement; }
 
-	@Override
+    @Override
         public void setSubStatement(boolean newValue) {
-	    isSubStatement = newValue;
-	    ac.setSubStatement(newValue);
-	}
+        isSubStatement = newValue;
+        ac.setSubStatement(newValue);
+    }
 }

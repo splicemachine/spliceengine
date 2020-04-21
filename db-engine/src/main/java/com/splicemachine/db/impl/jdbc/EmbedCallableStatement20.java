@@ -66,32 +66,32 @@ import com.splicemachine.db.iapi.types.StringDataValue;
  * This class extends the EmbedCallableStatement class in order to support new
  * methods and classes that come with JDBC 2.0.
  *
- *	@see EmbedCallableStatement
+ *    @see EmbedCallableStatement
  *
  */
 public abstract class EmbedCallableStatement20
-	extends EmbedCallableStatement
+    extends EmbedCallableStatement
 {
 
-	//////////////////////////////////////////////////////////////
-	//
-	// CONSTRUCTORS
-	//
-	//////////////////////////////////////////////////////////////
-	public EmbedCallableStatement20 (EmbedConnection conn, String sql,
-								   int resultSetType,
-								   int resultSetConcurrency,
-								   int resultSetHoldability)
-		throws SQLException
-	{
-		super(conn, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
-	}
+    //////////////////////////////////////////////////////////////
+    //
+    // CONSTRUCTORS
+    //
+    //////////////////////////////////////////////////////////////
+    public EmbedCallableStatement20 (EmbedConnection conn, String sql,
+                                   int resultSetType,
+                                   int resultSetConcurrency,
+                                   int resultSetHoldability)
+        throws SQLException
+    {
+        super(conn, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    }
 
-	/////////////////////////////////////////////////////////////////////////
-	//
-	//	JDBC 2.0	-	New public methods
-	//
-	/////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////
+    //
+    //    JDBC 2.0    -    New public methods
+    //
+    /////////////////////////////////////////////////////////////////////////
 
 
     /**
@@ -106,17 +106,17 @@ public abstract class EmbedCallableStatement20
      * @return a java.lang.Object holding the OUT parameter value.
      * @exception SQLException if a database-access error occurs.
      */
-	public Object  getObject (int i, java.util.Map map) throws SQLException 
-	{
-		checkStatus();
-		if( map == null)
+    public Object  getObject (int i, java.util.Map map) throws SQLException 
+    {
+        checkStatus();
+        if( map == null)
             throw Util.generateCsSQLException(SQLState.INVALID_API_PARAMETER,map,"map",
                                               "java.sql.CallableStatement.getObject");
         if(!(map.isEmpty()))
             throw Util.notImplemented();
         // Map is empty call the normal getObject method.
         return getObject(i);
-	}
+    }
 
     /**
      * JDBC 2.0
@@ -127,9 +127,9 @@ public abstract class EmbedCallableStatement20
      * @return an object representing data of an SQL REF Type
      * @exception SQLException if a database-access error occurs.
      */
-	public Ref getRef (int i) throws SQLException {
-		throw Util.notImplemented();
-	}
+    public Ref getRef (int i) throws SQLException {
+        throw Util.notImplemented();
+    }
 
     /**
      * JDBC 2.0
@@ -141,18 +141,18 @@ public abstract class EmbedCallableStatement20
      * @exception SQLException if a database-access error occurs.
      */
     public Array getArray (int i) throws SQLException {
-		throw Util.notImplemented();
-	}
+        throw Util.notImplemented();
+    }
 
 
  
-	/*
-	 * Note: all the JDBC 2.0 Prepared statement methods are duplicated in here
-	 * because this class inherits from Local/EmbedCallableStatement, which
-	 * inherits from local/PreparedStatement.  This class should inherit from a
-	 * local20/PreparedStatement.  Since java does not allow multiple inheritance,
-	 * duplicate the code here.
-	 */
+    /*
+     * Note: all the JDBC 2.0 Prepared statement methods are duplicated in here
+     * because this class inherits from Local/EmbedCallableStatement, which
+     * inherits from local/PreparedStatement.  This class should inherit from a
+     * local20/PreparedStatement.  Since java does not allow multiple inheritance,
+     * duplicate the code here.
+     */
  
      /**
       * JDBC 2.0
@@ -164,8 +164,8 @@ public abstract class EmbedCallableStatement20
       * @exception SQLException Feature not implemented for now.
       */
      public void setRef (int i, Ref x) throws SQLException {
- 		throw Util.notImplemented();
-	 }
+         throw Util.notImplemented();
+     }
  
      /**
       * JDBC 2.0
@@ -177,17 +177,17 @@ public abstract class EmbedCallableStatement20
       * @exception SQLException Feature not implemented for now.
       */
      public void setArray (int i, Array x) throws SQLException {
- 		throw Util.notImplemented();
-	 }
+         throw Util.notImplemented();
+     }
  
 
-	/////////////////////////////////////////////////////////////////////////
-	//
-	//	JDBC 3.0	-	New public methods
-	//
-	/////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////
+    //
+    //    JDBC 3.0    -    New public methods
+    //
+    /////////////////////////////////////////////////////////////////////////
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Registers the OUT parameter named parameterName to the JDBC type sqlType.
@@ -198,15 +198,15 @@ public abstract class EmbedCallableStatement20
     * parameter is of JDBC type NUMERIC or DECIMAL, the version of registerOutParameter
     * that accepts a scale value should be used.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void registerOutParameter(String parameterName,
-					int sqlType)
+    */
+    public void registerOutParameter(String parameterName,
+                    int sqlType)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Registers the designated output parameter. This version of the method
@@ -216,15 +216,15 @@ public abstract class EmbedCallableStatement20
     * @param sqlType - the SQL type code defined by java.sql.Types.
     * @param typeName - the fully-qualified name of an SQL structure type
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void registerOutParameter(String parameterName,
-					int sqlType, String typeName)
+    */
+    public void registerOutParameter(String parameterName,
+                    int sqlType, String typeName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Registers the parameter named parameterName to the JDBC type sqlType.
@@ -235,15 +235,15 @@ public abstract class EmbedCallableStatement20
     * @param scale - the desired number of digits to the right of the decimal point.
     * It must be greater than or equal to zero.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void registerOutParameter(String parameterName,
-					int sqlType, int scale)
+    */
+    public void registerOutParameter(String parameterName,
+                    int sqlType, int scale)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC REF (<structured-type) parameter as a Ref object
@@ -253,14 +253,14 @@ public abstract class EmbedCallableStatement20
     * @return the parameter value as a Ref object in the Java Programming language.
     * If the value is SQL NULL, the result is null.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public Ref getRef(String parameterName)
+    */
+    public Ref getRef(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC BLOB parameter as a Blob object
@@ -270,14 +270,14 @@ public abstract class EmbedCallableStatement20
     * @return the parameter value as a Blob object in the Java Programming language.
     * If the value is SQL NULL, the result is null.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public Blob getBlob(String parameterName)
+    */
+    public Blob getBlob(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC CLOB parameter as a Clob object
@@ -287,14 +287,14 @@ public abstract class EmbedCallableStatement20
     * @return the parameter value as a Clob object in the Java Programming language.
     * If the value is SQL NULL, the result is null.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public Clob getClob(String parameterName)
+    */
+    public Clob getClob(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC ARRAY parameter as an Array object
@@ -304,14 +304,14 @@ public abstract class EmbedCallableStatement20
     * @return the parameter value as a Array object in the Java Programming language.
     * If the value is SQL NULL, the result is null.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public Array getArray(String parameterName)
+    */
+    public Array getArray(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to SQL NULL.
@@ -319,13 +319,13 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param sqlType - the SQL type code defined in java.sql.Types
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setNull(String parameterName, int sqlType)
+    */
+    public void setNull(String parameterName, int sqlType)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
-	/**
+    {
+        throw Util.notImplemented();
+    }
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to SQL NULL.
@@ -334,14 +334,14 @@ public abstract class EmbedCallableStatement20
     * @param sqlType - the SQL type code defined in java.sql.Types
     * @param typeName - the fully-qualified name of an SQL user-defined type
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setNull(String parameterName, int sqlType, String typeName)
+    */
+    public void setNull(String parameterName, int sqlType, String typeName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given Java boolean value. The driver
@@ -350,14 +350,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setBoolean(String parameterName, boolean x)
+    */
+    public void setBoolean(String parameterName, boolean x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC BIT parameter as a boolean in the Java
@@ -366,14 +366,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return the parameter value. If the value is SQL NULL, the result is false.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public boolean getBoolean(String parameterName)
+    */
+    public boolean getBoolean(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given Java byte value. The driver
@@ -382,14 +382,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setByte(String parameterName, byte x)
+    */
+    public void setByte(String parameterName, byte x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC TINYINT parameter as a byte in the Java
@@ -398,14 +398,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return the parameter value. If the value is SQL NULL, the result is 0.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public byte getByte(String parameterName)
+    */
+    public byte getByte(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given Java short value. The driver
@@ -414,14 +414,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setShort(String parameterName, short x)
+    */
+    public void setShort(String parameterName, short x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC SMALLINT parameter as a short in the Java
@@ -430,14 +430,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return the parameter value. If the value is SQL NULL, the result is 0.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public short getShort(String parameterName)
+    */
+    public short getShort(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given Java int value. The driver
@@ -446,14 +446,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setInt(String parameterName, int x)
+    */
+    public void setInt(String parameterName, int x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC INTEGER parameter as a int in the Java
@@ -462,14 +462,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return the parameter value. If the value is SQL NULL, the result is 0.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public int getInt(String parameterName)
+    */
+    public int getInt(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given Java long value. The driver
@@ -478,14 +478,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setLong(String parameterName, long x)
+    */
+    public void setLong(String parameterName, long x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC BIGINT parameter as a long in the Java
@@ -494,14 +494,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return the parameter value. If the value is SQL NULL, the result is 0.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public long getLong(String parameterName)
+    */
+    public long getLong(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given Java float value. The driver
@@ -510,14 +510,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setFloat(String parameterName, float x)
+    */
+    public void setFloat(String parameterName, float x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC FLOAT parameter as a float in the Java
@@ -526,14 +526,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return the parameter value. If the value is SQL NULL, the result is 0.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public float getFloat(String parameterName)
+    */
+    public float getFloat(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given Java double value. The driver
@@ -542,14 +542,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setDouble(String parameterName, double x)
+    */
+    public void setDouble(String parameterName, double x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC DOUBLE parameter as a double in the Java
@@ -558,14 +558,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return the parameter value. If the value is SQL NULL, the result is 0.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public double getDouble(String parameterName)
+    */
+    public double getDouble(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given java.math.BigDecimal value. The driver
@@ -574,14 +574,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setBigDecimal(String parameterName, BigDecimal x)
+    */
+    public void setBigDecimal(String parameterName, BigDecimal x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC NUMERIC parameter as a java.math.BigDecimal
@@ -590,14 +590,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return the parameter value. If the value is SQL NULL, the result is 0.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public BigDecimal getBigDecimal(String parameterName)
+    */
+    public BigDecimal getBigDecimal(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given Java String value. The driver
@@ -608,14 +608,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setString(String parameterName, String x)
+    */
+    public void setString(String parameterName, String x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC CHAR, VARCHAR, or LONGVARCHAR parameter as
@@ -624,14 +624,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return the parameter value. If the value is SQL NULL, the result is null.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public String getString(String parameterName)
+    */
+    public String getString(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given Java array of bytes. The driver
@@ -642,14 +642,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setBytes(String parameterName, byte[] x)
+    */
+    public void setBytes(String parameterName, byte[] x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC BINARY or VARBINARY parameter as an array
@@ -658,14 +658,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return the parameter value. If the value is SQL NULL, the result is null.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public byte[] getBytes(String parameterName)
+    */
+    public byte[] getBytes(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given java.sql.Date value. The driver
@@ -674,14 +674,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setDate(String parameterName, Date x)
+    */
+    public void setDate(String parameterName, Date x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given java.sql.Date value, using the given
@@ -691,14 +691,14 @@ public abstract class EmbedCallableStatement20
     * @param x - the parameter value
     * @param cal - the Calendar object the driver will use to construct the date
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setDate(String parameterName, Date x, Calendar cal)
+    */
+    public void setDate(String parameterName, Date x, Calendar cal)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC DATE parameter as ajava.sql.Date object
@@ -706,14 +706,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return the parameter value. If the value is SQL NULL, the result is null.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public Date getDate(String parameterName)
+    */
+    public Date getDate(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC DATE parameter as a java.sql.Date object,
@@ -723,14 +723,14 @@ public abstract class EmbedCallableStatement20
     * @param cal - the Calendar object the driver will use to construct the date
     * @return the parameter value. If the value is SQL NULL, the result is null.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public Date getDate(String parameterName, Calendar cal)
+    */
+    public Date getDate(String parameterName, Calendar cal)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given java.sql.Time value. The driver
@@ -739,14 +739,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setTime(String parameterName, Time x)
+    */
+    public void setTime(String parameterName, Time x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC TIME parameter as ajava.sql.Time object
@@ -754,14 +754,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return the parameter value. If the value is SQL NULL, the result is null.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public Time getTime(String parameterName)
+    */
+    public Time getTime(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC TIME parameter as a java.sql.Time object,
@@ -771,14 +771,14 @@ public abstract class EmbedCallableStatement20
     * @param cal - the Calendar object the driver will use to construct the time
     * @return the parameter value. If the value is SQL NULL, the result is null.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public Time getTime(String parameterName, Calendar cal)
+    */
+    public Time getTime(String parameterName, Calendar cal)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given java.sql.Time value using the
@@ -788,14 +788,14 @@ public abstract class EmbedCallableStatement20
     * @param x - the parameter value
     * @param cal - the Calendar object the driver will use to construct the time
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setTime(String parameterName, Time x, Calendar cal)
+    */
+    public void setTime(String parameterName, Time x, Calendar cal)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given java.sql.Timestamp value. The driver
@@ -804,14 +804,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setTimestamp(String parameterName, Timestamp x)
+    */
+    public void setTimestamp(String parameterName, Timestamp x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given java.sql.Timestamp value, using the
@@ -821,14 +821,14 @@ public abstract class EmbedCallableStatement20
     * @param x - the parameter value
     * @param cal - the Calendar object the driver will use to construct the timestamp.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setTimestamp(String parameterName, Timestamp x, Calendar cal)
+    */
+    public void setTimestamp(String parameterName, Timestamp x, Calendar cal)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC TIMESTAMP parameter as a java.sql.Timestamp object
@@ -836,14 +836,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return the parameter value. If the value is SQL NULL, the result is null.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public Timestamp getTimestamp(String parameterName)
+    */
+    public Timestamp getTimestamp(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a JDBC TIMESTAMP parameter as a java.sql.Timestamp object,
@@ -853,14 +853,14 @@ public abstract class EmbedCallableStatement20
     * @param cal - the Calendar object the driver will use to construct the Timestamp
     * @return the parameter value. If the value is SQL NULL, the result is null.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public Timestamp getTimestamp(String parameterName, Calendar cal)
+    */
+    public Timestamp getTimestamp(String parameterName, Calendar cal)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given input stream, which will have the
@@ -870,14 +870,14 @@ public abstract class EmbedCallableStatement20
     * @param x - the Java input stream that contains the ASCII parameter value
     * @param length - the number of bytes in the stream
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setAsciiStream(String parameterName, InputStream x, int length)
+    */
+    public void setAsciiStream(String parameterName, InputStream x, int length)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given input stream, which will have the
@@ -887,14 +887,14 @@ public abstract class EmbedCallableStatement20
     * @param x - the Java input stream that contains the binary parameter value
     * @param length - the number of bytes in the stream
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setBinaryStream(String parameterName, InputStream x, int length)
+    */
+    public void setBinaryStream(String parameterName, InputStream x, int length)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the designated parameter to the given Reader object, which is the given
@@ -904,14 +904,14 @@ public abstract class EmbedCallableStatement20
     * @param reader - the java.io.Reader object that contains the UNICODE data
     * @param length - the number of characters in the stream
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setCharacterStream(String parameterName, Reader reader, int length)
+    */
+    public void setCharacterStream(String parameterName, Reader reader, int length)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the value of the designated parameter with the given object. The second
@@ -926,14 +926,14 @@ public abstract class EmbedCallableStatement20
     * is the number of digits after the decimal point. For all other types, this value
     * will be ignored.
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setObject(String parameterName, Object x, int targetSqlType, int scale)
+    */
+    public void setObject(String parameterName, Object x, int targetSqlType, int scale)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the value of a parameter as an Object in the java programming language.
@@ -941,14 +941,14 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @return a java.lang.Object holding the OUT parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public Object getObject(String parameterName)
+    */
+    public Object getObject(String parameterName)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Returns an object representing the value of OUT parameter i and uses map for
@@ -958,12 +958,12 @@ public abstract class EmbedCallableStatement20
     * @param map - the mapping from SQL type names to Java classes
     * @return a java.lang.Object holding the OUT parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public Object getObject(String parameterName, Map map)
+    */
+    public Object getObject(String parameterName, Map map)
     throws SQLException
-	{
-		checkStatus();
-		if( map == null)
+    {
+        checkStatus();
+        if( map == null)
             throw Util.generateCsSQLException(SQLState.INVALID_API_PARAMETER,map,"map",
                                               "java.sql.CallableStatement.getObject");
         if(!(map.isEmpty()))
@@ -971,9 +971,9 @@ public abstract class EmbedCallableStatement20
 
         // Map is empty so call the normal getObject method.
         return getObject(parameterName);
-	}
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the value of the designated parameter with the given object. This method
@@ -984,14 +984,14 @@ public abstract class EmbedCallableStatement20
     * @param targetSqlType - the SQL type (as defined in java.sql.Types) to be sent to
     * the database. 
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setObject(String parameterName, Object x, int targetSqlType)
+    */
+    public void setObject(String parameterName, Object x, int targetSqlType)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Sets the value of the designated parameter with the given object. The second
@@ -1001,16 +1001,16 @@ public abstract class EmbedCallableStatement20
     * @param parameterName - the name of the parameter
     * @param x - the object containing the input parameter value
     * @exception SQLException Feature not implemented for now.
-	*/
-	public void setObject(String parameterName, Object x)
+    */
+    public void setObject(String parameterName, Object x)
     throws SQLException
-	{
-		throw Util.notImplemented();
-	}
+    {
+        throw Util.notImplemented();
+    }
 
     /////////////////////////////////////////////////////////////////////////
     //
-    //	JDBC 4.0	-	New public methods
+    //    JDBC 4.0    -    New public methods
     //
     /////////////////////////////////////////////////////////////////////////
     

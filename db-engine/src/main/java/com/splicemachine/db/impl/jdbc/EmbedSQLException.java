@@ -37,7 +37,7 @@ import java.sql.SQLException;
 import com.splicemachine.db.iapi.error.StandardException;
 
 /**
-	This class is what gets send over the wire in client/server
+    This class is what gets send over the wire in client/server
     configuration. When running embedded, this has the detailed
     stack trace for exceptions. In case of client/server, server
     has all the stack trace information but client doesn't get
@@ -48,72 +48,72 @@ import com.splicemachine.db.iapi.error.StandardException;
 */
 public class EmbedSQLException extends SQLException implements DerbySQLException {
 
-	private transient Object[] arguments;
-	private String messageId;
+    private transient Object[] arguments;
+    private String messageId;
 
-	/**
-	 * Because SQLException does not have settable fields,
-	 * the caller of the constructor must do message lookup,
-	 * and pass the appropriate values here for message, messageId,
-	 * and next exception.
-	 */
-	EmbedSQLException(String message, String messageId,
-		SQLException nextException, int severity, Throwable t, Object[] args) {
+    /**
+     * Because SQLException does not have settable fields,
+     * the caller of the constructor must do message lookup,
+     * and pass the appropriate values here for message, messageId,
+     * and next exception.
+     */
+    EmbedSQLException(String message, String messageId,
+        SQLException nextException, int severity, Throwable t, Object[] args) {
 
-		super(message, StandardException.getSQLStateFromIdentifier(messageId), severity);
-		this.messageId = messageId;
-		arguments = args;
-		if (nextException !=null)
-			this.setNextException(nextException);
+        super(message, StandardException.getSQLStateFromIdentifier(messageId), severity);
+        this.messageId = messageId;
+        arguments = args;
+        if (nextException !=null)
+            this.setNextException(nextException);
 
-		// if no cause has been specified, let nextException be the cause (this
-		// improves error reporting since the cause is included in the output
-		// from printStackTrace())
-		if (t == null) {
-			t = nextException;
-		}
+        // if no cause has been specified, let nextException be the cause (this
+        // improves error reporting since the cause is included in the output
+        // from printStackTrace())
+        if (t == null) {
+            t = nextException;
+        }
 
-		if (t != null) {
-			initCause(t);
-		}
-	}
+        if (t != null) {
+            initCause(t);
+        }
+    }
 
-	public String getMessageId() {
-		return messageId;
-	}
+    public String getMessageId() {
+        return messageId;
+    }
 
-	public Object[] getArguments() {
-		return arguments;
-	}
+    public Object[] getArguments() {
+        return arguments;
+    }
 
-	/*
-	** Methods of Object
-	*/
+    /*
+    ** Methods of Object
+    */
 
-	/**
-		Override Throwables toString() to avoid the class name
-		appearing in the message.
-	*/
-	public String toString() {
+    /**
+        Override Throwables toString() to avoid the class name
+        appearing in the message.
+    */
+    public String toString() {
         // We use java.sql.SQLException rather than the default toString(),
         // which returns com.splicemachine.db.impl.jdbc.EmbedSQLException, so
         // that (a) we're not exposing an internal class name and (b) so
         // this is consistent with the network client, where SQLExceptions
         // are vanilla java.sql classes and not our own subclass
-		return "java.sql.SQLException: " + getMessage();
-	}
+        return "java.sql.SQLException: " + getMessage();
+    }
 
-	/*
-	** Some hack methods for 3.0.1. These will get cleaned up in main
-	** with the exception re-work.
-	*/
-	private transient boolean simpleWrapper;
-	public static SQLException wrapStandardException(String message, String messageId, int code, Throwable se) {
-		EmbedSQLException csqle = new EmbedSQLException(message, messageId, (SQLException) null, code, se, (se instanceof StandardException) ? ((StandardException)se).getArguments() : null);
-		csqle.simpleWrapper = true;
-		return csqle;	
-	}
-	public boolean isSimpleWrapper() {
+    /*
+    ** Some hack methods for 3.0.1. These will get cleaned up in main
+    ** with the exception re-work.
+    */
+    private transient boolean simpleWrapper;
+    public static SQLException wrapStandardException(String message, String messageId, int code, Throwable se) {
+        EmbedSQLException csqle = new EmbedSQLException(message, messageId, (SQLException) null, code, se, (se instanceof StandardException) ? ((StandardException)se).getArguments() : null);
+        csqle.simpleWrapper = true;
+        return csqle;    
+    }
+    public boolean isSimpleWrapper() {
         return getNextException() == null && simpleWrapper;
 
     }

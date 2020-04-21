@@ -61,9 +61,9 @@ public class SysinfoAPITest extends BaseJDBCTestCase {
     }
     
     public static Test suite() {
-    	Test suite = new TestSuite(SysinfoAPITest.class, "Sysinfo API");
-    	
-    	return suite;
+        Test suite = new TestSuite(SysinfoAPITest.class, "Sysinfo API");
+        
+        return suite;
     }
 
     /**

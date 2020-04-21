@@ -49,116 +49,116 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
 public class DropPinNode extends DDLStatementNode
 {
-	private long		conglomerateNumber;
-	private int			dropBehavior;
-	private	TableDescriptor	td;
+    private long        conglomerateNumber;
+    private int            dropBehavior;
+    private    TableDescriptor    td;
 
-	/**
-	 * Intializer for a DropTableNode
-	 *
-	 * @param dropObjectName	The name of the object being dropped
-	 * @param dropBehavior		Drop behavior (RESTRICT | CASCADE)
-	 *
-	 */
+    /**
+     * Intializer for a DropTableNode
+     *
+     * @param dropObjectName    The name of the object being dropped
+     * @param dropBehavior        Drop behavior (RESTRICT | CASCADE)
+     *
+     */
 
-	public void init(Object dropObjectName, Object dropBehavior)
-		throws StandardException
-	{
-		initAndCheck(dropObjectName);
-		this.dropBehavior = (Integer) dropBehavior;
-	}
+    public void init(Object dropObjectName, Object dropBehavior)
+        throws StandardException
+    {
+        initAndCheck(dropObjectName);
+        this.dropBehavior = (Integer) dropBehavior;
+    }
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			return super.toString() +
-				"conglomerateNumber: " + conglomerateNumber + "\n" +
-				"td: " + ((td == null) ? "null" : td.toString()) + "\n" +
-				"dropBehavior: " + "\n" + dropBehavior + "\n";
-		}
-		else
-		{
-			return "";
-		}
-	}
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            return super.toString() +
+                "conglomerateNumber: " + conglomerateNumber + "\n" +
+                "td: " + ((td == null) ? "null" : td.toString()) + "\n" +
+                "dropBehavior: " + "\n" + dropBehavior + "\n";
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	public String statementToString()
-	{
-		return "UNPIN TABLE";
-	}
+    public String statementToString()
+    {
+        return "UNPIN TABLE";
+    }
 
-	/**
-	 * Bind this LockTableNode.  This means looking up the table,
-	 * verifying it exists and getting the heap conglomerate number.
-	 *
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Bind this LockTableNode.  This means looking up the table,
+     * verifying it exists and getting the heap conglomerate number.
+     *
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public void bindStatement() throws StandardException
-	{
-		CompilerContext			cc = getCompilerContext();
+    public void bindStatement() throws StandardException
+    {
+        CompilerContext            cc = getCompilerContext();
 
-		try {
-			td = getTableDescriptor();
-		} catch (StandardException e) {
-	        if (e.getMessageId().equals(SQLState.LANG_OBJECT_DOES_NOT_EXIST) && this.dropBehavior == StatementType.DROP_IF_EXISTS) {
-	        	// this case is only a warning - no exception - reset severity to WARN
-	            e.setSeverity(ExceptionSeverity.WARNING_SEVERITY);
-	        }
+        try {
+            td = getTableDescriptor();
+        } catch (StandardException e) {
+            if (e.getMessageId().equals(SQLState.LANG_OBJECT_DOES_NOT_EXIST) && this.dropBehavior == StatementType.DROP_IF_EXISTS) {
+                // this case is only a warning - no exception - reset severity to WARN
+                e.setSeverity(ExceptionSeverity.WARNING_SEVERITY);
+            }
             throw e;
-		}
+        }
 
-		conglomerateNumber = td.getHeapConglomerateId();
+        conglomerateNumber = td.getHeapConglomerateId();
 
-		/* Get the base conglomerate descriptor */
-		ConglomerateDescriptor cd = td.getConglomerateDescriptor(conglomerateNumber);
+        /* Get the base conglomerate descriptor */
+        ConglomerateDescriptor cd = td.getConglomerateDescriptor(conglomerateNumber);
 
-		/* Statement is dependent on the TableDescriptor and ConglomerateDescriptor */
-		cc.createDependency(td);
-		cc.createDependency(cd);
-	}
+        /* Statement is dependent on the TableDescriptor and ConglomerateDescriptor */
+        cc.createDependency(td);
+        cc.createDependency(cd);
+    }
 
-	/**
-	 * Return true if the node references SESSION schema tables (temporary or permanent)
-	 *
-	 * @return	true if references SESSION schema tables, else false
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public boolean referencesSessionSchema()
-		throws StandardException
-	{
-		//If table being dropped is in SESSION schema, then return true. 
-		return isSessionSchema(td.getSchemaDescriptor());
-	}
+    /**
+     * Return true if the node references SESSION schema tables (temporary or permanent)
+     *
+     * @return    true if references SESSION schema tables, else false
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public boolean referencesSessionSchema()
+        throws StandardException
+    {
+        //If table being dropped is in SESSION schema, then return true. 
+        return isSessionSchema(td.getSchemaDescriptor());
+    }
 
-	// inherit generate() method from DDLStatementNode
+    // inherit generate() method from DDLStatementNode
 
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public ConstantAction	makeConstantAction() throws StandardException
-	{
-		return	getGenericConstantActionFactory().getDropPinConstantAction(
-			getFullName(),
-			getRelativeName(),
-			getSchemaDescriptor(td.getTableType() !=
-								TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE,
-								true),
-			conglomerateNumber,
-			td.getUUID(),
-			dropBehavior);
-	}
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public ConstantAction    makeConstantAction() throws StandardException
+    {
+        return    getGenericConstantActionFactory().getDropPinConstantAction(
+            getFullName(),
+            getRelativeName(),
+            getSchemaDescriptor(td.getTableType() !=
+                                TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE,
+                                true),
+            conglomerateNumber,
+            td.getUUID(),
+            dropBehavior);
+    }
 }

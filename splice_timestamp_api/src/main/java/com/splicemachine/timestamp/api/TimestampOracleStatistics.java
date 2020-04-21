@@ -33,7 +33,7 @@ public interface TimestampOracleStatistics{
      * @return number of timestamps created
      */
     long getNumberTimestampsCreated();
-	
+    
     /**
      * Returns the total number of timestamp 'blocks' reserved
      * since the last master server start.
@@ -41,5 +41,5 @@ public interface TimestampOracleStatistics{
      * @return number of timestamp blocks reserved
      */
     long getNumberBlocksReserved();
-	
+    
 }

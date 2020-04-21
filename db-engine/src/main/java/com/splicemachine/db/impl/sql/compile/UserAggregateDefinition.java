@@ -79,9 +79,9 @@ class UserAggregateDefinition implements AggregateDefinition
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Conjure out of thin air.
-	 */
+    /**
+     * Conjure out of thin air.
+     */
     UserAggregateDefinition( AliasDescriptor alias )
     {
         _alias = alias;
@@ -96,22 +96,22 @@ class UserAggregateDefinition implements AggregateDefinition
     /** Get the wrapped alias descriptor */
     public  AliasDescriptor getAliasDescriptor() { return _alias; }
 
-	/**
-	 * Determines the result datatype and verifies that the input datatype is correct.
-	 *
-	 * @param inputType	the input type
-	 * @param aggregatorClass (Output arg) the name of the Derby execution-time class which wraps the aggregate logic
-	 *
-	 * @return the result type of the user-defined aggregator
-	 */
-	public final DataTypeDescriptor	getAggregator
+    /**
+     * Determines the result datatype and verifies that the input datatype is correct.
+     *
+     * @param inputType    the input type
+     * @param aggregatorClass (Output arg) the name of the Derby execution-time class which wraps the aggregate logic
+     *
+     * @return the result type of the user-defined aggregator
+     */
+    public final DataTypeDescriptor    getAggregator
         ( DataTypeDescriptor inputType, StringBuffer aggregatorClass )
         throws StandardException
-	{
-		try
-		{
-			CompilerContext cc = (CompilerContext)
-				ContextService.getContext(CompilerContext.CONTEXT_ID);
+    {
+        try
+        {
+            CompilerContext cc = (CompilerContext)
+                ContextService.getContext(CompilerContext.CONTEXT_ID);
             ClassFactory    classFactory = cc.getClassFactory();
             TypeCompilerFactory tcf = cc.getTypeCompilerFactory();
 
@@ -188,9 +188,9 @@ class UserAggregateDefinition implements AggregateDefinition
             aggregatorClass.append( ClassName.UserDefinedAggregator );
 
             return expectedReturnType;
-		}
-		catch (ClassNotFoundException cnfe) { throw aggregatorInstantiation( cnfe ); }
-	}
+        }
+        catch (ClassNotFoundException cnfe) { throw aggregatorInstantiation( cnfe ); }
+    }
 
     /**
      * Verify that an actual type is compatible with the expected type.
@@ -211,14 +211,14 @@ class UserAggregateDefinition implements AggregateDefinition
         }
     }
 
-	/**
-	 * Wrap the input operand in an implicit CAST node as necessary in order to
+    /**
+     * Wrap the input operand in an implicit CAST node as necessary in order to
      * coerce it the correct type for the aggregator. Return null if no cast is necessary.
-	 */
+     */
     final ValueNode castInputValue
         ( ValueNode inputValue, ContextManager cm )
         throws StandardException
-	{
+    {
         AggregateAliasInfo  aai = (AggregateAliasInfo) _alias.getAliasInfo();
         DataTypeDescriptor  expectedInputType = DataTypeDescriptor.getType( aai.getForType() );
         DataTypeDescriptor  actualInputType = inputValue.getTypeServices();

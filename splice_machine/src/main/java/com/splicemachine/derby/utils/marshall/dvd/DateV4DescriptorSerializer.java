@@ -30,36 +30,36 @@ import com.splicemachine.encoding.MultiFieldEncoder;
  * Date: 9/15/18
  */
 public class DateV4DescriptorSerializer extends DateDescriptorSerializer {
-		public static final Factory INSTANCE_FACTORY = new Factory() {
-				@Override public DescriptorSerializer newInstance() { return new DateV4DescriptorSerializer(); }
-				@Override public boolean applies(int typeFormatId) { return typeFormatId == StoredFormatIds.SQL_DATE_ID; }
-		};
+        public static final Factory INSTANCE_FACTORY = new Factory() {
+                @Override public DescriptorSerializer newInstance() { return new DateV4DescriptorSerializer(); }
+                @Override public boolean applies(int typeFormatId) { return typeFormatId == StoredFormatIds.SQL_DATE_ID; }
+        };
 
-		public static int diskEncodingToInMemEncoding(int diskEncoding)
-		{
-			diskEncoding += SQLDate.DATE_ENCODING_OFFSET;
-			return ((diskEncoding >>> 9) << 16)           +
-			       (((diskEncoding >>> 5) & 0x000f) << 8) +
-			       (diskEncoding & 0x001f);
-		}
+        public static int diskEncodingToInMemEncoding(int diskEncoding)
+        {
+            diskEncoding += SQLDate.DATE_ENCODING_OFFSET;
+            return ((diskEncoding >>> 9) << 16)           +
+                   (((diskEncoding >>> 5) & 0x000f) << 8) +
+                   (diskEncoding & 0x001f);
+        }
 
-		@Override
-		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
-				fieldEncoder.encodeNext(((SQLDate)dvd).getDiskEncodedDate(),desc);
-		}
+        @Override
+        public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
+                fieldEncoder.encodeNext(((SQLDate)dvd).getDiskEncodedDate(),desc);
+        }
 
-		@Override
-		public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
-				return Encoding.encode(((SQLDate)dvd).getDiskEncodedDate(), desc);
-		}
+        @Override
+        public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
+                return Encoding.encode(((SQLDate)dvd).getDiskEncodedDate(), desc);
+        }
 
-		@Override
-		public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
-				destDvd.setValue(diskEncodingToInMemEncoding(fieldDecoder.decodeNextInt(desc)));
-		}
+        @Override
+        public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
+                destDvd.setValue(diskEncodingToInMemEncoding(fieldDecoder.decodeNextInt(desc)));
+        }
 
-		@Override
-		public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
-				dvd.setValue(diskEncodingToInMemEncoding(Encoding.decodeInt(data,offset,desc)));
-		}
+        @Override
+        public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
+                dvd.setValue(diskEncodingToInMemEncoding(Encoding.decodeInt(data,offset,desc)));
+        }
 }

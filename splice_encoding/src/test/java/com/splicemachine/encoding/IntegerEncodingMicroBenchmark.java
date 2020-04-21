@@ -20,7 +20,7 @@ package com.splicemachine.encoding;
  */
 @Deprecated
 public class IntegerEncodingMicroBenchmark {
-	/*
+    /*
     private static final int numSerializations = 1000000;
 
     public static void main(String...args) throws IOException {

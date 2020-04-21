@@ -28,25 +28,25 @@ package com.splicemachine.si.api.txn;
  */
 public interface KeepAliveScheduler {
 
-		/**
-		 * Schedule the transaction for keep alive.
-		 *
-		 * If the transaction is in a known terminal state (e.g. if you schedule a committed or rolled back
-		 * transaction) at submission time, then this will not schedule it further.
-		 *
-		 * If the scheduler is shut down, then this method will perform no action.
-		 *
-		 * @param txn the transaction to keep alive.
-		 */
-		void scheduleKeepAlive(Txn txn);
+        /**
+         * Schedule the transaction for keep alive.
+         *
+         * If the transaction is in a known terminal state (e.g. if you schedule a committed or rolled back
+         * transaction) at submission time, then this will not schedule it further.
+         *
+         * If the scheduler is shut down, then this method will perform no action.
+         *
+         * @param txn the transaction to keep alive.
+         */
+        void scheduleKeepAlive(Txn txn);
 
-		/**
-		 * Start the scheduler, including any resources associated with it.
- 		 */
-		void start();
+        /**
+         * Start the scheduler, including any resources associated with it.
+          */
+        void start();
 
-		/**
-		 * Stop the scheduler. Future keep-alive scheduling requests will be ignored.
-		 */
-		void stop();
+        /**
+         * Stop the scheduler. Future keep-alive scheduling requests will be ignored.
+         */
+        void stop();
 }

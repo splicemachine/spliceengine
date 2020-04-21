@@ -48,9 +48,9 @@ import com.splicemachine.dbTesting.functionTests.util.SQLStateConstants;
  *
  */
 public class DatabasePropertyTestSetup extends BaseJDBCTestSetup {
-	
-	private Properties newValues;
-	private Properties oldValues;
+    
+    private Properties newValues;
+    private Properties oldValues;
     private final boolean staticProperties;
     
     /**
@@ -241,17 +241,17 @@ public class DatabasePropertyTestSetup extends BaseJDBCTestSetup {
 
         return new DatabasePropertyTestSetup(test, properties, reboot);
     }    
-	
-	/**
-	 * Create a test decorator that sets and restores the passed
-	 * in properties. Assumption is that the contents of
-	 * properties and values will not change during execution.
-	 * @param test test to be decorated
-	 * @param newValues properties to be set
-	 */
-	public DatabasePropertyTestSetup(Test test,
-			Properties newValues)
-	{
+    
+    /**
+     * Create a test decorator that sets and restores the passed
+     * in properties. Assumption is that the contents of
+     * properties and values will not change during execution.
+     * @param test test to be decorated
+     * @param newValues properties to be set
+     */
+    public DatabasePropertyTestSetup(Test test,
+            Properties newValues)
+    {
         this(test, newValues, false);
     }
     
@@ -267,20 +267,20 @@ public class DatabasePropertyTestSetup extends BaseJDBCTestSetup {
     public DatabasePropertyTestSetup(Test test,
             Properties newValues, boolean staticProperties)
     {
-		super(test);
-		this.newValues = newValues;
-		this.oldValues = new Properties();
+        super(test);
+        this.newValues = newValues;
+        this.oldValues = new Properties();
         this.staticProperties = staticProperties;
-	}
+    }
 
-	/**
-	 * For each property store the current value and
-	 * replace it with the new value, unless there is no change.
-	 */
+    /**
+     * For each property store the current value and
+     * replace it with the new value, unless there is no change.
+     */
     protected void setUp()
     throws java.lang.Exception
     {
-    	setProperties(newValues);
+        setProperties(newValues);
         if (staticProperties) {
             TestConfiguration.getCurrent().shutdownDatabase();
         }
@@ -340,10 +340,10 @@ public class DatabasePropertyTestSetup extends BaseJDBCTestSetup {
                 }
             }
             else if(!sqle.getSQLState().equals(SQLStateConstants.PROPERTY_UNSUPPORTED_CHANGE))
-        		throw sqle;
+                throw sqle;
         }
-    	// and then reset nay old values which will cause the commit.
-    	setProperties(oldValues);
+        // and then reset nay old values which will cause the commit.
+        setProperties(oldValues);
         super.tearDown();
         newValues = null;
         oldValues = null;
@@ -435,39 +435,39 @@ public class DatabasePropertyTestSetup extends BaseJDBCTestSetup {
             "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(?, ?)");
         
         
-    	for (Enumeration e = values.propertyNames(); e.hasMoreElements();)
-    	{
-    		final String key = (String) e.nextElement();
-    		final String value = values.getProperty(key);
+        for (Enumeration e = values.propertyNames(); e.hasMoreElements();)
+        {
+            final String key = (String) e.nextElement();
+            final String value = values.getProperty(key);
             
             getDBP.setString(1, key);
             ResultSet rs = getDBP.executeQuery();
             rs.next();
             String old = rs.getString(1);
             rs.close();
-                		
-    		boolean change;
-    		if (old != null)
-    		{
+                        
+            boolean change;
+            if (old != null)
+            {
                 // set, might need to be changed.
                 change = !old.equals(value);
                 
                 // If we are not processing the oldValues
                 // then store in the oldValues. Reference equality is ok here.
-    			if (change && (values != oldValues))
-    			   oldValues.setProperty(key, old);
-    		}
-    		else {
-    			// notset, needs to be set
-    			change = true;
-    		}
-    		
-    		if (change) {
+                if (change && (values != oldValues))
+                   oldValues.setProperty(key, old);
+            }
+            else {
+                // notset, needs to be set
+                change = true;
+            }
+            
+            if (change) {
                 setDBP.setString(1, key);
                 setDBP.setString(2, value);
                 setDBP.executeUpdate();
-   		    }
-    	}
+               }
+        }
         conn.commit();
         getDBP.close();
         setDBP.close();

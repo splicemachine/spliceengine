@@ -61,87 +61,87 @@ import static java.lang.String.format;
 
 public interface AggregateDefinition {
 
-	/**
-	 * Take the parser token for the window function and return a Enum type
-	 * @param function
-	 * @return
-	 */
-	static FunctionType fromString(String function) {
-			for (FunctionType type : FunctionType.values()) {
-				if (type.getName().equals(function)) {
-					return type;
-				}
-			}
-			throw new UnsupportedOperationException(format("%s aggregation function not implemented",function));
-	}
+    /**
+     * Take the parser token for the window function and return a Enum type
+     * @param function
+     * @return
+     */
+    static FunctionType fromString(String function) {
+            for (FunctionType type : FunctionType.values()) {
+                if (type.getName().equals(function)) {
+                    return type;
+                }
+            }
+            throw new UnsupportedOperationException(format("%s aggregation function not implemented",function));
+    }
 
-	/**
-	 * Every possible window functions
-	 */
-	 enum FunctionType {
+    /**
+     * Every possible window functions
+     */
+     enum FunctionType {
 
-		MAX_FUNCTION("MAX"),
-		MIN_FUNCTION("MIN"),
-		SUM_FUNCTION("SUM"),
-		LAST_VALUE_FUNCTION("LAST_VALUE"),
-		AVG_FUNCTION("AVG"),
-		COUNT_FUNCTION("COUNT"),
-		//no need to over complicate with sub type functions, treat count as count star
-		COUNT_STAR_FUNCTION("COUNT(*)"),
-		STRING_AGG("STRING_AGG"),
-		DENSE_RANK_FUNCTION("DENSE_RANK"),
-		RANK_FUNCTION("RANK"),
-		FIRST_VALUE_FUNCTION("FIRST_VALUE"),
-		LAG_FUNCTION("LAG"),
-		LEAD_FUNCTION("LEAD"),
-		ROW_NUMBER_FUNCTION("ROW_NUMBER");
+        MAX_FUNCTION("MAX"),
+        MIN_FUNCTION("MIN"),
+        SUM_FUNCTION("SUM"),
+        LAST_VALUE_FUNCTION("LAST_VALUE"),
+        AVG_FUNCTION("AVG"),
+        COUNT_FUNCTION("COUNT"),
+        //no need to over complicate with sub type functions, treat count as count star
+        COUNT_STAR_FUNCTION("COUNT(*)"),
+        STRING_AGG("STRING_AGG"),
+        DENSE_RANK_FUNCTION("DENSE_RANK"),
+        RANK_FUNCTION("RANK"),
+        FIRST_VALUE_FUNCTION("FIRST_VALUE"),
+        LAG_FUNCTION("LAG"),
+        LEAD_FUNCTION("LEAD"),
+        ROW_NUMBER_FUNCTION("ROW_NUMBER");
 
-		private final String name;
+        private final String name;
 
-		FunctionType(String name) {
-			this.name = name;
-		}
+        FunctionType(String name) {
+            this.name = name;
+        }
 
-		public String getName() {
-			return name;
-		}
-	}
+        public String getName() {
+            return name;
+        }
+    }
 
-	/**
-	 * Get the aggregator that performs the aggregation on the
-	 * input datatype at execution time.  If the input type can be handled, 
-	 * return a type descriptor with the resultant type information and
-	 * fill in the string buffer with the name of the class that
-	 * is used to perform the aggregation over the input type.
-	 * If the aggregate cannot be performed on this type, then
-	 * a null should be returned.
-	 * <p>
-	 * The aggregator class must implement a zero argument 
-	 * constructor.  The aggregator class can be the same class
-	 * as the AggregateDefinition if it implements both interfaces.
-	 * <p>
-	 * The result datatype may be the same as the input datatype 
-	 * or a different datatype.  To create your own type descriptor
-	 * to return to this method, see <i>com.ibm.db2j.types.TypeFactory</i>.
-	 *
-	 * @param inputType	the input type descriptor
-	 * @param aggregatorClassName	output parameter, filled in
-	 *		with the class name that implements <i>com.ibm.db2j.aggregates.Aggregator</i>
-	 *
-	 * @return the output type descriptor (which may or may not
-	 *		be the same as the input type -- it is ok to simply
-	 *		return the input type).  Null is returned
-	 *		if the aggregate cannot process the input type.
-	 *		Note that the output type may be a type that maps
-	 * 		directly to a standard SQL (e.g. <i>java.lang.Integer</i>)
-	 *		or any other java type (e.g. <i>java.sql.ResultSet</i>,
-	 *		<i>java.util.Vector</i>, <i>java.util.TimeZone</i> or whatever).
-	 *		To construct a type descriptor see <i>com.ibm.db2j.types.TypeFactory</i>.
-	 *
-	 * @see com.splicemachine.db.catalog.TypeDescriptor
-	 *
-	 */
-	DataTypeDescriptor getAggregator
-	(DataTypeDescriptor inputType, StringBuffer aggregatorClassName)
+    /**
+     * Get the aggregator that performs the aggregation on the
+     * input datatype at execution time.  If the input type can be handled, 
+     * return a type descriptor with the resultant type information and
+     * fill in the string buffer with the name of the class that
+     * is used to perform the aggregation over the input type.
+     * If the aggregate cannot be performed on this type, then
+     * a null should be returned.
+     * <p>
+     * The aggregator class must implement a zero argument 
+     * constructor.  The aggregator class can be the same class
+     * as the AggregateDefinition if it implements both interfaces.
+     * <p>
+     * The result datatype may be the same as the input datatype 
+     * or a different datatype.  To create your own type descriptor
+     * to return to this method, see <i>com.ibm.db2j.types.TypeFactory</i>.
+     *
+     * @param inputType    the input type descriptor
+     * @param aggregatorClassName    output parameter, filled in
+     *        with the class name that implements <i>com.ibm.db2j.aggregates.Aggregator</i>
+     *
+     * @return the output type descriptor (which may or may not
+     *        be the same as the input type -- it is ok to simply
+     *        return the input type).  Null is returned
+     *        if the aggregate cannot process the input type.
+     *        Note that the output type may be a type that maps
+     *         directly to a standard SQL (e.g. <i>java.lang.Integer</i>)
+     *        or any other java type (e.g. <i>java.sql.ResultSet</i>,
+     *        <i>java.util.Vector</i>, <i>java.util.TimeZone</i> or whatever).
+     *        To construct a type descriptor see <i>com.ibm.db2j.types.TypeFactory</i>.
+     *
+     * @see com.splicemachine.db.catalog.TypeDescriptor
+     *
+     */
+    DataTypeDescriptor getAggregator
+    (DataTypeDescriptor inputType, StringBuffer aggregatorClassName)
        throws StandardException;
 }

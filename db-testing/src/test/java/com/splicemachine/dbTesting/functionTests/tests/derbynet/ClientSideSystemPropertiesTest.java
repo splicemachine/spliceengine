@@ -45,7 +45,7 @@ import com.splicemachine.dbTesting.junit.TestConfiguration;
 /** The test of the jvm properties for enabling client side tracing(DERBY-1275)
   */
 public class ClientSideSystemPropertiesTest extends BaseJDBCTestCase { 
-	/** Establish a connection and that should start client side tracing
+    /** Establish a connection and that should start client side tracing
      *  because we have set the system properties to enable client side
      *  tracing. */
     public void testConnection() throws Exception {
@@ -54,44 +54,44 @@ public class ClientSideSystemPropertiesTest extends BaseJDBCTestCase {
         //made in the privilege block below by looking inside the 
         //trace Directory and making sure the file count is greater than 0.
         AccessController.doPrivileged
-		    (new java.security.PrivilegedAction(){
-		    	public Object run(){
-		    		File dir = new File(getSystemProperty("derby.client.traceDirectory"));
-		    		int fileCounter = 0;
-    	            File[] list = dir.listFiles();
-    	            File tempFile;
-    	            for (;fileCounter<list.length; fileCounter++)
-    	            	tempFile = list[fileCounter];
-    	            junit.framework.Assert.assertTrue(fileCounter>0);
-    	            return null;
-    		    }
-    		}	 
-    	    );
+            (new java.security.PrivilegedAction(){
+                public Object run(){
+                    File dir = new File(getSystemProperty("derby.client.traceDirectory"));
+                    int fileCounter = 0;
+                    File[] list = dir.listFiles();
+                    File tempFile;
+                    for (;fileCounter<list.length; fileCounter++)
+                        tempFile = list[fileCounter];
+                    junit.framework.Assert.assertTrue(fileCounter>0);
+                    return null;
+                }
+            }     
+            );
     }
     
     /** If the trace Directory doesn't exist then create one. If there is one
      *  already there, then delete everything under it. */
     protected void setUp() throws Exception
     {
-    	AccessController.doPrivileged(
-    			new java.security.PrivilegedAction(){
-    				public Object run(){
-    					File dir = new File(getSystemProperty("derby.client.traceDirectory"));
-    					if (dir.exists() == false) //create the trace Directory
-    						junit.framework.Assert.assertTrue(dir.mkdir() || dir.mkdirs());
-    					else {//cleanup the trace Directory which already exists
-    						int fileCounter = 0;
-    						File[] list = dir.listFiles();
-    						File tempFile;
-    						for (;fileCounter<list.length; fileCounter++) {
-    							tempFile = list[fileCounter];
-    							tempFile.delete();
-        					}
-		        }
-	            return null;
-		    }
-		}	 
-	    );
+        AccessController.doPrivileged(
+                new java.security.PrivilegedAction(){
+                    public Object run(){
+                        File dir = new File(getSystemProperty("derby.client.traceDirectory"));
+                        if (dir.exists() == false) //create the trace Directory
+                            junit.framework.Assert.assertTrue(dir.mkdir() || dir.mkdirs());
+                        else {//cleanup the trace Directory which already exists
+                            int fileCounter = 0;
+                            File[] list = dir.listFiles();
+                            File tempFile;
+                            for (;fileCounter<list.length; fileCounter++) {
+                                tempFile = list[fileCounter];
+                                tempFile.delete();
+                            }
+                }
+                return null;
+            }
+        }     
+        );
     }
     
     /** Delete the trace Directory so that the test environment is clean for the
@@ -113,7 +113,7 @@ public class ClientSideSystemPropertiesTest extends BaseJDBCTestCase {
      */
     public static Test suite() {
         //Create the traceDirectory required by the tests in this class
-    	Properties traceRelatedProperties = new Properties();
+        Properties traceRelatedProperties = new Properties();
         traceRelatedProperties.setProperty("derby.client.traceLevel", "64");
         traceRelatedProperties.setProperty("derby.client.traceDirectory", "TraceDir");
         Test suite = TestConfiguration.clientServerSuite(ClientSideSystemPropertiesTest.class);

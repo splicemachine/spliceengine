@@ -186,6 +186,6 @@ public class KVPair implements Comparable<KVPair> {
 
     @Override
     public String toString() {
-    	return String.format("KVPair {rowKey=%s, type=%s}", rowKey, type);
+        return String.format("KVPair {rowKey=%s, type=%s}", rowKey, type);
     }
 }

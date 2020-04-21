@@ -25,7 +25,7 @@ import java.io.Serializable;
  * Created by dgomezferro on 4/4/14.
  */
 public abstract class SpliceJoinFlatMapFunction<Op extends SpliceOperation, From, To>
-		extends SpliceFlatMapFunction<Op,From,To> implements Serializable {
+        extends SpliceFlatMapFunction<Op,From,To> implements Serializable {
     public JoinOperation op = null;
     public boolean initialized = false;
     public int numberOfColumns = 0;
@@ -34,11 +34,11 @@ public abstract class SpliceJoinFlatMapFunction<Op extends SpliceOperation, From
     public boolean isSemiJoin = false;
 
     public SpliceJoinFlatMapFunction() {
-	}
+    }
 
-	public SpliceJoinFlatMapFunction(OperationContext<Op> operationContext) {
+    public SpliceJoinFlatMapFunction(OperationContext<Op> operationContext) {
         super(operationContext);
-	}
+    }
 
     protected void checkInit () {
         if (!initialized) {

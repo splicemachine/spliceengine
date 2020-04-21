@@ -67,11 +67,11 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
         }
     }
 
-	public void setValue(byte[] bytesArg)
-	{
-		bytes = bytesArg;
-		isNull = evaluateNull();
-	}
+    public void setValue(byte[] bytesArg)
+    {
+        bytes = bytesArg;
+        isNull = evaluateNull();
+    }
 
     public  boolean equals(Object obj) {
         if (this == obj)
@@ -92,7 +92,7 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
         return false;
     }
 
-    public  byte[] 	getBytes() {
+    public  byte[]     getBytes() {
         return bytes;
     }
 
@@ -100,7 +100,7 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
         return 0;
     }
 
-    public  String 	toString() {
+    public  String     toString() {
         return toHex(bytes, 0, bytes.length);
     }
 
@@ -167,7 +167,7 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
             for (int i = 0; i < len; ++i) {
                 bytes[i] = in.readByte();
             }
-			isNull = evaluateNull();
+            isNull = evaluateNull();
         }
     }
 
@@ -177,8 +177,8 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
     }
 
 
-	private boolean evaluateNull()
-	{
+    private boolean evaluateNull()
+    {
         return bytes == null;
     }
 

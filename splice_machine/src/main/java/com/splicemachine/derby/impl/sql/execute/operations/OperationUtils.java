@@ -21,15 +21,15 @@ import java.util.List;
 
 public class OperationUtils {
 
-	private OperationUtils(){}
+    private OperationUtils(){}
 
-	public static void generateLeftOperationStack(SpliceOperation op,List<SpliceOperation> opAccumulator){
-		SpliceOperation leftOp = op.getLeftOperation();
-		if(leftOp !=null){
-			generateLeftOperationStack(leftOp,opAccumulator);
-//			opAccumulator.add(leftOp);
-		}
-		opAccumulator.add(op);
-	}
+    public static void generateLeftOperationStack(SpliceOperation op,List<SpliceOperation> opAccumulator){
+        SpliceOperation leftOp = op.getLeftOperation();
+        if(leftOp !=null){
+            generateLeftOperationStack(leftOp,opAccumulator);
+//            opAccumulator.add(leftOp);
+        }
+        opAccumulator.add(op);
+    }
 
 }

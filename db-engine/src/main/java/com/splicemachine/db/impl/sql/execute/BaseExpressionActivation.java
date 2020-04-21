@@ -45,119 +45,119 @@ import com.splicemachine.db.iapi.types.TypeId;
 public abstract class BaseExpressionActivation
 {
 
-	
-	//
-	// constructors
-	//
-	BaseExpressionActivation()
-	{
-		super();
-	}
+    
+    //
+    // constructors
+    //
+    BaseExpressionActivation()
+    {
+        super();
+    }
 
 
-	/**
-	 * <p>
-	 * Get the minimum value of 4 input values.  If less than 4 values, input
-	 * {@code null} for the unused parameters and place them at the end.
-	 * If more than 4 input values, call this multiple times to
-	 * accumulate results.  Also have judge's type as parameter to have a base
-	 * upon which the comparison is based.  An example use is for code 
-	 * generation in bug 3858.
-	 * </p>
-	 * 
-	 * <p>
-	 * If all the input values are SQL NULL, return SQL NULL. Otherwise, return
-	 * the minimum value of the non-NULL inputs.
-	 * </p>
-	 *
-	 * @param v1		1st value
-	 * @param v2		2nd value
-	 * @param v3		3rd value
-	 * @param v4		4th value
-	 * @param judgeTypeFormatId		type format id of the judge
-	 * @param judgeUserJDBCTypeId	JDBC type id if judge is user type;
-	 *								-1 if not user type
-	 *
-	 * @return	The minimum value of the 4.
-	 */
-	public static DataValueDescriptor minValue(DataValueDescriptor v1,
-											  DataValueDescriptor v2,
-											  DataValueDescriptor v3,
-											  DataValueDescriptor v4,
-											  int judgeTypeFormatId,
-											  int judgeUserJDBCTypeId)
-										throws StandardException
-	{
-		DataValueDescriptor judge;
-		if (judgeUserJDBCTypeId == -1)
-			judge = (DataValueDescriptor) new TypeId(judgeTypeFormatId, null).getNull();
-		else
-			judge = (DataValueDescriptor) new TypeId(judgeTypeFormatId, new UserDefinedTypeIdImpl()).getNull();
-			
-		DataValueDescriptor minVal = v1;
-		if (v2 != null &&
-				(minVal.isNull() || judge.lessThan(v2, minVal).equals(true)))
-			minVal = v2;
-		if (v3 != null &&
-				(minVal.isNull() || judge.lessThan(v3, minVal).equals(true)))
-			minVal = v3;
-		if (v4 != null &&
-				(minVal.isNull() || judge.lessThan(v4, minVal).equals(true)))
-			minVal = v4;
-		return minVal;
-	}
+    /**
+     * <p>
+     * Get the minimum value of 4 input values.  If less than 4 values, input
+     * {@code null} for the unused parameters and place them at the end.
+     * If more than 4 input values, call this multiple times to
+     * accumulate results.  Also have judge's type as parameter to have a base
+     * upon which the comparison is based.  An example use is for code 
+     * generation in bug 3858.
+     * </p>
+     * 
+     * <p>
+     * If all the input values are SQL NULL, return SQL NULL. Otherwise, return
+     * the minimum value of the non-NULL inputs.
+     * </p>
+     *
+     * @param v1        1st value
+     * @param v2        2nd value
+     * @param v3        3rd value
+     * @param v4        4th value
+     * @param judgeTypeFormatId        type format id of the judge
+     * @param judgeUserJDBCTypeId    JDBC type id if judge is user type;
+     *                                -1 if not user type
+     *
+     * @return    The minimum value of the 4.
+     */
+    public static DataValueDescriptor minValue(DataValueDescriptor v1,
+                                              DataValueDescriptor v2,
+                                              DataValueDescriptor v3,
+                                              DataValueDescriptor v4,
+                                              int judgeTypeFormatId,
+                                              int judgeUserJDBCTypeId)
+                                        throws StandardException
+    {
+        DataValueDescriptor judge;
+        if (judgeUserJDBCTypeId == -1)
+            judge = (DataValueDescriptor) new TypeId(judgeTypeFormatId, null).getNull();
+        else
+            judge = (DataValueDescriptor) new TypeId(judgeTypeFormatId, new UserDefinedTypeIdImpl()).getNull();
+            
+        DataValueDescriptor minVal = v1;
+        if (v2 != null &&
+                (minVal.isNull() || judge.lessThan(v2, minVal).equals(true)))
+            minVal = v2;
+        if (v3 != null &&
+                (minVal.isNull() || judge.lessThan(v3, minVal).equals(true)))
+            minVal = v3;
+        if (v4 != null &&
+                (minVal.isNull() || judge.lessThan(v4, minVal).equals(true)))
+            minVal = v4;
+        return minVal;
+    }
 
 
-	/**
-	 * <p>
-	 * Get the maximum value of 4 input values.  If less than 4 values, input
-	 * {@code null} for the unused parameters and place them at the end.
-	 * If more than 4 input values, call this multiple times to
-	 * accumulate results.  Also have judge's type as parameter to have a base
-	 * upon which the comparison is based.  An example use is for code 
-	 * generation in bug 3858.
-	 * </p>
-	 * 
-	 * <p>
-	 * If all the input values are SQL NULL, return SQL NULL. Otherwise, return
-	 * the maximum value of the non-NULL inputs.
-	 * </p>
-	 *
-	 * @param v1		1st value
-	 * @param v2		2nd value
-	 * @param v3		3rd value
-	 * @param v4		4th value
-	 * @param judgeTypeFormatId		type format id of the judge
-	 * @param judgeUserJDBCTypeId	JDBC type id if judge is user type;
-	 *								-1 if not user type
-	 *
-	 * @return	The maximum value of the 4.
-	 */
-	public static DataValueDescriptor maxValue(DataValueDescriptor v1,
-											  DataValueDescriptor v2,
-											  DataValueDescriptor v3,
-											  DataValueDescriptor v4,
-											  int judgeTypeFormatId,
-											  int judgeUserJDBCTypeId)
-										throws StandardException
-	{
-		DataValueDescriptor judge;
-		if (judgeUserJDBCTypeId == -1)
-			judge =  new TypeId(judgeTypeFormatId, null).getNull();
-		else
-			judge =  new TypeId(judgeTypeFormatId, new UserDefinedTypeIdImpl()).getNull();
+    /**
+     * <p>
+     * Get the maximum value of 4 input values.  If less than 4 values, input
+     * {@code null} for the unused parameters and place them at the end.
+     * If more than 4 input values, call this multiple times to
+     * accumulate results.  Also have judge's type as parameter to have a base
+     * upon which the comparison is based.  An example use is for code 
+     * generation in bug 3858.
+     * </p>
+     * 
+     * <p>
+     * If all the input values are SQL NULL, return SQL NULL. Otherwise, return
+     * the maximum value of the non-NULL inputs.
+     * </p>
+     *
+     * @param v1        1st value
+     * @param v2        2nd value
+     * @param v3        3rd value
+     * @param v4        4th value
+     * @param judgeTypeFormatId        type format id of the judge
+     * @param judgeUserJDBCTypeId    JDBC type id if judge is user type;
+     *                                -1 if not user type
+     *
+     * @return    The maximum value of the 4.
+     */
+    public static DataValueDescriptor maxValue(DataValueDescriptor v1,
+                                              DataValueDescriptor v2,
+                                              DataValueDescriptor v3,
+                                              DataValueDescriptor v4,
+                                              int judgeTypeFormatId,
+                                              int judgeUserJDBCTypeId)
+                                        throws StandardException
+    {
+        DataValueDescriptor judge;
+        if (judgeUserJDBCTypeId == -1)
+            judge =  new TypeId(judgeTypeFormatId, null).getNull();
+        else
+            judge =  new TypeId(judgeTypeFormatId, new UserDefinedTypeIdImpl()).getNull();
 
-		DataValueDescriptor maxVal = v1;
-		if (v2 != null &&
-				(maxVal.isNull() || judge.greaterThan(v2, maxVal).equals(true)))
-			maxVal = v2;
-		if (v3 != null &&
-				(maxVal.isNull() || judge.greaterThan(v3, maxVal).equals(true)))
-			maxVal = v3;
-		if (v4 != null &&
-				(maxVal.isNull() || judge.greaterThan(v4, maxVal).equals(true)))
-			maxVal = v4;
-		return maxVal;
-	}
+        DataValueDescriptor maxVal = v1;
+        if (v2 != null &&
+                (maxVal.isNull() || judge.greaterThan(v2, maxVal).equals(true)))
+            maxVal = v2;
+        if (v3 != null &&
+                (maxVal.isNull() || judge.greaterThan(v3, maxVal).equals(true)))
+            maxVal = v3;
+        if (v4 != null &&
+                (maxVal.isNull() || judge.greaterThan(v4, maxVal).equals(true)))
+            maxVal = v4;
+        return maxVal;
+    }
 
 }

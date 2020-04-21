@@ -92,34 +92,34 @@ public class TriggerNewTransitionRows
 
         private static final double DUMMY_ROWCOUNT_ESTIMATE = 1000;
         private static final double DUMMY_COST_ESTIMATE = 1000;
-	private ResultSet resultSet;
-	private DataSet<ExecRow> sourceSet;
-	private TriggerExecutionContext tec;
-	private TemporaryRowHolderResultSet temporaryRowHolderResultSet;
-	protected TriggerRowHolderImpl rowHolder = null;
+    private ResultSet resultSet;
+    private DataSet<ExecRow> sourceSet;
+    private TriggerExecutionContext tec;
+    private TemporaryRowHolderResultSet temporaryRowHolderResultSet;
+    protected TriggerRowHolderImpl rowHolder = null;
 
-	public TriggerNewTransitionRows()
-	{
+    public TriggerNewTransitionRows()
+    {
             initializeResultSet();
-	}	/**
-	 * Construct a VTI on the trigger's new row set.
-	 * The new row set is the after image of the rows
-	 * that are changed by the trigger.  For a trigger
-	 * on a delete, this throws an exception.
-	 * For a trigger on an update, this is the rows after
-	 * they are updated.  For an insert, this is the rows
-	 * that are inserted.
-	 *
-	 * @exception SQLException thrown if no trigger active
-	 */
+    }    /**
+     * Construct a VTI on the trigger's new row set.
+     * The new row set is the after image of the rows
+     * that are changed by the trigger.  For a trigger
+     * on a delete, this throws an exception.
+     * For a trigger on an update, this is the rows after
+     * they are updated.  For an insert, this is the rows
+     * that are inserted.
+     *
+     * @exception SQLException thrown if no trigger active
+     */
 
-	public TriggerRowHolderImpl getTriggerRowHolder() {
-	    if (resultSet == null) {
-	        initializeResultSet();
-	        if (resultSet == null)
+    public TriggerRowHolderImpl getTriggerRowHolder() {
+        if (resultSet == null) {
+            initializeResultSet();
+            if (resultSet == null)
                     return null;
             }
-	    TemporaryRowHolderResultSet tRS = ((TemporaryRowHolderResultSet)(((EmbedResultSet40) resultSet).getUnderlyingResultSet()));
+        TemporaryRowHolderResultSet tRS = ((TemporaryRowHolderResultSet)(((EmbedResultSet40) resultSet).getUnderlyingResultSet()));
             TriggerRowHolderImpl triggerRowsHolder = (tRS == null) ? null : (TriggerRowHolderImpl)tRS.getHolder();
             return triggerRowsHolder;
         }
@@ -155,7 +155,7 @@ public class TriggerNewTransitionRows
         }
 
         @SuppressWarnings({ "rawtypes", "unchecked" })
-	public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
+    public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
             TriggerRowHolderImpl triggerRowsHolder;
             if (rowHolder != null)
                 triggerRowsHolder = rowHolder;
@@ -268,25 +268,25 @@ public class TriggerNewTransitionRows
             triggerRows = triggerRows.map(new TriggerRowsMapFunction<>(op.getOperationContext(), isOld));
             if (writeOperation != null)
                 writeOperation.registerCloseable(this);
-	    return triggerRows;
+        return triggerRows;
         }
 
         public OperationContext getOperationContext() {
-	    return null;
+        return null;
         }
 
         public void finishDeserialization(Activation activation) throws StandardException {
-	    if (tec != null) {
-	        LanguageConnectionContext lcc = null;
-	        try {
-	            lcc = activation.getLanguageConnectionContext();
+        if (tec != null) {
+            LanguageConnectionContext lcc = null;
+            try {
+                lcc = activation.getLanguageConnectionContext();
 
-	            if (tec.statementTriggerWithReferencingClause() &&
+                if (tec.statementTriggerWithReferencingClause() &&
                         !tec.hasTriggeringResultSet() &&
                         ConnectionUtil.getCurrentLCC() != lcc &&
                         lcc.getTriggerExecutionContext() != null) {
 
-	                TriggerExecutionContext currentTEC =
+                    TriggerExecutionContext currentTEC =
                             ConnectionUtil.getCurrentLCC().getTriggerExecutionContext();
                         if (currentTEC != null)
                             ConnectionUtil.getCurrentLCC().popTriggerExecutionContext(currentTEC);
@@ -296,7 +296,7 @@ public class TriggerNewTransitionRows
                     if (ConnectionUtil.getCurrentLCC().getTriggerExecutionContext() == null)
                         ConnectionUtil.getCurrentLCC().pushTriggerExecutionContext(tec);
                 }
-	        catch (SQLException e) {
+            catch (SQLException e) {
 
                 }
                 if (rowHolder != null) {
@@ -321,8 +321,8 @@ public class TriggerNewTransitionRows
             }
         }
 
-	protected ResultSet initializeResultSet() {
-		try {
+    protected ResultSet initializeResultSet() {
+        try {
                     if (resultSet != null)
                             resultSet.close();
 
@@ -330,14 +330,14 @@ public class TriggerNewTransitionRows
                     if (tec != null)
                         resultSet = tec.getNewRowSet();
                 }
-		catch (SQLException e) {
-		    // This may happen on initial deserialization.
+        catch (SQLException e) {
+            // This may happen on initial deserialization.
                     // Don't crash.  We will fill in the tec later
                     // in a subsequent deserialization.
                 }
 
-		return resultSet;
-	}
+        return resultSet;
+    }
     
     public ResultSetMetaData getMetaData() throws SQLException
     {
@@ -359,13 +359,13 @@ public class TriggerNewTransitionRows
 
     @Override
     public double getEstimatedRowCount(VTIEnvironment vtiEnvironment) throws SQLException {
-	// TODO: Replace dummy estimates with actual estimates.
+    // TODO: Replace dummy estimates with actual estimates.
         return DUMMY_ROWCOUNT_ESTIMATE;
     }
 
     @Override
     public double getEstimatedCostPerInstantiation(VTIEnvironment vtiEnvironment) throws SQLException {
-	// TODO: Replace dummy estimates with actual estimates.
+    // TODO: Replace dummy estimates with actual estimates.
         return DUMMY_COST_ESTIMATE;
     }
 

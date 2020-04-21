@@ -42,73 +42,73 @@ import java.io.*;
  **
  ** shutdown
  **
- **	force a shutdown after a test complete to guarantee shutdown
- **	which doesn't always seem to happen with useprocess=false
+ **    force a shutdown after a test complete to guarantee shutdown
+ **    which doesn't always seem to happen with useprocess=false
  **
  */
 public class shutdown
 {
  
-	static String shutdownurl;
-	static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
-	static String systemHome;
+    static String shutdownurl;
+    static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
+    static String systemHome;
 
-	public static void main(String[] args) throws SQLException,
-		InterruptedException, Exception 
+    public static void main(String[] args) throws SQLException,
+        InterruptedException, Exception 
     {
-		systemHome = args[0];
-		shutdownurl = args[1];
-		try
-		{
-		    doit();
-		}
-		catch(Exception e)
-		{
-		    System.out.println("Exception in shutdown: " + e);
-		}
-	}
+        systemHome = args[0];
+        shutdownurl = args[1];
+        try
+        {
+            doit();
+        }
+        catch(Exception e)
+        {
+            System.out.println("Exception in shutdown: " + e);
+        }
+    }
 
-	public static void doit() throws SQLException,
-		InterruptedException, Exception 
-	{
-		Connection conn = null;
-		boolean finished = false;	
-		Date d = new Date();
+    public static void doit() throws SQLException,
+        InterruptedException, Exception 
+    {
+        Connection conn = null;
+        boolean finished = false;    
+        Date d = new Date();
 
         Properties sp = System.getProperties();
         if (systemHome == null)
         {
-		    systemHome = sp.getProperty("user.dir") + File.separatorChar +
-			"testCSHome";
-        	sp.put("derby.system.home", systemHome);
-        	System.setProperties(sp);
+            systemHome = sp.getProperty("user.dir") + File.separatorChar +
+            "testCSHome";
+            sp.put("derby.system.home", systemHome);
+            System.setProperties(sp);
         }
-		boolean useprocess = true;
-		String up = sp.getProperty("useprocess");
-		if (up != null && up.equals("false"))
-			useprocess = false;		
+        boolean useprocess = true;
+        String up = sp.getProperty("useprocess");
+        if (up != null && up.equals("false"))
+            useprocess = false;        
 
         PrintStream stdout = System.out;
-    	PrintStream stderr = System.err;
+        PrintStream stderr = System.err;
 
-		Class.forName(driver).newInstance();
+        Class.forName(driver).newInstance();
 
-		try 
-		{
-			conn = DriverManager.getConnection(shutdownurl);
-		} 
-		catch (SQLException  se) 
-		{
-		    if (se.getSQLState().equals("08006"))
-		    {
-		        // It was already shutdown
-		        //System.out.println("Shutdown with: " + shutdownurl);
-		    }
-		    else 
-			{
-				System.out.println("shutdown failed for " + shutdownurl);
-				System.exit(1);
-	        }
-		}
+        try 
+        {
+            conn = DriverManager.getConnection(shutdownurl);
+        } 
+        catch (SQLException  se) 
+        {
+            if (se.getSQLState().equals("08006"))
+            {
+                // It was already shutdown
+                //System.out.println("Shutdown with: " + shutdownurl);
+            }
+            else 
+            {
+                System.out.println("shutdown failed for " + shutdownurl);
+                System.exit(1);
+            }
+        }
     }
 }

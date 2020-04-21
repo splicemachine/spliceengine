@@ -40,7 +40,7 @@ import com.splicemachine.db.client.am.SqlException;
  * </p>
  * An XADataSource is a factory for XAConnection objects.  It represents a
  * RM in a DTP environment.  An object that implements the XADataSource
- * interface is typically registered with a JNDI service provider.   	
+ * interface is typically registered with a JNDI service provider.       
  * <P>
  * ClientXADataSource automatically supports the correct JDBC specification version
  * for the Java Virtual Machine's environment.

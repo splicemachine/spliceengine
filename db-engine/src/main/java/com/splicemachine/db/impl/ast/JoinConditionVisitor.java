@@ -321,18 +321,18 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                 t.pushOptPredicate(p);
         }
         Collections.sort(pulled, new Comparator<Predicate>() { // Sort for Hash Join Key Ordering on Execution Side
-			@Override
-			public int compare(Predicate o1, Predicate o2) {
-				return o1.getIndexPosition() - o2.getIndexPosition();
-			}});               
+            @Override
+            public int compare(Predicate o1, Predicate o2) {
+                return o1.getIndexPosition() - o2.getIndexPosition();
+            }});               
         return pulled;
     }
 
     // Machinery for rewriting predicate column references (for NLJs)
 
     public JoinNode rewriteNLJColumnRefs(JoinNode j) throws StandardException {
-    	if (LOG.isDebugEnabled())
-    		LOG.debug(String.format("rewriteNLJColumnRefs joinNode=%s", j));
+        if (LOG.isDebugEnabled())
+            LOG.debug(String.format("rewriteNLJColumnRefs joinNode=%s", j));
         List<Predicate> joinPreds = new LinkedList<>();
 
         // Collect PRs, FBTs from the right source of NLJ. We need to collect ResultSet until leave nodes
@@ -344,13 +344,13 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
         org.spark_project.guava.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
 
-    	if (LOG.isDebugEnabled())
-    		LOG.debug(String.format("joinScoped joinScoped=%s",joinScoped));
+        if (LOG.isDebugEnabled())
+            LOG.debug(String.format("joinScoped joinScoped=%s",joinScoped));
 
         for (ResultSetNode rsn: rights) {
-        	if (LOG.isDebugEnabled())
-        		LOG.debug(String.format("rewriteNLJColumnRefs rights=%s",rsn));
-        	// Encode whether to pull up predicate to join:
+            if (LOG.isDebugEnabled())
+                LOG.debug(String.format("rewriteNLJColumnRefs rights=%s",rsn));
+            // Encode whether to pull up predicate to join:
             //  when can't evaluate on node but can evaluate at join
             org.spark_project.guava.base.Predicate<Predicate> predOfInterest =
                     Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
@@ -362,7 +362,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
       //  joinChainMap = j.rsnChainMapV2();
 
         for (Predicate p: joinPreds) {
-        	updatePredColRefsToNode(p, j.getLeftResultSet());
+            updatePredColRefsToNode(p, j.getLeftResultSet());
         }
         return j;
     }
@@ -407,8 +407,8 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
      */
     public Predicate updatePredColRefsToNode(Predicate p, ResultSetNode n)
             throws StandardException {
-    	if (LOG.isDebugEnabled())
-    		LOG.debug(String.format("updatePredColRefsToNode predicate=%s, resultSetNode=%s",p,n));
+        if (LOG.isDebugEnabled())
+            LOG.debug(String.format("updatePredColRefsToNode predicate=%s, resultSetNode=%s",p,n));
         List<ColumnReference> predCRs = RSUtils.collectNodes(p, ColumnReference.class);
         for (ColumnReference cr: predCRs){
             boolean ignore = false;

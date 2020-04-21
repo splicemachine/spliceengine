@@ -66,7 +66,7 @@ public class ScrollResultSetTest extends BaseJDBCTestCase {
         // Requires holdability
         if (JDBC.vmSupportsJDBC3() || JDBC.vmSupportsJSR169()) {
             // Run embedded and client
-        	return TestConfiguration.defaultSuite(ScrollResultSetTest.class);
+            return TestConfiguration.defaultSuite(ScrollResultSetTest.class);
         }
         
         // empty suite, no holdability supported.

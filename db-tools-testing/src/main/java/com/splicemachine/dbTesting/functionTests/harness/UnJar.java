@@ -56,7 +56,7 @@ public class UnJar
         if (outputdir == null)
             outputdir = System.getProperty("user.dir");
         
-	    InputStream is =
+        InputStream is =
             RunTest.loadTestResource("upgrade" + '/' + jarname);
         if (is == null)
         {
@@ -68,14 +68,14 @@ public class UnJar
         //System.out.println("Copy the jarfile to: " + outputdir);
         File jarFile = new File((new File(outputdir, jarname)).getCanonicalPath());
         //System.out.println("jarFile: " + jarFile.getPath());
-    	FileOutputStream fos = new FileOutputStream(jarFile);
+        FileOutputStream fos = new FileOutputStream(jarFile);
         byte[] data = new byte[1024];
         int len;
-    	while ((len = is.read(data)) != -1)
-    	{
-    	    fos.write(data, 0, len);
-    	}
-    	fos.close();
+        while ((len = is.read(data)) != -1)
+        {
+            fos.write(data, 0, len);
+        }
+        fos.close();
         
         // Now unjar the file
         String jarCmd = "jar xf " + jarFile.getPath();
@@ -83,9 +83,9 @@ public class UnJar
         {
             // Now execute the jar command
             Process pr = null;
-        	try
-        	{
-        		//System.out.println("Use process to execute: " + jarCmd);
+            try
+            {
+                //System.out.println("Use process to execute: " + jarCmd);
                 pr = Runtime.getRuntime().exec(jarCmd);
                 
                 pr.waitFor();
@@ -108,5 +108,5 @@ public class UnJar
         }
     }
 }
-		
-			
+        
+            

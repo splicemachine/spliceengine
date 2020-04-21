@@ -47,49 +47,49 @@ package com.splicemachine.db.catalog;
  */
 public interface AliasInfo
 {
-	/**
-	 * Public statics for the various alias types as both char and String.
-	 */
-	char ALIAS_TYPE_UDT_AS_CHAR		= 'A';
-	char ALIAS_TYPE_AGGREGATE_AS_CHAR		= 'G';
-	char ALIAS_TYPE_PROCEDURE_AS_CHAR		= 'P';
-	char ALIAS_TYPE_FUNCTION_AS_CHAR		= 'F';
-	char ALIAS_TYPE_SYNONYM_AS_CHAR             = 'S';
+    /**
+     * Public statics for the various alias types as both char and String.
+     */
+    char ALIAS_TYPE_UDT_AS_CHAR        = 'A';
+    char ALIAS_TYPE_AGGREGATE_AS_CHAR        = 'G';
+    char ALIAS_TYPE_PROCEDURE_AS_CHAR        = 'P';
+    char ALIAS_TYPE_FUNCTION_AS_CHAR        = 'F';
+    char ALIAS_TYPE_SYNONYM_AS_CHAR             = 'S';
 
-	String ALIAS_TYPE_UDT_AS_STRING		= "A";
-	String ALIAS_TYPE_AGGREGATE_AS_STRING		= "G";
-	String ALIAS_TYPE_PROCEDURE_AS_STRING		= "P";
-	String ALIAS_TYPE_FUNCTION_AS_STRING		= "F";
-	String ALIAS_TYPE_SYNONYM_AS_STRING  		= "S";
+    String ALIAS_TYPE_UDT_AS_STRING        = "A";
+    String ALIAS_TYPE_AGGREGATE_AS_STRING        = "G";
+    String ALIAS_TYPE_PROCEDURE_AS_STRING        = "P";
+    String ALIAS_TYPE_FUNCTION_AS_STRING        = "F";
+    String ALIAS_TYPE_SYNONYM_AS_STRING          = "S";
 
-	/**
-	 * Public statics for the various alias name spaces as both char and String.
-	 */
-	char ALIAS_NAME_SPACE_UDT_AS_CHAR	= 'A';
-	char ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR	= 'G';
-	char ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR	= 'P';
-	char ALIAS_NAME_SPACE_FUNCTION_AS_CHAR	= 'F';
-	char ALIAS_NAME_SPACE_SYNONYM_AS_CHAR       = 'S';
+    /**
+     * Public statics for the various alias name spaces as both char and String.
+     */
+    char ALIAS_NAME_SPACE_UDT_AS_CHAR    = 'A';
+    char ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR    = 'G';
+    char ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR    = 'P';
+    char ALIAS_NAME_SPACE_FUNCTION_AS_CHAR    = 'F';
+    char ALIAS_NAME_SPACE_SYNONYM_AS_CHAR       = 'S';
 
-	String ALIAS_NAME_SPACE_UDT_AS_STRING	= "A";
-	String ALIAS_NAME_SPACE_AGGREGATE_AS_STRING	= "G";
-	String ALIAS_NAME_SPACE_PROCEDURE_AS_STRING	= "P";
-	String ALIAS_NAME_SPACE_FUNCTION_AS_STRING	= "F";
-	String ALIAS_NAME_SPACE_SYNONYM_AS_STRING   = "S";
+    String ALIAS_NAME_SPACE_UDT_AS_STRING    = "A";
+    String ALIAS_NAME_SPACE_AGGREGATE_AS_STRING    = "G";
+    String ALIAS_NAME_SPACE_PROCEDURE_AS_STRING    = "P";
+    String ALIAS_NAME_SPACE_FUNCTION_AS_STRING    = "F";
+    String ALIAS_NAME_SPACE_SYNONYM_AS_STRING   = "S";
 
-	/**
-	 * Get the name of the static method that the alias 
-	 * represents at the source database.  (Only meaningful for
-	 * method aliases )
-	 *
-	 * @return The name of the static method that the alias 
-	 * represents at the source database.
-	 */
-	String getMethodName();
+    /**
+     * Get the name of the static method that the alias 
+     * represents at the source database.  (Only meaningful for
+     * method aliases )
+     *
+     * @return The name of the static method that the alias 
+     * represents at the source database.
+     */
+    String getMethodName();
 
-	/**
-	 * Return true if this alias is a Table Function.
-	 */
-	boolean isTableFunction();
+    /**
+     * Return true if this alias is a Table Function.
+     */
+    boolean isTableFunction();
 
 }

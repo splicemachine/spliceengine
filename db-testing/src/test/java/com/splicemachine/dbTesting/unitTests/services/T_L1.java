@@ -37,63 +37,63 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import java.util.Hashtable;
 
 /**
-	Unit test Lockable
-	<BR>
-	A simple Lockable that allows a single locker, but that locker
-	can lock the object multiple times, standard Lockable behaviour.
+    Unit test Lockable
+    <BR>
+    A simple Lockable that allows a single locker, but that locker
+    can lock the object multiple times, standard Lockable behaviour.
 */
 
 class T_L1 implements Lockable {
 
-	long value = 0;
-	int count = 0;
+    long value = 0;
+    int count = 0;
 
-	Latch latch;
+    Latch latch;
 
-	T_L1() {
-	}
+    T_L1() {
+    }
 
-	/*
-	** Lockable methods (Simple, qualifier assumed to be null).
-	*/
+    /*
+    ** Lockable methods (Simple, qualifier assumed to be null).
+    */
 
-	/** 
-		Qualififier is assumed to be null.
-	@see Lockable#lockEvent
-	*/
-	public void lockEvent(Latch lockInfo) {
+    /** 
+        Qualififier is assumed to be null.
+    @see Lockable#lockEvent
+    */
+    public void lockEvent(Latch lockInfo) {
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(lockInfo.getQualifier() == null);
 
-		latch = lockInfo;
+        latch = lockInfo;
 
-		count++;
-	}
+        count++;
+    }
 
-	public boolean requestCompatible(Object requestedQualifier, Object grantedQualifier) {
-		return false;
-	}
+    public boolean requestCompatible(Object requestedQualifier, Object grantedQualifier) {
+        return false;
+    }
 
-	public boolean lockerAlwaysCompatible() {
-		return true;
-	}
+    public boolean lockerAlwaysCompatible() {
+        return true;
+    }
 
-	/** 
-		Qualififier is assumed to be null.
-	@see Lockable#unlockEvent
-	*/
-	public void unlockEvent(Latch lockInfo) {
+    /** 
+        Qualififier is assumed to be null.
+    @see Lockable#unlockEvent
+    */
+    public void unlockEvent(Latch lockInfo) {
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(lockInfo.getQualifier() == null);
-		
-		count--;
+        
+        count--;
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(count >= 0);
-		latch = null;
-	}
+        latch = null;
+    }
 
-	public boolean lockAttributes(int flag, Hashtable t)
-	{
-		return false;
-	}
+    public boolean lockAttributes(int flag, Hashtable t)
+    {
+        return false;
+    }
 }

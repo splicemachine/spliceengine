@@ -1077,7 +1077,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         return scrollable;
     }
 
-	protected final void setParameterValueSet(int paramCount, boolean hasReturnParam) {
+    protected final void setParameterValueSet(int paramCount, boolean hasReturnParam) {
 
         pvs = lcc.getLanguageFactory().newParameterValueSet(
             lcc.getLanguageConnectionFactory().getClassFactory().getClassInspector(),
@@ -1755,17 +1755,17 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         this.ps = ps;
     }
 
-	@Override
-	public Pair<PreparedStatement, Iterator<ParameterValueSet>> getBatch() {
-		return Pair.newPair(ps, params);
-	}
+    @Override
+    public Pair<PreparedStatement, Iterator<ParameterValueSet>> getBatch() {
+        return Pair.newPair(ps, params);
+    }
 
-	@Override
-	public boolean isSubStatement() { return isSubStatement; }
+    @Override
+    public boolean isSubStatement() { return isSubStatement; }
 
-	@Override
+    @Override
         public void setSubStatement(boolean newValue) {
-	    isSubStatement = newValue;
-	}
+        isSubStatement = newValue;
+    }
 
 }

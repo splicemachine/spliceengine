@@ -38,69 +38,69 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.error.StandardException;
 
 /**
-	This is simply the factory for creating an optimizer.
-	<p>
-	There is expected to be only one of these configured per database.
+    This is simply the factory for creating an optimizer.
+    <p>
+    There is expected to be only one of these configured per database.
  */
 
 public interface OptimizerFactory {
-	/**
-		Module name for the monitor's module locating system.
-	 */
-	String MODULE = "com.splicemachine.db.iapi.sql.compile.OptimizerFactory";
+    /**
+        Module name for the monitor's module locating system.
+     */
+    String MODULE = "com.splicemachine.db.iapi.sql.compile.OptimizerFactory";
 
-	/**
-	 * Only one optimizer level should exist in the database, however, the
-	 * connection may have multiple instances of that optimizer
-	 * at a given time.
-	 *
-	 * @param optimizableList	The list of Optimizables to optimize.
-	 * @param predicateList	The list of unassigned OptimizablePredicates.
-	 * @param dDictionary	The DataDictionary to use.
-	 * @param requiredRowOrdering	The required ordering of the rows to
-	 *								come out of the optimized result set
-	 * @param numTablesInQuery	The number of tables in the current query
-	 * @param lcc			The LanguageConnectionContext
-	 *
-	 * RESOLVE - We probably want to pass a subquery list, once we define a
-	 * new interface for them, so that the Optimizer can out where to attach
-	 * the subqueries.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	Optimizer getOptimizer(OptimizableList optimizableList,
-						   OptimizablePredicateList predicateList,
-						   DataDictionary dDictionary,
-						   RequiredRowOrdering requiredRowOrdering,
-						   int numTablesInQuery,
-						   LanguageConnectionContext lcc)
-			throws StandardException;
+    /**
+     * Only one optimizer level should exist in the database, however, the
+     * connection may have multiple instances of that optimizer
+     * at a given time.
+     *
+     * @param optimizableList    The list of Optimizables to optimize.
+     * @param predicateList    The list of unassigned OptimizablePredicates.
+     * @param dDictionary    The DataDictionary to use.
+     * @param requiredRowOrdering    The required ordering of the rows to
+     *                                come out of the optimized result set
+     * @param numTablesInQuery    The number of tables in the current query
+     * @param lcc            The LanguageConnectionContext
+     *
+     * RESOLVE - We probably want to pass a subquery list, once we define a
+     * new interface for them, so that the Optimizer can out where to attach
+     * the subqueries.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    Optimizer getOptimizer(OptimizableList optimizableList,
+                           OptimizablePredicateList predicateList,
+                           DataDictionary dDictionary,
+                           RequiredRowOrdering requiredRowOrdering,
+                           int numTablesInQuery,
+                           LanguageConnectionContext lcc)
+            throws StandardException;
 
 
-	/**
-	 * Return a new CostEstimate.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	CostEstimate getCostEstimate()
-		throws StandardException;
+    /**
+     * Return a new CostEstimate.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    CostEstimate getCostEstimate()
+        throws StandardException;
 
-	/**
-	 * Return whether or not the optimizer associated with
-	 * this factory supports optimizer trace.
-	 *
-	 * @return Whether or not the optimizer associated with
-	 * this factory supports optimizer trace.
-	 */
-	boolean supportsOptimizerTrace();
+    /**
+     * Return whether or not the optimizer associated with
+     * this factory supports optimizer trace.
+     *
+     * @return Whether or not the optimizer associated with
+     * this factory supports optimizer trace.
+     */
+    boolean supportsOptimizerTrace();
 
-	/**
-	 * Return the maxMemoryPerTable setting, this is used in
-	 * optimizer, as well as subquery materialization at run time.
-	 *
-	 * @return	maxMemoryPerTable value
-	 */
-	int getMaxMemoryPerTable();
+    /**
+     * Return the maxMemoryPerTable setting, this is used in
+     * optimizer, as well as subquery materialization at run time.
+     *
+     * @return    maxMemoryPerTable value
+     */
+    int getMaxMemoryPerTable();
 
-	long getDetermineSparkRowThreshold();
+    long getDetermineSparkRowThreshold();
 }

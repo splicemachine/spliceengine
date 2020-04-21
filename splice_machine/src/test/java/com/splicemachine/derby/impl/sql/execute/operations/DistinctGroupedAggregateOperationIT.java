@@ -38,39 +38,39 @@ import static com.splicemachine.homeless.TestUtils.o;
 import static org.junit.Assert.assertEquals;
 
 public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
-	public static final String CLASS_NAME = DistinctGroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
+    public static final String CLASS_NAME = DistinctGroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-	public static final String TABLE_NAME_1 = "A";
-	private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperationIT.class);
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(oid int, quantity int)");
-	
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher)
-		.around(new SpliceDataWatcher(){
-			@Override
-			protected void starting(Description description) {
-				try {
-				Statement s = spliceClassWatcher.getStatement();
-				s.execute(format("insert into %s.%s values(1, 5)",CLASS_NAME,TABLE_NAME_1));
-				s.execute(format("insert into %s.%s values(2, 2)",CLASS_NAME,TABLE_NAME_1));
-				s.execute(format("insert into %s.%s values(2, 1)",CLASS_NAME,TABLE_NAME_1));
-				s.execute(format("insert into %s.%s values(3, 10)",CLASS_NAME,TABLE_NAME_1));
-				s.execute(format("insert into %s.%s values(3, 5)",CLASS_NAME,TABLE_NAME_1));
-				s.execute(format("insert into %s.%s values(3, 1)",CLASS_NAME,TABLE_NAME_1));
-				s.execute(format("insert into %s.%s values(3, 1)",CLASS_NAME,TABLE_NAME_1));				
-				} catch (Exception e) {
-					e.printStackTrace();
-					throw new RuntimeException(e);
-				}
-				finally {
-					spliceClassWatcher.closeAll();
-				}
-			}
+    public static final String TABLE_NAME_1 = "A";
+    private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperationIT.class);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(oid int, quantity int)");
+    
+    @ClassRule 
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+        .around(spliceSchemaWatcher)
+        .around(spliceTableWatcher)
+        .around(new SpliceDataWatcher(){
+            @Override
+            protected void starting(Description description) {
+                try {
+                Statement s = spliceClassWatcher.getStatement();
+                s.execute(format("insert into %s.%s values(1, 5)",CLASS_NAME,TABLE_NAME_1));
+                s.execute(format("insert into %s.%s values(2, 2)",CLASS_NAME,TABLE_NAME_1));
+                s.execute(format("insert into %s.%s values(2, 1)",CLASS_NAME,TABLE_NAME_1));
+                s.execute(format("insert into %s.%s values(3, 10)",CLASS_NAME,TABLE_NAME_1));
+                s.execute(format("insert into %s.%s values(3, 5)",CLASS_NAME,TABLE_NAME_1));
+                s.execute(format("insert into %s.%s values(3, 1)",CLASS_NAME,TABLE_NAME_1));
+                s.execute(format("insert into %s.%s values(3, 1)",CLASS_NAME,TABLE_NAME_1));                
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
+                finally {
+                    spliceClassWatcher.closeAll();
+                }
+            }
 
-		})
+        })
         .around(TestUtils
                     .createStringDataWatcher(spliceClassWatcher,
                                                 "create table t1 (c1 int, c2 int); " +
@@ -109,7 +109,7 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
     }
 
     @Test
-	public void testDistinctGroupedAggregate() throws Exception {
+    public void testDistinctGroupedAggregate() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(format("select oid, sum(distinct quantity) as summation from %s group by oid",this.getTableReference(TABLE_NAME_1)));
         int j = 0;
         Set<Integer> correctOids = Sets.newHashSet(1,2,3);
@@ -127,7 +127,7 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
         }
         Assert.assertEquals("Incorrect row count!",3,j);
         Assert.assertEquals("Incorrect number of oids returned!",0,correctOids.size());
-	}
+    }
 
     @Test
     public void testDistinctAndNonDistinctAggregate() throws Exception {

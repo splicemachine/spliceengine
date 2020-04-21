@@ -97,7 +97,7 @@ public class BulkWriteChannelInvoker {
 
             return compressor.decompress(bytes,BulkWritesResult.class);
         } catch (Exception e) {
-        	if (!cacheCheck) clearCacheIfNeeded(e);
+            if (!cacheCheck) clearCacheIfNeeded(e);
             throw pef.processRemoteException(e);
         }
     }
@@ -118,17 +118,17 @@ public class BulkWriteChannelInvoker {
             partitionInfoCache.invalidate(this.tableName);
             partitionInfoCache.invalidateAdapter(this.tableName);
             return true;
-	    }
+        }
         return false;
     }
     
     private static boolean isFailedServerException(Throwable t) {
-    	// Unfortunately we can not call ExceptionTranslator.isFailedServerException()
-    	// which is explicitly for this purpose. Other places in the code call it,
-    	// but SpliceHTabe is already in splice_si_adapter_98 so we can not use
-    	// the generic DerbyFactory capability without a bunch of refactoring.
-    	// We'll come back to this later.
-    	return t!=null && t.getClass().getName().contains("FailedServerException");
+        // Unfortunately we can not call ExceptionTranslator.isFailedServerException()
+        // which is explicitly for this purpose. Other places in the code call it,
+        // but SpliceHTabe is already in splice_si_adapter_98 so we can not use
+        // the generic DerbyFactory capability without a bunch of refactoring.
+        // We'll come back to this later.
+        return t!=null && t.getClass().getName().contains("FailedServerException");
     }
 
 }

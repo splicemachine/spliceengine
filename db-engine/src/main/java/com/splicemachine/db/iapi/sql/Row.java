@@ -50,24 +50,24 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 public interface Row
 {
-	int nColumns();
+    int nColumns();
 
-	/**
-	 * Get a DataValueDescriptor in a Row by ordinal position (1-based).
-	 *
-	 * @param position	The ordinal position of the column.
-	 *
+    /**
+     * Get a DataValueDescriptor in a Row by ordinal position (1-based).
+     *
+     * @param position    The ordinal position of the column.
+     *
      * @exception   StandardException Thrown on failure.
-	 * @return		The DataValueDescriptor, null if no such column exists
-	 */
-	DataValueDescriptor	getColumn (int position) throws StandardException;
+     * @return        The DataValueDescriptor, null if no such column exists
+     */
+    DataValueDescriptor    getColumn (int position) throws StandardException;
 
-	/**
-	 * Set a DataValueDescriptor in a Row by ordinal position (1-based).
-	 *
-	 * @param position	The ordinal position of the column.
-	 */
-	void	setColumn (int position, DataValueDescriptor value);
+    /**
+     * Set a DataValueDescriptor in a Row by ordinal position (1-based).
+     *
+     * @param position    The ordinal position of the column.
+     */
+    void    setColumn (int position, DataValueDescriptor value);
 
     /**
      * Set a DataValueDescriptor in a Row by ordinal position (1-based),
@@ -77,6 +77,6 @@ public interface Row
      * the data type of the DVD that is being overwritten.
      *
      * @param position  The ordinal position of the column.
-	 */
+     */
      void   setColumnValue (int position, DataValueDescriptor value) throws StandardException;
 }

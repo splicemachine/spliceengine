@@ -104,7 +104,7 @@ public class SecurityUtil {
             return IdUtil.getUserAuthorizationId(name);
         } catch (StandardException se) {
             throw new IllegalArgumentException(se.getMessage());
-		}
+        }
     }
 
     /**

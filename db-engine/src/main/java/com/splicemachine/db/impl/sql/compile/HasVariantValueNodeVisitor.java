@@ -59,116 +59,116 @@ import com.splicemachine.db.iapi.error.StandardException;
  */
 public class HasVariantValueNodeVisitor implements Visitor
 {
-	private boolean hasVariant;
-	private int variantType;
-	private boolean ignoreParameters;
+    private boolean hasVariant;
+    private int variantType;
+    private boolean ignoreParameters;
 
 
-	/**
-	 * Construct a visitor
-	 */
-	public HasVariantValueNodeVisitor()
-	{
-		this.variantType = Qualifier.VARIANT;
-		this.ignoreParameters = false;
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(Qualifier.VARIANT < Qualifier.SCAN_INVARIANT, "qualifier constants not ordered as expected");
-			SanityManager.ASSERT(Qualifier.SCAN_INVARIANT < Qualifier.QUERY_INVARIANT, "qualifier constants not ordered as expected");
-		}		
-	}
+    /**
+     * Construct a visitor
+     */
+    public HasVariantValueNodeVisitor()
+    {
+        this.variantType = Qualifier.VARIANT;
+        this.ignoreParameters = false;
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(Qualifier.VARIANT < Qualifier.SCAN_INVARIANT, "qualifier constants not ordered as expected");
+            SanityManager.ASSERT(Qualifier.SCAN_INVARIANT < Qualifier.QUERY_INVARIANT, "qualifier constants not ordered as expected");
+        }        
+    }
 
-	
-	/**
-	 * Construct a visitor.  Pass in the variant
-	 * type.  We look for nodes that are less
-	 * than or equal to this variant type.  E.g.,
-	 * if the variantType is Qualifier.SCAN_VARIANT,
-	 * then any node that is either VARIANT or
-	 * SCAN_VARIANT will cause the visitor to 
-	 * consider it variant.
-	 *
-	 * @param variantType the type of variance we consider
-	 *		variant
-	 * @param ignoreParameters should I ignore parameter nodes?
- 	 */
-	public HasVariantValueNodeVisitor(int variantType, boolean ignoreParameters)
-	{
-		this.variantType = variantType;
-		this.ignoreParameters = ignoreParameters;
+    
+    /**
+     * Construct a visitor.  Pass in the variant
+     * type.  We look for nodes that are less
+     * than or equal to this variant type.  E.g.,
+     * if the variantType is Qualifier.SCAN_VARIANT,
+     * then any node that is either VARIANT or
+     * SCAN_VARIANT will cause the visitor to 
+     * consider it variant.
+     *
+     * @param variantType the type of variance we consider
+     *        variant
+     * @param ignoreParameters should I ignore parameter nodes?
+      */
+    public HasVariantValueNodeVisitor(int variantType, boolean ignoreParameters)
+    {
+        this.variantType = variantType;
+        this.ignoreParameters = ignoreParameters;
 
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(variantType >= Qualifier.VARIANT, "bad variantType");
-			// note: there is no point in (variantType == Qualifier.CONSTANT) so throw an
-			// exception for that case too
-			SanityManager.ASSERT(variantType <= Qualifier.QUERY_INVARIANT, "bad variantType");
-		}		
-	}
-	
-	////////////////////////////////////////////////
-	//
-	// VISITOR INTERFACE
-	//
-	////////////////////////////////////////////////
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(variantType >= Qualifier.VARIANT, "bad variantType");
+            // note: there is no point in (variantType == Qualifier.CONSTANT) so throw an
+            // exception for that case too
+            SanityManager.ASSERT(variantType <= Qualifier.QUERY_INVARIANT, "bad variantType");
+        }        
+    }
+    
+    ////////////////////////////////////////////////
+    //
+    // VISITOR INTERFACE
+    //
+    ////////////////////////////////////////////////
 
-	/**
-	 * If we have found the target node, we are done.
-	 *
-	 * @param node 	the node to process
-	 *
-	 * @return me
-	 *
-	 * @exception StandardException on error
-	 */
-	public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException
-	{
-		if (node instanceof ValueNode)
-		{
-			if (ignoreParameters && ((ValueNode)node).requiresTypeFromContext())
-				return node;
-				
-			if (((ValueNode)node).getOrderableVariantType() <= variantType)
-			{
-				hasVariant = true;
-			}
-		}
-		return node;
-	}
+    /**
+     * If we have found the target node, we are done.
+     *
+     * @param node     the node to process
+     *
+     * @return me
+     *
+     * @exception StandardException on error
+     */
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException
+    {
+        if (node instanceof ValueNode)
+        {
+            if (ignoreParameters && ((ValueNode)node).requiresTypeFromContext())
+                return node;
+                
+            if (((ValueNode)node).getOrderableVariantType() <= variantType)
+            {
+                hasVariant = true;
+            }
+        }
+        return node;
+    }
 
-	public boolean skipChildren(Visitable node)
-	{
-		return false;
-	}
+    public boolean skipChildren(Visitable node)
+    {
+        return false;
+    }
 
-	public boolean visitChildrenFirst(Visitable node)
-	{
-		return false;
-	}
+    public boolean visitChildrenFirst(Visitable node)
+    {
+        return false;
+    }
 
-	/**
-	 * Stop traversal if we found the target node
-	 *
-	 * @return true/false
-	 */
-	public boolean stopTraversal()
-	{
-		return hasVariant;
-	}
+    /**
+     * Stop traversal if we found the target node
+     *
+     * @return true/false
+     */
+    public boolean stopTraversal()
+    {
+        return hasVariant;
+    }
 
-	////////////////////////////////////////////////
-	//
-	// CLASS INTERFACE
-	//
-	////////////////////////////////////////////////
-	/**
-	 * Indicate whether we found the node in
-	 * question
-	 *
-	 * @return true/false
-	 */
-	public boolean hasVariant()
-	{
-		return hasVariant;
-	}
+    ////////////////////////////////////////////////
+    //
+    // CLASS INTERFACE
+    //
+    ////////////////////////////////////////////////
+    /**
+     * Indicate whether we found the node in
+     * question
+     *
+     * @return true/false
+     */
+    public boolean hasVariant()
+    {
+        return hasVariant;
+    }
 }

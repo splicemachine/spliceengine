@@ -45,28 +45,28 @@ import com.splicemachine.db.iapi.error.StandardException;
  */
 public interface CursorResultSet extends ResultSet {
 
-	/**
-	 * Returns the row location of the current base table row of the cursor.
-	 * If this cursor's row is composed of multiple base tables' rows,
-	 * i.e. due to a join, then a null is returned.
-	 *
-	 * @return the row location of the current cursor row.
-	 * @exception StandardException thrown on failure to
-	 *	get location from storage engine
-	 */
-	RowLocation getRowLocation() throws StandardException;
+    /**
+     * Returns the row location of the current base table row of the cursor.
+     * If this cursor's row is composed of multiple base tables' rows,
+     * i.e. due to a join, then a null is returned.
+     *
+     * @return the row location of the current cursor row.
+     * @exception StandardException thrown on failure to
+     *    get location from storage engine
+     */
+    RowLocation getRowLocation() throws StandardException;
 
-	/**
-	 * Returns the current row of the result set.
-	 * REMIND: eventually, this will only return the current row
-	 * for result sets that need to return it; either some field
-	 * in the activation or a parameter in the constructor will be
-	 * used to signal that this needs to function. This will let us
-	 * limit the number of live objects we are holding on to.
-	 * <p>
-	 * @return the last row returned by getNextRow. null if closed.
-	 * @exception StandardException thrown on failure.
-	 */
-	ExecRow getCurrentRow() throws StandardException;
+    /**
+     * Returns the current row of the result set.
+     * REMIND: eventually, this will only return the current row
+     * for result sets that need to return it; either some field
+     * in the activation or a parameter in the constructor will be
+     * used to signal that this needs to function. This will let us
+     * limit the number of live objects we are holding on to.
+     * <p>
+     * @return the last row returned by getNextRow. null if closed.
+     * @exception StandardException thrown on failure.
+     */
+    ExecRow getCurrentRow() throws StandardException;
 
 }

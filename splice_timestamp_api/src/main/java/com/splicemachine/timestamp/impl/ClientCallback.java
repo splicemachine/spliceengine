@@ -25,13 +25,13 @@ public class ClientCallback implements Callback {
     private volatile long _newTimestamp = -1l;
     private Exception _e = null;
     private CountDownLatch _latch = new CountDownLatch(1);
-    		
+            
     public ClientCallback(short callerId) {
-    	_callerId = callerId;
+        _callerId = callerId;
     }
     
     public short getCallerId() {
-    	return _callerId;
+        return _callerId;
     }
     
     public Exception getException() {
@@ -69,7 +69,7 @@ public class ClientCallback implements Callback {
     }
 
     public long getNewTimestamp() {
-    	return _newTimestamp;
+        return _newTimestamp;
     }
 
     public synchronized void error(Exception e) {
@@ -83,8 +83,8 @@ public class ClientCallback implements Callback {
     }   
 
     public String toString() {
-    	return "Callback (callerId = " + _callerId +
-    		(_newTimestamp > -1 ? ", ts = " + _newTimestamp : ", ts blank") + ")";
+        return "Callback (callerId = " + _callerId +
+            (_newTimestamp > -1 ? ", ts = " + _newTimestamp : ", ts blank") + ")";
     }
     
 }    

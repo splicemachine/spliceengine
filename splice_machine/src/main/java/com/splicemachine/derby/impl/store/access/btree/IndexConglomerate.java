@@ -164,9 +164,9 @@ public class IndexConglomerate extends SpliceConglomerate{
         }
     }
 
-	/*
+    /*
     ** Methods of Conglomerate
-	*/
+    */
 
     /**
      * Add a column to the hbase conglomerate.

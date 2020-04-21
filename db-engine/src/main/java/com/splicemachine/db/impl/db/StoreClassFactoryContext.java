@@ -44,29 +44,29 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 */
 final class StoreClassFactoryContext extends ClassFactoryContext {
 
-	private final AccessFactory store;
-	private final JarReader	jarReader;
+    private final AccessFactory store;
+    private final JarReader    jarReader;
 
-	StoreClassFactoryContext(ContextManager cm, ClassFactory cf, AccessFactory store, JarReader jarReader) {
-		super(cm, cf);
-		this.store = store;
-		this.jarReader = jarReader;
-	}
+    StoreClassFactoryContext(ContextManager cm, ClassFactory cf, AccessFactory store, JarReader jarReader) {
+        super(cm, cf);
+        this.store = store;
+        this.jarReader = jarReader;
+    }
 
-	public CompatibilitySpace getLockSpace() throws StandardException {
-		if (store == null)
-			return null;
-		return store.getTransaction(getContextManager()).getLockSpace();
-	}
+    public CompatibilitySpace getLockSpace() throws StandardException {
+        if (store == null)
+            return null;
+        return store.getTransaction(getContextManager()).getLockSpace();
+    }
 
-	public PersistentSet getPersistentSet() throws StandardException {
-		if (store == null)
-			return null;
-		return store.getTransaction(getContextManager());
-	}
-	public JarReader getJarReader() {
+    public PersistentSet getPersistentSet() throws StandardException {
+        if (store == null)
+            return null;
+        return store.getTransaction(getContextManager());
+    }
+    public JarReader getJarReader() {
 
-		return jarReader;
-	}
+        return jarReader;
+    }
 }
 

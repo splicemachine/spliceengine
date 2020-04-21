@@ -58,7 +58,7 @@ public class OffsetFetchNextTest extends BaseJDBCTestCase {
     private final static String LANG_INVALID_ROW_COUNT_OFFSET = "2201X";
     private final static String LANG_MISSING_PARMS = "07000";
     private final static String LANG_SYNTAX_ERROR = "42X01";
-	private final static String LANG_ROW_COUNT_OFFSET_FIRST_IS_NULL = "2201Z";
+    private final static String LANG_ROW_COUNT_OFFSET_FIRST_IS_NULL = "2201Z";
 
     private final static String PERCENT_TOKEN = "%";
     
@@ -941,9 +941,9 @@ public class OffsetFetchNextTest extends BaseJDBCTestCase {
     public void testDynamicArgsMetaData() throws Exception
     {
 
-    	//since there is no getParameterMetaData() call available in JSR169 
-    	//implementations, do not run this test if we are running JSR169
-    	if (JDBC.vmSupportsJSR169()) return;
+        //since there is no getParameterMetaData() call available in JSR169 
+        //implementations, do not run this test if we are running JSR169
+        if (JDBC.vmSupportsJSR169()) return;
 
         PreparedStatement ps;
         String[]    variants;

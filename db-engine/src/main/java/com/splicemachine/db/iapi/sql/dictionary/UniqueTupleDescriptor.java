@@ -40,10 +40,10 @@ import com.splicemachine.db.catalog.UUID;
  */
 public interface UniqueTupleDescriptor
 {
-	/**
-	 * Return the UUID for this Descriptor
-	 *
-	 * @return the uuid
-	 */
-	UUID getUUID();
+    /**
+     * Return the UUID for this Descriptor
+     *
+     * @return the uuid
+     */
+    UUID getUUID();
 }

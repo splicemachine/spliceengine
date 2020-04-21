@@ -56,191 +56,191 @@ import com.splicemachine.db.iapi.types.UserType;
 
 public class SYSDEPENDSRowFactory extends CatalogRowFactory
 {
-	private static final String		TABLENAME_STRING = "SYSDEPENDS";
+    private static final String        TABLENAME_STRING = "SYSDEPENDS";
 
-	protected static final int		SYSDEPENDS_COLUMN_COUNT = 4;
-	protected static final int		SYSDEPENDS_DEPENDENTID = 1;
-	protected static final int		SYSDEPENDS_DEPENDENTTYPE = 2;
-	protected static final int		SYSDEPENDS_PROVIDERID = 3;
-	protected static final int		SYSDEPENDS_PROVIDERTYPE = 4;
+    protected static final int        SYSDEPENDS_COLUMN_COUNT = 4;
+    protected static final int        SYSDEPENDS_DEPENDENTID = 1;
+    protected static final int        SYSDEPENDS_DEPENDENTTYPE = 2;
+    protected static final int        SYSDEPENDS_PROVIDERID = 3;
+    protected static final int        SYSDEPENDS_PROVIDERTYPE = 4;
 
-	protected static final int		SYSDEPENDS_INDEX1_ID = 0;
-	protected static final int		SYSDEPENDS_INDEX2_ID = 1;
+    protected static final int        SYSDEPENDS_INDEX1_ID = 0;
+    protected static final int        SYSDEPENDS_INDEX2_ID = 1;
 
-	
-    private	static	final	boolean[]	uniqueness = {
-		                                               false,
-													   false
-	                                                 };
+    
+    private    static    final    boolean[]    uniqueness = {
+                                                       false,
+                                                       false
+                                                     };
 
-	private static final int[][] indexColumnPositions =
-	{
-		{SYSDEPENDS_DEPENDENTID},
-		{SYSDEPENDS_PROVIDERID}
-	};
+    private static final int[][] indexColumnPositions =
+    {
+        {SYSDEPENDS_DEPENDENTID},
+        {SYSDEPENDS_PROVIDERID}
+    };
 
-	private	static	final	String[]	uuids =
-	{
-		 "8000003e-00d0-fd77-3ed8-000a0a0b1900"	// catalog UUID
-		,"80000043-00d0-fd77-3ed8-000a0a0b1900"	// heap UUID
-		,"80000040-00d0-fd77-3ed8-000a0a0b1900"	// SYSDEPENDS_INDEX1
-		,"80000042-00d0-fd77-3ed8-000a0a0b1900"	// SYSDEPENDS_INDEX2
-	};
+    private    static    final    String[]    uuids =
+    {
+         "8000003e-00d0-fd77-3ed8-000a0a0b1900"    // catalog UUID
+        ,"80000043-00d0-fd77-3ed8-000a0a0b1900"    // heap UUID
+        ,"80000040-00d0-fd77-3ed8-000a0a0b1900"    // SYSDEPENDS_INDEX1
+        ,"80000042-00d0-fd77-3ed8-000a0a0b1900"    // SYSDEPENDS_INDEX2
+    };
 
-	/////////////////////////////////////////////////////////////////////////////
-	//
-	//	CONSTRUCTORS
-	//
-	/////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////
+    //
+    //    CONSTRUCTORS
+    //
+    /////////////////////////////////////////////////////////////////////////////
 
     public SYSDEPENDSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
-	{
-		super(uuidf,ef,dvf);
-		initInfo(SYSDEPENDS_COLUMN_COUNT,TABLENAME_STRING, indexColumnPositions,
-				 uniqueness, uuids );
-	}
+    {
+        super(uuidf,ef,dvf);
+        initInfo(SYSDEPENDS_COLUMN_COUNT,TABLENAME_STRING, indexColumnPositions,
+                 uniqueness, uuids );
+    }
 
-	/////////////////////////////////////////////////////////////////////////////
-	//
-	//	METHODS
-	//
-	/////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////
+    //
+    //    METHODS
+    //
+    /////////////////////////////////////////////////////////////////////////////
 
   /**
-	 * Make a SYSDEPENDS row
-	 *
-	 * @param td DependencyDescriptor. If its null then we want to make an empty
-	 * row. 
-	 *
-	 * @return	Row suitable for inserting into SYSDEPENDS.
-	 *
-	 * @exception   StandardException thrown on failure
-	 */
-	public ExecRow makeRow(TupleDescriptor	td, TupleDescriptor parent)
-					throws StandardException 
-	{
-		DataValueDescriptor		col;
-		ExecRow    				row;
-		String					dependentID = null;
-		DependableFinder		dependentBloodhound = null;
-		String					providerID = null;
-		DependableFinder		providerBloodhound = null;
+     * Make a SYSDEPENDS row
+     *
+     * @param td DependencyDescriptor. If its null then we want to make an empty
+     * row. 
+     *
+     * @return    Row suitable for inserting into SYSDEPENDS.
+     *
+     * @exception   StandardException thrown on failure
+     */
+    public ExecRow makeRow(TupleDescriptor    td, TupleDescriptor parent)
+                    throws StandardException 
+    {
+        DataValueDescriptor        col;
+        ExecRow                    row;
+        String                    dependentID = null;
+        DependableFinder        dependentBloodhound = null;
+        String                    providerID = null;
+        DependableFinder        providerBloodhound = null;
 
-		if (td != null)
-		{
-			DependencyDescriptor dd = (DependencyDescriptor)td;
-			dependentID	= dd.getUUID().toString();
-			dependentBloodhound = dd.getDependentFinder();
-			if ( dependentBloodhound == null )
-			{
-				throw StandardException.newException(SQLState.DEP_UNABLE_TO_STORE);
-			}
+        if (td != null)
+        {
+            DependencyDescriptor dd = (DependencyDescriptor)td;
+            dependentID    = dd.getUUID().toString();
+            dependentBloodhound = dd.getDependentFinder();
+            if ( dependentBloodhound == null )
+            {
+                throw StandardException.newException(SQLState.DEP_UNABLE_TO_STORE);
+            }
 
-			providerID	= dd.getProviderID().toString();
-			providerBloodhound = dd.getProviderFinder();
-			if ( providerBloodhound == null )
-			{
-				throw StandardException.newException(SQLState.DEP_UNABLE_TO_STORE);
-			}
+            providerID    = dd.getProviderID().toString();
+            providerBloodhound = dd.getProviderFinder();
+            if ( providerBloodhound == null )
+            {
+                throw StandardException.newException(SQLState.DEP_UNABLE_TO_STORE);
+            }
 
-		}
+        }
 
-		/* Insert info into sysdepends */
+        /* Insert info into sysdepends */
 
-		/* RESOLVE - It would be nice to require less knowledge about sysdepends
-		 * and have this be more table driven.
-		 */
+        /* RESOLVE - It would be nice to require less knowledge about sysdepends
+         * and have this be more table driven.
+         */
 
-		/* Build the row to insert  */
-		row = getExecutionFactory().getValueRow(SYSDEPENDS_COLUMN_COUNT);
+        /* Build the row to insert  */
+        row = getExecutionFactory().getValueRow(SYSDEPENDS_COLUMN_COUNT);
 
-		/* 1st column is DEPENDENTID (UUID - char(36)) */
-		row.setColumn(SYSDEPENDS_DEPENDENTID, new SQLChar(dependentID));
+        /* 1st column is DEPENDENTID (UUID - char(36)) */
+        row.setColumn(SYSDEPENDS_DEPENDENTID, new SQLChar(dependentID));
 
-		/* 2nd column is DEPENDENTFINDER */
-		row.setColumn(SYSDEPENDS_DEPENDENTTYPE,
-				new UserType(dependentBloodhound));
+        /* 2nd column is DEPENDENTFINDER */
+        row.setColumn(SYSDEPENDS_DEPENDENTTYPE,
+                new UserType(dependentBloodhound));
 
-		/* 3rd column is PROVIDERID (UUID - char(36)) */
-		row.setColumn(SYSDEPENDS_PROVIDERID, new SQLChar(providerID));
+        /* 3rd column is PROVIDERID (UUID - char(36)) */
+        row.setColumn(SYSDEPENDS_PROVIDERID, new SQLChar(providerID));
 
-		/* 4th column is PROVIDERFINDER */
-		row.setColumn(SYSDEPENDS_PROVIDERTYPE,
-				new UserType(providerBloodhound));
+        /* 4th column is PROVIDERFINDER */
+        row.setColumn(SYSDEPENDS_PROVIDERTYPE,
+                new UserType(providerBloodhound));
 
-		return row;
-	}
+        return row;
+    }
 
-	///////////////////////////////////////////////////////////////////////////
-	//
-	//	ABSTRACT METHODS TO BE IMPLEMENTED BY CHILDREN OF CatalogRowFactory
-	//
-	///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    //
+    //    ABSTRACT METHODS TO BE IMPLEMENTED BY CHILDREN OF CatalogRowFactory
+    //
+    ///////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Make a ConstraintDescriptor out of a SYSDEPENDS row
-	 *
-	 * @param row a SYSDEPENDSS row
-	 * @param parentTupleDescriptor	Null for this kind of descriptor.
-	 * @param dd dataDictionary
-	 *
-	 * @exception   StandardException thrown on failure
-	 */
-	public TupleDescriptor buildDescriptor(
-		ExecRow					row,
-		TupleDescriptor			parentTupleDescriptor,
-		DataDictionary 			dd )
-					throws StandardException
-	{
-		DependencyDescriptor dependencyDesc = null;
+    /**
+     * Make a ConstraintDescriptor out of a SYSDEPENDS row
+     *
+     * @param row a SYSDEPENDSS row
+     * @param parentTupleDescriptor    Null for this kind of descriptor.
+     * @param dd dataDictionary
+     *
+     * @exception   StandardException thrown on failure
+     */
+    public TupleDescriptor buildDescriptor(
+        ExecRow                    row,
+        TupleDescriptor            parentTupleDescriptor,
+        DataDictionary             dd )
+                    throws StandardException
+    {
+        DependencyDescriptor dependencyDesc = null;
 
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(
-				row.nColumns() == SYSDEPENDS_COLUMN_COUNT, 
-				"Wrong number of columns for a SYSDEPENDS row");
-		}
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(
+                row.nColumns() == SYSDEPENDS_COLUMN_COUNT, 
+                "Wrong number of columns for a SYSDEPENDS row");
+        }
 
-		DataValueDescriptor	col;
-		String				dependentIDstring;
-		UUID				dependentUUID;
-		DependableFinder	dependentBloodhound;
-		String				providerIDstring;
-		UUID				providerUUID;
-		DependableFinder	providerBloodhound;
+        DataValueDescriptor    col;
+        String                dependentIDstring;
+        UUID                dependentUUID;
+        DependableFinder    dependentBloodhound;
+        String                providerIDstring;
+        UUID                providerUUID;
+        DependableFinder    providerBloodhound;
 
-		/* 1st column is DEPENDENTID (UUID - char(36)) */
-		col = row.getColumn(SYSDEPENDS_DEPENDENTID);
-		dependentIDstring = col.getString();
-		dependentUUID = getUUIDFactory().recreateUUID(dependentIDstring);
+        /* 1st column is DEPENDENTID (UUID - char(36)) */
+        col = row.getColumn(SYSDEPENDS_DEPENDENTID);
+        dependentIDstring = col.getString();
+        dependentUUID = getUUIDFactory().recreateUUID(dependentIDstring);
 
-		/* 2nd column is DEPENDENTTYPE */
-		col = row.getColumn(SYSDEPENDS_DEPENDENTTYPE);
-		dependentBloodhound = (DependableFinder) col.getObject();
+        /* 2nd column is DEPENDENTTYPE */
+        col = row.getColumn(SYSDEPENDS_DEPENDENTTYPE);
+        dependentBloodhound = (DependableFinder) col.getObject();
 
-		/* 3rd column is PROVIDERID (UUID - char(36)) */
-		col = row.getColumn(SYSDEPENDS_PROVIDERID);
-		providerIDstring = col.getString();
-		providerUUID = getUUIDFactory().recreateUUID(providerIDstring);
+        /* 3rd column is PROVIDERID (UUID - char(36)) */
+        col = row.getColumn(SYSDEPENDS_PROVIDERID);
+        providerIDstring = col.getString();
+        providerUUID = getUUIDFactory().recreateUUID(providerIDstring);
 
-		/* 4th column is PROVIDERTYPE */
-		col = row.getColumn(SYSDEPENDS_PROVIDERTYPE);
-		providerBloodhound = (DependableFinder) col.getObject();
+        /* 4th column is PROVIDERTYPE */
+        col = row.getColumn(SYSDEPENDS_PROVIDERTYPE);
+        providerBloodhound = (DependableFinder) col.getObject();
 
-		/* now build and return the descriptor */
-		return new DependencyDescriptor(dependentUUID, dependentBloodhound,
-										   providerUUID, providerBloodhound);
-	}
+        /* now build and return the descriptor */
+        return new DependencyDescriptor(dependentUUID, dependentBloodhound,
+                                           providerUUID, providerBloodhound);
+    }
 
-	/**
-	 * Builds a list of columns suitable for creating this Catalog.
-	 *
-	 *
-	 * @return array of SystemColumn suitable for making this catalog.
-	 */
-	public SystemColumn[]	buildColumnList()
+    /**
+     * Builds a list of columns suitable for creating this Catalog.
+     *
+     *
+     * @return array of SystemColumn suitable for making this catalog.
+     */
+    public SystemColumn[]    buildColumnList()
         throws StandardException
-	{
+    {
             return new SystemColumn[] {
                 SystemColumnImpl.getUUIDColumn("DEPENDENTID", false),
                 SystemColumnImpl.getJavaColumn("DEPENDENTFINDER",
@@ -249,5 +249,5 @@ public class SYSDEPENDSRowFactory extends CatalogRowFactory
                 SystemColumnImpl.getJavaColumn("PROVIDERFINDER",
                         "com.splicemachine.db.catalog.DependableFinder", false),
            };
-	}
+    }
 }

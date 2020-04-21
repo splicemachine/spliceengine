@@ -45,20 +45,20 @@ import com.splicemachine.db.iapi.reference.ClassName;
 
 public class UserDefinedTypeCompiler extends BaseTypeCompiler
 {
-	/* TypeCompiler methods */
+    /* TypeCompiler methods */
 
-	/**
-	 * Right now, casting is not allowed from one user defined type
+    /**
+     * Right now, casting is not allowed from one user defined type
      * to another.
-	 *
-	 * @param otherType 
-	 * @param forDataTypeFunction
-	 * @return true if otherType is convertible to this type, else false.
-	 * 
-	 *@see TypeCompiler#convertible
-	 */
-	public boolean convertible(TypeId otherType, boolean forDataTypeFunction)
-	{
+     *
+     * @param otherType 
+     * @param forDataTypeFunction
+     * @return true if otherType is convertible to this type, else false.
+     * 
+     *@see TypeCompiler#convertible
+     */
+    public boolean convertible(TypeId otherType, boolean forDataTypeFunction)
+    {
         if ( getTypeId().getBaseTypeId().isAnsiUDT() )
         {
             if ( !otherType.getBaseTypeId().isAnsiUDT() ) { return false; }
@@ -69,35 +69,35 @@ public class UserDefinedTypeCompiler extends BaseTypeCompiler
             return thisTypeID.getSQLTypeName().equals( thatTypeID.getSQLTypeName() );
         }
         
-		/*
-		** We are a non-ANSI user defined type, we are
-		** going to have to let the client find out
-		** the hard way.
-		*/
-		return true;
-	}
+        /*
+        ** We are a non-ANSI user defined type, we are
+        ** going to have to let the client find out
+        ** the hard way.
+        */
+        return true;
+    }
 
-	 /** @see TypeCompiler#compatible */
-	public boolean compatible(TypeId otherType)
-	{
-		return convertible(otherType, false);
-	}
+     /** @see TypeCompiler#compatible */
+    public boolean compatible(TypeId otherType)
+    {
+        return convertible(otherType, false);
+    }
 
-	/**
+    /**
      * ANSI UDTs can only be stored into values of exactly their own
      * type. This restriction can be lifted when we implement the
      * ANSI subclassing clauses.
      *
-	 * Old-style User types are storable into other user types that they
-	 * are assignable to. The other type must be a subclass of
-	 * this type, or implement this type as one of its interfaces.
-	 *
-	 * @param otherType the type of the instance to store into this type.
-	 * @param cf		A ClassFactory
-	 * @return true if otherType is storable into this type, else false.
-	 */
-	public boolean storable(TypeId otherType, ClassFactory cf)
-	{
+     * Old-style User types are storable into other user types that they
+     * are assignable to. The other type must be a subclass of
+     * this type, or implement this type as one of its interfaces.
+     *
+     * @param otherType the type of the instance to store into this type.
+     * @param cf        A ClassFactory
+     * @return true if otherType is storable into this type, else false.
+     */
+    public boolean storable(TypeId otherType, ClassFactory cf)
+    {
         if ( !otherType.isUserDefinedTypeId() ) { return false; }
 
         UserDefinedTypeIdImpl thisTypeID = (UserDefinedTypeIdImpl) getTypeId().getBaseTypeId();
@@ -110,52 +110,52 @@ public class UserDefinedTypeCompiler extends BaseTypeCompiler
             return thisTypeID.getSQLTypeName().equals( thatTypeID.getSQLTypeName() );
         }
         
-		return cf.getClassInspector().assignableTo(
-			   otherType.getCorrespondingJavaTypeName(),
-			   getTypeId().getCorrespondingJavaTypeName());
-	}
+        return cf.getClassInspector().assignableTo(
+               otherType.getCorrespondingJavaTypeName(),
+               getTypeId().getCorrespondingJavaTypeName());
+    }
 
-	/** @see TypeCompiler#interfaceName */
-	public String interfaceName()
-	{
-		return ClassName.UserDataValue;
-	}
-			
-	/**
-	 * @see TypeCompiler#getCorrespondingPrimitiveTypeName
-	 */
+    /** @see TypeCompiler#interfaceName */
+    public String interfaceName()
+    {
+        return ClassName.UserDataValue;
+    }
+            
+    /**
+     * @see TypeCompiler#getCorrespondingPrimitiveTypeName
+     */
 
-	public String getCorrespondingPrimitiveTypeName()
-	{
-		return getTypeId().getCorrespondingJavaTypeName();
-	}
+    public String getCorrespondingPrimitiveTypeName()
+    {
+        return getTypeId().getCorrespondingJavaTypeName();
+    }
 
-	/**
-	 * @see TypeCompiler#getCastToCharWidth
-	 */
-	public int getCastToCharWidth(DataTypeDescriptor dts)
-	{
-		// This is the maximum maximum width for user types
-		return -1;
-	}
+    /**
+     * @see TypeCompiler#getCastToCharWidth
+     */
+    public int getCastToCharWidth(DataTypeDescriptor dts)
+    {
+        // This is the maximum maximum width for user types
+        return -1;
+    }
 
-	String nullMethodName()
-	{
-		return "getNullObject";
-	}
+    String nullMethodName()
+    {
+        return "getNullObject";
+    }
 
-	public void generateDataValue(MethodBuilder mb, int collationType,
-			LocalField field)
-	{
-		// cast the value to an object for method resolution
-		mb.upCast("java.lang.Object");
+    public void generateDataValue(MethodBuilder mb, int collationType,
+            LocalField field)
+    {
+        // cast the value to an object for method resolution
+        mb.upCast("java.lang.Object");
 
-		super.generateDataValue(mb, collationType, field);
-	}
+        super.generateDataValue(mb, collationType, field);
+    }
 
     @Override
-	public void generateNull(MethodBuilder mb, DataTypeDescriptor dtd, LocalField[] fields) {
-		int argCount;
+    public void generateNull(MethodBuilder mb, DataTypeDescriptor dtd, LocalField[] fields) {
+        int argCount;
         try {
             LanguageConnectionContext lcc = (LanguageConnectionContext)
                     ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
@@ -186,6 +186,6 @@ public class UserDefinedTypeCompiler extends BaseTypeCompiler
         } catch (Exception e) {
             throw new RuntimeException(e.getCause());
         }
-	}
+    }
 
 }

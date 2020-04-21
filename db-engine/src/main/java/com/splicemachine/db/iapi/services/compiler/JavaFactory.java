@@ -66,7 +66,7 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
  * <li> array initializers
  * <li> ,-lists of statements in for segments
  * <li> accessing a field of the current object or class without
- *	including this or the class name
+ *    including this or the class name
  * <li> declaring a list of variables against one type
  * <li> conversions/coercions/promotions of types
  * <li> empty statement
@@ -103,33 +103,33 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
  */
 public interface JavaFactory {
 
-	String	JAVA_FACTORY_PROPERTY = "derby.module.JavaCompiler";
+    String    JAVA_FACTORY_PROPERTY = "derby.module.JavaCompiler";
 
-	/**
-	 * a class.  Once it is created, fields, methods,
-	 * interfaces, static initialization code, 
-	 * and constructors can be added to it.
-	 * <verbatim>
-	   Java: package #packageName;
-	  	 #modifiers #className extends #superClass { }
-	  		// modifiers is the | of the JVM constants for
-	  		// the modifiers such as static, public, etc.
+    /**
+     * a class.  Once it is created, fields, methods,
+     * interfaces, static initialization code, 
+     * and constructors can be added to it.
+     * <verbatim>
+       Java: package #packageName;
+           #modifiers #className extends #superClass { }
+              // modifiers is the | of the JVM constants for
+              // the modifiers such as static, public, etc.
        </verbatim>
-	 *
-	   @param cf ClassFactory to be used for class resolution (debug only)
-	   and loading of the generated class.
-	 * @param packageName the name of the package the class is in
-	    including the trailing 'dot' if it is not the empty package.
-		Pass the empty package as "".
-	 * @param modifiers the | of the Modifier
-	 *	constants representing the visibility and control of this
-	 *	method.
-	 * @param className the name of the class or interface
-	 * @param superClass the name of the superclass or superinterface
-	 *
-	 * @return the class builder.
-	 * @see java.lang.reflect.Modifier
-	 */
-	ClassBuilder newClassBuilder(ClassFactory cf, String packageName,
-		int modifiers, String className, String superClass);
+     *
+       @param cf ClassFactory to be used for class resolution (debug only)
+       and loading of the generated class.
+     * @param packageName the name of the package the class is in
+        including the trailing 'dot' if it is not the empty package.
+        Pass the empty package as "".
+     * @param modifiers the | of the Modifier
+     *    constants representing the visibility and control of this
+     *    method.
+     * @param className the name of the class or interface
+     * @param superClass the name of the superclass or superinterface
+     *
+     * @return the class builder.
+     * @see java.lang.reflect.Modifier
+     */
+    ClassBuilder newClassBuilder(ClassFactory cf, String packageName,
+        int modifiers, String className, String superClass);
 }

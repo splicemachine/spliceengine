@@ -90,80 +90,80 @@ public final class UpdateLoader implements LockOwner {
         "com.splicemachine.db.",
     };
 
-	private JarLoader[] jarList;
-	private HeaderPrintWriter vs;
-	private final ClassLoader myLoader;
-	private boolean initDone;
-	private String thisClasspath;
-	private final LockFactory lf;
-	private final ShExLockable classLoaderLock;
-	private int version;
+    private JarLoader[] jarList;
+    private HeaderPrintWriter vs;
+    private final ClassLoader myLoader;
+    private boolean initDone;
+    private String thisClasspath;
+    private final LockFactory lf;
+    private final ShExLockable classLoaderLock;
+    private int version;
     private boolean normalizeToUpper;
-	private DatabaseClasses parent;
-	private final CompatibilitySpace compat;
+    private DatabaseClasses parent;
+    private final CompatibilitySpace compat;
 
-	private boolean needReload;
-	private JarReader jarReader;
-	private static volatile UpdateLoader instance = null;
+    private boolean needReload;
+    private JarReader jarReader;
+    private static volatile UpdateLoader instance = null;
 
-	/**
-	 * Singleton factory method.
-	 *
-	 * @param classpath
-	 * @param parent
-	 * @param verbose
-	 * @param normalizeToUpper
-	 *
-	 * @return reference to singleton instance
-	 *
-	 * @throws StandardException
-	 */
-	public static synchronized UpdateLoader getInstance(String classpath, DatabaseClasses parent, boolean verbose, boolean normalizeToUpper) 
-			throws StandardException {
+    /**
+     * Singleton factory method.
+     *
+     * @param classpath
+     * @param parent
+     * @param verbose
+     * @param normalizeToUpper
+     *
+     * @return reference to singleton instance
+     *
+     * @throws StandardException
+     */
+    public static synchronized UpdateLoader getInstance(String classpath, DatabaseClasses parent, boolean verbose, boolean normalizeToUpper) 
+            throws StandardException {
 
-		if (instance == null) {
-			instance = new UpdateLoader(classpath, parent, verbose, normalizeToUpper);
-		}
+        if (instance == null) {
+            instance = new UpdateLoader(classpath, parent, verbose, normalizeToUpper);
+        }
 
-		return instance;
-	}
+        return instance;
+    }
 
-	/**
-	 * Private constructor.  Use the factory method.
-	 *
-	 * @param classpath
-	 * @param parent
-	 * @param verbose
-	 * @param normalizeToUpper
-	 *
-	 * @throws StandardException
-	 */
-	private UpdateLoader(String classpath, DatabaseClasses parent, boolean verbose, boolean normalizeToUpper) 
-		throws StandardException {
+    /**
+     * Private constructor.  Use the factory method.
+     *
+     * @param classpath
+     * @param parent
+     * @param verbose
+     * @param normalizeToUpper
+     *
+     * @throws StandardException
+     */
+    private UpdateLoader(String classpath, DatabaseClasses parent, boolean verbose, boolean normalizeToUpper) 
+        throws StandardException {
 
         this.normalizeToUpper = normalizeToUpper;
-		this.parent = parent;
-		lf = (LockFactory) Monitor.getServiceModule(parent, Module.LockFactory);
-		compat = (lf != null) ? lf.createCompatibilitySpace(this) : null;
+        this.parent = parent;
+        lf = (LockFactory) Monitor.getServiceModule(parent, Module.LockFactory);
+        compat = (lf != null) ? lf.createCompatibilitySpace(this) : null;
 
-		if (verbose) {
-			vs = Monitor.getStream();
-		}
-		
-		myLoader = getClass().getClassLoader();
+        if (verbose) {
+            vs = Monitor.getStream();
+        }
+        
+        myLoader = getClass().getClassLoader();
 
-		this.classLoaderLock = new ClassLoaderLock(this);
+        this.classLoaderLock = new ClassLoaderLock(this);
 
-		initializeFromClassPath(classpath);
-	}
+        initializeFromClassPath(classpath);
+    }
 
-	private void initializeFromClassPath(String classpath) throws StandardException {
+    private void initializeFromClassPath(String classpath) throws StandardException {
 
-		final String[][] elements = IdUtil.parseDbClassPath(classpath);
-		
-		final int jarCount = elements.length;
-		jarList = new JarLoader[jarCount];
-			
+        final String[][] elements = IdUtil.parseDbClassPath(classpath);
+        
+        final int jarCount = elements.length;
+        jarList = new JarLoader[jarCount];
+            
         if (jarCount != 0) {
             // Creating class loaders is a restricted operation
             // so we need to use a privileged block.
@@ -171,23 +171,23 @@ public final class UpdateLoader implements LockOwner {
             (new java.security.PrivilegedAction(){
                 
                 public Object run(){    
-    		      for (int i = 0; i < jarCount; i++) {
-    			     jarList[i] = new JarLoader(UpdateLoader.this, elements[i], vs);
-    		      }
+                  for (int i = 0; i < jarCount; i++) {
+                     jarList[i] = new JarLoader(UpdateLoader.this, elements[i], vs);
+                  }
                   return null;
                 }
             });
         }
-		if (vs != null) {
-			vs.println(MessageService.getTextMessage(MessageId.CM_CLASS_LOADER_START, classpath));
-		}
-		
-		thisClasspath = classpath;
-		initDone = false;
-	}
+        if (vs != null) {
+            vs.println(MessageService.getTextMessage(MessageId.CM_CLASS_LOADER_START, classpath));
+        }
+        
+        thisClasspath = classpath;
+        initDone = false;
+    }
 
-	/**
-		Load the class from the class path. Called by JarLoader
+    /**
+        Load the class from the class path. Called by JarLoader
         when it has a request to load a class to fulfill
         the sematics of db.database.classpath.
         <P>
@@ -205,258 +205,258 @@ public final class UpdateLoader implements LockOwner {
         properties.
         </UL>
 
-		@exception ClassNotFoundException Class can not be found or
+        @exception ClassNotFoundException Class can not be found or
         the installed jar is restricted from loading it.
-	*/
-	Class loadClass(String className, boolean resolve) 
-		throws ClassNotFoundException {
+    */
+    Class loadClass(String className, boolean resolve) 
+        throws ClassNotFoundException {
 
-		JarLoader jl = null;
+        JarLoader jl = null;
 
-		boolean unlockLoader = false;
-		try {
-			unlockLoader = lockClassLoader(ShExQual.SH);
+        boolean unlockLoader = false;
+        try {
+            unlockLoader = lockClassLoader(ShExQual.SH);
 
-			synchronized (this) {
+            synchronized (this) {
 
-				if (needReload) {
-					reload();
-				}
-			
-				Class clazz = checkLoaded(className, resolve);
-				if (clazz != null)
-					return clazz;
+                if (needReload) {
+                    reload();
+                }
+            
+                Class clazz = checkLoaded(className, resolve);
+                if (clazz != null)
+                    return clazz;
                 
                 // Refuse to load classes from restricted name spaces
                 // That is classes in those name spaces can be not
                 // loaded from installed jar files.
-				for (String RESTRICTED_PACKAGE : RESTRICTED_PACKAGES) {
-					if (className.startsWith(RESTRICTED_PACKAGE))
-						throw new ClassNotFoundException(className);
-				}
+                for (String RESTRICTED_PACKAGE : RESTRICTED_PACKAGES) {
+                    if (className.startsWith(RESTRICTED_PACKAGE))
+                        throw new ClassNotFoundException(className);
+                }
 
-				String jvmClassName = className.replace('.', '/') + ".class";
+                String jvmClassName = className.replace('.', '/') + ".class";
 
-				if (!initDone)
-					initLoaders();
+                if (!initDone)
+                    initLoaders();
 
-				for (JarLoader aJarList1 : jarList) {
-					jl = aJarList1;
-					Class c = jl.loadClassData(className, jvmClassName, resolve);
-					if (c != null) {
-						if (vs != null)
-							vs.println(MessageService.getTextMessage(MessageId.CM_CLASS_LOAD, className, jl.getJarName()));
+                for (JarLoader aJarList1 : jarList) {
+                    jl = aJarList1;
+                    Class c = jl.loadClassData(className, jvmClassName, resolve);
+                    if (c != null) {
+                        if (vs != null)
+                            vs.println(MessageService.getTextMessage(MessageId.CM_CLASS_LOAD, className, jl.getJarName()));
 
-						return c;
-					}
-				}
-				// Ok we are missing the class, we will try to reload once and Find it...
-				reload();
-				initDone = false;
-				initLoaders();
-				for (JarLoader aJarList : jarList) {
-					jl = aJarList;
-					Class c = jl.loadClassData(className, jvmClassName, resolve);
-					if (c != null) {
-						if (vs != null)
-							vs.println(MessageService.getTextMessage(MessageId.CM_CLASS_LOAD, className, jl.getJarName()));
+                        return c;
+                    }
+                }
+                // Ok we are missing the class, we will try to reload once and Find it...
+                reload();
+                initDone = false;
+                initLoaders();
+                for (JarLoader aJarList : jarList) {
+                    jl = aJarList;
+                    Class c = jl.loadClassData(className, jvmClassName, resolve);
+                    if (c != null) {
+                        if (vs != null)
+                            vs.println(MessageService.getTextMessage(MessageId.CM_CLASS_LOAD, className, jl.getJarName()));
 
-						return c;
-					}
-				}
+                        return c;
+                    }
+                }
 
-			}
+            }
 
-			return null;
-
-
-		} catch (StandardException se) {
-			throw new ClassNotFoundException(MessageService.getTextMessage(MessageId.CM_CLASS_LOAD_EXCEPTION, className, jl == null ? null : jl.getJarName(), se));
-		} finally {
-			if (unlockLoader) {
-				lf.unlock(compat, this, classLoaderLock, ShExQual.SH);
-			}
-		}
-	}
-
-	InputStream getResourceAsStream(String name) {
-
-		InputStream is = (myLoader == null) ?
-			ClassLoader.getSystemResourceAsStream(name) :
-			myLoader.getResourceAsStream(name);
-
-		if (is != null)
-			return is;
-
-		// match behaviour of standard class loaders. 
-		if (name.endsWith(".class"))
-			return null;
-
-		boolean unlockLoader = false;
-		try {
-			unlockLoader = lockClassLoader(ShExQual.SH);
-
-			synchronized (this) {
-
-				if (needReload) {
-					reload();		
-				}
-
-				if (!initDone)
-					initLoaders();
-
-				for (JarLoader jl : jarList) {
-
-					is = jl.getStream(name);
-					if (is != null) {
-						return is;
-					}
-				}
-			}
-			return null;
-
-		} catch (StandardException se) {
-			return null;
-		} finally {
-			if (unlockLoader) {
-				lf.unlock(compat, this, classLoaderLock, ShExQual.SH);
-			}
-		}
-	}
-
-	synchronized void modifyClasspath(String classpath)
-		throws StandardException {
-
-		// lock transaction classloader exclusively
-		lockClassLoader(ShExQual.EX);
-		version++;
+            return null;
 
 
-		modifyJar(false);
-		initializeFromClassPath(classpath);
-	}
+        } catch (StandardException se) {
+            throw new ClassNotFoundException(MessageService.getTextMessage(MessageId.CM_CLASS_LOAD_EXCEPTION, className, jl == null ? null : jl.getJarName(), se));
+        } finally {
+            if (unlockLoader) {
+                lf.unlock(compat, this, classLoaderLock, ShExQual.SH);
+            }
+        }
+    }
+
+    InputStream getResourceAsStream(String name) {
+
+        InputStream is = (myLoader == null) ?
+            ClassLoader.getSystemResourceAsStream(name) :
+            myLoader.getResourceAsStream(name);
+
+        if (is != null)
+            return is;
+
+        // match behaviour of standard class loaders. 
+        if (name.endsWith(".class"))
+            return null;
+
+        boolean unlockLoader = false;
+        try {
+            unlockLoader = lockClassLoader(ShExQual.SH);
+
+            synchronized (this) {
+
+                if (needReload) {
+                    reload();        
+                }
+
+                if (!initDone)
+                    initLoaders();
+
+                for (JarLoader jl : jarList) {
+
+                    is = jl.getStream(name);
+                    if (is != null) {
+                        return is;
+                    }
+                }
+            }
+            return null;
+
+        } catch (StandardException se) {
+            return null;
+        } finally {
+            if (unlockLoader) {
+                lf.unlock(compat, this, classLoaderLock, ShExQual.SH);
+            }
+        }
+    }
+
+    synchronized void modifyClasspath(String classpath)
+        throws StandardException {
+
+        // lock transaction classloader exclusively
+        lockClassLoader(ShExQual.EX);
+        version++;
 
 
-	public synchronized void modifyJar(boolean reload) throws StandardException {
+        modifyJar(false);
+        initializeFromClassPath(classpath);
+    }
 
-		// lock transaction classloader exclusively
-		lockClassLoader(ShExQual.EX);
-		version++;
 
-		if (!initDone)
-			return;
+    public synchronized void modifyJar(boolean reload) throws StandardException {
+
+        // lock transaction classloader exclusively
+        lockClassLoader(ShExQual.EX);
+        version++;
+
+        if (!initDone)
+            return;
         
         // first close the existing jar file opens
         close();
 
-		if (reload) {
-			initializeFromClassPath(thisClasspath);
-		}
-	}
+        if (reload) {
+            initializeFromClassPath(thisClasspath);
+        }
+    }
 
-	private boolean lockClassLoader(ShExQual qualifier)
-		throws StandardException {
+    private boolean lockClassLoader(ShExQual qualifier)
+        throws StandardException {
 
-		if (lf == null)
-			return false;
+        if (lf == null)
+            return false;
 
-		ClassFactoryContext cfc = (ClassFactoryContext) ContextService.getContextOrNull(ClassFactoryContext.CONTEXT_ID);
+        ClassFactoryContext cfc = (ClassFactoryContext) ContextService.getContextOrNull(ClassFactoryContext.CONTEXT_ID);
 
-		// This method can be called from outside of the database
-		// engine, in which case tc will be null. In that case
-		// we lock the class loader only for the duration of
-		// the loadClass().
-		CompatibilitySpace lockSpace = null;
-		
-		if (cfc != null) {
-			lockSpace = cfc.getLockSpace();
-		}
-		if (lockSpace == null)
-			lockSpace = compat;
+        // This method can be called from outside of the database
+        // engine, in which case tc will be null. In that case
+        // we lock the class loader only for the duration of
+        // the loadClass().
+        CompatibilitySpace lockSpace = null;
+        
+        if (cfc != null) {
+            lockSpace = cfc.getLockSpace();
+        }
+        if (lockSpace == null)
+            lockSpace = compat;
 
-		Object lockGroup = lockSpace.getOwner();
+        Object lockGroup = lockSpace.getOwner();
 
-		lf.lockObject(lockSpace, lockGroup, classLoaderLock, qualifier,
-					  C_LockFactory.TIMED_WAIT);
+        lf.lockObject(lockSpace, lockGroup, classLoaderLock, qualifier,
+                      C_LockFactory.TIMED_WAIT);
 
-		return (lockGroup == this);
-	}
+        return (lockGroup == this);
+    }
 
-	Class checkLoaded(String className, boolean resolve) {
+    Class checkLoaded(String className, boolean resolve) {
 
-		for (JarLoader aJarList : jarList) {
-			Class c = aJarList.checkLoaded(className, resolve);
-			if (c != null)
-				return c;
-		}
-		return null;
-	}
+        for (JarLoader aJarList : jarList) {
+            Class c = aJarList.checkLoaded(className, resolve);
+            if (c != null)
+                return c;
+        }
+        return null;
+    }
 
-	void close() {
+    void close() {
 
-		for (JarLoader aJarList : jarList) {
-			aJarList.setInvalid();
-		}
+        for (JarLoader aJarList : jarList) {
+            aJarList.setInvalid();
+        }
 
-	}
+    }
 
-	private void initLoaders() {
+    private void initLoaders() {
 
-		if (initDone)
-			return;
+        if (initDone)
+            return;
 
-		for (JarLoader aJarList : jarList) {
-			aJarList.initialize();
-		}
-		initDone = true;
-	}
+        for (JarLoader aJarList : jarList) {
+            aJarList.initialize();
+        }
+        initDone = true;
+    }
 
-	int getClassLoaderVersion() {
-		return version;
-	}
+    int getClassLoaderVersion() {
+        return version;
+    }
 
-	synchronized void needReload() {
-		version++;
-		needReload = true;
-	}
+    synchronized void needReload() {
+        version++;
+        needReload = true;
+    }
 
-	private void reload() throws StandardException {
-		thisClasspath = getClasspath();
-		// first close the existing jar file opens
-		close();
-		initializeFromClassPath(thisClasspath);
-		needReload = false;
-	}
-
-
-	private String getClasspath()
-		throws StandardException {
-
-		ClassFactoryContext cfc = (ClassFactoryContext) ContextService.getContextOrNull(ClassFactoryContext.CONTEXT_ID);
-
-		PersistentSet ps = cfc.getPersistentSet();
-		
-		String classpath = PropertyUtil.getServiceProperty(ps, Property.DATABASE_CLASSPATH);
-
-		//
-		//In per database mode we must always have a classpath. If we do not
-		//yet have one we make one up.
-		if (classpath==null)
-			classpath="";
+    private void reload() throws StandardException {
+        thisClasspath = getClasspath();
+        // first close the existing jar file opens
+        close();
+        initializeFromClassPath(thisClasspath);
+        needReload = false;
+    }
 
 
-		return classpath;
-	}
+    private String getClasspath()
+        throws StandardException {
 
-	JarReader getJarReader() {
-		if (jarReader == null) {
+        ClassFactoryContext cfc = (ClassFactoryContext) ContextService.getContextOrNull(ClassFactoryContext.CONTEXT_ID);
 
-			ClassFactoryContext cfc = (ClassFactoryContext) ContextService.getContextOrNull(ClassFactoryContext.CONTEXT_ID);
+        PersistentSet ps = cfc.getPersistentSet();
+        
+        String classpath = PropertyUtil.getServiceProperty(ps, Property.DATABASE_CLASSPATH);
 
-			jarReader = cfc.getJarReader(); 
-		}
-		return jarReader;
-	}
+        //
+        //In per database mode we must always have a classpath. If we do not
+        //yet have one we make one up.
+        if (classpath==null)
+            classpath="";
+
+
+        return classpath;
+    }
+
+    JarReader getJarReader() {
+        if (jarReader == null) {
+
+            ClassFactoryContext cfc = (ClassFactoryContext) ContextService.getContextOrNull(ClassFactoryContext.CONTEXT_ID);
+
+            jarReader = cfc.getJarReader(); 
+        }
+        return jarReader;
+    }
 
     /**
      * Tell the lock manager that we don't want timed waits to time out
@@ -472,19 +472,19 @@ public final class UpdateLoader implements LockOwner {
 
 class ClassLoaderLock extends ShExLockable {
 
-	private UpdateLoader myLoader;
+    private UpdateLoader myLoader;
 
-	ClassLoaderLock(UpdateLoader myLoader) {
-		this.myLoader = myLoader;
-	}
+    ClassLoaderLock(UpdateLoader myLoader) {
+        this.myLoader = myLoader;
+    }
 
-	public void unlockEvent(Latch lockInfo)
-	{
-		super.unlockEvent(lockInfo);
+    public void unlockEvent(Latch lockInfo)
+    {
+        super.unlockEvent(lockInfo);
 
-		if (lockInfo.getQualifier().equals(ShExQual.EX)) {
-			// how do we tell if we are reverting or not
-			myLoader.needReload();
-		}
-	}
+        if (lockInfo.getQualifier().equals(ShExQual.EX)) {
+            // how do we tell if we are reverting or not
+            myLoader.needReload();
+        }
+    }
 }

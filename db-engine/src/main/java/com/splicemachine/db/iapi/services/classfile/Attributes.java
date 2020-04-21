@@ -36,29 +36,29 @@ import java.util.Vector;
 import java.io.IOException;
 
 class Attributes extends Vector {
-	private int classFileSize;
+    private int classFileSize;
 
-	Attributes(int count) {
-		super(count);
-	}
+    Attributes(int count) {
+        super(count);
+    }
 
-	void put(ClassFormatOutput out) throws IOException {
-		int size = size();
-		for (int i = 0; i < size; i++) {
-			((AttributeEntry) elementAt(i)).put(out);
-		}
-	}
+    void put(ClassFormatOutput out) throws IOException {
+        int size = size();
+        for (int i = 0; i < size; i++) {
+            ((AttributeEntry) elementAt(i)).put(out);
+        }
+    }
 
-	int classFileSize() {
-		return classFileSize;
-	}
+    int classFileSize() {
+        return classFileSize;
+    }
 
-	/**
-	*/
+    /**
+    */
 
-	void addEntry(AttributeEntry item) {
-		addElement(item);
-		classFileSize += item.classFileSize();
-	}
+    void addEntry(AttributeEntry item) {
+        addElement(item);
+        classFileSize += item.classFileSize();
+    }
 }
 

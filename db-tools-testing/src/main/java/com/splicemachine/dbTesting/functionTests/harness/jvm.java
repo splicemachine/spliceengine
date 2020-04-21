@@ -121,10 +121,10 @@ public abstract class jvm {
     public int iminor = 0;
     String hostName;
 
-	// security defaults relative to WS
-	// not used if jvmargs serverCodeBase are set
-	private static String DEFAULT_POLICY="util/derby_tests.policy";
-	private static String DEFAULT_CODEBASE="/classes";
+    // security defaults relative to WS
+    // not used if jvmargs serverCodeBase are set
+    private static String DEFAULT_POLICY="util/derby_tests.policy";
+    private static String DEFAULT_CODEBASE="/classes";
 
     // constructors
     public jvm() { }
@@ -159,12 +159,12 @@ public abstract class jvm {
         this.D=D;
     }
 
-	/**
+    /**
        return the property definition introducer, with a space if a
        separator is needed.
      */
     public abstract String getDintro();
-	public abstract String getName();
+    public abstract String getName();
     public void setNoasyncgc(boolean noasyncgc) { this.noasyncgc=noasyncgc; }
     public void setNoclassgc(boolean noclassgc) { this.noclassgc=noclassgc; }
     public void setVerbosegc(boolean verbosegc) { this.verbosegc=verbosegc; }
@@ -181,7 +181,7 @@ public abstract class jvm {
     public void setFlags(String flags) { this.flags = flags; }
     public void setJavaCmd(String jcmd) { this.javaCmd = jcmd; }
 
-	
+    
     public Vector getCommandLine()
     {
         Vector v = new Vector();
@@ -216,40 +216,40 @@ public abstract class jvm {
     // utility for locating a jvm.
     /**
         pass in class name for JVM.  If we can't find it, try
-	also com.splicemachine.dbTesting.functionTests.harness.<jvmName>
+    also com.splicemachine.dbTesting.functionTests.harness.<jvmName>
      */
     public static jvm getJvm(String jvmName) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-	jvm result = null;
+    jvm result = null;
         try {
-		result = (jvm)Class.forName(jvmName).newInstance();
+        result = (jvm)Class.forName(jvmName).newInstance();
         } catch (ClassNotFoundException e) {
-		result = (jvm)Class.forName("com.splicemachine.dbTesting.functionTests.harness."+jvmName).newInstance();
+        result = (jvm)Class.forName("com.splicemachine.dbTesting.functionTests.harness."+jvmName).newInstance();
         }
         return result;
     }
 
-	/**
-	  Get the current JVM using the normal test harness rules for finding
-	  a JVM.
-	  <OL>
-	  <LI> If the sytem property 'jvm' use this name.
-	  <LI> else if the java version starts with 1.2 use
-	       "jdk12".
-	  <LI> else use "currentjvm".	
-	  */
-	public static jvm getCurrentJvm() throws Exception
-	{
-		String jvmName = System.getProperty("jvm");
-		if ( (jvmName == null) || (jvmName.isEmpty()) )
-		{
-			String javaVersion = System.getProperty("java.version");
-		    if (javaVersion.startsWith("1.2"))
-		        jvmName = "jdk12";
-		    else
-		        jvmName = "currentjvm";
-		}
-		return getJvm(jvmName);
-	}
+    /**
+      Get the current JVM using the normal test harness rules for finding
+      a JVM.
+      <OL>
+      <LI> If the sytem property 'jvm' use this name.
+      <LI> else if the java version starts with 1.2 use
+           "jdk12".
+      <LI> else use "currentjvm".    
+      */
+    public static jvm getCurrentJvm() throws Exception
+    {
+        String jvmName = System.getProperty("jvm");
+        if ( (jvmName == null) || (jvmName.isEmpty()) )
+        {
+            String javaVersion = System.getProperty("java.version");
+            if (javaVersion.startsWith("1.2"))
+                jvmName = "jdk12";
+            else
+                jvmName = "currentjvm";
+        }
+        return getJvm(jvmName);
+    }
 
     /**
       Return the major version number
@@ -267,108 +267,108 @@ public abstract class jvm {
         return iminor;
     }
     
-	/**
-	  Get the current JVM using the normal test harness rules for finding
-	  a JVM.
-	  */
-	public void setVersion() throws Exception
-	{
-		// check for jdk12 or higher
-	    String javaVersion = System.getProperty("java.version");
-		int i = javaVersion.indexOf('.');
-		int j = javaVersion.indexOf('.', i+1);
-		majorVersion = javaVersion.substring(0, i);
-		minorVersion = javaVersion.substring(i+1, j);
-		Integer minor = new Integer(minorVersion);
-		iminor = minor.intValue();
-		Integer major = new Integer(majorVersion);
-		imajor = major.intValue();
-		
-		String jvmName = System.getProperty("jvm");
-		
-		if ( (jvmName == null) || (jvmName.isEmpty()) )
-		{
-		    if (iminor < 2)
-		        jvmName = "currentjvm";
-		    else
-		        jvmName = "jdk" + majorVersion + minorVersion;
-		}
-	}
-	
-	/** Find $WS based on the assumption that JAVA_HOME is $WS/<jvm_name>
-	 * or $WS/<jvm_name>/jre
-	 * @return path of $WS
-	 */
-	protected static String guessWSHome()
-	{
-		String wshome=""; 
-		String jhome = System.getProperty("java.home");
-		String sep = System.getProperty("file.separator");
-		// need to strip off the java directory  assuming it's something
-		// like ibm14/jre or ibm14
-		int havejre=jhome.indexOf(sep + "jre");
-		if (havejre > 0)
-		{
-			wshome = jhome.substring(0,jhome.indexOf(sep + "jre"));
-			if (wshome.lastIndexOf(sep) >= 0)
-				wshome = wshome.substring(0,wshome.lastIndexOf(sep));
-		}
-		{
-			if (jhome.lastIndexOf(sep) >= 0)
-				wshome = jhome.substring(0,jhome.lastIndexOf(sep));	
-		}
-		return wshome;
-	}
+    /**
+      Get the current JVM using the normal test harness rules for finding
+      a JVM.
+      */
+    public void setVersion() throws Exception
+    {
+        // check for jdk12 or higher
+        String javaVersion = System.getProperty("java.version");
+        int i = javaVersion.indexOf('.');
+        int j = javaVersion.indexOf('.', i+1);
+        majorVersion = javaVersion.substring(0, i);
+        minorVersion = javaVersion.substring(i+1, j);
+        Integer minor = new Integer(minorVersion);
+        iminor = minor.intValue();
+        Integer major = new Integer(majorVersion);
+        imajor = major.intValue();
+        
+        String jvmName = System.getProperty("jvm");
+        
+        if ( (jvmName == null) || (jvmName.isEmpty()) )
+        {
+            if (iminor < 2)
+                jvmName = "currentjvm";
+            else
+                jvmName = "jdk" + majorVersion + minorVersion;
+        }
+    }
+    
+    /** Find $WS based on the assumption that JAVA_HOME is $WS/<jvm_name>
+     * or $WS/<jvm_name>/jre
+     * @return path of $WS
+     */
+    protected static String guessWSHome()
+    {
+        String wshome=""; 
+        String jhome = System.getProperty("java.home");
+        String sep = System.getProperty("file.separator");
+        // need to strip off the java directory  assuming it's something
+        // like ibm14/jre or ibm14
+        int havejre=jhome.indexOf(sep + "jre");
+        if (havejre > 0)
+        {
+            wshome = jhome.substring(0,jhome.indexOf(sep + "jre"));
+            if (wshome.lastIndexOf(sep) >= 0)
+                wshome = wshome.substring(0,wshome.lastIndexOf(sep));
+        }
+        {
+            if (jhome.lastIndexOf(sep) >= 0)
+                wshome = jhome.substring(0,jhome.lastIndexOf(sep));    
+        }
+        return wshome;
+    }
 
-	public static String findCodeBase(boolean[] isJar)
-	{
-		throw new UnsupportedOperationException("splice");
-	}
-	
-	/**
-	 * set up security properties for server command line.
-	 */
-	protected void setSecurityProps() throws java.io.IOException, ClassNotFoundException
-	{		
-		// gd again D = jvm.getSecurityProps(D);
-		
-	}
-	
-	static Vector getSecurityProps(Vector D) throws ClassNotFoundException, IOException
-	{
-		if (D == null)
-			D = new Vector();
-		
-		String userDir = System.getProperty("user.dir");
-		String policyFile = userDir + baseName(DEFAULT_POLICY);
+    public static String findCodeBase(boolean[] isJar)
+    {
+        throw new UnsupportedOperationException("splice");
+    }
+    
+    /**
+     * set up security properties for server command line.
+     */
+    protected void setSecurityProps() throws java.io.IOException, ClassNotFoundException
+    {        
+        // gd again D = jvm.getSecurityProps(D);
+        
+    }
+    
+    static Vector getSecurityProps(Vector D) throws ClassNotFoundException, IOException
+    {
+        if (D == null)
+            D = new Vector();
+        
+        String userDir = System.getProperty("user.dir");
+        String policyFile = userDir + baseName(DEFAULT_POLICY);
 
-		String serverCodeBase = System.getProperty("serverCodeBase");
-		boolean[] isJar = new boolean[1];
-		if (serverCodeBase == null)
-			serverCodeBase = findCodeBase(isJar);
+        String serverCodeBase = System.getProperty("serverCodeBase");
+        boolean[] isJar = new boolean[1];
+        if (serverCodeBase == null)
+            serverCodeBase = findCodeBase(isJar);
    
         
-		if (serverCodeBase == null)
-		{
-			String ws = guessWSHome();
-			serverCodeBase = ws + DEFAULT_CODEBASE;
+        if (serverCodeBase == null)
+        {
+            String ws = guessWSHome();
+            serverCodeBase = ws + DEFAULT_CODEBASE;
                  
-		}
-		
-		File pf = new File(policyFile);
-		File cb = new File(serverCodeBase);
+        }
+        
+        File pf = new File(policyFile);
+        File cb = new File(serverCodeBase);
 
-		if (!pf.exists())
-		{
-			System.out.println("WARNING: Running without Security manager." +
-							   "policy File (" + policyFile + 
-							   ") or serverCodeBase(" +  serverCodeBase + 
-							   ") not available");
-		return D;
-		}
-		
-		D.addElement("java.security.manager");
-		D.addElement("java.security.policy=" + pf.getAbsolutePath());
+        if (!pf.exists())
+        {
+            System.out.println("WARNING: Running without Security manager." +
+                               "policy File (" + policyFile + 
+                               ") or serverCodeBase(" +  serverCodeBase + 
+                               ") not available");
+        return D;
+        }
+        
+        D.addElement("java.security.manager");
+        D.addElement("java.security.policy=" + pf.getAbsolutePath());
  
         Properties jusetup =
             SecurityManagerSetup.getPolicyFilePropertiesForOldHarness();
@@ -380,29 +380,29 @@ public abstract class jvm {
             String key = (String) p.nextElement();
             D.addElement(key + "=" + jusetup.getProperty(key));
         }
-		
+        
 
-		// file path to the codebase
-		D.addElement("derbyTesting.codedir=" + cb.getAbsolutePath());
-		String hostName = (System.getProperty("hostName"));
-		if (hostName == null)
-			hostName="localhost";
-		D.addElement("derbyTesting.serverhost=" + hostName);
-		// in the case of testing with a remote host, this is irrelevant, 
-		// when testing 'normal' it is also localhost:
-		D.addElement("derbyTesting.clienthost=" + hostName);	 	
-		
-		return D;
-		
-	}
+        // file path to the codebase
+        D.addElement("derbyTesting.codedir=" + cb.getAbsolutePath());
+        String hostName = (System.getProperty("hostName"));
+        if (hostName == null)
+            hostName="localhost";
+        D.addElement("derbyTesting.serverhost=" + hostName);
+        // in the case of testing with a remote host, this is irrelevant, 
+        // when testing 'normal' it is also localhost:
+        D.addElement("derbyTesting.clienthost=" + hostName);         
+        
+        return D;
+        
+    }
 
-	/** Get the base file name from a resource name string
-	 * @param resourceName (e.g. /org/apache/derbyTesting/functionTests/util/derby_tests.policy)
-	 * @return short name (e.g. derby_tests.policy)
-	 */
-	private static String baseName(String resourceName)
-	{
-	  
-		return resourceName.substring(resourceName.lastIndexOf("/"),resourceName.length());
-	}
+    /** Get the base file name from a resource name string
+     * @param resourceName (e.g. /org/apache/derbyTesting/functionTests/util/derby_tests.policy)
+     * @return short name (e.g. derby_tests.policy)
+     */
+    private static String baseName(String resourceName)
+    {
+      
+        return resourceName.substring(resourceName.lastIndexOf("/"),resourceName.length());
+    }
 }

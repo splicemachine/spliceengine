@@ -33,7 +33,7 @@ package com.splicemachine.db.impl.tools.ij;
 
 public class ijTokenException extends RuntimeException {
 
-	public ijTokenException(String message) {
-		super(message);
-	}
+    public ijTokenException(String message) {
+        super(message);
+    }
 }

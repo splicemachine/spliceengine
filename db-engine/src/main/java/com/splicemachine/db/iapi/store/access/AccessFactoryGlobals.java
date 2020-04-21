@@ -47,45 +47,45 @@ public interface AccessFactoryGlobals
      * The name for user transactions. This name will be displayed by the
      * transactiontable VTI.
      */
-	String USER_TRANS_NAME = "UserTransaction";
+    String USER_TRANS_NAME = "UserTransaction";
 
     /**
      * The name for system transactions. This name will be displayed by the
      * transactiontable VTI.
      */
-	String SYS_TRANS_NAME = "SystemTransaction";
+    String SYS_TRANS_NAME = "SystemTransaction";
 
-	/**
-	 *	Overflow Threshold
-	 *
-	 *  This defined how large the row can be before it becomes a long row,
-	 *  during an insert.
-	 *
-	 *  @see com.splicemachine.db.iapi.store.raw.Page
-	 */
-	int BTREE_OVERFLOW_THRESHOLD = 50;
-	int HEAP_OVERFLOW_THRESHOLD  = 100;
-	int SORT_OVERFLOW_THRESHOLD  = 100;
+    /**
+     *    Overflow Threshold
+     *
+     *  This defined how large the row can be before it becomes a long row,
+     *  during an insert.
+     *
+     *  @see com.splicemachine.db.iapi.store.raw.Page
+     */
+    int BTREE_OVERFLOW_THRESHOLD = 50;
+    int HEAP_OVERFLOW_THRESHOLD  = 100;
+    int SORT_OVERFLOW_THRESHOLD  = 100;
 
     String CFG_CONGLOMDIR_CACHE = "ConglomerateDirectoryCache";
 
     String HEAP = "heap";
 
-	String DEFAULT_PROPERTY_NAME = "derby.defaultPropertyName";
+    String DEFAULT_PROPERTY_NAME = "derby.defaultPropertyName";
 
-	String PAGE_RESERVED_SPACE_PROP = "0";
+    String PAGE_RESERVED_SPACE_PROP = "0";
 
-	String CONGLOM_PROP = "derby.access.Conglomerate.type";
+    String CONGLOM_PROP = "derby.access.Conglomerate.type";
 
-	String IMPL_TYPE = "implType";
+    String IMPL_TYPE = "implType";
 
-	String SORT_EXTERNAL = "sort external";
-	String SORT_INTERNAL = "sort internal";
+    String SORT_EXTERNAL = "sort external";
+    String SORT_INTERNAL = "sort internal";
     String SORT_UNIQUEWITHDUPLICATENULLS_EXTERNAL
                                     = "sort almost unique external";
 
-	String NESTED_READONLY_USER_TRANS = "nestedReadOnlyUserTransaction";
-	String NESTED_UPDATE_USER_TRANS = "nestedUpdateUserTransaction";
+    String NESTED_READONLY_USER_TRANS = "nestedReadOnlyUserTransaction";
+    String NESTED_UPDATE_USER_TRANS = "nestedUpdateUserTransaction";
 
     String RAMXACT_CONTEXT_ID = "RAMTransactionContext";
 

@@ -37,37 +37,37 @@ import java.util.Locale;
 import java.text.DateFormat;
 
 /**
-	A LocaleFinder gets a Locale and things associated with Locales.
+    A LocaleFinder gets a Locale and things associated with Locales.
  */
 public interface LocaleFinder {
 
-	/**
-	 * @exception StandardException		Thrown on error
-	 */
-	Locale getCurrentLocale() throws StandardException;
+    /**
+     * @exception StandardException        Thrown on error
+     */
+    Locale getCurrentLocale() throws StandardException;
 
-	/**
-	 * Get a formatter for formatting dates. The implementation may cache this
-	 * value, since it never changes for a given Locale.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	DateFormat getDateFormat() throws StandardException;
+    /**
+     * Get a formatter for formatting dates. The implementation may cache this
+     * value, since it never changes for a given Locale.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    DateFormat getDateFormat() throws StandardException;
 
-	/**
-	 * Get a formatter for formatting times. The implementation may cache this
-	 * value, since it never changes for a given Locale.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	DateFormat getTimeFormat() throws StandardException;
+    /**
+     * Get a formatter for formatting times. The implementation may cache this
+     * value, since it never changes for a given Locale.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    DateFormat getTimeFormat() throws StandardException;
 
-	
-	/**
-	 * Get a formatter for formatting timestamps. The implementation may cache
-	 * this value, since it never changes for a given Locale.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	DateFormat getTimestampFormat() throws StandardException;
+    
+    /**
+     * Get a formatter for formatting timestamps. The implementation may cache
+     * this value, since it never changes for a given Locale.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    DateFormat getTimestampFormat() throws StandardException;
 }

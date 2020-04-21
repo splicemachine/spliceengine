@@ -45,31 +45,31 @@ import com.splicemachine.db.iapi.services.stream.PrintWriterGetHeader;
 class BasicGetLogHeader implements PrintWriterGetHeader
 {
 
-	/* 
-	 * STUB: This should take a header template. Check if
-	 *		 the error message facility provides something.
-	 *	
-	 *		 This should be localizable. How?
-	 */
-	/**
-	 * Constructor for a BasicGetLogHeader object.
-	 * <p>
-	 * @param doThreadId	true means include the calling thread's
-	 *							id in the header.
-	 * @param doTimeStamp	true means include the current time in 
-	 *							the header.
-	 * @param tag			A string to prefix the header. null
-	 *						means don't prefix the header with
-	 *						a string.
-	 */
-	BasicGetLogHeader(boolean doThreadId,
-				boolean doTimeStamp,
-				String tag){
-	}
-	
-	public String getHeader()
-	{
-		return ""; // no need for headers
-	}
+    /* 
+     * STUB: This should take a header template. Check if
+     *         the error message facility provides something.
+     *    
+     *         This should be localizable. How?
+     */
+    /**
+     * Constructor for a BasicGetLogHeader object.
+     * <p>
+     * @param doThreadId    true means include the calling thread's
+     *                            id in the header.
+     * @param doTimeStamp    true means include the current time in 
+     *                            the header.
+     * @param tag            A string to prefix the header. null
+     *                        means don't prefix the header with
+     *                        a string.
+     */
+    BasicGetLogHeader(boolean doThreadId,
+                boolean doTimeStamp,
+                String tag){
+    }
+    
+    public String getHeader()
+    {
+        return ""; // no need for headers
+    }
 }
-	
+    

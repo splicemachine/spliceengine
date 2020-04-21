@@ -24,8 +24,8 @@ public interface CommentStripper {
     /**
      * Parses the given statement text and return a version with the comment stripped
      *
-     * @param statementSQLText	The Statement to parse.
-     * @return	A new string with the comment stripped
+     * @param statementSQLText    The Statement to parse.
+     * @return    A new string with the comment stripped
      *
      * @exception StandardException        Thrown on failure
      */
@@ -35,9 +35,9 @@ public interface CommentStripper {
     /**
      * Returns the current SQL text string that is being parsed.
      *
-     * @return	Current SQL text string.
+     * @return    Current SQL text string.
      *
      */
-    public	String		getSQLtext();
+    public    String        getSQLtext();
 
 }

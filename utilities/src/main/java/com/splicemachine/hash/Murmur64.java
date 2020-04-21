@@ -108,7 +108,7 @@ final class Murmur64 implements Hash64 {
     }
 
     /*********************************************************************************************/
-		/*Private helper functions*/
+        /*Private helper functions*/
 
     private long initialize(long seed, int length) {
         return seed^(length*m);

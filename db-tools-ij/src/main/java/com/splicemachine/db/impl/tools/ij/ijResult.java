@@ -46,35 +46,35 @@ import java.util.List;
  *
  */
 interface ijResult {
-	boolean isConnection();
-	boolean isStatement();
-	boolean isResultSet() throws SQLException;
-	boolean isUpdateCount() throws SQLException;
-	boolean isNextRowOfResultSet();
-	boolean isVector();
-	boolean isMulti();
-	boolean isException();
-	boolean isMultipleResultSetResult();
-	boolean isUnsupportedCommand();
-	boolean hasWarnings() throws SQLException ;
+    boolean isConnection();
+    boolean isStatement();
+    boolean isResultSet() throws SQLException;
+    boolean isUpdateCount() throws SQLException;
+    boolean isNextRowOfResultSet();
+    boolean isVector();
+    boolean isMulti();
+    boolean isException();
+    boolean isMultipleResultSetResult();
+    boolean isUnsupportedCommand();
+    boolean hasWarnings() throws SQLException ;
 
-	Connection getConnection();
-	Statement getStatement();
-	int getUpdateCount() throws SQLException;
-	ResultSet getResultSet() throws SQLException;
-	List getMultipleResultSets();
-	ResultSet getNextRowOfResultSet();
-	Vector getVector();
-	SQLException getException();
-	int[] getColumnDisplayList();
-	int[] getColumnWidthList();
+    Connection getConnection();
+    Statement getStatement();
+    int getUpdateCount() throws SQLException;
+    ResultSet getResultSet() throws SQLException;
+    List getMultipleResultSets();
+    ResultSet getNextRowOfResultSet();
+    Vector getVector();
+    SQLException getException();
+    int[] getColumnDisplayList();
+    int[] getColumnWidthList();
 
-	void closeStatement() throws SQLException ;
+    void closeStatement() throws SQLException ;
 
-	/*
-		Since they will all need to do warning calls/clears, may as
-		well stick it here.
-	 */
-	SQLWarning getSQLWarnings() throws SQLException ;
-	void clearSQLWarnings() throws SQLException ;
+    /*
+        Since they will all need to do warning calls/clears, may as
+        well stick it here.
+     */
+    SQLWarning getSQLWarnings() throws SQLException ;
+    void clearSQLWarnings() throws SQLException ;
 }

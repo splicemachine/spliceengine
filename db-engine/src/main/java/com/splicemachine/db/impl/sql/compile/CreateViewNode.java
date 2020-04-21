@@ -62,238 +62,238 @@ import java.util.Collections;
 
 public class CreateViewNode extends DDLStatementNode
 {
-	ResultColumnList	resultColumns;
-	ResultSetNode		queryExpression;
-	String				qeText;
-	int					checkOption;
-	ProviderInfo[]		providerInfos;
-	ColumnInfo[]		colInfos;
-	private OrderByList orderByList;
+    ResultColumnList    resultColumns;
+    ResultSetNode        queryExpression;
+    String                qeText;
+    int                    checkOption;
+    ProviderInfo[]        providerInfos;
+    ColumnInfo[]        colInfos;
+    private OrderByList orderByList;
     private ValueNode   offset;
     private ValueNode   fetchFirst;
     private boolean hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
-	private boolean isRecursive;
+    private boolean isRecursive;
 
-	/**
-	 * Initializer for a CreateViewNode
-	 *
-	 * @param newObjectName		The name of the table to be created
-	 * @param resultColumns		The column list from the view definition, 
-	 *							if specified
-	 * @param queryExpression	The query expression for the view
-	 * @param checkOption		The type of WITH CHECK OPTION that was specified
-	 *							(NONE for now)
-	 * @param qeText			The text for the queryExpression
-	 * @param orderCols         ORDER BY list
+    /**
+     * Initializer for a CreateViewNode
+     *
+     * @param newObjectName        The name of the table to be created
+     * @param resultColumns        The column list from the view definition, 
+     *                            if specified
+     * @param queryExpression    The query expression for the view
+     * @param checkOption        The type of WITH CHECK OPTION that was specified
+     *                            (NONE for now)
+     * @param qeText            The text for the queryExpression
+     * @param orderCols         ORDER BY list
      * @param offset            OFFSET if any, or null
      * @param fetchFirst        FETCH FIRST if any, or null
-	 * @param hasJDBClimitClause True if the offset/fetchFirst clauses come from JDBC limit/offset escape syntax
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+     * @param hasJDBClimitClause True if the offset/fetchFirst clauses come from JDBC limit/offset escape syntax
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public void init(Object newObjectName,
-				   Object resultColumns,
-				   Object	 queryExpression,
-				   Object checkOption,
-				   Object qeText,
+    public void init(Object newObjectName,
+                   Object resultColumns,
+                   Object     queryExpression,
+                   Object checkOption,
+                   Object qeText,
                    Object orderCols,
                    Object offset,
                    Object fetchFirst,
                    Object hasJDBClimitClause,
                    Object isRecursive)
-		throws StandardException
-	{
-		initAndCheck(newObjectName);
-		this.resultColumns = (ResultColumnList) resultColumns;
-		this.queryExpression = (ResultSetNode) queryExpression;
-		this.checkOption = (Integer) checkOption;
-		this.qeText = ((String) qeText).trim();
-		this.orderByList = (OrderByList)orderCols;
+        throws StandardException
+    {
+        initAndCheck(newObjectName);
+        this.resultColumns = (ResultColumnList) resultColumns;
+        this.queryExpression = (ResultSetNode) queryExpression;
+        this.checkOption = (Integer) checkOption;
+        this.qeText = ((String) qeText).trim();
+        this.orderByList = (OrderByList)orderCols;
         this.offset = (ValueNode)offset;
         this.fetchFirst = (ValueNode)fetchFirst;
         this.hasJDBClimitClause = hasJDBClimitClause != null && (Boolean) hasJDBClimitClause;
         this.isRecursive = isRecursive != null && (Boolean) isRecursive;
 
-		implicitCreateSchema = true;
-	}
+        implicitCreateSchema = true;
+    }
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			return super.toString() +
-				"checkOption: " + checkOption + "\n" +
-				"qeText: " + qeText + "\n";
-		}
-		else
-		{
-			return "";
-		}
-	}
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            return super.toString() +
+                "checkOption: " + checkOption + "\n" +
+                "qeText: " + qeText + "\n";
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	public String statementToString()
-	{
-		return "CREATE VIEW";
-	}
+    public String statementToString()
+    {
+        return "CREATE VIEW";
+    }
 
-	/**
-	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
-	 * how tree printing is supposed to work.
-	 *
-	 * @param depth		The depth of this node in the tree
-	 */
+    /**
+     * Prints the sub-nodes of this object.  See QueryTreeNode.java for
+     * how tree printing is supposed to work.
+     *
+     * @param depth        The depth of this node in the tree
+     */
 
-	public void printSubNodes(int depth)
-	{
-		if (SanityManager.DEBUG)
-		{
-			super.printSubNodes(depth);
+    public void printSubNodes(int depth)
+    {
+        if (SanityManager.DEBUG)
+        {
+            super.printSubNodes(depth);
 
-			if (resultColumns != null)
-			{
-				printLabel(depth, "resultColumns: ");
-				resultColumns.treePrint(depth + 1);
-			}
+            if (resultColumns != null)
+            {
+                printLabel(depth, "resultColumns: ");
+                resultColumns.treePrint(depth + 1);
+            }
 
-			printLabel(depth, "queryExpression: ");
-			queryExpression.treePrint(depth + 1);
-		}
-	}
+            printLabel(depth, "queryExpression: ");
+            queryExpression.treePrint(depth + 1);
+        }
+    }
 
-	// accessors
+    // accessors
 
-	public	int				getCheckOption() { return checkOption; }
+    public    int                getCheckOption() { return checkOption; }
 
-	public	ProviderInfo[]	getProviderInfo() { return providerInfos; }
+    public    ProviderInfo[]    getProviderInfo() { return providerInfos; }
 
-	public	ColumnInfo[]	getColumnInfo() { return colInfos; }
+    public    ColumnInfo[]    getColumnInfo() { return colInfos; }
 
-	// We inherit the generate() method from DDLStatementNode.
+    // We inherit the generate() method from DDLStatementNode.
 
-	/**
-	 * Bind this CreateViewNode.  This means doing any static error
-	 * checking that can be done before actually creating the table.
-	 * For example, verifying that the ResultColumnList does not
-	 * contain any duplicate column names.
-	 *
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void bindStatement() throws StandardException
-	{
-		CompilerContext				cc = getCompilerContext();
-		DataDictionary				dataDictionary = getDataDictionary();
-		ResultColumnList			qeRCL;
-		String						duplicateColName;
+    /**
+     * Bind this CreateViewNode.  This means doing any static error
+     * checking that can be done before actually creating the table.
+     * For example, verifying that the ResultColumnList does not
+     * contain any duplicate column names.
+     *
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void bindStatement() throws StandardException
+    {
+        CompilerContext                cc = getCompilerContext();
+        DataDictionary                dataDictionary = getDataDictionary();
+        ResultColumnList            qeRCL;
+        String                        duplicateColName;
 
-		// bind the query expression
-		if (isRecursive) {
-			providerInfos = bindRecursiveViewDefinition
-					( dataDictionary, cc,
-							getNodeFactory(),
-							getContextManager()
-					);
-		} else {
-			providerInfos = bindViewDefinition
-					(dataDictionary, cc,
-							getNodeFactory(),
-							queryExpression,
-							getContextManager()
-					);
-		}
+        // bind the query expression
+        if (isRecursive) {
+            providerInfos = bindRecursiveViewDefinition
+                    ( dataDictionary, cc,
+                            getNodeFactory(),
+                            getContextManager()
+                    );
+        } else {
+            providerInfos = bindViewDefinition
+                    (dataDictionary, cc,
+                            getNodeFactory(),
+                            queryExpression,
+                            getContextManager()
+                    );
+        }
 
-		qeRCL = queryExpression.getResultColumns();
+        qeRCL = queryExpression.getResultColumns();
 
-		/* If there is an RCL for the view definition then
-		 * copy the names to the queryExpression's RCL after verifying
-		 * that they both have the same size.
-		 */
-		if (resultColumns != null)
-		{
-			if (resultColumns.size() != qeRCL.visibleSize())
-			{
-				throw StandardException.newException(SQLState.LANG_VIEW_DEFINITION_R_C_L_MISMATCH,
-								getFullName());
-			}
-			qeRCL.copyResultColumnNames(resultColumns);
-		}
+        /* If there is an RCL for the view definition then
+         * copy the names to the queryExpression's RCL after verifying
+         * that they both have the same size.
+         */
+        if (resultColumns != null)
+        {
+            if (resultColumns.size() != qeRCL.visibleSize())
+            {
+                throw StandardException.newException(SQLState.LANG_VIEW_DEFINITION_R_C_L_MISMATCH,
+                                getFullName());
+            }
+            qeRCL.copyResultColumnNames(resultColumns);
+        }
 
-		/* Check to make sure the queryExpression's RCL has unique names. If target column
-		 * names not specified, raise error if there are any un-named columns to match DB2
-		 */
-		duplicateColName = qeRCL.verifyUniqueNames(resultColumns == null);
-		if (duplicateColName != null)
-		{
-			throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_NAME_CREATE_VIEW, duplicateColName);
-		}
+        /* Check to make sure the queryExpression's RCL has unique names. If target column
+         * names not specified, raise error if there are any un-named columns to match DB2
+         */
+        duplicateColName = qeRCL.verifyUniqueNames(resultColumns == null);
+        if (duplicateColName != null)
+        {
+            throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_NAME_CREATE_VIEW, duplicateColName);
+        }
 
-		/* Only 5000 columns allowed per view */
-		if (queryExpression.getResultColumns().size() > Limits.DB2_MAX_COLUMNS_IN_VIEW)
-		{
-			throw StandardException.newException(SQLState.LANG_TOO_MANY_COLUMNS_IN_TABLE_OR_VIEW,
-				String.valueOf(queryExpression.getResultColumns().size()),
-				getRelativeName(),
-				String.valueOf(Limits.DB2_MAX_COLUMNS_IN_VIEW));
-		}
+        /* Only 5000 columns allowed per view */
+        if (queryExpression.getResultColumns().size() > Limits.DB2_MAX_COLUMNS_IN_VIEW)
+        {
+            throw StandardException.newException(SQLState.LANG_TOO_MANY_COLUMNS_IN_TABLE_OR_VIEW,
+                String.valueOf(queryExpression.getResultColumns().size()),
+                getRelativeName(),
+                String.valueOf(Limits.DB2_MAX_COLUMNS_IN_VIEW));
+        }
 
-		// for each column, stuff system.column
-		// System columns should only include visible columns DERBY-4230
-		colInfos = new ColumnInfo[queryExpression.getResultColumns().visibleSize()];
-		genColumnInfos(colInfos);
-	}
+        // for each column, stuff system.column
+        // System columns should only include visible columns DERBY-4230
+        colInfos = new ColumnInfo[queryExpression.getResultColumns().visibleSize()];
+        genColumnInfos(colInfos);
+    }
 
-	/**
-	 * Bind the query expression for a view definition. 
-	 *
-	 * @param dataDictionary	The DataDictionary to use to look up
-	 *				columns, tables, etc.
-	 *
-	 * @return	Array of providers that this view depends on.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Bind the query expression for a view definition. 
+     *
+     * @param dataDictionary    The DataDictionary to use to look up
+     *                columns, tables, etc.
+     *
+     * @return    Array of providers that this view depends on.
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	private ProviderInfo[] bindViewDefinition( DataDictionary 	dataDictionary,
-											 CompilerContext	compilerContext,
-											 NodeFactory		nodeFactory,
-											 ResultSetNode		queryExpr,
-											 ContextManager		cm)
-		throws StandardException
-	{
-		FromList	fromList = (FromList) nodeFactory.getNode(
-										C_NodeTypes.FROM_LIST,
-										nodeFactory.doJoinOrderOptimization(),
-										cm);
+    private ProviderInfo[] bindViewDefinition( DataDictionary     dataDictionary,
+                                             CompilerContext    compilerContext,
+                                             NodeFactory        nodeFactory,
+                                             ResultSetNode        queryExpr,
+                                             ContextManager        cm)
+        throws StandardException
+    {
+        FromList    fromList = (FromList) nodeFactory.getNode(
+                                        C_NodeTypes.FROM_LIST,
+                                        nodeFactory.doJoinOrderOptimization(),
+                                        cm);
 
-		ProviderList 	prevAPL = compilerContext.getCurrentAuxiliaryProviderList();
-		ProviderList 	apl = new ProviderList();
+        ProviderList     prevAPL = compilerContext.getCurrentAuxiliaryProviderList();
+        ProviderList     apl = new ProviderList();
 
-		try {
-			compilerContext.setCurrentAuxiliaryProviderList(apl);
-			compilerContext.pushCurrentPrivType(Authorizer.SELECT_PRIV);
+        try {
+            compilerContext.setCurrentAuxiliaryProviderList(apl);
+            compilerContext.pushCurrentPrivType(Authorizer.SELECT_PRIV);
 
-			/* Bind the tables in the queryExpression */
-			queryExpr = queryExpr.bindNonVTITables(dataDictionary, fromList);
-			queryExpr = queryExpr.bindVTITables(fromList);
+            /* Bind the tables in the queryExpression */
+            queryExpr = queryExpr.bindNonVTITables(dataDictionary, fromList);
+            queryExpr = queryExpr.bindVTITables(fromList);
 
 
-			/* Bind the expressions under the resultSet */
-			queryExpr.bindExpressions(fromList);
+            /* Bind the expressions under the resultSet */
+            queryExpr.bindExpressions(fromList);
 
-			//cannot define views on temporary tables
-			if (queryExpr instanceof SelectNode)
-			{
-				//If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception
-				if (queryExpr.referencesSessionSchema())
-					throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
+            //cannot define views on temporary tables
+            if (queryExpr instanceof SelectNode)
+            {
+                //If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception
+                if (queryExpr.referencesSessionSchema())
+                    throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
                 // check that no provider is a temp table (whether or not it's in SESSION schema)
                 for (Provider provider : apl.values()) {
                     if (provider instanceof TableDescriptor && ! provider.isPersistent()) {
@@ -301,258 +301,258 @@ public class CreateViewNode extends DDLStatementNode
                                                              provider.getObjectName());
                     }
                 }
-			}
+            }
 
-			// bind the query expression
-			queryExpr.bindResultColumns(fromList);
-			
-			// rejects any untyped nulls in the RCL
-			// e.g.:  CREATE VIEW v1 AS VALUES NULL
-			queryExpr.bindUntypedNullsToResultColumns(null);
-		}
-		finally
-		{
-			compilerContext.popCurrentPrivType();
-			compilerContext.setCurrentAuxiliaryProviderList(prevAPL);
-		}
+            // bind the query expression
+            queryExpr.bindResultColumns(fromList);
+            
+            // rejects any untyped nulls in the RCL
+            // e.g.:  CREATE VIEW v1 AS VALUES NULL
+            queryExpr.bindUntypedNullsToResultColumns(null);
+        }
+        finally
+        {
+            compilerContext.popCurrentPrivType();
+            compilerContext.setCurrentAuxiliaryProviderList(prevAPL);
+        }
 
-		DependencyManager 		dm = dataDictionary.getDependencyManager();
-		ProviderInfo[]			providerInfos = dm.getPersistentProviderInfos(apl);
-		// need to clear the column info in case the same table descriptor
-		// is reused, eg., in multiple target only view definition
-		dm.clearColumnInfoInProviders(apl);
+        DependencyManager         dm = dataDictionary.getDependencyManager();
+        ProviderInfo[]            providerInfos = dm.getPersistentProviderInfos(apl);
+        // need to clear the column info in case the same table descriptor
+        // is reused, eg., in multiple target only view definition
+        dm.clearColumnInfoInProviders(apl);
 
-		/* Verify that all underlying ResultSets reclaimed their FromList */
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(fromList.size() == 0,
-				"fromList.size() is expected to be 0, not " + fromList.size() +
-				" on return from RS.bindExpressions()");
-		}
+        /* Verify that all underlying ResultSets reclaimed their FromList */
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(fromList.size() == 0,
+                "fromList.size() is expected to be 0, not " + fromList.size() +
+                " on return from RS.bindExpressions()");
+        }
 
-		return providerInfos;
-	}
+        return providerInfos;
+    }
 
-	public void replaceSelfReferenceForRecursiveView(TableDescriptor td) throws StandardException {
-		// set recursive view descriptor which contains the column type info.
-		((UnionNode)queryExpression).setViewDescreiptor(td);
-		ResultSetNode leftResultSetNode = ((UnionNode) queryExpression).getLeftResultSet();
-		ResultSetNode rightResultSetNode = ((UnionNode) queryExpression).getRightResultSet();
-		RecursiveViewReferenceVisitor recursiveViewReferenceVisitor =
-				new RecursiveViewReferenceVisitor(getObjectName(), leftResultSetNode, queryExpression, td);
+    public void replaceSelfReferenceForRecursiveView(TableDescriptor td) throws StandardException {
+        // set recursive view descriptor which contains the column type info.
+        ((UnionNode)queryExpression).setViewDescreiptor(td);
+        ResultSetNode leftResultSetNode = ((UnionNode) queryExpression).getLeftResultSet();
+        ResultSetNode rightResultSetNode = ((UnionNode) queryExpression).getRightResultSet();
+        RecursiveViewReferenceVisitor recursiveViewReferenceVisitor =
+                new RecursiveViewReferenceVisitor(getObjectName(), leftResultSetNode, queryExpression, td);
 
-		leftResultSetNode.accept(recursiveViewReferenceVisitor);
-		int numReferences = recursiveViewReferenceVisitor.getNumReferences();
-		if (numReferences > 0) {
-			throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-					"No recursive reference is allowed in the seed statement of a WITH RECURSIVE");
-		}
+        leftResultSetNode.accept(recursiveViewReferenceVisitor);
+        int numReferences = recursiveViewReferenceVisitor.getNumReferences();
+        if (numReferences > 0) {
+            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                    "No recursive reference is allowed in the seed statement of a WITH RECURSIVE");
+        }
 
-		rightResultSetNode.accept(recursiveViewReferenceVisitor);
-		numReferences = recursiveViewReferenceVisitor.getNumReferences();
+        rightResultSetNode.accept(recursiveViewReferenceVisitor);
+        numReferences = recursiveViewReferenceVisitor.getNumReferences();
 
-		/* check for valid syntax: currently only one recursive reference is allowed */
-		if (numReferences <= 0) {
-			throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-					"No recursive reference found in WITH RECURSIVE");
-		} else if (numReferences > 1) {
-			throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-					"More than one recursive reference in WITH RECURSIVE is not supported!");
-		}
+        /* check for valid syntax: currently only one recursive reference is allowed */
+        if (numReferences <= 0) {
+            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                    "No recursive reference found in WITH RECURSIVE");
+        } else if (numReferences > 1) {
+            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                    "More than one recursive reference in WITH RECURSIVE is not supported!");
+        }
 
-		return;
-	}
+        return;
+    }
 
-	private ProviderInfo[] bindRecursiveViewDefinition(DataDictionary 	dataDictionary,
-													   CompilerContext	compilerContext,
-											           NodeFactory		nodeFactory,
-											           ContextManager	cm)
-			throws StandardException
-	{
-		FromList	fromList = (FromList) nodeFactory.getNode(
-				C_NodeTypes.FROM_LIST,
-				nodeFactory.doJoinOrderOptimization(),
-				cm);
+    private ProviderInfo[] bindRecursiveViewDefinition(DataDictionary     dataDictionary,
+                                                       CompilerContext    compilerContext,
+                                                       NodeFactory        nodeFactory,
+                                                       ContextManager    cm)
+            throws StandardException
+    {
+        FromList    fromList = (FromList) nodeFactory.getNode(
+                C_NodeTypes.FROM_LIST,
+                nodeFactory.doJoinOrderOptimization(),
+                cm);
 
-		ProviderList 	prevAPL = compilerContext.getCurrentAuxiliaryProviderList();
-		ProviderList 	apl = new ProviderList();
+        ProviderList     prevAPL = compilerContext.getCurrentAuxiliaryProviderList();
+        ProviderList     apl = new ProviderList();
 
-		try {
-			compilerContext.setCurrentAuxiliaryProviderList(apl);
-			compilerContext.pushCurrentPrivType(Authorizer.SELECT_PRIV);
+        try {
+            compilerContext.setCurrentAuxiliaryProviderList(apl);
+            compilerContext.pushCurrentPrivType(Authorizer.SELECT_PRIV);
 
-			/* step 1: recursive with must be a UNION-AlL where the left branch is the
-			   seed, and the right branch is the recursion part with a self-reference
-			 */
-			if (!(queryExpression instanceof UnionNode) ||  !((UnionNode)queryExpression).all)
-				throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-						"WITH RECURSIVE requires UNION-ALL operation at the top level of the definition");
+            /* step 1: recursive with must be a UNION-AlL where the left branch is the
+               seed, and the right branch is the recursion part with a self-reference
+             */
+            if (!(queryExpression instanceof UnionNode) ||  !((UnionNode)queryExpression).all)
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                        "WITH RECURSIVE requires UNION-ALL operation at the top level of the definition");
 
-			/* step 2: replace the self-reference in the right branch with a SelfReferenceNode */
-			replaceSelfReferenceForRecursiveView(null);
+            /* step 2: replace the self-reference in the right branch with a SelfReferenceNode */
+            replaceSelfReferenceForRecursiveView(null);
 
-			/* step 3: bind the left of the union-all */
-			((UnionNode) queryExpression).getLeftResultSet().bindNonVTITables(dataDictionary, fromList);
-			((UnionNode) queryExpression).getLeftResultSet().bindVTITables(fromList);
+            /* step 3: bind the left of the union-all */
+            ((UnionNode) queryExpression).getLeftResultSet().bindNonVTITables(dataDictionary, fromList);
+            ((UnionNode) queryExpression).getLeftResultSet().bindVTITables(fromList);
 
-			/* Bind the expressions under the resultSet */
-			((UnionNode) queryExpression).getLeftResultSet().bindExpressions(fromList);
+            /* Bind the expressions under the resultSet */
+            ((UnionNode) queryExpression).getLeftResultSet().bindExpressions(fromList);
 
-			// bind the query expression
-			((UnionNode) queryExpression).getLeftResultSet().bindResultColumns(fromList);
+            // bind the query expression
+            ((UnionNode) queryExpression).getLeftResultSet().bindResultColumns(fromList);
 
-			/* step 4: bind the right only, and the union node */
-			((SetOperatorNode)queryExpression).bindNonVTITables(dataDictionary, fromList, true);
-			((SetOperatorNode)queryExpression).bindVTITables(fromList, true);
-			((SetOperatorNode)queryExpression).bindExpressions(fromList, true);
-			((SetOperatorNode)queryExpression).bindResultColumns(fromList, true);
+            /* step 4: bind the right only, and the union node */
+            ((SetOperatorNode)queryExpression).bindNonVTITables(dataDictionary, fromList, true);
+            ((SetOperatorNode)queryExpression).bindVTITables(fromList, true);
+            ((SetOperatorNode)queryExpression).bindExpressions(fromList, true);
+            ((SetOperatorNode)queryExpression).bindResultColumns(fromList, true);
 
-			/* step 5: more syntax check, no nested recursive view allowed */
-			RecursiveViewSyntaxCheckVisitor syntaxCheckVisitor = new RecursiveViewSyntaxCheckVisitor();
-			queryExpression.accept(syntaxCheckVisitor);
+            /* step 5: more syntax check, no nested recursive view allowed */
+            RecursiveViewSyntaxCheckVisitor syntaxCheckVisitor = new RecursiveViewSyntaxCheckVisitor();
+            queryExpression.accept(syntaxCheckVisitor);
 
-			//cannot define views on temporary tables
-			//If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception
-			if (queryExpression.referencesSessionSchema())
-				throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
-			// check that no provider is a temp table (whether or not it's in SESSION schema)
-			for (Provider provider : apl.values()) {
-				if (provider instanceof TableDescriptor && ! provider.isPersistent()) {
-					throw StandardException.newException(SQLState.LANG_TEMP_TABLES_CANNOT_BE_IN_VIEWS,
-							provider.getObjectName());
-				}
-			}
+            //cannot define views on temporary tables
+            //If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception
+            if (queryExpression.referencesSessionSchema())
+                throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
+            // check that no provider is a temp table (whether or not it's in SESSION schema)
+            for (Provider provider : apl.values()) {
+                if (provider instanceof TableDescriptor && ! provider.isPersistent()) {
+                    throw StandardException.newException(SQLState.LANG_TEMP_TABLES_CANNOT_BE_IN_VIEWS,
+                            provider.getObjectName());
+                }
+            }
 
-			// rejects any untyped nulls in the RCL
-			// e.g.:  CREATE VIEW v1 AS VALUES NULL
-			queryExpression.bindUntypedNullsToResultColumns(null);
-		}
-		finally
-		{
-			compilerContext.popCurrentPrivType();
-			compilerContext.setCurrentAuxiliaryProviderList(prevAPL);
-		}
+            // rejects any untyped nulls in the RCL
+            // e.g.:  CREATE VIEW v1 AS VALUES NULL
+            queryExpression.bindUntypedNullsToResultColumns(null);
+        }
+        finally
+        {
+            compilerContext.popCurrentPrivType();
+            compilerContext.setCurrentAuxiliaryProviderList(prevAPL);
+        }
 
-		DependencyManager 		dm = dataDictionary.getDependencyManager();
-		ProviderInfo[]			providerInfos = dm.getPersistentProviderInfos(apl);
-		// need to clear the column info in case the same table descriptor
-		// is reused, eg., in multiple target only view definition
-		dm.clearColumnInfoInProviders(apl);
+        DependencyManager         dm = dataDictionary.getDependencyManager();
+        ProviderInfo[]            providerInfos = dm.getPersistentProviderInfos(apl);
+        // need to clear the column info in case the same table descriptor
+        // is reused, eg., in multiple target only view definition
+        dm.clearColumnInfoInProviders(apl);
 
-		/* Verify that all underlying ResultSets reclaimed their FromList */
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(fromList.size() == 0,
-					"fromList.size() is expected to be 0, not " + fromList.size() +
-							" on return from RS.bindExpressions()");
-		}
+        /* Verify that all underlying ResultSets reclaimed their FromList */
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(fromList.size() == 0,
+                    "fromList.size() is expected to be 0, not " + fromList.size() +
+                            " on return from RS.bindExpressions()");
+        }
 
-		return providerInfos;
-	}
+        return providerInfos;
+    }
 
-	/**
-	 * Return true if the node references SESSION schema tables (temporary or permanent)
-	 *
-	 * @return	true if references SESSION schema tables, else false
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public boolean referencesSessionSchema()
-		throws StandardException
-	{
-		//If create view is part of create statement and the view references SESSION schema tables, then it will
-		//get caught in the bind phase of the view and exception will be thrown by the view bind. 
-		return (queryExpression.referencesSessionSchema());
-	}
+    /**
+     * Return true if the node references SESSION schema tables (temporary or permanent)
+     *
+     * @return    true if references SESSION schema tables, else false
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public boolean referencesSessionSchema()
+        throws StandardException
+    {
+        //If create view is part of create statement and the view references SESSION schema tables, then it will
+        //get caught in the bind phase of the view and exception will be thrown by the view bind. 
+        return (queryExpression.referencesSessionSchema());
+    }
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public ConstantAction	makeConstantAction() throws StandardException
-	{
-		/* RESOLVE - need to build up dependendencies and store them away through
-		 * the constant action.
-		 */
-		return	getGenericConstantActionFactory().getCreateViewConstantAction(getSchemaDescriptor().getSchemaName(),
-											  getRelativeName(),
-											  TableDescriptor.VIEW_TYPE,
-											  qeText,
-											  checkOption,
-											  colInfos,
-											  providerInfos,
-											  (UUID)null); 	// compilation schema, filled
-															// in when we create the view
-	}
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public ConstantAction    makeConstantAction() throws StandardException
+    {
+        /* RESOLVE - need to build up dependendencies and store them away through
+         * the constant action.
+         */
+        return    getGenericConstantActionFactory().getCreateViewConstantAction(getSchemaDescriptor().getSchemaName(),
+                                              getRelativeName(),
+                                              TableDescriptor.VIEW_TYPE,
+                                              qeText,
+                                              checkOption,
+                                              colInfos,
+                                              providerInfos,
+                                              (UUID)null);     // compilation schema, filled
+                                                            // in when we create the view
+    }
 
-	/**
-	 * Fill in the ColumnInfo[] for this create view.
-	 * 
-	 * @param colInfos	The ColumnInfo[] to be filled in.
-	 */
-	private void genColumnInfos(ColumnInfo[] colInfos)
-	{
-		ResultColumnList rcl = 	queryExpression.getResultColumns();
+    /**
+     * Fill in the ColumnInfo[] for this create view.
+     * 
+     * @param colInfos    The ColumnInfo[] to be filled in.
+     */
+    private void genColumnInfos(ColumnInfo[] colInfos)
+    {
+        ResultColumnList rcl =     queryExpression.getResultColumns();
 
-		for (int index = 0; index < colInfos.length; index++)
-		{
-			ResultColumn rc = (ResultColumn) rcl.elementAt(index);
-			// The colInfo array has been initialized to be of length 
-			// visibleSize() (DERBY-4230).  This code assumes that all the visible
-			// columns are at the beginning of the rcl. Throw an assertion 
-			// if we hit a generated column in what we think is the visible
-			// range.
-			if (SanityManager.DEBUG) {
-				if (rc.isGenerated)
-					SanityManager.THROWASSERT("Encountered generated column in expected visible range at rcl[" + index +"]");
-			}
-			//RESOLVEAUTOINCREMENT
-			colInfos[index] = new ColumnInfo(rc.getName(),
-											 rc.getType(),
-											 null,
-											 null,
-											 null,
-											 null,
-											 null,
-											 ColumnInfo.CREATE,
-											 0, 0, 0,-1);
-		}
-	}
+        for (int index = 0; index < colInfos.length; index++)
+        {
+            ResultColumn rc = (ResultColumn) rcl.elementAt(index);
+            // The colInfo array has been initialized to be of length 
+            // visibleSize() (DERBY-4230).  This code assumes that all the visible
+            // columns are at the beginning of the rcl. Throw an assertion 
+            // if we hit a generated column in what we think is the visible
+            // range.
+            if (SanityManager.DEBUG) {
+                if (rc.isGenerated)
+                    SanityManager.THROWASSERT("Encountered generated column in expected visible range at rcl[" + index +"]");
+            }
+            //RESOLVEAUTOINCREMENT
+            colInfos[index] = new ColumnInfo(rc.getName(),
+                                             rc.getType(),
+                                             null,
+                                             null,
+                                             null,
+                                             null,
+                                             null,
+                                             ColumnInfo.CREATE,
+                                             0, 0, 0,-1);
+        }
+    }
 
-	/*
-	 * class interface
-	 */
+    /*
+     * class interface
+     */
 
-	/**
-	  *	Get the parsed query expression (the SELECT statement).
-	  *
-	  *	@return	the parsed query expression.
-	  */
-	ResultSetNode	getParsedQueryExpression() { return queryExpression; }
-
-
-	/*
-	 * These methods are used by execution
-	 * to get information for storing into
-	 * the system catalogs.
-	 */
+    /**
+      *    Get the parsed query expression (the SELECT statement).
+      *
+      *    @return    the parsed query expression.
+      */
+    ResultSetNode    getParsedQueryExpression() { return queryExpression; }
 
 
-	/**
-	 * Accept the visitor for all visitable children of this node.
-	 * 
-	 * @param v the visitor
-	 */
+    /*
+     * These methods are used by execution
+     * to get information for storing into
+     * the system catalogs.
+     */
+
+
+    /**
+     * Accept the visitor for all visitable children of this node.
+     * 
+     * @param v the visitor
+     */
     @Override
-	public void acceptChildren(Visitor v) throws StandardException {
-		super.acceptChildren(v);
+    public void acceptChildren(Visitor v) throws StandardException {
+        super.acceptChildren(v);
 
-		if (queryExpression != null)
-		{
-			queryExpression = (ResultSetNode)queryExpression.accept(v, this);
-		}
-	}
+        if (queryExpression != null)
+        {
+            queryExpression = (ResultSetNode)queryExpression.accept(v, this);
+        }
+    }
 
     public OrderByList getOrderByList() {
         return orderByList;
@@ -568,70 +568,70 @@ public class CreateViewNode extends DDLStatementNode
     
     public boolean hasJDBClimitClause() { return hasJDBClimitClause; }
 
-	public TableDescriptor createDynamicView() throws StandardException {
-		DataDictionary dd = this.getDataDictionary();
-		SchemaDescriptor sd  = this.getSchemaDescriptor();
-		LanguageConnectionContext lcc = this.getLanguageConnectionContext();
-		TransactionController tc = lcc.getTransactionExecute();
-		TableDescriptor existingDescriptor = dd.getTableDescriptor(getRelativeName(), sd, tc);
-		if (existingDescriptor != null) {
-			throw StandardException.newException(com.splicemachine.db.shared.common.reference.SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
-					existingDescriptor.getDescriptorType(),
-					existingDescriptor.getDescriptorName(),
-					sd.getDescriptorType(),
-					sd.getDescriptorName());
-		}
+    public TableDescriptor createDynamicView() throws StandardException {
+        DataDictionary dd = this.getDataDictionary();
+        SchemaDescriptor sd  = this.getSchemaDescriptor();
+        LanguageConnectionContext lcc = this.getLanguageConnectionContext();
+        TransactionController tc = lcc.getTransactionExecute();
+        TableDescriptor existingDescriptor = dd.getTableDescriptor(getRelativeName(), sd, tc);
+        if (existingDescriptor != null) {
+            throw StandardException.newException(com.splicemachine.db.shared.common.reference.SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
+                    existingDescriptor.getDescriptorType(),
+                    existingDescriptor.getDescriptorName(),
+                    sd.getDescriptorType(),
+                    sd.getDescriptorName());
+        }
 
-		/* Create a new table descriptor.
-		 * (Pass in row locking, even though meaningless for views.)
-		 */
-		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-		TableDescriptor td = ddg.newTableDescriptor(getRelativeName(),sd,TableDescriptor.WITH_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null, null,false,false);
-		UUID toid = td.getUUID();
+        /* Create a new table descriptor.
+         * (Pass in row locking, even though meaningless for views.)
+         */
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+        TableDescriptor td = ddg.newTableDescriptor(getRelativeName(),sd,TableDescriptor.WITH_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null, null,false,false);
+        UUID toid = td.getUUID();
 
-		// No Need to add since this will be dynamic!!!
-//		dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
-//		toid = td.getUUID();
+        // No Need to add since this will be dynamic!!!
+//        dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
+//        toid = td.getUUID();
 
-		// for each column, stuff system.column
-		ColumnDescriptor[] cdlArray = new ColumnDescriptor[colInfos.length];
-		int index = 1;
-		for (int ix = 0; ix < colInfos.length; ix++) {
-			index++;
-			ColumnDescriptor columnDescriptor = new ColumnDescriptor(
-					colInfos[ix].name,
-					index,
-					index,
-					colInfos[ix].dataType,
-					colInfos[ix].defaultValue,
-					colInfos[ix].defaultInfo,
-					td,
-					(UUID) null,
-					colInfos[ix].autoincStart,
-					colInfos[ix].autoincInc,
-					index
-			);
-			cdlArray[ix] = columnDescriptor;
-		}
-		// Do not add to dictionary since it is dynamic!!
-//		dd.addDescriptorArray(cdlArray, td,DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+        // for each column, stuff system.column
+        ColumnDescriptor[] cdlArray = new ColumnDescriptor[colInfos.length];
+        int index = 1;
+        for (int ix = 0; ix < colInfos.length; ix++) {
+            index++;
+            ColumnDescriptor columnDescriptor = new ColumnDescriptor(
+                    colInfos[ix].name,
+                    index,
+                    index,
+                    colInfos[ix].dataType,
+                    colInfos[ix].defaultValue,
+                    colInfos[ix].defaultInfo,
+                    td,
+                    (UUID) null,
+                    colInfos[ix].autoincStart,
+                    colInfos[ix].autoincInc,
+                    index
+            );
+            cdlArray[ix] = columnDescriptor;
+        }
+        // Do not add to dictionary since it is dynamic!!
+//        dd.addDescriptorArray(cdlArray, td,DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
 
-		// add columns to the column descriptor list.
-		ColumnDescriptorList cdl = td.getColumnDescriptorList();
-		Collections.addAll(cdl, cdlArray);
+        // add columns to the column descriptor list.
+        ColumnDescriptorList cdl = td.getColumnDescriptorList();
+        Collections.addAll(cdl, cdlArray);
 
-		String createViewString;
-		if (isRecursive)
-			createViewString = "create recursive view ";
-		else
-			createViewString = "create view ";
+        String createViewString;
+        if (isRecursive)
+            createViewString = "create recursive view ";
+        else
+            createViewString = "create view ";
 
-		ViewDescriptor vd = ddg.newViewDescriptor(toid, getRelativeName(), createViewString + getRelativeName() + " " + qeText, checkOption, sd.getUUID());
-		td.setViewDescriptor(vd);
-		return td;
-	}
+        ViewDescriptor vd = ddg.newViewDescriptor(toid, getRelativeName(), createViewString + getRelativeName() + " " + qeText, checkOption, sd.getUUID());
+        td.setViewDescriptor(vd);
+        return td;
+    }
 
-	public boolean isRecursive() {
-    	return isRecursive;
-	}
+    public boolean isRecursive() {
+        return isRecursive;
+    }
 }

@@ -26,8 +26,8 @@ import javax.management.MXBean;
 @MXBean
 public interface TimestampClientStatistics{
 
-	long getNumberTimestampRequests();
-	
- 	double getAvgTimestampRequestDuration();
-	
+    long getNumberTimestampRequests();
+    
+     double getAvgTimestampRequestDuration();
+    
 }

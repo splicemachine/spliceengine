@@ -19,7 +19,7 @@ package com.splicemachine.metrics;
  * Date: 2/5/14
  */
 public interface MultiTimeView extends TimeView {
-		void update(TimeView timeView);
+        void update(TimeView timeView);
 
 
 }

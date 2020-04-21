@@ -47,80 +47,80 @@ import com.splicemachine.db.iapi.reference.ClassName;
 
 public class BooleanTypeCompiler extends BaseTypeCompiler
 {
-	/**
-	 * Tell whether this type (boolean) can be converted to the given type.
-	 *
-	 * @see TypeCompiler#convertible
-	 */
-	public boolean convertible(TypeId otherType, boolean forDataTypeFunction)
-	{
+    /**
+     * Tell whether this type (boolean) can be converted to the given type.
+     *
+     * @see TypeCompiler#convertible
+     */
+    public boolean convertible(TypeId otherType, boolean forDataTypeFunction)
+    {
         return (otherType.isStringTypeId() || otherType.isBooleanTypeId());
-	}
+    }
 
         /**
          * Tell whether this type (boolean) is compatible with the given type.
          *
          * @param otherType     The TypeId of the other type.
          */
-	public boolean compatible(TypeId otherType)
-	{
-		return convertible(otherType,false);
-	}
+    public boolean compatible(TypeId otherType)
+    {
+        return convertible(otherType,false);
+    }
 
-	/** @see TypeCompiler#storable */
-	public boolean storable(TypeId otherType, ClassFactory cf)
-	{
-		/* Are the types the same or is other type a string */
-		if ( otherType.isBooleanTypeId() || otherType.isStringTypeId() )
-		{
-			return true;
-		}
+    /** @see TypeCompiler#storable */
+    public boolean storable(TypeId otherType, ClassFactory cf)
+    {
+        /* Are the types the same or is other type a string */
+        if ( otherType.isBooleanTypeId() || otherType.isStringTypeId() )
+        {
+            return true;
+        }
 
-		/*
-		** If the other type is user-defined, use the java types to determine
-		** assignability.
-		*/
-		return userTypeStorable(getTypeId(), otherType, cf);
-	}
+        /*
+        ** If the other type is user-defined, use the java types to determine
+        ** assignability.
+        */
+        return userTypeStorable(getTypeId(), otherType, cf);
+    }
 
-	/** @see TypeCompiler#interfaceName */
-	public String interfaceName()
-	{
-		return ClassName.BooleanDataValue;
-	}
+    /** @see TypeCompiler#interfaceName */
+    public String interfaceName()
+    {
+        return ClassName.BooleanDataValue;
+    }
 
-	/**
-	 * @see TypeCompiler#getCorrespondingPrimitiveTypeName
-	 */
+    /**
+     * @see TypeCompiler#getCorrespondingPrimitiveTypeName
+     */
 
-	public String getCorrespondingPrimitiveTypeName()
-	{
-		/* Only numerics and booleans get mapped to Java primitives */
-		return "boolean";
-	}
+    public String getCorrespondingPrimitiveTypeName()
+    {
+        /* Only numerics and booleans get mapped to Java primitives */
+        return "boolean";
+    }
 
-	/**
-	 * Get the method name for getting out the corresponding primitive
-	 * Java type.
-	 *
-	 * @return String		The method call name for getting the
-	 *						corresponding primitive Java type.
-	 */
-	public String getPrimitiveMethodName()
-	{
-		return "getBoolean";
-	}
+    /**
+     * Get the method name for getting out the corresponding primitive
+     * Java type.
+     *
+     * @return String        The method call name for getting the
+     *                        corresponding primitive Java type.
+     */
+    public String getPrimitiveMethodName()
+    {
+        return "getBoolean";
+    }
 
-	/**
-	 * @see TypeCompiler#getCastToCharWidth
-	 */
-	public int getCastToCharWidth(DataTypeDescriptor dts)
-	{
-		return TypeCompiler.BOOLEAN_MAXWIDTH_AS_CHAR;
-	}
+    /**
+     * @see TypeCompiler#getCastToCharWidth
+     */
+    public int getCastToCharWidth(DataTypeDescriptor dts)
+    {
+        return TypeCompiler.BOOLEAN_MAXWIDTH_AS_CHAR;
+    }
 
-	String nullMethodName()
-	{
-		return "getNullBoolean";
-	}
+    String nullMethodName()
+    {
+        return "getNullBoolean";
+    }
 }

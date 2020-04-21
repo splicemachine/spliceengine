@@ -80,7 +80,7 @@ public class FixedSITableScannerTest{
         int[] keyEncodingMap=new int[]{2,1};
         DataValueDescriptor[] data=new DataValueDescriptor[]{
                 new SQLInteger(1),
-//								new SQLDouble(Double.parseDouble("-8.98846567431158E307")), //encodes weirdly, so exercises our type checking
+//                                new SQLDouble(Double.parseDouble("-8.98846567431158E307")), //encodes weirdly, so exercises our type checking
                 new SQLReal(25f),
                 new SQLVarchar("Hello")
         };
@@ -152,8 +152,8 @@ public class FixedSITableScannerTest{
     @Test
     public void testWorksWithOneFloatKeyDescending() throws Exception{
                 /*
-				 * Test that the scanner properly decodes an entire row with a primary key
-				 */
+                 * Test that the scanner properly decodes an entire row with a primary key
+                 */
         int[] keyColumnPositionMap=new int[]{2};
         int[] keyColumnOrder=new int[]{0};
         boolean[] ascDescInfo=new boolean[]{false};
@@ -162,9 +162,9 @@ public class FixedSITableScannerTest{
 
     @Test
     public void testWorksWithOneFloatKey() throws Exception{
-				/*
-				 * Test that the scanner properly decodes an entire row with a primary key
-				 */
+                /*
+                 * Test that the scanner properly decodes an entire row with a primary key
+                 */
         int[] keyColumnPositionMap=new int[]{2};
         int[] keyColumnOrder=new int[]{0};
         testScansProperly(keyColumnPositionMap,keyColumnOrder);
@@ -172,9 +172,9 @@ public class FixedSITableScannerTest{
 
     @Test
     public void testWorksWithOneDoublePrimaryKey() throws Exception{
-				/*
-				 * Test that the scanner properly decodes an entire row with a primary key
-				 */
+                /*
+                 * Test that the scanner properly decodes an entire row with a primary key
+                 */
         int[] keyColumnPositionMap=new int[]{1};
         int[] keyColumnOrder=new int[]{0};
         testScansProperly(keyColumnPositionMap,keyColumnOrder);
@@ -182,9 +182,9 @@ public class FixedSITableScannerTest{
 
     @Test
     public void testWorksWithNoPrimaryKeys() throws Exception{
-				/*
-				 * Test the situation where there are no primary keys. Hence, all data is stored in a row
-				 */
+                /*
+                 * Test the situation where there are no primary keys. Hence, all data is stored in a row
+                 */
         testScansProperly(null,null);
     }
 
@@ -231,9 +231,9 @@ public class FixedSITableScannerTest{
                                      int[] keyEncodingMap,
                                      DataValueDescriptor[] correct,
                                      int[] rowDecodingMap) throws StandardException, IOException{
-		/*
-		 * Test that the scanner properly decodes an entire row with a primary key
-		 */
+        /*
+         * Test that the scanner properly decodes an entire row with a primary key
+         */
         DataValueDescriptor[] data=new DataValueDescriptor[]{
                 new SQLInteger(1),
                 new SQLDouble(Double.parseDouble("-8.98846567431158E307")), //encodes weirdly, so exercises our type checking
@@ -243,10 +243,10 @@ public class FixedSITableScannerTest{
         ExecRow row=new ValueRow(data.length);
         row.setRowArray(data);
         DescriptorSerializer[] serializers;
-//				if(correct==null)
+//                if(correct==null)
         serializers=VersionedSerializers.latestVersion(true).getSerializers(data);
-//				else
-//						serializers = VersionedSerializers.latestVersion(true).getSerializers(correct);
+//                else
+//                        serializers = VersionedSerializers.latestVersion(true).getSerializers(correct);
         byte[] key;
         int[] rowEncodingMap;
         int[] keyColumnTypes=null;

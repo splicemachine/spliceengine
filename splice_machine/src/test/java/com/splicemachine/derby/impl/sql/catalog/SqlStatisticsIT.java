@@ -44,14 +44,14 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  */
 public class SqlStatisticsIT extends SpliceUnitTest {
     public static final String CLASS_NAME = SqlStatisticsIT.class.getSimpleName().toUpperCase();
-	private static Logger LOG = Logger.getLogger(SqlStatisticsIT.class);
+    private static Logger LOG = Logger.getLogger(SqlStatisticsIT.class);
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-	private static final String TABLE_NAME_1 = CLASS_NAME + "_T1";
-	private static final String TABLE_NAME_2 = CLASS_NAME + "_T2";
-	private static final String INDEX_NAME_1 = "IDX_" + TABLE_NAME_1 + "_C1";
-	private static final String INDEX_NAME_2 = "IDX_" + TABLE_NAME_2 + "_C1C2C3";
+    private static final String TABLE_NAME_1 = CLASS_NAME + "_T1";
+    private static final String TABLE_NAME_2 = CLASS_NAME + "_T2";
+    private static final String INDEX_NAME_1 = "IDX_" + TABLE_NAME_1 + "_C1";
+    private static final String INDEX_NAME_2 = "IDX_" + TABLE_NAME_2 + "_C1C2C3";
     private static String tableDef = "(C1 INT, C2 INT, C3 INT)";
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1, CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2, CLASS_NAME, tableDef);
@@ -87,8 +87,8 @@ public class SqlStatisticsIT extends SpliceUnitTest {
 
     @Test
     public void testCreateSingleColumnIndex() throws Exception {
-    	SpliceIndexWatcher indexWatcher = new SpliceIndexWatcher(TABLE_NAME_1, CLASS_NAME, INDEX_NAME_1, CLASS_NAME, "(C1)", false);
-    	indexWatcher.starting(null);
+        SpliceIndexWatcher indexWatcher = new SpliceIndexWatcher(TABLE_NAME_1, CLASS_NAME, INDEX_NAME_1, CLASS_NAME, "(C1)", false);
+        indexWatcher.starting(null);
         Assert.assertTrue("Incorrect rows returned!", getResultSetCountFromShowIndexes(null, null) > 50);   // There should be roughly 74 indexes.  No hard coding since the # of indexes in SYS is subject to change.
         Assert.assertEquals("Incorrect rows returned!", 1, getResultSetCountFromShowIndexes(CLASS_NAME, null));  // There should be 1 index row for the APP schema.
         Assert.assertEquals("Incorrect rows returned!", 1, getResultSetCountFromShowIndexes(CLASS_NAME, TABLE_NAME_1));  // There should be 1 index row for the T1 table.
@@ -98,10 +98,10 @@ public class SqlStatisticsIT extends SpliceUnitTest {
 
     @Test
     public void testCreateMultiColumnIndex() throws Exception {
-    	SpliceIndexWatcher indexWatcher1 = new SpliceIndexWatcher(TABLE_NAME_1, CLASS_NAME, INDEX_NAME_1, CLASS_NAME, "(C1)", false);
-    	SpliceIndexWatcher indexWatcher2 = new SpliceIndexWatcher(TABLE_NAME_2, CLASS_NAME, INDEX_NAME_2, CLASS_NAME, "(C1, C2, C3)", false);
-    	indexWatcher1.starting(null);
-    	indexWatcher2.starting(null);
+        SpliceIndexWatcher indexWatcher1 = new SpliceIndexWatcher(TABLE_NAME_1, CLASS_NAME, INDEX_NAME_1, CLASS_NAME, "(C1)", false);
+        SpliceIndexWatcher indexWatcher2 = new SpliceIndexWatcher(TABLE_NAME_2, CLASS_NAME, INDEX_NAME_2, CLASS_NAME, "(C1, C2, C3)", false);
+        indexWatcher1.starting(null);
+        indexWatcher2.starting(null);
         Assert.assertTrue("Incorrect rows returned!", getResultSetCountFromShowIndexes(null, null) > 50);   // There should be roughly 77 indexes.  No hard coding since the # of indexes in SYS is subject to change.
         Assert.assertEquals("Incorrect rows returned!", 4, getResultSetCountFromShowIndexes(CLASS_NAME, null));  // There should be 4 index rows for the APP schema.
         Assert.assertEquals("Incorrect rows returned!", 3, getResultSetCountFromShowIndexes(CLASS_NAME, TABLE_NAME_2));  // There should be 3 index rows for the T2 table.
@@ -111,16 +111,16 @@ public class SqlStatisticsIT extends SpliceUnitTest {
     }
 
     private int getResultSetCountFromShowIndexes(String schemaName, String tableName) throws Exception {
-    	if (schemaName == null) {
-    		schemaName = "null";
-    	} else {
-    		schemaName = "'" + schemaName + "'";
-    	}
-    	if (tableName == null) {
-    		tableName = "null";
-    	} else {
-    		tableName = "'" + tableName + "'";
-    	}
+        if (schemaName == null) {
+            schemaName = "null";
+        } else {
+            schemaName = "'" + schemaName + "'";
+        }
+        if (tableName == null) {
+            tableName = "null";
+        } else {
+            tableName = "'" + tableName + "'";
+        }
         CallableStatement cs = methodWatcher.prepareCall(format("call SYSIBM.SQLSTATISTICS(null, %s, %s, 1, 1, null)", schemaName, tableName), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         ResultSet rs = cs.executeQuery();
         int count = 0;

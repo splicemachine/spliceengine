@@ -38,34 +38,34 @@ package com.splicemachine.dbTesting.functionTests.util;
 public class SubClass extends ManyMethods
 {
 
-	static int OVERLOADED_INTSTATIC = 2;
-	public static int OVEROVERLOADED_INTSTATIC = 2;
+    static int OVERLOADED_INTSTATIC = 2;
+    public static int OVEROVERLOADED_INTSTATIC = 2;
 
-	public int intSubClassOnly;
+    public int intSubClassOnly;
 
-	public SubClass(int value)
-	{
-		super(value);
-		intSubClassOnly = value * value;
-	}
+    public SubClass(int value)
+    {
+        super(value);
+        intSubClassOnly = value * value;
+    }
 
-	public static SubClass staticSubClass(Integer value)
-	{
-		return new SubClass(value.intValue());
-	}
+    public static SubClass staticSubClass(Integer value)
+    {
+        return new SubClass(value.intValue());
+    }
 
-	public String parmType(Double value)
-	{
-		return "java.lang.Double parameter in SubClass";
-	}
+    public String parmType(Double value)
+    {
+        return "java.lang.Double parameter in SubClass";
+    }
 
-	public String parmType(Integer value)
-	{
-		return "java.lang.Integer parameter in SubClass";
-	}
+    public String parmType(Integer value)
+    {
+        return "java.lang.Integer parameter in SubClass";
+    }
 
-	public static int overloadedStaticMethod()
-	{
-		return 2;
-	}
+    public static int overloadedStaticMethod()
+    {
+        return 2;
+    }
 }

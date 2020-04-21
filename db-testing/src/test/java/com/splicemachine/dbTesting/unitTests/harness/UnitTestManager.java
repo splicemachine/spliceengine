@@ -42,70 +42,70 @@ package com.splicemachine.dbTesting.unitTests.harness;
  */
 public interface UnitTestManager 
 {
-	public static final String MODULE = "com.splicemachine.dbTesting.unitTests.harness.UnitTestManager";
-	
-	/**
-	 * Debug flag to allow the cloudscape system running the tests
-	 * to run forever. By default test systems are killed 
-	 * after an interval of T_Bomb.DEFAULT_BOMB_DELAY to avoid tests
-	 * hanging.
-	 */
-	public static final String RUN_FOREVER = "RunForever";
+    public static final String MODULE = "com.splicemachine.dbTesting.unitTests.harness.UnitTestManager";
+    
+    /**
+     * Debug flag to allow the cloudscape system running the tests
+     * to run forever. By default test systems are killed 
+     * after an interval of T_Bomb.DEFAULT_BOMB_DELAY to avoid tests
+     * hanging.
+     */
+    public static final String RUN_FOREVER = "RunForever";
 
-	/**
-	 * Debug flag to skip unit tests.
-	 */
-	public static final String SKIP_UNIT_TESTS = "SkipUnitTests";
+    /**
+     * Debug flag to skip unit tests.
+     */
+    public static final String SKIP_UNIT_TESTS = "SkipUnitTests";
 
-	/**
-	 * register an object that has the UnitTest interface,
-	 * marking what type it has and its duration.
-	 * Tests are run in the order they were registered.
-	 * <p>
-	 *
-	 */
-	public void registerTest(UnitTest objectToTest, String testName);
-	
+    /**
+     * register an object that has the UnitTest interface,
+     * marking what type it has and its duration.
+     * Tests are run in the order they were registered.
+     * <p>
+     *
+     */
+    public void registerTest(UnitTest objectToTest, String testName);
+    
 
-	/**
+    /**
      * run the tests. Tests are run
      * in the order they were registered, filtered by type
      * and duration set for the unit test manager.
      */
-	public boolean runTests();
-	
+    public boolean runTests();
+    
 
-	/**
-	 * Convenience function to set the test type and duration
-	 * for the UnitTestManager and then run the tests.
-	 * <p>
-	 * @see UnitTestConstants
-	 */
-	public boolean runTests(int testType, int testDuration);
-	
+    /**
+     * Convenience function to set the test type and duration
+     * for the UnitTestManager and then run the tests.
+     * <p>
+     * @see UnitTestConstants
+     */
+    public boolean runTests(int testType, int testDuration);
+    
 
-	/**
+    /**
      * the test duration is set.  This will be used when the
      * tests are run; no tests with duration more than
-	  * specified will be run.
+      * specified will be run.
      */
-	public void setTestDuration(int testDuration);
-	
+    public void setTestDuration(int testDuration);
+    
 
-	/**
+    /**
      * the test duration is set.  This will be used when the
      * tests are run; no tests with duration more than
-	  * specified will be run.
+      * specified will be run.
      */
-	public void setTestType(int testType);
-	
-	/**
+    public void setTestType(int testType);
+    
+    /**
      * specify whether performance statistics should be
-	 * gathered when tests are run. The manager will collect
-	 * the duration of each test, and will compare it to
-	 * any previous runs it may have done of that test.
+     * gathered when tests are run. The manager will collect
+     * the duration of each test, and will compare it to
+     * any previous runs it may have done of that test.
      */
-	public void setPerformanceReportOn(boolean performanceReportOn);
-	
+    public void setPerformanceReportOn(boolean performanceReportOn);
+    
 }
 

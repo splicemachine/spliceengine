@@ -214,10 +214,10 @@ public class ReadOnlyTxn extends AbstractTxn{
         Txn newTxn;
         if((parentTxn!=null && !ROOT_TRANSACTION.equals(parentTxn))){
            /*
-		    * We are a read-only child transaction of a parent. This means that we didn't actually
-			* create a child transaction id or a begin timestamp of our own. Instead of elevating,
-			* we actually create a writable child transaction.
-			*/
+            * We are a read-only child transaction of a parent. This means that we didn't actually
+            * create a child transaction id or a begin timestamp of our own. Instead of elevating,
+            * we actually create a writable child transaction.
+            */
             newTxn=tc.beginChildTransaction(parentTxn,isolationLevel,additive,writeTable,true);
         }else{
             newTxn=tc.elevateTransaction(this,writeTable); //requires at least one network call

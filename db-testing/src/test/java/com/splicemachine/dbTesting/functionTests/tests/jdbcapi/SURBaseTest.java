@@ -147,7 +147,7 @@ abstract public class SURBaseTest extends BaseJDBCTestCase {
             verifyTuple(rs);
         }
         if (!ignoreCount) {
-        	assertEquals("Record Count", recordCount, nRecords);
+            assertEquals("Record Count", recordCount, nRecords);
         }
     }
     
@@ -186,7 +186,7 @@ abstract public class SURBaseTest extends BaseJDBCTestCase {
             updateTuplePositioned(rs);
         }
         if (!ignoreCount) {
-        	assertEquals("Record Count", recordCount, nRecords);
+            assertEquals("Record Count", recordCount, nRecords);
         }
         assertNotNull("rs.getCursorName()", rs.getCursorName());
     }
@@ -205,7 +205,7 @@ abstract public class SURBaseTest extends BaseJDBCTestCase {
             updateTuple(rs);
         }
         if (!ignoreCount) {
-        	assertEquals("Record Count", recordCount, nRecords);
+            assertEquals("Record Count", recordCount, nRecords);
         }
         assertNotNull("rs.getCursorName()", rs.getCursorName());
     }
@@ -225,7 +225,7 @@ abstract public class SURBaseTest extends BaseJDBCTestCase {
             updateTuplePositioned(rs);
         }
         if (!ignoreCount) {
-        	assertEquals("Record Count", recordCount, nRecords);
+            assertEquals("Record Count", recordCount, nRecords);
         }
         assertNotNull("rs.getCursorName()", rs.getCursorName());
     }

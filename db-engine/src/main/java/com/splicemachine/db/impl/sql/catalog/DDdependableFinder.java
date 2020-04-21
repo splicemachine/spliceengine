@@ -48,7 +48,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 /**
- *	Class for most DependableFinders in the core DataDictionary.
+ *    Class for most DependableFinders in the core DataDictionary.
  * This class is stored in SYSDEPENDS for the finders for
  * the provider and dependent. It stores no state, its functionality
  * is driven off its format identifier.
@@ -56,175 +56,175 @@ import java.io.ObjectOutput;
  *
  */
 
-public class DDdependableFinder implements	DependableFinder, Formatable
+public class DDdependableFinder implements    DependableFinder, Formatable
 {
-	private static final long serialVersionUID = 1L;
-	////////////////////////////////////////////////////////////////////////
-	//
-	//	STATE
-	//
-	////////////////////////////////////////////////////////////////////////
+    private static final long serialVersionUID = 1L;
+    ////////////////////////////////////////////////////////////////////////
+    //
+    //    STATE
+    //
+    ////////////////////////////////////////////////////////////////////////
 
-	private int formatId;
+    private int formatId;
 
-	////////////////////////////////////////////////////////////////////////
-	//
-	//	CONSTRUCTORS
-	//
-	////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////
+    //
+    //    CONSTRUCTORS
+    //
+    ////////////////////////////////////////////////////////////////////////
 
-	/**
- 	  * Serialization Constructor. DO NOT USER
-	  */
-	public DDdependableFinder()
-	{
+    /**
+       * Serialization Constructor. DO NOT USER
+      */
+    public DDdependableFinder()
+    {
 
-	}
+    }
 
-	/**
-	  *	Public constructor for Formatable hoo-hah.
-	  */
-	public	DDdependableFinder(int formatId)
-	{
-		this.formatId = formatId;
-	}
+    /**
+      *    Public constructor for Formatable hoo-hah.
+      */
+    public    DDdependableFinder(int formatId)
+    {
+        this.formatId = formatId;
+    }
 
-	//////////////////////////////////////////////////////////////////
-	//
-	//	OBJECT SUPPORT
-	//
-	//////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////
+    //
+    //    OBJECT SUPPORT
+    //
+    //////////////////////////////////////////////////////////////////
 
-	public	String	toString()
-	{
-		return	getSQLObjectType();
-	}
+    public    String    toString()
+    {
+        return    getSQLObjectType();
+    }
 
-	//////////////////////////////////////////////////////////////////
-	//
-	//	VACUOUS FORMATABLE INTERFACE. ALL THAT A VACUOUSDEPENDABLEFINDER
-	//	NEEDS TO DO IS STAMP ITS FORMAT ID ONTO THE OUTPUT STREAM.
-	//
-	//////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////
+    //
+    //    VACUOUS FORMATABLE INTERFACE. ALL THAT A VACUOUSDEPENDABLEFINDER
+    //    NEEDS TO DO IS STAMP ITS FORMAT ID ONTO THE OUTPUT STREAM.
+    //
+    //////////////////////////////////////////////////////////////////
 
-	/**
-	 * Read this object from a stream of stored objects. Nothing to
-	 * do. Our persistent representation is just a 2-byte format id.
-	 *
-	 * @param in read this.
-	 */
+    /**
+     * Read this object from a stream of stored objects. Nothing to
+     * do. Our persistent representation is just a 2-byte format id.
+     *
+     * @param in read this.
+     */
     public void readExternal( ObjectInput in )
-			throws IOException, ClassNotFoundException
-	{
-		formatId = in.readInt();
-	}
+            throws IOException, ClassNotFoundException
+    {
+        formatId = in.readInt();
+    }
 
-	/**
-	 * Write this object to a stream of stored objects. Again, nothing
-	 * to do. We just stamp the output stream with our Format id.
-	 *
-	 * @param out write bytes here.
-	 */
+    /**
+     * Write this object to a stream of stored objects. Again, nothing
+     * to do. We just stamp the output stream with our Format id.
+     *
+     * @param out write bytes here.
+     */
     public void writeExternal( ObjectOutput out )
-			throws IOException
-	{
-		out.writeInt(formatId);
-	}
+            throws IOException
+    {
+        out.writeInt(formatId);
+    }
 
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	final int	getTypeFormatId()	
-	{
-		return formatId;
-	}
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    final int    getTypeFormatId()    
+    {
+        return formatId;
+    }
 
-	////////////////////////////////////////////////////////////////////////
-	//
-	//	DDdependable METHODS
-	//
-	////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////
+    //
+    //    DDdependable METHODS
+    //
+    ////////////////////////////////////////////////////////////////////////
 
-	/**
-	  * @see DependableFinder#getSQLObjectType
-	  */
-	public	String	getSQLObjectType()
-	{
-		switch (formatId)
-		{
-			case StoredFormatIds.ALIAS_DESCRIPTOR_FINDER_V01_ID:
-				return Dependable.ALIAS;
+    /**
+      * @see DependableFinder#getSQLObjectType
+      */
+    public    String    getSQLObjectType()
+    {
+        switch (formatId)
+        {
+            case StoredFormatIds.ALIAS_DESCRIPTOR_FINDER_V01_ID:
+                return Dependable.ALIAS;
 
-			case StoredFormatIds.CONGLOMERATE_DESCRIPTOR_FINDER_V01_ID:
-				return Dependable.CONGLOMERATE;
+            case StoredFormatIds.CONGLOMERATE_DESCRIPTOR_FINDER_V01_ID:
+                return Dependable.CONGLOMERATE;
 
-			case StoredFormatIds.CONSTRAINT_DESCRIPTOR_FINDER_V01_ID:
-				return Dependable.CONSTRAINT;
+            case StoredFormatIds.CONSTRAINT_DESCRIPTOR_FINDER_V01_ID:
+                return Dependable.CONSTRAINT;
 
-			case StoredFormatIds.DEFAULT_DESCRIPTOR_FINDER_V01_ID:
-				return Dependable.DEFAULT;
+            case StoredFormatIds.DEFAULT_DESCRIPTOR_FINDER_V01_ID:
+                return Dependable.DEFAULT;
 
-			case StoredFormatIds.FILE_INFO_FINDER_V01_ID:
-				return Dependable.FILE;
+            case StoredFormatIds.FILE_INFO_FINDER_V01_ID:
+                return Dependable.FILE;
 
-			case StoredFormatIds.SCHEMA_DESCRIPTOR_FINDER_V01_ID:
-				return Dependable.SCHEMA;
+            case StoredFormatIds.SCHEMA_DESCRIPTOR_FINDER_V01_ID:
+                return Dependable.SCHEMA;
 
-			case StoredFormatIds.SPS_DESCRIPTOR_FINDER_V01_ID:
-				return Dependable.STORED_PREPARED_STATEMENT;
+            case StoredFormatIds.SPS_DESCRIPTOR_FINDER_V01_ID:
+                return Dependable.STORED_PREPARED_STATEMENT;
 
-			case StoredFormatIds.TABLE_DESCRIPTOR_FINDER_V01_ID:
-				return Dependable.TABLE;
+            case StoredFormatIds.TABLE_DESCRIPTOR_FINDER_V01_ID:
+                return Dependable.TABLE;
 
-			case StoredFormatIds.COLUMN_DESCRIPTOR_FINDER_V01_ID:
-				return Dependable.COLUMNS_IN_TABLE;
+            case StoredFormatIds.COLUMN_DESCRIPTOR_FINDER_V01_ID:
+                return Dependable.COLUMNS_IN_TABLE;
 
-			case StoredFormatIds.TRIGGER_DESCRIPTOR_FINDER_V01_ID:
-				return Dependable.TRIGGER;
+            case StoredFormatIds.TRIGGER_DESCRIPTOR_FINDER_V01_ID:
+                return Dependable.TRIGGER;
 
-			case StoredFormatIds.VIEW_DESCRIPTOR_FINDER_V01_ID:
-				return Dependable.VIEW;
+            case StoredFormatIds.VIEW_DESCRIPTOR_FINDER_V01_ID:
+                return Dependable.VIEW;
 
-			case StoredFormatIds.TABLE_PERMISSION_FINDER_V01_ID:
-				return Dependable.TABLE_PERMISSION;
+            case StoredFormatIds.TABLE_PERMISSION_FINDER_V01_ID:
+                return Dependable.TABLE_PERMISSION;
 
-			case StoredFormatIds.SCHEMA_PERMISSION_FINDER_V01_ID:
-				return Dependable.SCHEMA_PERMISSION;
+            case StoredFormatIds.SCHEMA_PERMISSION_FINDER_V01_ID:
+                return Dependable.SCHEMA_PERMISSION;
 
-			case StoredFormatIds.COLUMNS_PERMISSION_FINDER_V01_ID:
-				return Dependable.COLUMNS_PERMISSION;
+            case StoredFormatIds.COLUMNS_PERMISSION_FINDER_V01_ID:
+                return Dependable.COLUMNS_PERMISSION;
 
-			case StoredFormatIds.ROUTINE_PERMISSION_FINDER_V01_ID:
-				return Dependable.ROUTINE_PERMISSION;
+            case StoredFormatIds.ROUTINE_PERMISSION_FINDER_V01_ID:
+                return Dependable.ROUTINE_PERMISSION;
 
-			case StoredFormatIds.ROLE_GRANT_FINDER_V01_ID:
-				return Dependable.ROLE_GRANT;
+            case StoredFormatIds.ROLE_GRANT_FINDER_V01_ID:
+                return Dependable.ROLE_GRANT;
 
-			case StoredFormatIds.SEQUENCE_DESCRIPTOR_FINDER_V01_ID:
-				return Dependable.SEQUENCE;
+            case StoredFormatIds.SEQUENCE_DESCRIPTOR_FINDER_V01_ID:
+                return Dependable.SEQUENCE;
 
-			case StoredFormatIds.PERM_DESCRIPTOR_FINDER_V01_ID:
-				return Dependable.PERM;
+            case StoredFormatIds.PERM_DESCRIPTOR_FINDER_V01_ID:
+                return Dependable.PERM;
 
-			default:
-				if (SanityManager.DEBUG)
-				{
-					SanityManager.THROWASSERT(
-						"getSQLObjectType() called with unexpeced formatId = " + formatId);
-				}
-				return null;
-		}
-	}
+            default:
+                if (SanityManager.DEBUG)
+                {
+                    SanityManager.THROWASSERT(
+                        "getSQLObjectType() called with unexpeced formatId = " + formatId);
+                }
+                return null;
+        }
+    }
 
-	/**
-		Get the dependable for the given UUID
-		@exception StandardException thrown on error
-	*/
-	public final Dependable getDependable(DataDictionary dd, UUID dependableObjectID)
-		throws StandardException
-	{
+    /**
+        Get the dependable for the given UUID
+        @exception StandardException thrown on error
+    */
+    public final Dependable getDependable(DataDictionary dd, UUID dependableObjectID)
+        throws StandardException
+    {
         Dependable dependable = findDependable(dd, dependableObjectID);
         if (dependable == null)
             throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND,
@@ -241,72 +241,72 @@ public class DDdependableFinder implements	DependableFinder, Formatable
     Dependable findDependable(DataDictionary dd, UUID dependableObjectID)
         throws StandardException
     {     
-		switch (formatId)
-		{
-			case StoredFormatIds.ALIAS_DESCRIPTOR_FINDER_V01_ID:
+        switch (formatId)
+        {
+            case StoredFormatIds.ALIAS_DESCRIPTOR_FINDER_V01_ID:
                 return dd.getAliasDescriptor(dependableObjectID);
 
-			case StoredFormatIds.CONGLOMERATE_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.CONGLOMERATE_DESCRIPTOR_FINDER_V01_ID:
                 return dd.getConglomerateDescriptor(dependableObjectID);
 
-			case StoredFormatIds.CONSTRAINT_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.CONSTRAINT_DESCRIPTOR_FINDER_V01_ID:
                 return dd.getConstraintDescriptor(dependableObjectID);
 
-			case StoredFormatIds.DEFAULT_DESCRIPTOR_FINDER_V01_ID:
-				ColumnDescriptor	cd = dd.getColumnDescriptorByDefaultId(dependableObjectID);
+            case StoredFormatIds.DEFAULT_DESCRIPTOR_FINDER_V01_ID:
+                ColumnDescriptor    cd = dd.getColumnDescriptorByDefaultId(dependableObjectID);
                 if (cd != null)
                     return new DefaultDescriptor(
-												dd, 
-												cd.getDefaultUUID(), cd.getReferencingUUID(), 
-												cd.getPosition());
+                                                dd, 
+                                                cd.getDefaultUUID(), cd.getReferencingUUID(), 
+                                                cd.getPosition());
                 return null;
 
-			case StoredFormatIds.FILE_INFO_FINDER_V01_ID:
+            case StoredFormatIds.FILE_INFO_FINDER_V01_ID:
                 return dd.getFileInfoDescriptor(dependableObjectID);
 
-			case StoredFormatIds.SCHEMA_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.SCHEMA_DESCRIPTOR_FINDER_V01_ID:
                 return dd.getSchemaDescriptor(dependableObjectID, null);
 
-			case StoredFormatIds.SPS_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.SPS_DESCRIPTOR_FINDER_V01_ID:
                 return dd.getSPSDescriptor(dependableObjectID);
 
-			case StoredFormatIds.TABLE_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.TABLE_DESCRIPTOR_FINDER_V01_ID:
                 return dd.getTableDescriptor(dependableObjectID);
 
-			case StoredFormatIds.TRIGGER_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.TRIGGER_DESCRIPTOR_FINDER_V01_ID:
                 return dd.getTriggerDescriptor(dependableObjectID);
  
-			case StoredFormatIds.VIEW_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.VIEW_DESCRIPTOR_FINDER_V01_ID:
                 return dd.getViewDescriptor(dependableObjectID);
 
             case StoredFormatIds.COLUMNS_PERMISSION_FINDER_V01_ID:
                 return dd.getColumnPermissions(dependableObjectID);
 
-			case StoredFormatIds.TABLE_PERMISSION_FINDER_V01_ID:
+            case StoredFormatIds.TABLE_PERMISSION_FINDER_V01_ID:
                 return dd.getTablePermissions(dependableObjectID);
 
-			case StoredFormatIds.SCHEMA_PERMISSION_FINDER_V01_ID:
-				return dd.getSchemaPermissions(dependableObjectID);
+            case StoredFormatIds.SCHEMA_PERMISSION_FINDER_V01_ID:
+                return dd.getSchemaPermissions(dependableObjectID);
 
-			case StoredFormatIds.ROUTINE_PERMISSION_FINDER_V01_ID:
+            case StoredFormatIds.ROUTINE_PERMISSION_FINDER_V01_ID:
                 return dd.getRoutinePermissions(dependableObjectID);
 
-		    case StoredFormatIds.ROLE_GRANT_FINDER_V01_ID:
-				return dd.getRoleGrantDescriptor(dependableObjectID);
+            case StoredFormatIds.ROLE_GRANT_FINDER_V01_ID:
+                return dd.getRoleGrantDescriptor(dependableObjectID);
 
-			case StoredFormatIds.SEQUENCE_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.SEQUENCE_DESCRIPTOR_FINDER_V01_ID:
                 return dd.getSequenceDescriptor(dependableObjectID);
 
-			case StoredFormatIds.PERM_DESCRIPTOR_FINDER_V01_ID:
+            case StoredFormatIds.PERM_DESCRIPTOR_FINDER_V01_ID:
                 return dd.getGenericPermissions(dependableObjectID);
 
-		default:
-				if (SanityManager.DEBUG)
-				{
-					SanityManager.THROWASSERT(
-						"getDependable() called with unexpeced formatId = " + formatId);
-				}
+        default:
+                if (SanityManager.DEBUG)
+                {
+                    SanityManager.THROWASSERT(
+                        "getDependable() called with unexpeced formatId = " + formatId);
+                }
                 return null;
-		}
+        }
     }
 }

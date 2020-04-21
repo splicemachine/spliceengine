@@ -67,7 +67,7 @@ public class BitIndexing {
      * buffer ({@code bytes}).
      */
     public static BitIndex uncompressedBitMap(byte[] bytes, int indexOffset, int indexSize){
-				return UncompressedBitIndex.wrap(bytes,indexOffset,indexSize);
+                return UncompressedBitIndex.wrap(bytes,indexOffset,indexSize);
 //        return new UncompressedLazyBitIndex(bytes,indexOffset,indexSize);
     }
 
@@ -120,7 +120,7 @@ public class BitIndexing {
      * @return a Sparsely-encoded BitIndex.
      */
     public static BitIndex sparseBitMap(byte[] bytes, int indexOffset, int indexSize){
-				return SparseBitIndex.wrap(bytes,indexOffset,indexSize);
+                return SparseBitIndex.wrap(bytes,indexOffset,indexSize);
 //        return new SparseLazyBitIndex(bytes,indexOffset,indexSize);
     }
 
@@ -175,7 +175,7 @@ public class BitIndexing {
      * @return a Dense, Compressed BitIndex representation of the given buffer.
      */
     public static BitIndex compressedBitMap(byte[] bytes, int indexOffset, int indexSize){
-				return DenseCompressedBitIndex.wrap(bytes,indexOffset,indexSize);
+                return DenseCompressedBitIndex.wrap(bytes,indexOffset,indexSize);
 //        return new LazyCompressedBitIndex(bytes,indexOffset,indexSize);
     }
 

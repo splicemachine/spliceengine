@@ -34,94 +34,94 @@ package com.splicemachine.db.impl.services.monitor;
 import com.splicemachine.db.iapi.services.monitor.PersistentService;
 
 /**
-	A description of an instance of a module.
+    A description of an instance of a module.
 */
 
 
 class ModuleInstance {
 
-	/*
-	** Fields.
-	*/
+    /*
+    ** Fields.
+    */
 
-	/**
-		The module instance
-	*/
-	protected Object instance;
+    /**
+        The module instance
+    */
+    protected Object instance;
 
-	/**
-		name of module, can be null
-	*/
-	protected String		identifier;
+    /**
+        name of module, can be null
+    */
+    protected String        identifier;
 
-	/**
-		the top-level service this module lives in, can be null or the service itself
-	*/
-	protected Object	topLevelService;
+    /**
+        the top-level service this module lives in, can be null or the service itself
+    */
+    protected Object    topLevelService;
 
-	/**
-		the actual service to which I belong, could be null.
-	*/
-	protected Object	service;
+    /**
+        the actual service to which I belong, could be null.
+    */
+    protected Object    service;
 
     /** Flag that tells whether booting of the module has completed. */
     private boolean booted;
 
-	/*
-	** Constructor
-	*/
+    /*
+    ** Constructor
+    */
 
-	protected ModuleInstance(Object instance, String identifier,
-			Object service, Object topLevelService)
-	{
-		super();
-		this.instance = instance;
-		this.identifier = identifier;
-		this.topLevelService = topLevelService;
-		this.service = service;
+    protected ModuleInstance(Object instance, String identifier,
+            Object service, Object topLevelService)
+    {
+        super();
+        this.instance = instance;
+        this.identifier = identifier;
+        this.topLevelService = topLevelService;
+        this.service = service;
 
-	}
+    }
 
-	protected ModuleInstance(Object instance) {
+    protected ModuleInstance(Object instance) {
 
-		this(instance, null, null, null);
-	}
+        this(instance, null, null, null);
+    }
 
-	protected boolean isTypeAndName(PersistentService serviceType, 
-		Class factoryInterface, String otherCanonicalName)
-	{
-		// see if the correct interface is implemented
-		if (!factoryInterface.isInstance(instance))
-			return false;
+    protected boolean isTypeAndName(PersistentService serviceType, 
+        Class factoryInterface, String otherCanonicalName)
+    {
+        // see if the correct interface is implemented
+        if (!factoryInterface.isInstance(instance))
+            return false;
 
-		if ((serviceType != null) && (otherCanonicalName != null))
-			return serviceType.isSameService(identifier, otherCanonicalName);
+        if ((serviceType != null) && (otherCanonicalName != null))
+            return serviceType.isSameService(identifier, otherCanonicalName);
 
 
-		// see if the identifiers match
-		if (otherCanonicalName != null) {
-			if (identifier == null)
-				return false;
-			if (!otherCanonicalName.equals(identifier))
-				return false;
-		} else if (identifier != null) {
-			return false;
-		}
+        // see if the identifiers match
+        if (otherCanonicalName != null) {
+            if (identifier == null)
+                return false;
+            if (!otherCanonicalName.equals(identifier))
+                return false;
+        } else if (identifier != null) {
+            return false;
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	protected String getIdentifier() {
-		return identifier;
-	}
+    protected String getIdentifier() {
+        return identifier;
+    }
 
-	protected Object getTopLevelService() {
-		return topLevelService;
-	}
+    protected Object getTopLevelService() {
+        return topLevelService;
+    }
 
-	protected Object getInstance() {
-		return instance;
-	}
+    protected Object getInstance() {
+        return instance;
+    }
 
     /**
      * Set a flag that indicates that booting of the module has completed.

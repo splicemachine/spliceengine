@@ -37,12 +37,12 @@ import java.util.ResourceBundle;
  */
 public interface BundleFinder {
 
-	/**
-		Return the bundle to be used. The msgIdf is passed
-		in to allow it to be a factor in determing the resource name
-		of the messages file.
+    /**
+        Return the bundle to be used. The msgIdf is passed
+        in to allow it to be a factor in determing the resource name
+        of the messages file.
 
-		@param msgId Message being searched for.
-	*/
-	ResourceBundle getBundle(String msgId);
+        @param msgId Message being searched for.
+    */
+    ResourceBundle getBundle(String msgId);
 }

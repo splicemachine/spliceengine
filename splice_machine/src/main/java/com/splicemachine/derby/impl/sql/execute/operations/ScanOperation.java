@@ -213,9 +213,9 @@ public abstract class ScanOperation extends SpliceBaseOperation{
 
     public DataScan getNonSIScan() throws StandardException{
         /*
-		 * Intended to get a scan which does NOT set up SI underneath us (since
-		 * we are doing it ourselves).
-		 */
+         * Intended to get a scan which does NOT set up SI underneath us (since
+         * we are doing it ourselves).
+         */
         DataScan s=getScan();
 
         if(oneRowScan){

@@ -45,35 +45,35 @@ import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 
 public interface UnitTest 
 {
-	/**
-	 * Execute the test.
-	 *
-	 * @param out	A HeaderPrintWriter the test may use for tracing.
-	 *				To disable tracing the caller may provide a
-	 *				HeaderPrintWriter which throws away all the data
-	 *				the test writes.
-	 *
-	 * @return	true iff the test passes
-	 */
-	public boolean Execute (HeaderPrintWriter out);
+    /**
+     * Execute the test.
+     *
+     * @param out    A HeaderPrintWriter the test may use for tracing.
+     *                To disable tracing the caller may provide a
+     *                HeaderPrintWriter which throws away all the data
+     *                the test writes.
+     *
+     * @return    true iff the test passes
+     */
+    public boolean Execute (HeaderPrintWriter out);
 
-	/**
-	 *	UnitTestDuration
-	 *
-	 *  @return	The tests duration. 
-	 *
-	 *  @see	UnitTestConstants
-	 **/
-	public int UnitTestDuration();
+    /**
+     *    UnitTestDuration
+     *
+     *  @return    The tests duration. 
+     *
+     *  @see    UnitTestConstants
+     **/
+    public int UnitTestDuration();
 
-	/**
-	 *	UnitTestDuration
-	 *
-	 *  @return	The tests duration. 
-	 *
-	 *  @see	UnitTestConstants
-	 **/
-	public int UnitTestType();
+    /**
+     *    UnitTestDuration
+     *
+     *  @return    The tests duration. 
+     *
+     *  @see    UnitTestConstants
+     **/
+    public int UnitTestType();
 
 }
 

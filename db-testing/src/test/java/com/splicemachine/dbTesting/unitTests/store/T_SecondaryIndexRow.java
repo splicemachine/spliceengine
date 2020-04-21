@@ -91,13 +91,13 @@ public class T_SecondaryIndexRow
     /**
      * get the rows location field.
      *
-	 * @return The base table row location field from the secondary index.
+     * @return The base table row location field from the secondary index.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     /*
     private RowLocation getRowLocationField()
-		throws StandardException
+        throws StandardException
     {
         return(init_rowlocation);
     }
@@ -116,7 +116,7 @@ public class T_SecondaryIndexRow
      * @param numkeys     The total number of columns in the secondary index
      *                    including the rowlocation column.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     public void init(
     DataValueDescriptor[]   template,
@@ -152,23 +152,23 @@ public class T_SecondaryIndexRow
      * for use in raw store calls to fetch, insert, and update.
      * <p>
      *
-	 * @return The branch row object array.
+     * @return The branch row object array.
      **/
     public DataValueDescriptor[] getRow()
     {
         return(this.row);
     }
 
-	public String toString()
-	{
-		String s = "{ ";
-		for (int colid = 0; colid < row.length; colid++)
-		{
-			s += row[colid];
-			if (colid < (row.length - 1))
-				s += ", ";
-		}
-		s += " }";
-		return s;
-	}
+    public String toString()
+    {
+        String s = "{ ";
+        for (int colid = 0; colid < row.length; colid++)
+        {
+            s += row[colid];
+            if (colid < (row.length - 1))
+                s += ", ";
+        }
+        s += " }";
+        return s;
+    }
 }

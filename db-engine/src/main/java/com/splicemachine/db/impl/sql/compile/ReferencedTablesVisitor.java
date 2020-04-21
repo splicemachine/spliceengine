@@ -45,78 +45,78 @@ import com.splicemachine.db.iapi.util.JBitSet;
  */
 public class ReferencedTablesVisitor implements Visitor 
 {
-	private JBitSet tableMap;
+    private JBitSet tableMap;
 
-	public ReferencedTablesVisitor(JBitSet tableMap)
-	{
-		this.tableMap = tableMap;
-	}
+    public ReferencedTablesVisitor(JBitSet tableMap)
+    {
+        this.tableMap = tableMap;
+    }
 
 
-	////////////////////////////////////////////////
-	//
-	// VISITOR INTERFACE
-	//
-	////////////////////////////////////////////////
+    ////////////////////////////////////////////////
+    //
+    // VISITOR INTERFACE
+    //
+    ////////////////////////////////////////////////
 
-	/**
-	 * Don't do anything unless we have a ColumnReference,
-	 * Predicate or ResultSetNode node.
-	 *
-	 * @param node 	the node to process
-	 *
-	 * @return me
-	 *
-	 * @exception StandardException on error
-	 */
-	public Visitable visit(Visitable node, QueryTreeNode parent)
-		throws StandardException
-	{
-		if (node instanceof ColumnReference)
-		{
-			((ColumnReference)node).getTablesReferenced(tableMap);
-		}
-		else if (node instanceof Predicate)
-		{
-			Predicate pred = (Predicate) node;
-			tableMap.or(pred.getReferencedSet());
-		}
-		else if (node instanceof ResultSetNode)
-		{
-			ResultSetNode rs = (ResultSetNode) node;
-			tableMap.or(rs.getReferencedTableMap());
-		}
+    /**
+     * Don't do anything unless we have a ColumnReference,
+     * Predicate or ResultSetNode node.
+     *
+     * @param node     the node to process
+     *
+     * @return me
+     *
+     * @exception StandardException on error
+     */
+    public Visitable visit(Visitable node, QueryTreeNode parent)
+        throws StandardException
+    {
+        if (node instanceof ColumnReference)
+        {
+            ((ColumnReference)node).getTablesReferenced(tableMap);
+        }
+        else if (node instanceof Predicate)
+        {
+            Predicate pred = (Predicate) node;
+            tableMap.or(pred.getReferencedSet());
+        }
+        else if (node instanceof ResultSetNode)
+        {
+            ResultSetNode rs = (ResultSetNode) node;
+            tableMap.or(rs.getReferencedTableMap());
+        }
 
-		return node;
-	}
+        return node;
+    }
 
-	/**
-	 * No need to go below a Predicate or ResultSet.
-	 *
-	 * @return Whether or not to go below the node.
-	 */
-	public boolean skipChildren(Visitable node)
-	{
-		return (node instanceof Predicate ||
-			    node instanceof ResultSetNode);
-	}
+    /**
+     * No need to go below a Predicate or ResultSet.
+     *
+     * @return Whether or not to go below the node.
+     */
+    public boolean skipChildren(Visitable node)
+    {
+        return (node instanceof Predicate ||
+                node instanceof ResultSetNode);
+    }
 
-	public boolean visitChildrenFirst(Visitable node)
-	{
-		return false;
-	}
+    public boolean visitChildrenFirst(Visitable node)
+    {
+        return false;
+    }
 
-	public boolean stopTraversal()
-	{
-		return false;
-	}
-	////////////////////////////////////////////////
-	//
-	// CLASS INTERFACE
-	//
-	////////////////////////////////////////////////
-	JBitSet getTableMap()
-	{
-		return tableMap;
-	}
-}	
+    public boolean stopTraversal()
+    {
+        return false;
+    }
+    ////////////////////////////////////////////////
+    //
+    // CLASS INTERFACE
+    //
+    ////////////////////////////////////////////////
+    JBitSet getTableMap()
+    {
+        return tableMap;
+    }
+}    

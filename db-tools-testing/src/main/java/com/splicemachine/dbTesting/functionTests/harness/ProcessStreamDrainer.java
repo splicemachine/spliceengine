@@ -37,29 +37,29 @@ import java.io.*;
 public class ProcessStreamDrainer implements Runnable
 {
 
-	protected ByteArrayOutputStream data;
-	protected InputStream in;
-	protected FileOutputStream fos;
-	protected BufferedOutputStream bos;
-	protected boolean finished;
-	protected IOException ioe;
+    protected ByteArrayOutputStream data;
+    protected InputStream in;
+    protected FileOutputStream fos;
+    protected BufferedOutputStream bos;
+    protected boolean finished;
+    protected IOException ioe;
 
-	public ProcessStreamDrainer(InputStream in, File tmpOutFile)
-	    throws IOException, InterruptedException
-	{
-		data = new ByteArrayOutputStream();
-		this.in = in;
+    public ProcessStreamDrainer(InputStream in, File tmpOutFile)
+        throws IOException, InterruptedException
+    {
+        data = new ByteArrayOutputStream();
+        this.in = in;
         this.fos = new FileOutputStream(tmpOutFile);
         this.bos = new BufferedOutputStream(fos, 4096);
-		Thread myThread = new Thread(this, getClass().getName());
+        Thread myThread = new Thread(this, getClass().getName());
 
-		myThread.setPriority(Thread.MIN_PRIORITY);
-		//System.out.println("ProcessStreamDrainer calling start...");
-		myThread.start();
-	}
+        myThread.setPriority(Thread.MIN_PRIORITY);
+        //System.out.println("ProcessStreamDrainer calling start...");
+        myThread.start();
+    }
 
-	public synchronized void run()
-	{
+    public synchronized void run()
+    {
         //System.out.println("Thread run...");
         if ( in == null )
         {
@@ -67,47 +67,47 @@ public class ProcessStreamDrainer implements Runnable
             System.exit(1);
         }
 
-		try
-		{
-			byte[] ca = new byte[4096];
-			int valid;
-			while ((valid = in.read(ca, 0, ca.length)) != -1)
-			{
-			    //System.out.println(ca);
-    			bos.write(ca, 0, valid);
-    			bos.flush();
-			}
-			bos.flush();
-		}
-		catch (IOException ioe)
-		{
-			System.out.println(ioe);
-		}
+        try
+        {
+            byte[] ca = new byte[4096];
+            int valid;
+            while ((valid = in.read(ca, 0, ca.length)) != -1)
+            {
+                //System.out.println(ca);
+                bos.write(ca, 0, valid);
+                bos.flush();
+            }
+            bos.flush();
+        }
+        catch (IOException ioe)
+        {
+            System.out.println(ioe);
+        }
 
-		synchronized (this)
-		{
-			finished = true;
-			notifyAll();
-		}
-	}
+        synchronized (this)
+        {
+            finished = true;
+            notifyAll();
+        }
+    }
 
-	public void Wait() throws IOException
-	{
-	    synchronized(this)
-	    {
-	        try
-	        {
-	            while (!finished)
-	            {
-	                wait();
-	            }
-	        }
-	        catch (InterruptedException ie)
-	        {
-	            System.out.println("Interrupted: " + ie.toString());
-	        }
-	    }
-	    bos.close();
-	    return;
-	}
+    public void Wait() throws IOException
+    {
+        synchronized(this)
+        {
+            try
+            {
+                while (!finished)
+                {
+                    wait();
+                }
+            }
+            catch (InterruptedException ie)
+            {
+                System.out.println("Interrupted: " + ie.toString());
+            }
+        }
+        bos.close();
+        return;
+    }
 }

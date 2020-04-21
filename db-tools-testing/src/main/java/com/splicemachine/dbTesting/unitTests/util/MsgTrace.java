@@ -62,10 +62,10 @@ public class MsgTrace implements Runnable {
     }
 
     private void trace(String msg) {
-// 		// wrap msg in a Dumpable
-// 		d.timestamp = System.currentTimeMillis();
-// 		d.threadId = Thread.currentThread().getName();
-// 		d.msg = msg;
+//         // wrap msg in a Dumpable
+//         d.timestamp = System.currentTimeMillis();
+//         d.threadId = Thread.currentThread().getName();
+//         d.msg = msg;
         // recorder.traceString(msg);
     }
 

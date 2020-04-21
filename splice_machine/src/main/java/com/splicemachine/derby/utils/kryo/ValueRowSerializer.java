@@ -39,16 +39,16 @@ public abstract class ValueRowSerializer<T extends ValueRow> extends Serializer<
     public T read(Kryo kryo, Input input, Class<T> type) {
         int size = input.readInt();
 
-				T instance = newType(size);
+                T instance = newType(size);
 
         DataValueDescriptor[] dvds = new DataValueDescriptor[size];
         for(int i=0;i<dvds.length;i++){
             dvds[i] = (DataValueDescriptor)kryo.readClassAndObject(input);
         }
-				instance.setRowArray(dvds);
+                instance.setRowArray(dvds);
 
-				return instance;
+                return instance;
     }
 
-		protected abstract T newType(int size);
+        protected abstract T newType(int size);
 }

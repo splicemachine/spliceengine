@@ -50,7 +50,7 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 
 public class SQLRef extends DataType implements RefDataValue {
-	protected RowLocation	value;
+    protected RowLocation    value;
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLRef.class);
 
@@ -62,125 +62,125 @@ public class SQLRef extends DataType implements RefDataValue {
         return sz;
     } // end of estimateMemoryUsage
 
-	/*
-	** DataValueDescriptor interface
-	** (mostly implemented in DataType)
-	*/
+    /*
+    ** DataValueDescriptor interface
+    ** (mostly implemented in DataType)
+    */
 
-	public String getString()
-	{
-		if (value != null)
-		{
-			return value.toString();
-		}
-		else
-		{
-			return null;
-		}
-	}
+    public String getString()
+    {
+        if (value != null)
+        {
+            return value.toString();
+        }
+        else
+        {
+            return null;
+        }
+    }
 
-	public Object getObject()
-	{
-		return value;
-	}
+    public Object getObject()
+    {
+        return value;
+    }
 
-	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
+    protected void setFrom(DataValueDescriptor theValue) throws StandardException {
 
-		if (theValue.isNull())
-			setToNull();
-		else
-			setValue((RowLocation) theValue.getObject());
-	}
+        if (theValue.isNull())
+            setToNull();
+        else
+            setValue((RowLocation) theValue.getObject());
+    }
 
-	public int getLength()
-	{
-		return TypeDescriptor.MAXIMUM_WIDTH_UNKNOWN;
-	}
+    public int getLength()
+    {
+        return TypeDescriptor.MAXIMUM_WIDTH_UNKNOWN;
+    }
 
-	/* this is for DataType's error generator */
-	public String getTypeName()
-	{
-		return TypeId.REF_NAME;
-	}
+    /* this is for DataType's error generator */
+    public String getTypeName()
+    {
+        return TypeId.REF_NAME;
+    }
 
-	/*
-	 * Storable interface, implies Externalizable, TypedFormat
-	 */
+    /*
+     * Storable interface, implies Externalizable, TypedFormat
+     */
 
 
-	/**
-		Return my format identifier.
+    /**
+        Return my format identifier.
 
-		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
-	public int getTypeFormatId() {
-		return StoredFormatIds.SQL_REF_ID;
-	}  
+        @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
+    */
+    public int getTypeFormatId() {
+        return StoredFormatIds.SQL_REF_ID;
+    }  
 
-	private boolean evaluateNull()
-	{
-		return (value == null);
-	}
+    private boolean evaluateNull()
+    {
+        return (value == null);
+    }
 
-	public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal(ObjectOutput out) throws IOException {
 
         out.writeBoolean(value != null);
         if (value != null) {
             out.writeObject(value);
         }
-	}
+    }
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 * @exception ClassNotFoundException	Thrown if the class of the object
-	 *										read from the stream can't be found
-	 *										(not likely, since it's supposed to
-	 *										be SQLRef).
-	 */
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
-	{
+    /**
+     * @see java.io.Externalizable#readExternal
+     *
+     * @exception IOException    Thrown on error reading the object
+     * @exception ClassNotFoundException    Thrown if the class of the object
+     *                                        read from the stream can't be found
+     *                                        (not likely, since it's supposed to
+     *                                        be SQLRef).
+     */
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
+    {
         boolean nonNull = in.readBoolean();
         if (nonNull) {
             setValue((RowLocation) in.readObject());
         }
-	}
-	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException
-	{
-		setValue((RowLocation) in.readObject());
-	}
+    }
+    public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException
+    {
+        setValue((RowLocation) in.readObject());
+    }
 
-	/**
-	 * @see com.splicemachine.db.iapi.services.io.Storable#restoreToNull
-	 */
+    /**
+     * @see com.splicemachine.db.iapi.services.io.Storable#restoreToNull
+     */
 
-	public void restoreToNull()
-	{
-		value = null;
-		isNull = true;
-	}
+    public void restoreToNull()
+    {
+        value = null;
+        isNull = true;
+    }
 
-	/*
-	** Orderable interface
-	*/
+    /*
+    ** Orderable interface
+    */
 
-	/** @exception StandardException	Thrown on error */
-	public boolean compare(int op,
-						   DataValueDescriptor other,
-						   boolean orderedNulls,
-						   boolean unknownRV)
-					throws StandardException
-	{
-		return value.compare(op,
-							((SQLRef) other).value,
-							orderedNulls,
-							unknownRV);
-	}
+    /** @exception StandardException    Thrown on error */
+    public boolean compare(int op,
+                           DataValueDescriptor other,
+                           boolean orderedNulls,
+                           boolean unknownRV)
+                    throws StandardException
+    {
+        return value.compare(op,
+                            ((SQLRef) other).value,
+                            orderedNulls,
+                            unknownRV);
+    }
 
-	/** @exception StandardException	Thrown on error */
-	public int compare(DataValueDescriptor other) throws StandardException
-	{
+    /** @exception StandardException    Thrown on error */
+    public int compare(DataValueDescriptor other) throws StandardException
+    {
         if (other instanceof SQLRef) {
             return value.compare(((SQLRef) other).value);
         } else if (other instanceof StringDataValue) {
@@ -189,98 +189,98 @@ public class SQLRef extends DataType implements RefDataValue {
         else {
             throw StandardException.newException("cannot compare SQLRef with " + other.getClass());
         }
-	}
+    }
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
 
     /** @see DataValueDescriptor#cloneValue */
     public DataValueDescriptor cloneValue(boolean forceMaterialization)
-	{
-		/* In order to avoid a throws clause nightmare, we only call
-		 * the constructors which do not have a throws clause.
-		 *
-		 * Clone the underlying RowLocation, if possible, so that we
-		 * don't clobber the value in the clone.
-		 */
-		if (value == null)
-			return new SQLRef();
-		else
+    {
+        /* In order to avoid a throws clause nightmare, we only call
+         * the constructors which do not have a throws clause.
+         *
+         * Clone the underlying RowLocation, if possible, so that we
+         * don't clobber the value in the clone.
+         */
+        if (value == null)
+            return new SQLRef();
+        else
            return new SQLRef((RowLocation) value.cloneValue(false));
-	}
+    }
 
-	/**
-	 * @see DataValueDescriptor#getNewNull
-	 */
-	public DataValueDescriptor getNewNull()
-	{
-		return new SQLRef();
-	}
+    /**
+     * @see DataValueDescriptor#getNewNull
+     */
+    public DataValueDescriptor getNewNull()
+    {
+        return new SQLRef();
+    }
 
-	/** 
-	 * @see DataValueDescriptor#setValueFromResultSet 
-	 *
-	 */
-	public void setValueFromResultSet(ResultSet resultSet, int colNumber,
-									  boolean isNullable)
-	{
-		if (SanityManager.DEBUG)
-			SanityManager.THROWASSERT(
-				"setValueFromResultSet() is not supposed to be called for SQLRef.");
-	}
-	public void setInto(PreparedStatement ps, int position)  {
-		if (SanityManager.DEBUG)
-			SanityManager.THROWASSERT(
-				"setValueInto(PreparedStatement) is not supposed to be called for SQLRef.");
-	}
+    /** 
+     * @see DataValueDescriptor#setValueFromResultSet 
+     *
+     */
+    public void setValueFromResultSet(ResultSet resultSet, int colNumber,
+                                      boolean isNullable)
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.THROWASSERT(
+                "setValueFromResultSet() is not supposed to be called for SQLRef.");
+    }
+    public void setInto(PreparedStatement ps, int position)  {
+        if (SanityManager.DEBUG)
+            SanityManager.THROWASSERT(
+                "setValueInto(PreparedStatement) is not supposed to be called for SQLRef.");
+    }
 
-	/*
-	** Class interface
-	*/
+    /*
+    ** Class interface
+    */
 
-	/*
-	** Constructors
-	*/
+    /*
+    ** Constructors
+    */
 
-	public SQLRef()
-	{
-	}
+    public SQLRef()
+    {
+    }
 
-	public SQLRef(RowLocation rowLocation)
-	{
-		setValue(rowLocation);
-	}
+    public SQLRef(RowLocation rowLocation)
+    {
+        setValue(rowLocation);
+    }
 
     @Override
-	public void setValue(RowLocation rowLocation)
-	{
-		value = rowLocation;
-		isNull = evaluateNull();
-	}
+    public void setValue(RowLocation rowLocation)
+    {
+        value = rowLocation;
+        isNull = evaluateNull();
+    }
 
     public void setValue(RowId rowId) {
-		value = (SQLRowId)rowId;
-		isNull = evaluateNull();
+        value = (SQLRowId)rowId;
+        isNull = evaluateNull();
     }
-	/*
-	** String display of value
-	*/
+    /*
+    ** String display of value
+    */
 
-	public String toString()
-	{
-		if (value == null)
-			return "NULL";
-		else
-			return value.toString();
-	}
-	public Format getFormat() {
-		return Format.REF;
-	}
+    public String toString()
+    {
+        if (value == null)
+            return "NULL";
+        else
+            return value.toString();
+    }
+    public Format getFormat() {
+        return Format.REF;
+    }
 
-	@Override
-	public void read(Row row, int ordinal) throws StandardException {
-		if (row.isNullAt(ordinal))
+    @Override
+    public void read(Row row, int ordinal) throws StandardException {
+        if (row.isNullAt(ordinal))
             setToNull();
         else {
             if (value == null) {
@@ -289,34 +289,34 @@ public class SQLRef extends DataType implements RefDataValue {
             value.read(row, ordinal);
             isNull = evaluateNull();
         }
-	}
+    }
 
 
-	@Override
-	public StructField getStructField(String columnName) {
-		return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
-	}
+    @Override
+    public StructField getStructField(String columnName) {
+        return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
+    }
 
-	public void updateThetaSketch(UpdateSketch updateSketch) {
-		value.updateThetaSketch(updateSketch);
-	}
+    public void updateThetaSketch(UpdateSketch updateSketch) {
+        value.updateThetaSketch(updateSketch);
+    }
 
-	@Override
-	public void setSparkObject(Object sparkObject) throws StandardException {
-		if (sparkObject == null)
-			setToNull();
-		else {
-			value = new HBaseRowLocation();
-			value.setSparkObject(sparkObject);
-			setIsNull(false);
-		}
-	}
+    @Override
+    public void setSparkObject(Object sparkObject) throws StandardException {
+        if (sparkObject == null)
+            setToNull();
+        else {
+            value = new HBaseRowLocation();
+            value.setSparkObject(sparkObject);
+            setIsNull(false);
+        }
+    }
 
-	@Override
-	public Object getSparkObject() throws StandardException {
-		if (isNull() || value == null)
-			return null;
-		return value.getSparkObject();
-	}
+    @Override
+    public Object getSparkObject() throws StandardException {
+        if (isNull() || value == null)
+            return null;
+        return value.getSparkObject();
+    }
 
 }

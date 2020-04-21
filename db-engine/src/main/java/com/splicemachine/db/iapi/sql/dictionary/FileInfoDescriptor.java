@@ -43,130 +43,130 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
  * A Descriptor for a file that has been stored in the database.
  */
 public final class  FileInfoDescriptor extends TupleDescriptor 
-	implements Provider, UniqueSQLObjectDescriptor
+    implements Provider, UniqueSQLObjectDescriptor
 {
-	/** A type tho indicate the file is a jar file **/
-	public static final int JAR_FILE_TYPE = 0;
+    /** A type tho indicate the file is a jar file **/
+    public static final int JAR_FILE_TYPE = 0;
 
-	/** external interface to this class:
-		<ol>
-		<li>public long	getGenerationId();
-		</ol>
-	*/
-	private final UUID id;
-	private final SchemaDescriptor sd;
-	private final String sqlName;
-	private final long generationId;
-	
-	/**
-	 * Constructor for a FileInfoDescriptor.
-	 *
-	 * @param dataDictionary		The data dictionary that this descriptor lives in
-	 * @param id        	The id for this file
-	 * @param sd			The schema for this file.
-	 * @param sqlName		The SQL name of this file.
-	 * @param generationId  The generation id for the
-	 *                      version of the file this describes.
-	 */
+    /** external interface to this class:
+        <ol>
+        <li>public long    getGenerationId();
+        </ol>
+    */
+    private final UUID id;
+    private final SchemaDescriptor sd;
+    private final String sqlName;
+    private final long generationId;
+    
+    /**
+     * Constructor for a FileInfoDescriptor.
+     *
+     * @param dataDictionary        The data dictionary that this descriptor lives in
+     * @param id            The id for this file
+     * @param sd            The schema for this file.
+     * @param sqlName        The SQL name of this file.
+     * @param generationId  The generation id for the
+     *                      version of the file this describes.
+     */
 
-	public FileInfoDescriptor(DataDictionary dataDictionary,
-								 UUID id,
-								 SchemaDescriptor sd,
-								 String sqlName,
-								 long generationId)
-	{
-		super( dataDictionary );
+    public FileInfoDescriptor(DataDictionary dataDictionary,
+                                 UUID id,
+                                 SchemaDescriptor sd,
+                                 String sqlName,
+                                 long generationId)
+    {
+        super( dataDictionary );
 
-		if (SanityManager.DEBUG)
-		{
-			if (sd.getSchemaName() == null)
-			{
-				SanityManager.THROWASSERT("new FileInfoDescriptor() schema "+
-					"name is null for FileInfo "+sqlName);
-			}
-		}
-		this.id = id;
-		this.sd = sd;
-		this.sqlName = sqlName;
-		this.generationId = generationId;
-	}
+        if (SanityManager.DEBUG)
+        {
+            if (sd.getSchemaName() == null)
+            {
+                SanityManager.THROWASSERT("new FileInfoDescriptor() schema "+
+                    "name is null for FileInfo "+sqlName);
+            }
+        }
+        this.id = id;
+        this.sd = sd;
+        this.sqlName = sqlName;
+        this.generationId = generationId;
+    }
 
-	public SchemaDescriptor getSchemaDescriptor()
-	{
-		return sd;
-	}
+    public SchemaDescriptor getSchemaDescriptor()
+    {
+        return sd;
+    }
 
-	public String getName()
-	{
-		return sqlName;
-	}
+    public String getName()
+    {
+        return sqlName;
+    }
 
-	/**
-	 * @see UniqueTupleDescriptor#getUUID
-	 */
-	public UUID	getUUID()
-	{
-		return id;
-	}
+    /**
+     * @see UniqueTupleDescriptor#getUUID
+     */
+    public UUID    getUUID()
+    {
+        return id;
+    }
 
-	/**
-	 * Gets the generationId for the current version of this file. The
-	 * triple (schemaName,SQLName,generationId) are unique for the
-	 * life of this database.
-	 *
-	 * @return	the generationId for this file
-	 */
-	public long getGenerationId()
-	{
-		return generationId;
-	}
+    /**
+     * Gets the generationId for the current version of this file. The
+     * triple (schemaName,SQLName,generationId) are unique for the
+     * life of this database.
+     *
+     * @return    the generationId for this file
+     */
+    public long getGenerationId()
+    {
+        return generationId;
+    }
 
-	//
-	// Provider interface
-	//
+    //
+    // Provider interface
+    //
 
-	/**		
-	  @see Dependable#getDependableFinder
-	 */
-	public DependableFinder getDependableFinder()
-	{
-	    return	getDependableFinder(StoredFormatIds.FILE_INFO_FINDER_V01_ID);
-	}
+    /**        
+      @see Dependable#getDependableFinder
+     */
+    public DependableFinder getDependableFinder()
+    {
+        return    getDependableFinder(StoredFormatIds.FILE_INFO_FINDER_V01_ID);
+    }
 
-	/**
-	  @see Dependable#getObjectName
-	 */
-	public String getObjectName()
-	{
-		return sqlName;
-	}
+    /**
+      @see Dependable#getObjectName
+     */
+    public String getObjectName()
+    {
+        return sqlName;
+    }
 
-	/**
-	  @see Dependable#getObjectID
-	 */
-	public UUID getObjectID()
-	{
-		return id;
-	}
+    /**
+      @see Dependable#getObjectID
+     */
+    public UUID getObjectID()
+    {
+        return id;
+    }
 
-	/**
-	  @see Dependable#getClassType
-	 */
-	public String getClassType()
-	{
-		return Dependable.FILE;
-	}
+    /**
+      @see Dependable#getClassType
+     */
+    public String getClassType()
+    {
+        return Dependable.FILE;
+    }
 
-	//
-	// class interface
-	//
+    //
+    // class interface
+    //
 
-	
-	/** @see TupleDescriptor#getDescriptorType */
-	public String getDescriptorType() { return "Jar file"; }
+    
+    /** @see TupleDescriptor#getDescriptorType */
+    public String getDescriptorType() { return "Jar file"; }
 
-	/** @see TupleDescriptor#getDescriptorName */
-	public String getDescriptorName() { return sqlName; }
+    /** @see TupleDescriptor#getDescriptorName */
+    public String getDescriptorName() { return sqlName; }
 
 
 

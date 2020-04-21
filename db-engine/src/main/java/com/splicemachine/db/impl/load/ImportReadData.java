@@ -174,15 +174,15 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
   }
   /**if columndefinition is true, ignore first row. The way to do that is to just
   *  look for the record separator
- 	* @exception	Exception if there is an error
-	*/
+     * @exception    Exception if there is an error
+    */
   protected void ignoreFirstRow() throws Exception {
     readNextToken(recordSeparator, 0, recordSeparatorLength, true);
   }
 
   /** load the column types from the meta data line to be analyzed
     * later in the constructor of the ImportResultSetMetaData.
-	*/
+    */
   protected void loadColumnTypes() throws Exception {
     int idx;
     String [] metaDataArray;
@@ -192,8 +192,8 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
     findNumberOfColumnsInARow();
 
     // reopen the file to the start of the file to read the actual column types data
-	closeStream();
-	openFile();
+    closeStream();
+    openFile();
 
     // make room for the meta data
     metaDataArray=new String [numberOfColumns];
@@ -214,8 +214,8 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
 
     // reopen to the start of the file so the rest of the program will
     // work as expected
-	closeStream();
-	openFile();
+    closeStream();
+    openFile();
 
     // init the numberOfColumns variable since it is
     // being accumulate by the findNumberOfColumnsInARow method
@@ -223,21 +223,21 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
   }
 
   private void openFile() throws Exception {
-	try {
-		java.security.AccessController.doPrivileged(this);
-	} catch (java.security.PrivilegedActionException pae) {
-		throw pae.getException();
-	}
+    try {
+        java.security.AccessController.doPrivileged(this);
+    } catch (java.security.PrivilegedActionException pae) {
+        throw pae.getException();
+    }
   }
 
   public final Object run() throws Exception {
-	  realOpenFile();
-	  return null;
+      realOpenFile();
+      return null;
   }
 
   //open the input data file for reading
   private void realOpenFile() throws Exception {
-	  InputStream inputStream;
+      InputStream inputStream;
     try {
       try {
         URL url = new URL(inputFileName);
@@ -254,7 +254,7 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
         throw LoadError.dataFileNotFound(inputFileName, ex);
     }
       java.io.Reader rd = dataCodeset == null ?
-    		new InputStreamReader(inputStream) : new InputStreamReader(inputStream, dataCodeset);    
+            new InputStreamReader(inputStream) : new InputStreamReader(inputStream, dataCodeset);    
     bufferedReader = new BufferedReader(rd, 32*1024);
     streamOpenForReading = true;
   }
@@ -279,8 +279,8 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
   }
 
   /**close the input data file
- 	* @exception	Exception if there is an error
-	*/
+     * @exception    Exception if there is an error
+    */
   void closeStream() throws Exception {
     if (streamOpenForReading) {
        bufferedReader.close();
@@ -338,14 +338,14 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
        char currentChar = currentToken[positionOfNonWhiteSpaceCharInFront];
        if (//currentChar == '\t' ||
            //currentChar == '\r' || alc: why isn't this included?
-		// alc: BTW, \r and \n should be replaced
-		// or amended with the first char of line.separator...
+        // alc: BTW, \r and \n should be replaced
+        // or amended with the first char of line.separator...
            //currentChar == '\n' ||
            //currentChar == ' ') {
            // use String.trim()'s definition of whitespace.
-		   // i18n - check for whitespace - avoid doing a hard coded character
-		   // check and use the isWhitespace method to cover all the Unicode
-		   // options
+           // i18n - check for whitespace - avoid doing a hard coded character
+           // check and use the isWhitespace method to cover all the Unicode
+           // options
                Character.isWhitespace(currentChar)) {
 
              if ((recordSepStartNotWhite || (currentChar != recordSeparatorChar0))
@@ -368,10 +368,10 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
 
     for (int i = totalCharsSoFar; (i > stopDelimiterPosition) && onlyWhiteSpaceSoFar; i--) {
        char currentChar = currentToken[i];
-	// replace test on \t,\n,' ' with String.trim's definition of white space
-	   // i18n - check for whitespace - avoid doing a hard coded character
-	   // check and use the isWhitespace method to cover all the Unicode
-	   // options
+    // replace test on \t,\n,' ' with String.trim's definition of white space
+       // i18n - check for whitespace - avoid doing a hard coded character
+       // check and use the isWhitespace method to cover all the Unicode
+       // options
        if (Character.isWhitespace(currentChar)) {
 
              if ((recordSepStartNotWhite || (currentChar != recordSeparatorChar0))
@@ -420,9 +420,9 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
 
       //see if we can find fieldSeparator
       fieldSeparatorIndex = lookForPassedSeparator(fieldSeparator, 
-												   fieldSeparatorIndex, 
-												   fieldSeparatorLength,
-												   nextChar, false);
+                                                   fieldSeparatorIndex, 
+                                                   fieldSeparatorLength,
+                                                   nextChar, false);
       //every time we find a column separator, the return false will indicate that count
       //this token as column data value and keep lookin for more tokens or record
       //separator
@@ -445,10 +445,10 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
   //else look for stop delimiter first.
   //this routine returns -1 if it finds field delimiter or record delimiter
   private int lookForPassedSeparator(char[] delimiter, int delimiterIndex,
-									 int delimiterLength, int nextChar,  
-									 boolean lookForRecordSeperator) throws
-									 IOException
-	{
+                                     int delimiterLength, int nextChar,  
+                                     boolean lookForRecordSeperator) throws
+                                     IOException
+    {
 
     //foundStartDelimiter will be false if we haven't found a start delimiter yet
     //if we haven't found startdelimiter, then we look for both start delimiter
@@ -486,26 +486,26 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
           }
        }
 
-	   /*look for typical record seperators line feed (\n),  a carriage return
-		* (\r) or a carriage return followed by line feed (\r\n)
-		*/
-	   if(lookForRecordSeperator)
-	   {
-		   if(nextChar == '\r' || nextChar == '\n')
-		   {
-			   recordSeparatorChar0 = (char) nextChar;
-			   if(nextChar == '\r' )
-			   {
-				   //omot the line feed character if it exists in the stream
-				   omitLineFeed();
-			   }
+       /*look for typical record seperators line feed (\n),  a carriage return
+        * (\r) or a carriage return followed by line feed (\r\n)
+        */
+       if(lookForRecordSeperator)
+       {
+           if(nextChar == '\r' || nextChar == '\n')
+           {
+               recordSeparatorChar0 = (char) nextChar;
+               if(nextChar == '\r' )
+               {
+                   //omot the line feed character if it exists in the stream
+                   omitLineFeed();
+               }
 
-			   totalCharsSoFar = totalCharsSoFar - 1 ;
-			   return -1;
-		   }
+               totalCharsSoFar = totalCharsSoFar - 1 ;
+               return -1;
+           }
 
-		   return delimiterIndex;
-	   }
+           return delimiterIndex;
+       }
 
        //look for passed delimiter
        if (nextChar == delimiter[delimiterIndex]) {
@@ -522,29 +522,29 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
          //eg if delimiter is xa and data is xxa
          if (delimiterIndex > 0)
             return(reCheckRestOfTheCharacters(totalCharsSoFar-delimiterIndex,
-		delimiter,
-            	delimiterLength));
+        delimiter,
+                delimiterLength));
        }
     } else {
       //see if we can find fieldStopDelimiter
       if (nextChar == fieldStopDelimiter[fieldStopDelimiterIndex]) {
          fieldStopDelimiterIndex++;
          if (fieldStopDelimiterIndex == fieldStopDelimiterLength) {
-			 boolean skipped = 	skipDoubleDelimiters(fieldStopDelimiter);
-			 if(!skipped)
-			 {
-				 foundStartDelimiter = false;
-				 //found stop delimiter, discard the chars corresponding to stop delimiter
-				 totalCharsSoFar = totalCharsSoFar - fieldStopDelimiterLength;
-				 //following is to take care of a case like "aa"aa This will result in an
-				 //error. Also a case like "aa"   will truncate it to just aa
-				 stopDelimiterPosition = totalCharsSoFar;
-				 //following is used to distinguish between empty string ,"", and null string ,,
-				 foundStartAndStopDelimiters = true;
-			 }else
-			 {
-				 fieldStopDelimiterIndex =0 ; 
-			 }
+             boolean skipped =     skipDoubleDelimiters(fieldStopDelimiter);
+             if(!skipped)
+             {
+                 foundStartDelimiter = false;
+                 //found stop delimiter, discard the chars corresponding to stop delimiter
+                 totalCharsSoFar = totalCharsSoFar - fieldStopDelimiterLength;
+                 //following is to take care of a case like "aa"aa This will result in an
+                 //error. Also a case like "aa"   will truncate it to just aa
+                 stopDelimiterPosition = totalCharsSoFar;
+                 //following is used to distinguish between empty string ,"", and null string ,,
+                 foundStartAndStopDelimiters = true;
+             }else
+             {
+                 fieldStopDelimiterIndex =0 ; 
+             }
             return 0;
          }
          return 0;
@@ -581,32 +581,32 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
     return delimiterIndex;
   }
 
-	/*
-	 * skips the duplicate delimeter characters inserd character stringd ata 
-	 * to get the original string. In Double Delimter recognigation Delimiter 
-	 * Format strings are written with a duplicate delimeter if a delimiter is
-	 * found inside the data while exporting.
-	 * For example with double quote(") as character delimiter
-	 *
-	 *	 "What a ""nice""day!"
-	 *
-	 *   will be imported as:
-	 *
-	 *	 What a "nice"day!
-	 *
-	 *	 In the case of export, the rule applies in reverse. For example,
-	 *
-	 *	 I am 6"tall.
-	 *
-	 *	 will be exported to a file as:
-	 *
-	 *	 "I am 6""tall."
- 	 */
-	private boolean skipDoubleDelimiters(char [] characterDelimiter) throws IOException
-	{ 
-		boolean skipped = true;
-		int cDelLength = characterDelimiter.length ;
-		bufferedReader.mark(cDelLength);
+    /*
+     * skips the duplicate delimeter characters inserd character stringd ata 
+     * to get the original string. In Double Delimter recognigation Delimiter 
+     * Format strings are written with a duplicate delimeter if a delimiter is
+     * found inside the data while exporting.
+     * For example with double quote(") as character delimiter
+     *
+     *     "What a ""nice""day!"
+     *
+     *   will be imported as:
+     *
+     *     What a "nice"day!
+     *
+     *     In the case of export, the rule applies in reverse. For example,
+     *
+     *     I am 6"tall.
+     *
+     *     will be exported to a file as:
+     *
+     *     "I am 6""tall."
+      */
+    private boolean skipDoubleDelimiters(char [] characterDelimiter) throws IOException
+    { 
+        boolean skipped = true;
+        int cDelLength = characterDelimiter.length ;
+        bufferedReader.mark(cDelLength);
         for (char aCharacterDelimiter : characterDelimiter) {
             int nextChar = bufferedReader.read();
             if (nextChar != aCharacterDelimiter) {
@@ -616,22 +616,22 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
                 break;
             }
         }
-		return skipped;
-	}
+        return skipped;
+    }
 
 
 
-	//omit the line feed character(\n) 
-	private void omitLineFeed() throws IOException
-	{ 
-		bufferedReader.mark(1);
-		int nextChar = bufferedReader.read();
-		if(nextChar != '\n')
-		{
-			//not a Line Feed
-			bufferedReader.reset();
-		}
-	}
+    //omit the line feed character(\n) 
+    private void omitLineFeed() throws IOException
+    { 
+        bufferedReader.mark(1);
+        int nextChar = bufferedReader.read();
+        if(nextChar != '\n')
+        {
+            //not a Line Feed
+            bufferedReader.reset();
+        }
+    }
 
 
 
@@ -642,8 +642,8 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
   }
 
   /**the way we read the next row from input file depends on it's format
- 	* @exception	Exception if there is an error
-	*/
+     * @exception    Exception if there is an error
+    */
   boolean readNextRow(String[] returnStringArray) throws Exception {
     boolean readVal;
     int idx;
@@ -654,7 +654,7 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
        //do uppercase because the ui shows the values as True and False
        if (hasColumnDefinition){
           ignoreFirstRow();
-	   }
+       }
     }
     if (formatCode == DEFAULT_FORMAT_CODE)
        readVal=readNextDelimitedRow(returnStringArray);
@@ -664,11 +664,11 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
     return readVal;
   }
 
-	// made this a field so it isn't inited for each row, just
-	// set and cleared on the rows that need it (the last row
-	// in a file, typically, so it isn't used much)
+    // made this a field so it isn't inited for each row, just
+    // set and cleared on the rows that need it (the last row
+    // in a file, typically, so it isn't used much)
 
-	private boolean haveSep = true;
+    private boolean haveSep = true;
   //read the specified column width for each column
   private boolean readNextFixedRow(String[] returnStringArray) throws Exception {
     // readLength is how many bytes it has read so far
@@ -702,9 +702,9 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
       totalLength = readLength;
     }
 
-	 int colStart = 0;
+     int colStart = 0;
      for (int i=0; i< numberOfColumns; i++) {
-  		 int colWidth = columnWidths[i];
+           int colWidth = columnWidths[i];
 
        if (colWidth == 0) //if column width is 0, return null
           returnStringArray[i] = null;
@@ -884,8 +884,8 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
   }
   //read one column's value at a time
   boolean readNextToken(char[] delimiter, int delimiterIndex,
-							   int delimiterLength, 
-							   boolean isRecordSeperator) throws Exception {
+                               int delimiterLength, 
+                               boolean isRecordSeperator) throws Exception {
     int nextChar;
 
     fieldStopDelimiterIndex =  0;
@@ -916,8 +916,8 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
       }
 
       returnValue = lookForPassedSeparator(delimiter, delimiterIndex,
-										   delimiterLength, nextChar, 
-										   isRecordSeperator);
+                                           delimiterLength, nextChar, 
+                                           isRecordSeperator);
       if (returnValue == -1) {
          //if no stop delimiter found that "" this means null
          //also if no stop delimiter found then get rid of spaces around the token
@@ -938,7 +938,7 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
     }
   }
 
-	
+    
     /* following are the routines that are used to read lob data stored
      * in a external import file for clob/blob columns, the reference 
      * to external file is stored in the main import file.
@@ -954,7 +954,7 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
     String getClobColumnFromExtFileAsString(String lobLocationStr, int colIndex) 
         throws SQLException 
     {
-		try {
+        try {
             initExternalLobFile(lobLocationStr, colIndex);
             if (lobLength == -1 ){
                 // lob length -1 indicates columnn value is a NULL, 
@@ -964,10 +964,10 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
                 return lobFileHandles[colIndex-1].getString(lobOffset,lobLength);
             }
             
-		}catch(Exception ex) {
-			throw LoadError.unexpectedError(ex);
-		}
-	}
+        }catch(Exception ex) {
+            throw LoadError.unexpectedError(ex);
+        }
+    }
 
 
     /**
@@ -980,7 +980,7 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
     java.sql.Clob getClobColumnFromExtFile(String lobLocationStr, int colIndex) 
         throws SQLException 
     {
-		try {
+        try {
             initExternalLobFile(lobLocationStr, colIndex);
             if (lobLength == -1 ){
                 // lob length -1 indicates columnn value is a NULL, 
@@ -991,10 +991,10 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
                                       lobOffset,lobLength);
             }
             
-		}catch(Exception ex) {
-			throw LoadError.unexpectedError(ex);
-		}
-	}
+        }catch(Exception ex) {
+            throw LoadError.unexpectedError(ex);
+        }
+    }
 
     /**
      * Returns a blob columnn data stored at the specified location as
@@ -1030,8 +1030,8 @@ final class ImportReadData implements java.security.PrivilegedExceptionAction {
     private void initExternalLobFile(String lobLocationStr, int colIndex) 
         throws SQLException 
     {
-		// extract file name, offset, and the length from the 
-		// given lob location. Lob location string format is 
+        // extract file name, offset, and the length from the 
+        // given lob location. Lob location string format is 
         // <code > <fileName>.<lobOffset>.<size of lob>/ </code>.
         // For a NULL blob, size will be  -1
  

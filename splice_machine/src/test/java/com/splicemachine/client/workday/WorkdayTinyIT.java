@@ -154,7 +154,7 @@ public class WorkdayTinyIT extends SpliceUnitTest {
             expectedRowVals.add(Arrays.asList("3", "933"));
             assertValuesEqual(expectedRowVals, actualRowVals);
         } finally {
-						dropIndex(SCHEMA_NAME,OmsLogTable.INDEX_WHDATE_IDX);
+                        dropIndex(SCHEMA_NAME,OmsLogTable.INDEX_WHDATE_IDX);
             dropIndex(SCHEMA_NAME,OmsLogTable.INDEX_SYSUSERID_IDX);
             dropIndex(SCHEMA_NAME,OmsLogTable.INDEX_HTTPREQ_IDX);
             dropIndex(SCHEMA_NAME,OmsLogTable.INDEX_HTTPRESP_IDX);

@@ -118,20 +118,20 @@ public final class Main {
         // adjust the application in accordance with db.ui.locale and db.ui.codeset
         LocalizedResource.getInstance().init();
 
-		LocalizedOutput out;
+        LocalizedOutput out;
 
         //using AppStreamReader(extends InputStreamReader) for conversion into specific codeset
 
-		out = LocalizedResource.OutputWriter();
+        out = LocalizedResource.OutputWriter();
 
        // because we're in a static method, we need to
        // get our own instance variable
     parseArgs (args);
 
     if (cptester)
-	getClasspathInfo (args, out);
+    getClasspathInfo (args, out);
     else
-	getMainInfo (out, setPause);
+    getMainInfo (out, setPause);
 
   } // end of main (String args[])
 
@@ -220,7 +220,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
   private static void reportDerby (java.io.PrintWriter localAW) {
 
-	  String classpath = null;
+      String classpath = null;
 
       try {
           classpath = (String) AccessController.doPrivileged( new PrivilegedAction()
@@ -231,12 +231,12 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
                   }
               }
               );
-	  }
-	  catch (SecurityException se) {
+      }
+      catch (SecurityException se) {
           localAW.println(
               Main.getTextMessage ("SIF01.U", se.getMessage()));
-		  classpath = null;
-	  }
+          classpath = null;
+      }
 
       ZipInfoProperties zip[]= Main.getAllInfo (classpath);
 
@@ -269,7 +269,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
   private static void reportJavaInfo (java.io.PrintWriter localAW) {
 
-	
+    
 
     localAW.println (Main.getTextMessage ("SIF02.A",
                                                            getJavaProperty ("java.version")));
@@ -301,10 +301,10 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
     localAW.println (Main.getTextMessage ("SIF02.J",
                                                            getJavaProperty ("user.dir")));
 
-	localAW.println("java.specification.name: " + getJavaProperty("java.specification.name"));
-	localAW.println("java.specification.version: " + getJavaProperty("java.specification.version"));
-	printPropertyIfNotNull(localAW, "java.runtime.version");
-	printPropertyIfNotNull(localAW, "java.fullversion");
+    localAW.println("java.specification.name: " + getJavaProperty("java.specification.name"));
+    localAW.println("java.specification.version: " + getJavaProperty("java.specification.version"));
+    printPropertyIfNotNull(localAW, "java.runtime.version");
+    printPropertyIfNotNull(localAW, "java.fullversion");
 
 
   } // end of reportJavaInfo
@@ -316,7 +316,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
    * @param property This is system property string
    */
   private static void printPropertyIfNotNull(java.io.PrintWriter localAW, String property) {
-    String propertyValue = getJavaProperty(property, true);	
+    String propertyValue = getJavaProperty(property, true);    
 
     if (propertyValue != null) {
         localAW.println(property + ": " + propertyValue);
@@ -331,7 +331,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
    * @return getJavaProperty(whichProperty, false) 
    */
   private static String getJavaProperty (final String whichProperty) {
-	  return getJavaProperty(whichProperty, false);  
+      return getJavaProperty(whichProperty, false);  
   }
  
   /**
@@ -436,13 +436,13 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
     // Read all the possible locales, and test for each one, if it loads.
     // If so, then read the properties, and print them out.
 
-	Locale[] supportedLocales = Locale.getAvailableLocales();
-	String[] stringLocales = new String[supportedLocales.length];
+    Locale[] supportedLocales = Locale.getAvailableLocales();
+    String[] stringLocales = new String[supportedLocales.length];
     for (int i = 0; i < supportedLocales.length; i++)
-	{
-		stringLocales[i] = supportedLocales[i].toString();
-	}
-	java.util.Arrays.sort(stringLocales);
+    {
+        stringLocales[i] = supportedLocales[i].toString();
+    }
+    java.util.Arrays.sort(stringLocales);
 
     Properties p = new Properties ();
     for (int i = 0; i < stringLocales.length; i++) {
@@ -454,46 +454,46 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
       final String finalLocaleResource = localeResource;
      
       try {     
-        	InputStream is = (InputStream) AccessController.doPrivileged
+            InputStream is = (InputStream) AccessController.doPrivileged
             (new PrivilegedAction() {
                   public Object run() {
                       return finalp.getClass().getResourceAsStream (finalLocaleResource);
                   }
               }
            );      
-      	
+          
         if (is == null) {
 //           localAW.println("resource is null: " + localeResource);
         }
         else {
 
           try {
-			  p.clear();
+              p.clear();
             p.load (is);
         //Displaying Current Locale
-	    if (cur_loc)
-		{
-	Locale loc = null;
-	loc = Locale.getDefault();
+        if (cur_loc)
+        {
+    Locale loc = null;
+    loc = Locale.getDefault();
         localAW.println(Main.getTextMessage ("SIF01.T") + "  [" + loc.getDisplayLanguage() + "/" +  loc.getDisplayCountry() + " [" + loc + "]]");
-		cur_loc = false;
-		}
+        cur_loc = false;
+        }
 
-	//Beetle 5079: do not print unlocalized locale names to console, only print locale code.
-	String localeName = p.getProperty("derby.locale.external.name");
-	localeName = localeName.substring(localeName.indexOf("[")+1);
-	localeName = localeName.substring(0,localeName.indexOf("]"));
-	
+    //Beetle 5079: do not print unlocalized locale names to console, only print locale code.
+    String localeName = p.getProperty("derby.locale.external.name");
+    localeName = localeName.substring(localeName.indexOf("[")+1);
+    localeName = localeName.substring(0,localeName.indexOf("]"));
+    
             localAW.println (Main.getTextMessage ("SIF01.R",
                                                                    localeName));
 
 
-			int major = Integer.parseInt(p.getProperty ("derby.locale.version.major"));
-			int minor = Integer.parseInt(p.getProperty ("derby.locale.version.minor"));
-			int maint = Integer.parseInt(p.getProperty ("derby.locale.version.maint"));
-			String build = p.getProperty ("derby.locale.build.number");
+            int major = Integer.parseInt(p.getProperty ("derby.locale.version.major"));
+            int minor = Integer.parseInt(p.getProperty ("derby.locale.version.minor"));
+            int maint = Integer.parseInt(p.getProperty ("derby.locale.version.maint"));
+            String build = p.getProperty ("derby.locale.build.number");
 
-			String lv = ProductVersionHolder.fullVersionString(major, minor, maint, false, build);
+            String lv = ProductVersionHolder.fullVersionString(major, minor, maint, false, build);
 
 
             localAW.println (Main.getTextMessage ("SIF01.S", lv));
@@ -524,18 +524,18 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
   } // end of reportLocales
 
-	/* for arguments, choose from one of:*/
-	private static final String EMBEDDED = "embedded";
+    /* for arguments, choose from one of:*/
+    private static final String EMBEDDED = "embedded";
 
-	/* you can add this if you like*/
-	private static final String TOOLS = "tools";
+    /* you can add this if you like*/
+    private static final String TOOLS = "tools";
 
-	private static final String NET = "server";
-	private static final String CLIENT = "client";
+    private static final String NET = "server";
+    private static final String CLIENT = "client";
 
-	/* you can add this if you like */
+    /* you can add this if you like */
 
-	private static final String MAINUSAGESTRING = "java com.splicemachine.db.tools.sysinfo -cp";
+    private static final String MAINUSAGESTRING = "java com.splicemachine.db.tools.sysinfo -cp";
 
     private static final String USAGESTRINGPARTA = MAINUSAGESTRING + " [ [ "
             + EMBEDDED + " ][ " + NET + " ][ " + CLIENT + "] [ " + TOOLS
@@ -543,35 +543,35 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
     private static final String USAGESTRINGPARTB = ".class ] ]";
 
   static  void useMe(String[] args, java.io.PrintWriter pw) {
-	  java.io.PrintWriter localPW = pw;
+      java.io.PrintWriter localPW = pw;
 
-	    if (localPW == null)
-	    {
-	        localPW = new java.io.PrintWriter(System.out);
-	    }
+        if (localPW == null)
+        {
+            localPW = new java.io.PrintWriter(System.out);
+        }
 
 
       int length = args.length;
-	  if (length==1) {
+      if (length==1) {
 
-		  try {
-			  tryAllClasspaths(localPW);
+          try {
+              tryAllClasspaths(localPW);
 
-		  }
+          }
 
-		  catch (Throwable t) {
+          catch (Throwable t) {
 
-		  }
-	  }
-	  else {
-		  try {
-			  trySomeClasspaths(args, localPW);
-		  }
+          }
+      }
+      else {
+          try {
+              trySomeClasspaths(args, localPW);
+          }
 
-		  catch (Throwable t) {
+          catch (Throwable t) {
 
-		  }
-	  }
+          }
+      }
 
   }
 
@@ -579,205 +579,205 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
 
 
-	  private static void tryAllClasspaths(java.io.PrintWriter localPW) throws Throwable {
-		  localPW.println(Main.getTextMessage("SIF08.B"));
-		  localPW.println(Main.getTextMessage("SIF08.C", MAINUSAGESTRING + " args"));
-		  StringBuffer successes = new StringBuffer(Main.getTextMessage("SIF08.D")+ crLf());
-		  StringBuffer failures = new StringBuffer(crLf() + Main.getTextMessage("SIF08.E") + crLf());
-		  tryCoreClasspath(successes, failures);
-		  tryNetClasspath(successes, failures);
-		  tryClientClasspath(successes, failures);
-		  tryUtilsClasspath(successes, failures);
-		  localPW.println(successes.toString());
-		  if (!failures.toString().equals(crLf() + Main.getTextMessage("SIF08.E") + crLf())) {
-			  localPW.println(failures.toString());
-		  }
-		  else {
+      private static void tryAllClasspaths(java.io.PrintWriter localPW) throws Throwable {
+          localPW.println(Main.getTextMessage("SIF08.B"));
+          localPW.println(Main.getTextMessage("SIF08.C", MAINUSAGESTRING + " args"));
+          StringBuffer successes = new StringBuffer(Main.getTextMessage("SIF08.D")+ crLf());
+          StringBuffer failures = new StringBuffer(crLf() + Main.getTextMessage("SIF08.E") + crLf());
+          tryCoreClasspath(successes, failures);
+          tryNetClasspath(successes, failures);
+          tryClientClasspath(successes, failures);
+          tryUtilsClasspath(successes, failures);
+          localPW.println(successes.toString());
+          if (!failures.toString().equals(crLf() + Main.getTextMessage("SIF08.E") + crLf())) {
+              localPW.println(failures.toString());
+          }
+          else {
 
-			  localPW.println(Main.getTextMessage("SIF08.F"));
-		  }
-		  localPW.flush();
-	  }
+              localPW.println(Main.getTextMessage("SIF08.F"));
+          }
+          localPW.flush();
+      }
 
-	private static void trySomeClasspaths(String[] args, java.io.PrintWriter localPW) throws Throwable {
+    private static void trySomeClasspaths(String[] args, java.io.PrintWriter localPW) throws Throwable {
 
-		boolean seenArg = false;
-		StringBuffer successes = new StringBuffer(Main.getTextMessage("SIF08.D")+ crLf());
-		StringBuffer failures = new StringBuffer(crLf() + Main.getTextMessage("SIF08.E") + crLf());
+        boolean seenArg = false;
+        StringBuffer successes = new StringBuffer(Main.getTextMessage("SIF08.D")+ crLf());
+        StringBuffer failures = new StringBuffer(crLf() + Main.getTextMessage("SIF08.E") + crLf());
 
-		if (argumentsContain(args, EMBEDDED))
-		{
+        if (argumentsContain(args, EMBEDDED))
+        {
 
-			tryCoreClasspath(successes, failures);
-			seenArg =true;
+            tryCoreClasspath(successes, failures);
+            seenArg =true;
 
-		}
-		if (argumentsContain(args,NET)) {
-		  tryNetClasspath(successes, failures);
-			seenArg =true;
+        }
+        if (argumentsContain(args,NET)) {
+          tryNetClasspath(successes, failures);
+            seenArg =true;
 
-		}
-		if (argumentsContain(args,CLIENT)) {
-		  tryClientClasspath(successes, failures);
-			seenArg =true;
+        }
+        if (argumentsContain(args,CLIENT)) {
+          tryClientClasspath(successes, failures);
+            seenArg =true;
 
-		}
+        }
 
-		if (argumentsContain(args,TOOLS) || argumentsContain(args,"utils")) {
-		  tryUtilsClasspath(successes, failures);
-			seenArg =true;
+        if (argumentsContain(args,TOOLS) || argumentsContain(args,"utils")) {
+          tryUtilsClasspath(successes, failures);
+            seenArg =true;
 
-		}
+        }
 
 
-		String userclass = argumentMatches(args, ".class");
-		if (!userclass.isEmpty()) {
-			tryMyClasspath(argumentMatches(args, ".class"), Main.getTextMessage("SIF08.H", userclass), successes, failures);
-			seenArg =true;
-		}
+        String userclass = argumentMatches(args, ".class");
+        if (!userclass.isEmpty()) {
+            tryMyClasspath(argumentMatches(args, ".class"), Main.getTextMessage("SIF08.H", userclass), successes, failures);
+            seenArg =true;
+        }
 
-		if (seenArg)
-		{
+        if (seenArg)
+        {
 
-			localPW.println(successes.toString());
-			if (!failures.toString().equals(crLf() + Main.getTextMessage("SIF08.E") + crLf())) {
-				localPW.println(failures.toString());
-			}
-			else {
+            localPW.println(successes.toString());
+            if (!failures.toString().equals(crLf() + Main.getTextMessage("SIF08.E") + crLf())) {
+                localPW.println(failures.toString());
+            }
+            else {
 
-				localPW.println(Main.getTextMessage("SIF08.F"));
-			}
-		}
-		else
-		{
-			localPW.println(Main.getTextMessage("SIF08.A", USAGESTRINGPARTA, USAGESTRINGPARTB));
-		}
-		localPW.flush();
+                localPW.println(Main.getTextMessage("SIF08.F"));
+            }
+        }
+        else
+        {
+            localPW.println(Main.getTextMessage("SIF08.A", USAGESTRINGPARTA, USAGESTRINGPARTB));
+        }
+        localPW.flush();
 
-	}
+    }
 
-	private static void tryCoreClasspath(StringBuffer successes, StringBuffer failures) {
-		tryMyClasspath("com.splicemachine.db.database.Database", Main.getTextMessage("SIF08.J","derby.jar" ), successes, failures);
-	}
-	private static void tryNetClasspath(StringBuffer successes, StringBuffer failures) {
-		tryMyClasspath("com.splicemachine.db.database.Database", Main.getTextMessage("SIF08.J","derby.jar" ), successes, failures);
-		tryMyClasspath("com.splicemachine.db.drda.NetworkServerControl", Main.getTextMessage("SIF08.I", "derbynet.jar"), successes, failures);
-	}
-	private static void tryClientClasspath(StringBuffer successes, StringBuffer failures) {
-		tryMyClasspath("com.splicemachine.db.jdbc.ClientDriver", Main.getTextMessage("SIF08.L", "derbyclient.jar"), successes, failures);
-	}
+    private static void tryCoreClasspath(StringBuffer successes, StringBuffer failures) {
+        tryMyClasspath("com.splicemachine.db.database.Database", Main.getTextMessage("SIF08.J","derby.jar" ), successes, failures);
+    }
+    private static void tryNetClasspath(StringBuffer successes, StringBuffer failures) {
+        tryMyClasspath("com.splicemachine.db.database.Database", Main.getTextMessage("SIF08.J","derby.jar" ), successes, failures);
+        tryMyClasspath("com.splicemachine.db.drda.NetworkServerControl", Main.getTextMessage("SIF08.I", "derbynet.jar"), successes, failures);
+    }
+    private static void tryClientClasspath(StringBuffer successes, StringBuffer failures) {
+        tryMyClasspath("com.splicemachine.db.jdbc.ClientDriver", Main.getTextMessage("SIF08.L", "derbyclient.jar"), successes, failures);
+    }
 
-	private static void tryUtilsClasspath(StringBuffer successes, StringBuffer failures) {
-		tryMyClasspath("com.splicemachine.db.tools.ij", Main.getTextMessage("SIF08.Q", "derbytools.jar"), successes, failures);
-	}
+    private static void tryUtilsClasspath(StringBuffer successes, StringBuffer failures) {
+        tryMyClasspath("com.splicemachine.db.tools.ij", Main.getTextMessage("SIF08.Q", "derbytools.jar"), successes, failures);
+    }
 
-	private static void tryMyClasspath(String cn, String library, StringBuffer successes, StringBuffer failures) {
+    private static void tryMyClasspath(String cn, String library, StringBuffer successes, StringBuffer failures) {
 
-		try {
-			Class c = Class.forName(cn);
+        try {
+            Class c = Class.forName(cn);
                         String loc = getFileWhichLoadedClass(c);
                         successes.append(found(cn, library, loc));
-		}
+        }
 
-		catch (Throwable t) {
+        catch (Throwable t) {
 
-			failures.append(notFound(cn, library));
+            failures.append(notFound(cn, library));
 
-		}
+        }
 
 
-	}
+    }
 
-	private static void tryAsResource(String cn, String library, StringBuffer successes, StringBuffer failures) {
+    private static void tryAsResource(String cn, String library, StringBuffer successes, StringBuffer failures) {
 
-		try {
-			java.io.InputStream in = cn.getClass().getResourceAsStream(cn);
-			in.close();
+        try {
+            java.io.InputStream in = cn.getClass().getResourceAsStream(cn);
+            in.close();
                         String loc = getFileWhichLoadedClass(cn.getClass());
-			successes.append(found(cn, library, loc));
-		}
+            successes.append(found(cn, library, loc));
+        }
 
-		catch (Throwable t) {
-			failures.append(notFound(cn, library));
+        catch (Throwable t) {
+            failures.append(notFound(cn, library));
 
-		}
+        }
 
-	}
+    }
 
-	private static String found(String cn, String library, String loc) {
-		StringBuilder temp = new StringBuilder(crLf());
-		temp.append("   " + library);
-		temp.append(crLf());
+    private static String found(String cn, String library, String loc) {
+        StringBuilder temp = new StringBuilder(crLf());
+        temp.append("   " + library);
+        temp.append(crLf());
                 if (loc != null)
                     temp.append("   ").append(loc).append(crLf());
-		temp.append(crLf());
-		return temp.toString();
-	}
-	private static String notFound(String cn, String library) {
+        temp.append(crLf());
+        return temp.toString();
+    }
+    private static String notFound(String cn, String library) {
 
-		StringBuilder temp = new StringBuilder(crLf());
-		temp.append("   " + library);
-		temp.append(crLf());
-		temp.append("    " + Main.getTextMessage("SIF08.U", cn));
-		temp.append(crLf());
-		temp.append(crLf());
-		return temp.toString();
-	}
+        StringBuilder temp = new StringBuilder(crLf());
+        temp.append("   " + library);
+        temp.append(crLf());
+        temp.append("    " + Main.getTextMessage("SIF08.U", cn));
+        temp.append(crLf());
+        temp.append(crLf());
+        return temp.toString();
+    }
 
-	private static String crLf() {
-		return System.getProperty("line.separator");
-	}
+    private static String crLf() {
+        return System.getProperty("line.separator");
+    }
 
-	private static String lookForMainArg(String[] args, java.io.PrintWriter localPW)
-	{
-		int length=args.length;
-		String[] legalargs = new String[1];
-		legalargs[0] = EMBEDDED;
+    private static String lookForMainArg(String[] args, java.io.PrintWriter localPW)
+    {
+        int length=args.length;
+        String[] legalargs = new String[1];
+        legalargs[0] = EMBEDDED;
 
-		int argsfound = 0;
-		String whichargument="";
+        int argsfound = 0;
+        String whichargument="";
 
-		for (int i = 0; i < length; i++) {
+        for (int i = 0; i < length; i++) {
 
-			for (int j=0; j < legalargs.length; j++) {
-				if (args[i].toUpperCase(java.util.Locale.ENGLISH).equals(legalargs[j].toUpperCase(java.util.Locale.ENGLISH))) {
-					argsfound++;
-					whichargument=legalargs[j];
-				}
-			}
-		}
-		if (argsfound > 1 || argsfound < 1) {
+            for (int j=0; j < legalargs.length; j++) {
+                if (args[i].toUpperCase(java.util.Locale.ENGLISH).equals(legalargs[j].toUpperCase(java.util.Locale.ENGLISH))) {
+                    argsfound++;
+                    whichargument=legalargs[j];
+                }
+            }
+        }
+        if (argsfound > 1 || argsfound < 1) {
             localPW.println(Main.getTextMessage("SIF08.A", USAGESTRINGPARTA, USAGESTRINGPARTB));
-			return "";
-		}
-		return whichargument;
-	}
+            return "";
+        }
+        return whichargument;
+    }
 
-	private static boolean argumentsContain(String[] args, String s) {
-		for (int i = 0; i < args.length; i++) {
-			if (args[i].equalsIgnoreCase(s))
-				return true;
-		}
-		return false;
+    private static boolean argumentsContain(String[] args, String s) {
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equalsIgnoreCase(s))
+                return true;
+        }
+        return false;
 
-	}
+    }
 
-	private static String argumentMatches(String[] args, String ss) {
-	    String userclass = "";
-		int length = args.length;
-		for (int i = 0; i < length; i++) {
-			if (args[i].endsWith(ss)) {
-				userclass = args[i].substring(0,args[i].length()-6) ;
+    private static String argumentMatches(String[] args, String ss) {
+        String userclass = "";
+        int length = args.length;
+        for (int i = 0; i < length; i++) {
+            if (args[i].endsWith(ss)) {
+                userclass = args[i].substring(0,args[i].length()-6) ;
 
-			}
+            }
 
-		}
-		return userclass;
-	}
+        }
+        return userclass;
+    }
 
-	/*
-	** Code related to loading info fromjar files.
-	*/
+    /*
+    ** Code related to loading info fromjar files.
+    */
 
     private static final String infoNames[] = {
 
@@ -828,33 +828,33 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
         try
         {
-			if (classpath != null) {
-				String cp [] = parseClasspath(classpath);
-				Vector v = new Vector();
-				for (int i = 0; i < cp.length; i++)
-				{
-					ZipInfoProperties zip = null;
-					try {
-						zip = checkForInfo(cp[i]);
-					}
-					catch (SecurityException se)
-					{
-						zip = new ZipInfoProperties(null);
-						zip.setLocation(
-							Main.getTextMessage ("SIF03.C", se.getMessage()));
-					}
-					if (zip != null)
-					{
-						v.addElement(zip);
-					}
-				}
-				if (!v.isEmpty())
-				{
-					ZipInfoProperties cpzips[] = new ZipInfoProperties[v.size()];
-					v.copyInto(cpzips);
-					return mergeZips(zips, cpzips);
-				}
-			}
+            if (classpath != null) {
+                String cp [] = parseClasspath(classpath);
+                Vector v = new Vector();
+                for (int i = 0; i < cp.length; i++)
+                {
+                    ZipInfoProperties zip = null;
+                    try {
+                        zip = checkForInfo(cp[i]);
+                    }
+                    catch (SecurityException se)
+                    {
+                        zip = new ZipInfoProperties(null);
+                        zip.setLocation(
+                            Main.getTextMessage ("SIF03.C", se.getMessage()));
+                    }
+                    if (zip != null)
+                    {
+                        v.addElement(zip);
+                    }
+                }
+                if (!v.isEmpty())
+                {
+                    ZipInfoProperties cpzips[] = new ZipInfoProperties[v.size()];
+                    v.copyInto(cpzips);
+                    return mergeZips(zips, cpzips);
+                }
+            }
             return mergeZips(zips, null);
 
         }
@@ -863,7 +863,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
             ZipInfoProperties zip[] = new ZipInfoProperties[1];
             zip[0] = new ZipInfoProperties(null);
             zip[0].setLocation(
-					Main.getTextMessage ("SIF03.C", se.getMessage()));
+                    Main.getTextMessage ("SIF03.C", se.getMessage()));
             return zip;
         }
     }
@@ -879,7 +879,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
      */
     private static ZipInfoProperties [] loadZipFromResource()
     {
-		java.util.ArrayList al = new java.util.ArrayList();
+        java.util.ArrayList al = new java.util.ArrayList();
 
         for (int i = 0; i < infoNames.length; i++)
         {
@@ -893,10 +893,10 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
                 }
             );         
 
-			if (is == null)
-				continue;
+            if (is == null)
+                continue;
 
-			ZipInfoProperties ze = new ZipInfoProperties(ProductVersionHolder.getProductVersionHolderFromMyEnv(is));
+            ZipInfoProperties ze = new ZipInfoProperties(ProductVersionHolder.getProductVersionHolderFromMyEnv(is));
  
                         // get the real location of the info file
                         URL locUrl = (URL) AccessController.doPrivileged
@@ -906,9 +906,9 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
                             }
                         });
 
-			ze.setLocation(formatURL(locUrl));
+            ze.setLocation(formatURL(locUrl));
 
-			al.add(ze);
+            al.add(ze);
         }
 
         if (al.isEmpty())
@@ -918,7 +918,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
         ZipInfoProperties[] zip = new ZipInfoProperties[al.size()];
 
-		al.toArray(zip);
+        al.toArray(zip);
 
         return zip;
     }
@@ -1075,32 +1075,32 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
     }
 
-	/*
-	** Message handling
-	*/
+    /*
+    ** Message handling
+    */
 
-	public static String getTextMessage(String msgId) {
-		return getCompleteMessage(msgId, new Object[0]);
-	}
-	public static String getTextMessage(String msgId, Object a1) {
+    public static String getTextMessage(String msgId) {
+        return getCompleteMessage(msgId, new Object[0]);
+    }
+    public static String getTextMessage(String msgId, Object a1) {
 
-		return getCompleteMessage(msgId, new Object[] {a1});
-	}
-	public static String getTextMessage(String msgId, Object a1, Object a2) {
-		return getCompleteMessage(msgId, new Object[] {a1, a2});
-	}
-	public static String getTextMessage(String msgId, Object a1, Object a2, Object a3) {
-		return getCompleteMessage(msgId, new Object[] {a1, a2, a3});
-	}
-	public static String getTextMessage(String msgId, Object a1, Object a2, Object a3, Object a4) {
-		return getCompleteMessage(msgId, new Object[] {a1, a2, a3, a4});
-	}
+        return getCompleteMessage(msgId, new Object[] {a1});
+    }
+    public static String getTextMessage(String msgId, Object a1, Object a2) {
+        return getCompleteMessage(msgId, new Object[] {a1, a2});
+    }
+    public static String getTextMessage(String msgId, Object a1, Object a2, Object a3) {
+        return getCompleteMessage(msgId, new Object[] {a1, a2, a3});
+    }
+    public static String getTextMessage(String msgId, Object a1, Object a2, Object a3, Object a4) {
+        return getCompleteMessage(msgId, new Object[] {a1, a2, a3, a4});
+    }
 
-	/**
-	 */
-	public static String getCompleteMessage(String msgId, Object[] arguments) {
+    /**
+     */
+    public static String getCompleteMessage(String msgId, Object[] arguments) {
         return LOCALIZED_RESOURCE.getTextMessage(msgId, arguments);
-	}
+    }
 
     /**
      * Given a loaded class, this

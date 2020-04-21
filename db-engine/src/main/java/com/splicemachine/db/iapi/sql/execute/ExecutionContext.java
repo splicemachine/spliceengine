@@ -41,31 +41,31 @@ import com.splicemachine.db.iapi.services.context.Context;
  */
 public interface ExecutionContext extends Context {
 
-	/**
-	 * this is the ID we expect execution contexts
-	 * to be stored into a context manager under.
-	 */
-	String CONTEXT_ID = "ExecutionContext";
-	
-	
-	/* Constants for scan isolation levels. */
-	int UNSPECIFIED_ISOLATION_LEVEL = 0;
-	int READ_UNCOMMITTED_ISOLATION_LEVEL = 1;
-	int READ_COMMITTED_ISOLATION_LEVEL = 2;
-	int REPEATABLE_READ_ISOLATION_LEVEL = 3;
-	int SERIALIZABLE_ISOLATION_LEVEL = 4;
+    /**
+     * this is the ID we expect execution contexts
+     * to be stored into a context manager under.
+     */
+    String CONTEXT_ID = "ExecutionContext";
+    
+    
+    /* Constants for scan isolation levels. */
+    int UNSPECIFIED_ISOLATION_LEVEL = 0;
+    int READ_UNCOMMITTED_ISOLATION_LEVEL = 1;
+    int READ_COMMITTED_ISOLATION_LEVEL = 2;
+    int REPEATABLE_READ_ISOLATION_LEVEL = 3;
+    int SERIALIZABLE_ISOLATION_LEVEL = 4;
 
     /**
      * Map from Derby transaction isolation constants to
      * JDBC constants.
      */
-	int[] CS_TO_JDBC_ISOLATION_LEVEL_MAP = {
-		java.sql.Connection.TRANSACTION_NONE,				// UNSPECIFIED_ISOLATION_LEVEL
-		java.sql.Connection.TRANSACTION_READ_UNCOMMITTED,	// READ_UNCOMMITTED_ISOLATION_LEVEL
-		java.sql.Connection.TRANSACTION_READ_COMMITTED,		// READ_COMMITTED_ISOLATION_LEVEL
-		java.sql.Connection.TRANSACTION_REPEATABLE_READ,	// REPEATABLE_READ_ISOLATION_LEVEL		
-		java.sql.Connection.TRANSACTION_SERIALIZABLE		// SERIALIZABLE_ISOLATION_LEVEL
-	};
+    int[] CS_TO_JDBC_ISOLATION_LEVEL_MAP = {
+        java.sql.Connection.TRANSACTION_NONE,                // UNSPECIFIED_ISOLATION_LEVEL
+        java.sql.Connection.TRANSACTION_READ_UNCOMMITTED,    // READ_UNCOMMITTED_ISOLATION_LEVEL
+        java.sql.Connection.TRANSACTION_READ_COMMITTED,        // READ_COMMITTED_ISOLATION_LEVEL
+        java.sql.Connection.TRANSACTION_REPEATABLE_READ,    // REPEATABLE_READ_ISOLATION_LEVEL        
+        java.sql.Connection.TRANSACTION_SERIALIZABLE        // SERIALIZABLE_ISOLATION_LEVEL
+    };
 
     /**
      * Map from Derby transaction isolation constants to
@@ -74,19 +74,19 @@ public interface ExecutionContext extends Context {
      * as a hang over from DB2 compatibility and now to preserve
      * backwards compatability.
      */
-	String[][] CS_TO_SQL_ISOLATION_MAP = {
-		{ "  "},					// UNSPECIFIED_ISOLATION_LEVEL
-		{ "UR", "DIRTY READ", "READ UNCOMMITTED"},
-		{ "CS", "CURSOR STABILITY", "READ COMMITTED"},
-		{ "RS"},		// read stability	
-		{ "RR", "REPEATABLE READ", "SERIALIZABLE"}
-	};
+    String[][] CS_TO_SQL_ISOLATION_MAP = {
+        { "  "},                    // UNSPECIFIED_ISOLATION_LEVEL
+        { "UR", "DIRTY READ", "READ UNCOMMITTED"},
+        { "CS", "CURSOR STABILITY", "READ COMMITTED"},
+        { "RS"},        // read stability    
+        { "RR", "REPEATABLE READ", "SERIALIZABLE"}
+    };
 
-	/**
-	 * Get the ExecutionFactory from this ExecutionContext.
-	 *
-	 * @return	The Execution factory associated with this
-	 *		ExecutionContext
-	 */
-	ExecutionFactory getExecutionFactory();
+    /**
+     * Get the ExecutionFactory from this ExecutionContext.
+     *
+     * @return    The Execution factory associated with this
+     *        ExecutionContext
+     */
+    ExecutionFactory getExecutionFactory();
 }

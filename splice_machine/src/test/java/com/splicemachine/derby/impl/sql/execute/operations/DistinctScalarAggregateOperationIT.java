@@ -135,7 +135,7 @@ public class DistinctScalarAggregateOperationIT extends SpliceUnitTest {
 
     @Test
     public void testDistinctCountWithQualifiedPreparedStatement() throws Exception {
-				/*Regression test for DB-2213*/
+                /*Regression test for DB-2213*/
         PreparedStatement ps = methodWatcher.prepareStatement("select count(distinct score) from "+spliceTableWatcher+" where oid = ?");
 
         //set it to 2

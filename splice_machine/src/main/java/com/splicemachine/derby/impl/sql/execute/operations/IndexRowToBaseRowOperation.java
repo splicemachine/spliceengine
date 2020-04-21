@@ -72,7 +72,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     protected FormatableBitSet accessedAllCols;
     protected int[] indexCols;
     protected ExecRow resultRow;
-    protected DataValueDescriptor[]	rowArray;
+    protected DataValueDescriptor[]    rowArray;
     protected int scociItem;
     protected long conglomId;
     protected int heapColRefItem;
@@ -199,7 +199,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 
             // retrieve the array of columns coming from the index
             indexCols = ((ReferencedColumnsDescriptorImpl) saved[indexColMapItem]).getReferencedColumnPositions();
-			/* Get the result row template */
+            /* Get the result row template */
             resultRow = generatedMethod.invoke();
 
             compactRow = operationInformation.compactRow(resultRow, accessedAllCols, false);

@@ -166,7 +166,7 @@ public class SMStorageHandler extends DefaultStorageHandler
         String inputTableName = tbl.getParameters().get(MRConstants.SPLICE_TABLE_NAME);
         if (inputTableName == null)
             throw new MetaException("Wrong param, you are missing " +
-            		MRConstants.SPLICE_TABLE_NAME + " ? ");
+                    MRConstants.SPLICE_TABLE_NAME + " ? ");
 
         // We can choose to support user define column mapping.
         // But currently I don't think it is necessary
@@ -174,7 +174,7 @@ public class SMStorageHandler extends DefaultStorageHandler
         String connStr = tbl.getParameters().get(MRConstants.SPLICE_JDBC_STR);
         if (connStr == null)
             throw new MetaException("Wrong param, did you mean " +
-            		MRConstants.SPLICE_JDBC_STR + " ? ");
+                    MRConstants.SPLICE_JDBC_STR + " ? ");
         if (sqlUtil == null)
             sqlUtil = SMSQLUtil.getInstance(connStr);
         if (inputTableName != null) {
@@ -258,15 +258,15 @@ public class SMStorageHandler extends DefaultStorageHandler
         }
     }
 
-	@Override
-	public Class<? extends InputFormat> getInputFormatClass() {
-		return SMHiveInputFormat.class;
-	}
+    @Override
+    public Class<? extends InputFormat> getInputFormatClass() {
+        return SMHiveInputFormat.class;
+    }
 
-	@Override
-	public Class<? extends OutputFormat> getOutputFormatClass() {
-		return SMHiveOutputFormat.class;
-	}
+    @Override
+    public Class<? extends OutputFormat> getOutputFormatClass() {
+        return SMHiveOutputFormat.class;
+    }
     
     
 }

@@ -43,21 +43,21 @@ import com.splicemachine.db.iapi.error.ExceptionSeverity;
 
 
 /**
-	A context that shutdowns down the database on a databsae exception.
+    A context that shutdowns down the database on a databsae exception.
 */
 final class DatabaseContextImpl extends ContextImpl implements DatabaseContext
 {
 
-	private final Database	db;
+    private final Database    db;
 
-	DatabaseContextImpl(ContextManager cm, Database db) {
-		super(cm, DatabaseContextImpl.CONTEXT_ID);
-		this.db = db;
-	}
+    DatabaseContextImpl(ContextManager cm, Database db) {
+        super(cm, DatabaseContextImpl.CONTEXT_ID);
+        this.db = db;
+    }
 
-	public void cleanupOnError(Throwable t) {
-		if (!(t instanceof StandardException)) return;
-		StandardException se = (StandardException)t;
+    public void cleanupOnError(Throwable t) {
+        if (!(t instanceof StandardException)) return;
+        StandardException se = (StandardException)t;
 
         // Ensure the context is popped if the session is
         // going away.
@@ -78,20 +78,20 @@ final class DatabaseContextImpl extends ContextImpl implements DatabaseContext
         }
 
         if (se.getSeverity() == ExceptionSeverity.DATABASE_SEVERITY) {
-		    ContextService.getFactory().notifyAllActiveThreads(this);
+            ContextService.getFactory().notifyAllActiveThreads(this);
             // This may be called multiple times, but is short-circuited
             // in the monitor.
-		    Monitor.getMonitor().shutdown(db);
+            Monitor.getMonitor().shutdown(db);
         }
-	}
+    }
 
-	public boolean equals(Object other) {
+    public boolean equals(Object other) {
         return other instanceof DatabaseContext && ((DatabaseContextImpl) other).db == db;
     }
 
-	public int hashCode() {
-		return db.hashCode();
-	}
+    public int hashCode() {
+        return db.hashCode();
+    }
 
-	public Database getDatabase() {return db;}
+    public Database getDatabase() {return db;}
 }

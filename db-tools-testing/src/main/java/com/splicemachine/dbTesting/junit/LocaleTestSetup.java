@@ -40,41 +40,41 @@ import junit.framework.Test;
  * This decorator allows the usage of different locales on the tests
  */
 public class LocaleTestSetup extends TestSetup {
-	private Locale oldLocale;
-	private Locale newLocale;
-	
-	public LocaleTestSetup(Test test, Locale newLocale) {
-		super(test);
-		
-		oldLocale = Locale.getDefault();
-		this.newLocale = newLocale;
-	}
-	
-	/**
-	 * Set up the new locale for the test
-	 */
-	protected void setUp() {
-		AccessController.doPrivileged
+    private Locale oldLocale;
+    private Locale newLocale;
+    
+    public LocaleTestSetup(Test test, Locale newLocale) {
+        super(test);
+        
+        oldLocale = Locale.getDefault();
+        this.newLocale = newLocale;
+    }
+    
+    /**
+     * Set up the new locale for the test
+     */
+    protected void setUp() {
+        AccessController.doPrivileged
         (new java.security.PrivilegedAction() {
             public Object run() {
-            	Locale.setDefault(newLocale);
+                Locale.setDefault(newLocale);
                 return null;
             }
         }
         );
-	}
-	
-	/**
-	 * Revert the locale back to the old one
-	 */
-	protected void tearDown() {
-		AccessController.doPrivileged
+    }
+    
+    /**
+     * Revert the locale back to the old one
+     */
+    protected void tearDown() {
+        AccessController.doPrivileged
         (new java.security.PrivilegedAction() {
             public Object run() {
-            	Locale.setDefault(oldLocale);
+                Locale.setDefault(oldLocale);
                 return null;
             }
         }
         );
-	}
+    }
 }

@@ -46,123 +46,123 @@ import java.net.URL;
   */ 
 public class DbFile
 {
-	/**
-	  Read the current generation of a file stored in the
-	  database we are connected to and return a 1 line string
-	  representation of the file.
+    /**
+      Read the current generation of a file stored in the
+      database we are connected to and return a 1 line string
+      representation of the file.
 
-	  Sample usage
-	  values com.splicemachine.dbTesting.functionTests.util.DbFile::readAsString('S1','J1');
-	  @exception Exception Oops.
-	  */
-/*	
+      Sample usage
+      values com.splicemachine.dbTesting.functionTests.util.DbFile::readAsString('S1','J1');
+      @exception Exception Oops.
+      */
+/*    
 CANT USE JarAccess - not a public API (actually it's gone!)
 public static String
-	readAsString(String schemaName, String sqlName)
-		 throws Exception
-	{
-		InputStream is = JarAccess.getAsStream(schemaName,
-											sqlName,
- 											FileResource.CURRENT_GENERATION_ID);
-		return stringFromFile(is);
-	}
+    readAsString(String schemaName, String sqlName)
+         throws Exception
+    {
+        InputStream is = JarAccess.getAsStream(schemaName,
+                                            sqlName,
+                                             FileResource.CURRENT_GENERATION_ID);
+        return stringFromFile(is);
+    }
 */
-	/**
-	  Create a string that contains a representation of the content of
-	  a file for testing.
-	  @exception Exception Oops.
-	  */
-	public static String
-	stringFromFile(InputStream is)
-		 throws Exception
-	{
-		InputStreamReader isr = new InputStreamReader(is);
-		BufferedReader br =
-			new BufferedReader(isr);
-		StringBuilder sb = new StringBuilder();
-		String l;
-		while((l = br.readLine()) != null) {
-			sb.append(l);
-			sb.append("<CR>");
-		}
-		is.close();
-		return sb.toString();
-	}
+    /**
+      Create a string that contains a representation of the content of
+      a file for testing.
+      @exception Exception Oops.
+      */
+    public static String
+    stringFromFile(InputStream is)
+         throws Exception
+    {
+        InputStreamReader isr = new InputStreamReader(is);
+        BufferedReader br =
+            new BufferedReader(isr);
+        StringBuilder sb = new StringBuilder();
+        String l;
+        while((l = br.readLine()) != null) {
+            sb.append(l);
+            sb.append("<CR>");
+        }
+        is.close();
+        return sb.toString();
+    }
 
-	/**
-	  Get the URL for a resource.
+    /**
+      Get the URL for a resource.
 
-	  @param packageName the name of the resource package
-	  @param name the name of the resourse.
-	  */
-	public static URL
-	getResourceURL(String packageName, String name)
-	{
-		String resourceName =
-			"/"+
-			packageName.replace('.','/')+
-			"/"+
-			name;
-		//
-		//We need a class to get our URL. Since we give a
-		//fully qualified name for the URL, any class will
-		//do.
-		Class c = resourceName.getClass();
-		return c.getResource(resourceName);
-	}
+      @param packageName the name of the resource package
+      @param name the name of the resourse.
+      */
+    public static URL
+    getResourceURL(String packageName, String name)
+    {
+        String resourceName =
+            "/"+
+            packageName.replace('.','/')+
+            "/"+
+            name;
+        //
+        //We need a class to get our URL. Since we give a
+        //fully qualified name for the URL, any class will
+        //do.
+        Class c = resourceName.getClass();
+        return c.getResource(resourceName);
+    }
 
-	/**
-	  Get an InputStream for reading a resource.
+    /**
+      Get an InputStream for reading a resource.
 
-	  @param packageName the name of the resource package
-	  @param name the name of the resourse.
-	  @exception Exception Oops.
-	  */
-	public static InputStream
-	getResourceAsStream(String packageName, String name)
-	{
-		String resourceName =
-			"/"+
-			packageName.replace('.','/')+
-			"/"+
-			name;
-		//
-		//We need a class to get our URL. Since we give a
-		//fully qualified name for the URL, any class will
-		//do.
-		Class c = resourceName.getClass();
-		return c.getResourceAsStream(resourceName);
-	}
+      @param packageName the name of the resource package
+      @param name the name of the resourse.
+      @exception Exception Oops.
+      */
+    public static InputStream
+    getResourceAsStream(String packageName, String name)
+    {
+        String resourceName =
+            "/"+
+            packageName.replace('.','/')+
+            "/"+
+            name;
+        //
+        //We need a class to get our URL. Since we give a
+        //fully qualified name for the URL, any class will
+        //do.
+        Class c = resourceName.getClass();
+        return c.getResourceAsStream(resourceName);
+    }
 
-	public	static	boolean	deleteFile( String outputFileName )
-		 throws Exception
-	{
-		File f = new File( outputFileName );
+    public    static    boolean    deleteFile( String outputFileName )
+         throws Exception
+    {
+        File f = new File( outputFileName );
 
-		return f.delete();
-	}
+        return f.delete();
+    }
 
-	public static String mkFileFromResource
-	(String packageName, String resourceName)
-		 throws Exception
-	{
-		return mkFileFromResource( packageName, resourceName, resourceName );
-	}
+    public static String mkFileFromResource
+    (String packageName, String resourceName)
+         throws Exception
+    {
+        return mkFileFromResource( packageName, resourceName, resourceName );
+    }
 
-	public static String mkFileFromResource
-	( String packageName, String resourceName, String outputFileName )
-		 throws Exception
-	{
-		File f = new File( outputFileName );
-		InputStream is = getResourceAsStream(packageName,resourceName);
-		BufferedInputStream bis = new BufferedInputStream(is);
-		OutputStream os = new FileOutputStream(f);
-		byte[]buf=new byte[4096];
-		int readThisTime = 0;
-		while((readThisTime = bis.read(buf)) != -1)
-			os.write(buf,0,readThisTime);
-		os.close();
-		return f.getAbsolutePath();
-	}
+    public static String mkFileFromResource
+    ( String packageName, String resourceName, String outputFileName )
+         throws Exception
+    {
+        File f = new File( outputFileName );
+        InputStream is = getResourceAsStream(packageName,resourceName);
+        BufferedInputStream bis = new BufferedInputStream(is);
+        OutputStream os = new FileOutputStream(f);
+        byte[]buf=new byte[4096];
+        int readThisTime = 0;
+        while((readThisTime = bis.read(buf)) != -1)
+            os.write(buf,0,readThisTime);
+        os.close();
+        return f.getAbsolutePath();
+    }
 }
  

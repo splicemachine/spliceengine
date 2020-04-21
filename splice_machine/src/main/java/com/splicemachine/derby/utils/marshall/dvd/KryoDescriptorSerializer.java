@@ -35,20 +35,20 @@ import java.io.IOException;
  *         Date: 4/2/14
  */
 public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable {
-		private final KryoPool kryoPool;
+        private final KryoPool kryoPool;
 
-		private Output output;
-		private Input input;
+        private Output output;
+        private Input input;
 
-		public KryoDescriptorSerializer(KryoPool kryoPool) {
-				this.kryoPool = kryoPool;
-		}
+        public KryoDescriptorSerializer(KryoPool kryoPool) {
+                this.kryoPool = kryoPool;
+        }
 
-		public static Factory newFactory(final KryoPool kryoPool){
-				return new Factory() {
-						@Override public DescriptorSerializer newInstance() { return new KryoDescriptorSerializer(kryoPool); }
+        public static Factory newFactory(final KryoPool kryoPool){
+                return new Factory() {
+                        @Override public DescriptorSerializer newInstance() { return new KryoDescriptorSerializer(kryoPool); }
 
-						@Override public boolean applies(DataValueDescriptor dvd) {
+                        @Override public boolean applies(DataValueDescriptor dvd) {
                             if (dvd == null)
                                 return false;
 
@@ -63,30 +63,30 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
                             }
                         }
 
-						@Override
-						public boolean applies(int typeFormatId) {
-								switch(typeFormatId){
-										// Starting with Fuji release, we handle SQL_REF serialization
-										// with RefDescriptorSerilizer class.
-										// case StoredFormatIds.SQL_REF_ID:
-										case StoredFormatIds.SQL_USERTYPE_ID_V3:
-												return true;
-										default:
-												return false;
-								}
-						}
+                        @Override
+                        public boolean applies(int typeFormatId) {
+                                switch(typeFormatId){
+                                        // Starting with Fuji release, we handle SQL_REF serialization
+                                        // with RefDescriptorSerilizer class.
+                                        // case StoredFormatIds.SQL_REF_ID:
+                                        case StoredFormatIds.SQL_USERTYPE_ID_V3:
+                                                return true;
+                                        default:
+                                                return false;
+                                }
+                        }
 
-						@Override public boolean isScalar() { return false; }
-						@Override public boolean isFloat() { return false; }
-						@Override public boolean isDouble() { return false; }
-				};
-		}
+                        @Override public boolean isScalar() { return false; }
+                        @Override public boolean isFloat() { return false; }
+                        @Override public boolean isDouble() { return false; }
+                };
+        }
 
 
-		@Override
-		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
-				initializeForWrite();
-				Object o = dvd.getObject();
+        @Override
+        public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
+                initializeForWrite();
+                Object o = dvd.getObject();
                 Kryo kryo = kryoPool.get();
                 try {
                     kryo.writeClassAndObject(output, o);
@@ -94,13 +94,13 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
                 } finally {
                     kryoPool.returnInstance(kryo);
                 }
-		}
+        }
 
 
-		@Override
-		public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
-				initializeForWrite();
-				Object o = dvd.getObject();
+        @Override
+        public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
+                initializeForWrite();
+                Object o = dvd.getObject();
                 Kryo kryo = kryoPool.get();
                 try {
                     kryo.writeClassAndObject(output, o);
@@ -108,12 +108,12 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
                 } finally {
                     kryoPool.returnInstance(kryo);
                 }
-		}
+        }
 
-		@Override
-		public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
-				initializeForReads();
-				input.setBuffer(fieldDecoder.decodeNextBytesUnsorted());
+        @Override
+        public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
+                initializeForReads();
+                input.setBuffer(fieldDecoder.decodeNextBytesUnsorted());
                 Kryo kryo = kryoPool.get();
                 try {
                     Object o = kryo.readClassAndObject(input);
@@ -121,13 +121,13 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
                 } finally {
                     kryoPool.returnInstance(kryo);
                 }
-		}
+        }
 
 
-		@Override
-		public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
-				initializeForReads();
-				input.setBuffer(Encoding.decodeBytesUnsortd(data,offset,length));
+        @Override
+        public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
+                initializeForReads();
+                input.setBuffer(Encoding.decodeBytesUnsortd(data,offset,length));
                 Kryo kryo = kryoPool.get();
                 try {
                     Object o = kryo.readClassAndObject(input);
@@ -135,26 +135,26 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
                 } finally {
                     kryoPool.returnInstance(kryo);
                 }
-		}
+        }
 
-		@Override public boolean isScalarType() { return false; }
-		@Override public boolean isFloatType() { return false; }
-		@Override public boolean isDoubleType() { return false; }
+        @Override public boolean isScalarType() { return false; }
+        @Override public boolean isFloatType() { return false; }
+        @Override public boolean isDoubleType() { return false; }
 
-		@Override
-		public void close() throws IOException {
-		}
+        @Override
+        public void close() throws IOException {
+        }
 
-		private void initializeForReads() {
-				if(input==null)
-						input = new Input();
-		}
+        private void initializeForReads() {
+                if(input==null)
+                        input = new Input();
+        }
 
-		private void initializeForWrite() {
-				if(output==null)
-						output = new Output(20,-1);
-				else
-						output.clear();
-		}
+        private void initializeForWrite() {
+                if(output==null)
+                        output = new Output(20,-1);
+                else
+                        output.clear();
+        }
 
 }

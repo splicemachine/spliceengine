@@ -128,9 +128,9 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
     /////////////////////////////////////////////////////////////////////////////
 
     @Override
-	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
-		throws StandardException
-	{
+    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
+        throws StandardException
+    {
         return makeRow(td, getHeapColumnCount());
     }
 

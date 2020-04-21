@@ -353,11 +353,11 @@ public interface Txn extends TxnView{
             @Override
             public boolean canSee(long beginTimestamp,TxnView otherTxn,boolean isParent){
                 return otherTxn.getState()==State.COMMITTED;
-//								if(otherTxn.getState() !=State.COMMITTED) return false; //if itself hasn't been committed, it can't be seen
-//								State effectiveState = otherTxn.getEffectiveState();
-//								if(effectiveState==State.ROLLEDBACK) return false; //if it's been effectively rolled back, it can't be seen
-//								//if we are a parent situation, then the effective state is active, but we can still see it.
-//								return isParent || effectiveState == State.COMMITTED;
+//                                if(otherTxn.getState() !=State.COMMITTED) return false; //if itself hasn't been committed, it can't be seen
+//                                State effectiveState = otherTxn.getEffectiveState();
+//                                if(effectiveState==State.ROLLEDBACK) return false; //if it's been effectively rolled back, it can't be seen
+//                                //if we are a parent situation, then the effective state is active, but we can still see it.
+//                                return isParent || effectiveState == State.COMMITTED;
             }
 
             @Override

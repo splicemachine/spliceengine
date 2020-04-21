@@ -36,77 +36,77 @@ import java.util.Hashtable;
 import com.splicemachine.db.iapi.services.locks.*;
 
 /**
-	A semaphore that implements Lockable for unit testing.
+    A semaphore that implements Lockable for unit testing.
 */
 class T_L2 implements Lockable {
 
-	private int allowed;
-	private Object[]	lockers;
-	private int[]		counts;
+    private int allowed;
+    private Object[]    lockers;
+    private int[]        counts;
 
-	T_L2(int allowed) {
-		this.allowed = allowed;
-		lockers = new Object[allowed];
-		counts = new int[allowed];
-	}
+    T_L2(int allowed) {
+        this.allowed = allowed;
+        lockers = new Object[allowed];
+        counts = new int[allowed];
+    }
 
-	/*
-	** Lockable methods (Simple, qualifier assumed to be null), allows
-	** up to 'allowed' lockers in at the same time.
-	*/
+    /*
+    ** Lockable methods (Simple, qualifier assumed to be null), allows
+    ** up to 'allowed' lockers in at the same time.
+    */
 
-	public void lockEvent(Latch lockInfo) {
+    public void lockEvent(Latch lockInfo) {
 
-		int empty = -1;
-		for (int i = 0; i < allowed; i++) {
-			if (lockers[i] == lockInfo.getCompatabilitySpace()) {
-				counts[i]++;
-				return;
-			}
+        int empty = -1;
+        for (int i = 0; i < allowed; i++) {
+            if (lockers[i] == lockInfo.getCompatabilitySpace()) {
+                counts[i]++;
+                return;
+            }
 
-			if (lockers[i] == null)
-				empty = i;
-		}
+            if (lockers[i] == null)
+                empty = i;
+        }
 
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(empty != -1);
-		lockers[empty] = lockInfo.getCompatabilitySpace();
-		counts[empty] = 1;
+        lockers[empty] = lockInfo.getCompatabilitySpace();
+        counts[empty] = 1;
 
-	}
+    }
 
-	public boolean requestCompatible(Object requestedQualifier, Object grantedQualifier) {
-		return false;
-	}
+    public boolean requestCompatible(Object requestedQualifier, Object grantedQualifier) {
+        return false;
+    }
 
-	public boolean lockerAlwaysCompatible() {
-		return true;
-	}
+    public boolean lockerAlwaysCompatible() {
+        return true;
+    }
 
-	public void unlockEvent(Latch lockInfo) {
+    public void unlockEvent(Latch lockInfo) {
 
-		for (int i = 0; i < allowed; i++) {
+        for (int i = 0; i < allowed; i++) {
 
-			if (lockers[i] == lockInfo.getCompatabilitySpace()) {
-				counts[i]--;
+            if (lockers[i] == lockInfo.getCompatabilitySpace()) {
+                counts[i]--;
                 if (SanityManager.DEBUG)
                     SanityManager.ASSERT(counts[i] >= 0);
-				if (counts[i] == 0) {
-					lockers[i] = null;
-					return;
-				}
+                if (counts[i] == 0) {
+                    lockers[i] = null;
+                    return;
+                }
 
-				return;
-			}
-		}
+                return;
+            }
+        }
 
         if (SanityManager.DEBUG)
             SanityManager.THROWASSERT("unlocked by a compatability space that does not exist");
-	}
+    }
 
-	public boolean lockAttributes(int flag, Hashtable t)
-	{
-		return false;
-	}
-	
+    public boolean lockAttributes(int flag, Hashtable t)
+    {
+        return false;
+    }
+    
 }

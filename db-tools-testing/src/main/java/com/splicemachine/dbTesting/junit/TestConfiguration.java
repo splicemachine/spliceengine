@@ -93,17 +93,17 @@ public final class TestConfiguration {
     private final static int MAX_PORTS_USED = 20;
     
     /** This is the base port. This does NOT change EVER during the run of a suite.
-     *	It is set using the property db.tests.basePort and it is set to default when
-     *	a property isn't used. */
+     *    It is set using the property db.tests.basePort and it is set to default when
+     *    a property isn't used. */
     private final static int basePort;
     private static int lastAssignedPort;
     private static final int bogusPort;
     static {
-    	String port = BaseTestCase.getSystemProperty("derby.tests.basePort");
+        String port = BaseTestCase.getSystemProperty("derby.tests.basePort");
         if (port == null) {
-        	lastAssignedPort = DEFAULT_PORT;
+            lastAssignedPort = DEFAULT_PORT;
         } else {
-        	lastAssignedPort = Integer.parseInt(port);
+            lastAssignedPort = Integer.parseInt(port);
         }
         basePort = lastAssignedPort;
         bogusPort = ++lastAssignedPort;
@@ -111,7 +111,7 @@ public final class TestConfiguration {
     private static int assignedPortCount = 2;
 
     private FileOutputStream serverOutput;
-		
+        
     /** Sleep for 500 ms before pinging the network server (again) */
     private static final int SLEEP_TIME = 1000;
             
@@ -621,7 +621,7 @@ public final class TestConfiguration {
     public static Test existingServerDecorator(Test test, 
             String hostName, int PortNumber)
     {
-    	// Need to have network server and client and not
+        // Need to have network server and client and not
         // running in J2ME (JSR169).
         if (!(Derby.hasClient() && Derby.hasServer())
                 || JDBC.vmSupportsJSR169())
@@ -639,7 +639,7 @@ public final class TestConfiguration {
     public static Test existingServerDecorator(Test test, 
             String hostName, int PortNumber, String dbPath)
     {
-    	// Need to have network server and client and not
+        // Need to have network server and client and not
         // running in J2ME (JSR169).
         if (!(Derby.hasClient() && Derby.hasServer())
                 || JDBC.vmSupportsJSR169())
@@ -1571,22 +1571,22 @@ public final class TestConfiguration {
      * @return port number.
      */
     public int getNextAvailablePort() {
-    	/* We want to crash. If you are reading this, you have to increment
-    	 * the MAX_PORTS_USED constant and to edit the wiki page relative to
-    	 * concurrent test running */
-    	if (assignedPortCount+1 > MAX_PORTS_USED) {
-    		Assert.fail("Port "+(lastAssignedPort+1)+" exceeeds expected maximum. " +
-    					"You may need to update TestConfiguration.MAX_PORTS_USED and "+
-    					"the Wiki page at http://wiki.apache.org/db-db/DerbyJUnitTesting "+
-    					"if test runs now require more available ports");
-    	}
-    	
-    	int possiblePort = lastAssignedPort + 1;
-		
-		assignedPortCount++;
-		
-		lastAssignedPort = possiblePort;
-		return possiblePort;
+        /* We want to crash. If you are reading this, you have to increment
+         * the MAX_PORTS_USED constant and to edit the wiki page relative to
+         * concurrent test running */
+        if (assignedPortCount+1 > MAX_PORTS_USED) {
+            Assert.fail("Port "+(lastAssignedPort+1)+" exceeeds expected maximum. " +
+                        "You may need to update TestConfiguration.MAX_PORTS_USED and "+
+                        "the Wiki page at http://wiki.apache.org/db-db/DerbyJUnitTesting "+
+                        "if test runs now require more available ports");
+        }
+        
+        int possiblePort = lastAssignedPort + 1;
+        
+        assignedPortCount++;
+        
+        lastAssignedPort = possiblePort;
+        return possiblePort;
     }
     
     /**
@@ -1781,7 +1781,7 @@ public final class TestConfiguration {
             NetworkServerControlWrapper networkServer =
                     new NetworkServerControlWrapper();
 
- 	    serverOutput = (FileOutputStream)
+         serverOutput = (FileOutputStream)
             AccessController.doPrivileged(new PrivilegedAction() {
                 public Object run() {
                     File logs = new File("logs");
@@ -1811,7 +1811,7 @@ public final class TestConfiguration {
 
                     // If ping does not throw an exception the server has started
                     started = true;
-                } catch(Exception e) {		   
+                } catch(Exception e) {           
                     retries--;
                     failException = e;
                  }
@@ -1831,7 +1831,7 @@ public final class TestConfiguration {
     /**
      * Set the verbosity, i.e., whether debug statements print.
      */
-    public void	setVerbosity( boolean isChatty )	{ isVerbose = isChatty; }
+    public void    setVerbosity( boolean isChatty )    { isVerbose = isChatty; }
     /**
      * Set JUnit test method tracing.
      */
@@ -1868,17 +1868,17 @@ public final class TestConfiguration {
         return doTrace;
     }
 
-	/**
-	 * <p>
-	 * Return true if we classes are being loaded from jar files. For the time
-	 * being, this simply tests that the JVMInfo class (common to the client and
-	 * the server) comes out of a jar file.
-	 * </p>
-	 */
-	public static boolean loadingFromJars()
-	{
+    /**
+     * <p>
+     * Return true if we classes are being loaded from jar files. For the time
+     * being, this simply tests that the JVMInfo class (common to the client and
+     * the server) comes out of a jar file.
+     * </p>
+     */
+    public static boolean loadingFromJars()
+    {
         return SecurityManagerSetup.isJars;
-	}
+    }
     
     /**
      * Returns true if this JUnit test being run by the old harness.
@@ -2011,23 +2011,23 @@ public final class TestConfiguration {
      * @throws PrivilegedActionException 
      */
     boolean defaultSecurityManagerSetup() {
-    	
-    	// Testing with the DB2 client has not been performed
-    	// under the security manager since it's not part
-    	// of Derby so no real interest in tracking down issues.
-    	if (jdbcClient.isDB2Client()) {
-    		SecurityManagerSetup.noSecurityManager();
-    		return false;
-    	} else {
+        
+        // Testing with the DB2 client has not been performed
+        // under the security manager since it's not part
+        // of Derby so no real interest in tracking down issues.
+        if (jdbcClient.isDB2Client()) {
+            SecurityManagerSetup.noSecurityManager();
+            return false;
+        } else {
             if (SecurityManagerSetup.NO_POLICY.equals(
                     BaseTestCase.getSystemProperty("java.security.policy")))
             {
                 // Explict setting of no security manager
                 return false;
             }
-    		SecurityManagerSetup.installSecurityManager();
-    		return true;
-    	}
+            SecurityManagerSetup.installSecurityManager();
+            return true;
+        }
     }
     
     

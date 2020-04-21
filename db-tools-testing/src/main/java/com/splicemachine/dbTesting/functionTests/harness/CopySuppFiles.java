@@ -41,45 +41,45 @@ import java.util.StringTokenizer;
 public class CopySuppFiles
 {
 
-	public static void main(String[] args) throws Exception
-	{
-	}
+    public static void main(String[] args) throws Exception
+    {
+    }
 
-	public static void copyFiles(File outDir, String suppFiles)
-	    throws ClassNotFoundException, IOException
-	{
-	    // suppFiles is a comma separated list of the files
-	    StringTokenizer st = new StringTokenizer(suppFiles,",");
-	    String scriptName = ""; // example: test/math.sql
-	    InputStream is = null; // To be used for each support file
+    public static void copyFiles(File outDir, String suppFiles)
+        throws ClassNotFoundException, IOException
+    {
+        // suppFiles is a comma separated list of the files
+        StringTokenizer st = new StringTokenizer(suppFiles,",");
+        String scriptName = ""; // example: test/math.sql
+        InputStream is = null; // To be used for each support file
         while (st.hasMoreTokens())
         {
             scriptName = st.nextToken();
-    	    File suppFile = null;
-    	    String fileName = "";
-    	    // Try to locate the file
+            File suppFile = null;
+            String fileName = "";
+            // Try to locate the file
             is = RunTest.loadTestResource(scriptName); 
-    		if ( is == null )
-    			System.out.println("Could not locate: " + scriptName);
-    		else
-    		{
-    		    // Copy the support file so the test can use it
-    			int index = scriptName.lastIndexOf('/');
-    			fileName = scriptName.substring(index+1);
- //   			suppFile = new File((new File(outDir, fileName)).getCanonicalPath());
+            if ( is == null )
+                System.out.println("Could not locate: " + scriptName);
+            else
+            {
+                // Copy the support file so the test can use it
+                int index = scriptName.lastIndexOf('/');
+                fileName = scriptName.substring(index+1);
+ //               suppFile = new File((new File(outDir, fileName)).getCanonicalPath());
 
-		//these calls to getCanonicalPath catch IOExceptions as a workaround to
-		//a bug in the EPOC jvm. 
-    		try {suppFile = new File((new File(outDir, fileName)).getCanonicalPath());}
-		catch (IOException e) {
-		    File f = new File(outDir, fileName);
-		    FileWriter fw = new FileWriter(f);
-		    fw.close();
-		    suppFile = new File(f.getCanonicalPath());
-		}
+        //these calls to getCanonicalPath catch IOExceptions as a workaround to
+        //a bug in the EPOC jvm. 
+            try {suppFile = new File((new File(outDir, fileName)).getCanonicalPath());}
+        catch (IOException e) {
+            File f = new File(outDir, fileName);
+            FileWriter fw = new FileWriter(f);
+            fw.close();
+            suppFile = new File(f.getCanonicalPath());
+        }
                 // need to make a guess so we copy text files to local encoding
                 // on non-ascii systems...
-		        if ((fileName.indexOf("sql") > 0) || (fileName.indexOf("txt") > 0) || (fileName.indexOf(".view") > 0) || (fileName.indexOf(".policy") > 0) || (fileName.indexOf(".multi") > 0) || (fileName.indexOf(".properties") > 0))
+                if ((fileName.indexOf("sql") > 0) || (fileName.indexOf("txt") > 0) || (fileName.indexOf(".view") > 0) || (fileName.indexOf(".policy") > 0) || (fileName.indexOf(".multi") > 0) || (fileName.indexOf(".properties") > 0))
                 {
                     BufferedReader inFile = new BufferedReader(new InputStreamReader(is, "UTF-8"));
                     PrintWriter pw = new PrintWriter
@@ -101,7 +101,7 @@ public class CopySuppFiles
                     }
                     fos.close();
                 }
-    		}
+            }
         }
-	}
+    }
 }

@@ -142,10 +142,10 @@ public class NextSequenceNode extends ValueNode {
         String sequenceUUIDstring = sequenceDescriptor.getUUID().toString();
         int dataTypeFormatID = sequenceDescriptor.getDataType().getNull().getTypeFormatId();
         
-		mb.pushThis();
-		mb.push( sequenceUUIDstring );
-		mb.push( dataTypeFormatID );
-		mb.callMethod
+        mb.pushThis();
+        mb.push( sequenceUUIDstring );
+        mb.push( dataTypeFormatID );
+        mb.callMethod
             (
              VMOpcode.INVOKEVIRTUAL,
              ClassName.BaseActivation,
@@ -199,7 +199,7 @@ public class NextSequenceNode extends ValueNode {
         return this == other;
     }
 
-	public List getChildren() {
-		return Collections.EMPTY_LIST;
-	}
+    public List getChildren() {
+        return Collections.EMPTY_LIST;
+    }
 }

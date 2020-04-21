@@ -53,7 +53,7 @@ import java.util.regex.PatternSyntaxException;
 
 public class Sed
 {
-	private	static	final	String	SQL_EXCEPTION_FILTERED_SUBSTITUTION = 
+    private    static    final    String    SQL_EXCEPTION_FILTERED_SUBSTITUTION = 
         "java.sql.SQLException:";
 
     public Sed()
@@ -72,11 +72,11 @@ public class Sed
 
     // The arguments should be the names of the input and output files
     public void exec
-		(File srcFile, File dstFile, InputStream isSed, boolean isJCC, boolean isI18N, boolean isJDBC4)
+        (File srcFile, File dstFile, InputStream isSed, boolean isJCC, boolean isI18N, boolean isJDBC4)
         throws IOException
     {
-    	String hostName = TestUtil.getHostName();
-    	
+        String hostName = TestUtil.getHostName();
+        
         // Vector for storing lines to be deleted
         Vector deleteLines = new Vector();
         deleteLines.addElement("^ij version.*$");
@@ -111,16 +111,16 @@ public class Sed
         deleteLines.addElement("Optimization started at .*$");
         deleteLines.addElement("WARNING 02000: No row was found for FETCH, UPDATE or DELETE");
         // deleteLines for stack traces from j9 jvm to match those above for other jvms
-        deleteLines.addElement("Stack trace:");	
+        deleteLines.addElement("Stack trace:");    
         deleteLines.addElement("^.*java/.*\\<init\\>\\(.*\\)V");
         deleteLines.addElement("^.*org/apache/db/.*\\(.*\\).*$");
         // next for j9 stack trace with jarfiles test run.
         deleteLines.addElement("^.*java/.*\\(.*\\).*$");
-        deleteLines.addElement("^\\[.*db2jcc.jar\\] [0-9].[1-9] - .*$");	
-        deleteLines.addElement("^\\[.*db2jcc_license_c.jar\\] [1-9].[0-9] - .*$");	
+        deleteLines.addElement("^\\[.*db2jcc.jar\\] [0-9].[1-9] - .*$");    
+        deleteLines.addElement("^\\[.*db2jcc_license_c.jar\\] [1-9].[0-9] - .*$");    
         deleteLines.addElement("^XSDB.*$");
 
-		// JUnit noise
+        // JUnit noise
         deleteLines.addElement("^\\.*$");
         deleteLines.addElement("^Time: [0-9].*$");
         deleteLines.addElement("^OK \\(.*$");
@@ -188,39 +188,39 @@ public class Sed
         // Filter for "DB2ConnectionCorrelator" text that can be printed as
         // part of some JCC error messages.
         searchStrings.addElement("  DB2ConnectionCorrelator: [0-9A-Z.]*");
-		// Filter for SAX exception name diffs between jvms.
+        // Filter for SAX exception name diffs between jvms.
         searchStrings.addElement("org.xml.sax.SAX.*$");
         // Filter out localhost, or hostName
         searchStrings.addElement(hostName);
 
-		if ( isJDBC4 )
-		{
-			// Filters for the sql exception class names which appear in
-			// exception messages. These are different in JDBC3 and JDBC4.
-			searchStrings.addElement("java.sql.SQLDataException:");
-			searchStrings.addElement("java.sql.SQLDataSetSyncException:");
-			searchStrings.addElement("java.sql.SQLException:");
-			searchStrings.addElement("java.sql.SQLFeatureNotSupportedException:");
-			searchStrings.addElement("java.sql.SQLIntegrityConstraintViolationException:");
-			searchStrings.addElement("java.sql.SQLInvalidAuthorizationSpecException:");
-			searchStrings.addElement("java.sql.SQLNonTransientConnectionException:");
-			searchStrings.addElement("java.sql.SQLNonTransientException:");
-			searchStrings.addElement("java.sql.SQLRuntimeException:");
-			searchStrings.addElement("java.sql.SQLSyntaxErrorException:");
-			searchStrings.addElement("java.sql.SQLTimeoutException:");
-			searchStrings.addElement("java.sql.SQLTransactionRollbackException:");
-			searchStrings.addElement("java.sql.SQLTransientConnectionException:");
-			searchStrings.addElement("java.sql.SQLTransientException:");
+        if ( isJDBC4 )
+        {
+            // Filters for the sql exception class names which appear in
+            // exception messages. These are different in JDBC3 and JDBC4.
+            searchStrings.addElement("java.sql.SQLDataException:");
+            searchStrings.addElement("java.sql.SQLDataSetSyncException:");
+            searchStrings.addElement("java.sql.SQLException:");
+            searchStrings.addElement("java.sql.SQLFeatureNotSupportedException:");
+            searchStrings.addElement("java.sql.SQLIntegrityConstraintViolationException:");
+            searchStrings.addElement("java.sql.SQLInvalidAuthorizationSpecException:");
+            searchStrings.addElement("java.sql.SQLNonTransientConnectionException:");
+            searchStrings.addElement("java.sql.SQLNonTransientException:");
+            searchStrings.addElement("java.sql.SQLRuntimeException:");
+            searchStrings.addElement("java.sql.SQLSyntaxErrorException:");
+            searchStrings.addElement("java.sql.SQLTimeoutException:");
+            searchStrings.addElement("java.sql.SQLTransactionRollbackException:");
+            searchStrings.addElement("java.sql.SQLTransientConnectionException:");
+            searchStrings.addElement("java.sql.SQLTransientException:");
 
-			// The JDBC4 error from the driver is a little chattier
-			searchStrings.addElement("No suitable driver found for [0-9A-Za-z:]*");			
-			searchStrings.addElement("No suitable driver;[0-9A-Za-z:=]*");			
-			searchStrings.addElement("SQL Exception: No suitable driver");			
+            // The JDBC4 error from the driver is a little chattier
+            searchStrings.addElement("No suitable driver found for [0-9A-Za-z:]*");            
+            searchStrings.addElement("No suitable driver;[0-9A-Za-z:=]*");            
+            searchStrings.addElement("SQL Exception: No suitable driver");            
 
-			// Timestamp diagnostic looks a little different under jdk16
-			searchStrings.addElement("\\[\\.fffffffff\\]");			
-		}
-		
+            // Timestamp diagnostic looks a little different under jdk16
+            searchStrings.addElement("\\[\\.fffffffff\\]");            
+        }
+        
         Vector subStrings = new Vector();
         subStrings.addElement("Transaction:(XXX)|");
         subStrings.addElement("Read ... bytes");
@@ -257,36 +257,36 @@ public class Sed
         subStrings.addElement("Directory 'extinout<sp>crwombatlog<sp>log' exists");
         // ignore the 'DB2ConnectionCorrelator' thing altogether.
         subStrings.addElement("");
-		// Filter for SAX exception name diffs between jvms.
+        // Filter for SAX exception name diffs between jvms.
         subStrings.addElement("xxxFILTERED-SAX-EXCEPTIONxxx'.");
         // Filter out localhost, or hostName
         subStrings.addElement("xxxFILTERED_HOSTNAMExxx");
 
-		if ( isJDBC4 )
-		{
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
-			subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+        if ( isJDBC4 )
+        {
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
+            subStrings.addElement(SQL_EXCEPTION_FILTERED_SUBSTITUTION);
 
-			subStrings.addElement("No suitable driver");
-			subStrings.addElement("No suitable driver");
-			subStrings.addElement("java.sql.SQLException: No suitable driver");
+            subStrings.addElement("No suitable driver");
+            subStrings.addElement("No suitable driver");
+            subStrings.addElement("java.sql.SQLException: No suitable driver");
 
-			subStrings.addElement(".fffffffff");
-		}
+            subStrings.addElement(".fffffffff");
+        }
 
-		doWork(srcFile, dstFile, null, deleteLines, searchStrings, subStrings, isSed, isI18N);
+        doWork(srcFile, dstFile, null, deleteLines, searchStrings, subStrings, isSed, isI18N);
         
     } // end exec
 
@@ -318,13 +318,13 @@ public class Sed
     {
         doWork(srcFile, dstFile, is, deleteLines, searchStrings, subStrings, isSed, false);
     }
-		
+        
 
     private void doWork(File srcFile, File dstFile, InputStream is, Vector deleteLines, 
         Vector searchStrings, Vector subStrings, InputStream isSed, boolean isI18N)
         throws IOException
     {
-		
+        
         boolean lineDeleted = false;
 //        Pattern pcompiler;
 //        PatternMatcher matcher;

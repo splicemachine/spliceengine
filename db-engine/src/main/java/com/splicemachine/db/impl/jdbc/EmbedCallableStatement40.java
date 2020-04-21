@@ -218,9 +218,9 @@ public class EmbedCallableStatement40
     public ParameterMetaData getParameterMetaData()
         throws SQLException
     {
-	  checkStatus();
-	  return new EmbedParameterMetaData40(
-				getParms(), preparedStatement.getParameterTypes());
+      checkStatus();
+      return new EmbedParameterMetaData40(
+                getParms(), preparedStatement.getParameterTypes());
     }
     
     /**

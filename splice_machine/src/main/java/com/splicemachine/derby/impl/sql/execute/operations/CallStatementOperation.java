@@ -32,81 +32,81 @@ import java.io.ObjectOutput;
 import java.sql.ResultSet;
 
 public class CallStatementOperation extends NoRowsOperation {
-	private static final String NAME = CallStatementOperation.class.getSimpleName().replaceAll("Operation","");
+    private static final String NAME = CallStatementOperation.class.getSimpleName().replaceAll("Operation","");
     private static final Logger LOG = Logger.getLogger(CallStatementOperation.class);
-	private String methodName;
-	private SpliceMethod<Object> methodCall;
-	String origClassName = null;
-	String origMethodName = null;
+    private String methodName;
+    private SpliceMethod<Object> methodCall;
+    String origClassName = null;
+    String origMethodName = null;
 
-	@Override
-	public String getName() {
-		return NAME;
-	}
+    @Override
+    public String getName() {
+        return NAME;
+    }
 
-	public CallStatementOperation() {}
+    public CallStatementOperation() {}
 
-	public CallStatementOperation(GeneratedMethod methodCall,Activation a) throws StandardException  {
-		super(a);
-		methodName = (methodCall!= null) ? methodCall.getMethodName() : null;
-		this.methodCall =new SpliceMethod<>(methodName,activation);
-	}
+    public CallStatementOperation(GeneratedMethod methodCall,Activation a) throws StandardException  {
+        super(a);
+        methodName = (methodCall!= null) ? methodCall.getMethodName() : null;
+        this.methodCall =new SpliceMethod<>(methodName,activation);
+    }
 
-	public void setOrigMethod(String origClassName, String origMethodName) {
-		// These are the real java class and method name of the stored procedure,
-		// not the activation. For example, if this is an import action, the class
-		// would be HdfsImport and the method would be IMPORT_DATA.
-		// These are for reference only, not to be used in any reflection.
-		this.origClassName = origClassName;
-		this.origMethodName = origMethodName;
-	}
+    public void setOrigMethod(String origClassName, String origMethodName) {
+        // These are the real java class and method name of the stored procedure,
+        // not the activation. For example, if this is an import action, the class
+        // would be HdfsImport and the method would be IMPORT_DATA.
+        // These are for reference only, not to be used in any reflection.
+        this.origClassName = origClassName;
+        this.origMethodName = origMethodName;
+    }
 
-	@Override
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		super.readExternal(in);
-		methodName = in.readUTF();
-		if (in.readBoolean())
-			origClassName = in.readUTF();
-		if (in.readBoolean())
-			origMethodName = in.readUTF();
-	}
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        methodName = in.readUTF();
+        if (in.readBoolean())
+            origClassName = in.readUTF();
+        if (in.readBoolean())
+            origMethodName = in.readUTF();
+    }
 
-	@Override
-	public void init(SpliceOperationContext context) throws StandardException, IOException {
-		super.init(context);
-		/*
-		 * init() is called by the super class, which means that methodName will be null the first
-		 * time we call this. Then, immediately upon finishing the super constructor, we recreate
-		 * the methodCall anyway, so this is a waste of an object creation. We avoid this with a null
-		 * check
-		 */
-		if(methodName!=null)
-			methodCall =new SpliceMethod<>(methodName,activation);
-	}
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
+        super.init(context);
+        /*
+         * init() is called by the super class, which means that methodName will be null the first
+         * time we call this. Then, immediately upon finishing the super constructor, we recreate
+         * the methodCall anyway, so this is a waste of an object creation. We avoid this with a null
+         * check
+         */
+        if(methodName!=null)
+            methodCall =new SpliceMethod<>(methodName,activation);
+    }
 
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		super.writeExternal(out);
-		out.writeUTF(methodName);
-		out.writeBoolean(origClassName != null);
-		if (origClassName != null)
-			out.writeUTF(origClassName);
-		out.writeBoolean(origMethodName != null);
-		if (origMethodName != null)
-			out.writeUTF(origMethodName);
-	}
-	@Override
-	public int[] getRootAccessedCols(long tableNumber) {
-		return null;
-	}
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeUTF(methodName);
+        out.writeBoolean(origClassName != null);
+        if (origClassName != null)
+            out.writeUTF(origClassName);
+        out.writeBoolean(origMethodName != null);
+        if (origMethodName != null)
+            out.writeUTF(origMethodName);
+    }
+    @Override
+    public int[] getRootAccessedCols(long tableNumber) {
+        return null;
+    }
 
-	@Override
-	public boolean isReferencingTable(long tableNumber) {
-		return false;
-	}
+    @Override
+    public boolean isReferencingTable(long tableNumber) {
+        return false;
+    }
 
     @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE",justification = "Side effect of method call invocation")
-	public void call() throws StandardException{
+    public void call() throws StandardException{
         SpliceLogUtils.trace(LOG, "open");
         setup();
         Object invoked = methodCall.invoke();
@@ -118,23 +118,23 @@ public class CallStatementOperation extends NoRowsOperation {
 
     @Override
     public void close() {
-		SpliceLogUtils.trace(LOG, "close for CallStatement, StatementContext=%s",
-			activation.getLanguageConnectionContext().getStatementContext());
-		if (!isOpen)
-			return;
-		try {
-			super.close();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+        SpliceLogUtils.trace(LOG, "close for CallStatement, StatementContext=%s",
+            activation.getLanguageConnectionContext().getStatementContext());
+        if (!isOpen)
+            return;
+        try {
+            super.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
 
     }
 
-	@Override
-	public String prettyPrint(int indentLevel) {
-	    return "CallStatement"+super.prettyPrint(indentLevel);
-	}
+    @Override
+    public String prettyPrint(int indentLevel) {
+        return "CallStatement"+super.prettyPrint(indentLevel);
+    }
 
     @Override
     public String toString() {
@@ -145,22 +145,22 @@ public class CallStatementOperation extends NoRowsOperation {
         return "Call Procedure";
     }
 
-	@Override
-	public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-		if (!isOpen)
-			throw new IllegalStateException("Operation is not open");
+    @Override
+    public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
 
-		OperationContext<CallStatementOperation> operationContext = dsp.createOperationContext(this);
+        OperationContext<CallStatementOperation> operationContext = dsp.createOperationContext(this);
 
         if (!dsp.isSparkExplain())
             call();
 
-//		registerCloseable(new AutoCloseable() {
-//			@Override
-//			public void close() throws Exception {
-//				this.close();
-//			}
-//		});
+//        registerCloseable(new AutoCloseable() {
+//            @Override
+//            public void close() throws Exception {
+//                this.close();
+//            }
+//        });
 
         operationContext.pushScope();
         try {
@@ -169,5 +169,5 @@ public class CallStatementOperation extends NoRowsOperation {
         } finally {
             operationContext.popScope();
         }
-	}
+    }
 }

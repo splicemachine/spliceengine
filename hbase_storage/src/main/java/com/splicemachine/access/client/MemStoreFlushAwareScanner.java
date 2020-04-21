@@ -114,14 +114,14 @@ public class MemStoreFlushAwareScanner extends StoreScanner implements RegionSca
         throw new RuntimeException("Not Implemented");
     }
 
-    //		@Override
+    //        @Override
     public boolean seek(KeyValue key) throws IOException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "seek with key=%s",key);
         throw new IOException("Not Implemented");
     }
 
-    //		@Override
+    //        @Override
     public boolean reseek(KeyValue kv) throws IOException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "reseek kv=%s",kv);

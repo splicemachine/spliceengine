@@ -37,24 +37,24 @@ public class StddevIT extends SpliceUnitTest {
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcher).around(new SpliceDataWatcher() {
-								@Override
-								protected void starting(Description description) {
-										PreparedStatement ps;
-										try {
-												ps = spliceClassWatcher.prepareStatement(
-																String.format("insert into %s (i) values (?)", spliceTableWatcher));
-												for(int i=0;i<10;i++){
-														ps.setInt(1,i);
-														for(int j=0;j<100;j++){
-																ps.addBatch();
-														}
-														ps.executeBatch();
-												}
-										} catch (Exception e) {
-												throw new RuntimeException(e);
-										}
-								}
-						});
+                                @Override
+                                protected void starting(Description description) {
+                                        PreparedStatement ps;
+                                        try {
+                                                ps = spliceClassWatcher.prepareStatement(
+                                                                String.format("insert into %s (i) values (?)", spliceTableWatcher));
+                                                for(int i=0;i<10;i++){
+                                                        ps.setInt(1,i);
+                                                        for(int j=0;j<100;j++){
+                                                                ps.addBatch();
+                                                        }
+                                                        ps.executeBatch();
+                                                }
+                                        } catch (Exception e) {
+                                                throw new RuntimeException(e);
+                                        }
+                                }
+                        });
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -73,16 +73,16 @@ public class StddevIT extends SpliceUnitTest {
     @Test
     public void test() throws Exception {
 
-    	ResultSet rs = methodWatcher.executeQuery(
-			String.format("select stddev_pop(i) from %s", this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(
+            String.format("select stddev_pop(i) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()){
-        	Assert.assertEquals((int)rs.getDouble(1), 2);
+            Assert.assertEquals((int)rs.getDouble(1), 2);
         }
         rs.close();
 
         rs = methodWatcher.executeQuery(
-			String.format("select stddev_samp(i) from %s", this.getTableReference(TABLE_NAME)));
+            String.format("select stddev_samp(i) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()) {
             Assert.assertEquals((int)rs.getDouble(1), 2);
@@ -90,7 +90,7 @@ public class StddevIT extends SpliceUnitTest {
         rs.close();
 
         rs = methodWatcher.executeQuery(
-			String.format("select stddev_pop(d) from %s", this.getTableReference(TABLE_NAME)));
+            String.format("select stddev_pop(d) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()){
             Assert.assertEquals((int)rs.getDouble(1), 0);
@@ -98,7 +98,7 @@ public class StddevIT extends SpliceUnitTest {
         rs.close();
 
         rs = methodWatcher.executeQuery(
-			String.format("select stddev_samp(d) from %s", this.getTableReference(TABLE_NAME)));
+            String.format("select stddev_samp(d) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()) {
             Assert.assertEquals((int)rs.getDouble(1), 0);

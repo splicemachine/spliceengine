@@ -86,7 +86,7 @@ public class SpecialFlags
         excludeList[28] = "jdk12test";
         excludeList[29] = "jdk12exttest";
         excludeList[30] = "skipsed";
-		excludeList[31] = "sourceEnv";
+        excludeList[31] = "sourceEnv";
 
         Properties p = new Properties();
 
@@ -111,44 +111,44 @@ public class SpecialFlags
         return p;
     }
 
-	public static void parse(String flags,
-	    Properties ijProps, Properties srvProps)
-	{
-	    // flags is a list of key-value pairs separated by a ^;
-	    // to be parsed and added to either ijProps or srvProps
+    public static void parse(String flags,
+        Properties ijProps, Properties srvProps)
+    {
+        // flags is a list of key-value pairs separated by a ^;
+        // to be parsed and added to either ijProps or srvProps
         if (flags == null)
             flags = "";
-	    StringTokenizer st = new StringTokenizer(flags, "^");
-	    String str = "";
-	    String key = "";
-	    String value = "";
-	    while (st.hasMoreTokens())
-	    {
-	        str = st.nextToken();
+        StringTokenizer st = new StringTokenizer(flags, "^");
+        String str = "";
+        String key = "";
+        String value = "";
+        while (st.hasMoreTokens())
+        {
+            str = st.nextToken();
             // System.out.println("TOKEN:"+str);
-	        key = str.substring( 0, str.indexOf("=") );
-	        value = str.substring( (str.indexOf("=") + 1) );
-	        if ( str.startsWith("derby") )
-	        {
-	            // This is a server property
-	            // Note that some can have a list of values
-	            if ( key.equals("derby.debug.true") ||
-	                 key.equals("derby.infolog.streams") )
-	            {
-	                String currval = srvProps.getProperty(key);
-	                if ( (currval != null) && (!currval.isEmpty()) )
-	                {
-	                    value = value + "," + currval;
-	                }
-	            }
-	            srvProps.put(key,value);
-	        }
-	        else
-	            // This is an ij property
-	            ijProps.put(key,value);
+            key = str.substring( 0, str.indexOf("=") );
+            value = str.substring( (str.indexOf("=") + 1) );
+            if ( str.startsWith("derby") )
+            {
+                // This is a server property
+                // Note that some can have a list of values
+                if ( key.equals("derby.debug.true") ||
+                     key.equals("derby.infolog.streams") )
+                {
+                    String currval = srvProps.getProperty(key);
+                    if ( (currval != null) && (!currval.isEmpty()) )
+                    {
+                        value = value + "," + currval;
+                    }
+                }
+                srvProps.put(key,value);
+            }
+            else
+                // This is an ij property
+                ijProps.put(key,value);
         }
-	}
+    }
 
-	// no instances permitted.
-	private SpecialFlags(){}
+    // no instances permitted.
+    private SpecialFlags(){}
 }

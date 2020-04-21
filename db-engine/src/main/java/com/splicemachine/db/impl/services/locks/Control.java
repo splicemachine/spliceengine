@@ -39,38 +39,38 @@ import java.util.Map;
 
 public interface Control {
 
-	Lockable getLockable();
+    Lockable getLockable();
 
-	LockControl getLockControl();
+    LockControl getLockControl();
 
-	Lock getLock(CompatibilitySpace compatibilitySpace,
-				 Object qualifier);
+    Lock getLock(CompatibilitySpace compatibilitySpace,
+                 Object qualifier);
 
 //EXCLUDE-START-lockdiag- 
-	/**
-		Clone this lock for the lock table information.
-		Objects cloned will not be altered.
-	*/
-	Control shallowClone();
+    /**
+        Clone this lock for the lock table information.
+        Objects cloned will not be altered.
+    */
+    Control shallowClone();
 //EXCLUDE-END-lockdiag- 
 
-	ActiveLock firstWaiter();
+    ActiveLock firstWaiter();
 
-	boolean isEmpty();
+    boolean isEmpty();
 
-	boolean unlock(Latch lockInGroup, int unlockCount);
+    boolean unlock(Latch lockInGroup, int unlockCount);
 
-	void addWaiters(Map waiters);
+    void addWaiters(Map waiters);
 
-	Lock getFirstGrant();
+    Lock getFirstGrant();
 
-	List getGranted();
+    List getGranted();
 
-	List getWaiting();
+    List getWaiting();
 
-	boolean isGrantable(boolean otherWaiters,
-						CompatibilitySpace compatibilitySpace,
-						Object qualifier);
+    boolean isGrantable(boolean otherWaiters,
+                        CompatibilitySpace compatibilitySpace,
+                        Object qualifier);
 
 
 }

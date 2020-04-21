@@ -48,10 +48,10 @@ public class ForbidPastWritersHandler implements WriteHandler {
         // no op
     }
 
-	@Override
-	public void close(WriteContext ctx) throws IOException {
-		// no op
-	}
+    @Override
+    public void close(WriteContext ctx) throws IOException {
+        // no op
+    }
 
 
 }

@@ -43,27 +43,27 @@ import com.splicemachine.dbTesting.junit.SupportFilesSetup;
 import com.splicemachine.dbTesting.junit.TestConfiguration;
 
 /**
- *	Test that runs the importExportThruIJ.sql script and compares the output 
- *	to importExportThruIJ.out.
+ *    Test that runs the importExportThruIJ.sql script and compares the output 
+ *    to importExportThruIJ.out.
  */
 public final class ImportExportIJTest extends ScriptTestCase {
-	
-	/**
-	 * Constructor that runs a single script.
-	 * 
-	 * @param script - the name of the script
-	 */
-	private ImportExportIJTest(String script) {
-		super(script, true);
-	}
+    
+    /**
+     * Constructor that runs a single script.
+     * 
+     * @param script - the name of the script
+     */
+    private ImportExportIJTest(String script) {
+        super(script, true);
+    }
 
-	
-	/**
-	 * Return the suite that runs the script.
-	 */
-	public static Test suite() {
-		TestSuite suite = new TestSuite("importExportIJ");
-		
+    
+    /**
+     * Return the suite that runs the script.
+     */
+    public static Test suite() {
+        TestSuite suite = new TestSuite("importExportIJ");
+        
         // only run with embedded
         // network server makes slightly different output
         // ('statement executed' instead of '# rows inserted/deteled', etc.)
@@ -72,16 +72,16 @@ public final class ImportExportIJTest extends ScriptTestCase {
         // server side, and import would be looking on the client.
         // Also, running client & embedded would require some cleanup magic to
         // remove the exported files (see e.g. ImportExportTest).
-		Test test = new ImportExportIJTest("importExportIJ");
-		
+        Test test = new ImportExportIJTest("importExportIJ");
+        
         // This test should run in English locale since it compares error
         // messages against a canon based on the English message text. Also,
         // run the test in a fresh database, since the language of the message
         // text is determined when the database is created.        
-        test = new LocaleTestSetup(test, Locale.ENGLISH);	
+        test = new LocaleTestSetup(test, Locale.ENGLISH);    
         test = TestConfiguration.singleUseDatabaseDecorator(test);
-		
-		suite.addTest(new CleanDatabaseTestSetup(test));
+        
+        suite.addTest(new CleanDatabaseTestSetup(test));
 
         return new SupportFilesSetup(suite, new String[] {
             "functionTests/testData/ImportExport/TwoLineBadEOF.dat",
@@ -98,5 +98,5 @@ public final class ImportExportIJTest extends ScriptTestCase {
             "functionTests/testData/ImportExport/db-2193-linenumber.txt"
             }
         );
-	}
+    }
 }

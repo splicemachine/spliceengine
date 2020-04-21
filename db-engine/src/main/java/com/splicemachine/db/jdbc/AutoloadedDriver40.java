@@ -42,11 +42,11 @@ import com.splicemachine.db.impl.jdbc.Util;
  */
 public class AutoloadedDriver40 extends AutoloadedDriver
 {
-	static
-	{
+    static
+    {
         registerMe( new AutoloadedDriver40() );
         Util.setExceptionFactory (new SQLExceptionFactory40 ());
-	}
+    }
 
     ////////////////////////////////////////////////////////////////////
     //

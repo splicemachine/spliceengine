@@ -30,7 +30,7 @@
  */
 
 package com.splicemachine.db.impl.sql.execute;
-import	com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import    com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -59,183 +59,183 @@ import com.splicemachine.db.iapi.reference.SQLState;
 public class AutoincrementCounter 
 {
 
-	private Long start;
-	private long increment;
-	private String identity;
-	private long finalValue;
-	private String schemaName;
-	private String tableName;
-	private String columnName;
-	// maintains state.
-	private long counter;
-	private int columnPosition;
-	private boolean initialized = false;
+    private Long start;
+    private long increment;
+    private String identity;
+    private long finalValue;
+    private String schemaName;
+    private String tableName;
+    private String columnName;
+    // maintains state.
+    private long counter;
+    private int columnPosition;
+    private boolean initialized = false;
 
-	/**
-	 * constructor 
-	 * @param 	start		The start value of the counter; is a java object as
-	 * 			it can also be null.
-	 * @param   increment	how much to increment the counter by.
-	 * @param	finalValue	the finalvalue of the counter. used by reset
-	 * @param 	s
-	 * @param   t
-	 * @param	c
-	 */
-	public AutoincrementCounter(Long start, long increment, long finalValue,
-								String s, String t, String c, int position)
-	{
-		this.increment = increment;
-		this.start = start;
-		this.initialized = false;
-		this.identity = makeIdentity(s,t,c);
-		this.finalValue = finalValue;
-		this.schemaName = s;
-		this.tableName = t;
-		this.columnName = c;
-		this.columnPosition = position;
-		//		System.out.println("aic created with " + this);
-	}
+    /**
+     * constructor 
+     * @param     start        The start value of the counter; is a java object as
+     *             it can also be null.
+     * @param   increment    how much to increment the counter by.
+     * @param    finalValue    the finalvalue of the counter. used by reset
+     * @param     s
+     * @param   t
+     * @param    c
+     */
+    public AutoincrementCounter(Long start, long increment, long finalValue,
+                                String s, String t, String c, int position)
+    {
+        this.increment = increment;
+        this.start = start;
+        this.initialized = false;
+        this.identity = makeIdentity(s,t,c);
+        this.finalValue = finalValue;
+        this.schemaName = s;
+        this.tableName = t;
+        this.columnName = c;
+        this.columnPosition = position;
+        //        System.out.println("aic created with " + this);
+    }
 
-	/**
-	 * make a unique key for the counter.
-	 */
-	public static String makeIdentity(String s, String t, String c)
-	{
-		return s + "." + t + "." + c;
-	}
+    /**
+     * make a unique key for the counter.
+     */
+    public static String makeIdentity(String s, String t, String c)
+    {
+        return s + "." + t + "." + c;
+    }
 
-	/**
-	 * make a unique key for the counter.
-	 */
-	public static String makeIdentity(TableDescriptor td, ColumnDescriptor cd)
-	{
-		return td.getSchemaName() + "." + td.getName() + 
-				"." + cd.getColumnName();
-	}
+    /**
+     * make a unique key for the counter.
+     */
+    public static String makeIdentity(TableDescriptor td, ColumnDescriptor cd)
+    {
+        return td.getSchemaName() + "." + td.getName() + 
+                "." + cd.getColumnName();
+    }
 
-	/**
-	 * reset to the counter to the beginning or the end.
-	 * 
-	 * @param 	begin	if TRUE reset to beginning and mark it uninitialized.
-	 */
-	public void reset(boolean begin)
-	{
-		if (begin)
-			initialized = false;
-		else
-		{
-			counter = finalValue;
-			initialized = true;
-		}
-		//		System.out.println("counter reset to " + this);
+    /**
+     * reset to the counter to the beginning or the end.
+     * 
+     * @param     begin    if TRUE reset to beginning and mark it uninitialized.
+     */
+    public void reset(boolean begin)
+    {
+        if (begin)
+            initialized = false;
+        else
+        {
+            counter = finalValue;
+            initialized = true;
+        }
+        //        System.out.println("counter reset to " + this);
 
-	}
+    }
 
-	/**
-	 * update the counter.
-	 * 
-	 * @param 	t		update the counter to this value.
-	 */
-	public long update(long t)
-	{
-		counter = t;
-		//		System.out.println("counter updated to " + this);
-		initialized = true;
-		return counter;
-	}
+    /**
+     * update the counter.
+     * 
+     * @param     t        update the counter to this value.
+     */
+    public long update(long t)
+    {
+        counter = t;
+        //        System.out.println("counter updated to " + this);
+        initialized = true;
+        return counter;
+    }
 
-	/**
-	 * update the counter to its next value.
-	 * 
-	 * @exception	StandardException	if the counter has not yet been
-	 * initialized and the Start value is NULL.
-	 */
-	public long update() throws StandardException
-	{
-		long counterVal;
+    /**
+     * update the counter to its next value.
+     * 
+     * @exception    StandardException    if the counter has not yet been
+     * initialized and the Start value is NULL.
+     */
+    public long update() throws StandardException
+    {
+        long counterVal;
 
-		if (!initialized)
-		{
-			// The first time around, counter simply gets the start
-			// value. 
-			initialized = true;
-			
-			if (start == null)
-			{
-				throw StandardException.newException(
-											SQLState.LANG_AI_COUNTER_ERROR);
-			}
-			counter = start;
-		}	
-		else
-		{
-			counter = counter + increment;
-		}
-		//		System.out.println("counter updated to " + this);
-		return counter;
-	}
+        if (!initialized)
+        {
+            // The first time around, counter simply gets the start
+            // value. 
+            initialized = true;
+            
+            if (start == null)
+            {
+                throw StandardException.newException(
+                                            SQLState.LANG_AI_COUNTER_ERROR);
+            }
+            counter = start;
+        }    
+        else
+        {
+            counter = counter + increment;
+        }
+        //        System.out.println("counter updated to " + this);
+        return counter;
+    }
 
-	/**
-	 * get the current value of the counter. An uninitialized counter means the
-	 * current value is NULL.
-	 */
-	public Long getCurrentValue()
-	{
-		if (!initialized)
-			return null;
-		return counter;
-	}
-	
-	/**
-	 * return the identity of the counter.
-	 */
-	public String getIdentity()
-	{
-		return identity;
-	}
+    /**
+     * get the current value of the counter. An uninitialized counter means the
+     * current value is NULL.
+     */
+    public Long getCurrentValue()
+    {
+        if (!initialized)
+            return null;
+        return counter;
+    }
+    
+    /**
+     * return the identity of the counter.
+     */
+    public String getIdentity()
+    {
+        return identity;
+    }
 
-	/**
-	 * flush a counter to disk; i.e write the current value of the counter into
-	 * the row in SYSCOLUMNS.
-	 * 
-	 * @param	tc			TransactionController to use
-	 * @param	dd			DataDictionary to use.
-	 * @param	tableUUID	I might have the table name but I need more
-	 * information 
-	 * @exception	StandardException standard Derby exception.
-	 */
-	public void flushToDisk(TransactionController tc, DataDictionary dd,
-							UUID tableUUID)
-	       throws StandardException
-	{
-		dd.setAutoincrementValue(tc, tableUUID, columnName, counter, true);
-	}
+    /**
+     * flush a counter to disk; i.e write the current value of the counter into
+     * the row in SYSCOLUMNS.
+     * 
+     * @param    tc            TransactionController to use
+     * @param    dd            DataDictionary to use.
+     * @param    tableUUID    I might have the table name but I need more
+     * information 
+     * @exception    StandardException standard Derby exception.
+     */
+    public void flushToDisk(TransactionController tc, DataDictionary dd,
+                            UUID tableUUID)
+           throws StandardException
+    {
+        dd.setAutoincrementValue(tc, tableUUID, columnName, counter, true);
+    }
 
-	/**
-	 * get the column position in the table for which this counter has been
-	 * created. 
-	 * @return the position of the corresponding column in the table (1-based)
-	 */
-	public int getColumnPosition()
-	{
-		return columnPosition;
-	}
+    /**
+     * get the column position in the table for which this counter has been
+     * created. 
+     * @return the position of the corresponding column in the table (1-based)
+     */
+    public int getColumnPosition()
+    {
+        return columnPosition;
+    }
 
-	/**
-	 * get the start value
-	 * @return the initial value of the counter
-	 */
-	public Long getStartValue()
-	{
-		return start;
-	}
+    /**
+     * get the start value
+     * @return the initial value of the counter
+     */
+    public Long getStartValue()
+    {
+        return start;
+    }
 
-	public String toString()
-	{
-		return "counter: " + identity + " current: " + counter 
-			+ " start: " + start + 
-			" increment: " + increment + " final: " + finalValue;
-	}	
-}	
+    public String toString()
+    {
+        return "counter: " + identity + " current: " + counter 
+            + " start: " + start + 
+            " increment: " + increment + " final: " + finalValue;
+    }    
+}    
 
 

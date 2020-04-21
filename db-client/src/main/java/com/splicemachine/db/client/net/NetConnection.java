@@ -254,7 +254,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         securityMechanism_ = ClientBaseDataSource.getSecurityMechanism(properties);
         flowConnect(password, securityMechanism_);
         if(!isConnectionNull())
-        	completeConnect();
+            completeConnect();
         //DERBY-2026. reset timeout after connection is made
         netAgent_.setTimeout(0);
         this.properties_ = new Properties();
@@ -1896,18 +1896,18 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         agent_.endReadChain();
     }
     
-	/**
-	 * @return Returns the connectionNull.
-	 */
-	public boolean isConnectionNull() {
-		return connectionNull;
-	}
-	/**
-	 * @param connectionNull The connectionNull to set.
-	 */
-	public void setConnectionNull(boolean connectionNull) {
-		this.connectionNull = connectionNull;
-	}
+    /**
+     * @return Returns the connectionNull.
+     */
+    public boolean isConnectionNull() {
+        return connectionNull;
+    }
+    /**
+     * @param connectionNull The connectionNull to set.
+     */
+    public void setConnectionNull(boolean connectionNull) {
+        this.connectionNull = connectionNull;
+    }
 
     public void setQueryTimeout(int timeout) {
         netAgent_.setTimeout(timeout);

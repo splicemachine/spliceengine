@@ -67,7 +67,7 @@ import org.spark_project.guava.io.CharStreams;
  * CLOB supports LIKE operator only for collation.
  */
 public class SQLClob
-	extends SQLVarchar
+    extends SQLVarchar
 {
     /** The header generator used for 10.4 (or older) databases. */
     private static final StreamHeaderGenerator TEN_FOUR_CLOB_HEADER_GENERATOR =
@@ -97,22 +97,22 @@ public class SQLClob
     /** Tells if the database is being accessed in soft upgrade mode. */
     private Boolean inSoftUpgradeMode = null;
 
-	/*
-	 * DataValueDescriptor interface.
-	 *
-	 * These are actually all implemented in the super-class, but we need
-	 * to duplicate some of them here so they can be called by byte-code
-	 * generation, which needs to know the class the method appears in.
-	 */
+    /*
+     * DataValueDescriptor interface.
+     *
+     * These are actually all implemented in the super-class, but we need
+     * to duplicate some of them here so they can be called by byte-code
+     * generation, which needs to know the class the method appears in.
+     */
 
-	public String getTypeName()
-	{
-		return TypeId.CLOB_NAME;
-	}
+    public String getTypeName()
+    {
+        return TypeId.CLOB_NAME;
+    }
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
 
     /**
      * Returns a clone of this CLOB value.
@@ -172,97 +172,97 @@ public class SQLClob
         return clone;
     }
 
-	/**
-	 * @see DataValueDescriptor#getNewNull
-	 *
-	 */
-	public DataValueDescriptor getNewNull()
-	{
+    /**
+     * @see DataValueDescriptor#getNewNull
+     *
+     */
+    public DataValueDescriptor getNewNull()
+    {
         SQLClob newClob = new SQLClob();
         // Copy the soft upgrade mode state.
         newClob.inSoftUpgradeMode = inSoftUpgradeMode;
         return newClob;
-	}
+    }
 
-	/** @see StringDataValue#getValue(RuleBasedCollator) */
-	public StringDataValue getValue(RuleBasedCollator collatorForComparison)
-	{
-		if (collatorForComparison == null)
-		{//null collatorForComparison means use UCS_BASIC for collation
-		    return this;			
-		} else {
-			//non-null collatorForComparison means use collator sensitive
-			//implementation of SQLClob
-		     CollatorSQLClob s = new CollatorSQLClob(collatorForComparison);
-		     s.copyState(this);
-		     return s;
-		}
-	}
+    /** @see StringDataValue#getValue(RuleBasedCollator) */
+    public StringDataValue getValue(RuleBasedCollator collatorForComparison)
+    {
+        if (collatorForComparison == null)
+        {//null collatorForComparison means use UCS_BASIC for collation
+            return this;            
+        } else {
+            //non-null collatorForComparison means use collator sensitive
+            //implementation of SQLClob
+             CollatorSQLClob s = new CollatorSQLClob(collatorForComparison);
+             s.copyState(this);
+             return s;
+        }
+    }
 
-	/*
-	 * Storable interface, implies Externalizable, TypedFormat
-	 */
+    /*
+     * Storable interface, implies Externalizable, TypedFormat
+     */
 
-	/**
-		Return my format identifier.
+    /**
+        Return my format identifier.
 
-		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
-	public int getTypeFormatId() {
-		return StoredFormatIds.SQL_CLOB_ID;
-	}
+        @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
+    */
+    public int getTypeFormatId() {
+        return StoredFormatIds.SQL_CLOB_ID;
+    }
 
-	/*
-	 * constructors
-	 */
+    /*
+     * constructors
+     */
 
-	public SQLClob()
-	{
-	}
+    public SQLClob()
+    {
+    }
 
-	public SQLClob(String val)
-	{
-		super(val);
-	}
+    public SQLClob(String val)
+    {
+        super(val);
+    }
 
-	public SQLClob(Clob val)
-	{
-		super(val);
-	}
+    public SQLClob(Clob val)
+    {
+        super(val);
+    }
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
 
-	/* @see DataValueDescriptor#typePrecedence */
-	public int typePrecedence()
-	{
-		return TypeId.CLOB_PRECEDENCE;
-	}
+    /* @see DataValueDescriptor#typePrecedence */
+    public int typePrecedence()
+    {
+        return TypeId.CLOB_PRECEDENCE;
+    }
 
-	/*
-	** disable conversions to/from most types for CLOB.
-	** TEMP - real fix is to re-work class hierachy so
-	** that CLOB is towards the root, not at the leaf.
-	*/
+    /*
+    ** disable conversions to/from most types for CLOB.
+    ** TEMP - real fix is to re-work class hierachy so
+    ** that CLOB is towards the root, not at the leaf.
+    */
 
-	public boolean	getBoolean() throws StandardException
-	{
-		throw dataTypeConversion("boolean");
-	}
+    public boolean    getBoolean() throws StandardException
+    {
+        throw dataTypeConversion("boolean");
+    }
 
-	public byte	getByte() throws StandardException
-	{
-		throw dataTypeConversion("byte");
-	}
+    public byte    getByte() throws StandardException
+    {
+        throw dataTypeConversion("byte");
+    }
 
-	public short	getShort() throws StandardException
-	{
-		throw dataTypeConversion("short");
-	}
+    public short    getShort() throws StandardException
+    {
+        throw dataTypeConversion("short");
+    }
 
-	public int	getInt() throws StandardException
-	{
+    public int    getInt() throws StandardException
+    {
         if (isNull())
             return 0;
 
@@ -275,7 +275,7 @@ public class SQLClob
             throw StandardException.newException(
                     com.splicemachine.db.iapi.reference.SQLState.LANG_FORMAT_EXCEPTION, "int");
         }
-	}
+    }
 
     /**
      * Returns the character length of this Clob.
@@ -333,8 +333,8 @@ public class SQLClob
         return (int)charLength;
     }
 
-	public long	getLong() throws StandardException
-	{
+    public long    getLong() throws StandardException
+    {
         if (isNull())
             return 0;
 
@@ -348,10 +348,10 @@ public class SQLClob
             throw StandardException.newException(
                     com.splicemachine.db.iapi.reference.SQLState.LANG_FORMAT_EXCEPTION, "long");
         }
-	}
+    }
 
-	public float	getFloat() throws StandardException
-	{
+    public float    getFloat() throws StandardException
+    {
         if (isNull())
             return 0;
 
@@ -364,10 +364,10 @@ public class SQLClob
             throw StandardException.newException(
                     com.splicemachine.db.iapi.reference.SQLState.LANG_FORMAT_EXCEPTION, "float");
         }
-	}
+    }
 
-	public double	getDouble() throws StandardException
-	{
+    public double    getDouble() throws StandardException
+    {
         if (isNull())
             return 0;
         try
@@ -379,20 +379,20 @@ public class SQLClob
             throw StandardException.newException(
                     com.splicemachine.db.iapi.reference.SQLState.LANG_FORMAT_EXCEPTION, "double");
         }
-	}
-	public int typeToBigDecimal() throws StandardException
-	{
+    }
+    public int typeToBigDecimal() throws StandardException
+    {
         return java.sql.Types.CHAR;
-	}
-	public byte[]	getBytes() throws StandardException
-	{
-		throw dataTypeConversion("byte[]");
-	}
+    }
+    public byte[]    getBytes() throws StandardException
+    {
+        throw dataTypeConversion("byte[]");
+    }
 
-	public Date	getDate(java.util.Calendar cal) throws StandardException
-	{
+    public Date    getDate(java.util.Calendar cal) throws StandardException
+    {
         return getDate(cal, getString(), getLocaleFinder());
-	}
+    }
 
     /**
      * @exception StandardException     Thrown on error
@@ -513,15 +513,15 @@ public class SQLClob
         return stream != null;
     }
 
-	public Time	getTime(java.util.Calendar cal) throws StandardException
-	{
-		throw dataTypeConversion("java.sql.Time");
-	}
+    public Time    getTime(java.util.Calendar cal) throws StandardException
+    {
+        throw dataTypeConversion("java.sql.Time");
+    }
 
-	public Timestamp	getTimestamp(java.util.Calendar cal) throws StandardException
-	{
-		throw dataTypeConversion("java.sql.Timestamp");
-	}
+    public Timestamp    getTimestamp(java.util.Calendar cal) throws StandardException
+    {
+        throw dataTypeConversion("java.sql.Timestamp");
+    }
     
     /**
      * Gets a trace representation of the CLOB for debugging.
@@ -584,25 +584,25 @@ public class SQLClob
         super.normalize(desiredType,sourceValue);
     }
 
-	public void setValue(Time theValue, Calendar cal) throws StandardException
-	{
-		throwLangSetMismatch("java.sql.Time");
-	}
-	
-	public void setValue(Timestamp theValue, Calendar cal) throws StandardException
-	{
-		throwLangSetMismatch("java.sql.Timestamp");
-	}
-	
-	public void setValue(Date theValue, Calendar cal) throws StandardException
-	{
-		throwLangSetMismatch("java.sql.Date");
-	}
-	
-	public void setBigDecimal(Number bigDecimal) throws StandardException
-	{
-		throwLangSetMismatch("java.math.BigDecimal");
-	}
+    public void setValue(Time theValue, Calendar cal) throws StandardException
+    {
+        throwLangSetMismatch("java.sql.Time");
+    }
+    
+    public void setValue(Timestamp theValue, Calendar cal) throws StandardException
+    {
+        throwLangSetMismatch("java.sql.Timestamp");
+    }
+    
+    public void setValue(Date theValue, Calendar cal) throws StandardException
+    {
+        throwLangSetMismatch("java.sql.Date");
+    }
+    
+    public void setBigDecimal(Number bigDecimal) throws StandardException
+    {
+        throwLangSetMismatch("java.math.BigDecimal");
+    }
 
     /**
      * Sets a new stream for this CLOB.
@@ -620,46 +620,46 @@ public class SQLClob
         super.restoreToNull();
     }
 
-	public void setValue(int theValue) throws StandardException
-	{
-		throwLangSetMismatch("int");
-	}
+    public void setValue(int theValue) throws StandardException
+    {
+        throwLangSetMismatch("int");
+    }
 
-	public void setValue(double theValue) throws StandardException
-	{
-		throwLangSetMismatch("double");
-	}
+    public void setValue(double theValue) throws StandardException
+    {
+        throwLangSetMismatch("double");
+    }
 
-	public void setValue(float theValue) throws StandardException
-	{
-		throwLangSetMismatch("float");
-	}
+    public void setValue(float theValue) throws StandardException
+    {
+        throwLangSetMismatch("float");
+    }
  
-	public void setValue(short theValue) throws StandardException
-	{
-		throwLangSetMismatch("short");
-	}
+    public void setValue(short theValue) throws StandardException
+    {
+        throwLangSetMismatch("short");
+    }
 
-	public void setValue(long theValue) throws StandardException
-	{
-		throwLangSetMismatch("long");
-	}
+    public void setValue(long theValue) throws StandardException
+    {
+        throwLangSetMismatch("long");
+    }
 
 
-	public void setValue(byte theValue) throws StandardException
-	{
-		throwLangSetMismatch("byte");
-	}
+    public void setValue(byte theValue) throws StandardException
+    {
+        throwLangSetMismatch("byte");
+    }
 
-	public void setValue(boolean theValue) throws StandardException
-	{
-		throwLangSetMismatch("boolean");
-	}
+    public void setValue(boolean theValue) throws StandardException
+    {
+        throwLangSetMismatch("boolean");
+    }
 
-	public void setValue(byte[] theValue) throws StandardException
-	{
-		throwLangSetMismatch("byte[]");
-	}
+    public void setValue(byte[] theValue) throws StandardException
+    {
+        throwLangSetMismatch("byte[]");
+    }
     
     /**
      * Set the value from an non-null Java.sql.Clob object.
@@ -1031,7 +1031,7 @@ public class SQLClob
        }
     }
     public Format getFormat() {
-    	return Format.CLOB;
+        return Format.CLOB;
     }
 
     @Override

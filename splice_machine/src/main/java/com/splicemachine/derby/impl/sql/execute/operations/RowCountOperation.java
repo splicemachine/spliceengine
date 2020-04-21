@@ -65,10 +65,10 @@ public class RowCountOperation extends SpliceBaseOperation {
 
     protected static final String NAME = RowCountOperation.class.getSimpleName().replaceAll("Operation","");
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+            return NAME;
+    }
 
     
     public RowCountOperation() {

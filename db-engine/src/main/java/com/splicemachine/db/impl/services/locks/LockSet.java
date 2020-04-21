@@ -51,152 +51,152 @@ import java.util.Map;
 
 
 /**
-	A LockSet is a complete lock table.	A lock table is a hash table
-	keyed by a Lockable and with a LockControl as the data element.
+    A LockSet is a complete lock table.    A lock table is a hash table
+    keyed by a Lockable and with a LockControl as the data element.
 
-	<P>
-	A LockControl contains information about the locks held on a Lockable.
+    <P>
+    A LockControl contains information about the locks held on a Lockable.
 
-	<BR>
-	MT - Mutable - Container Object : All non-private methods of this class are
-	thread safe unless otherwise stated by their javadoc comments.
+    <BR>
+    MT - Mutable - Container Object : All non-private methods of this class are
+    thread safe unless otherwise stated by their javadoc comments.
 
-	<BR>
-	All searching of
+    <BR>
+    All searching of
     the hashtable is performed using java synchroization(this).
-	<BR>
-	The class creates ActiveLock and LockControl objects.
-	
-	LockControl objects are never passed out of this class, All the methods of 
+    <BR>
+    The class creates ActiveLock and LockControl objects.
+    
+    LockControl objects are never passed out of this class, All the methods of 
     LockControl are called while being synchronized on this, thus providing the
     single threading that LockControl required.
 
-	Methods of Lockables are only called by this class or LockControl, and 
+    Methods of Lockables are only called by this class or LockControl, and 
     always while being synchronized on this, thus providing the single 
     threading that Lockable requires.
-	
-	@see LockControl
+    
+    @see LockControl
 */
 
 final class LockSet implements LockTable {
-	/*
-	** Fields
-	*/
-	private final SinglePool factory;
+    /*
+    ** Fields
+    */
+    private final SinglePool factory;
 
     /** Hash table which maps <code>Lockable</code> objects to
      * <code>Lock</code>s. */
     private final HashMap locks;
 
-	/**
-		Timeout for deadlocks, in ms.
-		<BR>
-		MT - immutable
-	*/
-	private int deadlockTimeout = Property.DEADLOCK_TIMEOUT_DEFAULT * 1000;
-	private int waitTimeout = Property.WAIT_TIMEOUT_DEFAULT * 1000;
+    /**
+        Timeout for deadlocks, in ms.
+        <BR>
+        MT - immutable
+    */
+    private int deadlockTimeout = Property.DEADLOCK_TIMEOUT_DEFAULT * 1000;
+    private int waitTimeout = Property.WAIT_TIMEOUT_DEFAULT * 1000;
 
 //EXCLUDE-START-lockdiag- 
 
-	// this varible is set and get without synchronization.  
-	// Only one thread should be setting it at one time.
-	private boolean deadlockTrace;
+    // this varible is set and get without synchronization.  
+    // Only one thread should be setting it at one time.
+    private boolean deadlockTrace;
 
 //EXCLUDE-END-lockdiag- 
 
-	// The number of waiters for locks
-	private int blockCount;
+    // The number of waiters for locks
+    private int blockCount;
 
-	/*
-	** Constructor
-	*/
+    /*
+    ** Constructor
+    */
 
-	protected LockSet(SinglePool factory) {
-		this.factory = factory;
-		locks = new HashMap();
-	}
+    protected LockSet(SinglePool factory) {
+        this.factory = factory;
+        locks = new HashMap();
+    }
 
 
-	/*
-	** Public Methods
-	*/
+    /*
+    ** Public Methods
+    */
 
-	/**
-	 *	Lock an object within a specific compatibility space.
-	 *
-	 *	@param	compatibilitySpace Compatibility space.
-	 *	@param	ref Lockable reference.
-	 *	@param	qualifier Qualifier.
-	 *	@param	timeout Timeout in milli-seconds
-	 *
-	 *	@return	Object that represents the lock.
-	 *
-	 *	@exception	StandardException Standard Derby policy.
+    /**
+     *    Lock an object within a specific compatibility space.
+     *
+     *    @param    compatibilitySpace Compatibility space.
+     *    @param    ref Lockable reference.
+     *    @param    qualifier Qualifier.
+     *    @param    timeout Timeout in milli-seconds
+     *
+     *    @return    Object that represents the lock.
+     *
+     *    @exception    StandardException Standard Derby policy.
 
-	*/
-	public Lock lockObject(CompatibilitySpace compatibilitySpace, Lockable ref,
-						   Object qualifier, int timeout)
-		throws StandardException
-	{		
-		if (SanityManager.DEBUG) {
+    */
+    public Lock lockObject(CompatibilitySpace compatibilitySpace, Lockable ref,
+                           Object qualifier, int timeout)
+        throws StandardException
+    {        
+        if (SanityManager.DEBUG) {
 
-			if (SanityManager.DEBUG_ON("memoryLeakTrace")) {
+            if (SanityManager.DEBUG_ON("memoryLeakTrace")) {
 
-				if (locks.size() > 1000)
-					System.out.println("memoryLeakTrace:LockSet: " +
+                if (locks.size() > 1000)
+                    System.out.println("memoryLeakTrace:LockSet: " +
                                            locks.size());
-			}
-		}
+            }
+        }
 
-		Control gc;
-		LockControl control;
-		Lock lockItem;
+        Control gc;
+        LockControl control;
+        Lock lockItem;
         String  lockDebug = null;
 
-		synchronized (this) {
+        synchronized (this) {
 
-			gc = getControl(ref);
+            gc = getControl(ref);
 
-			if (gc == null) {
+            if (gc == null) {
 
-				// object is not locked, can be granted
-				Lock gl = new Lock(compatibilitySpace, ref, qualifier);
+                // object is not locked, can be granted
+                Lock gl = new Lock(compatibilitySpace, ref, qualifier);
 
-				gl.grant();
+                gl.grant();
 
-				locks.put(ref, gl);
+                locks.put(ref, gl);
 
-				return gl;
-			}
+                return gl;
+            }
 
-			control = gc.getLockControl();
-			if (control != gc) {
-				locks.put(ref, control);
-			}
-			
+            control = gc.getLockControl();
+            if (control != gc) {
+                locks.put(ref, control);
+            }
+            
 
-			if (SanityManager.DEBUG) {
-				SanityManager.ASSERT(ref.equals(control.getLockable()));
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(ref.equals(control.getLockable()));
 
-				// ASSERT item is in the list
+                // ASSERT item is in the list
                 if (getControl(control.getLockable()) != control)
                 {
-					SanityManager.THROWASSERT(
+                    SanityManager.THROWASSERT(
                         "lockObject mismatched lock items " + 
                         getControl(control.getLockable()) + " " + control);
                 }
-			}
+            }
 
-			lockItem = control.addLock(this, compatibilitySpace, qualifier);
+            lockItem = control.addLock(this, compatibilitySpace, qualifier);
 
-			if (lockItem.getCount() != 0) {
-				return lockItem;
-			}
+            if (lockItem.getCount() != 0) {
+                return lockItem;
+            }
 
-			if (AbstractPool.noLockWait(timeout, compatibilitySpace)) {
+            if (AbstractPool.noLockWait(timeout, compatibilitySpace)) {
 
-    			// remove all trace of lock
-    			control.giveUpWait(lockItem, this);
+                // remove all trace of lock
+                control.giveUpWait(lockItem, this);
 
                 if (SanityManager.DEBUG) 
                 {
@@ -216,63 +216,63 @@ final class LockSet implements LockTable {
                     }
                 }
 
-				return null;
-			}
+                return null;
+            }
 
-		} // synchronized block
+        } // synchronized block
 
-		boolean deadlockWait = false;
-		int actualTimeout;
+        boolean deadlockWait = false;
+        int actualTimeout;
 
-		if (timeout == C_LockFactory.WAIT_FOREVER)
-		{
-			// always check for deadlocks as there should not be any
-			deadlockWait = true;
-			if ((actualTimeout = deadlockTimeout) == C_LockFactory.WAIT_FOREVER)
-				actualTimeout = Property.DEADLOCK_TIMEOUT_DEFAULT * 1000;
-		}
-		else
-		{
+        if (timeout == C_LockFactory.WAIT_FOREVER)
+        {
+            // always check for deadlocks as there should not be any
+            deadlockWait = true;
+            if ((actualTimeout = deadlockTimeout) == C_LockFactory.WAIT_FOREVER)
+                actualTimeout = Property.DEADLOCK_TIMEOUT_DEFAULT * 1000;
+        }
+        else
+        {
 
-			if (timeout == C_LockFactory.TIMED_WAIT)
-				timeout = actualTimeout = waitTimeout;
-			else
-				actualTimeout = timeout;
+            if (timeout == C_LockFactory.TIMED_WAIT)
+                timeout = actualTimeout = waitTimeout;
+            else
+                actualTimeout = timeout;
 
 
-			// five posible cases
-			// i)   timeout -1, deadlock -1         -> 
+            // five posible cases
+            // i)   timeout -1, deadlock -1         -> 
             //          just wait forever, no deadlock check
-			// ii)  timeout >= 0, deadlock -1       -> 
+            // ii)  timeout >= 0, deadlock -1       -> 
             //          just wait for timeout, no deadlock check
-			// iii) timeout -1, deadlock >= 0       -> 
+            // iii) timeout -1, deadlock >= 0       -> 
             //          wait for deadlock, then deadlock check, 
             //          then infinite timeout
-			// iv)  timeout >=0, deadlock < timeout -> 
+            // iv)  timeout >=0, deadlock < timeout -> 
             //          wait for deadlock, then deadlock check, 
             //          then wait for (timeout - deadlock)
-			// v)   timeout >=0, deadlock >= timeout -> 
+            // v)   timeout >=0, deadlock >= timeout -> 
             //          just wait for timeout, no deadlock check
 
 
-			if (deadlockTimeout >= 0) {
+            if (deadlockTimeout >= 0) {
 
-				if (actualTimeout < 0) {
-					// infinite wait but perform a deadlock check first
-					deadlockWait = true;
-					actualTimeout = deadlockTimeout;
-				} else if (deadlockTimeout < actualTimeout) {
+                if (actualTimeout < 0) {
+                    // infinite wait but perform a deadlock check first
+                    deadlockWait = true;
+                    actualTimeout = deadlockTimeout;
+                } else if (deadlockTimeout < actualTimeout) {
 
-					// deadlock wait followed by a timeout wait
+                    // deadlock wait followed by a timeout wait
 
-					deadlockWait = true;
-					actualTimeout = deadlockTimeout;
+                    deadlockWait = true;
+                    actualTimeout = deadlockTimeout;
 
-					// leave timeout as the remaining time
-					timeout -= deadlockTimeout;
-				}
-			}
-		}
+                    // leave timeout as the remaining time
+                    timeout -= deadlockTimeout;
+                }
+            }
+        }
 
 
         ActiveLock waitingLock = (ActiveLock) lockItem;
@@ -281,7 +281,7 @@ final class LockSet implements LockTable {
         int earlyWakeupCount = 0;
         long startWaitTime = 0;
 
-forever:	for (;;) {
+forever:    for (;;) {
 
                 byte wakeupReason = 0;
                 ActiveLock nextWaitingLock = null;
@@ -479,39 +479,39 @@ forever:	for (;;) {
 
 
             } // for(;;)
-	}
+    }
 
-	/**
-		Unlock an object, previously locked by lockObject(). 
+    /**
+        Unlock an object, previously locked by lockObject(). 
 
-		If unlockCOunt is not zero then the lock will be unlocked
-		that many times, otherwise the unlock count is taken from
-		item.
+        If unlockCOunt is not zero then the lock will be unlocked
+        that many times, otherwise the unlock count is taken from
+        item.
 
-	*/
-	public void unlock(Latch item, int unlockCount) {
+    */
+    public void unlock(Latch item, int unlockCount) {
 
-		if (SanityManager.DEBUG) {
-			if (SanityManager.DEBUG_ON(Constants.LOCK_TRACE)) {
-				/*
-				** I don't like checking the trace flag twice, but SanityManager
-				** doesn't provide a way to get to the debug trace stream
-				** directly.
-				*/
-				SanityManager.DEBUG(
+        if (SanityManager.DEBUG) {
+            if (SanityManager.DEBUG_ON(Constants.LOCK_TRACE)) {
+                /*
+                ** I don't like checking the trace flag twice, but SanityManager
+                ** doesn't provide a way to get to the debug trace stream
+                ** directly.
+                */
+                SanityManager.DEBUG(
                     Constants.LOCK_TRACE, 
                     "Release lock: " + DiagnosticUtil.toDiagString(item));
-			}
-		}
+            }
+        }
 
-		boolean tryGrant = false;
-		ActiveLock nextGrant = null;
+        boolean tryGrant = false;
+        ActiveLock nextGrant = null;
 
-		synchronized (this) {
+        synchronized (this) {
 
-			Control control = getControl(item.getLockable());
-			
-			if (SanityManager.DEBUG) {
+            Control control = getControl(item.getLockable());
+            
+            if (SanityManager.DEBUG) {
 
                 // only valid Lock's expected
                 if (item.getLockable() == null)
@@ -531,44 +531,44 @@ forever:	for (;;) {
                         "item = " + DiagnosticUtil.toDiagString(item));
                 }
 
-				if (getControl(control.getLockable()) != control)
+                if (getControl(control.getLockable()) != control)
                 {
                     SanityManager.THROWASSERT(
                         "unlock mismatched lock items " + 
                         getControl(control.getLockable()) + " " + control);
                 }
 
-				if ((unlockCount != 0) && (unlockCount > item.getCount()))
-					SanityManager.THROWASSERT("unlockCount " + unlockCount +
-						" larger than actual lock count " + item.getCount() + " item " + item);
-			}
+                if ((unlockCount != 0) && (unlockCount > item.getCount()))
+                    SanityManager.THROWASSERT("unlockCount " + unlockCount +
+                        " larger than actual lock count " + item.getCount() + " item " + item);
+            }
 
-			tryGrant = control.unlock(item, unlockCount);
-			item = null;
+            tryGrant = control.unlock(item, unlockCount);
+            item = null;
 
-			boolean mayBeEmpty = true;
-			if (tryGrant) {
-				nextGrant = control.firstWaiter();
-				if (nextGrant != null) {
-					mayBeEmpty = false;
-					if (!nextGrant.setPotentiallyGranted())
-						nextGrant = null;
-				}
-			}
+            boolean mayBeEmpty = true;
+            if (tryGrant) {
+                nextGrant = control.firstWaiter();
+                if (nextGrant != null) {
+                    mayBeEmpty = false;
+                    if (!nextGrant.setPotentiallyGranted())
+                        nextGrant = null;
+                }
+            }
 
-			if (mayBeEmpty) {
-				if (control.isEmpty()) {
-					// no-one granted, no-one waiting, remove lock control
-					locks.remove(control.getLockable());
-				}
-				return;
-			}
-		} // synchronized (this)
+            if (mayBeEmpty) {
+                if (control.isEmpty()) {
+                    // no-one granted, no-one waiting, remove lock control
+                    locks.remove(control.getLockable());
+                }
+                return;
+            }
+        } // synchronized (this)
 
-		if (tryGrant && (nextGrant != null)) {
-			nextGrant.wakeUp(Constants.WAITING_LOCK_GRANT);
-		}
-	}
+        if (tryGrant && (nextGrant != null)) {
+            nextGrant.wakeUp(Constants.WAITING_LOCK_GRANT);
+        }
+    }
 
     /**
      * Unlock an object once if it is present in the specified group. Also
@@ -689,22 +689,22 @@ forever:	for (;;) {
     public void setWaitTimeout(int timeout) {
         waitTimeout = timeout;
     }
-	
+    
     /**
      * Get the wait timeout in milliseconds.
      */
     public int getWaitTimeout() { return waitTimeout; }
     
-	/*
-	** Non public methods
-	*/
+    /*
+    ** Non public methods
+    */
 //EXCLUDE-START-lockdiag- 
 
-	public void setDeadlockTrace(boolean val)
-	{
-		// set this without synchronization
-		deadlockTrace = val;
-	}			
+    public void setDeadlockTrace(boolean val)
+    {
+        // set this without synchronization
+        deadlockTrace = val;
+    }            
 //EXCLUDE-END-lockdiag- 
 
     public String toDebugString()
@@ -740,12 +740,12 @@ forever:	for (;;) {
     }
 
 //EXCLUDE-START-lockdiag- 
-	/**
-	 * make a shallow clone of myself and my lock controls
-	 */
-	public synchronized Map shallowClone()
-	{
-		HashMap clone = new HashMap();
+    /**
+     * make a shallow clone of myself and my lock controls
+     */
+    public synchronized Map shallowClone()
+    {
+        HashMap clone = new HashMap();
 
         for (Object o : locks.keySet()) {
             Lockable lockable = (Lockable) o;
@@ -754,48 +754,48 @@ forever:	for (;;) {
             clone.put(lockable, control.shallowClone());
         }
 
-		return clone;
-	}
+        return clone;
+    }
 //EXCLUDE-END-lockdiag- 
 
-	/*
-	** Support for anyoneBlocked(). These methods assume that caller
-	** is synchronized on this LockSet object.
-	*/
+    /*
+    ** Support for anyoneBlocked(). These methods assume that caller
+    ** is synchronized on this LockSet object.
+    */
 
-	/**
-	 * Increase blockCount by one.
-	 * <BR>
-	 * MT - must be synchronized on this <code>LockSet</code> object.
-	 */
-	public void oneMoreWaiter() {
-		blockCount++;
-	}
+    /**
+     * Increase blockCount by one.
+     * <BR>
+     * MT - must be synchronized on this <code>LockSet</code> object.
+     */
+    public void oneMoreWaiter() {
+        blockCount++;
+    }
 
-	/**
-	 * Decrease blockCount by one.
-	 * <BR>
-	 * MT - must be synchronized on this <code>LockSet</code> object.
-	 */
-	public void oneLessWaiter() {
-		blockCount--;
-	}
+    /**
+     * Decrease blockCount by one.
+     * <BR>
+     * MT - must be synchronized on this <code>LockSet</code> object.
+     */
+    public void oneLessWaiter() {
+        blockCount--;
+    }
 
-	public synchronized boolean anyoneBlocked() {
-		if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(
-				blockCount >= 0, "blockCount should not be negative");
-		}
+    public synchronized boolean anyoneBlocked() {
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(
+                blockCount >= 0, "blockCount should not be negative");
+        }
 
-		return blockCount != 0;
-	}
+        return blockCount != 0;
+    }
 
-	/**
-	 * Get the <code>Control</code> for an object in the lock table.
-	 * <br>
-	 * MT - must be synchronized on this <code>LockSet</code> object.
-	 */
-	private Control getControl(Lockable ref) {
-		return (Control) locks.get(ref);
-	}
+    /**
+     * Get the <code>Control</code> for an object in the lock table.
+     * <br>
+     * MT - must be synchronized on this <code>LockSet</code> object.
+     */
+    private Control getControl(Lockable ref) {
+        return (Control) locks.get(ref);
+    }
 }

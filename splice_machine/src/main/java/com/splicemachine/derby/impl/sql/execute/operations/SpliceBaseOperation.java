@@ -225,10 +225,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 op.close();
 
 
-		/* If this is the top ResultSet then we must
+        /* If this is the top ResultSet then we must
          * close all of the open subqueries for the
-		 * entire query.
-		 */
+         * entire query.
+         */
             if(isTopResultSet){
 
                 LanguageConnectionContext lcc=getActivation().getLanguageConnectionContext();
@@ -252,12 +252,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         }
     }
 
-    //	@Override
+    //    @Override
     public void addWarning(SQLWarning w){
         activation.addWarning(w);
     }
 
-    //	@Override
+    //    @Override
     public SQLWarning getWarnings(){
         return activation.getWarnings();
     }
@@ -284,7 +284,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         }
     }
 
-    //	@Override
+    //    @Override
     public double getEstimatedRowCount(){
         return operationInformation.getEstimatedRowCount();
     }
@@ -787,9 +787,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     protected TxnView elevateTransaction() throws StandardException{
-		/*
-		 * Elevate the current transaction to make sure that we are writable
-		 */
+        /*
+         * Elevate the current transaction to make sure that we are writable
+         */
         TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
         Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
         BaseSpliceTransaction rawTxn=(BaseSpliceTransaction)rawStoreXact;

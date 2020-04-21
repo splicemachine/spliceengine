@@ -37,42 +37,42 @@ import com.splicemachine.mrio.api.mapreduce.SpliceTableOutputCommitter;
 
 public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements Configurable {
     protected static final Logger LOG = Logger.getLogger(SMOutputFormat.class);
-	protected Configuration conf;
-	protected SMSQLUtil util;
+    protected Configuration conf;
+    protected SMSQLUtil util;
 
-	
-	@Override
-	public void setConf(Configuration conf) {
-		this.conf = conf;
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "setConf conf=%s",conf);
-	    String tableName = conf.get(MRConstants.SPLICE_OUTPUT_TABLE_NAME);
+    
+    @Override
+    public void setConf(Configuration conf) {
+        this.conf = conf;
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "setConf conf=%s",conf);
+        String tableName = conf.get(MRConstants.SPLICE_OUTPUT_TABLE_NAME);
         if(tableName == null) {
             tableName = conf.get(MRConstants.SPLICE_TABLE_NAME);
         }
-	    String conglomerate = conf.get(MRConstants.SPLICE_OUTPUT_CONGLOMERATE);
-		String jdbcString = conf.get(MRConstants.SPLICE_JDBC_STR);
-		if (tableName == null) {
-		    LOG.error("Table Name Supplied is null");
-	    	throw new RuntimeException("Table Name Supplied is Null");
-	    }
+        String conglomerate = conf.get(MRConstants.SPLICE_OUTPUT_CONGLOMERATE);
+        String jdbcString = conf.get(MRConstants.SPLICE_JDBC_STR);
+        if (tableName == null) {
+            LOG.error("Table Name Supplied is null");
+            throw new RuntimeException("Table Name Supplied is Null");
+        }
 
-		if (jdbcString == null) {
-			LOG.error("JDBC String Not Supplied");
-			throw new RuntimeException("JDBC String Not Supplied");
-		}
-		if (util==null)
-			util = SMSQLUtil.getInstance(jdbcString);
-		
-	    if (conglomerate == null) {
-			try {
-				conglomerate = util.getConglomID(tableName);
-				conf.set(MRConstants.SPLICE_OUTPUT_CONGLOMERATE, conglomerate);
-			} catch (SQLException e) {
-				LOG.error(StringUtils.stringifyException(e));
-				throw new RuntimeException(e);
-			}		    	
-	    }
+        if (jdbcString == null) {
+            LOG.error("JDBC String Not Supplied");
+            throw new RuntimeException("JDBC String Not Supplied");
+        }
+        if (util==null)
+            util = SMSQLUtil.getInstance(jdbcString);
+        
+        if (conglomerate == null) {
+            try {
+                conglomerate = util.getConglomID(tableName);
+                conf.set(MRConstants.SPLICE_OUTPUT_CONGLOMERATE, conglomerate);
+            } catch (SQLException e) {
+                LOG.error(StringUtils.stringifyException(e));
+                throw new RuntimeException(e);
+            }                
+        }
 
         if (tableName != null) {
             tableName = tableName.trim().toUpperCase();
@@ -91,32 +91,32 @@ public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements
                 throw new RuntimeException(e);
             }
         }
-	}
+    }
 
-	@Override
-	public Configuration getConf() {
-		return conf;
-	}
+    @Override
+    public Configuration getConf() {
+        return conf;
+    }
 
-	@Override
-	public RecordWriter<RowLocation, ExecRow> getRecordWriter(
-			TaskAttemptContext context) throws IOException,
-			InterruptedException {
+    @Override
+    public RecordWriter<RowLocation, ExecRow> getRecordWriter(
+            TaskAttemptContext context) throws IOException,
+            InterruptedException {
 //        TableContext tableContext = TableContext.getTableContextFromBase64String(context.getConfiguration().get(MRConstants.SPLICE_TBLE_CONTEXT));
         return new SMRecordWriterImpl(context.getConfiguration());
-	}
+    }
 
-	@Override
-	public void checkOutputSpecs(JobContext context) throws IOException,
-			InterruptedException {
-		// TODO Auto-generated method stub
-	}
+    @Override
+    public void checkOutputSpecs(JobContext context) throws IOException,
+            InterruptedException {
+        // TODO Auto-generated method stub
+    }
 
-	@Override
-	public OutputCommitter getOutputCommitter(TaskAttemptContext context)
-			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		return new SpliceTableOutputCommitter();
-	}
+    @Override
+    public OutputCommitter getOutputCommitter(TaskAttemptContext context)
+            throws IOException, InterruptedException {
+        // TODO Auto-generated method stub
+        return new SpliceTableOutputCommitter();
+    }
 
 }

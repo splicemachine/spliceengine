@@ -42,82 +42,82 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
  */
 public abstract class OrderedColumn extends QueryTreeNode 
 {
-	protected static final int UNMATCHEDPOSITION = -1;
-	protected int	columnPosition = UNMATCHEDPOSITION;
+    protected static final int UNMATCHEDPOSITION = -1;
+    protected int    columnPosition = UNMATCHEDPOSITION;
 
-	/**
-	 * Indicate whether this column is ascending or not.
-	 * By default assume that all ordered columns are
-	 * necessarily ascending.  If this class is inherited
-	 * by someone that can be desceneded, they are expected
-	 * to override this method.
-	 *
-	 * @return true
-	 */
-	public boolean isAscending()
-	{
-		return true;
-	}
+    /**
+     * Indicate whether this column is ascending or not.
+     * By default assume that all ordered columns are
+     * necessarily ascending.  If this class is inherited
+     * by someone that can be desceneded, they are expected
+     * to override this method.
+     *
+     * @return true
+     */
+    public boolean isAscending()
+    {
+        return true;
+    }
 
-	/**
-	 * Indicate whether this column should be ordered NULLS low.
-	 * By default we assume that all ordered columns are ordered
-	 * with NULLS higher than non-null values. If this class is inherited
-	 * by someone that can be specified to have NULLs ordered lower than
+    /**
+     * Indicate whether this column should be ordered NULLS low.
+     * By default we assume that all ordered columns are ordered
+     * with NULLS higher than non-null values. If this class is inherited
+     * by someone that can be specified to have NULLs ordered lower than
          * non-null values, they are expected to override this method.
-	 *
-	 * @return false
-	 */
-	public boolean isNullsOrderedLow()
-	{
-		return false;
-	}
+     *
+     * @return false
+     */
+    public boolean isNullsOrderedLow()
+    {
+        return false;
+    }
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
-	public String toString() 
-	{
-		if (SanityManager.DEBUG)
-		{
-			return "columnPosition: " + columnPosition + "\n" +
-				super.toString();
-		}
-		else
-		{
-			return "";
-		}
-	}
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
+    public String toString() 
+    {
+        if (SanityManager.DEBUG)
+        {
+            return "columnPosition: " + columnPosition + "\n" +
+                super.toString();
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	/**
-	 * Get the position of this column
-	 *
-	 * @return	The position of this column
-	 */
-	public int getColumnPosition() 
-	{
-		return columnPosition;
-	}
+    /**
+     * Get the position of this column
+     *
+     * @return    The position of this column
+     */
+    public int getColumnPosition() 
+    {
+        return columnPosition;
+    }
 
-	/**
-	 * Set the position of this column
-	 */
-	public void setColumnPosition(int columnPosition) 
-	{
-		this.columnPosition = columnPosition;
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(columnPosition > 0,
-				"Column position is " + columnPosition +
-				". This is a problem since the code to generate " +
-				" ordering columns assumes it to be one based -- i.e. "+
-				" it subtracts one");
+    /**
+     * Set the position of this column
+     */
+    public void setColumnPosition(int columnPosition) 
+    {
+        this.columnPosition = columnPosition;
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(columnPosition > 0,
+                "Column position is " + columnPosition +
+                ". This is a problem since the code to generate " +
+                " ordering columns assumes it to be one based -- i.e. "+
+                " it subtracts one");
 
-		}
-	}
+        }
+    }
 
     public abstract ValueNode getColumnExpression();
 

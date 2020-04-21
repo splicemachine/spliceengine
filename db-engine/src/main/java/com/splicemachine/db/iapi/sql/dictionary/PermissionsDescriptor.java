@@ -41,114 +41,114 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
  * system tables.
  */
 public abstract class PermissionsDescriptor extends TupleDescriptor 
-	implements Cloneable, Provider
+    implements Cloneable, Provider
 {
-	protected UUID oid;
-	private String grantee;
-	private final String grantor;
+    protected UUID oid;
+    private String grantee;
+    private final String grantor;
 
-	PermissionsDescriptor( DataDictionary dd,
-								  String grantee,
-								  String grantor)
-	{
-		super (dd);
-		this.grantee = grantee;
-		this.grantor = grantor;
-	}
+    PermissionsDescriptor( DataDictionary dd,
+                                  String grantee,
+                                  String grantor)
+    {
+        super (dd);
+        this.grantee = grantee;
+        this.grantor = grantor;
+    }
 
-	public Object clone()
-	{
-		try
-		{
-			return super.clone();
-		}
-		catch( java.lang.CloneNotSupportedException cnse)
-		{
-			if( SanityManager.DEBUG)
-				SanityManager.THROWASSERT("Could not clone a " +
-										  getClass().getName(), cnse);
-			return null;
-		}
-	}
-	
-	public abstract int getCatalogNumber();
+    public Object clone()
+    {
+        try
+        {
+            return super.clone();
+        }
+        catch( java.lang.CloneNotSupportedException cnse)
+        {
+            if( SanityManager.DEBUG)
+                SanityManager.THROWASSERT("Could not clone a " +
+                                          getClass().getName(), cnse);
+            return null;
+        }
+    }
+    
+    public abstract int getCatalogNumber();
 
-	/**
-	 * @return true iff the key part of this permissions descriptor equals the key part of another permissions
-	 *		 descriptor.
-	 */
-	protected boolean keyEquals( PermissionsDescriptor other)
-	{
-		return grantee.equals( other.grantee);
-	}
-		   
-	/**
-	 * @return the hashCode for the key part of this permissions descriptor
-	 */
-	protected int keyHashCode()
-	{
-		return grantee.hashCode();
-	}
-	
-	public void setGrantee( String grantee)
-	{
-		this.grantee = grantee;
-	}
-	
-	/*----- getter functions for rowfactory ------*/
-	public final String getGrantee() { return grantee;}
-	public final String getGrantor() { return grantor;}
+    /**
+     * @return true iff the key part of this permissions descriptor equals the key part of another permissions
+     *         descriptor.
+     */
+    protected boolean keyEquals( PermissionsDescriptor other)
+    {
+        return grantee.equals( other.grantee);
+    }
+           
+    /**
+     * @return the hashCode for the key part of this permissions descriptor
+     */
+    protected int keyHashCode()
+    {
+        return grantee.hashCode();
+    }
+    
+    public void setGrantee( String grantee)
+    {
+        this.grantee = grantee;
+    }
+    
+    /*----- getter functions for rowfactory ------*/
+    public final String getGrantee() { return grantee;}
+    public final String getGrantor() { return grantor;}
 
-	/**
-	 * Gets the UUID of the table.
-	 *
-	 * @return	The UUID of the table.
-	 */
-	public UUID	getUUID() { return oid;}
+    /**
+     * Gets the UUID of the table.
+     *
+     * @return    The UUID of the table.
+     */
+    public UUID    getUUID() { return oid;}
 
-	/**
-	 * Sets the UUID of the table
-	 *
-	 * @param oid	The UUID of the table to be set in the descriptor
-	 */
-	public void setUUID(UUID oid) {	this.oid = oid;}
-	
-	/**
-	 * This method checks if the passed authorization id is same as the owner 
-	 * of the object on which this permission is defined. This method gets
-	 * called by create view/constraint/trigger to see if this permission 
-	 * needs to be saved in dependency system for the view/constraint/trigger. 
-	 * If the same user is the owner of the the object being accessed and the 
-	 * newly created object, then no need to keep this privilege dependency 
-	 *
-	 * @return boolean	If passed authorization id is owner of the table
-	 */
-	public abstract boolean checkOwner(String authorizationId) throws StandardException;
+    /**
+     * Sets the UUID of the table
+     *
+     * @param oid    The UUID of the table to be set in the descriptor
+     */
+    public void setUUID(UUID oid) {    this.oid = oid;}
+    
+    /**
+     * This method checks if the passed authorization id is same as the owner 
+     * of the object on which this permission is defined. This method gets
+     * called by create view/constraint/trigger to see if this permission 
+     * needs to be saved in dependency system for the view/constraint/trigger. 
+     * If the same user is the owner of the the object being accessed and the 
+     * newly created object, then no need to keep this privilege dependency 
+     *
+     * @return boolean    If passed authorization id is owner of the table
+     */
+    public abstract boolean checkOwner(String authorizationId) throws StandardException;
 
-	//////////////////////////////////////////////
-	//
-	// PROVIDER INTERFACE
-	//
-	////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////
+    //
+    // PROVIDER INTERFACE
+    //
+    ////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Get the provider's UUID
-	 *
-	 * @return 	The provider's UUID
-	 */
-	public UUID getObjectID()
-	{
-		return oid;
-	}
+    /**
+     * Get the provider's UUID
+     *
+     * @return     The provider's UUID
+     */
+    public UUID getObjectID()
+    {
+        return oid;
+    }
 
-	/**
-	 * Is this provider persistent?  A stored dependency will be required
-	 * if both the dependent and provider are persistent.
-	 *
-	 * @return boolean              Whether or not this provider is persistent.
-	 */
-	public boolean isPersistent()
-	{
-		return true;
-	}
+    /**
+     * Is this provider persistent?  A stored dependency will be required
+     * if both the dependent and provider are persistent.
+     *
+     * @return boolean              Whether or not this provider is persistent.
+     */
+    public boolean isPersistent()
+    {
+        return true;
+    }
 }

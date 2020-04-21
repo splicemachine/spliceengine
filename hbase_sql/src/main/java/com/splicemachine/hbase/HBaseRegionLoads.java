@@ -286,11 +286,11 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
 
     public static long memstoreAndStoreFileSize(String tableName) {
         Map<String,PartitionLoad> regionLoads = getCachedRegionLoadsMapForTable(tableName);
-    	if (regionLoads == null)
-    		return -1;
-    	long cost = 0;
+        if (regionLoads == null)
+            return -1;
+        long cost = 0;
         for (PartitionLoad regionLoad: regionLoads.values()) {
-        	cost += memstoreAndStorefileSize(regionLoad);
+            cost += memstoreAndStorefileSize(regionLoad);
         }
         return cost;
     }

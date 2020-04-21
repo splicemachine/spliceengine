@@ -42,15 +42,15 @@ import java.sql.SQLWarning;
  */
 class ijUnsupportedCommandResult extends ijResultImpl {
 
-	String command;
-	SQLWarning warn;
-	
-	ijUnsupportedCommandResult(String c) {
-		command = c;
-	}
+    String command;
+    SQLWarning warn;
+    
+    ijUnsupportedCommandResult(String c) {
+        command = c;
+    }
 
-	public boolean isUnsupportedCommand() { return true; }
-	public String toString() { return "\'" + command + "\' is not supported."; }
-	public SQLWarning getSQLWarnings() { return warn; }
-	public void clearSQLWarnings() { warn = null; }
+    public boolean isUnsupportedCommand() { return true; }
+    public String toString() { return "\'" + command + "\' is not supported."; }
+    public SQLWarning getSQLWarnings() { return warn; }
+    public void clearSQLWarnings() { warn = null; }
 }

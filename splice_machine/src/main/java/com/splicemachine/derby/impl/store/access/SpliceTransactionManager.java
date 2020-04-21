@@ -590,12 +590,12 @@ public class SpliceTransactionManager implements XATransactionController,
 
         return (recreateAndLoadConglomerate(isExternal,implementation, true, template,
                 columnOrder, collationIds, properties, temporaryFlag, 0 /*
-																		 * unused
-																		 * if
-																		 * recreate_ifempty
-																		 * is
-																		 * true
-																		 */,
+                                                                         * unused
+                                                                         * if
+                                                                         * recreate_ifempty
+                                                                         * is
+                                                                         * true
+                                                                         */,
                 rowSource, rowCount));
     }
 
@@ -1148,11 +1148,11 @@ public class SpliceTransactionManager implements XATransactionController,
             if (LOG.isTraceEnabled())
                 LOG.trace("commit transaction contextId=="
                         + ((SpliceTransaction) rawtran).getContextId());
-    	    if (LOG.isDebugEnabled())
-    	        SpliceLogUtils.debug(LOG, "Before commit: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "Before commit: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
             rawtran.commit();
-    	    if (LOG.isDebugEnabled())
-    	        SpliceLogUtils.debug(LOG, "After commit: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "After commit: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
         }
 
         alterTableCallMade = false;
@@ -1163,20 +1163,20 @@ public class SpliceTransactionManager implements XATransactionController,
         LOG.debug("commitNoSync ");
         if (LOG.isTraceEnabled())
             LOG.trace("commitNoSync ");
-	    if (LOG.isDebugEnabled())
-	        SpliceLogUtils.debug(LOG, "Before commitNoSync: txn=%s, commitFlag=%s, nestedTxnStack=\n%s", getRawTransaction(), commitflag, getNestedTransactionStackString());
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "Before commitNoSync: txn=%s, commitFlag=%s, nestedTxnStack=\n%s", getRawTransaction(), commitflag, getNestedTransactionStackString());
         this.closeControllers(false /* don't close held controllers */);
         rawtran.commitNoSync(commitflag);
-	    if (LOG.isDebugEnabled())
-	        SpliceLogUtils.debug(LOG, "After commitNoSync: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
-	    return;
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "After commitNoSync: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
+        return;
     }
 
     public void abort() throws StandardException {
         if (LOG.isTraceEnabled())
             LOG.trace("abort ");
-	    if (LOG.isDebugEnabled())
-	        SpliceLogUtils.debug(LOG, "Before abort: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "Before abort: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
 
         /*
         if (alterTableCallMade) {
@@ -1187,8 +1187,8 @@ public class SpliceTransactionManager implements XATransactionController,
         this.closeControllers(true /* close all controllers */);
         rawtran.abort();
 
-	    if (LOG.isDebugEnabled())
-	        SpliceLogUtils.debug(LOG, "After abort: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "After abort: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
     }
 
     /**
@@ -1205,33 +1205,33 @@ public class SpliceTransactionManager implements XATransactionController,
 
     public int setSavePoint(String name, Object kindOfSavepoint) throws StandardException {
         assert rawtran instanceof SpliceTransaction : "Programmer error: cannot set a save point on a Transaction View";
-	    if (LOG.isDebugEnabled())
-	        SpliceLogUtils.debug(LOG, "Before setSavePoint: name=%s, parentTxn=%s, nestedTxnStack=\n%s", name, getRawTransaction(), getNestedTransactionStackString());
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "Before setSavePoint: name=%s, parentTxn=%s, nestedTxnStack=\n%s", name, getRawTransaction(), getNestedTransactionStackString());
         int numSavePoints = rawtran.setSavePoint(name, kindOfSavepoint);
-	    if (LOG.isDebugEnabled())
-	        SpliceLogUtils.debug(LOG, "After setSavePoint: name=%s, numSavePoints=%s, nestedTxnStack=\n%s", name, numSavePoints, getNestedTransactionStackString());
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "After setSavePoint: name=%s, numSavePoints=%s, nestedTxnStack=\n%s", name, numSavePoints, getNestedTransactionStackString());
         return numSavePoints;
     }
 
     public int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException {
         assert rawtran instanceof SpliceTransaction : "Programmer error: cannot release a save point on a Transaction View";
-	    if (LOG.isDebugEnabled())
-	    	SpliceLogUtils.debug(LOG, "Before releaseSavePoint: name=%s, parentTxn=%s, nestedTxnStack=\n%s", name, getRawTransaction(), getNestedTransactionStackString());
-	    int numSavePoints = rawtran.releaseSavePoint(name, kindOfSavepoint);
-	    if (LOG.isDebugEnabled())
-	        SpliceLogUtils.debug(LOG, "After releaseSavePoint: name=%s, numSavePoints=%s, nestedTxnStack=\n%s", name, numSavePoints, getNestedTransactionStackString());
-	    return numSavePoints;
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "Before releaseSavePoint: name=%s, parentTxn=%s, nestedTxnStack=\n%s", name, getRawTransaction(), getNestedTransactionStackString());
+        int numSavePoints = rawtran.releaseSavePoint(name, kindOfSavepoint);
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "After releaseSavePoint: name=%s, numSavePoints=%s, nestedTxnStack=\n%s", name, numSavePoints, getNestedTransactionStackString());
+        return numSavePoints;
     }
 
     public int rollbackToSavePoint(String name, boolean close_controllers, Object kindOfSavepoint) throws StandardException {
         assert rawtran instanceof SpliceTransaction : "Programmer error: cannot rollback a save point on a Transaction View";
-	    if (LOG.isDebugEnabled())
-	    	SpliceLogUtils.debug(LOG, "Before rollbackSavePoint: name=%s, parentTxn=%s, nestedTxnStack=\n%s", name, getRawTransaction(), getNestedTransactionStackString());
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "Before rollbackSavePoint: name=%s, parentTxn=%s, nestedTxnStack=\n%s", name, getRawTransaction(), getNestedTransactionStackString());
         if (close_controllers)
             this.closeControllers(true /* close all controllers */);
         int numSavePoints = rawtran.rollbackToSavePoint(name, kindOfSavepoint);
-	    if (LOG.isDebugEnabled())
-	        SpliceLogUtils.debug(LOG, "After rollbackSavePoint: name=%s, numSavePoints=%s, nestedTxnStack=\n%s", name, numSavePoints, getNestedTransactionStackString());
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "After rollbackSavePoint: name=%s, numSavePoints=%s, nestedTxnStack=\n%s", name, numSavePoints, getNestedTransactionStackString());
         return numSavePoints;
     }
 
@@ -1277,11 +1277,11 @@ public class SpliceTransactionManager implements XATransactionController,
     public void elevate(String tableName) throws StandardException {
         assert rawtran instanceof SpliceTransaction: "Programmer error: cannot elevate a transaction view!";
         assert tableName !=null : "Programmer error: cannot elevate a transaction without specifying a label";
-	    if (LOG.isDebugEnabled())
-	    	SpliceLogUtils.debug(LOG, "Before elevate: txn=%s, tableName=%s, nestedTxnStack=\n%s", getRawTransaction(), tableName, getNestedTransactionStackString());
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "Before elevate: txn=%s, tableName=%s, nestedTxnStack=\n%s", getRawTransaction(), tableName, getNestedTransactionStackString());
         ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(tableName));
-	    if (LOG.isDebugEnabled())
-	    	SpliceLogUtils.debug(LOG, "After elevate: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "After elevate: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
     }
 
     public boolean anyoneBlocked() {
@@ -1570,8 +1570,8 @@ public class SpliceTransactionManager implements XATransactionController,
                                                             boolean flush_log_on_xact_end) throws StandardException {
         if (LOG.isTraceEnabled())
             LOG.trace("startNestedUserTransaction ");
-	    if (LOG.isDebugEnabled())
-	    	SpliceLogUtils.debug(LOG, "Before startNestedUserTransaction: parentTxn=%s, readOnly=%b, nestedTxnStack=\n%s", getRawTransaction(), readOnly, getNestedTransactionStackString());
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "Before startNestedUserTransaction: parentTxn=%s, readOnly=%b, nestedTxnStack=\n%s", getRawTransaction(), readOnly, getNestedTransactionStackString());
         // Get the context manager.
         ContextService contextService = ContextService.getService();
         ContextManager cm = contextService.newContextManager(getContextManager());
@@ -1612,8 +1612,8 @@ public class SpliceTransactionManager implements XATransactionController,
         @SuppressWarnings("UnusedDeclaration") SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(
                 cm, AccessFactoryGlobals.RAMXACT_CHILD_CONTEXT_ID, rt, true /* abortAll */);
 
-	    if (LOG.isDebugEnabled())
-	    	SpliceLogUtils.debug(LOG, "After startNestedUserTransaction: childTxn=%s, nestedTxnStack=\n%s", childTxn, rt.getNestedTransactionStackString());
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "After startNestedUserTransaction: childTxn=%s, nestedTxnStack=\n%s", childTxn, rt.getNestedTransactionStackString());
 
         return (rt);
     }
@@ -1772,28 +1772,28 @@ public class SpliceTransactionManager implements XATransactionController,
      * @return string depicting the nested transaction stack
      */
     private String getNestedTransactionStackString() {
-    	SpliceTransactionManager currentTxnMgr = parent_tran;
-    	Stack<SpliceTransactionManager> txnStack = new Stack<SpliceTransactionManager>();
-    	while (currentTxnMgr != null) {
-    		txnStack.push(currentTxnMgr);
-    		currentTxnMgr = currentTxnMgr.parent_tran;
-    	}
+        SpliceTransactionManager currentTxnMgr = parent_tran;
+        Stack<SpliceTransactionManager> txnStack = new Stack<SpliceTransactionManager>();
+        while (currentTxnMgr != null) {
+            txnStack.push(currentTxnMgr);
+            currentTxnMgr = currentTxnMgr.parent_tran;
+        }
 
-    	StringBuffer sb = new StringBuffer();
-    	sb.append(Txn.ROOT_TRANSACTION);
-    	sb.append("\n");
-    	int count = 2;
-    	while (!txnStack.empty()) {
-    		appendSpaces(count, sb);
-    		sb.append(txnStack.pop().getRawTransaction().toString());
-    		sb.append("\n");
-    		count += 2;
-    	}
-		appendSpaces(count, sb);
-    	sb.append("currentTxn: ");
-    	BaseSpliceTransaction currentTxn = getRawTransaction();
-		sb.append(currentTxn == null ? "null" : currentTxn.toString());
-    	return sb.toString();
+        StringBuffer sb = new StringBuffer();
+        sb.append(Txn.ROOT_TRANSACTION);
+        sb.append("\n");
+        int count = 2;
+        while (!txnStack.empty()) {
+            appendSpaces(count, sb);
+            sb.append(txnStack.pop().getRawTransaction().toString());
+            sb.append("\n");
+            count += 2;
+        }
+        appendSpaces(count, sb);
+        sb.append("currentTxn: ");
+        BaseSpliceTransaction currentTxn = getRawTransaction();
+        sb.append(currentTxn == null ? "null" : currentTxn.toString());
+        return sb.toString();
     }
 
     /**
@@ -1801,11 +1801,11 @@ public class SpliceTransactionManager implements XATransactionController,
      * @param n number of spaces to add to a buffer.
      */
     private StringBuffer appendSpaces(int n, StringBuffer buf) {
-    	if (buf == null) buf = new StringBuffer(n);
-    	for (int i = 0; i < n; i++) {
-    		buf.append(" ");
-    	}
-    	return buf;
+        if (buf == null) buf = new StringBuffer(n);
+        for (int i = 0; i < n; i++) {
+            buf.append(" ");
+        }
+        return buf;
     }
 
     public TxnView getActiveStateTxn() {

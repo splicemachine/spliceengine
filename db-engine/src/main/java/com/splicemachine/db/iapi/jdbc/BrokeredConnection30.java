@@ -38,172 +38,172 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 
 /**
-	Extends BrokeredConnection to provide the JDBC 3.0 connection methods.
+    Extends BrokeredConnection to provide the JDBC 3.0 connection methods.
  */
 public class BrokeredConnection30 extends BrokeredConnection
 {
 
-	public	BrokeredConnection30(BrokeredConnectionControl control)
+    public    BrokeredConnection30(BrokeredConnectionControl control)
             throws SQLException
-	{
-		super(control);
-	}
+    {
+        super(control);
+    }
 
-	public final Statement createStatement(int resultSetType,
+    public final Statement createStatement(int resultSetType,
                                  int resultSetConcurrency,
                                  int resultSetHoldability)
-								 throws SQLException {
-		try {
+                                 throws SQLException {
+        try {
             resultSetHoldability = statementHoldabilityCheck(resultSetHoldability);
-			return control.wrapStatement(getRealConnection().createStatement(resultSetType,
+            return control.wrapStatement(getRealConnection().createStatement(resultSetType,
                     resultSetConcurrency, resultSetHoldability));
-		}
-		catch (SQLException se)
-		{
-			notifyException(se);
-			throw se;
-		}
-	}
-	public final CallableStatement prepareCall(String sql,
+        }
+        catch (SQLException se)
+        {
+            notifyException(se);
+            throw se;
+        }
+    }
+    public final CallableStatement prepareCall(String sql,
                                      int resultSetType,
                                      int resultSetConcurrency,
                                      int resultSetHoldability)
-									 throws SQLException {
-		try {
+                                     throws SQLException {
+        try {
             resultSetHoldability = statementHoldabilityCheck(resultSetHoldability);
-			return control.wrapStatement(
-				getRealConnection().prepareCall(sql, resultSetType,
+            return control.wrapStatement(
+                getRealConnection().prepareCall(sql, resultSetType,
                         resultSetConcurrency, resultSetHoldability), sql);
-		}
-		catch (SQLException se)
-		{
-			notifyException(se);
-			throw se;
-		}
-	}
+        }
+        catch (SQLException se)
+        {
+            notifyException(se);
+            throw se;
+        }
+    }
 
-	public final Savepoint setSavepoint()
-		throws SQLException
-	{
-		try {
-			control.checkSavepoint();
-			return getRealConnection().setSavepoint();
-		}
-		catch (SQLException se)
-		{
-			notifyException(se);
-			throw se;
-		}
-	}
+    public final Savepoint setSavepoint()
+        throws SQLException
+    {
+        try {
+            control.checkSavepoint();
+            return getRealConnection().setSavepoint();
+        }
+        catch (SQLException se)
+        {
+            notifyException(se);
+            throw se;
+        }
+    }
 
-	public final Savepoint setSavepoint(String name)
-		throws SQLException
-	{
-		try {
-			control.checkSavepoint();
-			return getRealConnection().setSavepoint(name);
-		}
-		catch (SQLException se)
-		{
-			notifyException(se);
-			throw se;
-		}
-	}
+    public final Savepoint setSavepoint(String name)
+        throws SQLException
+    {
+        try {
+            control.checkSavepoint();
+            return getRealConnection().setSavepoint(name);
+        }
+        catch (SQLException se)
+        {
+            notifyException(se);
+            throw se;
+        }
+    }
 
-	public final void rollback(Savepoint savepoint)
-		throws SQLException
-	{
-		try {
-			control.checkRollback();
-			getRealConnection().rollback(savepoint);
-		}
-		catch (SQLException se)
-		{
-			notifyException(se);
-			throw se;
-		}
-	}
+    public final void rollback(Savepoint savepoint)
+        throws SQLException
+    {
+        try {
+            control.checkRollback();
+            getRealConnection().rollback(savepoint);
+        }
+        catch (SQLException se)
+        {
+            notifyException(se);
+            throw se;
+        }
+    }
 
-	public final void releaseSavepoint(Savepoint savepoint)
-		throws SQLException
-	{
-		try {
-			getRealConnection().releaseSavepoint(savepoint);
-		}
-		catch (SQLException se)
-		{
-			notifyException(se);
-			throw se;
-		}
-	}
+    public final void releaseSavepoint(Savepoint savepoint)
+        throws SQLException
+    {
+        try {
+            getRealConnection().releaseSavepoint(savepoint);
+        }
+        catch (SQLException se)
+        {
+            notifyException(se);
+            throw se;
+        }
+    }
 
 
-	public final void setHoldability(int holdability)
-		throws SQLException
-	{
-		try {
-			holdability = control.checkHoldCursors(holdability, false);
-			getRealConnection().setHoldability(holdability);
-			stateHoldability = holdability;
-		}
-		catch (SQLException se)
-		{
-			notifyException(se);
-			throw se;
-		}
-	}
+    public final void setHoldability(int holdability)
+        throws SQLException
+    {
+        try {
+            holdability = control.checkHoldCursors(holdability, false);
+            getRealConnection().setHoldability(holdability);
+            stateHoldability = holdability;
+        }
+        catch (SQLException se)
+        {
+            notifyException(se);
+            throw se;
+        }
+    }
 
-	public final PreparedStatement prepareStatement(
-			String sql,
-			int autoGeneratedKeys)
+    public final PreparedStatement prepareStatement(
+            String sql,
+            int autoGeneratedKeys)
     throws SQLException
-	{
-		try {
-			return control.wrapStatement(getRealConnection().prepareStatement(sql, autoGeneratedKeys), sql, autoGeneratedKeys);
-		}
-		catch (SQLException se)
-		{
-			notifyException(se);
-			throw se;
-		}
-	}
+    {
+        try {
+            return control.wrapStatement(getRealConnection().prepareStatement(sql, autoGeneratedKeys), sql, autoGeneratedKeys);
+        }
+        catch (SQLException se)
+        {
+            notifyException(se);
+            throw se;
+        }
+    }
 
-	public final PreparedStatement prepareStatement(
-			String sql,
-			int[] columnIndexes)
+    public final PreparedStatement prepareStatement(
+            String sql,
+            int[] columnIndexes)
     throws SQLException
-	{
-		try {
-			return control.wrapStatement(getRealConnection().prepareStatement(sql, columnIndexes), sql, columnIndexes);
-		}
-		catch (SQLException se)
-		{
-			notifyException(se);
-			throw se;
-		}
-	}
+    {
+        try {
+            return control.wrapStatement(getRealConnection().prepareStatement(sql, columnIndexes), sql, columnIndexes);
+        }
+        catch (SQLException se)
+        {
+            notifyException(se);
+            throw se;
+        }
+    }
 
-	public final PreparedStatement prepareStatement(
-			String sql,
-			String[] columnNames)
+    public final PreparedStatement prepareStatement(
+            String sql,
+            String[] columnNames)
     throws SQLException
-	{
-		try {
-			return control.wrapStatement(getRealConnection().prepareStatement(sql, columnNames), sql, columnNames);
-		}
-		catch (SQLException se)
-		{
-			notifyException(se);
-			throw se;
-		}
-	}
+    {
+        try {
+            return control.wrapStatement(getRealConnection().prepareStatement(sql, columnNames), sql, columnNames);
+        }
+        catch (SQLException se)
+        {
+            notifyException(se);
+            throw se;
+        }
+    }
 
-	public BrokeredPreparedStatement newBrokeredStatement(BrokeredStatementControl statementControl, String sql, Object generatedKeys) throws SQLException {
-		return new BrokeredPreparedStatement30(statementControl, sql, generatedKeys);
-	}
-	public BrokeredCallableStatement newBrokeredStatement(BrokeredStatementControl statementControl, String sql) throws SQLException {
-		return new BrokeredCallableStatement30(statementControl, sql);
-	}
+    public BrokeredPreparedStatement newBrokeredStatement(BrokeredStatementControl statementControl, String sql, Object generatedKeys) throws SQLException {
+        return new BrokeredPreparedStatement30(statementControl, sql, generatedKeys);
+    }
+    public BrokeredCallableStatement newBrokeredStatement(BrokeredStatementControl statementControl, String sql) throws SQLException {
+        return new BrokeredCallableStatement30(statementControl, sql);
+    }
 
 
 }

@@ -60,40 +60,40 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
  */
 
 abstract class BaseTypeCompiler implements TypeCompiler {
-	protected TypeId correspondingTypeId;
+    protected TypeId correspondingTypeId;
 
-	/**
-	 * Get the method name for getting out the corresponding primitive
-	 * Java type.
-	 *
-	 * @return String		The method call name for getting the
-	 *						corresponding primitive Java type.
-	 */
-	public String getPrimitiveMethodName() {
-		if (SanityManager.DEBUG) {
-			SanityManager.THROWASSERT("getPrimitiveMethodName not applicable for " +
-									  getClass().toString());
-		}
-		return null;
-	}
+    /**
+     * Get the method name for getting out the corresponding primitive
+     * Java type.
+     *
+     * @return String        The method call name for getting the
+     *                        corresponding primitive Java type.
+     */
+    public String getPrimitiveMethodName() {
+        if (SanityManager.DEBUG) {
+            SanityManager.THROWASSERT("getPrimitiveMethodName not applicable for " +
+                                      getClass().toString());
+        }
+        return null;
+    }
 
-	/**
-	 * @see TypeCompiler#resolveArithmeticOperation
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public DataTypeDescriptor
-	resolveArithmeticOperation(DataTypeDescriptor leftType,
-								DataTypeDescriptor rightType,
-								String operator)
-							throws StandardException
-	{
-		throw StandardException.newException(SQLState.LANG_BINARY_OPERATOR_NOT_SUPPORTED,
-										operator,
-										leftType.getTypeId().getSQLTypeName(),
-										rightType.getTypeId().getSQLTypeName()
-										);
-	}
+    /**
+     * @see TypeCompiler#resolveArithmeticOperation
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public DataTypeDescriptor
+    resolveArithmeticOperation(DataTypeDescriptor leftType,
+                                DataTypeDescriptor rightType,
+                                String operator)
+                            throws StandardException
+    {
+        throw StandardException.newException(SQLState.LANG_BINARY_OPERATOR_NOT_SUPPORTED,
+                                        operator,
+                                        leftType.getTypeId().getSQLTypeName(),
+                                        rightType.getTypeId().getSQLTypeName()
+                                        );
+    }
 
     /**
      * The caller will have pushed a DataValueFactory and a null or a value
@@ -111,34 +111,34 @@ abstract class BaseTypeCompiler implements TypeCompiler {
      *
      * @see TypeCompiler#generateNull(MethodBuilder, int)
      */
-	@Override
-	public void generateNull(MethodBuilder mb, DataTypeDescriptor dtd, LocalField[] localFields)
-	{
+    @Override
+    public void generateNull(MethodBuilder mb, DataTypeDescriptor dtd, LocalField[] localFields)
+    {
         int argCount;
-		if (correspondingTypeId.getTypeFormatId() == StoredFormatIds.DECIMAL_TYPE_ID) {
-			mb.push(dtd.getPrecision());
-			mb.push(dtd.getScale());
-			argCount = 3;
-		}
+        if (correspondingTypeId.getTypeFormatId() == StoredFormatIds.DECIMAL_TYPE_ID) {
+            mb.push(dtd.getPrecision());
+            mb.push(dtd.getScale());
+            argCount = 3;
+        }
         else if (correspondingTypeId.getTypeFormatId() == StoredFormatIds.CHAR_TYPE_ID ||
-				 correspondingTypeId.getTypeFormatId() == StoredFormatIds.VARCHAR_TYPE_ID)
-		{
-			mb.push(dtd.getCollationType());
-			mb.push(dtd.getMaximumWidth());
-			argCount = 3;
-		}
-		else if (pushCollationForDataValue(dtd.getCollationType()))
-		{
-			mb.push(dtd.getCollationType());
-			argCount = 2;
-		}
+                 correspondingTypeId.getTypeFormatId() == StoredFormatIds.VARCHAR_TYPE_ID)
+        {
+            mb.push(dtd.getCollationType());
+            mb.push(dtd.getMaximumWidth());
+            argCount = 3;
+        }
+        else if (pushCollationForDataValue(dtd.getCollationType()))
+        {
+            mb.push(dtd.getCollationType());
+            argCount = 2;
+        }
         else
             argCount = 1;
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null,
-									nullMethodName(),
-									interfaceName(),
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null,
+                                    nullMethodName(),
+                                    interfaceName(),
                                     argCount);
-	}
+    }
 
 
     /**
@@ -174,26 +174,26 @@ abstract class BaseTypeCompiler implements TypeCompiler {
      * @see TypeCompiler#generateDataValue(MethodBuilder, int, LocalField)
      */
     public void generateDataValue(MethodBuilder mb, int collationType,
-			LocalField field)
-	{
+            LocalField field)
+    {
 
 
-		String				interfaceName = interfaceName();
+        String                interfaceName = interfaceName();
 
-		// push the second argument
+        // push the second argument
 
-		/* If fieldName is null, then there is no
-		 * reusable wrapper (null), else we
-		 * reuse the field.
-		 */
-		if (field == null)
-		{
-			mb.pushNull(interfaceName);
-		}
-		else
-		{
-			mb.getField(field);
-		}
+        /* If fieldName is null, then there is no
+         * reusable wrapper (null), else we
+         * reuse the field.
+         */
+        if (field == null)
+        {
+            mb.pushNull(interfaceName);
+        }
+        else
+        {
+            mb.getField(field);
+        }
 
         int argCount;
         if (pushCollationForDataValue(collationType))
@@ -204,19 +204,19 @@ abstract class BaseTypeCompiler implements TypeCompiler {
         else
             argCount = 2;
 
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null,
-							dataValueMethodName(),
-							interfaceName,
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null,
+                            dataValueMethodName(),
+                            interfaceName,
                             argCount);
 
-		if (field != null)
-		{
-			/* Store the result of the method call in the field,
-			 * so we can re-use the wrapper.
-			 */
-//			mb.putField(field);
-		}
-	}
+        if (field != null)
+        {
+            /* Store the result of the method call in the field,
+             * so we can re-use the wrapper.
+             */
+//            mb.putField(field);
+        }
+    }
 
     /**
         Return the method name to get a Derby DataValueDescriptor
@@ -227,9 +227,9 @@ abstract class BaseTypeCompiler implements TypeCompiler {
     */
     abstract String nullMethodName();
 
-	/**
-		Return the method name to get a Derby DataValueDescriptor
-		object of the correct type and set it to a specific value.
+    /**
+        Return the method name to get a Derby DataValueDescriptor
+        object of the correct type and set it to a specific value.
         The method named will be called with two arguments, a value to set the
         returned value to and a holder object if pushCollationForDataValue()
         returns false. Otherwise three arguments, the third being the
@@ -237,11 +237,11 @@ abstract class BaseTypeCompiler implements TypeCompiler {
         This implementation returns "getDataValue" to map
         to the overloaded methods
         DataValueFactory.getDataValue(type, dvd type)
-	*/
-	String dataValueMethodName()
-	{
-		return "getDataValue";
-	}
+    */
+    String dataValueMethodName()
+    {
+        return "getDataValue";
+    }
 
     /**
      * Return true if the collationType is to be passed
@@ -257,128 +257,128 @@ abstract class BaseTypeCompiler implements TypeCompiler {
     }
 
 
-	/**
-	 * Determine whether thisType is storable in otherType due to otherType
-	 * being a user type.
-	 *
-	 * @param thisType	The TypeId of the value to be stored
-	 * @param otherType	The TypeId of the value to be stored in
-	 *
-	 * @return	true if thisType is storable in otherType
-	 */
-	protected boolean userTypeStorable(TypeId thisType,
-							TypeId otherType,
-							ClassFactory cf) {
+    /**
+     * Determine whether thisType is storable in otherType due to otherType
+     * being a user type.
+     *
+     * @param thisType    The TypeId of the value to be stored
+     * @param otherType    The TypeId of the value to be stored in
+     *
+     * @return    true if thisType is storable in otherType
+     */
+    protected boolean userTypeStorable(TypeId thisType,
+                            TypeId otherType,
+                            ClassFactory cf) {
         /*
-		** If the other type is user-defined, use the java types to determine
-		** assignability.
-		*/
+        ** If the other type is user-defined, use the java types to determine
+        ** assignability.
+        */
         return otherType.userType() && cf.getClassInspector().assignableTo(thisType.getCorrespondingJavaTypeName(), otherType.getCorrespondingJavaTypeName());
 
     }
 
-	/**
-	 * Tell whether this numeric type can be converted to the given type.
-	 *
-	 * @param otherType	The TypeId of the other type.
-	 * @param forDataTypeFunction  was this called from a scalarFunction like
-	 *                             CHAR() or DOUBLE()
-	 */
-	public boolean numberConvertible(TypeId otherType,
-									 boolean forDataTypeFunction)
-	{
+    /**
+     * Tell whether this numeric type can be converted to the given type.
+     *
+     * @param otherType    The TypeId of the other type.
+     * @param forDataTypeFunction  was this called from a scalarFunction like
+     *                             CHAR() or DOUBLE()
+     */
+    public boolean numberConvertible(TypeId otherType,
+                                     boolean forDataTypeFunction)
+    {
         if ( otherType.getBaseTypeId().isAnsiUDT() ) { return false; }
 
-		// Can't convert numbers to long types
-		if (otherType.isLongConcatableTypeId())
-			return false;
+        // Can't convert numbers to long types
+        if (otherType.isLongConcatableTypeId())
+            return false;
 
-		// Numbers can only be converted to other numbers,
-		// and CHAR, (not VARCHARS or LONGVARCHAR).
-		// Only with the CHAR() or VARCHAR()function can they be converted.
-		boolean retval =((otherType.isNumericTypeId()) ||
-						 (otherType.userType()));
+        // Numbers can only be converted to other numbers,
+        // and CHAR, (not VARCHARS or LONGVARCHAR).
+        // Only with the CHAR() or VARCHAR()function can they be converted.
+        boolean retval =((otherType.isNumericTypeId()) ||
+                         (otherType.userType()));
 
-		// For CHAR  Conversions, function can convert
-		// Floating types
-		if (forDataTypeFunction)
-			retval = retval ||
-				(otherType.isFixedStringTypeId() &&
-				(getTypeId().isFloatingPointTypeId()));
+        // For CHAR  Conversions, function can convert
+        // Floating types
+        if (forDataTypeFunction)
+            retval = retval ||
+                (otherType.isFixedStringTypeId() &&
+                (getTypeId().isFloatingPointTypeId()));
 
-		retval = retval ||
-			(otherType.isFixedStringTypeId() &&
-			 (!getTypeId().isFloatingPointTypeId()));
+        retval = retval ||
+            (otherType.isFixedStringTypeId() &&
+             (!getTypeId().isFloatingPointTypeId()));
 
-		return retval;
+        return retval;
 
-	}
+    }
 
-	/**
-	 * Tell whether this numeric type can be stored into from the given type.
-	 *
-	 * @param thisType	The TypeId of this type
-	 * @param otherType	The TypeId of the other type.
-	 * @param cf		A ClassFactory
-	 */
+    /**
+     * Tell whether this numeric type can be stored into from the given type.
+     *
+     * @param thisType    The TypeId of this type
+     * @param otherType    The TypeId of the other type.
+     * @param cf        A ClassFactory
+     */
 
-	public boolean numberStorable(TypeId thisType,
-									TypeId otherType,
-									ClassFactory cf)
-	{
+    public boolean numberStorable(TypeId thisType,
+                                    TypeId otherType,
+                                    ClassFactory cf)
+    {
         if ( otherType.getBaseTypeId().isAnsiUDT() ) { return false; }
 
-		/*
-		** Numbers can be stored into from other number types.
-		** Also, user types with compatible classes can be stored into numbers.
-		*/
-		if (otherType.isNumericTypeId()) { return true; }
+        /*
+        ** Numbers can be stored into from other number types.
+        ** Also, user types with compatible classes can be stored into numbers.
+        */
+        if (otherType.isNumericTypeId()) { return true; }
 
-		if (otherType.isStringTypeId()) { return true; }
+        if (otherType.isStringTypeId()) { return true; }
 
-		/*
-		** If the other type is user-defined, use the java types to determine
-		** assignability.
-		*/
-		return userTypeStorable(thisType, otherType, cf);
-	}
+        /*
+        ** If the other type is user-defined, use the java types to determine
+        ** assignability.
+        */
+        return userTypeStorable(thisType, otherType, cf);
+    }
 
 
-	/**
-	 * Get the TypeId that corresponds to this TypeCompiler.
-	 */
-	protected TypeId getTypeId()
-	{
-		return correspondingTypeId;
-	}
+    /**
+     * Get the TypeId that corresponds to this TypeCompiler.
+     */
+    protected TypeId getTypeId()
+    {
+        return correspondingTypeId;
+    }
 
-	/**
-	 * Get the TypeCompiler that corresponds to the given TypeId.
-	 */
-	protected TypeCompiler getTypeCompiler(TypeId typeId)
-	{
-		return TypeCompilerFactoryImpl.staticGetTypeCompiler(typeId);
-	}
+    /**
+     * Get the TypeCompiler that corresponds to the given TypeId.
+     */
+    protected TypeCompiler getTypeCompiler(TypeId typeId)
+    {
+        return TypeCompilerFactoryImpl.staticGetTypeCompiler(typeId);
+    }
 
-	/**
-	 * Set the TypeCompiler that corresponds to the given TypeId.
-	 */
-	void setTypeId(TypeId typeId)
-	{
-		correspondingTypeId = typeId;
-	}
+    /**
+     * Set the TypeCompiler that corresponds to the given TypeId.
+     */
+    void setTypeId(TypeId typeId)
+    {
+        correspondingTypeId = typeId;
+    }
 
-	/**
-	 * Get the StoredFormatId from the corresponding
-	 * TypeId.
-	 *
-	 * @return The StoredFormatId from the corresponding
-	 * TypeId.
-	 */
-	protected int getStoredFormatIdFromTypeId()
-	{
-		return getTypeId().getTypeFormatId();
-	}
+    /**
+     * Get the StoredFormatId from the corresponding
+     * TypeId.
+     *
+     * @return The StoredFormatId from the corresponding
+     * TypeId.
+     */
+    protected int getStoredFormatIdFromTypeId()
+    {
+        return getTypeId().getTypeFormatId();
+    }
 
     private static DataValueDescriptor gnn(DataValueFactory dvf)
     {

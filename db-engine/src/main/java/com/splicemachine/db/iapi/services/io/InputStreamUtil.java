@@ -34,79 +34,79 @@ package com.splicemachine.db.iapi.services.io;
 import java.io.*;
 
 /**
-	Utility methods for InputStream that are stand-ins for
-	a small subset of DataInput methods. This avoids pushing
-	a DataInputStream just to get this functionality.
+    Utility methods for InputStream that are stand-ins for
+    a small subset of DataInput methods. This avoids pushing
+    a DataInputStream just to get this functionality.
 */
 public final class InputStreamUtil {
     private static final int SKIP_FRAGMENT_SIZE = Integer.MAX_VALUE;
 
-	/**
-		Read an unsigned byte from an InputStream, throwing an EOFException
-		if the end of the input is reached.
+    /**
+        Read an unsigned byte from an InputStream, throwing an EOFException
+        if the end of the input is reached.
 
-		@exception IOException if an I/O error occurs.
-		@exception EOFException if the end of the stream is reached
+        @exception IOException if an I/O error occurs.
+        @exception EOFException if the end of the stream is reached
 
-		@see DataInput#readUnsignedByte
-	
-	*/
-	public static int readUnsignedByte(InputStream in) throws IOException {
-		int b = in.read();
-		if (b < 0)
-			throw new EOFException();
+        @see DataInput#readUnsignedByte
+    
+    */
+    public static int readUnsignedByte(InputStream in) throws IOException {
+        int b = in.read();
+        if (b < 0)
+            throw new EOFException();
 
-		return b;
-	}
+        return b;
+    }
 
-	/**
-		Read a number of bytes into an array.
+    /**
+        Read a number of bytes into an array.
 
-		@exception IOException if an I/O error occurs.
-		@exception EOFException if the end of the stream is reached
+        @exception IOException if an I/O error occurs.
+        @exception EOFException if the end of the stream is reached
 
-		@see DataInput#readFully
+        @see DataInput#readFully
 
-	*/
-	public static void readFully(InputStream in, byte b[],
+    */
+    public static void readFully(InputStream in, byte b[],
                                  int offset,
                                  int len) throws IOException
-	{
-		do {
-			int bytesRead = in.read(b, offset, len);
-			if (bytesRead < 0)
-				throw new EOFException();
-			len -= bytesRead;
-			offset += bytesRead;
-		} while (len != 0);
-	}
+    {
+        do {
+            int bytesRead = in.read(b, offset, len);
+            if (bytesRead < 0)
+                throw new EOFException();
+            len -= bytesRead;
+            offset += bytesRead;
+        } while (len != 0);
+    }
 
 
-	/**
-		Read a number of bytes into an array.
+    /**
+        Read a number of bytes into an array.
         Keep reading in a loop until len bytes are read or EOF is reached or
         an exception is thrown. Return the number of bytes read.
         (InputStream.read(byte[],int,int) does not guarantee to read len bytes
          even if it can do so without reaching EOF or raising an exception.)
 
-		@exception IOException if an I/O error occurs.
-	*/
-	public static int readLoop(InputStream in,
+        @exception IOException if an I/O error occurs.
+    */
+    public static int readLoop(InputStream in,
                                 byte b[],
                                 int offset,
                                 int len)
         throws IOException
-	{
+    {
         int firstOffset = offset;
-		do {
-			int bytesRead = in.read(b, offset, len);
-			if (bytesRead <= 0)
+        do {
+            int bytesRead = in.read(b, offset, len);
+            if (bytesRead <= 0)
                 break;
-			len -= bytesRead;
-			offset += bytesRead;
-		} while (len != 0);
+            len -= bytesRead;
+            offset += bytesRead;
+        } while (len != 0);
         return offset - firstOffset;
-	}
+    }
 
     /**
      * Skips until EOF, returns number of bytes skipped.

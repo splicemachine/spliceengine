@@ -42,54 +42,54 @@ import com.splicemachine.db.iapi.services.loader.ClassInspector;
  */
 public interface LanguageFactory
 {
-	/**
-		Used to locate this factory by the Monitor basic service.
-		There needs to be a language factory per database.
-	 */
-	String MODULE = "com.splicemachine.db.iapi.sql.LanguageFactory";
+    /**
+        Used to locate this factory by the Monitor basic service.
+        There needs to be a language factory per database.
+     */
+    String MODULE = "com.splicemachine.db.iapi.sql.LanguageFactory";
 
-	/**
-	 * Get a ParameterValueSet
-	 *
-	 * @param numParms	The number of parameters in the
-	 *			ParameterValueSet
-	 * @param hasReturnParam	true if this parameter set
-	 *			has a return parameter.  The return parameter
-	 *			is always the 1st parameter in the list.  It
-	 *			is due to a callableStatement like this: <i>
-	 *			? = CALL myMethod()</i>
-	 *
-	 * @return	A new ParameterValueSet with the given number of parms
-	 */
-	ParameterValueSet newParameterValueSet(ClassInspector ci, int numParms, boolean hasReturnParam);
+    /**
+     * Get a ParameterValueSet
+     *
+     * @param numParms    The number of parameters in the
+     *            ParameterValueSet
+     * @param hasReturnParam    true if this parameter set
+     *            has a return parameter.  The return parameter
+     *            is always the 1st parameter in the list.  It
+     *            is due to a callableStatement like this: <i>
+     *            ? = CALL myMethod()</i>
+     *
+     * @return    A new ParameterValueSet with the given number of parms
+     */
+    ParameterValueSet newParameterValueSet(ClassInspector ci, int numParms, boolean hasReturnParam);
 
-	/**
-	 * Get a new result description from the input result
-	 * description.  Picks only the columns in the column
-	 * array from the inputResultDescription.
-	 *
- 	 * @param inputResultDescription the input rd
-	 * @param theCols non null array of ints
-	 *
-	 * @return ResultDescription the rd
-	 */
-	ResultDescription getResultDescription
-	(
-			ResultDescription inputResultDescription,
-			int[] theCols
-	);
+    /**
+     * Get a new result description from the input result
+     * description.  Picks only the columns in the column
+     * array from the inputResultDescription.
+     *
+      * @param inputResultDescription the input rd
+     * @param theCols non null array of ints
+     *
+     * @return ResultDescription the rd
+     */
+    ResultDescription getResultDescription
+    (
+            ResultDescription inputResultDescription,
+            int[] theCols
+    );
 
-	/**
-	 * Get a new result description
-	 *
- 	 * @param cols an array of col descriptors
-	 * @param type the statement type
-	 *
-	 * @return ResultDescription the rd
-	 */
-	ResultDescription getResultDescription
-	(
-			ResultColumnDescriptor[] cols,
-			String type
-	);
+    /**
+     * Get a new result description
+     *
+      * @param cols an array of col descriptors
+     * @param type the statement type
+     *
+     * @return ResultDescription the rd
+     */
+    ResultDescription getResultDescription
+    (
+            ResultColumnDescriptor[] cols,
+            String type
+    );
 }

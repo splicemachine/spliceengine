@@ -44,10 +44,10 @@ public class HalfMergeSortJoinOperation extends MergeJoinOperation {
 
     protected static final String NAME = HalfMergeSortJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+            return NAME;
+    }
 
 
     public HalfMergeSortJoinOperation() {

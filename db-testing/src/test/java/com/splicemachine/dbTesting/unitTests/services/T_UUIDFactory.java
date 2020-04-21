@@ -43,122 +43,122 @@ import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 
 /**
-	Test to ensure a implementation of the UUID module
-	implements the protocol correctly. 
+    Test to ensure a implementation of the UUID module
+    implements the protocol correctly. 
 */
 
 public class T_UUIDFactory extends T_Generic {
 
-	protected UUIDFactory factory;
-	boolean resultSoFar;
+    protected UUIDFactory factory;
+    boolean resultSoFar;
 
-	public 	T_UUIDFactory() {
-		super();
-	}
+    public     T_UUIDFactory() {
+        super();
+    }
 
-	protected String getModuleToTestProtocolName() {
+    protected String getModuleToTestProtocolName() {
 
-		return "A.Dummy.Name";
-	}
+        return "A.Dummy.Name";
+    }
 
-	/**
-		Run all the tests, each test that starts with 'S' is a single user
-		test, each test that starts with 'M' is a multi-user test.
+    /**
+        Run all the tests, each test that starts with 'S' is a single user
+        test, each test that starts with 'M' is a multi-user test.
 
-		@exception T_Fail The test failed in some way.
-	*/
-	protected void runTests() throws T_Fail {
+        @exception T_Fail The test failed in some way.
+    */
+    protected void runTests() throws T_Fail {
 
-		factory = Monitor.getMonitor().getUUIDFactory();
-		if (factory == null) {
-			throw T_Fail.testFailMsg(getModuleToTestProtocolName() + " module not started.");
-		}
+        factory = Monitor.getMonitor().getUUIDFactory();
+        if (factory == null) {
+            throw T_Fail.testFailMsg(getModuleToTestProtocolName() + " module not started.");
+        }
 
-		if (!testUUID())
-			throw T_Fail.testFailMsg("testUUID indicated failure");
-	}
+        if (!testUUID())
+            throw T_Fail.testFailMsg("testUUID indicated failure");
+    }
 
 
-	/*
-	** Tests
-	*/
+    /*
+    ** Tests
+    */
 
-	protected boolean testUUID() {
-		resultSoFar = true;
+    protected boolean testUUID() {
+        resultSoFar = true;
 
-		UUID uuid1 = factory.createUUID();
-		UUID uuid2 = factory.createUUID();
+        UUID uuid1 = factory.createUUID();
+        UUID uuid2 = factory.createUUID();
 
-		if (uuid1.equals(uuid2)){
-			// Resolve: format this with a message factory
-			String message =  
-				"UUID factory created matching UUIDS '%0' and '%1'";
-			out.printlnWithHeader(message);
-			resultSoFar =  false;
-		}
+        if (uuid1.equals(uuid2)){
+            // Resolve: format this with a message factory
+            String message =  
+                "UUID factory created matching UUIDS '%0' and '%1'";
+            out.printlnWithHeader(message);
+            resultSoFar =  false;
+        }
 
-		if (!uuid1.equals(uuid1)){
-			// Resolve: format this with a message factory
-			String message = 
-				"UUID '%0' does not equal itself";
-			resultSoFar =  false;
-		}
+        if (!uuid1.equals(uuid1)){
+            // Resolve: format this with a message factory
+            String message = 
+                "UUID '%0' does not equal itself";
+            resultSoFar =  false;
+        }
 
-		if (uuid1.hashCode() != uuid1.hashCode()){
-			// Resolve: format this with a message factory
-			String message = 
-				"UUID '%0' does not hash to the same thing twice.";
-			out.printlnWithHeader(message);
-			resultSoFar =  false;
-		}
+        if (uuid1.hashCode() != uuid1.hashCode()){
+            // Resolve: format this with a message factory
+            String message = 
+                "UUID '%0' does not hash to the same thing twice.";
+            out.printlnWithHeader(message);
+            resultSoFar =  false;
+        }
 
-		// Check that we can go from UUID to string and back.
-		
-		String suuid1 = uuid1.toString();
-		UUID uuid3 = factory.recreateUUID(suuid1);
-		if (!uuid3.equals(uuid1)){
-			// Resolve: format this with a message factory
-			String message = 
-				"Couldn't recreate UUID: "
-				+ uuid3.toString() 
-				+ " != "
-				+ uuid1.toString();
-			out.printlnWithHeader(message);
-			resultSoFar =  false;
-		}
+        // Check that we can go from UUID to string and back.
+        
+        String suuid1 = uuid1.toString();
+        UUID uuid3 = factory.recreateUUID(suuid1);
+        if (!uuid3.equals(uuid1)){
+            // Resolve: format this with a message factory
+            String message = 
+                "Couldn't recreate UUID: "
+                + uuid3.toString() 
+                + " != "
+                + uuid1.toString();
+            out.printlnWithHeader(message);
+            resultSoFar =  false;
+        }
 
-		// Check that we can transform from string to UUID and back
-		// for a few "interesting" UUIDs.
+        // Check that we can transform from string to UUID and back
+        // for a few "interesting" UUIDs.
 
-		// This one came from GUIDGEN.EXE.
-		testUUIDConversions(out, "7878FCD0-DA09-11d0-BAFE-0060973F0942");
+        // This one came from GUIDGEN.EXE.
+        testUUIDConversions(out, "7878FCD0-DA09-11d0-BAFE-0060973F0942");
 
-		// Interesting bit patterns.
-		testUUIDConversions(out, "80706050-4030-2010-8070-605040302010");
-		testUUIDConversions(out, "f0e0d0c0-b0a0-9080-7060-504030201000");
-		testUUIDConversions(out, "00000000-0000-0000-0000-000000000000");
-		testUUIDConversions(out, "ffffffff-ffff-ffff-ffff-ffffffffffff");
+        // Interesting bit patterns.
+        testUUIDConversions(out, "80706050-4030-2010-8070-605040302010");
+        testUUIDConversions(out, "f0e0d0c0-b0a0-9080-7060-504030201000");
+        testUUIDConversions(out, "00000000-0000-0000-0000-000000000000");
+        testUUIDConversions(out, "ffffffff-ffff-ffff-ffff-ffffffffffff");
 
-		// A couple self-generated ones for good measure.
-		testUUIDConversions(out, factory.createUUID().toString());
- 		testUUIDConversions(out, factory.createUUID().toString());
+        // A couple self-generated ones for good measure.
+        testUUIDConversions(out, factory.createUUID().toString());
+         testUUIDConversions(out, factory.createUUID().toString());
 
-		return resultSoFar;
-	
-	}
+        return resultSoFar;
+    
+    }
 
-	private void testUUIDConversions(HeaderPrintWriter out, String uuidstring)
-	{
-		UUID uuid = factory.recreateUUID(uuidstring);
-		if (!uuidstring.equalsIgnoreCase(uuid.toString())){
-			// Resolve: format this with a message factory
-			String message = 
-				"Couldn't recreate UUID String: "
-				+ uuidstring 
-				+ " != " 
-				+ uuid.toString();
-			out.printlnWithHeader(message);
-			resultSoFar =  false;
-		}
-	}
+    private void testUUIDConversions(HeaderPrintWriter out, String uuidstring)
+    {
+        UUID uuid = factory.recreateUUID(uuidstring);
+        if (!uuidstring.equalsIgnoreCase(uuid.toString())){
+            // Resolve: format this with a message factory
+            String message = 
+                "Couldn't recreate UUID String: "
+                + uuidstring 
+                + " != " 
+                + uuid.toString();
+            out.printlnWithHeader(message);
+            resultSoFar =  false;
+        }
+    }
 }

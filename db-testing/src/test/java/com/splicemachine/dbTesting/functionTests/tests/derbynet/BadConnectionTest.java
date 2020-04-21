@@ -40,10 +40,10 @@ import com.splicemachine.dbTesting.junit.TestConfiguration;
 
 
 /**
- *	This tests some bad attempts at a client connection:
- *		- non-existant database
- *		- lack of user / password attributes
- *		- bad values for valid connection attributes
+ *    This tests some bad attempts at a client connection:
+ *        - non-existant database
+ *        - lack of user / password attributes
+ *        - bad values for valid connection attributes
  */
 
 public class BadConnectionTest extends BaseJDBCTestCase

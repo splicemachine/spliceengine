@@ -32,12 +32,12 @@
 package com.splicemachine.db.impl.services.locks;
 
 /**
-	An implementation of LockFactory that uses a single pool
-	for the locks, i.e. all lock requests go through a single
-	point of synchronisation.
+    An implementation of LockFactory that uses a single pool
+    for the locks, i.e. all lock requests go through a single
+    point of synchronisation.
 
     <BR>
-	MT - Mutable - Container Object : Thread Aware
+    MT - Mutable - Container Object : Thread Aware
 */
 
 public final class SinglePool extends AbstractPool

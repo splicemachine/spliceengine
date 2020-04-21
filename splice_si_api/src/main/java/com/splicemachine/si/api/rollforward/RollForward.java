@@ -27,5 +27,5 @@ import java.util.List;
  * Date: 6/26/14
  */
 public interface RollForward extends RollForwardBean {
-	void submitForResolution(Partition partition, long txnId, List<ByteSlice> rowKeys);
+    void submitForResolution(Partition partition, long txnId, List<ByteSlice> rowKeys);
 }

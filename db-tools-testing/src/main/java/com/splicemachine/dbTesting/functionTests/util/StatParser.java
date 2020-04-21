@@ -38,61 +38,61 @@ package com.splicemachine.dbTesting.functionTests.util;
  */
 public class StatParser
 {
-	public static String getScanCols(String runTimeStats)
-		throws Throwable
-	{
-		if (runTimeStats == null)
-		{
-			return "The RunTimeStatistics string passed in is null";
-		}
+    public static String getScanCols(String runTimeStats)
+        throws Throwable
+    {
+        if (runTimeStats == null)
+        {
+            return "The RunTimeStatistics string passed in is null";
+        }
 
-		int startIndex;
-		int endIndex = 0;
-		int indexIndex;
+        int startIndex;
+        int endIndex = 0;
+        int indexIndex;
 
-		StringBuilder strbuf = new StringBuilder();
+        StringBuilder strbuf = new StringBuilder();
 
-		/*
-		** We need to know if we used an index
-		*/
-		if ((indexIndex = runTimeStats.indexOf("Index Scan ResultSet")) != -1)
-		{
-			int textend = runTimeStats.indexOf("\n", indexIndex);
-			strbuf.append(runTimeStats.substring(indexIndex, textend+1));
-		}
-		else
-		{
-			strbuf.append("TableScan\n");
-		}
+        /*
+        ** We need to know if we used an index
+        */
+        if ((indexIndex = runTimeStats.indexOf("Index Scan ResultSet")) != -1)
+        {
+            int textend = runTimeStats.indexOf("\n", indexIndex);
+            strbuf.append(runTimeStats.substring(indexIndex, textend+1));
+        }
+        else
+        {
+            strbuf.append("TableScan\n");
+        }
 
-		int count = 0;
-		while ((startIndex = runTimeStats.indexOf("Bit set of columns fetched", endIndex)) != -1)
-		{
-			count++;
-			endIndex = runTimeStats.indexOf("}", startIndex);
-			if (endIndex == -1)
-			{
-				endIndex = runTimeStats.indexOf("All", startIndex);
-				if (endIndex == -1)
-				{
-					throw new Throwable("couldn't find the closing } on "+
-						"columnFetchedBitSet in "+runTimeStats);
-				}
-				endIndex+=5;
-			}
-			else
-			{
-				endIndex++;
-			}
-			strbuf.append(runTimeStats.substring(startIndex, endIndex));
-			strbuf.append("\n");
-		}
-		if (count == 0)
-		{
-			throw new Throwable("couldn't find string 'Bit set of columns fetched' in :\n"+
-				runTimeStats);
-		}
+        int count = 0;
+        while ((startIndex = runTimeStats.indexOf("Bit set of columns fetched", endIndex)) != -1)
+        {
+            count++;
+            endIndex = runTimeStats.indexOf("}", startIndex);
+            if (endIndex == -1)
+            {
+                endIndex = runTimeStats.indexOf("All", startIndex);
+                if (endIndex == -1)
+                {
+                    throw new Throwable("couldn't find the closing } on "+
+                        "columnFetchedBitSet in "+runTimeStats);
+                }
+                endIndex+=5;
+            }
+            else
+            {
+                endIndex++;
+            }
+            strbuf.append(runTimeStats.substring(startIndex, endIndex));
+            strbuf.append("\n");
+        }
+        if (count == 0)
+        {
+            throw new Throwable("couldn't find string 'Bit set of columns fetched' in :\n"+
+                runTimeStats);
+        }
 
-		return strbuf.toString();
-	}
-}	
+        return strbuf.toString();
+    }
+}    

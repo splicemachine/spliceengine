@@ -366,10 +366,10 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         assertTrue(dmd.supportsAlterTableWithAddColumn());
         assertTrue(dmd.supportsAlterTableWithDropColumn());
         
-	/* DERBY-2243 Derby does support ANSI 92 standards
-	* and this behaviour is now consistant across drivers
-	*/
-	assertTrue(dmd.supportsANSI92EntryLevelSQL());
+    /* DERBY-2243 Derby does support ANSI 92 standards
+    * and this behaviour is now consistant across drivers
+    */
+    assertTrue(dmd.supportsANSI92EntryLevelSQL());
               
         assertFalse(dmd.supportsANSI92FullSQL());
         assertFalse(dmd.supportsANSI92IntermediateSQL());
@@ -398,10 +398,10 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         assertFalse(dmd.supportsDataManipulationTransactionsOnly());
         assertTrue(dmd.supportsDifferentTableCorrelationNames());
         
-	/* DERBY-2244 Derby does support Order By clause
-	* thus the changing the assert condition to TRUE
-	*/
-	assertTrue(dmd.supportsExpressionsInOrderBy());
+    /* DERBY-2244 Derby does support Order By clause
+    * thus the changing the assert condition to TRUE
+    */
+    assertTrue(dmd.supportsExpressionsInOrderBy());
         
         assertFalse(dmd.supportsExtendedSQLGrammar());
         assertFalse(dmd.supportsFullOuterJoins());
@@ -2136,10 +2136,10 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         , JDBC_COLUMN_NULLABILITY
         );
 
-	/*
-	 Derby-2258 Removed 3 data types which are not supported by Derby
-	 and added XML data type which is supported by Derby
-	*/
+    /*
+     Derby-2258 Removed 3 data types which are not supported by Derby
+     and added XML data type which is supported by Derby
+    */
         int[] allTypes = new int[] {
           Types.BIGINT, Types.BINARY, Types.BLOB, Types.BOOLEAN,
           Types.CHAR, Types.CLOB, Types.DATE,
@@ -2240,11 +2240,11 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
                 precision = 32700;
                 break;
                         
-	    /*
-	     Derby-2260 Correcting the precision value for VARCHAR FOR BIT DATA
-	     Thus this test also now expects the correct value i.e. 32672
-	     Also adding precision check for SQLXML data type
-	    */
+        /*
+         Derby-2260 Correcting the precision value for VARCHAR FOR BIT DATA
+         Thus this test also now expects the correct value i.e. 32672
+         Also adding precision check for SQLXML data type
+        */
             case Types.VARBINARY:
                 precision = 32672;
                 break;
@@ -2252,10 +2252,10 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
             case Types.VARCHAR:
                 precision = 32672;
                 break;
-	    case Types.JAVA_OBJECT:
-	    case JDBC.SQLXML:
-		precision = 0;
-		break;
+        case Types.JAVA_OBJECT:
+        case JDBC.SQLXML:
+        precision = 0;
+        break;
             }
             assertEquals("PRECISION " + typeName,
                     precision, rs.getInt("PRECISION"));
@@ -2314,11 +2314,11 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
             int searchable;
             switch (type)
             {
-	    /*
-	     Derby-2259 Correcting the searchable value for 
-	     LONGVARBINARY, LONGVARCHAR & BLOB data type
-	     also adding SQLXML data type in the test.
-	    */
+        /*
+         Derby-2259 Correcting the searchable value for 
+         LONGVARBINARY, LONGVARCHAR & BLOB data type
+         also adding SQLXML data type in the test.
+        */
             case Types.LONGVARBINARY:
                 searchable = DatabaseMetaData.typePredNone;
                 break;
@@ -2327,18 +2327,18 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
                 break;
                 
             case Types.BLOB:
-		searchable = DatabaseMetaData.typePredNone;
-		break;
+        searchable = DatabaseMetaData.typePredNone;
+        break;
             case Types.CLOB:
-		searchable = DatabaseMetaData.typePredChar;
+        searchable = DatabaseMetaData.typePredChar;
                 break;
             case Types.CHAR:
             case Types.VARCHAR:
                 searchable = DatabaseMetaData.typeSearchable;
                 break;
-	    case JDBC.SQLXML:
-		searchable = DatabaseMetaData.typePredNone;
-		break;
+        case JDBC.SQLXML:
+        searchable = DatabaseMetaData.typePredNone;
+        break;
             default:
                 searchable = DatabaseMetaData.typePredBasic;
                 break;  
@@ -2478,7 +2478,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         assertNotNull(odbcrs);
         
         assertMetaDataResultSet(odbcrs, ODBC_COLUMN_NAMES, ODBC_COLUMN_TYPES,
-        		ODBC_COLUMN_NULLABILITY);
+                ODBC_COLUMN_NULLABILITY);
         
         odbcrs.close();
         cs.close();
@@ -3266,92 +3266,92 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         
         // result: column i
         ResultSet[] rs = getBestRowIdentifier(null,schema,"BRIT1",
-        		DatabaseMetaData.bestRowTemporary, true);
+                DatabaseMetaData.bestRowTemporary, true);
         verifyBRIResults(rs, expRSI);
 
         // result: column i
         rs = getBestRowIdentifier(null,schema,"BRIT2",
-        		DatabaseMetaData.bestRowTemporary, true);
+                DatabaseMetaData.bestRowTemporary, true);
         verifyBRIResults(rs, expRSI);
 
         // result: column j
         rs = getBestRowIdentifier(null,schema,"BRIT3",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         verifyBRIResults(rs, expRSJ);
         
         // result: column i
         rs = getBestRowIdentifier(null,schema,"BRIT4",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         verifyBRIResults(rs, expRSI);
         
         // result: columns i and j
         rs = getBestRowIdentifier(null,schema,"BRIT5",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         verifyBRIResults(rs, expRSIJ);
 
         // result: column j
         rs = getBestRowIdentifier(null,schema,"BRIT6",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         verifyBRIResults(rs, expRSJ);
 
         // result: column j
         rs = getBestRowIdentifier(null,schema,"BRIT7",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         verifyBRIResults(rs, expRSJ);
         
         // result: column j
         rs = getBestRowIdentifier(null,schema,"BRIT8",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         verifyBRIResults(rs, expRSJ);
         
         // result: columns i,j
         rs = getBestRowIdentifier(null,schema,"BRIT9",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         verifyBRIResults(rs, expRSIJ);
         
         // result: columns i,j
         rs = getBestRowIdentifier(null,schema,"BRIT10",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         verifyBRIResults(rs, expRSIJ);
         
         // result: columns i,j
         rs = getBestRowIdentifier(null,schema,"BRIT11",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         verifyBRIResults(rs, expRSIJ);
         
         // result: columns i,j
         rs = getBestRowIdentifier(null,schema,"BRIT12",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         verifyBRIResults(rs, expRSIJ);
         
         // Verify nullOK flags makes a difference. See also DERBY-3182
         // result: column i, should've ignored null column
         rs = getBestRowIdentifier(null,schema,"BRIT13",
-        		DatabaseMetaData.bestRowTemporary,false);
+                DatabaseMetaData.bestRowTemporary,false);
         verifyBRIResults(rs, expRSI);
         // result: columns i, j
         rs = getBestRowIdentifier(null,schema,"BRIT13",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         verifyBRIResults(rs, expRSIJ);
         
         // result: columns i
         rs = getBestRowIdentifier(null,schema,"BRIT14",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         verifyBRIResults(rs, expRSI);
         
         // result: columns i
         rs = getBestRowIdentifier(null,schema,"BRIT15",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         verifyBRIResults(rs, expRSI);
         
         // we don't do anything with SCOPE except detect bad values
         // result: columns i
         rs = getBestRowIdentifier(null,schema,"BRIT16",
-        		DatabaseMetaData.bestRowTransaction,true);
+                DatabaseMetaData.bestRowTransaction,true);
         verifyBRIResults(rs, expRSI);
         // result: columns i
         rs = getBestRowIdentifier(null,schema,"BRIT16",
-        		DatabaseMetaData.bestRowSession,true);
+                DatabaseMetaData.bestRowSession,true);
         verifyBRIResults(rs, expRSI);
         // result: no rows (invalid scope -1)
         rs = getBestRowIdentifier(null,schema,"BRIT16",-1,true);
@@ -3364,7 +3364,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         JDBC.assertEmpty(rs[1]);
         
         rs = getBestRowIdentifier(null, schema,"BRIT17",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         String [][] expRS = new String [][] {
                 {"2", "I", "4", "INTEGER", "4", null, "10", "1"},
                 {"2", "VC10", "12", "VARCHAR", "10", null, null, "1"}
@@ -3379,14 +3379,14 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         // test DERBY-2610 for fun; can't pass in null table name      
         try {
             rs = getBestRowIdentifier(null,schema,null,
-            		DatabaseMetaData.bestRowTemporary,true);
+                    DatabaseMetaData.bestRowTemporary,true);
         } catch (SQLException sqle) {
             assertSQLState( "XJ103", sqle);
         }
         
         // check on systables
         rs = getBestRowIdentifier(null,"SYS","SYSTABLES",
-        		DatabaseMetaData.bestRowTemporary,true);
+                DatabaseMetaData.bestRowTemporary,true);
         expRS = new String [][] {
                 {"2", "TABLEID", "1", "CHAR", "36", null, null, "1"}
         };
@@ -3482,13 +3482,13 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         // but with calls with a valid scope, they are different.
 
         if (scope != DatabaseMetaData.bestRowTemporary &&
-        		scope != DatabaseMetaData.bestRowTransaction &&
-        		scope != DatabaseMetaData.bestRowSession)
+                scope != DatabaseMetaData.bestRowTransaction &&
+                scope != DatabaseMetaData.bestRowSession)
         {
-        	nullability = new boolean [] {
+            nullability = new boolean [] {
                     false, false, false, false, false, false, false, false};
-        	
-        	odbcColumnTypes = columnTypes;
+            
+            odbcColumnTypes = columnTypes;
         }
        
         assertMetaDataResultSet(rss[0], columnNames, columnTypes, nullability);

@@ -55,10 +55,10 @@ public interface Statistics {
      */
     long getRowEstimate();
 
-	/**
-	 * @return the selectivity for a set of predicates.
-	 */
-	double selectivity(Object[] predicates);
+    /**
+     * @return the selectivity for a set of predicates.
+     */
+    double selectivity(Object[] predicates);
 
     int getColumnCount();
 }

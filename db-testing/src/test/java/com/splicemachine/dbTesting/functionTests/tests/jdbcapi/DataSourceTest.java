@@ -361,7 +361,7 @@ public class DataSourceTest extends BaseJDBCTestCase {
         // DataSource - setTransationAttributes
         traceFile = "trace1.out";
         JDBCDataSource.setBeanProperty(ds, "connectionAttributes",
-        		"traceFile="+traceFile);
+                "traceFile="+traceFile);
 
         // In this scenario, we *only* get a tracefile, if we first get a 
         // successful connection, followed by an unsuccessful connection. 
@@ -512,7 +512,7 @@ public class DataSourceTest extends BaseJDBCTestCase {
         ds.getConnection();
         assertEquals(setDescription, JDBCDataSource.getBeanProperty(ds, "description"));
         JDBCDataSource.clearStringBeanProperty(ds, "description");
-        assertNull(JDBCDataSource.getBeanProperty(ds, "description"));    	
+        assertNull(JDBCDataSource.getBeanProperty(ds, "description"));        
     }
 
     private static void setDatabaseProperty(String property, String value) 

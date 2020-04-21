@@ -37,62 +37,62 @@ import java.io.IOException;
 
 public class BackgroundStreamSaver implements Runnable {
  
-	protected InputStream in;
-	protected OutputStream out;
-	protected boolean finished;
-	protected IOException ioe;
+    protected InputStream in;
+    protected OutputStream out;
+    protected boolean finished;
+    protected IOException ioe;
 
-	public BackgroundStreamSaver(InputStream in, OutputStream out) 
-	{
-		this.in = in;
-		this.out = out;
-		
-		Thread myThread = new Thread(this, getClass().getName());
-		myThread.setPriority(Thread.MIN_PRIORITY);
-		myThread.start();
-	}
+    public BackgroundStreamSaver(InputStream in, OutputStream out) 
+    {
+        this.in = in;
+        this.out = out;
+        
+        Thread myThread = new Thread(this, getClass().getName());
+        myThread.setPriority(Thread.MIN_PRIORITY);
+        myThread.start();
+    }
 
-	public void run() 
-	{
-		try 
-		{
-			byte[] ca = new byte[1024];
-			int valid;
-			while ((valid = in.read(ca, 0, ca.length)) != -1) 
-			{
-				out.write(ca, 0, valid);
-			}
-			out.flush();
-		} catch (IOException ioe) 
-		{
-			this.ioe = ioe;
-		}
+    public void run() 
+    {
+        try 
+        {
+            byte[] ca = new byte[1024];
+            int valid;
+            while ((valid = in.read(ca, 0, ca.length)) != -1) 
+            {
+                out.write(ca, 0, valid);
+            }
+            out.flush();
+        } catch (IOException ioe) 
+        {
+            this.ioe = ioe;
+        }
 
-		synchronized (this) 
-		{
-			finished = true;
-			notifyAll();
-		}
-	}
+        synchronized (this) 
+        {
+            finished = true;
+            notifyAll();
+        }
+    }
 
-	public void finish() throws IOException 
-	{
-		if (ioe != null)
-			throw ioe;
+    public void finish() throws IOException 
+    {
+        if (ioe != null)
+            throw ioe;
 
-		synchronized (this) 
-		{
-			try 
-			{
-				while (!finished) 
-				{
-					wait();
-				}
-			} catch (InterruptedException ie) 
-			{
-				throw new IOException(ie.toString());
-			}
-			//out.close();
-		}
-	}
+        synchronized (this) 
+        {
+            try 
+            {
+                while (!finished) 
+                {
+                    wait();
+                }
+            } catch (InterruptedException ie) 
+            {
+                throw new IOException(ie.toString());
+            }
+            //out.close();
+        }
+    }
 }

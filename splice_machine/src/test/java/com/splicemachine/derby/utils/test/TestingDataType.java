@@ -383,8 +383,8 @@ public enum TestingDataType {
     },
     TIMESTAMP(Types.TIMESTAMP){
         @Override public void encode(Object o, MultiFieldEncoder encoder) {
-						encoder.encodeNext((Long)o);
-				}
+                        encoder.encodeNext((Long)o);
+                }
         @Override public boolean isScalarType() { return true; }
         @Override
         public DataValueDescriptor getDataValueDescriptor() {

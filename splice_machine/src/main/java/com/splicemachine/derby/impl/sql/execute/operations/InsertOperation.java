@@ -220,8 +220,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
      *
      * Called from BaseActivation.getSetAutoIncrementValue
      *
-     * @param columnPosition	position of the column in the table (1-based)
-     * @param increment				the amount to increment by
+     * @param columnPosition    position of the column in the table (1-based)
+     * @param increment                the amount to increment by
      *
      * @return
      * @throws StandardException

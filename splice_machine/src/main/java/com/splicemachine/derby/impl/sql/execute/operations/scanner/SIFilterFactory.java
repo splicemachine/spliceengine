@@ -26,8 +26,8 @@ import java.io.IOException;
  *         Date: 4/10/14
  */
 public interface SIFilterFactory<Data> {
-				SIFilter newFilter(EntryPredicateFilter predicateFilter,
-													 EntryDecoder rowEntryDecoder,
-													 EntryAccumulator accumulator,
-													 boolean isCountStar) throws IOException;
+                SIFilter newFilter(EntryPredicateFilter predicateFilter,
+                                                     EntryDecoder rowEntryDecoder,
+                                                     EntryAccumulator accumulator,
+                                                     boolean isCountStar) throws IOException;
 }

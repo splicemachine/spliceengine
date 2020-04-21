@@ -55,9 +55,9 @@ public class D_LockControl implements Diagnosticable
 
     /* Private/Protected methods of This class: */
 
-	/*
-	** Methods of Diagnosticable
-	*/
+    /*
+    ** Methods of Diagnosticable
+    */
     public void init(Object obj)
     {
         control = (LockControl) obj;
@@ -65,36 +65,36 @@ public class D_LockControl implements Diagnosticable
 
     /**
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     public String diag()
         throws StandardException
     {
-		StringBuilder sb = new StringBuilder(1024);
+        StringBuilder sb = new StringBuilder(1024);
 
-		sb.append("LockControl:\n  granted list: ");
+        sb.append("LockControl:\n  granted list: ");
 
         int i = 0;
 
-		Object firstGrant = control.getFirstGrant();
-		if (firstGrant != null) {
-				sb.append("\n    g[").append(i).append("]:").append(DiagnosticUtil.toDiagString(firstGrant));
-				i++;
-			}
+        Object firstGrant = control.getFirstGrant();
+        if (firstGrant != null) {
+                sb.append("\n    g[").append(i).append("]:").append(DiagnosticUtil.toDiagString(firstGrant));
+                i++;
+            }
 
-		List granted = control.getGranted();
-		
-		if (granted != null) {
+        List granted = control.getGranted();
+        
+        if (granted != null) {
             for (Object aGranted : granted) {
                 sb.append("\n    g[").append(i).append("]:").append(DiagnosticUtil.toDiagString(aGranted));
                 i++;
             }
-		}
+        }
 
 
         sb.append("\n  waiting list:");
 
-		List waiting = control.getWaiting();
+        List waiting = control.getWaiting();
 
         int num_waiting = 0;
 
@@ -110,137 +110,137 @@ public class D_LockControl implements Diagnosticable
         if (num_waiting == 0)
             sb.append("    no waiting locks.");
  
-		return sb.toString();
+        return sb.toString();
     }
-	public void diag_detail(Properties prop) {}
+    public void diag_detail(Properties prop) {}
 
-	/*
-	** Static routines that were in SinglePool
-	*/
+    /*
+    ** Static routines that were in SinglePool
+    */
 
-	
-	/*
-	** Debugging routines
-	*/
+    
+    /*
+    ** Debugging routines
+    */
 
-	static void debugLock(String type, CompatibilitySpace compatibilitySpace,
-						  Object group, Lockable ref, Object qualifier,
-						  int timeout) {
+    static void debugLock(String type, CompatibilitySpace compatibilitySpace,
+                          Object group, Lockable ref, Object qualifier,
+                          int timeout) {
 
-		if (SanityManager.DEBUG) {
+        if (SanityManager.DEBUG) {
 
-			SanityManager.DEBUG(Constants.LOCK_TRACE, type +
+            SanityManager.DEBUG(Constants.LOCK_TRACE, type +
                 debugLockString(
                     compatibilitySpace, group, ref, qualifier, timeout));
-		}
-	}
-	static void debugLock(String type, CompatibilitySpace compatibilitySpace,
-						  Object group) {
+        }
+    }
+    static void debugLock(String type, CompatibilitySpace compatibilitySpace,
+                          Object group) {
 
-		if (SanityManager.DEBUG) {
+        if (SanityManager.DEBUG) {
 
-			SanityManager.DEBUG(Constants.LOCK_TRACE, type +
-					debugLockString(compatibilitySpace, group));
-		}
-	}
-	static void debugLock(String type, CompatibilitySpace compatibilitySpace,
-						  Object group, Lockable ref) {
+            SanityManager.DEBUG(Constants.LOCK_TRACE, type +
+                    debugLockString(compatibilitySpace, group));
+        }
+    }
+    static void debugLock(String type, CompatibilitySpace compatibilitySpace,
+                          Object group, Lockable ref) {
 
-		if (SanityManager.DEBUG) {
+        if (SanityManager.DEBUG) {
 
-			SanityManager.DEBUG(Constants.LOCK_TRACE, type +
-					debugLockString(compatibilitySpace, group, ref));
-		}
-	}
-
-
-	static String debugLockString(CompatibilitySpace compatibilitySpace,
-								  Object group) {
-
-		if (SanityManager.DEBUG) {
-
-			StringBuffer sb = new StringBuffer("");
-
-			debugAppendObject(sb, " CompatibilitySpace=", compatibilitySpace);
-			debugAppendObject(sb, " Group=", group);
-
-			debugAddThreadInfo(sb);
-
-			return sb.toString();
-
-		} else {
-			return null;
-		}
-	}
-
-	static String debugLockString(CompatibilitySpace compatibilitySpace,
-								  Object group, Lockable ref) {
-
-		if (SanityManager.DEBUG) {
-
-			StringBuffer sb = new StringBuffer("");
-
-			debugAppendObject(sb, " Lockable ", ref);
-			debugAppendObject(sb, " CompatibilitySpace=", compatibilitySpace);
-			debugAppendObject(sb, " Group=", group);
-
-			debugAddThreadInfo(sb);
-
-			return sb.toString();
-
-		} else {
-			return null;
-		}
-	}
+            SanityManager.DEBUG(Constants.LOCK_TRACE, type +
+                    debugLockString(compatibilitySpace, group, ref));
+        }
+    }
 
 
-	static String debugLockString(CompatibilitySpace compatibilitySpace,
-								  Object group, Lockable ref,
-								  Object qualifier, int timeout) {
+    static String debugLockString(CompatibilitySpace compatibilitySpace,
+                                  Object group) {
 
-		if (SanityManager.DEBUG) {
+        if (SanityManager.DEBUG) {
 
-			StringBuffer sb = new StringBuffer("");
+            StringBuffer sb = new StringBuffer("");
 
-			debugAppendObject(sb, " Lockable ", ref);
-			debugAppendObject(sb, " Qualifier=", qualifier);
-			debugAppendObject(sb, " CompatibilitySpace=", compatibilitySpace);
-			debugAppendObject(sb, " Group=", group);
+            debugAppendObject(sb, " CompatibilitySpace=", compatibilitySpace);
+            debugAppendObject(sb, " Group=", group);
 
-			if (timeout >= 0) {
-				sb.append(" Timeout(ms)=");
-				sb.append(timeout);
-			}
+            debugAddThreadInfo(sb);
 
-			debugAddThreadInfo(sb);
+            return sb.toString();
+
+        } else {
+            return null;
+        }
+    }
+
+    static String debugLockString(CompatibilitySpace compatibilitySpace,
+                                  Object group, Lockable ref) {
+
+        if (SanityManager.DEBUG) {
+
+            StringBuffer sb = new StringBuffer("");
+
+            debugAppendObject(sb, " Lockable ", ref);
+            debugAppendObject(sb, " CompatibilitySpace=", compatibilitySpace);
+            debugAppendObject(sb, " Group=", group);
+
+            debugAddThreadInfo(sb);
+
+            return sb.toString();
+
+        } else {
+            return null;
+        }
+    }
 
 
-			return sb.toString();
+    static String debugLockString(CompatibilitySpace compatibilitySpace,
+                                  Object group, Lockable ref,
+                                  Object qualifier, int timeout) {
 
-		} else {
-			return null;
-		}
-	}
+        if (SanityManager.DEBUG) {
 
-	static void debugAddThreadInfo(StringBuffer sb) {
+            StringBuffer sb = new StringBuffer("");
 
-		if (SanityManager.DEBUG) {
-			if (SanityManager.DEBUG_ON(Constants.LOCK_TRACE_ADD_THREAD_INFO)) {
-				debugAppendObject(sb, " Thread=", Thread.currentThread());
-			}
-		}
-	}
+            debugAppendObject(sb, " Lockable ", ref);
+            debugAppendObject(sb, " Qualifier=", qualifier);
+            debugAppendObject(sb, " CompatibilitySpace=", compatibilitySpace);
+            debugAppendObject(sb, " Group=", group);
 
-	static void debugAppendObject(StringBuffer sb, String desc, Object item) {
-		if (SanityManager.DEBUG) {
+            if (timeout >= 0) {
+                sb.append(" Timeout(ms)=");
+                sb.append(timeout);
+            }
 
-			sb.append(desc);
+            debugAddThreadInfo(sb);
 
-			if (item != null)
-				sb.append(item.toString());
-			else
-				sb.append("<null>");
-		}
-	}
+
+            return sb.toString();
+
+        } else {
+            return null;
+        }
+    }
+
+    static void debugAddThreadInfo(StringBuffer sb) {
+
+        if (SanityManager.DEBUG) {
+            if (SanityManager.DEBUG_ON(Constants.LOCK_TRACE_ADD_THREAD_INFO)) {
+                debugAppendObject(sb, " Thread=", Thread.currentThread());
+            }
+        }
+    }
+
+    static void debugAppendObject(StringBuffer sb, String desc, Object item) {
+        if (SanityManager.DEBUG) {
+
+            sb.append(desc);
+
+            if (item != null)
+                sb.append(item.toString());
+            else
+                sb.append("<null>");
+        }
+    }
 }
 

@@ -60,8 +60,8 @@ public class ExceptionUtil
      *  com.splicemachine.db.shared.common.reference.SQLState to
      *  a SQLState five character string.
      *
-     *	@param messageID - the sql state id of the message from Derby
-     *	@return String 	 - the 5 character code of the SQLState ID to returned to the user 
+     *    @param messageID - the sql state id of the message from Derby
+     *    @return String      - the 5 character code of the SQLState ID to returned to the user 
      */
     public static String getSQLStateFromIdentifier(String messageID) {
 
@@ -93,7 +93,7 @@ public class ExceptionUtil
                     lseverity = ExceptionSeverity.SESSION_SEVERITY;
                     break;
                 }
-                break;	
+                break;    
             case '2':
             case '3':
                 lseverity = ExceptionSeverity.STATEMENT_SEVERITY;
@@ -107,7 +107,7 @@ public class ExceptionUtil
                     lseverity = ExceptionSeverity.STATEMENT_SEVERITY;
                     break;
                 }
-                break;	
+                break;    
             }
             break;
 

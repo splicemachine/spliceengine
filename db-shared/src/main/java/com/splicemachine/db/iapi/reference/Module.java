@@ -33,14 +33,14 @@ package com.splicemachine.db.iapi.reference;
 
 public interface Module {
 
-	String CacheFactory = "com.splicemachine.db.iapi.services.cache.CacheFactory";
-	String CipherFactoryBuilder = "com.splicemachine.db.iapi.services.crypto.CipherFactoryBuilder";
-	String ClassFactory = "com.splicemachine.db.iapi.services.loader.ClassFactory";
-	String DaemonFactory = "com.splicemachine.db.iapi.services.daemon.DaemonFactory";
-	String JavaFactory ="com.splicemachine.db.iapi.services.compiler.JavaFactory";
-	String LockFactory = "com.splicemachine.db.iapi.services.locks.LockFactory";
-	String PropertyFactory = "com.splicemachine.db.iapi.services.property.PropertyFactory";
-	String ResourceAdapter = "com.splicemachine.db.iapi.jdbc.ResourceAdapter";
+    String CacheFactory = "com.splicemachine.db.iapi.services.cache.CacheFactory";
+    String CipherFactoryBuilder = "com.splicemachine.db.iapi.services.crypto.CipherFactoryBuilder";
+    String ClassFactory = "com.splicemachine.db.iapi.services.loader.ClassFactory";
+    String DaemonFactory = "com.splicemachine.db.iapi.services.daemon.DaemonFactory";
+    String JavaFactory ="com.splicemachine.db.iapi.services.compiler.JavaFactory";
+    String LockFactory = "com.splicemachine.db.iapi.services.locks.LockFactory";
+    String PropertyFactory = "com.splicemachine.db.iapi.services.property.PropertyFactory";
+    String ResourceAdapter = "com.splicemachine.db.iapi.jdbc.ResourceAdapter";
     
     String JMX = "com.splicemachine.db.iapi.services.jmx.ManagementService";
 

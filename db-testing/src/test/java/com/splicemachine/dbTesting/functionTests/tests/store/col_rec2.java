@@ -83,14 +83,14 @@ public class col_rec2 extends BaseTest
         String collation = rs.getString(1);
         if (!collation.equals("TERRITORY_BASED"))
             logError("Collation should have been territory based but it is "
-            		+ collation);
+                    + collation);
 
         rs = s.executeQuery("select count(*) from t");
         rs.next();
         int numberOfRows = rs.getInt(1);
         if (numberOfRows > 1)
-        	 logError("Expected 1 row in T but found " + numberOfRows +
-        			 " rows");
+             logError("Expected 1 row in T but found " + numberOfRows +
+                     " rows");
         rs.close();
         s.close();
         endTest(conn, test_name);
@@ -105,9 +105,9 @@ public class col_rec2 extends BaseTest
     public static void main(String[] argv) 
         throws Throwable
     {
-    	col_rec2 test = new col_rec2();
+        col_rec2 test = new col_rec2();
 
-   		ij.getPropertyArg(argv); 
+           ij.getPropertyArg(argv); 
         Connection conn = ij.startJBMS();
         conn.setAutoCommit(false);
 
@@ -117,9 +117,9 @@ public class col_rec2 extends BaseTest
         }
         catch (SQLException sqle)
         {
-			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
-			sqle.printStackTrace(System.out);
-		}
+            sqle.printStackTrace(System.out);
+        }
     }
 }

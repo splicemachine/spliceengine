@@ -22,120 +22,120 @@ import com.splicemachine.db.shared.common.error.ExceptionSeverity;
 import org.apache.log4j.Logger;
 
 public class SpliceTransactionContext extends ContextImpl {
-	private static Logger LOG = Logger.getLogger(SpliceTransactionContext.class);
-	private SpliceTransaction transaction;
-	private     HBaseStore factory;
-	private		boolean   abortAll; // true if any exception causes this transaction to be aborted.
+    private static Logger LOG = Logger.getLogger(SpliceTransactionContext.class);
+    private SpliceTransaction transaction;
+    private     HBaseStore factory;
+    private        boolean   abortAll; // true if any exception causes this transaction to be aborted.
 
-	SpliceTransactionContext(ContextManager cm, String name, SpliceTransaction transaction, boolean abortAll, HBaseStore factory) {
-		super(cm, name);
+    SpliceTransactionContext(ContextManager cm, String name, SpliceTransaction transaction, boolean abortAll, HBaseStore factory) {
+        super(cm, name);
 
-		this.transaction = transaction;
-		this.abortAll = abortAll;
-		this.factory = factory;
-		transaction.transContext = this;	// double link between transaction and myself
-	}
-
-
-	/*
-	** Context methods (most are implemented by super-class)
-	*/
+        this.transaction = transaction;
+        this.abortAll = abortAll;
+        this.factory = factory;
+        transaction.transContext = this;    // double link between transaction and myself
+    }
 
 
-	/**
-		@exception StandardException Standard Derby error policy
-	*/
-	public void cleanupOnError(Throwable error) throws StandardException {
-		boolean throwAway = false;
+    /*
+    ** Context methods (most are implemented by super-class)
+    */
 
-		if (error instanceof StandardException) {
-			StandardException se = (StandardException) error;
 
-			if (abortAll) {
-				// any error aborts an internal/nested xact and its transaction
+    /**
+        @exception StandardException Standard Derby error policy
+    */
+    public void cleanupOnError(Throwable error) throws StandardException {
+        boolean throwAway = false;
 
-				if (se.getSeverity() < ExceptionSeverity.TRANSACTION_SEVERITY)
+        if (error instanceof StandardException) {
+            StandardException se = (StandardException) error;
+
+            if (abortAll) {
+                // any error aborts an internal/nested xact and its transaction
+
+                if (se.getSeverity() < ExceptionSeverity.TRANSACTION_SEVERITY)
                 {
-					throw StandardException.newException(
+                    throw StandardException.newException(
                         SQLState.XACT_INTERNAL_TRANSACTION_EXCEPTION, error);
                 }
 
-				throwAway = true;
+                throwAway = true;
 
 
-			} else {
+            } else {
 
-				// If the severity is lower than a transaction error then do nothing.
-				if (se.getSeverity() < ExceptionSeverity.TRANSACTION_SEVERITY)
+                // If the severity is lower than a transaction error then do nothing.
+                if (se.getSeverity() < ExceptionSeverity.TRANSACTION_SEVERITY)
                 {
-					return;
+                    return;
                 }
                  
 
-				// If the session is going to disappear then we want to close this
-				// transaction, not just abort it.
-				if (se.getSeverity() >= ExceptionSeverity.SESSION_SEVERITY)
-					throwAway = true;
-			}
-		} else {
-			// some java* error, throw away the transaction.
-			throwAway = true;
-		}
+                // If the session is going to disappear then we want to close this
+                // transaction, not just abort it.
+                if (se.getSeverity() >= ExceptionSeverity.SESSION_SEVERITY)
+                    throwAway = true;
+            }
+        } else {
+            // some java* error, throw away the transaction.
+            throwAway = true;
+        }
 
-		try {
+        try {
 
-			if (transaction != null) {
-				// abort the transaction
-				transaction.abort();
-			}
+            if (transaction != null) {
+                // abort the transaction
+                transaction.abort();
+            }
 
-		} catch (StandardException se) {
-			// if we get an error during abort then shut the system down
-			throwAway = true;
+        } catch (StandardException se) {
+            // if we get an error during abort then shut the system down
+            throwAway = true;
 
-			// if the system was being shut down anyway, do nothing
-			if ((se.getSeverity() <= ExceptionSeverity.SESSION_SEVERITY) &&
-				(se.getSeverity() >= ((StandardException) error).getSeverity())) {
+            // if the system was being shut down anyway, do nothing
+            if ((se.getSeverity() <= ExceptionSeverity.SESSION_SEVERITY) &&
+                (se.getSeverity() >= ((StandardException) error).getSeverity())) {
 
-				throw StandardException.newException(SQLState.XACT_ABORT_EXCEPTION, se);
-			}
+                throw StandardException.newException(SQLState.XACT_ABORT_EXCEPTION, se);
+            }
 
-		} finally {
+        } finally {
 
-			if (throwAway) {
-				// xact close will pop this context out of the context
-				// stack 
-				transaction.close();
-				transaction = null;
-			}
-		}
+            if (throwAway) {
+                // xact close will pop this context out of the context
+                // stack 
+                transaction.close();
+                transaction = null;
+            }
+        }
 
-	}
+    }
 
-	SpliceTransaction getTransaction() {
-		return transaction;
-	}
+    SpliceTransaction getTransaction() {
+        return transaction;
+    }
 
-	HBaseStore getFactory() {
-		return factory;
-	}
+    HBaseStore getFactory() {
+        return factory;
+    }
 
-	void substituteTransaction(SpliceTransaction newTran)
-	{
-		LOG.debug("substituteTransaction the old trans=(context="+transaction.getContextId()+",transName="+transaction.getTransactionName()
-				+",status="+transaction.getTransactionStatus()+",id="+transaction.toString()+")");
-		
-		LOG.debug("substituteTransaction the old trans=(context="+newTran.getContextId()+",transName="+newTran.getTransactionName()
-				+",status="+newTran.getTransactionStatus()+",id="+newTran.toString()+")");
-		
-		// disengage old tran from this xact context
-		SpliceTransaction oldTran = (SpliceTransaction)transaction;
-		if (oldTran.transContext == this)
-			oldTran.transContext = null;
+    void substituteTransaction(SpliceTransaction newTran)
+    {
+        LOG.debug("substituteTransaction the old trans=(context="+transaction.getContextId()+",transName="+transaction.getTransactionName()
+                +",status="+transaction.getTransactionStatus()+",id="+transaction.toString()+")");
+        
+        LOG.debug("substituteTransaction the old trans=(context="+newTran.getContextId()+",transName="+newTran.getTransactionName()
+                +",status="+newTran.getTransactionStatus()+",id="+newTran.toString()+")");
+        
+        // disengage old tran from this xact context
+        SpliceTransaction oldTran = (SpliceTransaction)transaction;
+        if (oldTran.transContext == this)
+            oldTran.transContext = null;
 
-		// set up double link between new transaction and myself
-		transaction = newTran;
-		((SpliceTransaction)transaction).transContext = this;
-	}
+        // set up double link between new transaction and myself
+        transaction = newTran;
+        ((SpliceTransaction)transaction).transContext = this;
+    }
 
 }

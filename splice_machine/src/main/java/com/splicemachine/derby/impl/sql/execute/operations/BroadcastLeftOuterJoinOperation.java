@@ -28,33 +28,33 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 
 public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
-	private static Logger LOG = Logger.getLogger(BroadcastLeftOuterJoinOperation.class);
-	protected SpliceMethod<ExecRow> rightEmptyRowFun;
-	protected ExecRow rightEmptyRow;
+    private static Logger LOG = Logger.getLogger(BroadcastLeftOuterJoinOperation.class);
+    protected SpliceMethod<ExecRow> rightEmptyRowFun;
+    protected ExecRow rightEmptyRow;
 
-	public BroadcastLeftOuterJoinOperation() {
-		super();
-	}
-	
-	public BroadcastLeftOuterJoinOperation(
-			SpliceOperation leftResultSet,
-			int leftNumCols,
-			SpliceOperation rightResultSet,
-			int rightNumCols,
-			int leftHashKeyItem,
-			int rightHashKeyItem,
-			Activation activation,
-			GeneratedMethod restriction,
-			int resultSetNumber,
-			GeneratedMethod rightEmptyRowFun,
-			boolean wasRightOuterJoin,
-		    boolean oneRowRightSide,
-		    boolean notExistsRightSide,
-			boolean rightFromSSQ,
-			    double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost,
-			String userSuppliedOptimizerOverrides,
-			String sparkExpressionTreeAsString) throws StandardException {
+    public BroadcastLeftOuterJoinOperation() {
+        super();
+    }
+    
+    public BroadcastLeftOuterJoinOperation(
+            SpliceOperation leftResultSet,
+            int leftNumCols,
+            SpliceOperation rightResultSet,
+            int rightNumCols,
+            int leftHashKeyItem,
+            int rightHashKeyItem,
+            Activation activation,
+            GeneratedMethod restriction,
+            int resultSetNumber,
+            GeneratedMethod rightEmptyRowFun,
+            boolean wasRightOuterJoin,
+            boolean oneRowRightSide,
+            boolean notExistsRightSide,
+            boolean rightFromSSQ,
+                double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String sparkExpressionTreeAsString) throws StandardException {
                 super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
                         activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ,
                         optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
@@ -64,8 +64,8 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
                 this.wasRightOuterJoin = wasRightOuterJoin;
                 this.joinType = JoinNode.LEFTOUTERJOIN;
                 init();
-	}
-	
+    }
+    
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
@@ -74,10 +74,10 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 
     @Override
     public ExecRow getRightEmptyRow() throws StandardException {
-		if (rightEmptyRow == null)
-				rightEmptyRow = rightEmptyRowFun.invoke();
-		return rightEmptyRow;
-	}
+        if (rightEmptyRow == null)
+                rightEmptyRow = rightEmptyRowFun.invoke();
+        return rightEmptyRow;
+    }
 
     @Override
     public String prettyPrint(int indentLevel) {

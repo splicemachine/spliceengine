@@ -320,7 +320,7 @@ public final class DateTimeTest extends BaseJDBCTestCase {
                 new String[][] { { "00:00:00", "23:59:59" } }, true);
 
         rs = st.executeQuery(" values( time('00 AM'), time( '12:59 AM')," +
-        		" time('1 PM'), time('12:59 PM'))");
+                " time('1 PM'), time('12:59 PM'))");
         JDBC.assertColumnNames(rs, new String[] { "1", "2", "3", "4" });
         JDBC.assertFullResultSet(rs, new String[][] { { "00:00:00", 
                 "00:59:00", "13:00:00", "12:59:00" } }, true);
@@ -380,14 +380,14 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         Statement st = createStatement();
         
         rs = st.executeQuery("select e, t, p from t " +
-        		"where e = e or t = t or p = p");
+                "where e = e or t = t or p = p");
         JDBC.assertColumnNames(rs, new String[] { "E", "T", "P" });
         JDBC.assertFullResultSet(rs, new String[][] { { "1992-01-01", 
                 "12:30:30", "1992-01-01 12:30:30.0" }, { "1992-01-01",
                 "12:30:30", "1992-01-01 12:30:45.0" } }, true);
         
         rs = st.executeQuery("select * from t where e is not null " +
-        		"and t is not " + "null and p is not null");
+                "and t is not " + "null and p is not null");
         JDBC.assertColumnNames(rs, new String[] { "I", "S", "C", "V",
                 "D", "R", "E", "T", "P" });
         JDBC.assertFullResultSet(rs,  new String[][] {
@@ -411,7 +411,7 @@ public final class DateTimeTest extends BaseJDBCTestCase {
                 "select 'fail' from t where e = (select e from t)");
 
         rs = st.executeQuery("select 'pass' from t " +
-        		"where e = (select e from t where d=200)");
+                "where e = (select e from t where d=200)");
         JDBC.assertColumnNames(rs, new String[] { "1" });
         JDBC.assertFullResultSet(rs,
                 new String[][] { { "pass" }, { "pass" } }, true);
@@ -420,7 +420,7 @@ public final class DateTimeTest extends BaseJDBCTestCase {
                 "select 'fail' from t where t = (select t from t)");
 
         rs = st.executeQuery("select 'pass' from t " +
-        		"where t = (select t from t where d=200)");
+                "where t = (select t from t where d=200)");
         JDBC.assertColumnNames(rs, new String[] { "1" });
         JDBC.assertFullResultSet(rs, 
                 new String[][] { { "pass" }, { "pass" } }, true);
@@ -429,7 +429,7 @@ public final class DateTimeTest extends BaseJDBCTestCase {
                 "select 'fail' from t where p = (select p from t)");
 
         rs = st.executeQuery("select 'pass' from t " +
-        		"where p = (select p from t where d=200)");
+                "where p = (select p from t where d=200)");
         JDBC.assertColumnNames(rs, new String[] { "1" });
         JDBC.assertFullResultSet(rs, new String[][] { { "pass" } }, true);
 
@@ -587,8 +587,8 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         assertUpdateCount(st, 1, " delete from target");
 
         st.executeUpdate(" insert into source values (1, 2, '3', " +
-        		"'4', 5, 6, date('1997-06-07'), time('08:08:08'), " +
-        		"timestamp('9999-09-09 09:09:09'))");
+                "'4', 5, 6, date('1997-06-07'), time('08:08:08'), " +
+                "timestamp('9999-09-09 09:09:09'))");
 
         // these tests are 'funny' so that the masters won't show 
         // a diff every time.
@@ -628,14 +628,14 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         //CURRENT_DATE escaped function not supported in DB2 UDB 
         //CURRENT_TIME escaped function not supported in DB2 UDB
         assertStatementError("42X01", st, "select 'pass' from source " +
-        		"where current_date = {fn current_date()} " +
-        		"and current_time = {fn current_time()} " +
-        		"and current_timestamp = current_timestamp");
+                "where current_date = {fn current_date()} " +
+                "and current_time = {fn current_time()} " +
+                "and current_timestamp = current_timestamp");
 
         rs = st.executeQuery(" select 'pass' from source " +
-        		"where current_date = {fn curdate()} " +
-        		"and current_time = {fn curtime()} " +
-        		"and current_timestamp = current_timestamp");
+                "where current_date = {fn curdate()} " +
+                "and current_time = {fn curtime()} " +
+                "and current_timestamp = current_timestamp");
         JDBC.assertColumnNames(rs, new String[] { "1" });
         JDBC.assertFullResultSet(rs, new String[][] { { "pass" } }, true);
 
@@ -657,10 +657,10 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         
         // DB2 UDB compatible test for escaped functions
         rs = st.executeQuery("select 'pass' from source " +
-        		"where hour(current_time) = {fn hour(current_time)} " +
-        		"and minute(current_time) = {fn minute(current_time)}" +
-        		" and second(current_time) = {fn second(current_time)} " +
-        		"and year(current_date)   = {fn year(current_date)}");
+                "where hour(current_time) = {fn hour(current_time)} " +
+                "and minute(current_time) = {fn minute(current_time)}" +
+                " and second(current_time) = {fn second(current_time)} " +
+                "and year(current_date)   = {fn year(current_date)}");
         JDBC.assertColumnNames(rs, new String[] { "1" });
         JDBC.assertFullResultSet(rs, new String[][] { { "pass" } }, true);
 
@@ -689,8 +689,8 @@ public final class DateTimeTest extends BaseJDBCTestCase {
                         + "current_time, current_time, current_timestamp)");
 
         assertStatementError("42821", st, " insert into source values" +
-        		" (0, 0, '0', '0', 0, 0, current_date, " +
-        		"current_timestamp, current_timestamp)");
+                " (0, 0, '0', '0', 0, 0, current_date, " +
+                "current_timestamp, current_timestamp)");
 
         assertStatementError("42821", st,
                 " insert into source values (0, 0, '0', '0', 0, 0, "
@@ -708,7 +708,7 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         // midnight, and the insert above was run just before 
         // midnight...
         rs = st.executeQuery("select * from source " +
-        		"where e <> current_date and p <> current_timestamp");
+                "where e <> current_date and p <> current_timestamp");
         JDBC.assertColumnNames(rs, new String[] { "I", "S", "C", "V", "D", 
                 "R", "E", "T", "P" });
         JDBC.assertFullResultSet(rs, new String[][] { { "1", "2", 
@@ -718,7 +718,7 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         
         // test with DB2 syntax
         rs = st.executeQuery("select * from source " +
-        		"where e <> current date and p <> current timestamp");
+                "where e <> current date and p <> current timestamp");
         JDBC.assertColumnNames(rs, new String[] { "I", "S", "C", "V", 
                 "D", "R", "E", "T", "P" });
         JDBC.assertFullResultSet(rs, new String[][] { { "1", "2", "3",
@@ -726,7 +726,7 @@ public final class DateTimeTest extends BaseJDBCTestCase {
             "9999-09-09 09:09:09.0" } }, true);
 
         rs = st.executeQuery(" select 'pass' from source " +
-        		"where e <= current_date and p <= current_timestamp");
+                "where e <= current_date and p <= current_timestamp");
         JDBC.assertColumnNames(rs, new String[] { "1" });
         JDBC.assertFullResultSet(rs, 
                 new String[][] { { "pass" }, { "pass" } }, true);
@@ -824,7 +824,7 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         
         st.executeUpdate("create table sertest(d date, s Date, o Date)");
         st.executeUpdate(" insert into sertest values (date('1992-01-03'), " +
-        		"null, null)");
+                "null, null)");
         
         ResultSet rs = st.executeQuery(" select * from sertest");
         JDBC.assertColumnNames(rs, new String[] { "D", "S", "O" });
@@ -864,12 +864,12 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         assertUpdateCount(st, 2, "update sertest set d=o");
 
         rs = st.executeQuery(" select * from sertest where s is null " +
-        		"and o is not null");
+                "and o is not null");
         JDBC.assertColumnNames(rs, new String[] { "D", "S", "O" });
         JDBC.assertDrainResults(rs, 0);
 
         rs = st.executeQuery("select month(s) from sertest " +
-        		"where s is not null");
+                "where s is not null");
         JDBC.assertColumnNames(rs, new String[] { "1" });
         JDBC.assertFullResultSet(rs, new String[][] { { "1" }, { "6" } },
                 true);
@@ -1146,7 +1146,7 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         // show time and date separately as timestamp will be 
         // filtered out
         rs = st.executeQuery("select CAST(CAST (ts AS timestamp) AS date), " +
-        		"CAST(CAST (ts AS timestamp) AS time) from convtest");
+                "CAST(CAST (ts AS timestamp) AS time) from convtest");
         JDBC.assertColumnNames(rs, new String[] { "1", "2" });
 
         JDBC.assertFullResultSet(rs, new String[][] { { "1832-09-24", 
@@ -1156,13 +1156,13 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         // casting from a time to a timestamp sets the date to 
         // current date
         assertStatementError("42846", st, "select 'pass', " +
-        		"CAST (CAST(t AS timestamp) AS time) from convtest " +
-        		"where CAST(CAST(t AS timestamp) AS date)=current_date");
+                "CAST (CAST(t AS timestamp) AS time) from convtest " +
+                "where CAST(CAST(t AS timestamp) AS date)=current_date");
 
         // time should be 0
         assertStatementError("42846", st, "select " +
-        		"CAST (CAST (d AS timestamp) AS date), " +
-        		"CAST(CAST(d AS timestamp) AS time) from convtest");
+                "CAST (CAST (d AS timestamp) AS date), " +
+                "CAST(CAST(d AS timestamp) AS time) from convtest");
         
         st.close();
     }
@@ -1179,34 +1179,34 @@ public final class DateTimeTest extends BaseJDBCTestCase {
                 "'2003-03-05 17:05:43.111111')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('2003-3-03-17.05.43.111111', '2003-3-03 17:05:43.111111')"));
+                "('2003-3-03-17.05.43.111111', '2003-3-03 17:05:43.111111')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('2003-3-2-17.05.43.111111', '2003-3-2 17:05:43.111111')"));
+                "('2003-3-2-17.05.43.111111', '2003-3-2 17:05:43.111111')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('2003-03-2-17.05.43.111111', '2003-03-2 17:05:43.111111')"));
+                "('2003-03-2-17.05.43.111111', '2003-03-2 17:05:43.111111')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('2003-3-1-17.05.43.1', '2003-3-1 17:05:43.1')"));
+                "('2003-3-1-17.05.43.1', '2003-3-1 17:05:43.1')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('2003-3-1-17.05.43.12', '2003-3-1 17:05:43.12')"));
+                "('2003-3-1-17.05.43.12', '2003-3-1 17:05:43.12')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('2003-3-1-17.05.43.123', '2003-3-1 17:05:43.123')"));
+                "('2003-3-1-17.05.43.123', '2003-3-1 17:05:43.123')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('2003-3-1-17.05.43.1234', '2003-3-1 17:05:43.1234')"));
+                "('2003-3-1-17.05.43.1234', '2003-3-1 17:05:43.1234')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('2003-3-1-17.05.43.12345', '2003-3-1 17:05:43.12345')"));
+                "('2003-3-1-17.05.43.12345', '2003-3-1 17:05:43.12345')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('2003-3-1-17.05.43.123456', '2003-3-1 17:05:43.123456')"));
+                "('2003-3-1-17.05.43.123456', '2003-3-1 17:05:43.123456')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('2003-3-1-17.05.43', '2003-3-1 17:05:43')"));
+                "('2003-3-1-17.05.43', '2003-3-1 17:05:43')"));
         
         st.close();
     }    
@@ -1218,14 +1218,14 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         Statement st = createStatement();
         
         assertEquals(1, st.executeUpdate("insert into ts values " +
-        		"('2002-03-05-17.05.43.111111  ', " +
-        		"'2002-03-05 17:05:43.111111   ')"));
+                "('2002-03-05-17.05.43.111111  ', " +
+                "'2002-03-05 17:05:43.111111   ')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('2002-03-05-17.05.43.1   ', '2002-03-05 17:05:43.1   ')"));
+                "('2002-03-05-17.05.43.1   ', '2002-03-05 17:05:43.1   ')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('2002-03-05-17.05.43    ', '2002-03-05 17:05:43    ')"));
+                "('2002-03-05-17.05.43    ', '2002-03-05 17:05:43    ')"));
         
         st.close();
     }
@@ -1237,17 +1237,17 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         Statement st = createStatement();
         
         assertEquals(1, st.executeUpdate("insert into ts values " +
-        		"('2003-3-1-17.05.43.', '2003-3-1 17:05:43')"));
+                "('2003-3-1-17.05.43.', '2003-3-1 17:05:43')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('2003-3-1-17.05.43.0', '2003-3-1 17:05:43.0')"));
+                "('2003-3-1-17.05.43.0', '2003-3-1 17:05:43.0')"));
 
         assertEquals(1, st.executeUpdate(" insert into ts values " +
-        		"('0003-03-05-17.05.43.111111'," +
-        		" '0003-03-05 17:05:43.111111')"));
+                "('0003-03-05-17.05.43.111111'," +
+                " '0003-03-05 17:05:43.111111')"));
         
         ResultSet rs = st.executeQuery(" select count(*) from ts " +
-        		"where ts1=ts2");
+                "where ts1=ts2");
         rs.next();
         int rows = rs.getInt(1);
         rs = st.executeQuery(" select count(*) from ts ");
@@ -1299,7 +1299,7 @@ public final class DateTimeTest extends BaseJDBCTestCase {
                 " insert into ts (ts1) values ('2003-3-1-17.05.4.')");
 
         assertEquals(1, st.executeUpdate(" insert into ts (ts1) values " +
-        		"('2003-03-05-7.05.43.111111')"));
+                "('2003-03-05-7.05.43.111111')"));
 
         // invalid ISO format: cloudscape rejects
 
@@ -1331,62 +1331,62 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         Statement st = createStatement();
         
         st .executeUpdate("create table tt " +
-        		"(datecol date, dateStr varchar(16), timecol time, " +
-        		"timeStr varchar(16), expected timestamp)");
+                "(datecol date, dateStr varchar(16), timecol time, " +
+                "timeStr varchar(16), expected timestamp)");
 
         st.executeUpdate(" insert into tt ( dateStr, timeStr) " +
-        		"values( '2004-03-04', '12:01:02')");
+                "values( '2004-03-04', '12:01:02')");
 
         st.executeUpdate(" insert into tt ( dateStr, timeStr) " +
-        		"values( null, '12:01:03')");
+                "values( null, '12:01:03')");
 
         st.executeUpdate(" insert into tt ( dateStr, timeStr) " +
-        		"values( '2004-03-05', null)");
+                "values( '2004-03-05', null)");
 
         assertUpdateCount(st, 3, " update tt  set datecol = date( dateStr), " +
-        		"timecol = time( timeStr)");
+                "timecol = time( timeStr)");
 
         assertUpdateCount(st, 1, " update tt  set expected = " +
-        		"timestamp( dateStr || ' ' || timeStr) " +
-        		"where dateStr is not null and timeStr is not null");
+                "timestamp( dateStr || ' ' || timeStr) " +
+                "where dateStr is not null and timeStr is not null");
 
         ResultSet rs = st.executeQuery(" select dateStr, timeStr from tt " +
-        		"where (expected is not null and (expected <> " +
-        		"timestamp( dateCol, timeCol) or " +
-        		"timestamp( dateCol, timeCol) is null)) or " +
-        		"(expected is null and " +
-        		"timestamp( dateCol, timeCol) is not null)");
+                "where (expected is not null and (expected <> " +
+                "timestamp( dateCol, timeCol) or " +
+                "timestamp( dateCol, timeCol) is null)) or " +
+                "(expected is null and " +
+                "timestamp( dateCol, timeCol) is not null)");
         JDBC.assertColumnNames(rs, new String[] { "DATESTR", "TIMESTR" });
         JDBC.assertDrainResults(rs, 0);
 
         rs = st.executeQuery(" select dateStr, timeStr from tt " +
-        		"where (expected is not null and (expected <> " +
-        		"timestamp( dateStr, timeStr) or " +
-        		"timestamp( dateStr, timeStr) is null)) " +
-        		"or (expected is null and " +
-        		"timestamp( dateStr, timeStr) is not null)");
-
-        JDBC.assertColumnNames(rs, new String[] { "DATESTR", "TIMESTR" });
-        JDBC.assertDrainResults(rs, 0);
-
-        rs = st.executeQuery(" select dateStr, timeStr from tt " +
-        		"where (expected is not null and " +
-        		"timestamp( dateStr, timeStr) <> timestamp( dateCol, timeCol))" +
-        		" or (expected is null and " +
-        		"timestamp( dateStr, timeStr) is not null)");
+                "where (expected is not null and (expected <> " +
+                "timestamp( dateStr, timeStr) or " +
+                "timestamp( dateStr, timeStr) is null)) " +
+                "or (expected is null and " +
+                "timestamp( dateStr, timeStr) is not null)");
 
         JDBC.assertColumnNames(rs, new String[] { "DATESTR", "TIMESTR" });
         JDBC.assertDrainResults(rs, 0);
 
         rs = st.executeQuery(" select dateStr, timeStr from tt " +
-        		"where expected is not null and " +
-        		"date( timestamp( dateCol, timeCol)) <> dateCol");
+                "where (expected is not null and " +
+                "timestamp( dateStr, timeStr) <> timestamp( dateCol, timeCol))" +
+                " or (expected is null and " +
+                "timestamp( dateStr, timeStr) is not null)");
+
         JDBC.assertColumnNames(rs, new String[] { "DATESTR", "TIMESTR" });
         JDBC.assertDrainResults(rs, 0);
 
         rs = st.executeQuery(" select dateStr, timeStr from tt " +
-        		"where expected is not null and " +
-        		"time( timestamp( dateCol, timeCol)) <> timeCol");
+                "where expected is not null and " +
+                "date( timestamp( dateCol, timeCol)) <> dateCol");
+        JDBC.assertColumnNames(rs, new String[] { "DATESTR", "TIMESTR" });
+        JDBC.assertDrainResults(rs, 0);
+
+        rs = st.executeQuery(" select dateStr, timeStr from tt " +
+                "where expected is not null and " +
+                "time( timestamp( dateCol, timeCol)) <> timeCol");
         JDBC.assertColumnNames(rs, new String[] { "DATESTR", "TIMESTR" });
         JDBC.assertDrainResults(rs, 0);
 
@@ -1518,7 +1518,7 @@ public final class DateTimeTest extends BaseJDBCTestCase {
         Statement st = createStatement();
         
         ResultSet rs = st .executeQuery(
-        		"values time('2004-04-15 16:15:32.387')");
+                "values time('2004-04-15 16:15:32.387')");
         JDBC.assertFullResultSet(rs, new String[][] { { "16:15:32" } }, true);
 
         rs = st.executeQuery(" values time('2004-04-15-16.15.32.387')");
@@ -1619,10 +1619,10 @@ public final class DateTimeTest extends BaseJDBCTestCase {
 
         commit();
         assertEquals(6, st.executeUpdate(" insert into t_func " +
-        		"values('1900060', date('1900060')), ('1904060', " +
-        		"date('1904060')), ('1904366', date('1904366')), " +
-        		"('2000060', date('2000060')), ('2001060'," +
-        		" date('2001060')), ('2001365', date('2001365'))"));
+                "values('1900060', date('1900060')), ('1904060', " +
+                "date('1904060')), ('1904366', date('1904366')), " +
+                "('2000060', date('2000060')), ('2001060'," +
+                " date('2001060')), ('2001365', date('2001365'))"));
 
         rs = st.executeQuery(" select s,d,date(s) from t_func order by s");
         JDBC.assertColumnNames(rs, new String[] { "S", "D", "3" });
@@ -1667,9 +1667,9 @@ public final class DateTimeTest extends BaseJDBCTestCase {
 
         // test parameter
         pSt = prepareStatement("values( date(cast(? as integer))," +
-        		"timestamp(cast(? as varchar(32))))");
+                "timestamp(cast(? as varchar(32))))");
         rs = st.executeQuery("values(cast(1 as integer), " +
-        		"'2003-03-05-17.05.43.111111')");
+                "'2003-03-05-17.05.43.111111')");
 
         rs.next();
         rsmd = rs.getMetaData();
@@ -1863,8 +1863,8 @@ public final class DateTimeTest extends BaseJDBCTestCase {
      * resolution (DERBY-4625).
      */
     public void testNanosecondResolution() throws SQLException{
-    	assertSingleValue("values timestamp('2010-04-21 12:00:00.123456789')",
-    			"2010-04-21 12:00:00.123456789");
+        assertSingleValue("values timestamp('2010-04-21 12:00:00.123456789')",
+                "2010-04-21 12:00:00.123456789");
     }
 
     /**

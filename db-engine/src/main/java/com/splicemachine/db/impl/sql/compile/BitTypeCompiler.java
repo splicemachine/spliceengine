@@ -58,13 +58,13 @@ public class BitTypeCompiler extends BaseTypeCompiler
          * @see TypeCompiler#convertible
          */
         public boolean convertible(TypeId otherType, 
-								   boolean forDataTypeFunction) {
+                                   boolean forDataTypeFunction) {
             return !otherType.getBaseTypeId().isAnsiUDT() && (otherType.isBitTypeId() || otherType.isBlobTypeId() || otherType.userType());
 
 
         }
 
-	
+    
         /**
          * Tell whether this type (bit) is compatible with the given type.
          *
@@ -85,10 +85,10 @@ public class BitTypeCompiler extends BaseTypeCompiler
         {
         if (otherType.isBlobTypeId())
           return false;
-				if (otherType.isBitTypeId())
-				{
-						return true;
-				}
+                if (otherType.isBitTypeId())
+                {
+                        return true;
+                }
 
                 /*
                 ** If the other type is user-defined, use the java types to determine

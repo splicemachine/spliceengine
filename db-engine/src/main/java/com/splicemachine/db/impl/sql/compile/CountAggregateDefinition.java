@@ -42,7 +42,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
  *
  */
 public class CountAggregateDefinition 
-		implements AggregateDefinition
+        implements AggregateDefinition
 {
     private boolean isWindowFunction;
 
@@ -54,35 +54,35 @@ public class CountAggregateDefinition
         this.isWindowFunction = isWindowFunction;
     }
 
-	/**
-	 * Niladic constructor.  Does nothing.  For ease
-	 * Of use, only.
-	 */
-	public CountAggregateDefinition() { super(); }
+    /**
+     * Niladic constructor.  Does nothing.  For ease
+     * Of use, only.
+     */
+    public CountAggregateDefinition() { super(); }
 
-	/**
-	 * Determines the result datatype. We can run
-	 * count() on anything, and it always returns a
-	 * INTEGER (java.lang.Integer).
-	 *
-	 * @param inputType the input type, either a user type or a java.lang object
-	 *
-	 * @return the output Class (null if cannot operate on
-	 *	value expression of this type.
-	 */
-	public final DataTypeDescriptor	getAggregator(DataTypeDescriptor inputType,
-				StringBuffer aggregatorClass) 
-	{
+    /**
+     * Determines the result datatype. We can run
+     * count() on anything, and it always returns a
+     * INTEGER (java.lang.Integer).
+     *
+     * @param inputType the input type, either a user type or a java.lang object
+     *
+     * @return the output Class (null if cannot operate on
+     *    value expression of this type.
+     */
+    public final DataTypeDescriptor    getAggregator(DataTypeDescriptor inputType,
+                StringBuffer aggregatorClass) 
+    {
         if (isWindowFunction) {
             aggregatorClass.append(ClassName.WindowCountAggregator);
         }
         else {
             aggregatorClass.append(ClassName.CountAggregator);
         }
-		/*
-		** COUNT never returns NULL
-		*/
-		return DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false);
-	}
+        /*
+        ** COUNT never returns NULL
+        */
+        return DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false);
+    }
 
 }

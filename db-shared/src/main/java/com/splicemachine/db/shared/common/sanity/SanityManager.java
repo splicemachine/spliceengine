@@ -40,7 +40,7 @@ import java.util.Hashtable;
  * <p>
  * Assertions and debug checks
  * can only be used for testing conditions that might occur
- * in development code but not in production code.	
+ * in development code but not in production code.    
  * <b>They are compiled out of production code.</b>
  * <p>
  * Uses of assertions should not add AssertFailure catches or
@@ -251,7 +251,7 @@ public class SanityManager {
      *     }
      * so that they can be compiled out completely.
      *
-     * @param flag	The name of the debug flag to set to true
+     * @param flag    The name of the debug flag to set to true
      */
     public static void DEBUG_SET(String flag) {
         if (DEBUG) {
@@ -273,7 +273,7 @@ public class SanityManager {
      *     }
      * so that they can be compiled out completely.
      *
-     * @param flag	The name of the debug flag to set to false
+     * @param flag    The name of the debug flag to set to false
      */
     public static void DEBUG_CLEAR(String flag) {
         if (DEBUG) {
@@ -342,7 +342,7 @@ public class SanityManager {
      * The DEBUG_PRINT calls provides a convenient way to print debug
      * information to the db2j.LOG file,  The message includes a header
      *<p>
-     *	DEBUG <flag> OUTPUT:
+     *    DEBUG <flag> OUTPUT:
      * before the message
      *<p>
      * If the debugStream stream cannot be found, the message is printed to

@@ -84,9 +84,9 @@ public class HalfOuterJoinNode extends JoinNode{
                 null);
         this.rightOuterJoin=(Boolean)rightOuterJoin;
 
-		/* We can flatten left/right join into the parent block, and use a outerJoinLevel
-		   to keep track of the inner tables of the left/right joins
-		 */
+        /* We can flatten left/right join into the parent block, and use a outerJoinLevel
+           to keep track of the inner tables of the left/right joins
+         */
         flattenableJoin=true;
     }
 
@@ -110,25 +110,25 @@ public class HalfOuterJoinNode extends JoinNode{
                 null);
         this.rightOuterJoin=(Boolean)rightOuterJoin;
 
-		/* We can flatten left/right join into the parent block, and use a outerJoinLevel
-		   to keep track of the inner tables of the left/right joins
-		 */
+        /* We can flatten left/right join into the parent block, and use a outerJoinLevel
+           to keep track of the inner tables of the left/right joins
+         */
         flattenableJoin=true;
     }
 
-	/*
-	 *  Optimizable interface
-	 */
+    /*
+     *  Optimizable interface
+     */
 
     @Override
     public boolean pushOptPredicate(OptimizablePredicate optimizablePredicate) throws StandardException{
         /* We should never push the predicate to joinPredicates as in JoinNode.  joinPredicates
-		 * should only be predicates relating the two joining tables.  In the case of half join,
-		 * it is biased.  If the general predicate (not join predicate) contains refernce to right
-		 * result set, and if doesn't qualify, we shouldn't return the row for the result to be
-		 * correct, but half join will fill right side NULL and return the row.  So we can only
-		 * push predicate to the left, as we do in "pushExpression".  bug 5055
-		 */
+         * should only be predicates relating the two joining tables.  In the case of half join,
+         * it is biased.  If the general predicate (not join predicate) contains refernce to right
+         * result set, and if doesn't qualify, we shouldn't return the row for the result to be
+         * correct, but half join will fill right side NULL and return the row.  So we can only
+         * push predicate to the left, as we do in "pushExpression".  bug 5055
+         */
         FromTable leftFromTable=(FromTable)leftResultSet;
         return leftFromTable.getReferencedTableMap().contains(optimizablePredicate.getReferencedMap())
                 && leftFromTable.pushOptPredicate(optimizablePredicate);
@@ -177,11 +177,11 @@ public class HalfOuterJoinNode extends JoinNode{
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
         ResultSetNode newTreeTop;
 
-		/* Transform right outer joins to the equivalent left outer join */
+        /* Transform right outer joins to the equivalent left outer join */
         if(rightOuterJoin){
-			/* Verify that a user specifed right outer join is transformed into
-			 * a left outer join exactly once.
-			 */
+            /* Verify that a user specifed right outer join is transformed into
+             * a left outer join exactly once.
+             */
             assert !transformed: "Attempting to transform a right outer join multiple times";
 
             ResultSetNode tmp=leftResultSet;
@@ -211,17 +211,17 @@ public class HalfOuterJoinNode extends JoinNode{
         FromTable leftFromTable=(FromTable)leftResultSet;
         FromTable rightFromTable=(FromTable)rightResultSet;
 
-		/* We only try to push single table predicates to the left.
-		 * Pushing them to the right would give incorrect semantics.
-		 * We use the logic for pushing down single table predicates here.
-		 */
+        /* We only try to push single table predicates to the left.
+         * Pushing them to the right would give incorrect semantics.
+         * We use the logic for pushing down single table predicates here.
+         */
         pushExpressionsToLeft(outerPredicateList);
 
-		/* Push the pushable outer join predicates to the right.  This is done
-		 * bottom up, hence at the end of this method, so that outer join
-		 * conditions only get pushed down 1 level.
-		 * We use the optimizer's logic for pushing down join clause here.
-		 */
+        /* Push the pushable outer join predicates to the right.  This is done
+         * bottom up, hence at the end of this method, so that outer join
+         * conditions only get pushed down 1 level.
+         * We use the optimizer's logic for pushing down join clause here.
+         */
         // Walk joinPredicates backwards due to possible deletes
         for(int index=joinPredicates.size()-1;index>=0;index--){
             Predicate predicate;
@@ -235,11 +235,11 @@ public class HalfOuterJoinNode extends JoinNode{
                                      "HalfOuterJoinNode pushing predicate right.",predicate);
             getRightPredicateList().addPredicate(predicate);
 
-			/* Remove the matching predicate from the outer list */
+            /* Remove the matching predicate from the outer list */
             joinPredicates.removeElementAt(index);
         }
 
-		/* Recurse down both sides of tree */
+        /* Recurse down both sides of tree */
         PredicateList noPredicates= (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
         leftFromTable.pushExpressions(getLeftPredicateList());
         rightFromTable.pushExpressions(noPredicates);
@@ -598,12 +598,12 @@ public class HalfOuterJoinNode extends JoinNode{
         ResultSetNode innerRS;
 
         if(predicateTree==null){
-			/* We can't transform this node, so tell right side of the
-			 * outer join that it can't get flattened into outer query block.
-			 */
-			if (isRightOuterJoin())
-			    leftResultSet.notFlattenableJoin();
-			else
+            /* We can't transform this node, so tell right side of the
+             * outer join that it can't get flattened into outer query block.
+             */
+            if (isRightOuterJoin())
+                leftResultSet.notFlattenableJoin();
+            else
                 rightResultSet.notFlattenableJoin();
             return this;
         }
@@ -623,30 +623,30 @@ public class HalfOuterJoinNode extends JoinNode{
         // recursively.
         JBitSet innerMap=innerRS.LOJgetReferencedTables(numTables);
 
-		/* Walk predicates looking for 
-		 * a null intolerant predicate on the inner table.
-		 */
+        /* Walk predicates looking for 
+         * a null intolerant predicate on the inner table.
+         */
         ValueNode vn=predicateTree;
         while(vn instanceof AndNode){
             AndNode and=(AndNode)vn;
             ValueNode left=and.getLeftOperand();
 
-			/* Skip IS NULL predicates as they are not null intolerant */
+            /* Skip IS NULL predicates as they are not null intolerant */
             if(left.isInstanceOf(C_NodeTypes.IS_NULL_NODE)){
                 vn=and.getRightOperand();
                 continue;
             }
 
-			/* To be conservative, only consider predicates that are relops, certain inlist, between and like ops */
+            /* To be conservative, only consider predicates that are relops, certain inlist, between and like ops */
             if (left instanceof RelationalOperator ||
                     left instanceof InListOperatorNode  ||
                     left instanceof BetweenOperatorNode ||
                     left instanceof LikeEscapeOperatorNode){
                 JBitSet refMap=new JBitSet(numTables);
-				/* Do not consider method calls, 
-				 * conditionals, field references, etc. */
+                /* Do not consider method calls, 
+                 * conditionals, field references, etc. */
 
-				/* only consider the left side of inlist operator, as right are ORed elements */
+                /* only consider the left side of inlist operator, as right are ORed elements */
                 if (left instanceof InListOperatorNode) {
                     if (!((InListOperatorNode) left).getLeftOperandList().categorize(refMap,true)) {
                         vn=and.getRightOperand();
@@ -657,11 +657,11 @@ public class HalfOuterJoinNode extends JoinNode{
                     continue;
                 }
 
-				/* If the predicate is a null intolerant predicate
-				 * on the right side then we can flatten to an
-				 * inner join.  We do the xform here, flattening
-				 * will happen later.
-				 */
+                /* If the predicate is a null intolerant predicate
+                 * on the right side then we can flatten to an
+                 * inner join.  We do the xform here, flattening
+                 * will happen later.
+                 */
                 for(int bit=0;bit<numTables;bit++){
                     if(refMap.get(bit) && innerMap.get(bit)){
                         // OJ -> IJ
@@ -687,9 +687,9 @@ public class HalfOuterJoinNode extends JoinNode{
             vn=and.getRightOperand();
         }
 
-		/* We can't transform this node, so tell right sides of the
-		 * outer join that it can't get flattened into outer query block.
-		 */
+        /* We can't transform this node, so tell right sides of the
+         * outer join that it can't get flattened into outer query block.
+         */
         if (isRightOuterJoin())
             leftResultSet.notFlattenableJoin();
         else
@@ -700,11 +700,11 @@ public class HalfOuterJoinNode extends JoinNode{
 
     @Override
     protected void adjustNumberOfRowsReturned(CostEstimate costEstimate){
-		/*
-		** An outer join returns at least as many rows as in the outer
-		** table. Even if this started as a right outer join, it will
-		** have been transformed to a left outer join by this point.
-		*/
+        /*
+        ** An outer join returns at least as many rows as in the outer
+        ** table. Even if this started as a right outer join, it will
+        ** have been transformed to a left outer join by this point.
+        */
         CostEstimate outerCost=getLeftResultSet().getCostEstimate();
 
         if(costEstimate.rowCount()<outerCost.rowCount()){
@@ -719,17 +719,17 @@ public class HalfOuterJoinNode extends JoinNode{
      */
     @Override
     public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException{
-		/* Verify that a user specifed right outer join is transformed into
-		 * a left outer join exactly once.
-		 */
+        /* Verify that a user specifed right outer join is transformed into
+         * a left outer join exactly once.
+         */
         assert rightOuterJoin==transformed:
                 "rightOuterJoin ("+rightOuterJoin+ ") is expected to equal transformed ("+transformed+")";
         super.generateCore(acb,mb,LEFTOUTERJOIN);
     }
 
     /**
-     * Generate	and add any arguments specifict to outer joins.
-     * Generate	the methods (and add them as parameters) for
+     * Generate    and add any arguments specifict to outer joins.
+     * Generate    the methods (and add them as parameters) for
      * returning an empty row from 1 or more sides of an outer join,
      * if required.  Pass whether or not this was originally a
      * right outer join.
@@ -742,10 +742,10 @@ public class HalfOuterJoinNode extends JoinNode{
      */
     @Override
     protected int addOuterJoinArguments(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException{
-		/* Nulls always generated from the right */
+        /* Nulls always generated from the right */
         rightResultSet.getResultColumns().generateNulls(acb,mb);
 
-		/* Was this originally a right outer join? */
+        /* Was this originally a right outer join? */
         mb.push(rightOuterJoin);
 
         return 2;
@@ -756,7 +756,7 @@ public class HalfOuterJoinNode extends JoinNode{
      */
     @Override
     protected int getNumJoinArguments(){
-		/* We add two more arguments than the superclass does */
+        /* We add two more arguments than the superclass does */
         return super.getNumJoinArguments()+2;
     }
 
@@ -894,11 +894,11 @@ public class HalfOuterJoinNode extends JoinNode{
         rightTable.setOuterJoinLevel(getCompilerContext().getNextOJLevel());
         rightTable.addToDependencyMap(leftResultSet.getReferencedTableMap());
 
-		/* Build a new FromList composed of left and right children
-		 * NOTE: We must call FL.addElement() instead of FL.addFromTable()
-		 * since there is no exposed name. (And even if there was,
-		 * we could care less about unique exposed name checking here.)
-		 */
+        /* Build a new FromList composed of left and right children
+         * NOTE: We must call FL.addElement() instead of FL.addFromTable()
+         * since there is no exposed name. (And even if there was,
+         * we could care less about unique exposed name checking here.)
+         */
         FromList fromList=(FromList)getNodeFactory().getNode(
                 C_NodeTypes.FROM_LIST,
                 getNodeFactory().doJoinOrderOptimization(),
@@ -906,13 +906,13 @@ public class HalfOuterJoinNode extends JoinNode{
         fromList.addElement(leftResultSet);
         fromList.addElement(rightResultSet);
 
-		/* Mark our RCL as redundant */
+        /* Mark our RCL as redundant */
         resultColumns.setRedundant();
 
-		/* Remap all ColumnReferences from the outer query to this node.
-		 * (We replace those ColumnReferences with clones of the matching
-		 * expression in the left and right's RCL.
-		 */
+        /* Remap all ColumnReferences from the outer query to this node.
+         * (We replace those ColumnReferences with clones of the matching
+         * expression in the left and right's RCL.
+         */
         rcl.remapColumnReferencesToExpressions();
         outerPList.remapColumnReferencesToExpressions();
         if(gbl!=null){

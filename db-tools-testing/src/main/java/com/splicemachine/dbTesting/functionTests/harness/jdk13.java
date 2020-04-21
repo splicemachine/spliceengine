@@ -40,12 +40,12 @@ import java.util.StringTokenizer;
  */
 public class jdk13 extends jvm {
 
-	public String getName(){return "jdk13";}
+    public String getName(){return "jdk13";}
     public jdk13(boolean noasyncgc, boolean verbosegc, boolean noclassgc,
     long ss, long oss, long ms, long mx, String classpath, String prof,
     boolean verify, boolean noverify, boolean nojit, Vector D) {
         super(noasyncgc,verbosegc,noclassgc,ss,oss,ms,mx,classpath,prof,
-		verify,noverify,nojit,D);
+        verify,noverify,nojit,D);
     }
     // more typical use:
     public jdk13(String classpath, Vector D) {
@@ -72,10 +72,10 @@ public class jdk13 extends jvm {
             v.addElement(st.nextToken());
         }
         return v;
-	}
+    }
 
-	public void appendOtherFlags(StringBuffer sb)
-	{
+    public void appendOtherFlags(StringBuffer sb)
+    {
         if (noasyncgc) warn("jdk13 does not support noasyncgc");
         if (verbosegc) sb.append(" -verbose:gc");
         if (noclassgc) sb.append(" -Xnoclassgc");
@@ -99,9 +99,9 @@ public class jdk13 extends jvm {
         if (nojit) sb.append(" -Djava.compiler=NONE");
         if (D != null)
           for (int i=0; i<D.size();i++) {
-	        sb.append(" -D");
-	        sb.append((String)(D.elementAt(i)));
+            sb.append(" -D");
+            sb.append((String)(D.elementAt(i)));
           }
     }
-	public String getDintro() { return "-D"; }
+    public String getDintro() { return "-D"; }
 }

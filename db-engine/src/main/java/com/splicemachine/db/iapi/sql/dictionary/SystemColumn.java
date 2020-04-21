@@ -43,17 +43,17 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 public interface SystemColumn
 {
-	/**
-	 * Gets the name of this column.
-	 *
-	 * @return	The column name.
-	 */
-	String	getName();
+    /**
+     * Gets the name of this column.
+     *
+     * @return    The column name.
+     */
+    String    getName();
     
     /**
      * Return the type of this column.
       */
-	DataTypeDescriptor getType();
+    DataTypeDescriptor getType();
 
 }
 

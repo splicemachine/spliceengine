@@ -86,8 +86,8 @@ public abstract class StatementNode extends QueryTreeNode{
     /**
      * Returns whether or not this Statement requires a set/clear savepoint
      * around its execution.  The following statement "types" do not require them:
-     * Cursor	- unnecessary and won't work in a read only environment
-     * Xact	- savepoint will get blown away underneath us during commit/rollback
+     * Cursor    - unnecessary and won't work in a read only environment
+     * Xact    - savepoint will get blown away underneath us during commit/rollback
      * <p/>
      * ONLY CALLABLE AFTER GENERATION
      * <p/>
@@ -197,11 +197,11 @@ public abstract class StatementNode extends QueryTreeNode{
 
         int nodeChoice=activationKind();
 
-		/* RESOLVE: Activation hierarchy was way too complicated
-		 * and added no value.  Simple thing to do was to simply
-		 * leave calling code alone and to handle here and to
-		 * eliminate unnecessary classes.
-		 */
+        /* RESOLVE: Activation hierarchy was way too complicated
+         * and added no value.  Simple thing to do was to simply
+         * leave calling code alone and to handle here and to
+         * eliminate unnecessary classes.
+         */
         String superClass;
         switch(nodeChoice){
             case NEED_CURSOR_ACTIVATION:

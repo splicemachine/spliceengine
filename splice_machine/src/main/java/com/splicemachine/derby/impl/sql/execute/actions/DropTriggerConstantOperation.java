@@ -35,86 +35,86 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 
 /**
- *	This class  describes actions that are ALWAYS performed for a
- *	DROP TRIGGER Statement at Execution time.
+ *    This class  describes actions that are ALWAYS performed for a
+ *    DROP TRIGGER Statement at Execution time.
  *
  */
 public class DropTriggerConstantOperation extends DDLSingleTableConstantOperation {
-	private final String triggerName;
-	private final SchemaDescriptor sd;
+    private final String triggerName;
+    private final SchemaDescriptor sd;
 
-	/**
-	 *	Make the ConstantAction for a DROP TRIGGER statement.
-	 *
-	 * @param	sd					Schema that stored prepared statement lives in.
-	 * @param	triggerName			Name of the Trigger
-	 * @param	tableId				The table upon which the trigger is defined
-	 *
-	 */
-	public DropTriggerConstantOperation(SchemaDescriptor sd, String triggerName, UUID tableId) {
-		super(tableId);
-		this.sd = sd;
-		this.triggerName = triggerName;
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(sd != null, "SchemaDescriptor is null");
-	}
+    /**
+     *    Make the ConstantAction for a DROP TRIGGER statement.
+     *
+     * @param    sd                    Schema that stored prepared statement lives in.
+     * @param    triggerName            Name of the Trigger
+     * @param    tableId                The table upon which the trigger is defined
+     *
+     */
+    public DropTriggerConstantOperation(SchemaDescriptor sd, String triggerName, UUID tableId) {
+        super(tableId);
+        this.sd = sd;
+        this.triggerName = triggerName;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(sd != null, "SchemaDescriptor is null");
+    }
 
-	/**
-	 *	This is the guts of the Execution-time logic for DROP STATEMENT.
-	 *
-	 *	@see ConstantAction#executeConstantAction
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public void executeConstantAction( Activation activation ) throws StandardException {
-		TriggerDescriptor 			triggerd;
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
-		/*
-		** Inform the data dictionary that we are about to write to it.
-		** There are several calls to data dictionary "get" methods here
-		** that might be done in "read" mode in the data dictionary, but
-		** it seemed safer to do this whole operation in "write" mode.
-		**
-		** We tell the data dictionary we're done writing at the end of
-		** the transaction.
-		*/
-		dd.startWriting(lcc);
+    /**
+     *    This is the guts of the Execution-time logic for DROP STATEMENT.
+     *
+     *    @see ConstantAction#executeConstantAction
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public void executeConstantAction( Activation activation ) throws StandardException {
+        TriggerDescriptor             triggerd;
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        /*
+        ** Inform the data dictionary that we are about to write to it.
+        ** There are several calls to data dictionary "get" methods here
+        ** that might be done in "read" mode in the data dictionary, but
+        ** it seemed safer to do this whole operation in "write" mode.
+        **
+        ** We tell the data dictionary we're done writing at the end of
+        ** the transaction.
+        */
+        dd.startWriting(lcc);
 
-		TableDescriptor td = dd.getTableDescriptor(tableId);
-		if (td == null) {
-			throw StandardException.newException(
-								SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION,
-								tableId.toString());
-		}
-		TransactionController tc = lcc.getTransactionExecute();
-		// XXX - TODO NO LOCKING lockTableForDDL(tc, td.getHeapConglomerateId(), true);
-		// get td again in case table shape is changed before lock is acquired
-		td = dd.getTableDescriptor(tableId);
-		if (td == null)
-		{
-			throw StandardException.newException(
-								SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION,
-								tableId.toString());
-		}
+        TableDescriptor td = dd.getTableDescriptor(tableId);
+        if (td == null) {
+            throw StandardException.newException(
+                                SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION,
+                                tableId.toString());
+        }
+        TransactionController tc = lcc.getTransactionExecute();
+        // XXX - TODO NO LOCKING lockTableForDDL(tc, td.getHeapConglomerateId(), true);
+        // get td again in case table shape is changed before lock is acquired
+        td = dd.getTableDescriptor(tableId);
+        if (td == null)
+        {
+            throw StandardException.newException(
+                                SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION,
+                                tableId.toString());
+        }
 
-		/* 
-		** Get the trigger descriptor.  We're responsible for raising
-		** the error if it isn't found 
-		*/
-		triggerd = dd.getTriggerDescriptor(triggerName, sd);
+        /* 
+        ** Get the trigger descriptor.  We're responsible for raising
+        ** the error if it isn't found 
+        */
+        triggerd = dd.getTriggerDescriptor(triggerName, sd);
 
-		if (triggerd == null) {
-			throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "TRIGGER",
-					(sd.getSchemaName() + "." + triggerName));
-		}
+        if (triggerd == null) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "TRIGGER",
+                    (sd.getSchemaName() + "." + triggerName));
+        }
 
-		/* 
-	 	** Prepare all dependents to invalidate.  (This is there chance
-		** to say that they can't be invalidated.  For example, an open
-		** cursor referencing a table/trigger that the user is attempting to
-		** drop.) If no one objects, then invalidate any dependent objects.
-		*/
+        /* 
+         ** Prepare all dependents to invalidate.  (This is there chance
+        ** to say that they can't be invalidated.  For example, an open
+        ** cursor referencing a table/trigger that the user is attempting to
+        ** drop.) If no one objects, then invalidate any dependent objects.
+        */
 
         DependencyManager dm = dd.getDependencyManager();
         dm.invalidateFor(triggerd, DependencyManager.DROP_TRIGGER, lcc);
@@ -147,12 +147,12 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
             dd.dropSPSDescriptor(spsd, tc);
         }
 
-	}
+    }
 
-	public String toString()
-	{
-		// Do not put this under SanityManager.DEBUG - it is needed for
-		// error reporting.
-		return "DROP TRIGGER "+triggerName;
-	}
+    public String toString()
+    {
+        // Do not put this under SanityManager.DEBUG - it is needed for
+        // error reporting.
+        return "DROP TRIGGER "+triggerName;
+    }
 }

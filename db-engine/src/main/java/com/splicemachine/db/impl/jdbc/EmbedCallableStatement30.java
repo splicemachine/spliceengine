@@ -51,29 +51,29 @@ import java.sql.SQLException;
 public class EmbedCallableStatement30 extends EmbedCallableStatement20
 {
 
-	//////////////////////////////////////////////////////////////
-	//
-	// CONSTRUCTORS
-	//
-	//////////////////////////////////////////////////////////////
-	public EmbedCallableStatement30 (EmbedConnection conn, String sql,
-								   int resultSetType,
-								   int resultSetConcurrency,
-								   int resultSetHoldability)
-		throws SQLException
-	{
-		super(conn, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
-	}
+    //////////////////////////////////////////////////////////////
+    //
+    // CONSTRUCTORS
+    //
+    //////////////////////////////////////////////////////////////
+    public EmbedCallableStatement30 (EmbedConnection conn, String sql,
+                                   int resultSetType,
+                                   int resultSetConcurrency,
+                                   int resultSetHoldability)
+        throws SQLException
+    {
+        super(conn, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    }
 
-	/*
-	 * Note: all the JDBC 3.0 Prepared statement methods are duplicated
-	 * in here because this class inherits from Local20/EmbedCallableStatement, which
-	 * inherits from Local/EmbedCallableStatement.  This class should inherit from a
-	 * local30/PreparedStatement.  Since java does not allow multiple inheritance,
-	 * duplicate the code here.
-	 */
+    /*
+     * Note: all the JDBC 3.0 Prepared statement methods are duplicated
+     * in here because this class inherits from Local20/EmbedCallableStatement, which
+     * inherits from Local/EmbedCallableStatement.  This class should inherit from a
+     * local30/PreparedStatement.  Since java does not allow multiple inheritance,
+     * duplicate the code here.
+     */
 
-	/**
+    /**
     * JDBC 3.0
     *
     * Retrieves the number, types and properties of this PreparedStatement
@@ -82,16 +82,16 @@ public class EmbedCallableStatement30 extends EmbedCallableStatement20
     * @return a ParameterMetaData object that contains information about the
     * number, types and properties of this PreparedStatement object's parameters.
     * @exception SQLException if a database access error occurs
-	*/
-	public ParameterMetaData getParameterMetaData()
+    */
+    public ParameterMetaData getParameterMetaData()
     throws SQLException
-	{
-		checkStatus();
-		if (preparedStatement == null)
-			return null;
-		
-		return new EmbedParameterMetaData30( getParms(), preparedStatement.getParameterTypes());
-	}
+    {
+        checkStatus();
+        if (preparedStatement == null)
+            return null;
+        
+        return new EmbedParameterMetaData30( getParms(), preparedStatement.getParameterTypes());
+    }
 
 
 

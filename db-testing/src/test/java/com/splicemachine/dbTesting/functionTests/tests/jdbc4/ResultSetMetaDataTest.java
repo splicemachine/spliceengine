@@ -62,7 +62,7 @@ public class ResultSetMetaDataTest extends BaseJDBCTestCase {
      */
     protected void setUp() throws SQLException {
          ps   =   prepareStatement("select count(*) from sys.systables");
-	rs   =   ps.executeQuery();
+    rs   =   ps.executeQuery();
         rsmd =   rs.getMetaData();
     }
     

@@ -42,173 +42,173 @@ import com.splicemachine.db.iapi.jdbc.JDBCBoot;
 
 
 /**
-	The embedded JDBC driver (Type 4) for Derby.
-	<P>
-	The driver automatically supports the correct JDBC specification version
-	for the Java Virtual Machine's environment.
-	<UL>
-	<LI> JDBC 4.0 - Java SE 6
-	<LI> JDBC 3.0 - Java 2 - JDK 1.4, J2SE 5.0
-	</UL>
+    The embedded JDBC driver (Type 4) for Derby.
+    <P>
+    The driver automatically supports the correct JDBC specification version
+    for the Java Virtual Machine's environment.
+    <UL>
+    <LI> JDBC 4.0 - Java SE 6
+    <LI> JDBC 3.0 - Java 2 - JDK 1.4, J2SE 5.0
+    </UL>
 
-	<P>
-	Loading this JDBC driver boots the database engine
-	within the same Java virtual machine.
-	<P>
-	The correct code to load the Derby engine using this driver is
-	(with approriate try/catch blocks):
-	 <PRE>
-	 Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
+    <P>
+    Loading this JDBC driver boots the database engine
+    within the same Java virtual machine.
+    <P>
+    The correct code to load the Derby engine using this driver is
+    (with approriate try/catch blocks):
+     <PRE>
+     Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
 
-	 // or
+     // or
 
      new com.splicemachine.db.jdbc.EmbeddedDriver();
 
     
-	</PRE>
-	When loaded in this way, the class boots the actual JDBC driver indirectly.
-	The JDBC specification recommends the Class.ForName method without the .newInstance()
-	method call, but adding the newInstance() guarantees
-	that Derby will be booted on any Java Virtual Machine.
+    </PRE>
+    When loaded in this way, the class boots the actual JDBC driver indirectly.
+    The JDBC specification recommends the Class.ForName method without the .newInstance()
+    method call, but adding the newInstance() guarantees
+    that Derby will be booted on any Java Virtual Machine.
 
-	<P>
-	Note that you do not need to manually load the driver this way if you are
-	running on Jave SE 6 or later. In that environment, the driver will be
-	automatically loaded for you when your application requests a connection to
-	a Derby database.
-	<P>
-	Any initial error messages are placed in the PrintStream
-	supplied by the DriverManager. If the PrintStream is null error messages are
-	sent to System.err. Once the Derby engine has set up an error
-	logging facility (by default to db.log) all subsequent messages are sent to it.
-	<P>
-	By convention, the class used in the Class.forName() method to
-	boot a JDBC driver implements java.sql.Driver.
+    <P>
+    Note that you do not need to manually load the driver this way if you are
+    running on Jave SE 6 or later. In that environment, the driver will be
+    automatically loaded for you when your application requests a connection to
+    a Derby database.
+    <P>
+    Any initial error messages are placed in the PrintStream
+    supplied by the DriverManager. If the PrintStream is null error messages are
+    sent to System.err. Once the Derby engine has set up an error
+    logging facility (by default to db.log) all subsequent messages are sent to it.
+    <P>
+    By convention, the class used in the Class.forName() method to
+    boot a JDBC driver implements java.sql.Driver.
 
-	This class is not the actual JDBC driver that gets registered with
-	the Driver Manager. It proxies requests to the registered Derby JDBC driver.
+    This class is not the actual JDBC driver that gets registered with
+    the Driver Manager. It proxies requests to the registered Derby JDBC driver.
 
-	@see java.sql.DriverManager
-	@see java.sql.DriverManager#getLogStream
-	@see java.sql.Driver
-	@see java.sql.SQLException
+    @see java.sql.DriverManager
+    @see java.sql.DriverManager#getLogStream
+    @see java.sql.Driver
+    @see java.sql.SQLException
 */
 
 public class EmbeddedDriver  implements Driver {
 
-	static {
+    static {
 
-		EmbeddedDriver.boot();
-	}
+        EmbeddedDriver.boot();
+    }
 
-	// Boot from the constructor as well to ensure that
-	// Class.forName(...).newInstance() reboots Derby 
-	// after a shutdown inside the same JVM.
-	public EmbeddedDriver() {
-		EmbeddedDriver.boot();
-	}
+    // Boot from the constructor as well to ensure that
+    // Class.forName(...).newInstance() reboots Derby 
+    // after a shutdown inside the same JVM.
+    public EmbeddedDriver() {
+        EmbeddedDriver.boot();
+    }
 
-	/*
-	** Methods from java.sql.Driver.
-	*/
-	/**
-		Accept anything that starts with <CODE>jdbc:splice:</CODE>.
-		@exception SQLException if a database-access error occurs.
+    /*
+    ** Methods from java.sql.Driver.
+    */
+    /**
+        Accept anything that starts with <CODE>jdbc:splice:</CODE>.
+        @exception SQLException if a database-access error occurs.
     @see java.sql.Driver
-	*/
-	public boolean acceptsURL(String url) throws SQLException {
-		return getDriverModule().acceptsURL(url);
-	}
+    */
+    public boolean acceptsURL(String url) throws SQLException {
+        return getDriverModule().acceptsURL(url);
+    }
 
-	/**
-		Connect to the URL if possible
-		@exception SQLException illegal url or problem with connectiong
+    /**
+        Connect to the URL if possible
+        @exception SQLException illegal url or problem with connectiong
     @see java.sql.Driver
   */
-	public Connection connect(String url, Properties info)
-		throws SQLException
-	{
-		return getDriverModule().connect(url, info);
-	}
+    public Connection connect(String url, Properties info)
+        throws SQLException
+    {
+        return getDriverModule().connect(url, info);
+    }
 
   /**
    * Returns an array of DriverPropertyInfo objects describing possible properties.
     @exception SQLException if a database-access error occurs.
     @see java.sql.Driver
    */
-	public  DriverPropertyInfo[] getPropertyInfo(String url, Properties info)
-		throws SQLException
-	{
-		return getDriverModule().getPropertyInfo(url, info);
-	}
+    public  DriverPropertyInfo[] getPropertyInfo(String url, Properties info)
+        throws SQLException
+    {
+        return getDriverModule().getPropertyInfo(url, info);
+    }
 
     /**
      * Returns the driver's major version number. 
      @see java.sql.Driver
      */
-	public int getMajorVersion() {
-		try {
-			return (getDriverModule().getMajorVersion());
-		}
-		catch (SQLException se) {
-			return 0;
-		}
-	}
+    public int getMajorVersion() {
+        try {
+            return (getDriverModule().getMajorVersion());
+        }
+        catch (SQLException se) {
+            return 0;
+        }
+    }
 
     /**
      * Returns the driver's minor version number.
      @see java.sql.Driver
      */
-	public int getMinorVersion() {
-		try {
-			return (getDriverModule().getMinorVersion());
-		}
-		catch (SQLException se) {
-			return 0;
-		}
-	}
+    public int getMinorVersion() {
+        try {
+            return (getDriverModule().getMinorVersion());
+        }
+        catch (SQLException se) {
+            return 0;
+        }
+    }
 
   /**
    * Report whether the Driver is a genuine JDBC COMPLIANT (tm) driver.
      @see java.sql.Driver
    */
-	public boolean jdbcCompliant() {
-		try {
-			return (getDriverModule().jdbcCompliant());
-		}
-		catch (SQLException se) {
-			return false;
-		}
-	}
+    public boolean jdbcCompliant() {
+        try {
+            return (getDriverModule().jdbcCompliant());
+        }
+        catch (SQLException se) {
+            return false;
+        }
+    }
 
-	@Override
-	public Logger getParentLogger() throws SQLFeatureNotSupportedException{
-		throw new SQLFeatureNotSupportedException();
-	}
+    @Override
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException{
+        throw new SQLFeatureNotSupportedException();
+    }
 
-	/**
+    /**
    * Lookup the booted driver module appropriate to our JDBC level.
    */
-	private	Driver	getDriverModule()
-		throws SQLException
-	{
-		return AutoloadedDriver.getDriverModule();
-	}
+    private    Driver    getDriverModule()
+        throws SQLException
+    {
+        return AutoloadedDriver.getDriverModule();
+    }
 
 
    /*
-	** Find the appropriate driver for our JDBC level and boot it.
-	*  This is package protected so that AutoloadedDriver can call it.
-	*/
-	static void boot() {
-		PrintStream ps = DriverManager.getLogStream();
+    ** Find the appropriate driver for our JDBC level and boot it.
+    *  This is package protected so that AutoloadedDriver can call it.
+    */
+    static void boot() {
+        PrintStream ps = DriverManager.getLogStream();
 
-		if (ps == null)
-			ps = System.err;
+        if (ps == null)
+            ps = System.err;
 
-		new JDBCBoot().boot(Attribute.PROTOCOL, ps);
-	}
+        new JDBCBoot().boot(Attribute.PROTOCOL, ps);
+    }
 
 
-	
+    
 }

@@ -48,61 +48,61 @@ public class JavaVersionHolder
     public JavaVersionHolder(String javaVersion)
         throws java.lang.NumberFormatException
     {
-		// check for jdk12 or higher
-		int i = javaVersion.indexOf('.');
-		int j = javaVersion.indexOf('.', i+1);
-		majorVersion = javaVersion.substring(0, i);
-		try
-	    {
-		    Integer imajor = new Integer(majorVersion);
-		    major = imajor.intValue();
-		    if (j != -1)
-		    {
-		        minorVersion = javaVersion.substring(i+1, j);
-		        Integer iminor = new Integer(minorVersion);
-		        minor = iminor.intValue();
-		    }
-		    else
-		    {
-		        minorVersion = javaVersion.substring(i+1);
-		        Integer iminor = new Integer(minorVersion);
-		        minor = iminor.intValue();
-		    }
-		}
-		catch (NumberFormatException nfe)
-		{
-		    // Cannot parse the version as an Integer
-		    // such as on HP: hack for this special case
-		    if (javaVersion.startsWith("HP"))
-		    {
-		        // attempt to get the version
-		        StringTokenizer st = new StringTokenizer(javaVersion,".");
-		        String tmp = st.nextToken();
-		        majorVersion = st.nextToken();
-		        if (majorVersion.equals("01"))
-		            majorVersion = "1";
-		        else if (majorVersion.equals("02"))
-		            majorVersion = "2";
-		        minorVersion = st.nextToken();
-		        if (minorVersion.startsWith("1"))
-		            minorVersion = "1";
-		        else if (minorVersion.startsWith("2"))
-		            minorVersion = "2";
-		        //System.out.println("majorVersion: " + majorVersion);
-		        //System.out.println("minorVersion: " + minorVersion);
-		        try
-	            {
-		            Integer imajor = new Integer(majorVersion);
-		            major = imajor.intValue();
-		            Integer iminor = new Integer(minorVersion);
-		            minor = iminor.intValue();
-		        }
-		        catch (NumberFormatException nfe2)
-		        {
-		            System.out.println("Could not parse version: " + nfe2);
-		            // Still couldn't parse the vesion
-		            // have to give up
-		        }
+        // check for jdk12 or higher
+        int i = javaVersion.indexOf('.');
+        int j = javaVersion.indexOf('.', i+1);
+        majorVersion = javaVersion.substring(0, i);
+        try
+        {
+            Integer imajor = new Integer(majorVersion);
+            major = imajor.intValue();
+            if (j != -1)
+            {
+                minorVersion = javaVersion.substring(i+1, j);
+                Integer iminor = new Integer(minorVersion);
+                minor = iminor.intValue();
+            }
+            else
+            {
+                minorVersion = javaVersion.substring(i+1);
+                Integer iminor = new Integer(minorVersion);
+                minor = iminor.intValue();
+            }
+        }
+        catch (NumberFormatException nfe)
+        {
+            // Cannot parse the version as an Integer
+            // such as on HP: hack for this special case
+            if (javaVersion.startsWith("HP"))
+            {
+                // attempt to get the version
+                StringTokenizer st = new StringTokenizer(javaVersion,".");
+                String tmp = st.nextToken();
+                majorVersion = st.nextToken();
+                if (majorVersion.equals("01"))
+                    majorVersion = "1";
+                else if (majorVersion.equals("02"))
+                    majorVersion = "2";
+                minorVersion = st.nextToken();
+                if (minorVersion.startsWith("1"))
+                    minorVersion = "1";
+                else if (minorVersion.startsWith("2"))
+                    minorVersion = "2";
+                //System.out.println("majorVersion: " + majorVersion);
+                //System.out.println("minorVersion: " + minorVersion);
+                try
+                {
+                    Integer imajor = new Integer(majorVersion);
+                    major = imajor.intValue();
+                    Integer iminor = new Integer(minorVersion);
+                    minor = iminor.intValue();
+                }
+                catch (NumberFormatException nfe2)
+                {
+                    System.out.println("Could not parse version: " + nfe2);
+                    // Still couldn't parse the vesion
+                    // have to give up
+                }
             }
             else
             {
@@ -133,19 +133,19 @@ public class JavaVersionHolder
         return minor;
     }
 
-	/**
-	 * <p>
-	 * Return true if we are at least at the passed in version.
-	 * </p>
-	 */
-	public	boolean	atLeast( int baseMajor, int baseMinor )
-	{
-		if ( major < baseMajor ) { return false; }
-		if ( major > baseMajor ) { return true; }
+    /**
+     * <p>
+     * Return true if we are at least at the passed in version.
+     * </p>
+     */
+    public    boolean    atLeast( int baseMajor, int baseMinor )
+    {
+        if ( major < baseMajor ) { return false; }
+        if ( major > baseMajor ) { return true; }
 
-		// same major number
+        // same major number
 
-		return ( minor >= baseMinor );
-	}
+        return ( minor >= baseMinor );
+    }
 
 }

@@ -24,6 +24,6 @@ import java.io.Closeable;
  * Date: 11/15/13
  */
 public interface KeyHashDecoder extends Closeable {
-		void set(byte[] bytes, int hashOffset, int length);
-		void decode(ExecRow destination) throws StandardException;
+        void set(byte[] bytes, int hashOffset, int length);
+        void decode(ExecRow destination) throws StandardException;
 }

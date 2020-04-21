@@ -68,11 +68,11 @@ public final class ConglomerateUtil
      *     db.storage.minimumRecordSize
      *     db.storage.pageReservedSpace
      *     db.storage.pageSize
-	 *     db.storage.reusableRecordId
+     *     db.storage.reusableRecordId
      *     
      * <p>
      *
-	 * @return The Property set filled in.
+     * @return The Property set filled in.
      *
      * @param prop   If non-null the property set to fill in.
      **/
@@ -100,7 +100,7 @@ public final class ConglomerateUtil
      *     
      * <p>
      *
-	 * @return The Property set filled in.
+     * @return The Property set filled in.
      *
      * @param prop   If non-null the property set to fill in.
      **/
@@ -123,7 +123,7 @@ public final class ConglomerateUtil
      * Given an array of objects, return an array of format id's.
      * <p>
      *
-	 * @return An array of format id's describing the input array of objects.
+     * @return An array of format id's describing the input array of objects.
      *
      * @param template a row.
      *
@@ -141,16 +141,16 @@ public final class ConglomerateUtil
         {
             if (SanityManager.DEBUG)
             {
-				if (template[i] == null)
-				{
-                	SanityManager.THROWASSERT("row template is null for "+
-							"column["+i+"].");
-				}
-				if (!(template[i] instanceof Formatable))
-				{
-                	SanityManager.THROWASSERT("row template is not formatable "+
-							"column["+i+"].  Type is "+template[i].getClass().getName());
-				}
+                if (template[i] == null)
+                {
+                    SanityManager.THROWASSERT("row template is null for "+
+                            "column["+i+"].");
+                }
+                if (!(template[i] instanceof Formatable))
+                {
+                    SanityManager.THROWASSERT("row template is not formatable "+
+                            "column["+i+"].  Type is "+template[i].getClass().getName());
+                }
             }
 
             format_ids[i] = ((Formatable) template[i]).getTypeFormatId();
@@ -163,12 +163,12 @@ public final class ConglomerateUtil
      * Read a format id array in from a stream.
      * <p>
      *
-	 * @return A new array of format id's.
+     * @return A new array of format id's.
      *
      * @param num         The number of format ids to read.
      * @param in          The stream to read the array of format id's from.
      *
-	 * @exception  IOException  Thown on read error.
+     * @exception  IOException  Thown on read error.
      **/
     public static int[] readFormatIdArray(
     int         num,
@@ -193,7 +193,7 @@ public final class ConglomerateUtil
      * @param format_id_array The array of format ids to write.
      * @param out             The stream to write the array of format id's to.
      *
-	 * @exception  IOException  Thown on write error.
+     * @exception  IOException  Thown on write error.
      **/
     public static void writeFormatIdArray(
     int[]     format_id_array,
@@ -257,7 +257,7 @@ public final class ConglomerateUtil
      * @param collation_id_array The array of collation ids to write.
      * @param out                The stream to write the collation id's to.
      *
-	 * @exception  IOException  Thown on write error.
+     * @exception  IOException  Thown on write error.
      **/
     public static void writeCollationIdArray(
     int[]           collation_id_array, 
@@ -315,7 +315,7 @@ public final class ConglomerateUtil
     int[]           collation_id_array,
     ObjectInput     in)
         throws IOException
-	{
+    {
 
         // A sparse array is stored on disk, only 
         // non-COLLATION_TYPE_UCS_BASIC values are stored.  
@@ -332,6 +332,6 @@ public final class ConglomerateUtil
             collation_id_array[array_index] = CompressedNumber.readInt(in);
         }
         return num_compressed_entries > 0;
-	}
+    }
 
 }

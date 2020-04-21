@@ -69,371 +69,371 @@ import com.splicemachine.db.iapi.types.RowLocation;
 abstract class NoPutResultSetImpl
 extends BasicNoPutResultSetImpl
 {
-	/* Set in constructor and not modified */
-	public final int				resultSetNumber;
+    /* Set in constructor and not modified */
+    public final int                resultSetNumber;
 
-	// fields used when being called as a RowSource
-	private boolean needsRowLocation;
-	protected ExecRow clonedExecRow;
-	protected TargetResultSet	targetResultSet;
+    // fields used when being called as a RowSource
+    private boolean needsRowLocation;
+    protected ExecRow clonedExecRow;
+    protected TargetResultSet    targetResultSet;
 
-	/* beetle 4464. compact flags into array of key column positions that we do check/skip nulls,
-	 * so that we burn less cycles for each row, column.
-	 */
-	protected int[] checkNullCols;
-	protected int cncLen;
+    /* beetle 4464. compact flags into array of key column positions that we do check/skip nulls,
+     * so that we burn less cycles for each row, column.
+     */
+    protected int[] checkNullCols;
+    protected int cncLen;
 
-	/**
-	 *  Constructor
-	 *
-	 *	@param	activation			The activation
-	 *	@param	resultSetNumber		The resultSetNumber
-	 *  @param	optimizerEstimatedRowCount	The optimizer's estimated number
-	 *										of rows.
-	 *  @param	optimizerEstimatedCost		The optimizer's estimated cost
-	 */
-	NoPutResultSetImpl(Activation activation,
-						int resultSetNumber,
-						double optimizerEstimatedRowCount,
-						double optimizerEstimatedCost)
-	{
-		super(null,
-				activation,
-				optimizerEstimatedRowCount,
-				optimizerEstimatedCost);
+    /**
+     *  Constructor
+     *
+     *    @param    activation            The activation
+     *    @param    resultSetNumber        The resultSetNumber
+     *  @param    optimizerEstimatedRowCount    The optimizer's estimated number
+     *                                        of rows.
+     *  @param    optimizerEstimatedCost        The optimizer's estimated cost
+     */
+    NoPutResultSetImpl(Activation activation,
+                        int resultSetNumber,
+                        double optimizerEstimatedRowCount,
+                        double optimizerEstimatedCost)
+    {
+        super(null,
+                activation,
+                optimizerEstimatedRowCount,
+                optimizerEstimatedCost);
 
-		if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(activation!=null, "activation expected to be non-null");
-			SanityManager.ASSERT(resultSetNumber >= 0, "resultSetNumber expected to be >= 0");
-		}
-		this.resultSetNumber = resultSetNumber;
-	}
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(activation!=null, "activation expected to be non-null");
+            SanityManager.ASSERT(resultSetNumber >= 0, "resultSetNumber expected to be >= 0");
+        }
+        this.resultSetNumber = resultSetNumber;
+    }
 
-	// NoPutResultSet interface
+    // NoPutResultSet interface
 
-	/**
+    /**
      * Returns the description of the table's rows
-	 */
-	public ResultDescription getResultDescription() {
-	    return activation.getResultDescription();
-	}
+     */
+    public ResultDescription getResultDescription() {
+        return activation.getResultDescription();
+    }
 
-	/**
-		Return my cursor name for JDBC. Can be null.
-	*/
-	public String getCursorName() {
+    /**
+        Return my cursor name for JDBC. Can be null.
+    */
+    public String getCursorName() {
 
-		String cursorName = activation.getCursorName();
-		if ((cursorName == null) && isForUpdate()) {
+        String cursorName = activation.getCursorName();
+        if ((cursorName == null) && isForUpdate()) {
 
-			activation.setCursorName(activation.getLanguageConnectionContext().getUniqueCursorName());
+            activation.setCursorName(activation.getLanguageConnectionContext().getUniqueCursorName());
 
-			cursorName = activation.getCursorName();
-		}
+            cursorName = activation.getCursorName();
+        }
 
-		return cursorName;
-	}
+        return cursorName;
+    }
 
-	/** @see NoPutResultSet#resultSetNumber() */
-	public int resultSetNumber() {
-		return resultSetNumber;
-	}
+    /** @see NoPutResultSet#resultSetNumber() */
+    public int resultSetNumber() {
+        return resultSetNumber;
+    }
 
-	/**
-		Close needs to invalidate any dependent statements, if this is a cursor.
-		Must be called by any subclasses that override close().
-		@exception StandardException on error
-	*/
-	public void close() throws StandardException
-	{
-		if (!isOpen)
-			return;
+    /**
+        Close needs to invalidate any dependent statements, if this is a cursor.
+        Must be called by any subclasses that override close().
+        @exception StandardException on error
+    */
+    public void close() throws StandardException
+    {
+        if (!isOpen)
+            return;
 
-		/* If this is the top ResultSet then we must
-		 * close all of the open subqueries for the
-		 * entire query.
-		 */
-		if (isTopResultSet)
-		{
-			/*
-			** If run time statistics tracing is turned on, then now is the
-			** time to dump out the information.
-			*/
-			LanguageConnectionContext lcc = getLanguageConnectionContext();
+        /* If this is the top ResultSet then we must
+         * close all of the open subqueries for the
+         * entire query.
+         */
+        if (isTopResultSet)
+        {
+            /*
+            ** If run time statistics tracing is turned on, then now is the
+            ** time to dump out the information.
+            */
+            LanguageConnectionContext lcc = getLanguageConnectionContext();
 
-			int staLength = (subqueryTrackingArray == null) ? 0 :
-								subqueryTrackingArray.length;
+            int staLength = (subqueryTrackingArray == null) ? 0 :
+                                subqueryTrackingArray.length;
 
-			for (int index = 0; index < staLength; index++)
-			{
-				if (subqueryTrackingArray[index] == null)
-				{
-					continue;
-				}
-				if (subqueryTrackingArray[index].isClosed())
-				{
-					continue;
-				}
-				subqueryTrackingArray[index].close();
-			}
-		}
+            for (int index = 0; index < staLength; index++)
+            {
+                if (subqueryTrackingArray[index] == null)
+                {
+                    continue;
+                }
+                if (subqueryTrackingArray[index].isClosed())
+                {
+                    continue;
+                }
+                subqueryTrackingArray[index].close();
+            }
+        }
 
-		isOpen = false;
+        isOpen = false;
 
-	}
+    }
 
-	/** @see NoPutResultSet#setTargetResultSet */
-	public void setTargetResultSet(TargetResultSet trs)
-	{
-		targetResultSet = trs;
-	}
+    /** @see NoPutResultSet#setTargetResultSet */
+    public void setTargetResultSet(TargetResultSet trs)
+    {
+        targetResultSet = trs;
+    }
 
-	/** @see NoPutResultSet#setNeedsRowLocation */
-	public void setNeedsRowLocation(boolean needsRowLocation)
-	{
-		this.needsRowLocation = needsRowLocation;
-	}
+    /** @see NoPutResultSet#setNeedsRowLocation */
+    public void setNeedsRowLocation(boolean needsRowLocation)
+    {
+        this.needsRowLocation = needsRowLocation;
+    }
 
-	// RowSource interface
-	
-	/** 
-	 * @see RowSource#getValidColumns
-	 */
-	public FormatableBitSet getValidColumns()
-	{
-		// All columns are valid
-		return null;
-	}
-	
-	/** 
-	 * @see RowSource#getNextRowFromRowSource
-	 * @exception StandardException on error
-	 */
-	public DataValueDescriptor[] getNextRowFromRowSource()
-		throws StandardException
-	{
-		ExecRow execRow = getNextRowCore();
- 		if (execRow != null)
-		{
-			/* Let the target preprocess the row.  For now, this
-			 * means doing an in place clone on any indexed columns
-			 * to optimize cloning and so that we don't try to drain
-			 * a stream multiple times.  This is where we also
-			 * enforce any check constraints.
-			 */
-			clonedExecRow = targetResultSet.preprocessSourceRow(execRow);
+    // RowSource interface
+    
+    /** 
+     * @see RowSource#getValidColumns
+     */
+    public FormatableBitSet getValidColumns()
+    {
+        // All columns are valid
+        return null;
+    }
+    
+    /** 
+     * @see RowSource#getNextRowFromRowSource
+     * @exception StandardException on error
+     */
+    public DataValueDescriptor[] getNextRowFromRowSource()
+        throws StandardException
+    {
+        ExecRow execRow = getNextRowCore();
+         if (execRow != null)
+        {
+            /* Let the target preprocess the row.  For now, this
+             * means doing an in place clone on any indexed columns
+             * to optimize cloning and so that we don't try to drain
+             * a stream multiple times.  This is where we also
+             * enforce any check constraints.
+             */
+            clonedExecRow = targetResultSet.preprocessSourceRow(execRow);
 
-			return execRow.getRowArray();
-		}
+            return execRow.getRowArray();
+        }
 
-		return null;
-	}
+        return null;
+    }
 
-	/**
-	 * @see RowSource#needsToClone
-	 */
-	public boolean needsToClone()
-	{
-		return(true);
-	}
+    /**
+     * @see RowSource#needsToClone
+     */
+    public boolean needsToClone()
+    {
+        return(true);
+    }
 
-	/** 
-	 * @see RowSource#closeRowSource
-	 */
-	public void closeRowSource()
-	{
-		// Do nothing here - actual work will be done in close()
-	}
-
-
-	// RowLocationRetRowSource interface
-
-	/**
-	 * @see RowLocationRetRowSource#needsRowLocation
-	 */
-	public boolean needsRowLocation()
-	{
-		return needsRowLocation;
-	}
-
-	/**
-	 * @see RowLocationRetRowSource#rowLocation
-	 * @exception StandardException on error
-	 */
-	public void rowLocation(RowLocation rl)
-		throws StandardException
-	{
-		targetResultSet.changedRow(clonedExecRow, rl);
-	}
+    /** 
+     * @see RowSource#closeRowSource
+     */
+    public void closeRowSource()
+    {
+        // Do nothing here - actual work will be done in close()
+    }
 
 
-	// class implementation
+    // RowLocationRetRowSource interface
 
-	/**
-	 * Clear the Orderable cache for each qualifier.
-	 * (This should be done each time a scan/conglomerate with
-	 * qualifiers is reopened.)
-	 *
-	 * @param qualifiers	The Qualifiers to clear
-	 */
-	protected void clearOrderableCache(Qualifier[][] qualifiers) throws StandardException
-	{
-		// Clear the Qualifiers's Orderable cache 
-		if (qualifiers != null)
-		{
-			Qualifier qual;
+    /**
+     * @see RowLocationRetRowSource#needsRowLocation
+     */
+    public boolean needsRowLocation()
+    {
+        return needsRowLocation;
+    }
+
+    /**
+     * @see RowLocationRetRowSource#rowLocation
+     * @exception StandardException on error
+     */
+    public void rowLocation(RowLocation rl)
+        throws StandardException
+    {
+        targetResultSet.changedRow(clonedExecRow, rl);
+    }
+
+
+    // class implementation
+
+    /**
+     * Clear the Orderable cache for each qualifier.
+     * (This should be done each time a scan/conglomerate with
+     * qualifiers is reopened.)
+     *
+     * @param qualifiers    The Qualifiers to clear
+     */
+    protected void clearOrderableCache(Qualifier[][] qualifiers) throws StandardException
+    {
+        // Clear the Qualifiers's Orderable cache 
+        if (qualifiers != null)
+        {
+            Qualifier qual;
             for (Qualifier[] qualifier : qualifiers) {
                 for (int index = 0; index < qualifier.length; index++) {
                     qual = qualifier[index];
                     qual.clearOrderableCache();
                     /* beetle 4880 performance enhancement and avoid deadlock while pushing
-					 * down method call to store: pre-evaluate.
-					 */
+                     * down method call to store: pre-evaluate.
+                     */
                     if (((GenericQualifier) qual).variantType != Qualifier.VARIANT)
                         qual.getOrderable();        // ignore return value
                 }
             }
-		}
-	}
+        }
+    }
 
-	/**
-	 * Set the current row to the row passed in.
-	 *
-	 * @param row the new current row
-	 *
-	 */
-	public final void setCurrentRow(ExecRow row)
-	{
-		activation.setCurrentRow(row, resultSetNumber);
-		currentRow = row;
-	}
+    /**
+     * Set the current row to the row passed in.
+     *
+     * @param row the new current row
+     *
+     */
+    public final void setCurrentRow(ExecRow row)
+    {
+        activation.setCurrentRow(row, resultSetNumber);
+        currentRow = row;
+    }
 
-	/**
-	 * Clear the current row
-	 *
-	 */
-	public void clearCurrentRow()
-	{
-		currentRow = null;
-		activation.clearCurrentRow(resultSetNumber);
-	}
+    /**
+     * Clear the current row
+     *
+     */
+    public void clearCurrentRow()
+    {
+        currentRow = null;
+        activation.clearCurrentRow(resultSetNumber);
+    }
 
-	/**
-	 * Is this ResultSet or it's source result set for update
-	 * This method will be overriden in the inherited Classes
-	 * if it is true
-	 * @return Whether or not the result set is for update.
-	 */
-	public boolean isForUpdate()
-	{
-		return false;
-	}
+    /**
+     * Is this ResultSet or it's source result set for update
+     * This method will be overriden in the inherited Classes
+     * if it is true
+     * @return Whether or not the result set is for update.
+     */
+    public boolean isForUpdate()
+    {
+        return false;
+    }
 
-	/**
-	 * Return true if we should skip the scan due to nulls in the start
-	 * or stop position when the predicate on the column(s) in question
-	 * do not implement ordered null semantics. beetle 4464, we also compact
-	 * the areNullsOrdered flags into checkNullCols here.
-	 *
-	 * @param startPosition	An index row for the start position
-	 * @param stopPosition	An index row for the stop position
-	 *
-	 * @return	true means not to do the scan
-	 */
-	protected boolean skipScan(ExecIndexRow startPosition, ExecIndexRow stopPosition)
-		throws StandardException
-	{
-		int nStartCols = (startPosition == null) ? 0 : startPosition.nColumns();
-		int nStopCols = (stopPosition == null) ? 0 : stopPosition.nColumns();
+    /**
+     * Return true if we should skip the scan due to nulls in the start
+     * or stop position when the predicate on the column(s) in question
+     * do not implement ordered null semantics. beetle 4464, we also compact
+     * the areNullsOrdered flags into checkNullCols here.
+     *
+     * @param startPosition    An index row for the start position
+     * @param stopPosition    An index row for the stop position
+     *
+     * @return    true means not to do the scan
+     */
+    protected boolean skipScan(ExecIndexRow startPosition, ExecIndexRow stopPosition)
+        throws StandardException
+    {
+        int nStartCols = (startPosition == null) ? 0 : startPosition.nColumns();
+        int nStopCols = (stopPosition == null) ? 0 : stopPosition.nColumns();
 
-		/* Two facts 1) for start and stop key column positions, one has to be the prefix
-		 * of the other, 2) startPosition.areNullsOrdered(i) can't be different from
-		 * stopPosition.areNullsOrdered(i) unless the case "c > null and c < 5", (where c is
-		 * non-nullable), in which we skip the scan anyway.
-		 * So we can just use the longer one to get checkNullCols.
-		 */
-		boolean startKeyLonger = false;
-		int size = nStopCols;
-		if (nStartCols > nStopCols)
-		{
-			startKeyLonger = true;
-			size = nStartCols;
-		}
-		if (size == 0)
-			return false;
-		if ((checkNullCols == null) || (checkNullCols.length < size))
-			checkNullCols = new int[size];
-		cncLen = 0;
+        /* Two facts 1) for start and stop key column positions, one has to be the prefix
+         * of the other, 2) startPosition.areNullsOrdered(i) can't be different from
+         * stopPosition.areNullsOrdered(i) unless the case "c > null and c < 5", (where c is
+         * non-nullable), in which we skip the scan anyway.
+         * So we can just use the longer one to get checkNullCols.
+         */
+        boolean startKeyLonger = false;
+        int size = nStopCols;
+        if (nStartCols > nStopCols)
+        {
+            startKeyLonger = true;
+            size = nStartCols;
+        }
+        if (size == 0)
+            return false;
+        if ((checkNullCols == null) || (checkNullCols.length < size))
+            checkNullCols = new int[size];
+        cncLen = 0;
 
-		boolean returnValue = false;
-		for (int position = 0; position < nStartCols; position++)
-		{
-			if ( ! startPosition.areNullsOrdered(position))
-			{
-				if (startKeyLonger)
-					checkNullCols[cncLen++] = position + 1;
-				if (startPosition.getColumn(position + 1).isNull())
-				{
-					returnValue =  true;
-					if (! startKeyLonger)
-						break;
-				}
-			}
-		}
-		if (startKeyLonger && returnValue)
-			return true;
-		for (int position = 0; position < nStopCols; position++)
-		{
-			if ( ! stopPosition.areNullsOrdered(position))
-			{
-				if (! startKeyLonger)
-					checkNullCols[cncLen++] = position + 1;
-				if (returnValue)
-					continue;
-				if (stopPosition.getColumn(position + 1).isNull())
-				{
-					returnValue =  true;
-					if (startKeyLonger)
-						break;
-				}
-			}
-		}
+        boolean returnValue = false;
+        for (int position = 0; position < nStartCols; position++)
+        {
+            if ( ! startPosition.areNullsOrdered(position))
+            {
+                if (startKeyLonger)
+                    checkNullCols[cncLen++] = position + 1;
+                if (startPosition.getColumn(position + 1).isNull())
+                {
+                    returnValue =  true;
+                    if (! startKeyLonger)
+                        break;
+                }
+            }
+        }
+        if (startKeyLonger && returnValue)
+            return true;
+        for (int position = 0; position < nStopCols; position++)
+        {
+            if ( ! stopPosition.areNullsOrdered(position))
+            {
+                if (! startKeyLonger)
+                    checkNullCols[cncLen++] = position + 1;
+                if (returnValue)
+                    continue;
+                if (stopPosition.getColumn(position + 1).isNull())
+                {
+                    returnValue =  true;
+                    if (startKeyLonger)
+                        break;
+                }
+            }
+        }
 
-		return returnValue;
-	}
+        return returnValue;
+    }
 
-	/**
-	 * Return true if we should skip the scan due to nulls in the row
-	 * when the start or stop positioners on the columns containing
-	 * null do not implement ordered null semantics.
-	 *
-	 * @param row	An index row
-	 *
-	 * @return	true means skip the row because it has null
-	 */
-	protected boolean skipRow(ExecRow row)  throws StandardException
-	{
-		for (int i = 0; i < cncLen; i++)
-		{
-			if (row.getColumn(checkNullCols[i]).isNull())
-				return true;
-		}
+    /**
+     * Return true if we should skip the scan due to nulls in the row
+     * when the start or stop positioners on the columns containing
+     * null do not implement ordered null semantics.
+     *
+     * @param row    An index row
+     *
+     * @return    true means skip the row because it has null
+     */
+    protected boolean skipRow(ExecRow row)  throws StandardException
+    {
+        for (int i = 0; i < cncLen; i++)
+        {
+            if (row.getColumn(checkNullCols[i]).isNull())
+                return true;
+        }
 
-		return false;
-	}
+        return false;
+    }
 
-	/**
-	 * Return a 2-d array of Qualifiers as a String
-	 */
-	public static String printQualifiers(Qualifier[][] qualifiers)
-	{
-		String idt = "";
+    /**
+     * Return a 2-d array of Qualifiers as a String
+     */
+    public static String printQualifiers(Qualifier[][] qualifiers)
+    {
+        String idt = "";
 
-		StringBuilder output = new StringBuilder();
-		if (qualifiers == null)
-		{
-			return idt + MessageService.getTextMessage(SQLState.LANG_NONE);
-		}
+        StringBuilder output = new StringBuilder();
+        if (qualifiers == null)
+        {
+            return idt + MessageService.getTextMessage(SQLState.LANG_NONE);
+        }
 
         for (int term = 0; term < qualifiers.length; term++)
         {
@@ -481,47 +481,47 @@ extends BasicNoPutResultSetImpl
             }
         }
 
-		return output.toString();
-	}
+        return output.toString();
+    }
 
-	/**
-	 * @see NoPutResultSet#updateRow
-	 *
-	 * This method is result sets used for scroll insensitive updatable 
-	 * result sets for other result set it is a no-op.
-	 */
-	public void updateRow(ExecRow row, RowChanger rowChanger)
-			throws StandardException {
-		// Only ResultSets of type Scroll Insensitive implement
-		// detectability, so for other result sets this method
-		// is a no-op
-	}
+    /**
+     * @see NoPutResultSet#updateRow
+     *
+     * This method is result sets used for scroll insensitive updatable 
+     * result sets for other result set it is a no-op.
+     */
+    public void updateRow(ExecRow row, RowChanger rowChanger)
+            throws StandardException {
+        // Only ResultSets of type Scroll Insensitive implement
+        // detectability, so for other result sets this method
+        // is a no-op
+    }
 
-	/**
-	 * @see NoPutResultSet#markRowAsDeleted
-	 *
-	 * This method is result sets used for scroll insensitive updatable 
-	 * result sets for other result set it is a no-op.
-	 */
-	public void markRowAsDeleted() throws StandardException {
-		// Only ResultSets of type Scroll Insensitive implement
-		// detectability, so for other result sets this method
-		// is a no-op
-	}
+    /**
+     * @see NoPutResultSet#markRowAsDeleted
+     *
+     * This method is result sets used for scroll insensitive updatable 
+     * result sets for other result set it is a no-op.
+     */
+    public void markRowAsDeleted() throws StandardException {
+        // Only ResultSets of type Scroll Insensitive implement
+        // detectability, so for other result sets this method
+        // is a no-op
+    }
 
-	/**
-	 * @see NoPutResultSet#positionScanAtRowLocation
-	 *
-	 * This method is result sets used for scroll insensitive updatable 
-	 * result sets for other result set it is a no-op.
-	 */
-	public void positionScanAtRowLocation(RowLocation rl) 
-		throws StandardException 
-	{
-		// Only ResultSets of type Scroll Insensitive implement
-		// detectability, so for other result sets this method
-		// is a no-op
-	}
+    /**
+     * @see NoPutResultSet#positionScanAtRowLocation
+     *
+     * This method is result sets used for scroll insensitive updatable 
+     * result sets for other result set it is a no-op.
+     */
+    public void positionScanAtRowLocation(RowLocation rl) 
+        throws StandardException 
+    {
+        // Only ResultSets of type Scroll Insensitive implement
+        // detectability, so for other result sets this method
+        // is a no-op
+    }
 
 
 }

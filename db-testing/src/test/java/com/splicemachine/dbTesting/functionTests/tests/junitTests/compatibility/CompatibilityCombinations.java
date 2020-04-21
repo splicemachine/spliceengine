@@ -280,7 +280,7 @@ public class CompatibilityCombinations extends BaseTestCase
 
     public static Test suite()
     {
-        TestSuite	testSuite = new TestSuite();
+        TestSuite    testSuite = new TestSuite();
         
         testSuite.addTestSuite( CompatibilityCombinations.class );
         

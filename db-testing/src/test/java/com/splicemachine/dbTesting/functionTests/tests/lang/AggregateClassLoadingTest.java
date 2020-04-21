@@ -54,40 +54,40 @@ import com.splicemachine.dbTesting.junit.SecurityManagerSetup;
  * loading happens on the engine side.
  */
 public class AggregateClassLoadingTest extends BaseJDBCTestCase {
-	
-	/**
-	 * Basic constructor.
-	 */	
-	public AggregateClassLoadingTest(String name) {
-		super(name);
-	}
-	
-	/**
-	 * Sets the auto commit to false.
-	 */
-	protected void initializeConnection(Connection conn) throws SQLException {
-		conn.setAutoCommit(false);
-	}
-	
-	/**
-	 * Returns the implemented tests.
-	 * 
-	 * @return An instance of <code>Test</code> with the implemented tests to
-	 *         run.
-	 */
-	public static Test suite() {
-		
-		
-		/* this test creates a class loader, adding that permission to
-		 * derbyTesting.jar would mean that permission was granted all
-		 * the way up the stack to the db engine. Thus increasing
-		 * the chance that incorrectly a privileged block could be dropped
-		 * but the tests continue to pass. 
-		 */		
-		return SecurityManagerSetup.noSecurityManager(
-						new CleanDatabaseTestSetup(
-								new TestSuite(AggregateClassLoadingTest.class,
-										"AggregateClassLoadingTest")) {
+    
+    /**
+     * Basic constructor.
+     */    
+    public AggregateClassLoadingTest(String name) {
+        super(name);
+    }
+    
+    /**
+     * Sets the auto commit to false.
+     */
+    protected void initializeConnection(Connection conn) throws SQLException {
+        conn.setAutoCommit(false);
+    }
+    
+    /**
+     * Returns the implemented tests.
+     * 
+     * @return An instance of <code>Test</code> with the implemented tests to
+     *         run.
+     */
+    public static Test suite() {
+        
+        
+        /* this test creates a class loader, adding that permission to
+         * derbyTesting.jar would mean that permission was granted all
+         * the way up the stack to the db engine. Thus increasing
+         * the chance that incorrectly a privileged block could be dropped
+         * but the tests continue to pass. 
+         */        
+        return SecurityManagerSetup.noSecurityManager(
+                        new CleanDatabaseTestSetup(
+                                new TestSuite(AggregateClassLoadingTest.class,
+                                        "AggregateClassLoadingTest")) {
                             
                             /**
                              * Save the class loader upon entry to the
@@ -99,78 +99,78 @@ public class AggregateClassLoadingTest extends BaseJDBCTestCase {
                                 originalLoader = Thread.currentThread().getContextClassLoader();
                                 super.setUp();
                             }
-							protected void tearDown() throws Exception {
-								Thread.currentThread().setContextClassLoader(originalLoader);
-								super.tearDown();
-							}
+                            protected void tearDown() throws Exception {
+                                Thread.currentThread().setContextClassLoader(originalLoader);
+                                super.tearDown();
+                            }
 
-							/**
-							 * @see com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup#decorateSQL(java.sql.Statement)
-							 */
-							protected void decorateSQL(Statement s)
-									throws SQLException {
-								s.execute("create table t (i int)");
-								s.execute("insert into t values 1,2,3,4,5,6,null,4,5,456,2,4,6,7,2144,44,2,-2,4");
+                            /**
+                             * @see com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup#decorateSQL(java.sql.Statement)
+                             */
+                            protected void decorateSQL(Statement s)
+                                    throws SQLException {
+                                s.execute("create table t (i int)");
+                                s.execute("insert into t values 1,2,3,4,5,6,null,4,5,456,2,4,6,7,2144,44,2,-2,4");
 
-								/*
-								 * Find the location of the code for the Derby
-								 * connection. The rest of the engine will be at
-								 * the same location!
-								 */
-								URL derbyURL = s.getConnection().getClass().getProtectionDomain().getCodeSource()
-										.getLocation();
+                                /*
+                                 * Find the location of the code for the Derby
+                                 * connection. The rest of the engine will be at
+                                 * the same location!
+                                 */
+                                URL derbyURL = s.getConnection().getClass().getProtectionDomain().getCodeSource()
+                                        .getLocation();
 
-								/*
-								 * Create a new loader that loads from the same
-								 * location as the engine. Create it without a
-								 * parent, otherwise the parent will be the
-								 * class loader of this class which is most
-								 * likely the same as the engine. Since the
-								 * class loader delegates to its parent first
-								 * the bug would not show, as all the db
-								 * engine classes would be from a single loader.
-								 */
+                                /*
+                                 * Create a new loader that loads from the same
+                                 * location as the engine. Create it without a
+                                 * parent, otherwise the parent will be the
+                                 * class loader of this class which is most
+                                 * likely the same as the engine. Since the
+                                 * class loader delegates to its parent first
+                                 * the bug would not show, as all the db
+                                 * engine classes would be from a single loader.
+                                 */
                                 URLClassLoader cl = new URLClassLoader(new URL[] { derbyURL }, null);
-								Thread.currentThread().setContextClassLoader(cl);
+                                Thread.currentThread().setContextClassLoader(cl);
 
-								super.decorateSQL(s);
-							}
-						});
-		
-	}		
-		
-	public void testAggregateMAX() throws SQLException {
-		testAggregate("select MAX(i) from t");
-	}
-	
-	public void testAggregateMIN() throws SQLException {
-		testAggregate("select MIN(i) from t");
-	}
-	
-	public void testAggregateAVG() throws SQLException {
-		testAggregate("select AVG(i) from t");
-	}
-		
-	public void testAggregateCOUNT() throws SQLException {
-		testAggregate("select COUNT(i) from t");
-	}
-	
-	public void testAggregateCOUNT2() throws SQLException {
-		testAggregate("select COUNT(*) from t");
-	}
-	
+                                super.decorateSQL(s);
+                            }
+                        });
+        
+    }        
+        
+    public void testAggregateMAX() throws SQLException {
+        testAggregate("select MAX(i) from t");
+    }
+    
+    public void testAggregateMIN() throws SQLException {
+        testAggregate("select MIN(i) from t");
+    }
+    
+    public void testAggregateAVG() throws SQLException {
+        testAggregate("select AVG(i) from t");
+    }
+        
+    public void testAggregateCOUNT() throws SQLException {
+        testAggregate("select COUNT(i) from t");
+    }
+    
+    public void testAggregateCOUNT2() throws SQLException {
+        testAggregate("select COUNT(*) from t");
+    }
+    
     /**
      * Just run and display the aggregates result.
      * 
      * Test some aggregates, their generated class will attempt
-	 * to load the internal aggregate through the context loader
-	 * first, and then any remaining loader.
+     * to load the internal aggregate through the context loader
+     * first, and then any remaining loader.
      */
     private void testAggregate(String query) throws SQLException {
-		Statement s = createStatement();
+        Statement s = createStatement();
         
         JDBC.assertDrainResults(s.executeQuery(query), 1);
 
         s.close();
-   }	
+   }    
 }

@@ -32,18 +32,18 @@
 package com.splicemachine.db.iapi.services.compiler;
 
 /**
-	A field within the generated class.
+    A field within the generated class.
  */
 public interface LocalField {
 
-	/**
-		Return an expression that's the value of this field
-	 */
-	//Expression getField();
+    /**
+        Return an expression that's the value of this field
+     */
+    //Expression getField();
 
-	/**
-		Return an expression that assigns the passed
-		in value to the field and returns the value set.
-	 */
-	//Expression putField(Expression value);
+    /**
+        Return an expression that assigns the passed
+        in value to the field and returns the value set.
+     */
+    //Expression putField(Expression value);
 }

@@ -217,7 +217,7 @@ public class ClobTest
         assertEquals(1, this.clob.setString(9, "c"));
         assertEquals(1, this.clob.setString(5, "a"));
         assertEquals(1, this.clob.setString(6, "b"));
-	    assertEquals("Clob content is incorrect",
+        assertEquals("Clob content is incorrect",
             newContent, this.clob.getSubString(1, newContent.length()));
     }
 

@@ -62,9 +62,9 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         TestSuite suite = new TestSuite("ImportExportProcedureTest");
         suite.addTest(TestConfiguration.defaultSuite(ImportExportProcedureTest.class));
         return new SupportFilesSetup(suite, new String[] { 
-        		"functionTests/testData/ImportExport/db2ttypes.del",
-        		"functionTests/testData/ImportExport/mixednl.del",
-        		"functionTests/testData/ImportExport/position_info.del"
+                "functionTests/testData/ImportExport/db2ttypes.del",
+                "functionTests/testData/ImportExport/mixednl.del",
+                "functionTests/testData/ImportExport/position_info.del"
         });
     }
 
@@ -101,7 +101,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         
         // Perform Export:
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/emp.dat");        
 
         cSt = prepareCall(
@@ -160,7 +160,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         
         // Perform Export:
         
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/emp.dat");
 
         cSt = prepareCall(
@@ -278,7 +278,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(rs, expRS, true);
         
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/emp.dat");
 
         //export the columns in different column order than in the 
@@ -369,7 +369,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(rs, expRS, true);
         
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/emp.dat");
 
         //-testing with different delimiters single quote(') as 
@@ -408,7 +408,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(rs, expRS, true);
         
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/emp.dat");
 
         // single quote(') as column delimiter
@@ -449,7 +449,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(rs, expRS, true);
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/emp.dat");
  
         cSt = prepareCall(
@@ -501,7 +501,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         st.executeUpdate(
             " insert into noncast values(2.5 , 8.999) ");
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/noncast.dat");
  
         cSt = prepareCall(
@@ -564,7 +564,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         st.executeUpdate(
             " insert into ttypes values(null , null , null)");
         
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/ttypes.del");
 
         cSt = prepareCall(
@@ -613,7 +613,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         st.executeUpdate(
             " insert into t1 values(2) ");
         
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.del");
 
         cSt = prepareCall(
@@ -718,7 +718,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         st.executeUpdate(
             " insert into t1 values(2) ");
         
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.del");
 
         cSt = prepareCall(
@@ -838,7 +838,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         st.executeUpdate(
             " insert into t1 values(2) ");
         
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.del");
 
         cSt = prepareCall(
@@ -1035,7 +1035,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "10E3, 32767, '09.39.43', "
             + "'2004-09-09 11:14:11', '\"varchar\" testing')");
         
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/alltypes.del");
 
         cSt = prepareCall(
@@ -1159,7 +1159,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         st.executeUpdate(
             " insert into table2 values('Leo',102, 23.4, 'I')");
         
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/import.del");
 
         cSt = prepareCall(
@@ -1191,7 +1191,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         assertUpdateCount(st, 3,
             " delete from table1");
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/import.del");
  
         cSt = prepareCall(
@@ -1236,7 +1236,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         //check null values import to identity columns should also 
         // fail
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/import.del");
  
         cSt = prepareCall(
@@ -1279,7 +1279,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         st.executeUpdate(
             " insert into child values (1) , (2) , (3) , (4) ");
         
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/parent.del");
 
         cSt = prepareCall(
@@ -1391,7 +1391,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         String expected = rs.getString(1);
         assertTrue(expected.startsWith("Essential Duties and Responsibilities (include"));
         
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/pinfo.del");
 
         cSt = prepareCall(
@@ -1431,9 +1431,9 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         expected = rs.getString(1);
         assertTrue(expected.startsWith("Essential Duties and Responsibilities (include"));
       
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/autoinc.dat");
-	
+    
         //test for autoincrement values
         
         cSt = prepareCall(
@@ -1557,7 +1557,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         st.executeUpdate(
             " insert into \"Group\".\"Order\" values(5, 6, 'mouse') ");
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/order.dat");
  
         //following export should fail because schema name is not 
@@ -1568,7 +1568,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'Order' , 'extinout/order.dat', null, null, null) ");
         assertStatementError("38000", cSt);
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/order.dat");
  
         //following export should fail because table name is not 
@@ -1579,7 +1579,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'ORDER' , 'extinout/order.dat', null, null, null) ");
         assertStatementError("38000", cSt);
         
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/order.dat");
 
         //following export should fail because of unquoted table 
@@ -1591,7 +1591,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "null , null ) ");
         assertStatementError("38000", cSt);
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/order.dat");
         
         //following exports should pass.
@@ -1601,7 +1601,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'Order' , 'extinout/order.dat', null, null, null) ");
         assertUpdateCount(cSt, 0);
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/order.dat");
         
         cSt = prepareCall(
@@ -1610,7 +1610,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "null , null , null ) ");
         assertUpdateCount(cSt, 0);
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/order.dat");
         
         cSt = prepareCall(
@@ -1775,7 +1775,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             " insert into inventory.orderTable values(104, 8, "
             + "'buffolo wings') ");
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/order.dat");
  
         //following export should fail because schema name is not 
@@ -1786,7 +1786,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'ORDERTABLE' , 'extinout/order.dat', null, null, null) ");
         assertStatementError("38000", cSt);
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/order.dat");
         
         //following export should fail because table name is not 
@@ -1797,7 +1797,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'ordertable' , 'extinout/order.dat', null, null, null) ");
         assertStatementError("38000", cSt);
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/order.dat");
         
         //following export should pass.
@@ -1917,7 +1917,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             " insert into iep.t1 values(100) , (101) , (102) , "
             + "(103) , (104) , (105) , (106)");
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extout/nodir/t1.dat");
         
         //export error casesexport can not create file
@@ -1926,7 +1926,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             "call SYSCS_UTIL.SYSCS_EXPORT_TABLE ('IEP', 'T1' , "
             + "'extout/nodir/t1.dat' , null, null, null) ");
         assertStatementError("XIE0I", cSt);
-	
+    
 
         //export table not found
         
@@ -1935,7 +1935,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'NOTABLE' , 'extinout/t1.dat' , null, null, null) ");
         assertStatementError("38000", cSt);
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.dat");
  
         //-export schema is not valid
@@ -1945,7 +1945,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'extinout/t1.dat' , null, null, null) ");
         assertStatementError("38000", cSt);
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.dat");
  
         //export query is invalid (syntax error)
@@ -1955,7 +1955,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "t1', 'extinout/t1.dat' , null, null, null) ");
         assertStatementError("38000", cSt);
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.dat");
         
         //export codeset is invalid
@@ -1965,7 +1965,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "iep.t1', 'extinout/t1.dat' , null, null, 'NOSUCHCODESET') ");
         assertStatementError("XIE0I", cSt);
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.dat");
  
         cSt = prepareCall(
@@ -1973,7 +1973,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'extinout/t1.dat' , null, null, null) ");
         assertStatementError("38000", cSt);
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.dat");
  
         //export delimiter errror casesperiod can not be used as 
@@ -1984,7 +1984,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'extinout/t1.dat' , null, '.', null) ");
         assertStatementError("XIE0K", cSt);
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.dat");
  
         cSt = prepareCall(
@@ -1992,7 +1992,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'extinout/t1.dat' , '.', null, null) ");
         assertStatementError("XIE0J", cSt);
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.dat");
         
         //same delimter can not be used as character and column 
@@ -2003,7 +2003,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'extinout/t1.dat' , ';', ';', null) ");
         assertStatementError("XIE0J", cSt);
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.dat");
         
         //space character can not be a delimiter
@@ -2013,7 +2013,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'extinout/t1.dat' , ' ', ';', null) ");
         assertStatementError("XIE0J", cSt);
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.dat");
         
         cSt = prepareCall(
@@ -2021,7 +2021,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'extinout/t1.dat' , null, ' ', null) ");
         assertStatementError("XIE0J", cSt);
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.dat");
         
         //if emtry strinng is passed actual value delimiter should 
@@ -2032,7 +2032,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'extinout/t1.dat' , '', ';', null) ");
         assertStatementError("XIE0J", cSt);
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.dat");
         
         cSt = prepareCall(
@@ -2040,7 +2040,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
             + "'extinout/t1.dat' , null, '', null) ");
         assertStatementError("XIE0J", cSt);
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.dat");
         
         //more than one character passed to the delimiters get 
@@ -2057,7 +2057,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         st.executeUpdate(
             "set schema iep");
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t1.dat");
         
         cSt = prepareCall(
@@ -2094,7 +2094,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(rs, expRS, true);
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extin/nodir/t1.dat");
         
         //import error casesimport can not find input file
@@ -2177,7 +2177,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(rs, expRS, true);
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/temp1.dat");
  
         //export to from a temporary table
@@ -2272,7 +2272,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         st.executeUpdate(
             " insert into t3 values(4 , 3.5 , 8.6 , 'test strings')");
 
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t3.dat");
 
         cSt = prepareCall(
@@ -2348,7 +2348,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         assertUpdateCount(st, 12,
             "delete from t3 ");
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/t3.dat");
  
         cSt = prepareCall(
@@ -2410,7 +2410,7 @@ public final class ImportExportProcedureTest extends BaseJDBCTestCase {
         st.executeUpdate(
             " insert into parent values (1) , (2) , (3) , (4) ");
        
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile("extinout/parent.del");
  
         cSt = prepareCall(

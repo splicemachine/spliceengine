@@ -54,7 +54,7 @@ public class SYSBACKUPITEMSRowFactory extends CatalogRowFactory {
     protected static final int SYSBACKUPITEMS_INDEX1_ID = 0;
     protected static final int SYSBACKUPITEMS_INDEX2_ID = 1;
 
-    private	static	final	boolean[]	uniqueness = {
+    private    static    final    boolean[]    uniqueness = {
             false, true
     };
 

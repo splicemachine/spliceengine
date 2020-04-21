@@ -34,28 +34,28 @@ import com.splicemachine.protobuf.ProtoUtil;
 import java.util.List;
 
 public class GrantRevokeConstantOperation implements ConstantAction {
-	private boolean grant;
-	private PrivilegeInfo privileges;
-	private List grantees;
-	public GrantRevokeConstantOperation( boolean grant, PrivilegeInfo privileges, List grantees) {
-		this.grant = grant;
-		this.privileges = privileges;
-		this.grantees = grantees;
-	}
+    private boolean grant;
+    private PrivilegeInfo privileges;
+    private List grantees;
+    public GrantRevokeConstantOperation( boolean grant, PrivilegeInfo privileges, List grantees) {
+        this.grant = grant;
+        this.privileges = privileges;
+        this.grantees = grantees;
+    }
 
-	public	String	toString() {
-		return grant ? "GRANT" : "REVOKE";
-	}
+    public    String    toString() {
+        return grant ? "GRANT" : "REVOKE";
+    }
 
 
-	/**
-	 *	This is the guts of the Execution-time logic for GRANT/REVOKE
-	 *
-	 *	See ConstantAction#executeConstantAction
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public void executeConstantAction( Activation activation ) throws StandardException {
+    /**
+     *    This is the guts of the Execution-time logic for GRANT/REVOKE
+     *
+     *    See ConstantAction#executeConstantAction
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public void executeConstantAction( Activation activation ) throws StandardException {
         if (grant)
             DDLConstantOperation.noGrantCheck();
         else
@@ -73,11 +73,11 @@ public class GrantRevokeConstantOperation implements ConstantAction {
         }
 
         List <PermissionsDescriptor> permissionsDescriptors = privileges.executeGrantRevoke( activation, grant, grantees);
-		for (PermissionsDescriptor permissionsDescriptor : permissionsDescriptors) {
+        for (PermissionsDescriptor permissionsDescriptor : permissionsDescriptors) {
             DDLMessage.DDLChange ddlChange = createDDLChange(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), permissionsDescriptor, grant);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         }
-	}
+    }
 
     private DDLMessage.DDLChange  createDDLChange(long txnId, PermissionsDescriptor permissionsDescriptor, boolean grant) throws StandardException {
         if (permissionsDescriptor instanceof SchemaPermsDescriptor) {

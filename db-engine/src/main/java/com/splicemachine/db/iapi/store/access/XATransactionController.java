@@ -81,11 +81,11 @@ public interface XATransactionController extends TransactionController
      *                 commit protocol to commit the work done on behalf of 
      *                 current xid.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     void xa_commit(
             boolean onePhase)
-		throws StandardException;
+        throws StandardException;
 
     /**
      * This method is called to ask the resource manager to prepare for
@@ -102,10 +102,10 @@ public interface XATransactionController extends TransactionController
      *                 throwing an appropriate XAException in the prepare
      *                 method.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     int xa_prepare()
-		throws StandardException;
+        throws StandardException;
 
     /**
      * rollback the current global transaction.
@@ -117,7 +117,7 @@ public interface XATransactionController extends TransactionController
      * than destroy will throw exceptions.
      * <p>
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     void xa_rollback()
         throws StandardException;

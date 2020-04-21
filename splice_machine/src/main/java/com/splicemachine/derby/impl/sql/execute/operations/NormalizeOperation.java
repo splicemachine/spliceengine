@@ -232,9 +232,9 @@ public class NormalizeOperation extends SpliceBaseOperation{
         int index=col-1;
         if(cachedDestinations[index]==null){
             DataValueDescriptor dvd=getDesiredType(col).getNull();
-//						int formatId = dvd.getTypeFormatId();
+//                        int formatId = dvd.getTypeFormatId();
             cachedDestinations[index]=dvd;
-//						cachedDestinations[index] = LazyDataValueFactory.getLazyNull(formatId);
+//                        cachedDestinations[index] = LazyDataValueFactory.getLazyNull(formatId);
         }
         return cachedDestinations[index];
     }

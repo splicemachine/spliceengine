@@ -35,32 +35,32 @@ import java.io.IOException;
 
 /** Integer Constant - page 96 */
 class CONSTANT_Integer_info extends ConstantPoolEntry {
-	private final int value;
+    private final int value;
 
-	CONSTANT_Integer_info(int value) {
-		super(VMDescriptor.CONSTANT_Integer);
-		this.value = value;
-	}
+    CONSTANT_Integer_info(int value) {
+        super(VMDescriptor.CONSTANT_Integer);
+        this.value = value;
+    }
 
-	public int hashCode() {
-		return value;
-	}
+    public int hashCode() {
+        return value;
+    }
 
-	void put(ClassFormatOutput out) throws IOException {
-		super.put(out);
-		out.putU4(value);
-	}
+    void put(ClassFormatOutput out) throws IOException {
+        super.put(out);
+        out.putU4(value);
+    }
 
-	public boolean equals(Object other) {
+    public boolean equals(Object other) {
 
         // check it is the right type
         return other instanceof CONSTANT_Integer_info && value == ((CONSTANT_Integer_info) other).value;
 
     }
 
-	int classFileSize() {
-		// 1 (tag) + 4 (int length)
-		return 1 + 4;
-	}
+    int classFileSize() {
+        // 1 (tag) + 4 (int length)
+        return 1 + 4;
+    }
 }
 

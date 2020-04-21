@@ -38,9 +38,9 @@ import com.splicemachine.db.iapi.sql.ResultSet;
 import java.util.Vector;
 
 /**
-	A pre-compiled activation that supports a single ResultSet with
-	a single constant action. All the execution logic is contained
-	in the constant action.
+    A pre-compiled activation that supports a single ResultSet with
+    a single constant action. All the execution logic is contained
+    in the constant action.
     <P>
     At compile time for DDL statements this class will be picked
     as the implementation of Activation. The language PreparedStatement
@@ -53,25 +53,25 @@ import java.util.Vector;
 public final class ConstantActionActivation extends BaseActivation
 {
 
-	public int getExecutionCount() { return 0;}
-	public void setExecutionCount(int count) {}
+    public int getExecutionCount() { return 0;}
+    public void setExecutionCount(int count) {}
 
-	public Vector getRowCountCheckVector() {return null;}
-	public void setRowCountCheckVector(Vector v) {}
+    public Vector getRowCountCheckVector() {return null;}
+    public void setRowCountCheckVector(Vector v) {}
 
-	public int getStalePlanCheckInterval() { return Integer.MAX_VALUE; }
-	public void setStalePlanCheckInterval(int count) {}
+    public int getStalePlanCheckInterval() { return Integer.MAX_VALUE; }
+    public void setStalePlanCheckInterval(int count) {}
 
-	public ResultSet execute() throws StandardException {
+    public ResultSet execute() throws StandardException {
 
-		throwIfClosed("execute");
-		startExecution();
+        throwIfClosed("execute");
+        startExecution();
 
-		if (resultSet == null)
-			resultSet = getResultSetFactory().getDDLResultSet(this);
-		return resultSet;
-	}
-	public void postConstructor(){}
+        if (resultSet == null)
+            resultSet = getResultSetFactory().getDDLResultSet(this);
+        return resultSet;
+    }
+    public void postConstructor(){}
 
     public void materialize() throws StandardException {}
 }

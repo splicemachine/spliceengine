@@ -37,46 +37,46 @@ import java.util.Date;
 import java.io.*;
 
 public class StStatus {
-	static final int messageCount = 20;
-	
-	int cycles = 0;
-	
-	int currentThreads = 0;
-	
-	int currentMessage = 0;
-	
-	public String firstMessage = null;
-	
-	public String[] messages;
-	
-	public StStatus() {
-		messages = new String[messageCount];
-	}
-	
-	public void firstMessage(int Threadcount, Date d) {
-		currentThreads = Threadcount;
-		firstMessage = "starting: " + d.toString() + " threads: "
-		+ currentThreads;
-	}
-	
-	public void updateStatus() throws IOException {
-		Date d = new Date();
-		cycles++;
-		int counter = currentMessage % messageCount;
-		Runtime rt = Runtime.getRuntime();
-		messages[counter] = "Total memory: " + rt.totalMemory()
-		+ " free memory: " + rt.freeMemory() + " cycles: " + cycles
-		+ " threads: " + currentThreads + " " + d;
-		currentMessage++;
-		//overwrite messages file with current set of messages
-		PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(
-		"Sttest.log")));
-		out.println(firstMessage);
-		for (int i = 0; i < messageCount; i++) {
-			if (messages[i] != null)
-				out.println(messages[i]);
-		}
-		out.flush();
-		out.close();
-	}
+    static final int messageCount = 20;
+    
+    int cycles = 0;
+    
+    int currentThreads = 0;
+    
+    int currentMessage = 0;
+    
+    public String firstMessage = null;
+    
+    public String[] messages;
+    
+    public StStatus() {
+        messages = new String[messageCount];
+    }
+    
+    public void firstMessage(int Threadcount, Date d) {
+        currentThreads = Threadcount;
+        firstMessage = "starting: " + d.toString() + " threads: "
+        + currentThreads;
+    }
+    
+    public void updateStatus() throws IOException {
+        Date d = new Date();
+        cycles++;
+        int counter = currentMessage % messageCount;
+        Runtime rt = Runtime.getRuntime();
+        messages[counter] = "Total memory: " + rt.totalMemory()
+        + " free memory: " + rt.freeMemory() + " cycles: " + cycles
+        + " threads: " + currentThreads + " " + d;
+        currentMessage++;
+        //overwrite messages file with current set of messages
+        PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(
+        "Sttest.log")));
+        out.println(firstMessage);
+        for (int i = 0; i < messageCount; i++) {
+            if (messages[i] != null)
+                out.println(messages[i]);
+        }
+        out.flush();
+        out.close();
+    }
 }

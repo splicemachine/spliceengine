@@ -38,97 +38,97 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
 public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
-	private static final Logger LOG = Logger.getLogger(IndexRowToBaseRowOperationIT.class);
+    private static final Logger LOG = Logger.getLogger(IndexRowToBaseRowOperationIT.class);
 
     private static final String CLASSNAME = IndexRowToBaseRowOperationIT.class.getSimpleName();
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASSNAME);
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASSNAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASSNAME);
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("ORDER_FACT", CLASSNAME,"(i int)");
-	
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher);
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASSNAME);
+    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("ORDER_FACT", CLASSNAME,"(i int)");
+    
+    @ClassRule 
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+        .around(spliceSchemaWatcher)
+        .around(spliceTableWatcher);
+    
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASSNAME);
 
-	public static void createData(Connection conn, String schemaName) throws Exception {
+    public static void createData(Connection conn, String schemaName) throws Exception {
 
-		new TableCreator(conn)
-				.withCreate("create table t1 (a1 int, b1 int, c1 varchar(10) not null default ' ')")
-				.withInsert("insert into t1 values(?,?,?)")
-				.withRows(rows(
-						row(1, 1, "aaa")))
-				.create();
+        new TableCreator(conn)
+                .withCreate("create table t1 (a1 int, b1 int, c1 varchar(10) not null default ' ')")
+                .withInsert("insert into t1 values(?,?,?)")
+                .withRows(rows(
+                        row(1, 1, "aaa")))
+                .create();
 
 
-		new TableCreator(conn)
-				.withCreate("create table t2 (a2 int, b2 int, c2 varchar(10) not null default ' ')")
-				.withIndex("create index idx_t2 on t2(c2)")
-				.withInsert("insert into t2(a2, b2) values(?,?)")
-				.withRows(rows(
-						row(2, 2)))
-				.create();
+        new TableCreator(conn)
+                .withCreate("create table t2 (a2 int, b2 int, c2 varchar(10) not null default ' ')")
+                .withIndex("create index idx_t2 on t2(c2)")
+                .withInsert("insert into t2(a2, b2) values(?,?)")
+                .withRows(rows(
+                        row(2, 2)))
+                .create();
 
-		conn.commit();
-	}
+        conn.commit();
+    }
 
-	@BeforeClass
-	public static void createDataSet() throws Exception {
-		createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
-	}
+    @BeforeClass
+    public static void createDataSet() throws Exception {
+        createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
+    }
 
-	@Test
-	public void testScanSysTables() throws Exception{
-		ResultSet rs = methodWatcher.executeQuery("select tablename from sys.systables where tablename like 'ORDER_FACT'");
-		int count=0;
-		while(rs.next()){
-			LOG.trace(rs.getString(1));
-			count++;
-		}
-		Assert.assertTrue("incorrect row count returned!",count>0);
-	}
+    @Test
+    public void testScanSysTables() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select tablename from sys.systables where tablename like 'ORDER_FACT'");
+        int count=0;
+        while(rs.next()){
+            LOG.trace(rs.getString(1));
+            count++;
+        }
+        Assert.assertTrue("incorrect row count returned!",count>0);
+    }
 
-	public void testScanSysConglomerates() throws Exception{
-		ResultSet rs = methodWatcher.executeQuery("select * from sys.sysconglomerates");
-		int count = 0;
-		while(rs.next()){ // TODO No Test Here
-			LOG.trace(String.format("schemaId=%s,tableId=%s,conglom#=%d,conglomName=%s,isIndex=%b,isConstraint=%b,conglomId=%s",
-			rs.getString(1),rs.getString(2),rs.getInt(3),rs.getString(4),rs.getBoolean(5),rs.getBoolean(7),rs.getString(8)));
-			count++;
-		}
-		Assert.assertTrue("incorrect number of rows returned", count > 0);
-	}
+    public void testScanSysConglomerates() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select * from sys.sysconglomerates");
+        int count = 0;
+        while(rs.next()){ // TODO No Test Here
+            LOG.trace(String.format("schemaId=%s,tableId=%s,conglom#=%d,conglomName=%s,isIndex=%b,isConstraint=%b,conglomId=%s",
+            rs.getString(1),rs.getString(2),rs.getInt(3),rs.getString(4),rs.getBoolean(5),rs.getBoolean(7),rs.getString(8)));
+            count++;
+        }
+        Assert.assertTrue("incorrect number of rows returned", count > 0);
+    }
 
-	@Test
-	public void testRestrictScanSysConglomerates() throws Exception{
-		ResultSet rs = methodWatcher.executeQuery("select count(*) from sys.sysconglomerates");
-		int count = 0;
-		while(rs.next()){
-			count++;
-			LOG.trace(String.format("count=%d",rs.getInt(1)));
-		}
-		Assert.assertTrue("incorrect number of rows returned", count > 0);
-	}
-	
-	@Test
-	public void testJoinSysSchemasAndSysTables() throws Exception{
-		ResultSet rs = methodWatcher.executeQuery("select s.schemaid, t.tableid from sys.sysschemas s join sys.systables t on s.schemaid=t.schemaid");
-		int count = 0;
-		while(rs.next()){
-			count++;
-			LOG.info(String.format("schemaid=%s,tableid=%s",rs.getString(1),rs.getString(2)));
-		}
-		Assert.assertTrue("incorrect number of rows returned", count > 0);
-	}
-	
-	@Test
-	public void testScanWithNullQualifier() throws Exception{
-		PreparedStatement ps = methodWatcher.prepareStatement("select s.schemaname from sys.sysschemas s where schemaname is null");
-		ResultSet rs = ps.executeQuery();
-		List<String> rowsReturned = Lists.newArrayList();
-		boolean hasRows = false;
-		while(rs.next()){
+    @Test
+    public void testRestrictScanSysConglomerates() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from sys.sysconglomerates");
+        int count = 0;
+        while(rs.next()){
+            count++;
+            LOG.trace(String.format("count=%d",rs.getInt(1)));
+        }
+        Assert.assertTrue("incorrect number of rows returned", count > 0);
+    }
+    
+    @Test
+    public void testJoinSysSchemasAndSysTables() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select s.schemaid, t.tableid from sys.sysschemas s join sys.systables t on s.schemaid=t.schemaid");
+        int count = 0;
+        while(rs.next()){
+            count++;
+            LOG.info(String.format("schemaid=%s,tableid=%s",rs.getString(1),rs.getString(2)));
+        }
+        Assert.assertTrue("incorrect number of rows returned", count > 0);
+    }
+    
+    @Test
+    public void testScanWithNullQualifier() throws Exception{
+        PreparedStatement ps = methodWatcher.prepareStatement("select s.schemaname from sys.sysschemas s where schemaname is null");
+        ResultSet rs = ps.executeQuery();
+        List<String> rowsReturned = Lists.newArrayList();
+        boolean hasRows = false;
+        while(rs.next()){
             hasRows = true;
             rowsReturned.add(String.format("schemaname=%s",rs.getString(1)));
         }
@@ -184,57 +184,57 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
 
             Assert.assertEquals("schemaName incorrect!","SYS",schemaName);
             Assert.assertNotNull("schemaId is null!",schemaId);
-			results.add(String.format("schemaname=%s,schemaid=%s", schemaName,schemaId));
-		}
-		for(String result:results){
-			LOG.info(result);
-		}
-		Assert.assertEquals("Incorrect number of rows returned",1,results.size());
-	}
+            results.add(String.format("schemaname=%s,schemaid=%s", schemaName,schemaId));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+        Assert.assertEquals("Incorrect number of rows returned",1,results.size());
+    }
 
-	@Test
-	public void testGetWithMissingFieldPreparedStatement() throws Exception{
-		/*
-		 * Test designed to manage the Execution Plan
-		 *
-		 * ProjectRestrict:
-		 * 	IndexRow:
-		 * 		TableScan
-		 *
-		 * which operates with a PreparedStatement and fields which are used as constraints, but not returned as par
-		 * of the set. This ensures that the PreparedStatement works
-		 */
-		String correctSchemaName = "SYS";
-		PreparedStatement ps = methodWatcher.prepareStatement("select s.schemaid,s.authorizationid from sys.sysschemas s where s.schemaname = ?");
-		ps.setString(1,correctSchemaName);
-		ResultSet rs = ps.executeQuery();
-		List<String> results = Lists.newArrayList();
-		while(rs.next()){
-			String schemaid = rs.getString(1);
-			String authId = rs.getString(2);
-			Assert.assertNotNull("schemaId is null!",schemaid);
-			Assert.assertNotNull("authId is null!",authId);
-			results.add(String.format("schemaid=%s,authId=%s",schemaid,authId));
-		}
-		Assert.assertTrue("incorrect number of results returned!",results.size()>0);
-		for(String result:results){
-			LOG.info(result);
-		}
-	}
+    @Test
+    public void testGetWithMissingFieldPreparedStatement() throws Exception{
+        /*
+         * Test designed to manage the Execution Plan
+         *
+         * ProjectRestrict:
+         *     IndexRow:
+         *         TableScan
+         *
+         * which operates with a PreparedStatement and fields which are used as constraints, but not returned as par
+         * of the set. This ensures that the PreparedStatement works
+         */
+        String correctSchemaName = "SYS";
+        PreparedStatement ps = methodWatcher.prepareStatement("select s.schemaid,s.authorizationid from sys.sysschemas s where s.schemaname = ?");
+        ps.setString(1,correctSchemaName);
+        ResultSet rs = ps.executeQuery();
+        List<String> results = Lists.newArrayList();
+        while(rs.next()){
+            String schemaid = rs.getString(1);
+            String authId = rs.getString(2);
+            Assert.assertNotNull("schemaId is null!",schemaid);
+            Assert.assertNotNull("authId is null!",authId);
+            results.add(String.format("schemaid=%s,authId=%s",schemaid,authId));
+        }
+        Assert.assertTrue("incorrect number of results returned!",results.size()>0);
+        for(String result:results){
+            LOG.info(result);
+        }
+    }
 
     @Test
     public void testJoinIndexedTablesWithLikePreparedStatement() throws Exception{
-				/*
-				 * Test for the ExecutionPlan
-				 *
-				 * ProjectRestrict:
-				 * 	NestedLoopJoin:
-				 * 		Left:
-				 * 			TableScan
-				 * 		Right:
-				 * 			IndexRow:
-				 * 				TableScan
-				 */
+                /*
+                 * Test for the ExecutionPlan
+                 *
+                 * ProjectRestrict:
+                 *     NestedLoopJoin:
+                 *         Left:
+                 *             TableScan
+                 *         Right:
+                 *             IndexRow:
+                 *                 TableScan
+                 */
         String correctSchemaName = "SYS";
         String correctTableName = "SYSSCHEMAS";
 
@@ -260,7 +260,7 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
         for(String result:results){
             LOG.info(result);
         }
-		}
+        }
 
     @Test
     public void testJoinSortAndProjectIndexedRows() throws Exception{
@@ -282,30 +282,30 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
         ResultSet rs = ps.executeQuery();
         while(rs.next()){
             String tableName = rs.getString(1);
-			String tSchemaId = rs.getString(2);
-			String sSchemaId = rs.getString(3);
-			String schemaName = rs.getString(4);
-			Assert.assertNotNull("no table name present!",tableName);
-			Assert.assertEquals("t.schemaId != s.schemaId",tSchemaId,sSchemaId);
-			Assert.assertEquals("schemaName incorrect",correctSchemaName,schemaName);
+            String tSchemaId = rs.getString(2);
+            String sSchemaId = rs.getString(3);
+            String schemaName = rs.getString(4);
+            Assert.assertNotNull("no table name present!",tableName);
+            Assert.assertEquals("t.schemaId != s.schemaId",tSchemaId,sSchemaId);
+            Assert.assertEquals("schemaName incorrect",correctSchemaName,schemaName);
 
-			String result = String.format("t.tablename=%s,t.schemaid=%s,s.schemaid=%s,s.schemaname=%s",
-					tableName,tSchemaId,sSchemaId,schemaName);
-			correctSort.put(tableName,result);
-			results.add(result);
-		}
-		int pos =0;
-		for(String correctName:correctSort.keySet()){
-			Assert.assertEquals("sort is incorrect!",correctSort.get(correctName),results.get(pos));
-			LOG.info(results.get(pos));
-			pos++;
-		}
-		Assert.assertTrue("no rows returned!",results.size()>0);
-	}
+            String result = String.format("t.tablename=%s,t.schemaid=%s,s.schemaid=%s,s.schemaname=%s",
+                    tableName,tSchemaId,sSchemaId,schemaName);
+            correctSort.put(tableName,result);
+            results.add(result);
+        }
+        int pos =0;
+        for(String correctName:correctSort.keySet()){
+            Assert.assertEquals("sort is incorrect!",correctSort.get(correctName),results.get(pos));
+            LOG.info(results.get(pos));
+            pos++;
+        }
+        Assert.assertTrue("no rows returned!",results.size()>0);
+    }
 
-	@Test
-	public void testJoinAndSortIndexedRows() throws Exception{
-		String correctSchemaName = getSchemaName();
+    @Test
+    public void testJoinAndSortIndexedRows() throws Exception{
+        String correctSchemaName = getSchemaName();
         final String sql = "select " +
                 "t.tablename,t.schemaid," +
                 "s.schemaid,s.schemaname " +
@@ -318,88 +318,88 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
                 "order by " +
                 "t.tablename";
         PreparedStatement ps = methodWatcher.prepareStatement(sql);
-		ps.setString(1,correctSchemaName);
-		final Map<String,String> correctSort = Maps.newTreeMap();
-		List<String> results = Lists.newArrayList();
-		ResultSet rs = ps.executeQuery();
-		while(rs.next()){
-			String tableName = rs.getString(1);
-			String tSchemaId = rs.getString(2);
-			String sSchemaId = rs.getString(3);
-			String schemaName = rs.getString(4);
-			Assert.assertNotNull("no table name present!",tableName);
-			Assert.assertEquals("t.schemaId != s.schemaId",tSchemaId,sSchemaId);
-			Assert.assertEquals("schemaName incorrect",correctSchemaName,schemaName);
+        ps.setString(1,correctSchemaName);
+        final Map<String,String> correctSort = Maps.newTreeMap();
+        List<String> results = Lists.newArrayList();
+        ResultSet rs = ps.executeQuery();
+        while(rs.next()){
+            String tableName = rs.getString(1);
+            String tSchemaId = rs.getString(2);
+            String sSchemaId = rs.getString(3);
+            String schemaName = rs.getString(4);
+            Assert.assertNotNull("no table name present!",tableName);
+            Assert.assertEquals("t.schemaId != s.schemaId",tSchemaId,sSchemaId);
+            Assert.assertEquals("schemaName incorrect",correctSchemaName,schemaName);
 
-			String result = String.format("t.tablename=%s,t.schemaid=%s,s.schemaid=%s,s.schemaname=%s",
-					tableName,tSchemaId,sSchemaId,schemaName);
-			correctSort.put(tableName,result);
-			results.add(result);
-		}
-		int pos =0;
-		for(String correctName:correctSort.keySet()){
-			Assert.assertEquals("sort is incorrect!",correctSort.get(correctName),results.get(pos));
-			LOG.info(results.get(pos));
-			pos++;
-		}
-		Assert.assertTrue("no rows returned!",results.size()>0);
-	}
+            String result = String.format("t.tablename=%s,t.schemaid=%s,s.schemaid=%s,s.schemaname=%s",
+                    tableName,tSchemaId,sSchemaId,schemaName);
+            correctSort.put(tableName,result);
+            results.add(result);
+        }
+        int pos =0;
+        for(String correctName:correctSort.keySet()){
+            Assert.assertEquals("sort is incorrect!",correctSort.get(correctName),results.get(pos));
+            LOG.info(results.get(pos));
+            pos++;
+        }
+        Assert.assertTrue("no rows returned!",results.size()>0);
+    }
 
-	@Test
-	@Ignore("Not working when multi-threaed for me - JL")
-	public void testSortIndexedRows() throws Exception{
-		PreparedStatement ps = methodWatcher.prepareStatement("select " +
-				"t.tablename,t.schemaid " +
-				"from " +
-				"sys.systables t " +
-				"order by " +
-				"t.tablename");
+    @Test
+    @Ignore("Not working when multi-threaed for me - JL")
+    public void testSortIndexedRows() throws Exception{
+        PreparedStatement ps = methodWatcher.prepareStatement("select " +
+                "t.tablename,t.schemaid " +
+                "from " +
+                "sys.systables t " +
+                "order by " +
+                "t.tablename");
 
-		final Map<String,String> correctSort = new TreeMap<String,String>();
-		List<String> results = Lists.newArrayList();
-		ResultSet rs = ps.executeQuery();
-		while(rs.next()){
-			String tableName = rs.getString(1);
-			String schemaId = rs.getString(2);
-			Assert.assertNotNull("no table name returned!",tableName);
-			Assert.assertNotNull("no schema returned!",schemaId);
-			results.add(String.format("tableName=%s,schemaId=%s",tableName,schemaId));
-			correctSort.put(tableName, schemaId);
-		}
-		int pos=0;
-		for(String correct:correctSort.keySet()){
-			String correctResult = String.format("tableName=%s,schemaId=%s",correct,correctSort.get(correct));
-			Assert.assertEquals("sorting is incorrect! " + correctResult + " : " + results.get(pos),correctResult,results.get(pos));
-			LOG.info(results.get(pos));
-			pos++;
-		}
-		Assert.assertTrue("No rows returned!",results.size()>0);
-	}
+        final Map<String,String> correctSort = new TreeMap<String,String>();
+        List<String> results = Lists.newArrayList();
+        ResultSet rs = ps.executeQuery();
+        while(rs.next()){
+            String tableName = rs.getString(1);
+            String schemaId = rs.getString(2);
+            Assert.assertNotNull("no table name returned!",tableName);
+            Assert.assertNotNull("no schema returned!",schemaId);
+            results.add(String.format("tableName=%s,schemaId=%s",tableName,schemaId));
+            correctSort.put(tableName, schemaId);
+        }
+        int pos=0;
+        for(String correct:correctSort.keySet()){
+            String correctResult = String.format("tableName=%s,schemaId=%s",correct,correctSort.get(correct));
+            Assert.assertEquals("sorting is incorrect! " + correctResult + " : " + results.get(pos),correctResult,results.get(pos));
+            LOG.info(results.get(pos));
+            pos++;
+        }
+        Assert.assertTrue("No rows returned!",results.size()>0);
+    }
 
-	@Test
-	public void testRestrictColumnsPreparedStatement() throws Exception{
-		PreparedStatement ps = methodWatcher.prepareStatement("select " +
-				"t.tablename as table_name," +
-				"c.columnname " +
-				"from " +
-				 "sys.systables t," +
-				 "sys.syscolumns c " +
-				"where " +
-				"c.referenceid = t.tableid " +
-				"and c.columnname like ?");
-		ps.setString(1,"%");
+    @Test
+    public void testRestrictColumnsPreparedStatement() throws Exception{
+        PreparedStatement ps = methodWatcher.prepareStatement("select " +
+                "t.tablename as table_name," +
+                "c.columnname " +
+                "from " +
+                 "sys.systables t," +
+                 "sys.syscolumns c " +
+                "where " +
+                "c.referenceid = t.tableid " +
+                "and c.columnname like ?");
+        ps.setString(1,"%");
 
-		ResultSet rs = ps.executeQuery();
-		List<String> rows = Lists.newArrayList();
-		while(rs.next()){
-			rows.add(String.format("table:%s,column:%s",rs.getString(1),rs.getString(2)));
-		}
-		for(String row:rows){
-			LOG.info(row);
-		}
-		Assert.assertTrue("incorrect rows returned!",rows.size()>0);
+        ResultSet rs = ps.executeQuery();
+        List<String> rows = Lists.newArrayList();
+        while(rs.next()){
+            rows.add(String.format("table:%s,column:%s",rs.getString(1),rs.getString(2)));
+        }
+        for(String row:rows){
+            LOG.info(row);
+        }
+        Assert.assertTrue("incorrect rows returned!",rows.size()>0);
 
-	}
+    }
 
     @Test
     public void testRestrictSortedColumns() throws Exception{
@@ -460,10 +460,10 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
         Assert.assertTrue("incorrect rows returned!",count>0);
     }
 
-	@Test
-	public void testJoinMultipleIndexTablesWithLikeAndSortPreparedStatement() throws Exception{
-		String correctSchemaName = "SYS";
-		String  correctTableName = "SYSSCHEMAS";
+    @Test
+    public void testJoinMultipleIndexTablesWithLikeAndSortPreparedStatement() throws Exception{
+        String correctSchemaName = "SYS";
+        String  correctTableName = "SYSSCHEMAS";
         PreparedStatement ps = methodWatcher.prepareStatement("select " +
                 "cast ('' as varchar(128)) as table_cat," +
                 "s.schemaname as table_schem," +
@@ -496,26 +496,26 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
             rs.getString(1);
             String schemaName = rs.getString(2);
             String tableName = rs.getString(3);
-			String columnName = rs.getString(4);
-			String tSchemaId = rs.getString(5);
-			Integer columnNumber = rs.getInt(6);
+            String columnName = rs.getString(4);
+            String tSchemaId = rs.getString(5);
+            Integer columnNumber = rs.getInt(6);
 
-			Assert.assertEquals("schemaName incorrect!",correctSchemaName,schemaName);
-			Assert.assertEquals("incorrect tableName",correctTableName,tableName);
-			Assert.assertNotNull("no schema returned!",tSchemaId);
-			Assert.assertNotNull("no columnName!",columnName);
-			Assert.assertNotNull("no columnNumber!",columnNumber);
+            Assert.assertEquals("schemaName incorrect!",correctSchemaName,schemaName);
+            Assert.assertEquals("incorrect tableName",correctTableName,tableName);
+            Assert.assertNotNull("no schema returned!",tSchemaId);
+            Assert.assertNotNull("no columnName!",columnName);
+            Assert.assertNotNull("no columnNumber!",columnNumber);
 
-			results.add(String.format("t.tableName=%s,t.schemaId=%s,s.schemaName=%s,c.columnName=%s,c.columnNumber=%d",
-					tableName,tSchemaId,schemaName,columnName,columnNumber));
-		}
-		for(String result:results){
-			LOG.info(result);
-		}
-		Assert.assertTrue("no rows returned!",results.size()>0);
-	}
+            results.add(String.format("t.tableName=%s,t.schemaId=%s,s.schemaName=%s,c.columnName=%s,c.columnNumber=%d",
+                    tableName,tSchemaId,schemaName,columnName,columnNumber));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+        Assert.assertTrue("no rows returned!",results.size()>0);
+    }
 
-	@Test
+    @Test
     public void testJoinMultipleIndexTablesWithLikePreparedStatement() throws Exception{
         String correctSchemaName = "SYS";
         String  correctTableName = "SYSSCHEMAS";
@@ -540,111 +540,111 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
             String tableName = rs.getString(1);
             String tSchemaId = rs.getString(2);
             String sSchemaId = rs.getString(3);
-			String schemaName = rs.getString(4);
-			String columnName = rs.getString(5);
+            String schemaName = rs.getString(4);
+            String columnName = rs.getString(5);
 
-			Assert.assertEquals("schemaName incorrect!",correctSchemaName,schemaName);
-			Assert.assertEquals("incorrect tableName",correctTableName,tableName);
-			Assert.assertEquals("t.schemaid!=s.schemaid!",tSchemaId,sSchemaId);
-			Assert.assertNotNull("columnName is null!",columnName);
+            Assert.assertEquals("schemaName incorrect!",correctSchemaName,schemaName);
+            Assert.assertEquals("incorrect tableName",correctTableName,tableName);
+            Assert.assertEquals("t.schemaid!=s.schemaid!",tSchemaId,sSchemaId);
+            Assert.assertNotNull("columnName is null!",columnName);
 
-			results.add(String.format("t.tableName=%s,t.schemaId=%s,s.schemaId=%s,s.schemaName=%s,c.columnName=%s",
-					tableName,tSchemaId,sSchemaId,schemaName,columnName));
-		}
-		for(String result:results){
-			LOG.info(result);
-		}
-		Assert.assertTrue("no rows returned!",results.size()>0);
-	}
+            results.add(String.format("t.tableName=%s,t.schemaId=%s,s.schemaId=%s,s.schemaName=%s,c.columnName=%s",
+                    tableName,tSchemaId,sSchemaId,schemaName,columnName));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+        Assert.assertTrue("no rows returned!",results.size()>0);
+    }
 
-	@Test
-	public void testJoinIndexedTables() throws Exception{
-		ResultSet rs = methodWatcher.executeQuery("select t.tablename,t.schemaid,s.schemaid,s.schemaname " +
-				"from sys.systables t inner join sys.sysschemas s on t.schemaid=s.schemaid");
-		List<String> results = Lists.newArrayList();
-		while(rs.next()){
-			String tableName = rs.getString(1);
-			String tSchemaId = rs.getString(2);
-			String sSchemaId = rs.getString(3);
-			String schemaName = rs.getString(4);
+    @Test
+    public void testJoinIndexedTables() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select t.tablename,t.schemaid,s.schemaid,s.schemaname " +
+                "from sys.systables t inner join sys.sysschemas s on t.schemaid=s.schemaid");
+        List<String> results = Lists.newArrayList();
+        while(rs.next()){
+            String tableName = rs.getString(1);
+            String tSchemaId = rs.getString(2);
+            String sSchemaId = rs.getString(3);
+            String schemaName = rs.getString(4);
 
-			Assert.assertNotNull("tableName is null!",tableName);
-			Assert.assertNotNull("schemaName is null!",schemaName);
-			Assert.assertEquals("t.schemaId!=s.schemaid",sSchemaId,tSchemaId);
-			results.add(String.format("tablename=%s,schemaname=%s,t.schemaid=%s,s.schemaid=%s",
-					tableName,schemaName,tSchemaId,sSchemaId));
-		}
-		for(String result:results){
-			LOG.info(result);
-		}
-	}
+            Assert.assertNotNull("tableName is null!",tableName);
+            Assert.assertNotNull("schemaName is null!",schemaName);
+            Assert.assertEquals("t.schemaId!=s.schemaid",sSchemaId,tSchemaId);
+            results.add(String.format("tablename=%s,schemaname=%s,t.schemaid=%s,s.schemaid=%s",
+                    tableName,schemaName,tSchemaId,sSchemaId));
+        }
+        for(String result:results){
+            LOG.info(result);
+        }
+    }
 
-	@Test
-	public void testOuterJoinWithIndexLookupPlan() throws Exception {
-		String sqlText = "select a1,c1,a2,c2 from t1 left join t2 --splice-properties joinStrategy=nestedloop, index=idx_t2\n" +
-				"on a1=a2 \n" +
-				"where c1='aaa'";
+    @Test
+    public void testOuterJoinWithIndexLookupPlan() throws Exception {
+        String sqlText = "select a1,c1,a2,c2 from t1 left join t2 --splice-properties joinStrategy=nestedloop, index=idx_t2\n" +
+                "on a1=a2 \n" +
+                "where c1='aaa'";
 
-		String expected = "A1 |C1  | A2  | C2  |\n" +
-				"---------------------\n" +
-				" 1 |aaa |NULL |NULL |";
+        String expected = "A1 |C1  | A2  | C2  |\n" +
+                "---------------------\n" +
+                " 1 |aaa |NULL |NULL |";
 
-		ResultSet rs = methodWatcher.executeQuery(sqlText);
-		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-		rs.close();
-	}
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
 
-	@Test
-	public void testOuterJoinWithIndexLookupPlan2() throws Exception {
-		String sqlText = "select a1,c1, a2, '-' || c2 || '-' from t1 left join t2 --splice-properties joinStrategy=nestedloop, index=idx_t2\n" +
-				"on a1+1=a2 \n" +
-				"where c1='aaa'";
+    @Test
+    public void testOuterJoinWithIndexLookupPlan2() throws Exception {
+        String sqlText = "select a1,c1, a2, '-' || c2 || '-' from t1 left join t2 --splice-properties joinStrategy=nestedloop, index=idx_t2\n" +
+                "on a1+1=a2 \n" +
+                "where c1='aaa'";
 
-		String expected = "A1 |C1  |A2 | 4  |\n" +
-				"------------------\n" +
-				" 1 |aaa | 2 |- - |";
+        String expected = "A1 |C1  |A2 | 4  |\n" +
+                "------------------\n" +
+                " 1 |aaa | 2 |- - |";
 
-		ResultSet rs = methodWatcher.executeQuery(sqlText);
-		Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-		rs.close();
-	}
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
 
-	@Test
-	public void testOuterJoinWithIndexLookupPlan3() throws Exception {
-		String sqlText = "select a1,c1, a2, '-' || c2 || '-' from t1 left join t2 --splice-properties joinStrategy=sortmerge, index=idx_t2\n" +
-				"on c1=c2 \n" +
-				"where c1='aaa'";
+    @Test
+    public void testOuterJoinWithIndexLookupPlan3() throws Exception {
+        String sqlText = "select a1,c1, a2, '-' || c2 || '-' from t1 left join t2 --splice-properties joinStrategy=sortmerge, index=idx_t2\n" +
+                "on c1=c2 \n" +
+                "where c1='aaa'";
 
-		String expected = "A1 |C1  | A2  |  4  |\n" +
-				"---------------------\n" +
-				" 1 |aaa |NULL |NULL |";
+        String expected = "A1 |C1  | A2  |  4  |\n" +
+                "---------------------\n" +
+                " 1 |aaa |NULL |NULL |";
 
-		ResultSet rs = methodWatcher.executeQuery(sqlText);
-		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-		rs.close();
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
 
-	}
+    }
 
-	@Test
-	public void testOuterJoinWithCoveringIndexPlan() throws Exception {
-		String sqlText = "select c1,c2 from t1 left join t2 --splice-properties joinStrategy=nestedloop, index=idx_t2\n" +
-				"on c1=c2 \n" +
-				"where c1='aaa'";
+    @Test
+    public void testOuterJoinWithCoveringIndexPlan() throws Exception {
+        String sqlText = "select c1,c2 from t1 left join t2 --splice-properties joinStrategy=nestedloop, index=idx_t2\n" +
+                "on c1=c2 \n" +
+                "where c1='aaa'";
 
-		String expected = "C1  | C2  |\n" +
-				"-----------\n" +
-				"aaa |NULL |";
+        String expected = "C1  | C2  |\n" +
+                "-----------\n" +
+                "aaa |NULL |";
 
-		ResultSet rs = methodWatcher.executeQuery(sqlText);
-		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-		rs.close();
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
 
-		sqlText = "select c1,c2 from t1 left join t2 --splice-properties joinStrategy=sortmerge, index=idx_t2\n" +
-				"on c1=c2 \n" +
-				"where c1='aaa'";
+        sqlText = "select c1,c2 from t1 left join t2 --splice-properties joinStrategy=sortmerge, index=idx_t2\n" +
+                "on c1=c2 \n" +
+                "where c1='aaa'";
 
-		rs = methodWatcher.executeQuery(sqlText);
-		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-		rs.close();
-	}
+        rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
 }

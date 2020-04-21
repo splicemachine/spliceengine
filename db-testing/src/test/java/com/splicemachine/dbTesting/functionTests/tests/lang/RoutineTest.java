@@ -617,15 +617,15 @@ public class RoutineTest extends BaseJDBCTestCase {
      */
     public void testAggregateArgument() throws SQLException
     {
-    	Statement s = createStatement();
-    	s.executeUpdate("CREATE TABLE TEST (I INT)");
-    	s.executeUpdate("INSERT INTO TEST VALUES(1)");
-    	s.executeUpdate("INSERT INTO TEST VALUES(2)");
-    	s.executeUpdate("CREATE FUNCTION CheckCount(count integer) RETURNS INTEGER PARAMETER STYLE JAVA NO SQL LANGUAGE JAVA EXTERNAL NAME 'com.splicemachine.dbTesting.functionTests.tests.lang.RoutineTest.checkCount'");
-    	ResultSet rs = s.executeQuery("select checkCount(count(*)) from test");
-    	JDBC.assertSingleValueResultSet(rs, "2");
-    	
-    	
+        Statement s = createStatement();
+        s.executeUpdate("CREATE TABLE TEST (I INT)");
+        s.executeUpdate("INSERT INTO TEST VALUES(1)");
+        s.executeUpdate("INSERT INTO TEST VALUES(2)");
+        s.executeUpdate("CREATE FUNCTION CheckCount(count integer) RETURNS INTEGER PARAMETER STYLE JAVA NO SQL LANGUAGE JAVA EXTERNAL NAME 'com.splicemachine.dbTesting.functionTests.tests.lang.RoutineTest.checkCount'");
+        ResultSet rs = s.executeQuery("select checkCount(count(*)) from test");
+        JDBC.assertSingleValueResultSet(rs, "2");
+        
+        
     }
     
     /**
@@ -634,14 +634,14 @@ public class RoutineTest extends BaseJDBCTestCase {
      */
     public void test_4459() throws Exception
     {
-    	Statement s = createStatement();
+        Statement s = createStatement();
 
-    	s.executeUpdate
+        s.executeUpdate
             (
              "create function getNullInt() returns int language java parameter style java\n" +
              "external name '" + RoutineTest.class.getName() + ".getNullInt'"
              );
-    	s.executeUpdate
+        s.executeUpdate
             (
              "create function negateInt( a int ) returns int language java parameter style java\n" +
              "external name '" + RoutineTest.class.getName() + ".negateInt'"

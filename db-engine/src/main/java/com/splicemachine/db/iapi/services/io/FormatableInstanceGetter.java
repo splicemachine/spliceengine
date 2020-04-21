@@ -60,12 +60,12 @@ public abstract class FormatableInstanceGetter implements InstanceGetter {
     /**
      * Format identifier of the object 
      */
-	protected int fmtId;
+    protected int fmtId;
 
     /**
      * Set the format identifier that this instance will be loading from disk.
     */
-	public final void setFormatId(int fmtId) {
-		this.fmtId = fmtId;
-	}
+    public final void setFormatId(int fmtId) {
+        this.fmtId = fmtId;
+    }
 }

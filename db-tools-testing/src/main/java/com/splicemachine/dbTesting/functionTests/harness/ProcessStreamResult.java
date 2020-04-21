@@ -37,27 +37,27 @@ import java.io.*;
 public class ProcessStreamResult implements Runnable
 {
 
-	protected InputStream in; 
-	protected OutputStreamWriter outStream;
-	// Encoding to be used to read output of test jvm process
-	protected String encoding;
+    protected InputStream in; 
+    protected OutputStreamWriter outStream;
+    // Encoding to be used to read output of test jvm process
+    protected String encoding;
 
     /**
      * Flag to find out if the work was finished 
      * successfully without being interrupted 
      * in between because of a timeout setting
      */
-	protected boolean finished;
-	protected IOException ioe;
-	protected Thread myThread;
-	protected long startTime;
+    protected boolean finished;
+    protected IOException ioe;
+    protected Thread myThread;
+    protected long startTime;
     
     /**
      * Flag to keep state of whether the myThread has timed out.
      * When interrupted is true, the myThread will exit 
      * from its work. 
      */
-	protected boolean interrupted;
+    protected boolean interrupted;
     
     /**
      * time in minutes for myThread to timeout in case it 
@@ -65,19 +65,19 @@ public class ProcessStreamResult implements Runnable
      * timeout handling only comes into effect only when Wait()
      * is called.
      */
-	protected int timeout;
+    protected int timeout;
 
-	public ProcessStreamResult(InputStream in, BufferedOutputStream bos,
-		    String timemin) throws IOException, InterruptedException
-	{
-		this(in, bos, timemin, null, null);
-	}
+    public ProcessStreamResult(InputStream in, BufferedOutputStream bos,
+            String timemin) throws IOException, InterruptedException
+    {
+        this(in, bos, timemin, null, null);
+    }
 
-	public ProcessStreamResult(InputStream in, BufferedOutputStream bos,
-	  String timemin, String inEncoding, String outEncoding)
-		throws IOException, InterruptedException
-	{
-		this.in = in;
+    public ProcessStreamResult(InputStream in, BufferedOutputStream bos,
+      String timemin, String inEncoding, String outEncoding)
+        throws IOException, InterruptedException
+    {
+        this.in = in;
         if (outEncoding == null) {
             this.outStream = new OutputStreamWriter(bos);
         } else {
@@ -92,13 +92,13 @@ public class ProcessStreamResult implements Runnable
         }
         else
             timeout = 0;
-		myThread = new Thread(this);
-		myThread.setPriority(Thread.MIN_PRIORITY);
-		myThread.start();
-	}
+        myThread = new Thread(this);
+        myThread.setPriority(Thread.MIN_PRIORITY);
+        myThread.start();
+    }
 
-	public void run()
-	{
+    public void run()
+    {
         //System.out.println("Thread run... " + tname);
         if ( in == null )
         {
@@ -106,66 +106,66 @@ public class ProcessStreamResult implements Runnable
             System.exit(1);
         }
         
-		try
-		{
-			char[] ca = new char[1024];
-			int valid;
-			interrupted = false;
-			
-			// Create an InputStreamReader with encoding, if specified. 
-			// Otherwise, use default.
-			InputStreamReader inStream;
-			if(encoding != null)
-        		inStream = new InputStreamReader(in, encoding);
-        	else
-        		inStream = new InputStreamReader(in);
-			
+        try
+        {
+            char[] ca = new char[1024];
+            int valid;
+            interrupted = false;
+            
+            // Create an InputStreamReader with encoding, if specified. 
+            // Otherwise, use default.
+            InputStreamReader inStream;
+            if(encoding != null)
+                inStream = new InputStreamReader(in, encoding);
+            else
+                inStream = new InputStreamReader(in);
+            
             // keep reading from the stream as long as we have not 
             // timed out
-			while (((valid = inStream.read(ca, 0, ca.length)) != -1) &&
+            while (((valid = inStream.read(ca, 0, ca.length)) != -1) &&
                     !interrupted)
-			{
-			    //System.out.println("Still reading thread: " + tname);
-/*				if (timeout > 0) {
-					long millis = System.currentTimeMillis();
+            {
+                //System.out.println("Still reading thread: " + tname);
+/*                if (timeout > 0) {
+                    long millis = System.currentTimeMillis();
 
-					long diff = millis - startTime;
+                    long diff = millis - startTime;
 
-					int mins = (int) (diff / (1000 * 60));
+                    int mins = (int) (diff / (1000 * 60));
 
-					if (mins > timeout) {
-						System.out.println("Timeout, kill the thread... ");
-						//myThread.dumpStack();
-						synchronized (this)
-						{
-							interrupted = true;
-							finished = true;
-							notifyAll();
-							return;
-						}
-					}
-			    }
-*/    			outStream.write(ca, 0, valid);
-    			outStream.flush();
-			}
-		}
-		catch (IOException ioe)
-		{
-			//System.out.println(ioe);
-			//ioe.printStackTrace();
-		}
+                    if (mins > timeout) {
+                        System.out.println("Timeout, kill the thread... ");
+                        //myThread.dumpStack();
+                        synchronized (this)
+                        {
+                            interrupted = true;
+                            finished = true;
+                            notifyAll();
+                            return;
+                        }
+                    }
+                }
+*/                outStream.write(ca, 0, valid);
+                outStream.flush();
+            }
+        }
+        catch (IOException ioe)
+        {
+            //System.out.println(ioe);
+            //ioe.printStackTrace();
+        }
 
         // if we timed out, then just leave
         if ( interrupted )
             return;
         
-		synchronized (this)
-		{
+        synchronized (this)
+        {
             // successfully finished the work, notifyAll and leave.
-			finished = true;
-			notifyAll();
-		}
-	}
+            finished = true;
+            notifyAll();
+        }
+    }
 
     /**
      * Wait till the myThread has finished its work or incase a timeout was set on this 
@@ -189,10 +189,10 @@ public class ProcessStreamResult implements Runnable
      *         else false
      * @throws IOException
      */
-	public boolean Wait() throws IOException
-	{
-	    synchronized(this)
-	    {
+    public boolean Wait() throws IOException
+    {
+        synchronized(this)
+        {
             // It is possible that we have finished the work 
             // by the time this method Wait() was called,
             // so need to check if that is the case, before we
@@ -200,21 +200,21 @@ public class ProcessStreamResult implements Runnable
             if ( finished )
                 return interrupted;
             
-			if (timeout > 0) {
-				long millis = System.currentTimeMillis();
+            if (timeout > 0) {
+                long millis = System.currentTimeMillis();
 
-				long diff = millis - startTime;
+                long diff = millis - startTime;
 
-				int mins = (int) (diff / (1000 * 60));
+                int mins = (int) (diff / (1000 * 60));
 
-				if (mins > timeout)
-				{
+                if (mins > timeout)
+                {
                     interrupted = true;
-					return interrupted;
-				}
-			}
-			try
-			{
+                    return interrupted;
+                }
+            }
+            try
+            {
                 // find timeout in milliseconds
                 long timeoutms = timeout * 60 *1000L;
                 
@@ -229,15 +229,15 @@ public class ProcessStreamResult implements Runnable
                 // In that case, indicate that we were interrupted and leave.
                 // myThread will read the value of interrupted and 
                 // stop its work and leave.
-    		    if ( !finished )
+                if ( !finished )
                     interrupted = true;
             }
-			catch (InterruptedException ie)
-			{
+            catch (InterruptedException ie)
+            {
                 interrupted = true;
-				System.out.println("Interrupted: " + ie.toString());
-			}
-	    }
-	    return interrupted;
-	}
+                System.out.println("Interrupted: " + ie.toString());
+            }
+        }
+        return interrupted;
+    }
 }

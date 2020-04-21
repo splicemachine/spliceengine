@@ -42,15 +42,15 @@ import java.sql.SQLWarning;
  */
 class ijExceptionResult extends ijResultImpl {
 
-	SQLException except;
+    SQLException except;
 
-	ijExceptionResult(SQLException e) {
-		except = e;
-	}
+    ijExceptionResult(SQLException e) {
+        except = e;
+    }
 
-	public boolean isException() { return true; }
-	public SQLException getException() { return except; }
+    public boolean isException() { return true; }
+    public SQLException getException() { return except; }
 
-	public SQLWarning getSQLWarnings() { return null; }
-	public void clearSQLWarnings() { }
+    public SQLWarning getSQLWarnings() { return null; }
+    public void clearSQLWarnings() { }
 }

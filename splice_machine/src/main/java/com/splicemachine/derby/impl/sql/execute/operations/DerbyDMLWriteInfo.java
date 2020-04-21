@@ -78,9 +78,9 @@ public class DerbyDMLWriteInfo implements DMLWriteInfo {
     }
 
     @Override
-		public ResultDescription getResultDescription() {
-				return activation.getResultDescription();
-		}
+        public ResultDescription getResultDescription() {
+                return activation.getResultDescription();
+        }
 
     public static FormatableBitSet fromIntArray(int[] values){
         if(values ==null) return null;

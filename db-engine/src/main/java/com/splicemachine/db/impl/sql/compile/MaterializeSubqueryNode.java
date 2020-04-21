@@ -43,23 +43,23 @@ import com.splicemachine.db.iapi.error.StandardException;
 class MaterializeSubqueryNode extends ResultSetNode
 {
 
-	private LocalField lf;
+    private LocalField lf;
 
-	public MaterializeSubqueryNode(LocalField lf)
-	{
-		this.lf = lf;
-	}
+    public MaterializeSubqueryNode(LocalField lf)
+    {
+        this.lf = lf;
+    }
 
-	public void generate(ActivationClassBuilder acb,
-						 MethodBuilder mb)
-		throws StandardException
-	{
-		// Simply return reference to field, which has been populated in the
-		// execute() method (per SubqueryNode logic)
-		mb.getField(lf);
-	}
+    public void generate(ActivationClassBuilder acb,
+                         MethodBuilder mb)
+        throws StandardException
+    {
+        // Simply return reference to field, which has been populated in the
+        // execute() method (per SubqueryNode logic)
+        mb.getField(lf);
+    }
 
-	void decrementLevel(int decrement)
-	{
-	}
+    void decrementLevel(int decrement)
+    {
+    }
 }

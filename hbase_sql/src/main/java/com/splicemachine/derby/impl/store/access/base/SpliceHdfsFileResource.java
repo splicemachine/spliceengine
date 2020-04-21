@@ -29,12 +29,12 @@ import com.splicemachine.db.io.StorageFactory;
 
 public class SpliceHdfsFileResource extends SpliceBaseFileResource {
 
-	public SpliceHdfsFileResource(StorageFactory storageFactory) {
-		super(storageFactory);
-	}
+    public SpliceHdfsFileResource(StorageFactory storageFactory) {
+        super(storageFactory);
+    }
 
-	@Override
-	protected void syncOutputStream(OutputStream os) throws IOException {
-		((FSDataOutputStream) os).hsync();
-	}
+    @Override
+    protected void syncOutputStream(OutputStream os) throws IOException {
+        ((FSDataOutputStream) os).hsync();
+    }
 }

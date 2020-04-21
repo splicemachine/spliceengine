@@ -312,8 +312,8 @@ public class ConstraintConstantOperationIT {
                 taskTable, 1245, 101, 700, 600));
             Assert.fail("Expected exception inserting check constraint violation.");
         } catch (SQLException e) {
-        	String exMsg = e.getLocalizedMessage();
-        	String expectedMsg =
+            String exMsg = e.getLocalizedMessage();
+            String expectedMsg =
                 String.format("The check constraint '%s' was violated while performing an INSERT or UPDATE on table '%s.%s'.",
                               TASK_TABLE_CONSTRAINT_NAME, schemaWatcher.schemaName, TASK_TABLE_NAME);
             Assert.assertEquals(exMsg+" Expected:\n"+ expectedMsg, expectedMsg, exMsg);

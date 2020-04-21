@@ -47,80 +47,80 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 public class SubCheckConstraintDescriptor extends SubConstraintDescriptor
 {
-	/** public interface to this class:
-		<ol>
-		<li>public String getConstraintText();</li>
-		<li>public ReferencedColumns getReferencedColumnsDescriptor();</li>
-		</ol>
-	*/
+    /** public interface to this class:
+        <ol>
+        <li>public String getConstraintText();</li>
+        <li>public ReferencedColumns getReferencedColumnsDescriptor();</li>
+        </ol>
+    */
 
-	// Implementation
-	private ReferencedColumns referencedColumns;
-	private String						constraintText;
+    // Implementation
+    private ReferencedColumns referencedColumns;
+    private String                        constraintText;
 
-	/**
-	 * Constructor for a SubCheckConstraintDescriptor
-	 *
-	 * @param constraintId		The UUID of the constraint.
-	 * @param constraintText	The text of the constraint definition.
-	 * @param referencedColumns	The columns referenced by the check constraint
-	 */
+    /**
+     * Constructor for a SubCheckConstraintDescriptor
+     *
+     * @param constraintId        The UUID of the constraint.
+     * @param constraintText    The text of the constraint definition.
+     * @param referencedColumns    The columns referenced by the check constraint
+     */
 
-	public SubCheckConstraintDescriptor(UUID constraintId, String constraintText,
-									 ReferencedColumns referencedColumns)
-	{
-		super(constraintId);
-		this.constraintText = constraintText;
-		this.referencedColumns = referencedColumns;
-	}
+    public SubCheckConstraintDescriptor(UUID constraintId, String constraintText,
+                                     ReferencedColumns referencedColumns)
+    {
+        super(constraintId);
+        this.constraintText = constraintText;
+        this.referencedColumns = referencedColumns;
+    }
 
-	/**
-	 * Get the text of the check constraint definition.
-	 *
-	 * @return The text of the check constraint definition.
-	 */
-	public String getConstraintText()
-	{
-		return constraintText;
-	}
+    /**
+     * Get the text of the check constraint definition.
+     *
+     * @return The text of the check constraint definition.
+     */
+    public String getConstraintText()
+    {
+        return constraintText;
+    }
 
-	/**
-	 * Get the ReferencedColumns.
-	 *
-	 * @return The ReferencedColumns.
-	 */
-	public ReferencedColumns getReferencedColumnsDescriptor()
-	{
-		return referencedColumns;
-	}
+    /**
+     * Get the ReferencedColumns.
+     *
+     * @return The ReferencedColumns.
+     */
+    public ReferencedColumns getReferencedColumnsDescriptor()
+    {
+        return referencedColumns;
+    }
 
-	/**
-	 * Does this constraint have a backing index?
-	 *
-	 * @return boolean	Whether or not there is a backing index for this constraint.
-	 */
-	public boolean hasBackingIndex()
-	{
-		return false;
-	}
+    /**
+     * Does this constraint have a backing index?
+     *
+     * @return boolean    Whether or not there is a backing index for this constraint.
+     */
+    public boolean hasBackingIndex()
+    {
+        return false;
+    }
 
-	/**
-	 * Convert the SubCheckConstraintDescriptor to a String.
-	 *
-	 * @return	A String representation of this SubCheckConstraintDescriptor
-	 */
+    /**
+     * Convert the SubCheckConstraintDescriptor to a String.
+     *
+     * @return    A String representation of this SubCheckConstraintDescriptor
+     */
 
-	public String	toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			return "constraintText: " + constraintText + "\n" +
-				super.toString();
-		}
-		else
-		{
-			return "";
-		}
-	}
+    public String    toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            return "constraintText: " + constraintText + "\n" +
+                super.toString();
+        }
+        else
+        {
+            return "";
+        }
+    }
 
 }

@@ -49,85 +49,85 @@ import com.splicemachine.dbTesting.functionTests.util.TestUtil;
  */
 
 public class resultsetJdbc20 { 
-	private static String[] testObjects = { "TABLE T"};
-	public static void main(String[] args) {
-		Connection con;
-		ResultSetMetaData met;
-		ResultSet rs;
-		Statement stmt;
-		
-		String[]  columnNames = {"i", "s", "r", "d", "dt", "t", "ts", "c", "v", "dc"};
+    private static String[] testObjects = { "TABLE T"};
+    public static void main(String[] args) {
+        Connection con;
+        ResultSetMetaData met;
+        ResultSet rs;
+        Statement stmt;
+        
+        String[]  columnNames = {"i", "s", "r", "d", "dt", "t", "ts", "c", "v", "dc"};
 
-		System.out.println("Test resultsetJdbc20 starting");
+        System.out.println("Test resultsetJdbc20 starting");
 
-		try
-		{
-			// use the ij utility to read the property file and
-			// make the initial connection.
-			ij.getPropertyArg(args);
-			con = ij.startJBMS();
-			stmt = con.createStatement();
-			// first clean up
-			TestUtil.cleanUpTest(stmt, testObjects);
+        try
+        {
+            // use the ij utility to read the property file and
+            // make the initial connection.
+            ij.getPropertyArg(args);
+            con = ij.startJBMS();
+            stmt = con.createStatement();
+            // first clean up
+            TestUtil.cleanUpTest(stmt, testObjects);
 
       //create a table, insert a row, do a select from the table,
       //get the resultset meta data and go through each column in
       //the selection list and get it's column class name.
-			stmt.execute("create table t (i int, s smallint, r real, "+
-				"d double precision, dt date, t time, ts timestamp, "+
-				"c char(10), v varchar(40) not null, dc dec(10,2))");
-			stmt.execute("insert into t values(1,2,3.3,4.4,date('1990-05-05'),"+
-						 "time('12:06:06'),timestamp('1990-07-07 07:07:07.07'),"+
-						 "'eight','nine', 10.1)");
+            stmt.execute("create table t (i int, s smallint, r real, "+
+                "d double precision, dt date, t time, ts timestamp, "+
+                "c char(10), v varchar(40) not null, dc dec(10,2))");
+            stmt.execute("insert into t values(1,2,3.3,4.4,date('1990-05-05'),"+
+                         "time('12:06:06'),timestamp('1990-07-07 07:07:07.07'),"+
+                         "'eight','nine', 10.1)");
 
-			rs = stmt.executeQuery("select * from t");
-			met = rs.getMetaData();
+            rs = stmt.executeQuery("select * from t");
+            met = rs.getMetaData();
 
-			int colCount;
-			System.out.println("getColumnCount(): "+(colCount=met.getColumnCount()));
+            int colCount;
+            System.out.println("getColumnCount(): "+(colCount=met.getColumnCount()));
 
-			// JDBC columns use 1-based counting
-			for (int i=1;i<=colCount;i++) {
-				// this test suffers from bug 5775.
-				// this if should be removed if the bug is fixed.	
-				if (i==2 && (met.getColumnClassName(i).equals("java.lang.Short")))
-				{
-					System.out.println("getColumnName("+i+"): "+met.getColumnName(i));
-					//System.out.println("getColumnClassName("+i+"): "+met.getColumnClassName(i));
-					System.out.println("FAIL: should be java.lang.Integer - but is java.lang.Short. see beetle 5775");	
-				}
-				else
-				{
-					System.out.println("getColumnName("+i+"): "+met.getColumnName(i));
-					System.out.println("getColumnClassName("+i+"): "+met.getColumnClassName(i));
-				}
-			}
+            // JDBC columns use 1-based counting
+            for (int i=1;i<=colCount;i++) {
+                // this test suffers from bug 5775.
+                // this if should be removed if the bug is fixed.    
+                if (i==2 && (met.getColumnClassName(i).equals("java.lang.Short")))
+                {
+                    System.out.println("getColumnName("+i+"): "+met.getColumnName(i));
+                    //System.out.println("getColumnClassName("+i+"): "+met.getColumnClassName(i));
+                    System.out.println("FAIL: should be java.lang.Integer - but is java.lang.Short. see beetle 5775");    
+                }
+                else
+                {
+                    System.out.println("getColumnName("+i+"): "+met.getColumnName(i));
+                    System.out.println("getColumnClassName("+i+"): "+met.getColumnClassName(i));
+                }
+            }
 
-			rs.close();
+            rs.close();
 
-			TestUtil.cleanUpTest(stmt, testObjects);
-			stmt.close();
-			con.close();
+            TestUtil.cleanUpTest(stmt, testObjects);
+            stmt.close();
+            con.close();
 
-		}
-		catch (SQLException e) {
-			dumpSQLExceptions(e);
-			e.printStackTrace();
-		}
-		catch (Throwable e) {
-			System.out.println("FAIL -- unexpected exception: "+e);
-			e.printStackTrace();
-		}
+        }
+        catch (SQLException e) {
+            dumpSQLExceptions(e);
+            e.printStackTrace();
+        }
+        catch (Throwable e) {
+            System.out.println("FAIL -- unexpected exception: "+e);
+            e.printStackTrace();
+        }
 
-		System.out.println("Test resultsetJdbc20 finished");
+        System.out.println("Test resultsetJdbc20 finished");
     }
 
-	static private void dumpSQLExceptions (SQLException se) {
-		System.out.println("FAIL -- unexpected exception");
-		while (se != null) {
-			System.out.println("SQLSTATE("+se.getSQLState()+"): "+se);
-			se = se.getNextException();
-		}
-	}
+    static private void dumpSQLExceptions (SQLException se) {
+        System.out.println("FAIL -- unexpected exception");
+        while (se != null) {
+            System.out.println("SQLSTATE("+se.getSQLState()+"): "+se);
+            se = se.getNextException();
+        }
+    }
 
 }

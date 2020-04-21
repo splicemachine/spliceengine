@@ -64,94 +64,94 @@ import java.sql.SQLException;
  *
  */
 public final class BasicAuthenticationServiceImpl
-	extends AuthenticationServiceBase implements UserAuthenticator {
+    extends AuthenticationServiceBase implements UserAuthenticator {
 
-	//
-	// ModuleControl implementation (overriden)
-	//
+    //
+    // ModuleControl implementation (overriden)
+    //
 
-	/**
-	 *  Check if we should activate this authentication service.
-	 */
-	public boolean canSupport(Properties properties) {
+    /**
+     *  Check if we should activate this authentication service.
+     */
+    public boolean canSupport(Properties properties) {
 
-		if (!requireAuthentication(properties))
-			return false;
+        if (!requireAuthentication(properties))
+            return false;
 
-		//
-		// We check 2 System/Database properties:
-		//
-		//
-		// - if db.authentication.provider is set to 'BUILTIN'.
-		//
-		// and in that case we are the authentication service that should
-		// be run.
-		//
+        //
+        // We check 2 System/Database properties:
+        //
+        //
+        // - if db.authentication.provider is set to 'BUILTIN'.
+        //
+        // and in that case we are the authentication service that should
+        // be run.
+        //
 
-		String authenticationProvider = PropertyUtil.getPropertyFromSet(
-					properties,
-					Property.AUTHENTICATION_PROVIDER_PARAMETER);
+        String authenticationProvider = PropertyUtil.getPropertyFromSet(
+                    properties,
+                    Property.AUTHENTICATION_PROVIDER_PARAMETER);
 
         return !((authenticationProvider != null) &&
                 (!authenticationProvider.isEmpty()) &&
                 (!(StringUtil.SQLEqualsIgnoreCase(authenticationProvider,
                         Property.AUTHENTICATION_PROVIDER_BUILTIN))));
-	}
+    }
 
-	/**
-	 * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot
-	 * @exception StandardException upon failure to load/boot the expected
-	 * authentication service.
-	 */
-	public void boot(boolean create, Properties properties)
-	  throws StandardException {
+    /**
+     * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot
+     * @exception StandardException upon failure to load/boot the expected
+     * authentication service.
+     */
+    public void boot(boolean create, Properties properties)
+      throws StandardException {
 
-		// We need authentication
-		// setAuthentication(true);
+        // We need authentication
+        // setAuthentication(true);
 
-		// we call the super in case there is anything to get initialized.
-		super.boot(create, properties);
+        // we call the super in case there is anything to get initialized.
+        super.boot(create, properties);
 
-		// Initialize the MessageDigest class engine here
-		// (we don't need to do that ideally, but there is some
-		// overhead the first time it is instantiated.
-		// SHA-1 is expected in jdk 1.1x and jdk1.2
-		// This is a standard name: check,
-		// http://java.sun.com/products/jdk/1.{1,2}
-		//					/docs/guide/security/CryptoSpec.html#AppA 
-		try {
-			MessageDigest digestAlgorithm = MessageDigest.getInstance("SHA-1");
-			digestAlgorithm.reset();
+        // Initialize the MessageDigest class engine here
+        // (we don't need to do that ideally, but there is some
+        // overhead the first time it is instantiated.
+        // SHA-1 is expected in jdk 1.1x and jdk1.2
+        // This is a standard name: check,
+        // http://java.sun.com/products/jdk/1.{1,2}
+        //                    /docs/guide/security/CryptoSpec.html#AppA 
+        try {
+            MessageDigest digestAlgorithm = MessageDigest.getInstance("SHA-1");
+            digestAlgorithm.reset();
 
-		} catch (NoSuchAlgorithmException nsae) {
-			throw Monitor.exceptionStartingModule(nsae);
-		}
+        } catch (NoSuchAlgorithmException nsae) {
+            throw Monitor.exceptionStartingModule(nsae);
+        }
 
-		// Set ourselves as being ready and loading the proper
-		// authentication scheme for this service
-		//
-		this.setAuthenticationService(this);
-	}
+        // Set ourselves as being ready and loading the proper
+        // authentication scheme for this service
+        //
+        this.setAuthenticationService(this);
+    }
 
-	/*
-	** UserAuthenticator methods.
-	*/
+    /*
+    ** UserAuthenticator methods.
+    */
 
-	/**
-	 * Authenticate the passed-in user's credentials.
-	 *
-	 * @param userName		The user's name used to connect to JBMS system
-	 * @param userPassword	The user's password used to connect to JBMS system
-	 * @param databaseName	The database which the user wants to connect to.
-	 * @param info			Additional jdbc connection info.
-	 */
-	public String	authenticateUser(String userName,
-								 String userPassword,
-								 String databaseName,
-								 Properties info
-									)
+    /**
+     * Authenticate the passed-in user's credentials.
+     *
+     * @param userName        The user's name used to connect to JBMS system
+     * @param userPassword    The user's password used to connect to JBMS system
+     * @param databaseName    The database which the user wants to connect to.
+     * @param info            Additional jdbc connection info.
+     */
+    public String    authenticateUser(String userName,
+                                 String userPassword,
+                                 String databaseName,
+                                 Properties info
+                                    )
             throws SQLException
-	{
+    {
         // Client security mechanism if any specified
         // Note: Right now it is only used to handle clients authenticating
         // via DRDA SECMEC_USRSSBPWD mechanism
@@ -160,16 +160,16 @@ public final class BasicAuthenticationServiceImpl
         // Default value is none.
         int secMec = 0;
 
-		// let's check if the user has been defined as a valid user of the
-		// JBMS system.
-		// We expect to find and match a System property corresponding to the
-		// credentials passed-in.
-		//
-		if (userName == null)
-			// We don't tolerate 'guest' user for now.
-			return null;
+        // let's check if the user has been defined as a valid user of the
+        // JBMS system.
+        // We expect to find and match a System property corresponding to the
+        // credentials passed-in.
+        //
+        if (userName == null)
+            // We don't tolerate 'guest' user for now.
+            return null;
 
-		String definedUserPassword = null, passedUserPassword = null;
+        String definedUserPassword = null, passedUserPassword = null;
 
         // If a security mechanism is specified as part of the connection
         // properties, it indicates that we've to account as far as how the
@@ -185,17 +185,17 @@ public final class BasicAuthenticationServiceImpl
             secMec = Integer.parseInt(clientSecurityMechanism);
         }
 
-		//
-		// Check if user has been defined at the database or/and
-		// system level. The user (administrator) can configure it the
-		// way he/she wants (as well as forcing users properties to
-		// be retrieved at the datbase level only).
-		//
+        //
+        // Check if user has been defined at the database or/and
+        // system level. The user (administrator) can configure it the
+        // way he/she wants (as well as forcing users properties to
+        // be retrieved at the datbase level only).
+        //
         String userNameProperty =
                 Property.USER_PROPERTY_PREFIX + userName;
 
-		// check if user defined at the database level
-		definedUserPassword = getDatabaseProperty(userNameProperty);
+        // check if user defined at the database level
+        definedUserPassword = getDatabaseProperty(userNameProperty);
 
         if (definedUserPassword != null)
         {
@@ -263,9 +263,9 @@ public final class BasicAuthenticationServiceImpl
         }
 
         // Check if the passwords match.
-		// NOTE: We do not look at the passed-in database name value as
-		// we rely on the authorization service that was put in
-		// in 2.0 . (if a database name was passed-in)
+        // NOTE: We do not look at the passed-in database name value as
+        // we rely on the authorization service that was put in
+        // in 2.0 . (if a database name was passed-in)
         boolean passwordsMatch =
                 (definedUserPassword != null) &&
                 definedUserPassword.equals(passedUserPassword);
@@ -280,7 +280,7 @@ public final class BasicAuthenticationServiceImpl
         }
 
         return (passwordsMatch ? userName : null);
-	}
+    }
 
     /**
      * Hash a password using the same algorithm as we used to generate the

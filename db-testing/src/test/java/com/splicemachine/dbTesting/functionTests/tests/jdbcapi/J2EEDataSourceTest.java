@@ -2547,7 +2547,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             rs4.next();
             fail ("expected an exception indicating resultset is closed.");
         } catch (SQLException sqle) {
-            // Embedded gets 08003. No current connection (DERBY-2620)        	
+            // Embedded gets 08003. No current connection (DERBY-2620)            
             if (usingDerbyNetClient())
                 assertSQLState("XCL16",sqle);
         }

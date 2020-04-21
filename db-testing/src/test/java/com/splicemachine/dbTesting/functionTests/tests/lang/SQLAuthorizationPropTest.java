@@ -47,32 +47,32 @@ import com.splicemachine.dbTesting.functionTests.util.SQLStateConstants;
 
 public class SQLAuthorizationPropTest extends BaseJDBCTestCase {
 
-	public SQLAuthorizationPropTest(String name) {
-		super(name);
-	}
+    public SQLAuthorizationPropTest(String name) {
+        super(name);
+    }
 
-	public static Test suite() {
-		TestSuite suite = new TestSuite(SQLAuthorizationPropTest.class,
+    public static Test suite() {
+        TestSuite suite = new TestSuite(SQLAuthorizationPropTest.class,
                 "SQLAuthorizationPropTest");
-		
-		// Use DatabasePropertyTestSetup decorator to set the property
-		// required by this test (and shutdown the database for the
+        
+        // Use DatabasePropertyTestSetup decorator to set the property
+        // required by this test (and shutdown the database for the
         // property to take effect.
-		Properties props = new Properties();
-	    props.setProperty("derby.database.sqlAuthorization", "true");
-	    Test test = new SQLAuthorizationPropTest("grantRevokeAfterSettingSQLAuthProperty");
-	    suite.addTest(new DatabasePropertyTestSetup (test, props, true));
-	    
-	    // This test has to be run after SQL authorization property has been 
-	    // set to true. 
-	    suite.addTest(new SQLAuthorizationPropTest("resetSQLAuthProperty"));
-	    
+        Properties props = new Properties();
+        props.setProperty("derby.database.sqlAuthorization", "true");
+        Test test = new SQLAuthorizationPropTest("grantRevokeAfterSettingSQLAuthProperty");
+        suite.addTest(new DatabasePropertyTestSetup (test, props, true));
+        
+        // This test has to be run after SQL authorization property has been 
+        // set to true. 
+        suite.addTest(new SQLAuthorizationPropTest("resetSQLAuthProperty"));
+        
         // This test needs to run in a new single use database as upon entry
         // the test expects SQL authorization to be off and then sets it
         // which cannot be undone.
-	    return TestConfiguration.singleUseDatabaseDecorator(suite);
-	}
-	
+        return TestConfiguration.singleUseDatabaseDecorator(suite);
+    }
+    
     /**
      * Create a table to test grant/revoke statements
      */
@@ -94,55 +94,55 @@ public class SQLAuthorizationPropTest extends BaseJDBCTestCase {
         super.tearDown();
     }
     
-	/**
-	 * This method tests that grant/revoke is not available if 
-	 * db.database.sqlAuthorization property is not set.
-	 * 
-	 * @throws SQLException
-	 */
-	public void testGrantRevokeWithoutSQLAuthProperty() throws SQLException{
-		Statement stmt = createStatement();
-		
-    	try {
-    		stmt.execute("grant select on GR_TAB to some_user");
-    		fail("FAIL: Grant statement should have failed when SQL authorization is not set");
-    	} catch(SQLException sqle) {
-    		assertSQLState(SQLStateConstants.LANG_GRANT_REVOKE_WITH_LEGACY_ACCESS, sqle);
-    	}
-    	
-    	try {
-    		stmt.execute("revoke select on GR_TAB from some_user");
-    		fail("FAIL: Revoke statement should have failed when SQL authorization is not set");
-    	} catch(SQLException sqle) {
-    		assertSQLState(SQLStateConstants.LANG_GRANT_REVOKE_WITH_LEGACY_ACCESS, sqle);
-    	}
-    	stmt.close();
-	}
-	
-	/**
-	 * This method tests that grant/revoke is available 
-	 * once db.database.sqlAuthorization property is set to true.
-	 * 
-	 * @throws SQLException
-	 */
-	public void grantRevokeAfterSettingSQLAuthProperty() throws SQLException{
-		
-		Statement stmt = createStatement();
-		stmt.execute("grant select on GR_TAB to some_user");
-    	stmt.execute("revoke select on GR_TAB from some_user");
-    	stmt.close();
-	}
-	
-	/**
-	 * This method tests that once db.database.sqlAuthorization property
-	 * has been set to true, it cannot be reset to any other value. For the 
-	 * test to be valid, it must follow the test method which sets 
-	 * db.database.sqlAuthorization property to true.
-	 * 
-	 * @throws SQLException
-	 */
-	public void resetSQLAuthProperty() throws SQLException {
-		Connection conn = getConnection();
+    /**
+     * This method tests that grant/revoke is not available if 
+     * db.database.sqlAuthorization property is not set.
+     * 
+     * @throws SQLException
+     */
+    public void testGrantRevokeWithoutSQLAuthProperty() throws SQLException{
+        Statement stmt = createStatement();
+        
+        try {
+            stmt.execute("grant select on GR_TAB to some_user");
+            fail("FAIL: Grant statement should have failed when SQL authorization is not set");
+        } catch(SQLException sqle) {
+            assertSQLState(SQLStateConstants.LANG_GRANT_REVOKE_WITH_LEGACY_ACCESS, sqle);
+        }
+        
+        try {
+            stmt.execute("revoke select on GR_TAB from some_user");
+            fail("FAIL: Revoke statement should have failed when SQL authorization is not set");
+        } catch(SQLException sqle) {
+            assertSQLState(SQLStateConstants.LANG_GRANT_REVOKE_WITH_LEGACY_ACCESS, sqle);
+        }
+        stmt.close();
+    }
+    
+    /**
+     * This method tests that grant/revoke is available 
+     * once db.database.sqlAuthorization property is set to true.
+     * 
+     * @throws SQLException
+     */
+    public void grantRevokeAfterSettingSQLAuthProperty() throws SQLException{
+        
+        Statement stmt = createStatement();
+        stmt.execute("grant select on GR_TAB to some_user");
+        stmt.execute("revoke select on GR_TAB from some_user");
+        stmt.close();
+    }
+    
+    /**
+     * This method tests that once db.database.sqlAuthorization property
+     * has been set to true, it cannot be reset to any other value. For the 
+     * test to be valid, it must follow the test method which sets 
+     * db.database.sqlAuthorization property to true.
+     * 
+     * @throws SQLException
+     */
+    public void resetSQLAuthProperty() throws SQLException {
+        Connection conn = getConnection();
         conn.setAutoCommit(false);
         
         CallableStatement setDBP =  conn.prepareCall(
@@ -156,36 +156,36 @@ public class SQLAuthorizationPropTest extends BaseJDBCTestCase {
         testPropertyReset(setDBP, "true");
         
         setDBP.close();
-	}
-	
-	/**
-	 * This method executes a callable statement to set the database property
-	 * to a given value. It checks that reset to any value other than "true" 
-	 * fails.
-	 * 
-	 * @param cs CallableStatement object used to set database property
-	 * @param value value of database property
-	 * @throws SQLException
-	 */
-	private void testPropertyReset(CallableStatement cs, String value) throws SQLException {
+    }
+    
+    /**
+     * This method executes a callable statement to set the database property
+     * to a given value. It checks that reset to any value other than "true" 
+     * fails.
+     * 
+     * @param cs CallableStatement object used to set database property
+     * @param value value of database property
+     * @throws SQLException
+     */
+    private void testPropertyReset(CallableStatement cs, String value) throws SQLException {
 
-		cs.setString(2, value);
+        cs.setString(2, value);
         
-		try {
-        	cs.executeUpdate();
-        	if(value.compareToIgnoreCase("true") != 0)
-        		fail("FAIL: Should not be possible to reset sql authorization once it has been turned on");
+        try {
+            cs.executeUpdate();
+            if(value.compareToIgnoreCase("true") != 0)
+                fail("FAIL: Should not be possible to reset sql authorization once it has been turned on");
         } catch (SQLException sqle) {
-        	assertSQLState(SQLStateConstants.PROPERTY_UNSUPPORTED_CHANGE, sqle);
+            assertSQLState(SQLStateConstants.PROPERTY_UNSUPPORTED_CHANGE, sqle);
         }
         
-	}
+    }
 
-	/**
-	 * Verify that you can't make the database unbootable by changing
+    /**
+     * Verify that you can't make the database unbootable by changing
      * the database version. See DERBY-5838.
-	 */
-	public void test_5838() throws Exception
+     */
+    public void test_5838() throws Exception
     {
         Statement stmt = createStatement();
 

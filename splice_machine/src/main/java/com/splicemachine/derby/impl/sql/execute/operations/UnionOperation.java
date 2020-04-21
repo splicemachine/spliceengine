@@ -46,161 +46,161 @@ import java.util.List;
  * Created on: 5/14/13
  */
 public class UnionOperation extends SpliceBaseOperation {
-		private static final long serialVersionUID = 1l;
-		public SpliceOperation leftResultSet;
-		public SpliceOperation rightResultSet;
-	    protected static final String NAME = UnionOperation.class.getSimpleName().replaceAll("Operation","");
+        private static final long serialVersionUID = 1l;
+        public SpliceOperation leftResultSet;
+        public SpliceOperation rightResultSet;
+        protected static final String NAME = UnionOperation.class.getSimpleName().replaceAll("Operation","");
 
-		@Override
-		public String getName() {
-				return NAME;
-		}
+        @Override
+        public String getName() {
+                return NAME;
+        }
 
 
-		@SuppressWarnings("UnusedDeclaration")
-		public UnionOperation(){
-				super();
-		}
+        @SuppressWarnings("UnusedDeclaration")
+        public UnionOperation(){
+                super();
+        }
 
-		public UnionOperation(SpliceOperation leftResultSet,
-													SpliceOperation rightResultSet,
-													Activation activation,
-													int resultSetNumber,
-													double optimizerEstimatedRowCount,
-													double optimizerEstimatedCost) throws StandardException{
-				super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
-				this.leftResultSet = leftResultSet;
-				this.rightResultSet = rightResultSet;
-				init();
-		}
+        public UnionOperation(SpliceOperation leftResultSet,
+                                                    SpliceOperation rightResultSet,
+                                                    Activation activation,
+                                                    int resultSetNumber,
+                                                    double optimizerEstimatedRowCount,
+                                                    double optimizerEstimatedCost) throws StandardException{
+                super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
+                this.leftResultSet = leftResultSet;
+                this.rightResultSet = rightResultSet;
+                init();
+        }
 
-		@Override
-		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-				super.readExternal(in);
-				leftResultSet = (SpliceOperation)in.readObject();
-				rightResultSet = (SpliceOperation)in.readObject();
-		}
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+                super.readExternal(in);
+                leftResultSet = (SpliceOperation)in.readObject();
+                rightResultSet = (SpliceOperation)in.readObject();
+        }
 
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				super.writeExternal(out);
-				out.writeObject(leftResultSet);
-				out.writeObject(rightResultSet);
-		}
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+                super.writeExternal(out);
+                out.writeObject(leftResultSet);
+                out.writeObject(rightResultSet);
+        }
 
-		@Override
-		public ExecRow getExecRowDefinition() throws StandardException {
-		    return leftResultSet.getExecRowDefinition();
-		}
+        @Override
+        public ExecRow getExecRowDefinition() throws StandardException {
+            return leftResultSet.getExecRowDefinition();
+        }
 
-		@Override
-		public SpliceOperation getLeftOperation() {
-				return leftResultSet;
-		}
+        @Override
+        public SpliceOperation getLeftOperation() {
+                return leftResultSet;
+        }
 
-		@Override
-		public SpliceOperation getRightOperation() {
-				return rightResultSet;
-		}
+        @Override
+        public SpliceOperation getRightOperation() {
+                return rightResultSet;
+        }
 
-		@Override
-		public void init(SpliceOperationContext context) throws StandardException, IOException {
-				super.init(context);
-				leftResultSet.init(context);
-				rightResultSet.init(context);
-		}
+        @Override
+        public void init(SpliceOperationContext context) throws StandardException, IOException {
+                super.init(context);
+                leftResultSet.init(context);
+                rightResultSet.init(context);
+        }
 
-		@Override
-		public List<SpliceOperation> getSubOperations() {
-				return Arrays.asList(leftResultSet, rightResultSet);
-		}
+        @Override
+        public List<SpliceOperation> getSubOperations() {
+                return Arrays.asList(leftResultSet, rightResultSet);
+        }
 
-		@Override
-		public String toString() {
-				return "UnionOperation{" +
-								"left=" + leftResultSet +
-								", right=" + rightResultSet +
-								'}';
-		}
+        @Override
+        public String toString() {
+                return "UnionOperation{" +
+                                "left=" + leftResultSet +
+                                ", right=" + rightResultSet +
+                                '}';
+        }
 
-		@Override
-		public String prettyPrint(int indentLevel) {
-				String indent = "\n"+ Strings.repeat("\t",indentLevel);
+        @Override
+        public String prettyPrint(int indentLevel) {
+                String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
-				return "Union:" + indent + "resultSetNumber:" + resultSetNumber
-								+ indent + "leftResultSet:" + leftResultSet
-								+ indent + "rightResultSet:" + rightResultSet;
-		}
+                return "Union:" + indent + "resultSetNumber:" + resultSetNumber
+                                + indent + "leftResultSet:" + leftResultSet
+                                + indent + "rightResultSet:" + rightResultSet;
+        }
 
-		@Override
-		public int[] getRootAccessedCols(long tableNumber) throws StandardException {
-				if(leftResultSet.isReferencingTable(tableNumber))
-						return leftResultSet.getRootAccessedCols(tableNumber);
-				else if(rightResultSet.isReferencingTable(tableNumber))
-						return rightResultSet.getRootAccessedCols(tableNumber);
+        @Override
+        public int[] getRootAccessedCols(long tableNumber) throws StandardException {
+                if(leftResultSet.isReferencingTable(tableNumber))
+                        return leftResultSet.getRootAccessedCols(tableNumber);
+                else if(rightResultSet.isReferencingTable(tableNumber))
+                        return rightResultSet.getRootAccessedCols(tableNumber);
 
-				return null;
-		}
+                return null;
+        }
 
-		@Override
-		public boolean isReferencingTable(long tableNumber) {
-				return leftResultSet.isReferencingTable(tableNumber) || rightResultSet.isReferencingTable(tableNumber);
+        @Override
+        public boolean isReferencingTable(long tableNumber) {
+                return leftResultSet.isReferencingTable(tableNumber) || rightResultSet.isReferencingTable(tableNumber);
 
-		}
+        }
 
     @SuppressWarnings("rawtypes")
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-		if (!isOpen)
-			throw new IllegalStateException("Operation is not open");
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
 
-		OperationContext operationContext = dsp.createOperationContext(this);
-		boolean useSpark = dsp.getType().equals(DataSetProcessor.Type.SPARK);
+        OperationContext operationContext = dsp.createOperationContext(this);
+        boolean useSpark = dsp.getType().equals(DataSetProcessor.Type.SPARK);
 
-		DataSet<ExecRow> result;
-		if (!useSpark) {
-			ArrayList<DataSet<ExecRow>> datasetList = new ArrayList<>();
-			collectUnionAllBranches(this, datasetList, dsp);
-			DataSet<ExecRow> dataSet = dsp.getEmpty();
-			operationContext.pushScope();
-			result = dataSet
-					.union(datasetList, operationContext)
-					.map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext), true);
-			operationContext.popScope();
-			return result;
-		} else {
-		        dsp.incrementOpDepth();
-		        dsp.finalizeTempOperationStrings();
-			DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
-			dsp.finalizeTempOperationStrings();
-			DataSet<ExecRow> right = rightResultSet.getDataSet(dsp);
-		        dsp.decrementOpDepth();
-			operationContext.pushScope();
-			result = left
-					.union(right, operationContext)
-					.map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext), true);
-			operationContext.popScope();
-		        handleSparkExplain(result, left, right, dsp);
-		}
-		return result;
+        DataSet<ExecRow> result;
+        if (!useSpark) {
+            ArrayList<DataSet<ExecRow>> datasetList = new ArrayList<>();
+            collectUnionAllBranches(this, datasetList, dsp);
+            DataSet<ExecRow> dataSet = dsp.getEmpty();
+            operationContext.pushScope();
+            result = dataSet
+                    .union(datasetList, operationContext)
+                    .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext), true);
+            operationContext.popScope();
+            return result;
+        } else {
+                dsp.incrementOpDepth();
+                dsp.finalizeTempOperationStrings();
+            DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
+            dsp.finalizeTempOperationStrings();
+            DataSet<ExecRow> right = rightResultSet.getDataSet(dsp);
+                dsp.decrementOpDepth();
+            operationContext.pushScope();
+            result = left
+                    .union(right, operationContext)
+                    .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext), true);
+            operationContext.popScope();
+                handleSparkExplain(result, left, right, dsp);
+        }
+        return result;
     }
 
     /* flatten the nested union-all branches */
     public void collectUnionAllBranches(UnionOperation unionOperation,
-									 ArrayList<DataSet<ExecRow>> datasetList,
-									 DataSetProcessor dsp) throws StandardException {
-		SpliceOperation left = unionOperation.getLeftOperation();
-		if (left instanceof UnionOperation && !(left instanceof RecursiveUnionOperation))
-			collectUnionAllBranches((UnionOperation)left, datasetList, dsp);
-		else
-			datasetList.add(left.getDataSet(dsp));
+                                     ArrayList<DataSet<ExecRow>> datasetList,
+                                     DataSetProcessor dsp) throws StandardException {
+        SpliceOperation left = unionOperation.getLeftOperation();
+        if (left instanceof UnionOperation && !(left instanceof RecursiveUnionOperation))
+            collectUnionAllBranches((UnionOperation)left, datasetList, dsp);
+        else
+            datasetList.add(left.getDataSet(dsp));
 
-		SpliceOperation right = unionOperation.getRightOperation();
-		if (right instanceof UnionOperation && !(right instanceof RecursiveUnionOperation))
-			collectUnionAllBranches((UnionOperation)right, datasetList, dsp);
-		else
-			datasetList.add(right.getDataSet(dsp));
+        SpliceOperation right = unionOperation.getRightOperation();
+        if (right instanceof UnionOperation && !(right instanceof RecursiveUnionOperation))
+            collectUnionAllBranches((UnionOperation)right, datasetList, dsp);
+        else
+            datasetList.add(right.getDataSet(dsp));
 
-		return;
-	}
+        return;
+    }
 }

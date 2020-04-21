@@ -154,7 +154,7 @@ public class StatementJdbc20Test extends BaseJDBCTestCase {
     /**
      * Tests reading data from database
      *
-     * @exception SQLException 	if error occurs
+     * @exception SQLException     if error occurs
      */
     public void testReadingData() throws SQLException {
         
@@ -175,7 +175,7 @@ public class StatementJdbc20Test extends BaseJDBCTestCase {
     /**
      * Tests values local to result set and get them back
      *
-     * @exception SQLException 	if error occurs
+     * @exception SQLException     if error occurs
      */
     public void testLocalValuesOfResultSet() throws SQLException {
         

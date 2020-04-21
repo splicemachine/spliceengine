@@ -95,19 +95,19 @@ public interface ConglomerateController extends ConglomPropertyQueryable
      * Close the conglomerate controller.
      * <p>
      * Close the conglomerate controller.  Callers must not use
-	 * the conglomerate controller after calling close.  It is
-	 * strongly recommended that callers clear out the reference
-	 * after closing, e.g., 
-	 * <p>
-	 * <blockquote><pre>
-	 * ConglomerateController cc;
-	 * cc.close;
-	 * cc = null;
-	 * </pre></blockquote>
+     * the conglomerate controller after calling close.  It is
+     * strongly recommended that callers clear out the reference
+     * after closing, e.g., 
+     * <p>
+     * <blockquote><pre>
+     * ConglomerateController cc;
+     * cc.close;
+     * cc = null;
+     * </pre></blockquote>
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	void close()
+    void close()
         throws StandardException;
 
     /**
@@ -131,16 +131,16 @@ public interface ConglomerateController extends ConglomPropertyQueryable
      *                                across commit.  This is
      *                                used to close these controllers on abort.
      *
-	 * @return boolean indicating that the close has resulted in a real close
+     * @return boolean indicating that the close has resulted in a real close
      *                 of the controller.  A held scan will return false if 
      *                 called by closeForEndTransaction(false), otherwise it 
      *                 will return true.  A non-held scan will always return 
      *                 true.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     boolean closeForEndTransaction(boolean closeHeldScan)
-		throws StandardException;
+        throws StandardException;
 
     /**
     Check consistency of a conglomerate.
@@ -151,28 +151,28 @@ public interface ConglomerateController extends ConglomPropertyQueryable
 
     Raises a StandardException on first consistency problem. 
     
-	@exception StandardException Standard exception policy.
+    @exception StandardException Standard exception policy.
     **/
     void checkConsistency()
-		throws StandardException;
+        throws StandardException;
 
     /**
     Delete a row from the conglomerate.  
-	@return Returns true if delete was successful, false if the record pointed
-	at no longer represents a valid record.
-	@exception StandardException Standard exception policy.
+    @return Returns true if delete was successful, false if the record pointed
+    at no longer represents a valid record.
+    @exception StandardException Standard exception policy.
     **/
     boolean delete(RowLocation loc)
-		throws StandardException;
+        throws StandardException;
 
     /**
      * Fetch the (partial) row at the given location.
      * <p>
      *
-	 * @param loc             The "RowLocation" which describes the exact row
+     * @param loc             The "RowLocation" which describes the exact row
      *                        to fetch from the table.
-	 * @param destRow         The row to read the data into.
-	 * @param validColumns    A description of which columns to return from
+     * @param destRow         The row to read the data into.
+     * @param validColumns    A description of which columns to return from
      *                        row on the page into "destRow."  destRow
      *                        and validColumns work together to
      *                        describe the row to be returned by the fetch - 
@@ -180,161 +180,161 @@ public interface ConglomerateController extends ConglomPropertyQueryable
      *                        parameters work together to describe a fetched 
      *                        "row".
      *
-	 * @return Returns true if fetch was successful, false if the record 
+     * @return Returns true if fetch was successful, false if the record 
      *         pointed at no longer represents a valid record.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
-	 * @see RowUtil
+     * @see RowUtil
      **/
     boolean fetch(
     RowLocation             loc, 
     ExecRow   destRow,
     FormatableBitSet                 validColumns) 
-		throws StandardException;
+        throws StandardException;
 
-	/**
-	 * Fetch the (partial) rows at the given location.
-	 * <p>
-	 *
-	 * @param locations             The "RowLocations" which describes the exact row
-	 *                        to fetch from the table.
-	 * @param destRows         The rows to read the data into.
-	 * @param validColumns    A description of which columns to return from
-	 *                        row on the page into "destRow."  destRow
-	 *                        and validColumns work together to
-	 *                        describe the row to be returned by the fetch -
-	 *                        see RowUtil for description of how these three
-	 *                        parameters work together to describe a fetched
-	 *                        "row".
-	 *
-	 * @return Returns true if fetch was successful, false if the record
-	 *         pointed at no longer represents a valid record.
-	 *
-	 * @exception  StandardException  Standard exception policy.
-	 *
-	 * @see RowUtil
-	 **/
-	boolean batchFetch(
-			List<RowLocation> locations,
-			List<ExecRow>   destRows,
-			FormatableBitSet                 validColumns)
-			throws StandardException;
+    /**
+     * Fetch the (partial) rows at the given location.
+     * <p>
+     *
+     * @param locations             The "RowLocations" which describes the exact row
+     *                        to fetch from the table.
+     * @param destRows         The rows to read the data into.
+     * @param validColumns    A description of which columns to return from
+     *                        row on the page into "destRow."  destRow
+     *                        and validColumns work together to
+     *                        describe the row to be returned by the fetch -
+     *                        see RowUtil for description of how these three
+     *                        parameters work together to describe a fetched
+     *                        "row".
+     *
+     * @return Returns true if fetch was successful, false if the record
+     *         pointed at no longer represents a valid record.
+     *
+     * @exception  StandardException  Standard exception policy.
+     *
+     * @see RowUtil
+     **/
+    boolean batchFetch(
+            List<RowLocation> locations,
+            List<ExecRow>   destRows,
+            FormatableBitSet                 validColumns)
+            throws StandardException;
 
 
-	/**
+    /**
      * Fetch the (partial) row at the given location.
      * <p>
      *
-	 * @param loc             The "RowLocation" which describes the exact row
+     * @param loc             The "RowLocation" which describes the exact row
      *                        to fetch from the table.
-	 * @param destRow         The row to read the data into.
-	 * @param validColumns    A description of which columns to return from
+     * @param destRow         The row to read the data into.
+     * @param validColumns    A description of which columns to return from
      *                        row on the page into "destRow."  destRow
      *                        and validColumns work together to
      *                        describe the row to be returned by the fetch - 
      *                        see RowUtil for description of how these three 
      *                        parameters work together to describe a fetched 
      *                        "row".
-	 * @param waitForLock     If false, then the call will throw a lock timeout
+     * @param waitForLock     If false, then the call will throw a lock timeout
      *                        exception immediately, if the lock can not be
      *                        granted without waiting.  If true call will 
      *                        act exactly as fetch() interface with no 
      *                        waitForLock parameter.
      *
-	 * @return Returns true if fetch was successful, false if the record 
+     * @return Returns true if fetch was successful, false if the record 
      *         pointed at no longer represents a valid record.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
-	 * @see RowUtil
+     * @see RowUtil
      **/
     boolean fetch(
     RowLocation loc,
-	ExecRow   destRow,
+    ExecRow   destRow,
     FormatableBitSet     validColumns,
     boolean     waitForLock) 
-		throws StandardException;
+        throws StandardException;
 
-	/**
-	 * Fetch the (partial) row at the given location.
-	 * <p>
-	 *
-	 * @param locations             The "RowLocation" which describes the exact row
-	 *                        to fetch from the table.
-	 * @param destRows         The row to read the data into.
-	 * @param validColumns    A description of which columns to return from
-	 *                        row on the page into "destRow."  destRow
-	 *                        and validColumns work together to
-	 *                        describe the row to be returned by the fetch -
-	 *                        see RowUtil for description of how these three
-	 *                        parameters work together to describe a fetched
-	 *                        "row".
-	 * @param waitForLock     If false, then the call will throw a lock timeout
-	 *                        exception immediately, if the lock can not be
-	 *                        granted without waiting.  If true call will
-	 *                        act exactly as fetch() interface with no
-	 *                        waitForLock parameter.
-	 *
-	 * @return Returns true if fetch was successful, false if the record
-	 *         pointed at no longer represents a valid record.
-	 *
-	 * @exception  StandardException  Standard exception policy.
-	 *
-	 * @see RowUtil
-	 **/
-	boolean batchFetch(
-			List<RowLocation> locations,
-			List<ExecRow>   destRows,
-			FormatableBitSet     validColumns,
-			boolean     waitForLock)
-			throws StandardException;
+    /**
+     * Fetch the (partial) row at the given location.
+     * <p>
+     *
+     * @param locations             The "RowLocation" which describes the exact row
+     *                        to fetch from the table.
+     * @param destRows         The row to read the data into.
+     * @param validColumns    A description of which columns to return from
+     *                        row on the page into "destRow."  destRow
+     *                        and validColumns work together to
+     *                        describe the row to be returned by the fetch -
+     *                        see RowUtil for description of how these three
+     *                        parameters work together to describe a fetched
+     *                        "row".
+     * @param waitForLock     If false, then the call will throw a lock timeout
+     *                        exception immediately, if the lock can not be
+     *                        granted without waiting.  If true call will
+     *                        act exactly as fetch() interface with no
+     *                        waitForLock parameter.
+     *
+     * @return Returns true if fetch was successful, false if the record
+     *         pointed at no longer represents a valid record.
+     *
+     * @exception  StandardException  Standard exception policy.
+     *
+     * @see RowUtil
+     **/
+    boolean batchFetch(
+            List<RowLocation> locations,
+            List<ExecRow>   destRows,
+            FormatableBitSet     validColumns,
+            boolean     waitForLock)
+            throws StandardException;
 
 
 
-	/**
+    /**
     Insert a row into the conglomerate.
 
     @param row The row to insert into the conglomerate.  The stored
-	representations of the row's columns are copied into a new row
-	somewhere in the conglomerate.
+    representations of the row's columns are copied into a new row
+    somewhere in the conglomerate.
 
-	@return Returns 0 if insert succeeded.  Returns 
+    @return Returns 0 if insert succeeded.  Returns 
     ConglomerateController.ROWISDUPLICATE if conglomerate supports uniqueness
     checks and has been created to disallow duplicates, and the row inserted
     had key columns which were duplicate of a row already in the table.  Other
     insert failures will raise StandardException's.
 
-	@exception StandardException Standard exception policy.
-	@see RowUtil
+    @exception StandardException Standard exception policy.
+    @see RowUtil
     **/
-	int insert(ExecRow    row)
-		throws StandardException;
+    int insert(ExecRow    row)
+        throws StandardException;
 
 
-	/**
-	 insert rows into the conglomerate.
+    /**
+     insert rows into the conglomerate.
 
-	 @param row the row to insert into the conglomerate.  the stored
-	 representations of the row's columns are copied into a new row
-	 somewhere in the conglomerate.
+     @param row the row to insert into the conglomerate.  the stored
+     representations of the row's columns are copied into a new row
+     somewhere in the conglomerate.
 
-	 @return returns 0 if insert succeeded.  returns
-	 conglomeratecontroller.rowisduplicate if conglomerate supports uniqueness
-	 checks and has been created to disallow duplicates, and the row inserted
-	 had key columns which were duplicate of a row already in the table.  other
-	 insert failures will raise standardexception's.
+     @return returns 0 if insert succeeded.  returns
+     conglomeratecontroller.rowisduplicate if conglomerate supports uniqueness
+     checks and has been created to disallow duplicates, and the row inserted
+     had key columns which were duplicate of a row already in the table.  other
+     insert failures will raise standardexception's.
 
-	 @exception standardexception standard exception policy.
-	 @see rowutil
-	 **/
-	int batchInsert(List<ExecRow>    rows)
-			throws StandardException;
-
-
+     @exception standardexception standard exception policy.
+     @see rowutil
+     **/
+    int batchInsert(List<ExecRow>    rows)
+            throws StandardException;
 
 
-	/**
+
+
+    /**
      * insert row and fetch it's row location in one operation.
      * <p>
      * Insert a row into the conglomerate, and store its location in 
@@ -349,45 +349,45 @@ public interface ConglomerateController extends ConglomPropertyQueryable
      * @param destRowLocation The rowlocation to read the inserted row location
      *                      into.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
-	 * @see RowUtil
+     * @see RowUtil
      **/
-	void insertAndFetchLocation(
+    void insertAndFetchLocation(
     ExecRow   row,
     RowLocation             destRowLocation)
-		throws StandardException;
+        throws StandardException;
 
-	/**
-	 * insert rows and fetch there row location in one batchPut operation.
-	 * <p>
-	 * Insert a row into the conglomerate, and store its location in
-	 * the provided destination row location.  The row location must be of the
-	 * correct type for this conglomerate (a new row location of the correct
-	 * type can be obtained from newRowLocationTemplate()).
-	 *
-	 * @param row           The row to insert into the conglomerate.  The
-	 *                      stored representations of the row's columns are
-	 *                      copied into a new row somewhere in the conglomerate.
-	 *
-	 * @param rowLocations The rowlocation to read the inserted row location
-	 *                      into.
-	 *
-	 * @exception  StandardException  Standard exception policy.
-	 *
-	 * @see RowUtil
-	 **/
+    /**
+     * insert rows and fetch there row location in one batchPut operation.
+     * <p>
+     * Insert a row into the conglomerate, and store its location in
+     * the provided destination row location.  The row location must be of the
+     * correct type for this conglomerate (a new row location of the correct
+     * type can be obtained from newRowLocationTemplate()).
+     *
+     * @param row           The row to insert into the conglomerate.  The
+     *                      stored representations of the row's columns are
+     *                      copied into a new row somewhere in the conglomerate.
+     *
+     * @param rowLocations The rowlocation to read the inserted row location
+     *                      into.
+     *
+     * @exception  StandardException  Standard exception policy.
+     *
+     * @see RowUtil
+     **/
 
-	void batchInsertAndFetchLocation(
-			ExecRow[]			rows,
-			RowLocation[]       rowLocations
-	) throws StandardException;
+    void batchInsertAndFetchLocation(
+            ExecRow[]            rows,
+            RowLocation[]       rowLocations
+    ) throws StandardException;
 
 
     /**
-	Return whether this is a keyed conglomerate.
-	**/
-	boolean isKeyed();
+    Return whether this is a keyed conglomerate.
+    **/
+    boolean isKeyed();
 
 
     int LOCK_READ         = (0x00000000);
@@ -407,9 +407,9 @@ public interface ConglomerateController extends ConglomPropertyQueryable
      * RESOLVE (mikem) - move this call to ConglomerateManager so it is
      * obvious that non-access clients should not call this.
      *
-	 * @return true if lock was granted, only can be false if wait was false.
+     * @return true if lock was granted, only can be false if wait was false.
      *
-	 * @param loc           The "RowLocation" of the exact row to lock.
+     * @param loc           The "RowLocation" of the exact row to lock.
      * @param lock_oper     For what operation are we requesting the lock, this
      *                      should be one of the following 4 options:
      *                      LOCK_READ [read lock], 
@@ -425,7 +425,7 @@ public interface ConglomerateController extends ConglomPropertyQueryable
      *                      then lock will be released immediately after being
      *                      granted.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     boolean lockRow(
     RowLocation     loc,
@@ -446,7 +446,7 @@ public interface ConglomerateController extends ConglomPropertyQueryable
      * RESOLVE (mikem) - move this call to ConglomerateManager so it is
      * obvious that non-access clients should not call this.
      *
-	 * @return true if lock was granted, only can be false if wait was false.
+     * @return true if lock was granted, only can be false if wait was false.
      *
      * @param page_num      page number of record to lock.
      * @param record_id     record id of record to lock.
@@ -465,7 +465,7 @@ public interface ConglomerateController extends ConglomPropertyQueryable
      *                      then lock will be released immediately after being
      *                      granted.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     boolean lockRow(
     long            page_num,
@@ -486,38 +486,38 @@ public interface ConglomerateController extends ConglomPropertyQueryable
      * RESOLVE (mikem) - move this call to ConglomerateManager so it is
      * obvious that non-access clients should not call this.
      *
-	 * @param loc           The "RowLocation" which describes the row to unlock.
+     * @param loc           The "RowLocation" which describes the row to unlock.
      * @param forUpdate     Row was locked for read or update.
      * @param row_qualified Row was qualified and returned to the user.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	void unlockRowAfterRead(
-			RowLocation loc,
-			boolean forUpdate,
-			boolean row_qualified)
+    void unlockRowAfterRead(
+            RowLocation loc,
+            boolean forUpdate,
+            boolean row_qualified)
         throws StandardException;
 
-	/**
-	Return a row location object of the correct type to be
-	used in calls to insertAndFetchLocation.
-	@exception StandardException Standard exception policy.
-	**/
-	RowLocation newRowLocationTemplate()
-		throws StandardException;
+    /**
+    Return a row location object of the correct type to be
+    used in calls to insertAndFetchLocation.
+    @exception StandardException Standard exception policy.
+    **/
+    RowLocation newRowLocationTemplate()
+        throws StandardException;
 
-	/**
+    /**
     Replace the (partial) row at the given location.  
-	@return true if update was successful, returns false if the update 
-	fails because the record pointed at no longer represents a valid record.
-	@exception StandardException Standard exception policy.
-	@see RowUtil
+    @return true if update was successful, returns false if the update 
+    fails because the record pointed at no longer represents a valid record.
+    @exception StandardException Standard exception policy.
+    @see RowUtil
     **/
     boolean replace(
     RowLocation             loc, 
     DataValueDescriptor[]   row, 
     FormatableBitSet                 validColumns)
-		throws StandardException;
+        throws StandardException;
 
     /**
      * Dump debugging output to error log.
@@ -526,8 +526,8 @@ public interface ConglomerateController extends ConglomPropertyQueryable
      * This is only for debugging purposes, does nothing in a delivered 
      * system, currently.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     void debugConglomerate()
-		throws StandardException;
+        throws StandardException;
 }

@@ -45,212 +45,212 @@ import com.splicemachine.db.impl.jdbc.EmbedPreparedStatement;
 import java.sql.*;
 
 /**
-	The Statement returned by an Connection returned by a XAConnection
-	needs to float across the underlying real connections. We do this by implementing
-	a wrapper statement.
+    The Statement returned by an Connection returned by a XAConnection
+    needs to float across the underlying real connections. We do this by implementing
+    a wrapper statement.
 */
 final class XAStatementControl implements BrokeredStatementControl {
 
-	/**
-	*/
-	private final EmbedXAConnection	xaConnection;
-	private final BrokeredConnection	applicationConnection;
-	BrokeredStatement		applicationStatement;
-	private EmbedConnection	realConnection;
-	private Statement			realStatement;
-	private PreparedStatement	realPreparedStatement;
-	private CallableStatement	realCallableStatement;
+    /**
+    */
+    private final EmbedXAConnection    xaConnection;
+    private final BrokeredConnection    applicationConnection;
+    BrokeredStatement        applicationStatement;
+    private EmbedConnection    realConnection;
+    private Statement            realStatement;
+    private PreparedStatement    realPreparedStatement;
+    private CallableStatement    realCallableStatement;
 
-	private XAStatementControl(EmbedXAConnection xaConnection) {
-		this.xaConnection = xaConnection;
-		this.realConnection = xaConnection.realConnection;
-		this.applicationConnection = xaConnection.currentConnectionHandle;
-	}
+    private XAStatementControl(EmbedXAConnection xaConnection) {
+        this.xaConnection = xaConnection;
+        this.realConnection = xaConnection.realConnection;
+        this.applicationConnection = xaConnection.currentConnectionHandle;
+    }
 
-	XAStatementControl(EmbedXAConnection xaConnection, 
+    XAStatementControl(EmbedXAConnection xaConnection, 
                                 Statement realStatement) throws SQLException {
-		this(xaConnection);
-		this.realStatement = realStatement;
-		this.applicationStatement = applicationConnection.newBrokeredStatement(this);
+        this(xaConnection);
+        this.realStatement = realStatement;
+        this.applicationStatement = applicationConnection.newBrokeredStatement(this);
         
         ((EmbedStatement) realStatement).setApplicationStatement(
                 applicationStatement);
-	}
-	XAStatementControl(EmbedXAConnection xaConnection, 
+    }
+    XAStatementControl(EmbedXAConnection xaConnection, 
                 PreparedStatement realPreparedStatement, 
                 String sql, Object generatedKeys) throws SQLException {            
-		this(xaConnection);
-		this.realPreparedStatement = realPreparedStatement;
-		this.applicationStatement = applicationConnection.newBrokeredStatement(this, sql, generatedKeys);
+        this(xaConnection);
+        this.realPreparedStatement = realPreparedStatement;
+        this.applicationStatement = applicationConnection.newBrokeredStatement(this, sql, generatedKeys);
         ((EmbedStatement) realPreparedStatement).setApplicationStatement(
                 applicationStatement);
-	}
-	XAStatementControl(EmbedXAConnection xaConnection, 
+    }
+    XAStatementControl(EmbedXAConnection xaConnection, 
                 CallableStatement realCallableStatement, 
                 String sql) throws SQLException {
-		this(xaConnection);
-		this.realCallableStatement = realCallableStatement;
-		this.applicationStatement = applicationConnection.newBrokeredStatement(this, sql);
+        this(xaConnection);
+        this.realCallableStatement = realCallableStatement;
+        this.applicationStatement = applicationConnection.newBrokeredStatement(this, sql);
         ((EmbedStatement) realCallableStatement).setApplicationStatement(
                 applicationStatement);
-	}
+    }
 
-	/**
-	 * Close the realStatement within this control. 
-	 */
-	public void closeRealStatement() throws SQLException {
-		realStatement.close();
-	}
-	
-	/**
-	 * Close the realCallableStatement within this control. 
-	 */
-	public void closeRealCallableStatement() throws SQLException {
-		realCallableStatement.close();
-	}
-	
-	/**
-	 * Close the realPreparedStatement within this control. 
-	 */
-	public void closeRealPreparedStatement() throws SQLException {
-		realPreparedStatement.close();
-	}
-	
-	public Statement getRealStatement() throws SQLException {
+    /**
+     * Close the realStatement within this control. 
+     */
+    public void closeRealStatement() throws SQLException {
+        realStatement.close();
+    }
+    
+    /**
+     * Close the realCallableStatement within this control. 
+     */
+    public void closeRealCallableStatement() throws SQLException {
+        realCallableStatement.close();
+    }
+    
+    /**
+     * Close the realPreparedStatement within this control. 
+     */
+    public void closeRealPreparedStatement() throws SQLException {
+        realPreparedStatement.close();
+    }
+    
+    public Statement getRealStatement() throws SQLException {
 
-		// 
-		if (applicationConnection == xaConnection.currentConnectionHandle) {
+        // 
+        if (applicationConnection == xaConnection.currentConnectionHandle) {
 
-			// Application connection is the same.
-			if (realConnection == xaConnection.realConnection)
-				return realStatement;
+            // Application connection is the same.
+            if (realConnection == xaConnection.realConnection)
+                return realStatement;
 
-			// If we switched back to a local connection, and the first access is through
-			// a non-connection object (e.g. statement then realConnection will be null)
-			if (xaConnection.realConnection == null) {
-				// force the connection
-				xaConnection.getRealConnection();
-			}
+            // If we switched back to a local connection, and the first access is through
+            // a non-connection object (e.g. statement then realConnection will be null)
+            if (xaConnection.realConnection == null) {
+                // force the connection
+                xaConnection.getRealConnection();
+            }
 
-			// underlying connection has changed.
-			// create new Statement
-			Statement newStatement = applicationStatement.createDuplicateStatement(xaConnection.realConnection, realStatement);
-			((EmbedStatement) realStatement).transferBatch((EmbedStatement) newStatement);
+            // underlying connection has changed.
+            // create new Statement
+            Statement newStatement = applicationStatement.createDuplicateStatement(xaConnection.realConnection, realStatement);
+            ((EmbedStatement) realStatement).transferBatch((EmbedStatement) newStatement);
  
-			try {
-				realStatement.close();
-			} catch (SQLException ignored) {
-			}
+            try {
+                realStatement.close();
+            } catch (SQLException ignored) {
+            }
 
-			realStatement = newStatement;
-			realConnection = xaConnection.realConnection;
+            realStatement = newStatement;
+            realConnection = xaConnection.realConnection;
             ((EmbedStatement) realStatement).setApplicationStatement(
                     applicationStatement);
-		}
-		else {
-			// application connection is different, therefore the outer application
-			// statement is closed, so just return the realStatement. It should be
-			// closed by virtue of its application connection being closed.
-		}
-		return realStatement;
-	}
+        }
+        else {
+            // application connection is different, therefore the outer application
+            // statement is closed, so just return the realStatement. It should be
+            // closed by virtue of its application connection being closed.
+        }
+        return realStatement;
+    }
 
-	public PreparedStatement getRealPreparedStatement() throws SQLException {
-		// 
-		if (applicationConnection == xaConnection.currentConnectionHandle) {
-			// Application connection is the same.
-			if (realConnection == xaConnection.realConnection)
-				return realPreparedStatement;
+    public PreparedStatement getRealPreparedStatement() throws SQLException {
+        // 
+        if (applicationConnection == xaConnection.currentConnectionHandle) {
+            // Application connection is the same.
+            if (realConnection == xaConnection.realConnection)
+                return realPreparedStatement;
 
-			// If we switched back to a local connection, and the first access is through
-			// a non-connection object (e.g. statement then realConnection will be null)
-			if (xaConnection.realConnection == null) {
-				// force the connection
-				xaConnection.getRealConnection();
-			}
+            // If we switched back to a local connection, and the first access is through
+            // a non-connection object (e.g. statement then realConnection will be null)
+            if (xaConnection.realConnection == null) {
+                // force the connection
+                xaConnection.getRealConnection();
+            }
 
-			// underlying connection has changed.
-			// create new PreparedStatement
-			PreparedStatement newPreparedStatement =
-				((BrokeredPreparedStatement) applicationStatement).createDuplicateStatement(xaConnection.realConnection, realPreparedStatement);
+            // underlying connection has changed.
+            // create new PreparedStatement
+            PreparedStatement newPreparedStatement =
+                ((BrokeredPreparedStatement) applicationStatement).createDuplicateStatement(xaConnection.realConnection, realPreparedStatement);
 
 
-			// ((EmbedStatement) realPreparedStatement).transferBatch((EmbedStatement) newPreparedStatement);
-			((EmbedPreparedStatement) realPreparedStatement).transferParameters((EmbedPreparedStatement) newPreparedStatement);
+            // ((EmbedStatement) realPreparedStatement).transferBatch((EmbedStatement) newPreparedStatement);
+            ((EmbedPreparedStatement) realPreparedStatement).transferParameters((EmbedPreparedStatement) newPreparedStatement);
 
-			try {
-				realPreparedStatement.close();
-			} catch (SQLException ignored) {
-			}
+            try {
+                realPreparedStatement.close();
+            } catch (SQLException ignored) {
+            }
 
-			realPreparedStatement = newPreparedStatement;
-			realConnection = xaConnection.realConnection;
+            realPreparedStatement = newPreparedStatement;
+            realConnection = xaConnection.realConnection;
             ((EmbedStatement) realPreparedStatement).setApplicationStatement(
                         applicationStatement);
-		}
-		else {
-			// application connection is different, therefore the outer application
-			// statement is closed, so just return the realStatement. It should be
-			// closed by virtue of its application connection being closed.
-		}
-		return realPreparedStatement;
-	}
+        }
+        else {
+            // application connection is different, therefore the outer application
+            // statement is closed, so just return the realStatement. It should be
+            // closed by virtue of its application connection being closed.
+        }
+        return realPreparedStatement;
+    }
 
-	public CallableStatement getRealCallableStatement() throws SQLException {
-		if (applicationConnection == xaConnection.currentConnectionHandle) {
-			// Application connection is the same.
-			if (realConnection == xaConnection.realConnection)
-				return realCallableStatement;
+    public CallableStatement getRealCallableStatement() throws SQLException {
+        if (applicationConnection == xaConnection.currentConnectionHandle) {
+            // Application connection is the same.
+            if (realConnection == xaConnection.realConnection)
+                return realCallableStatement;
 
-			// If we switched back to a local connection, and the first access is through
-			// a non-connection object (e.g. statement then realConnection will be null)
-			if (xaConnection.realConnection == null) {
-				// force the connection
-				xaConnection.getRealConnection();
-			}
+            // If we switched back to a local connection, and the first access is through
+            // a non-connection object (e.g. statement then realConnection will be null)
+            if (xaConnection.realConnection == null) {
+                // force the connection
+                xaConnection.getRealConnection();
+            }
 
-			// underlying connection has changed.
-			// create new PreparedStatement
-			CallableStatement newCallableStatement =
-				((BrokeredCallableStatement) applicationStatement).createDuplicateStatement(xaConnection.realConnection, realCallableStatement);
+            // underlying connection has changed.
+            // create new PreparedStatement
+            CallableStatement newCallableStatement =
+                ((BrokeredCallableStatement) applicationStatement).createDuplicateStatement(xaConnection.realConnection, realCallableStatement);
 
-			((EmbedStatement) realCallableStatement).transferBatch((EmbedStatement) newCallableStatement);
+            ((EmbedStatement) realCallableStatement).transferBatch((EmbedStatement) newCallableStatement);
 
-			try {
-				realCallableStatement.close();
-			} catch (SQLException ignored) {
-			}
+            try {
+                realCallableStatement.close();
+            } catch (SQLException ignored) {
+            }
 
-			realCallableStatement = newCallableStatement;
-			realConnection = xaConnection.realConnection;
+            realCallableStatement = newCallableStatement;
+            realConnection = xaConnection.realConnection;
             ((EmbedStatement) realCallableStatement).setApplicationStatement(
                     applicationStatement);
-		}
-		else {
-			// application connection is different, therefore the outer application
-			// statement is closed, so just return the realStatement. It should be
-			// closed by virtue of its application connection being closed.
-		}
-		return realCallableStatement;
-	}
+        }
+        else {
+            // application connection is different, therefore the outer application
+            // statement is closed, so just return the realStatement. It should be
+            // closed by virtue of its application connection being closed.
+        }
+        return realCallableStatement;
+    }
 
     /**
      * Don't need to wrap the ResultSet but do need to update its
      * application Statement reference to be the one the application
      * used to create the ResultSet.
      */
-	public ResultSet wrapResultSet(Statement s, ResultSet rs) {
+    public ResultSet wrapResultSet(Statement s, ResultSet rs) {
         if (rs != null)
             ((EmbedResultSet) rs).setApplicationStatement(s);
-		return rs;
-	}
+        return rs;
+    }
 
-	/**
-		Can cursors be held across commits.
-	*/
-	public int checkHoldCursors(int holdability) throws SQLException {
-		return xaConnection.checkHoldCursors(holdability, true);
- 	}
+    /**
+        Can cursors be held across commits.
+    */
+    public int checkHoldCursors(int holdability) throws SQLException {
+        return xaConnection.checkHoldCursors(holdability, true);
+     }
 
     /**
      * Return the exception factory for the underlying connection.

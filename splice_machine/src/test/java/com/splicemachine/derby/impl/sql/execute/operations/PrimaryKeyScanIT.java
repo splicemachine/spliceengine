@@ -103,18 +103,18 @@ public class PrimaryKeyScanIT extends SpliceUnitTest{
     /*
     @Test
     public void testLookupSpeed() throws Exception{
-    	PreparedStatement ps = methodWatcher.prepareStatement(format("select * from %s where c_w_id = ? and c_d_id = ? and c_id = ?",this.getTableReference("CUSTOMER")));
-    	for (int i = 0; i<5000; i++) {
-    		ps.setInt(1, i);
-    		ps.setInt(2, i);
-    		ps.setInt(3, i);
-    		ResultSet rs = ps.executeQuery();
-    		while (rs.next()) {
-    			
-    		}
-    	}
+        PreparedStatement ps = methodWatcher.prepareStatement(format("select * from %s where c_w_id = ? and c_d_id = ? and c_id = ?",this.getTableReference("CUSTOMER")));
+        for (int i = 0; i<5000; i++) {
+            ps.setInt(1, i);
+            ps.setInt(2, i);
+            ps.setInt(3, i);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                
+            }
+        }
     }
-	*/
+    */
 
     @Test
     public void testCountAllData() throws Exception{

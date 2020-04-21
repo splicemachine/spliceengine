@@ -66,7 +66,7 @@ public class ResultSupplier{
             dataResult = htable.get(remoteGet,dataResult);
             result = dataResult.userData();
             //we also assume that PACKED_COLUMN_KEY is properly set by the time we get here
-//								getTimer.tick(1);
+//                                getTimer.tick(1);
         }
         decoder.set(result.valueArray(),result.valueOffset(),result.valueLength());
     }

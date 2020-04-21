@@ -533,160 +533,160 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
 public class NormalizeResultSetNode extends SingleChildResultSetNode
 {
-	/**
-	 * this indicates if the normalize is being performed for an Update
-	 * statement or not. The row passed to update also has
-	 * before values of the columns being updated-- we need not 
-	 * normalize these values. 
-	 */
-	private boolean forUpdate;
+    /**
+     * this indicates if the normalize is being performed for an Update
+     * statement or not. The row passed to update also has
+     * before values of the columns being updated-- we need not 
+     * normalize these values. 
+     */
+    private boolean forUpdate;
 
-	/**
-	 * Initializer for a NormalizeResultSetNode.
-	 ** ColumnReferences must continue to point to the same ResultColumn, so
-	 * that ResultColumn must percolate up to the new PRN.  However,
-	 * that ResultColumn will point to a new expression, a VirtualColumnNode, 
-	 * which points to the FromTable and the ResultColumn that is the source for
-	 * the ColumnReference.  
-	 * (The new NRSN will have the original of the ResultColumnList and
-	 * the ResultColumns from that list.  The FromTable will get shallow copies
-	 * of the ResultColumnList and its ResultColumns.  ResultColumn.expression
-	 * will remain at the FromTable, with the PRN getting a new 
-	 * VirtualColumnNode for each ResultColumn.expression.)
-	 *
-	 * This is useful for UNIONs, where we want to generate a DistinctNode above
-	 * the UnionNode to eliminate the duplicates, because the type going into the
-	 * sort has to agree with what the sort expects.
-	 * (insert into t1 (smallintcol) values 1 union all values 2;
-	 *
-	 * @param childResult	The child ResultSetNode
+    /**
+     * Initializer for a NormalizeResultSetNode.
+     ** ColumnReferences must continue to point to the same ResultColumn, so
+     * that ResultColumn must percolate up to the new PRN.  However,
+     * that ResultColumn will point to a new expression, a VirtualColumnNode, 
+     * which points to the FromTable and the ResultColumn that is the source for
+     * the ColumnReference.  
+     * (The new NRSN will have the original of the ResultColumnList and
+     * the ResultColumns from that list.  The FromTable will get shallow copies
+     * of the ResultColumnList and its ResultColumns.  ResultColumn.expression
+     * will remain at the FromTable, with the PRN getting a new 
+     * VirtualColumnNode for each ResultColumn.expression.)
+     *
+     * This is useful for UNIONs, where we want to generate a DistinctNode above
+     * the UnionNode to eliminate the duplicates, because the type going into the
+     * sort has to agree with what the sort expects.
+     * (insert into t1 (smallintcol) values 1 union all values 2;
+     *
+     * @param childResult    The child ResultSetNode
      * @param targetResultColumnList The target resultColumnList from 
      *                          the InsertNode or UpdateNode. These will
      *                          be the types used for the NormalizeResultSetNode.
-	 * @param tableProperties	Properties list associated with the table
-	 * @param forUpdate 	tells us if the normalize operation is being
-	 * performed on behalf of an update statement. 
-	 * @throws StandardException 
-	 */
+     * @param tableProperties    Properties list associated with the table
+     * @param forUpdate     tells us if the normalize operation is being
+     * performed on behalf of an update statement. 
+     * @throws StandardException 
+     */
 
-	public void init(
-							Object childResult,
+    public void init(
+                            Object childResult,
                             Object targetResultColumnList,
-							Object tableProperties,
-							Object forUpdate) throws StandardException
-	{
-		super.init(childResult, tableProperties);
-		this.forUpdate = (Boolean) forUpdate;
+                            Object tableProperties,
+                            Object forUpdate) throws StandardException
+    {
+        super.init(childResult, tableProperties);
+        this.forUpdate = (Boolean) forUpdate;
 
-		ResultSetNode rsn  = (ResultSetNode) childResult;
-		ResultColumnList rcl = rsn.getResultColumns();
-		ResultColumnList targetRCL = (ResultColumnList) targetResultColumnList;
+        ResultSetNode rsn  = (ResultSetNode) childResult;
+        ResultColumnList rcl = rsn.getResultColumns();
+        ResultColumnList targetRCL = (ResultColumnList) targetResultColumnList;
         
-		/* We get a shallow copy of the ResultColumnList and its 
-		 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
-		 * 
-		 * Setting this.resultColumns to the modified child result column list,
-		 * and making a new copy for the child result set node
-		 * ensures that the ProjectRestrictNode restrictions still points to 
-		 * the same list.  See d3494_npe_writeup-4.html in DERBY-3494 for a
-		 * detailed explanation of how this works.
-		 */
-		rsn.setResultColumns(rcl.copyListAndObjects());
-		// Remove any columns that were generated.
-		rcl.removeGeneratedGroupingColumns();
+        /* We get a shallow copy of the ResultColumnList and its 
+         * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+         * 
+         * Setting this.resultColumns to the modified child result column list,
+         * and making a new copy for the child result set node
+         * ensures that the ProjectRestrictNode restrictions still points to 
+         * the same list.  See d3494_npe_writeup-4.html in DERBY-3494 for a
+         * detailed explanation of how this works.
+         */
+        rsn.setResultColumns(rcl.copyListAndObjects());
+        // Remove any columns that were generated.
+        rcl.removeGeneratedGroupingColumns();
 
-		/* Replace ResultColumn.expression with new VirtualColumnNodes
-		 * in the NormalizeResultSetNode's ResultColumnList.  (VirtualColumnNodes include
-		 * pointers to source ResultSetNode, rsn, and source ResultColumn.)
-		 */
-		rcl.genVirtualColumnNodes(rsn, rsn.getResultColumns());
+        /* Replace ResultColumn.expression with new VirtualColumnNodes
+         * in the NormalizeResultSetNode's ResultColumnList.  (VirtualColumnNodes include
+         * pointers to source ResultSetNode, rsn, and source ResultColumn.)
+         */
+        rcl.genVirtualColumnNodes(rsn, rsn.getResultColumns());
         
-		this.resultColumns = rcl;
-		// Propagate the referenced table map if it's already been created
-		if (rsn.getReferencedTableMap() != null)
-		    {
-			setReferencedTableMap((JBitSet) getReferencedTableMap().clone());
-		    }
+        this.resultColumns = rcl;
+        // Propagate the referenced table map if it's already been created
+        if (rsn.getReferencedTableMap() != null)
+            {
+            setReferencedTableMap((JBitSet) getReferencedTableMap().clone());
+            }
         
         
-		if (targetResultColumnList != null) {
-		    int size = Math.min(targetRCL.size(), resultColumns.size());
-		    for (int index = 0; index < size; index++) {
-			ResultColumn sourceRC = (ResultColumn) resultColumns.elementAt(index);
-			ResultColumn resultColumn = (ResultColumn) targetRCL.elementAt(index);
-			sourceRC.setType(resultColumn.getTypeServices());
-		    }
-		}
-	}
+        if (targetResultColumnList != null) {
+            int size = Math.min(targetRCL.size(), resultColumns.size());
+            for (int index = 0; index < size; index++) {
+            ResultColumn sourceRC = (ResultColumn) resultColumns.elementAt(index);
+            ResultColumn resultColumn = (ResultColumn) targetRCL.elementAt(index);
+            sourceRC.setType(resultColumn.getTypeServices());
+            }
+        }
+    }
 
 
     /**
      *
-	 *
-	 * @exception StandardException		Thrown on error
+     *
+     * @exception StandardException        Thrown on error
      */
-	public void generate(ActivationClassBuilder acb,
-								MethodBuilder mb)
-							throws StandardException
-	{
-		int				erdNumber;
+    public void generate(ActivationClassBuilder acb,
+                                MethodBuilder mb)
+                            throws StandardException
+    {
+        int                erdNumber;
 
-		if (SanityManager.DEBUG)
+        if (SanityManager.DEBUG)
         SanityManager.ASSERT(resultColumns != null, "Tree structure bad");
 
-		/* Get the next ResultSet #, so that we can number this ResultSetNode, its
-		 * ResultColumnList and ResultSet.
-		 */
-		assignResultSetNumber();
+        /* Get the next ResultSet #, so that we can number this ResultSetNode, its
+         * ResultColumnList and ResultSet.
+         */
+        assignResultSetNumber();
 
-		// build up the tree.
+        // build up the tree.
 
-		// Generate the child ResultSet
+        // Generate the child ResultSet
 
-		// Get the cost estimate for the child
-		costEstimate = childResult.getFinalCostEstimate(true);
+        // Get the cost estimate for the child
+        costEstimate = childResult.getFinalCostEstimate(true);
 
-		erdNumber = acb.addItem(makeResultDescription());
+        erdNumber = acb.addItem(makeResultDescription());
 
-		acb.pushGetResultSetFactoryExpression(mb);
-		childResult.generate(acb, mb);
-		mb.push(resultSetNumber);
-		mb.push(erdNumber);
-		mb.push(costEstimate.rowCount());
-		mb.push(costEstimate.getEstimatedCost());
-		mb.push(forUpdate);
-		mb.push(printExplainInformationForActivation());
-		
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getNormalizeResultSet",
-					ClassName.NoPutResultSet, 7);
-	}
+        acb.pushGetResultSetFactoryExpression(mb);
+        childResult.generate(acb, mb);
+        mb.push(resultSetNumber);
+        mb.push(erdNumber);
+        mb.push(costEstimate.rowCount());
+        mb.push(costEstimate.getEstimatedCost());
+        mb.push(forUpdate);
+        mb.push(printExplainInformationForActivation());
+        
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getNormalizeResultSet",
+                    ClassName.NoPutResultSet, 7);
+    }
 
-	/**
-	 * set the Information gathered from the parent table that is 
-	 * required to peform a referential action on dependent table.
-	 */
-	public void setRefActionInfo(long fkIndexConglomId, 
-								 int[]fkColArray, 
-								 String parentResultSetId,
-								 boolean dependentScan)
-	{
-		childResult.setRefActionInfo(fkIndexConglomId,
-								   fkColArray,
-								   parentResultSetId,
-								   dependentScan);
-	}
+    /**
+     * set the Information gathered from the parent table that is 
+     * required to peform a referential action on dependent table.
+     */
+    public void setRefActionInfo(long fkIndexConglomId, 
+                                 int[]fkColArray, 
+                                 String parentResultSetId,
+                                 boolean dependentScan)
+    {
+        childResult.setRefActionInfo(fkIndexConglomId,
+                                   fkColArray,
+                                   parentResultSetId,
+                                   dependentScan);
+    }
 
-	/**
-	 * Push the order by list down from InsertNode into its child result set so
-	 * that the optimizer has all of the information that it needs to consider
-	 * sort avoidance.
-	 *
-	 * @param orderByList	The order by list
-	 */
-	void pushOrderByList(OrderByList orderByList)
-	{
-		childResult.pushOrderByList(orderByList);
-	}
+    /**
+     * Push the order by list down from InsertNode into its child result set so
+     * that the optimizer has all of the information that it needs to consider
+     * sort avoidance.
+     *
+     * @param orderByList    The order by list
+     */
+    void pushOrderByList(OrderByList orderByList)
+    {
+        childResult.pushOrderByList(orderByList);
+    }
 
     /**
      * Push through the offset and fetch first parameters, if any, to the child

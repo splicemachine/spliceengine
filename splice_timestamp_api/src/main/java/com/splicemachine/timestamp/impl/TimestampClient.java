@@ -116,7 +116,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         // do so with code like this (leave commented out for reference).
         //
         // bootstrap.getPipeline().addLast("executor", new ExecutionHandler(
-        // 	   new OrderedMemoryAwareThreadPoolExecutor(10 /* threads */, 1024*1024, 4*1024*1024)));
+        //        new OrderedMemoryAwareThreadPoolExecutor(10 /* threads */, 1024*1024, 4*1024*1024)));
 
         bootstrap.getPipeline().addLast("decoder", new FixedLengthFrameDecoder(FIXED_MSG_RECEIVED_LENGTH));
         bootstrap.getPipeline().addLast("handler", this);

@@ -1305,7 +1305,7 @@ public interface StoredFormatIds {
 
     /******************************************************************
     **
-    **	DEFAULT INFO CLASSES
+    **    DEFAULT INFO CLASSES
     **
     ******************************************************************/
             
@@ -1773,7 +1773,7 @@ public interface StoredFormatIds {
      * Make sure this is updated when a new module is added
      */
    int MAX_ID_2 =
-    		(MIN_ID_2 + 483);
+            (MIN_ID_2 + 483);
 
     // DO NOT USE 4 BYTE IDS ANYMORE
     int MAX_ID_4 =

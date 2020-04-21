@@ -60,38 +60,38 @@ import java.io.IOException;
  */
 public class UserDefinedTypeIdImpl extends BaseTypeIdImpl
 {
-	/********************************************************
-	**
-	**	This class implements Formatable. That means that it
-	**	can write itself to and from a formatted stream. If
-	**	you add more fields to this class, make sure that you
-	**	also write/read them with the writeExternal()/readExternal()
-	**	methods.
-	**
-	**	If, inbetween releases, you add more fields to this class,
-	**	then you should bump the version number emitted by the getTypeFormatId()
-	**	method.
-	**
-	********************************************************/
+    /********************************************************
+    **
+    **    This class implements Formatable. That means that it
+    **    can write itself to and from a formatted stream. If
+    **    you add more fields to this class, make sure that you
+    **    also write/read them with the writeExternal()/readExternal()
+    **    methods.
+    **
+    **    If, inbetween releases, you add more fields to this class,
+    **    then you should bump the version number emitted by the getTypeFormatId()
+    **    method.
+    **
+    ********************************************************/
 
-	protected String className;
+    protected String className;
 
-	/**
-	 * Public niladic constructor. Needed for Formatable interface to work.
-	 *
-	 */
-	public	UserDefinedTypeIdImpl() { super(); }
+    /**
+     * Public niladic constructor. Needed for Formatable interface to work.
+     *
+     */
+    public    UserDefinedTypeIdImpl() { super(); }
 
-	/**
-	 * Constructor for a UserDefinedTypeIdImpl. The SQLTypeName of a UserDefinedType
-	 * is assumed to be its className for Derby-only UserDefinedTypes. For
-	 * actual user created UDTs, the SQLTypeName is a schema qualified name.
-	 *
-	 * @param className	The SQL name of the type
-	 */
+    /**
+     * Constructor for a UserDefinedTypeIdImpl. The SQLTypeName of a UserDefinedType
+     * is assumed to be its className for Derby-only UserDefinedTypes. For
+     * actual user created UDTs, the SQLTypeName is a schema qualified name.
+     *
+     * @param className    The SQL name of the type
+     */
 
-	public UserDefinedTypeIdImpl(String className) throws StandardException
-	{
+    public UserDefinedTypeIdImpl(String className) throws StandardException
+    {
         //
         // If the name begins with a quote, then it is the schema-qualified name
         // of a UDT. Parse the name.
@@ -112,68 +112,68 @@ public class UserDefinedTypeIdImpl extends BaseTypeIdImpl
         }
         
         JDBCTypeId = java.sql.Types.JAVA_OBJECT;
-	}
+    }
 
-	/**
-	 * Constructor for a UDT.
-	 *
-	 * @param schemaName	Schema that the UDT lives in.
-	 * @param unqualifiedName	The name of the type inside that schema.
-	 * @param className	The Java class  bound to the SQL type.
-	 */
+    /**
+     * Constructor for a UDT.
+     *
+     * @param schemaName    Schema that the UDT lives in.
+     * @param unqualifiedName    The name of the type inside that schema.
+     * @param className    The Java class  bound to the SQL type.
+     */
 
-	public UserDefinedTypeIdImpl(String schemaName, String unqualifiedName, String className)
-	{
-		super( schemaName, unqualifiedName );
-		this.className = className;
-		JDBCTypeId = java.sql.Types.JAVA_OBJECT;
-	}
+    public UserDefinedTypeIdImpl(String schemaName, String unqualifiedName, String className)
+    {
+        super( schemaName, unqualifiedName );
+        this.className = className;
+        JDBCTypeId = java.sql.Types.JAVA_OBJECT;
+    }
 
 
-	/** Return the java class name for this type */
-	public String	getClassName()
-	{
-		return className;
-	}
+    /** Return the java class name for this type */
+    public String    getClassName()
+    {
+        return className;
+    }
 
-	/** Does this type id represent a user type? */
-	public boolean userType()
-	{
-		return true;
-	}
+    /** Does this type id represent a user type? */
+    public boolean userType()
+    {
+        return true;
+    }
     
-	/** Has this user type been bound? */
-	public boolean isBound() { return !(className == null); }
+    /** Has this user type been bound? */
+    public boolean isBound() { return !(className == null); }
 
-	// Formatable interface.
+    // Formatable interface.
 
-	/**
-	 * Read this object from a stream of stored objects.
-	 *
-	 * @param in read this.
-	 *
-	 * @exception IOException					thrown on error
-	 * @exception ClassNotFoundException		thrown on error
-	 */
-	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
-		super.readExternal( in );
-		className = in.readUTF();
-		JDBCTypeId = java.sql.Types.JAVA_OBJECT;
-	}
+    /**
+     * Read this object from a stream of stored objects.
+     *
+     * @param in read this.
+     *
+     * @exception IOException                    thrown on error
+     * @exception ClassNotFoundException        thrown on error
+     */
+    public void readExternal( ObjectInput in )
+         throws IOException, ClassNotFoundException
+    {
+        super.readExternal( in );
+        className = in.readUTF();
+        JDBCTypeId = java.sql.Types.JAVA_OBJECT;
+    }
 
-	/**
-	 * Write this object to a stream of stored objects.
-	 *
-	 * @param out write bytes here.
-	 *
-	 * @exception IOException		thrown on error
-	 */
-	public void writeExternal( ObjectOutput out )
-		 throws IOException
-	{
-		super.writeExternal( out );
+    /**
+     * Write this object to a stream of stored objects.
+     *
+     * @param out write bytes here.
+     *
+     * @exception IOException        thrown on error
+     */
+    public void writeExternal( ObjectOutput out )
+         throws IOException
+    {
+        super.writeExternal( out );
 
         // If the class name is null, then an internal error has occurred. We
         // are trying to persist a UDT descriptor which has not been bound yet
@@ -181,12 +181,12 @@ public class UserDefinedTypeIdImpl extends BaseTypeIdImpl
         {
             throw new IOException( "Internal error: class name for user defined type has not been determined yet." );
         }
-		out.writeUTF( className );
-	}
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.USERDEFINED_TYPE_ID_IMPL_V3; }
+        out.writeUTF( className );
+    }
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId()    { return StoredFormatIds.USERDEFINED_TYPE_ID_IMPL_V3; }
 }

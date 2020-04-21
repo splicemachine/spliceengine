@@ -52,7 +52,7 @@ public class SignalOperation extends NoRowsOperation {
     /**
      * Make the ConstantAction for a SIGNAL statement.
      *
-     *  @param sqlState	The error code to return.
+     *  @param sqlState    The error code to return.
      */
     public SignalOperation(Activation activation,
                            String sqlState,
@@ -113,7 +113,7 @@ public class SignalOperation extends NoRowsOperation {
     /**
       @see java.io.Externalizable#readExternal
       @exception IOException thrown on error
-      @exception ClassNotFoundException	thrown on error
+      @exception ClassNotFoundException    thrown on error
      */
     public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
             // Read in the serialized class version, but don't use it (for now).

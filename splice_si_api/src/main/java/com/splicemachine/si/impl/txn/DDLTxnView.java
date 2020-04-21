@@ -177,20 +177,20 @@ public class DDLTxnView extends AbstractTxnView {
         return txn.conflicts(otherTxn);
     }
 
-	@Override
-	public void readExternal(ObjectInput input) throws IOException,
-			ClassNotFoundException {
-		super.readExternal(input);
-		demarcationPoint = input.readLong();
-		txn = (TxnView) input.readObject();
-	}
+    @Override
+    public void readExternal(ObjectInput input) throws IOException,
+            ClassNotFoundException {
+        super.readExternal(input);
+        demarcationPoint = input.readLong();
+        txn = (TxnView) input.readObject();
+    }
 
-	@Override
-	public void writeExternal(ObjectOutput output) throws IOException {
-		super.writeExternal(output);
-		output.writeLong(demarcationPoint);
-		output.writeObject(txn);
-	}
+    @Override
+    public void writeExternal(ObjectOutput output) throws IOException {
+        super.writeExternal(output);
+        output.writeLong(demarcationPoint);
+        output.writeObject(txn);
+    }
 
     @Override
     public String toString() {

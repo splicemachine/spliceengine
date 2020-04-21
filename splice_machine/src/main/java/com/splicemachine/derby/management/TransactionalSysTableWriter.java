@@ -166,7 +166,7 @@ public abstract class TransactionalSysTableWriter<T> {
     protected static abstract class WriteableHash<T> implements DataHash<T> {
         protected T element;
 
-        @Override public void setRow(T rowToEncode) { this.element = rowToEncode;	 }
+        @Override public void setRow(T rowToEncode) { this.element = rowToEncode;     }
         @Override public KeyHashDecoder getDecoder() { return null; }
 
         protected abstract void doEncode(MultiFieldEncoder encoder, T element);

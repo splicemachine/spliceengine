@@ -36,9 +36,9 @@ package com.splicemachine.db.jdbc;
  * ClientXADataSource classes if 
  * your application runs in the following environments:
  * <p/>
- *	<UL>
- *	<LI> JDBC 3.0 - Java 2 - JDK 1.4, J2SE 5.0
- *	<LI> JDBC 2.0 - Java 2 - JDK 1.2,1.3
+ *    <UL>
+ *    <LI> JDBC 3.0 - Java 2 - JDK 1.4, J2SE 5.0
+ *    <LI> JDBC 2.0 - Java 2 - JDK 1.2,1.3
  * </UL>
  *
  * <p>The example below registers a DNC data source object with a JNDI naming service.

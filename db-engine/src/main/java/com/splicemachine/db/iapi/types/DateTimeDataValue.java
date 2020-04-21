@@ -37,21 +37,21 @@ import java.util.Calendar;
 
 public interface DateTimeDataValue extends DataValueDescriptor
 {
-	int YEAR_FIELD = 0;
+    int YEAR_FIELD = 0;
     int QUARTER_FIELD = 1;
-	int MONTH_FIELD = 2;
+    int MONTH_FIELD = 2;
     int MONTHNAME_FIELD = 3;
     int WEEK_FIELD = 4;
     int WEEK_DAY_FIELD = 5;
     int WEEKDAYNAME_FIELD = 6;
-	int DAY_OF_YEAR_FIELD = 7;
-	int DAY_FIELD = 8;
-	int HOUR_FIELD = 9;
-	int MINUTE_FIELD = 10;
-	int SECOND_FIELD = 11;
+    int DAY_OF_YEAR_FIELD = 7;
+    int DAY_FIELD = 8;
+    int HOUR_FIELD = 9;
+    int MINUTE_FIELD = 10;
+    int SECOND_FIELD = 11;
 
     // The JDBC interval types
-	int FRAC_SECOND_INTERVAL = 0;
+    int FRAC_SECOND_INTERVAL = 0;
     int SECOND_INTERVAL = 1;
     int MINUTE_INTERVAL = 2;
     int HOUR_INTERVAL = 3;
@@ -61,161 +61,161 @@ public interface DateTimeDataValue extends DataValueDescriptor
     int QUARTER_INTERVAL = 7;
     int YEAR_INTERVAL = 8;
 
-	/**
-	 * Get the year number out of a date.
-	 *
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	A NumberDataValue containing the year number.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	NumberDataValue getYear(NumberDataValue result)
-							throws StandardException;
+    /**
+     * Get the year number out of a date.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the year number.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getYear(NumberDataValue result)
+                            throws StandardException;
 
-	/**
-	 * Get the quarter number out of a date.
-	 *
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	A NumberDataValue containing the month number.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	NumberDataValue getQuarter(NumberDataValue result)
-							throws StandardException;
+    /**
+     * Get the quarter number out of a date.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the month number.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getQuarter(NumberDataValue result)
+                            throws StandardException;
 
-	/**
-	 * Get the month number out of a date.
-	 *
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	A NumberDataValue containing the month number.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	NumberDataValue getMonth(NumberDataValue result)
-							throws StandardException;
+    /**
+     * Get the month number out of a date.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the month number.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getMonth(NumberDataValue result)
+                            throws StandardException;
 
-	/**
-	 * Get the month name out of a date.
-	 *
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	A SQLVarchar containing the month name, January, February, etc.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Get the month name out of a date.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A SQLVarchar containing the month name, January, February, etc.
+     *
+     * @exception StandardException        Thrown on error
+     */
     StringDataValue getMonthName(StringDataValue result)
-							throws StandardException;
+                            throws StandardException;
 
-	/**
-	 * Get the week of year out of a date.
-	 *
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	A NumberDataValue containing the week of year, 1-52.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Get the week of year out of a date.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the week of year, 1-52.
+     *
+     * @exception StandardException        Thrown on error
+     */
     NumberDataValue getWeek(NumberDataValue result)
-							throws StandardException;
+                            throws StandardException;
 
-	/**
-	 * Get the day of week out of a date.
-	 *
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	A SQLVarchar containing the day of week, 0-6.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Get the day of week out of a date.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A SQLVarchar containing the day of week, 0-6.
+     *
+     * @exception StandardException        Thrown on error
+     */
     NumberDataValue getWeekDay(NumberDataValue result)
-							throws StandardException;
+                            throws StandardException;
 
-	/**
-	 * Get the week day name out of a date.
-	 *
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	A SQLVarchar containing the week day name, Monday, Tuesday, etc.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Get the week day name out of a date.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A SQLVarchar containing the week day name, Monday, Tuesday, etc.
+     *
+     * @exception StandardException        Thrown on error
+     */
     StringDataValue getWeekDayName(StringDataValue result)
-							throws StandardException;
+                            throws StandardException;
 
-	/**
-	 * Get the day of the month.
-	 *
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	A NumberDataValue containing the day of the month, 1-31.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	NumberDataValue getDate(NumberDataValue result)
-							throws StandardException;
+    /**
+     * Get the day of the month.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the day of the month, 1-31.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getDate(NumberDataValue result)
+                            throws StandardException;
 
-	/**
-	 * Get the day of the year.
-	 *
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	A NumberDataValue containing the day of the year, 1-366 (with leap year).
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	NumberDataValue getDayOfYear(NumberDataValue result)
-							throws StandardException;
+    /**
+     * Get the day of the year.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the day of the year, 1-366 (with leap year).
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getDayOfYear(NumberDataValue result)
+                            throws StandardException;
 
-	/**
-	 * Get the hour of the day out of a time or timestamp.
-	 *
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	A NumberDataValue containing the hour of the day.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	NumberDataValue getHours(NumberDataValue result)
-							throws StandardException;
+    /**
+     * Get the hour of the day out of a time or timestamp.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the hour of the day.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getHours(NumberDataValue result)
+                            throws StandardException;
 
-	/**
-	 * Get the minute of the hour out of a time or timestamp.
-	 *
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	A NumberDataValue containing the minute of the hour.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	NumberDataValue getMinutes(NumberDataValue result)
-							throws StandardException;
+    /**
+     * Get the minute of the hour out of a time or timestamp.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the minute of the hour.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getMinutes(NumberDataValue result)
+                            throws StandardException;
 
-	/**
-	 * Get the second of the minute out of a time or timestamp.
-	 *
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	A NumberDataValue containing the second of the minute.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	NumberDataValue getSeconds(NumberDataValue result)
-							throws StandardException;
+    /**
+     * Get the second of the minute out of a time or timestamp.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    A NumberDataValue containing the second of the minute.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    NumberDataValue getSeconds(NumberDataValue result)
+                            throws StandardException;
 
     /**
      * Add a number of intervals to a datetime value. Implements the JDBC escape TIMESTAMPADD function.
@@ -318,6 +318,6 @@ public interface DateTimeDataValue extends DataValueDescriptor
     NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue rightOperand, NumberDataValue returnValue)
         throws StandardException;
 
-	void setValue(String value, Calendar cal)throws StandardException;
+    void setValue(String value, Calendar cal)throws StandardException;
 }
 

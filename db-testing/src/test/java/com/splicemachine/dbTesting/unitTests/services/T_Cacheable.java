@@ -40,122 +40,122 @@ import com.splicemachine.db.iapi.error.StandardException;
 */
 public abstract class T_Cacheable implements Cacheable {
 
-	protected boolean	isDirty;
+    protected boolean    isDirty;
 
-	protected Thread       owner;
-		
-	public T_Cacheable() {
-	}
+    protected Thread       owner;
+        
+    public T_Cacheable() {
+    }
 
-	/*
-	** Cacheable methods
-	*/
+    /*
+    ** Cacheable methods
+    */
 
-	public Cacheable setIdentity(Object key) throws StandardException {
-		// we expect a key of type Object[]
-		if (!(key instanceof T_Key)) {
-			throw T_CacheException.invalidKey();
-		}
+    public Cacheable setIdentity(Object key) throws StandardException {
+        // we expect a key of type Object[]
+        if (!(key instanceof T_Key)) {
+            throw T_CacheException.invalidKey();
+        }
 
-		owner = null;
+        owner = null;
 
-		return null; // must be overriden by super class	
-	}
-
-
-
-	public Cacheable createIdentity(Object key, Object createParameter) throws StandardException {
-
-		// we expect a key of type Object[]
-		if (!(key instanceof T_Key)) {
-			throw T_CacheException.invalidKey();
-		}
-
-		owner = (Thread) createParameter;
-
-		return null; // must be overriden by super class
-	}
-
-	/**
-		Returns true of the object is dirty. Will only be called when the object is unkept.
-
-		<BR> MT - thread safe 
-
-	*/
-	public boolean isDirty() {
-		synchronized (this) {
-			return isDirty;
-		}
-	}
+        return null; // must be overriden by super class    
+    }
 
 
 
-	public void clean(boolean forRemove) throws StandardException {
-		synchronized (this) {
-			isDirty = false;
-		}
-	}
+    public Cacheable createIdentity(Object key, Object createParameter) throws StandardException {
 
-	/*
-	** Implementation specific methods
-	*/
+        // we expect a key of type Object[]
+        if (!(key instanceof T_Key)) {
+            throw T_CacheException.invalidKey();
+        }
 
-	protected Cacheable getCorrectObject(Object keyValue) throws StandardException {
+        owner = (Thread) createParameter;
 
-		Cacheable correctType;
+        return null; // must be overriden by super class
+    }
 
-		if (keyValue instanceof Integer) {
+    /**
+        Returns true of the object is dirty. Will only be called when the object is unkept.
 
-			correctType = new T_CachedInteger();
-		//} else if (keyValue instanceof String) {
-			//correctType = new T_CachedString();
-		} else {
+        <BR> MT - thread safe 
 
-			throw T_CacheException.invalidKey();
-		}
+    */
+    public boolean isDirty() {
+        synchronized (this) {
+            return isDirty;
+        }
+    }
 
-		return correctType;
-	}
 
-	protected boolean dummySet(T_Key tkey) throws StandardException {
 
-		// first wait
-		if (tkey.getWait() != 0) {
-			synchronized (this) {
+    public void clean(boolean forRemove) throws StandardException {
+        synchronized (this) {
+            isDirty = false;
+        }
+    }
 
-				try {
-					wait(tkey.getWait());
-				} catch (InterruptedException ie) {
-					// RESOLVE
-				}
-			}
-		}
+    /*
+    ** Implementation specific methods
+    */
 
-		if (!tkey.canFind())
-			return false;
+    protected Cacheable getCorrectObject(Object keyValue) throws StandardException {
 
-		if (tkey.raiseException())
-			throw T_CacheException.identityFail();
+        Cacheable correctType;
 
-		return true;
-	}
+        if (keyValue instanceof Integer) {
 
-	public void setDirty() {
-		synchronized (this) {
-			isDirty = true;
-		}
-	}
+            correctType = new T_CachedInteger();
+        //} else if (keyValue instanceof String) {
+            //correctType = new T_CachedString();
+        } else {
 
-	public boolean canRemove() {
+            throw T_CacheException.invalidKey();
+        }
 
-		synchronized (this) {
-			if (owner == null)
-				owner = Thread.currentThread();
+        return correctType;
+    }
 
-			if (owner == Thread.currentThread())
-				return true;
-			return false;
-		}
-	}
+    protected boolean dummySet(T_Key tkey) throws StandardException {
+
+        // first wait
+        if (tkey.getWait() != 0) {
+            synchronized (this) {
+
+                try {
+                    wait(tkey.getWait());
+                } catch (InterruptedException ie) {
+                    // RESOLVE
+                }
+            }
+        }
+
+        if (!tkey.canFind())
+            return false;
+
+        if (tkey.raiseException())
+            throw T_CacheException.identityFail();
+
+        return true;
+    }
+
+    public void setDirty() {
+        synchronized (this) {
+            isDirty = true;
+        }
+    }
+
+    public boolean canRemove() {
+
+        synchronized (this) {
+            if (owner == null)
+                owner = Thread.currentThread();
+
+            if (owner == Thread.currentThread())
+                return true;
+            return false;
+        }
+    }
 }
 

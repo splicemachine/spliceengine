@@ -317,7 +317,7 @@ public class TestDbMetaData extends BaseJDBCTestCase {
     }
 
     public void testGetFunctionColumnsStartingWithDUMMY() throws SQLException {
-		// Test getFunctionColumns
+        // Test getFunctionColumns
         // Dump parameters for all functions beginning with DUMMY
         ResultSet rs = meta.getFunctionColumns(null, null, "DUMMY%", null);
         assertGetFunctionColumnsRs(rs);
@@ -380,7 +380,7 @@ public class TestDbMetaData extends BaseJDBCTestCase {
     }
 
     public void testGetFunctionColumnsForDummyFunctions() throws SQLException {
-		// Dump return value for all DUMMY functions
+        // Dump return value for all DUMMY functions
         ResultSet rs = meta.getFunctionColumns(null, null, "DUMMY%", "");
         assertGetFunctionColumnsRs(rs);
         Object[][] expectedRows = {

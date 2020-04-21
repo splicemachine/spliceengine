@@ -33,40 +33,40 @@ package com.splicemachine.dbTesting.system.sttest.tools;
 import java.util.Date;
 
 public class MemCheck extends Thread {
-	int delay = 200000;
-	
-	public boolean stopNow = false;
-	
-	public MemCheck() {
-	}
-	
-	public MemCheck(int num) {
-		delay = num;
-	}
-	
-	public void run() {
-		while (stopNow == false) {
-			try {
-				showmem();
-				sleep(delay);
-			} catch (java.lang.InterruptedException ie) {
-				System.out.println("memcheck: unexpected error in sleep");
-			}
-		}
-	}
-	
-	public static void showmem() {
-		Runtime rt = null;
-		Date d = null;
-		rt = Runtime.getRuntime();
-		d = new Date();
-		System.out.println("total memory: " + rt.totalMemory() + " free: "
-				+ rt.freeMemory() + " " + d.toString());
-	}
-	
-	public static void main(String argv[]) {
-		System.out.println("MemCheck starting");
-		MemCheck mc = new MemCheck();
-		mc.run();
-	}
+    int delay = 200000;
+    
+    public boolean stopNow = false;
+    
+    public MemCheck() {
+    }
+    
+    public MemCheck(int num) {
+        delay = num;
+    }
+    
+    public void run() {
+        while (stopNow == false) {
+            try {
+                showmem();
+                sleep(delay);
+            } catch (java.lang.InterruptedException ie) {
+                System.out.println("memcheck: unexpected error in sleep");
+            }
+        }
+    }
+    
+    public static void showmem() {
+        Runtime rt = null;
+        Date d = null;
+        rt = Runtime.getRuntime();
+        d = new Date();
+        System.out.println("total memory: " + rt.totalMemory() + " free: "
+                + rt.freeMemory() + " " + d.toString());
+    }
+    
+    public static void main(String argv[]) {
+        System.out.println("MemCheck starting");
+        MemCheck mc = new MemCheck();
+        mc.run();
+    }
 }

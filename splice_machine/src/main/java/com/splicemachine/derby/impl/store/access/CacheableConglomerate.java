@@ -30,30 +30,30 @@ class CacheableConglomerate implements Cacheable {
         return(this.conglom);
     }
 
-	public Cacheable setIdentity(Object key) throws StandardException {
+    public Cacheable setIdentity(Object key) throws StandardException {
         return(null);
     }
 
-	public Cacheable createIdentity(Object key, Object createParameter)  throws StandardException {
+    public Cacheable createIdentity(Object key, Object createParameter)  throws StandardException {
         this.conglomid = (Long) key;
         this.conglom   = ((Conglomerate) createParameter);
         return(this);
     }
 
-	public void clearIdentity() {
+    public void clearIdentity() {
         this.conglomid = null;
         this.conglom   = null;
     }
 
-	public Object getIdentity() {
+    public Object getIdentity() {
         return(this.conglomid);
     }
 
 
-	public boolean isDirty() {
+    public boolean isDirty() {
         return(false);
     }
 
-	public void clean(boolean forRemove) throws StandardException {
+    public void clean(boolean forRemove) throws StandardException {
     }
 }

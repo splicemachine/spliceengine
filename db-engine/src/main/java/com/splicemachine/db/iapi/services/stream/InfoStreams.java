@@ -45,11 +45,11 @@ package com.splicemachine.db.iapi.services.stream;
  */
 public interface InfoStreams {
 
-	/**
-	 Return the default stream. If the default stream could not be set up as requested then
-	 it points indirectly to System.err.
-	 * 
-	 * @return the default stream.
-	 */
-	HeaderPrintWriter stream();
+    /**
+     Return the default stream. If the default stream could not be set up as requested then
+     it points indirectly to System.err.
+     * 
+     * @return the default stream.
+     */
+    HeaderPrintWriter stream();
 }

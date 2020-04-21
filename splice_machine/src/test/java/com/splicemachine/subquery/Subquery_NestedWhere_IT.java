@@ -50,9 +50,9 @@ public class Subquery_NestedWhere_IT {
     public void testBasicOperations() throws Exception {
         Statement s = methodWatcher.getStatement();
 
-		/*
+        /*
          * Create tables needed for DERBY-3301 regression test
-		 */
+         */
         StringBuilder sb = new StringBuilder();
         sb.append("CREATE TABLE departments ( ");
         sb.append("ID INTEGER NOT NULL, ");
@@ -87,9 +87,9 @@ public class Subquery_NestedWhere_IT {
         sb.append(")");
         s.executeUpdate(sb.toString());
 
-		/*
+        /*
          * Fill some data into the tables
-		 */
+         */
         s.executeUpdate("INSERT INTO departments VALUES (1, 'Research', 1)");
         s.executeUpdate("INSERT INTO departments VALUES (2, 'Marketing', 1)");
 
@@ -112,9 +112,9 @@ public class Subquery_NestedWhere_IT {
         s.executeUpdate("INSERT INTO project_employees VALUES (101, 11)");
 
 
-		/*
+        /*
          * DERBY-3301: This query should return 7 rows
-		 */
+         */
         sb = new StringBuilder();
         sb.append("select unbound_e.empid, unbound_p.projid ");
         sb.append("from departments this, ");
@@ -141,7 +141,7 @@ public class Subquery_NestedWhere_IT {
                 "  15   |  103  |";
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, expectedRowsString);
 
-		/* A variation of the above WHERE EXISTS but using IN should return the same rows */
+        /* A variation of the above WHERE EXISTS but using IN should return the same rows */
         sb = new StringBuilder();
         sb.append("select unbound_e.empid, unbound_p.projid ");
         sb.append("from departments this, ");
@@ -160,7 +160,7 @@ public class Subquery_NestedWhere_IT {
 
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, expectedRowsString);
 
-		/* A variation of the above WHERE EXISTS but using ANY should return the same rows */
+        /* A variation of the above WHERE EXISTS but using ANY should return the same rows */
         sb = new StringBuilder();
         sb.append("select unbound_e.empid, unbound_p.projid ");
         sb.append("from departments this, ");
@@ -179,9 +179,9 @@ public class Subquery_NestedWhere_IT {
 
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, expectedRowsString);
 
-		/* 
+        /* 
          * The next 5 queries were also found problematic as part DERBY-3301 
-		 */
+         */
         sb = new StringBuilder();
         sb.append("select unbound_e.empid from departments this, employees unbound_e ");
         sb.append("where exists ( ");
@@ -291,7 +291,7 @@ public class Subquery_NestedWhere_IT {
                 "  14   |  103  |\n" +
                 "  15   |  103  |");
 
-		/* Variation of the above using WHERE IN ... WHERE IN */
+        /* Variation of the above using WHERE IN ... WHERE IN */
         sb = new StringBuilder();
         sb.append("select unbound_e.empid, unbound_p.projid ");
         sb.append("from departments this, employees unbound_e, projects unbound_p ");
@@ -317,7 +317,7 @@ public class Subquery_NestedWhere_IT {
                 "  14   |  103  |\n" +
                 "  15   |  103  |");
 
-		/* Variation of the above using WHERE ANY ... WHERE ANY */
+        /* Variation of the above using WHERE ANY ... WHERE ANY */
         sb = new StringBuilder();
         sb.append("select unbound_e.empid, unbound_p.projid ");
         sb.append("from departments this, employees unbound_e, projects unbound_p ");
@@ -343,15 +343,15 @@ public class Subquery_NestedWhere_IT {
                 "  14   |  103  |\n" +
                 "  15   |  103  |");
 
-		/*
+        /*
          * DERBY-3321 revealed an NPE with a subquery in the [NOT] EXIST subuery FromList.
-		 */
+         */
         s.executeUpdate("create table a (aa int, bb int)");
         s.executeUpdate("create table b (bb int)");
         s.executeUpdate("insert into a values (1,1),(1,2),(2,2)");
         s.executeUpdate("insert into b values (1)");
 
-		/* NOT EXISTS */
+        /* NOT EXISTS */
         sb = new StringBuilder();
         sb.append("select * from a ");
         sb.append("where not exists ");
@@ -362,7 +362,7 @@ public class Subquery_NestedWhere_IT {
                 " 1 | 2 |\n" +
                 " 2 | 2 |");
 
-		/* EXISTS */
+        /* EXISTS */
         sb = new StringBuilder();
         sb.append("select * from a ");
         sb.append("where exists ");
@@ -372,9 +372,9 @@ public class Subquery_NestedWhere_IT {
                 "--------\n" +
                 " 1 | 1 |");
 
-		/*
+        /*
          * Clean up the tables used.
-		 */
+         */
         s.executeUpdate("drop table project_employees");
         s.executeUpdate("drop table projects");
         s.executeUpdate("drop table employees");

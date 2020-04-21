@@ -525,7 +525,7 @@ public class CollationTest2 extends BaseJDBCTestCase
         PreparedStatement   ps = prepareStatement(query);
         for (int i=0; i < paramNumber;i++)
         {
-        	ps.setString(i+1, param[i]);
+            ps.setString(i+1, param[i]);
         }
         ResultSet           rs = ps.executeQuery();
 
@@ -545,7 +545,7 @@ public class CollationTest2 extends BaseJDBCTestCase
         // re-execute it to test path through the cache
         for (int i=0; i < paramNumber;i++)
         {
-        	ps.setString(i+1, param[i]);
+            ps.setString(i+1, param[i]);
         }
         rs = ps.executeQuery();
 
@@ -575,7 +575,7 @@ public class CollationTest2 extends BaseJDBCTestCase
     String      codeset) 
         throws SQLException 
     {
-	//DERBY-2925: need to delete existing files first.
+    //DERBY-2925: need to delete existing files first.
         SupportFilesSetup.deleteFile(fileName);
 
         CallableStatement ps = 
@@ -744,9 +744,9 @@ public class CollationTest2 extends BaseJDBCTestCase
         }
 
         s.execute(
-        		"CREATE TABLE EMPTY_TABLE (NAME VARCHAR(40))");
+                "CREATE TABLE EMPTY_TABLE (NAME VARCHAR(40))");
         s.execute(
-        		"CREATE INDEX EMPTY_TABLE_IDX ON EMPTY_TABLE(NAME)");
+                "CREATE INDEX EMPTY_TABLE_IDX ON EMPTY_TABLE(NAME)");
         commit();
     }
 

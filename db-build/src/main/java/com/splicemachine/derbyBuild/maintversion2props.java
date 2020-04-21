@@ -53,7 +53,7 @@ public class maintversion2props
         InputStream is = new FileInputStream(args[0]);
         Properties p = new Properties();
         p.load(is);
-	String maint = "";
+    String maint = "";
         if (args[0].indexOf("DBMS") > 0)
         {
           maint = p.getProperty("derby.version.maint");

@@ -36,11 +36,11 @@ import com.splicemachine.db.iapi.services.io.FormatableInstanceGetter;
 public class DTSClassInfo extends FormatableInstanceGetter {
 
         public Object getNewInstance() {
-        	
-        	// Does not handle StoredFormatIds.SQL_DECIMAL_ID as different
-        	// implementations are required for different VMs.
+            
+            // Does not handle StoredFormatIds.SQL_DECIMAL_ID as different
+            // implementations are required for different VMs.
 
-        	//The format id for DVDs are handled first.  
+            //The format id for DVDs are handled first.  
             return DataValueFactoryImpl.getNullDVDWithUCS_BASICcollation(fmtId);
 
 

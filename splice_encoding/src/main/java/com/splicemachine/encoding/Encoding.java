@@ -741,18 +741,18 @@ public final class Encoding {
     
 
     public static void main(String... args) throws Exception{
-				byte b = (byte)0x01;
-				System.out.println(Bytes.toStringBinary(encode(104300001L, true)));
-				System.out.println(Bytes.toLong(Bytes.toBytesBinary("\\x00\\x00\\x00\\x00:\\xD6?\\x00")));
+                byte b = (byte)0x01;
+                System.out.println(Bytes.toStringBinary(encode(104300001L, true)));
+                System.out.println(Bytes.toLong(Bytes.toBytesBinary("\\x00\\x00\\x00\\x00:\\xD6?\\x00")));
 
     }
 
-		public static boolean isNullDOuble(byte[] data, int offset, int length) {
-				return length == DoubleEncoding.NULL_DOUBLE_BYTES.length;
-		}
-		public static boolean isNullFloat(byte[] data, int offset,int length){
-				return length == DoubleEncoding.NULL_FLOAT_BYTES.length;
-		}
+        public static boolean isNullDOuble(byte[] data, int offset, int length) {
+                return length == DoubleEncoding.NULL_DOUBLE_BYTES.length;
+        }
+        public static boolean isNullFloat(byte[] data, int offset,int length){
+                return length == DoubleEncoding.NULL_FLOAT_BYTES.length;
+        }
 
     public static byte[] encodeBytesUnsorted(byte[] array, int offset, int length) {
         return ByteEncoding.encodeUnsorted(array,offset,length);

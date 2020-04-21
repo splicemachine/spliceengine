@@ -80,58 +80,58 @@ public class T_XA extends T_Generic
 
     AccessFactory store = null;
 
-	public T_XA()
+    public T_XA()
     {
-		super();
-	}
+        super();
+    }
 
-	/*
-	** Methods of UnitTest.
-	*/
+    /*
+    ** Methods of UnitTest.
+    */
 
-	/*
-	** Methods required by T_Generic
-	*/
+    /*
+    ** Methods required by T_Generic
+    */
 
-	public String getModuleToTestProtocolName()
+    public String getModuleToTestProtocolName()
     {
-		return AccessFactory.MODULE;
-	}
+        return AccessFactory.MODULE;
+    }
 
-	/**
-		@exception T_Fail Unexpected behaviour from the API
-	 */
+    /**
+        @exception T_Fail Unexpected behaviour from the API
+     */
 
-	protected void runTests() throws T_Fail
-	{
-		// Create a AccessFactory to test.
+    protected void runTests() throws T_Fail
+    {
+        // Create a AccessFactory to test.
 
-		// don't automatic boot this service if it gets left around
-		if (startParams == null) 
+        // don't automatic boot this service if it gets left around
+        if (startParams == null) 
         {
-			startParams = new Properties();
-		}
-		startParams.put(Property.NO_AUTO_BOOT, Boolean.TRUE.toString());
-		// remove the service directory to ensure a clean run
-		startParams.put(Property.DELETE_ON_CREATE, Boolean.TRUE.toString());
+            startParams = new Properties();
+        }
+        startParams.put(Property.NO_AUTO_BOOT, Boolean.TRUE.toString());
+        // remove the service directory to ensure a clean run
+        startParams.put(Property.DELETE_ON_CREATE, Boolean.TRUE.toString());
 
-		try {
-			store = (AccessFactory) Monitor.createPersistentService(
-				getModuleToTestProtocolName(), testService, startParams);
-		} catch (StandardException mse) {
-			throw T_Fail.exceptionFail(mse);
-		}
+        try {
+            store = (AccessFactory) Monitor.createPersistentService(
+                getModuleToTestProtocolName(), testService, startParams);
+        } catch (StandardException mse) {
+            throw T_Fail.exceptionFail(mse);
+        }
 
 
-		if (store == null) 
+        if (store == null) 
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 getModuleToTestProtocolName() + " service not started.");
-		}
+        }
 
-		REPORT("(unitTestMain) Testing " + testService);
+        REPORT("(unitTestMain) Testing " + testService);
 
-		try {
+        try {
 
             XATest_1(new commit_method(store, true));
             XATest_2(new commit_method(store, true));
@@ -146,21 +146,21 @@ public class T_XA extends T_Generic
             XATest_4(new commit_method(store, false));
             XATest_5(new commit_method(store, false));
             XATest_6(new commit_method(store, false));
-		}
-		catch (StandardException e)
-		{
-			String  msg = e.getMessage();
-			if (msg == null)
-				msg = e.getClass().getName();
-			REPORT(msg);
+        }
+        catch (StandardException e)
+        {
+            String  msg = e.getMessage();
+            if (msg == null)
+                msg = e.getClass().getName();
+            REPORT(msg);
             e.printStackTrace();
-			throw T_Fail.exceptionFail(e);
-		}
+            throw T_Fail.exceptionFail(e);
+        }
         catch (Throwable t)
         {
             t.printStackTrace();
         }
-	}
+    }
 
     /**************************************************************************
      * Utility methods.
@@ -175,7 +175,7 @@ public class T_XA extends T_Generic
     /**
      * one phase commit xa transaction.
      * <p>
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     void XATest_1(
     commit_method   commit_method)
@@ -212,14 +212,14 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-		// Create a heap conglomerate.
+        // Create a heap conglomerate.
         T_AccessRow template_row = new T_AccessRow(1);
-		long conglomid = 
+        long conglomid = 
             xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
-				null,  	//column sort order - not required for heap
-				null,  	//default collation
+                null,      //column sort order - not required for heap
+                null,      //default collation
                 null,         // default properties
                 TransactionController.IS_DEFAULT);       // not temporary
 
@@ -240,18 +240,18 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-		// Open a scan on the conglomerate.
-		ScanController scan1 = xa_tc.openScan(
-			conglomid,
-			false, // don't hold
-			0,     // not for update
+        // Open a scan on the conglomerate.
+        ScanController scan1 = xa_tc.openScan(
+            conglomid,
+            false, // don't hold
+            0,     // not for update
             TransactionController.MODE_RECORD,
             TransactionController.ISOLATION_SERIALIZABLE,
-			(FormatableBitSet) null, // all columns, all as objects
-			null, // start position - first row in conglomerate
+            (FormatableBitSet) null, // all columns, all as objects
+            null, // start position - first row in conglomerate
             0,    // unused if start position is null.
-			null, // qualifier - accept all rows
-			null, // stop position - last row in conglomerate
+            null, // qualifier - accept all rows
+            null, // stop position - last row in conglomerate
             0);   // unused if stop position is null.
 
         scan1.next();
@@ -269,7 +269,7 @@ public class T_XA extends T_Generic
     /**
      * simple two phase commit xa transaction.
      * <p>
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     void XATest_2(
     commit_method   commit_method)
@@ -291,13 +291,13 @@ public class T_XA extends T_Generic
 
         if (!xa_tc.isGlobal())
         {
-			throw T_Fail.testFailMsg("should be a global transaction.");
+            throw T_Fail.testFailMsg("should be a global transaction.");
         }
 
         // This prepare will commit the idle transaction.
         if (xa_tc.xa_prepare() != XATransactionController.XA_RDONLY)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "prepare of idle xact did not return XA_RDONLY.");
         }
 
@@ -311,7 +311,7 @@ public class T_XA extends T_Generic
 
             commit_method.commit(false, 42, null, null, xa_tc);
 
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "A XA_RDONLY prepare-committed xact cant be 2P xa_committed.");
         }
         catch (StandardException se)
@@ -323,7 +323,7 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).find(
                 new XAXactId(42, global_id, branch_id)) != null)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "A XA_RDONLY prepare-committed xact should not be findable.");
         }
 
@@ -340,21 +340,21 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-		// Create a heap conglomerate.
+        // Create a heap conglomerate.
         T_AccessRow template_row = new T_AccessRow(1);
-		long conglomid = 
+        long conglomid = 
             xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
-                null, 	//column sort order - not required for heap
-				null,  	//default collation
+                null,     //column sort order - not required for heap
+                null,      //default collation
                 null,         // default properties
                 TransactionController.IS_DEFAULT);       // not temporary
 
         // prepare the update xact.
         if (xa_tc.xa_prepare() != XATransactionController.XA_OK)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "prepare of update xact did not return XA_OK.");
         }
 
@@ -374,18 +374,18 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-		// Open a scan on the conglomerate.
-		ScanController scan1 = xa_tc.openScan(
-			conglomid,
-			false, // don't hold
-			0,     // not for update
+        // Open a scan on the conglomerate.
+        ScanController scan1 = xa_tc.openScan(
+            conglomid,
+            false, // don't hold
+            0,     // not for update
             TransactionController.MODE_RECORD,
             TransactionController.ISOLATION_SERIALIZABLE,
-			(FormatableBitSet) null, // all columns, all as objects
-			null, // start position - first row in conglomerate
+            (FormatableBitSet) null, // all columns, all as objects
+            null, // start position - first row in conglomerate
             0,    // unused if start position is null.
-			null, // qualifier - accept all rows
-			null, // stop position - last row in conglomerate
+            null, // qualifier - accept all rows
+            null, // stop position - last row in conglomerate
             0);   // unused if stop position is null.
 
         scan1.next();
@@ -394,7 +394,7 @@ public class T_XA extends T_Generic
         // This prepare will commit the idle transaction.
         if (xa_tc.xa_prepare() != XATransactionController.XA_RDONLY)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "prepare of idle xact did not return XA_RDONLY.");
         }
 
@@ -408,7 +408,7 @@ public class T_XA extends T_Generic
 
             commit_method.commit(false, 42, null, null, xa_tc);
 
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "A XA_RDONLY prepare-committed xact cant be 2P xa_committed.");
         }
         catch (StandardException se)
@@ -420,7 +420,7 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).find(
                 new XAXactId(42, global_id, branch_id)) != null)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "A XA_RDONLY prepare-committed xact should not be findable.");
         }
 
@@ -433,7 +433,7 @@ public class T_XA extends T_Generic
     /**
      * Test aborts of unprepared xa transaction.
      * <p>
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     void XATest_3(
     commit_method   commit_method)
@@ -470,14 +470,14 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-		// Create a heap conglomerate.
+        // Create a heap conglomerate.
         T_AccessRow template_row = new T_AccessRow(1);
-		long conglomid = 
+        long conglomid = 
             xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
-				null, //column sort order - not required for heap
-				null,  	//default collation
+                null, //column sort order - not required for heap
+                null,      //default collation
                 null,         // default properties
                 TransactionController.IS_DEFAULT);       // not temporary
 
@@ -498,14 +498,14 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-		// Create a heap conglomerate.
+        // Create a heap conglomerate.
         template_row = new T_AccessRow(1);
-		conglomid = 
+        conglomid = 
             xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
-				null, //column sort order - not required for heap
-				null,  	//default collation
+                null, //column sort order - not required for heap
+                null,      //default collation
                 null,         // default properties
                 TransactionController.IS_DEFAULT);       // not temporary
 
@@ -524,18 +524,18 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-		// Open a scan on the conglomerate.
-		ScanController scan1 = xa_tc.openScan(
-			conglomid,
-			false, // don't hold
-			0,     // not for update
+        // Open a scan on the conglomerate.
+        ScanController scan1 = xa_tc.openScan(
+            conglomid,
+            false, // don't hold
+            0,     // not for update
             TransactionController.MODE_RECORD,
             TransactionController.ISOLATION_SERIALIZABLE,
-			(FormatableBitSet) null, // all columns, all as objects
-			null, // start position - first row in conglomerate
+            (FormatableBitSet) null, // all columns, all as objects
+            null, // start position - first row in conglomerate
             0,    // unused if start position is null.
-			null, // qualifier - accept all rows
-			null, // stop position - last row in conglomerate
+            null, // qualifier - accept all rows
+            null, // stop position - last row in conglomerate
             0);   // unused if stop position is null.
 
         scan1.next();
@@ -553,7 +553,7 @@ public class T_XA extends T_Generic
     /**
      * Test aborts of prepared two phase commit xa transaction.
      * <p>
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     void XATest_4(
     commit_method   commit_method)
@@ -577,14 +577,14 @@ public class T_XA extends T_Generic
         // This prepare will commit the idle transaction.
         if (xa_tc.xa_prepare() != XATransactionController.XA_RDONLY)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "prepare of idle xact did not return XA_RDONLY.");
         }
 
         // nothing to do, will just abort the next current idle xact.
 
        // after prepare/readonly we cna continue to use transaction   
-		commit_method.commit(true, 42, null, null, xa_tc);
+        commit_method.commit(true, 42, null, null, xa_tc);
 
 
 
@@ -592,7 +592,7 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).find(
                 new XAXactId(42, global_id, branch_id)) != null)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "A XA_RDONLY prepare-committed xact should not be findable.");
         }
 
@@ -609,14 +609,14 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-		// Create a heap conglomerate.
+        // Create a heap conglomerate.
         T_AccessRow template_row = new T_AccessRow(1);
-		long conglomid = 
+        long conglomid = 
             xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
-				null, //column sort order - not required for heap
-				null,  	//default collation
+                null, //column sort order - not required for heap
+                null,      //default collation
                 null,         // default properties
                 TransactionController.IS_DEFAULT);       // not temporary
 
@@ -643,7 +643,7 @@ public class T_XA extends T_Generic
         // prepare the update xact.
         if (xa_tc.xa_prepare() != XATransactionController.XA_OK)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "prepare of update xact did not return XA_OK.");
         }
 
@@ -666,7 +666,7 @@ public class T_XA extends T_Generic
             scan1.next();
             scan1.close();
 
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "Should not be able to do anything on xact after prepare.");
         }
         catch (StandardException se)
@@ -684,7 +684,7 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).find(
                 new XAXactId(42, global_id, branch_id)) != null)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "A xa_rollbacked xact should not be findable.");
         }
 
@@ -719,7 +719,7 @@ public class T_XA extends T_Generic
             scan1.next();
             scan1.close();
 
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "Should not be able to open conglom, the create was aborted.");
         }
         catch (StandardException se)
@@ -740,14 +740,14 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-		// Create a heap conglomerate.
+        // Create a heap conglomerate.
         template_row = new T_AccessRow(1);
-		conglomid = 
+        conglomid = 
             xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
-				null, //column sort order - not required for heap
-				null,  	//default collation
+                null, //column sort order - not required for heap
+                null,      //default collation
                 null,         // default properties
                 TransactionController.IS_DEFAULT);       // not temporary
 
@@ -764,18 +764,18 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-		// Open a scan on the conglomerate.
-		scan1 = xa_tc.openScan(
-			conglomid,
-			false, // don't hold
-			0,     // not for update
+        // Open a scan on the conglomerate.
+        scan1 = xa_tc.openScan(
+            conglomid,
+            false, // don't hold
+            0,     // not for update
             TransactionController.MODE_RECORD,
             TransactionController.ISOLATION_SERIALIZABLE,
-			(FormatableBitSet) null, // all columns, all as objects
-			null, // start position - first row in conglomerate
+            (FormatableBitSet) null, // all columns, all as objects
+            null, // start position - first row in conglomerate
             0,    // unused if start position is null.
-			null, // qualifier - accept all rows
-			null, // stop position - last row in conglomerate
+            null, // qualifier - accept all rows
+            null, // stop position - last row in conglomerate
             0);   // unused if stop position is null.
 
         scan1.next();
@@ -784,7 +784,7 @@ public class T_XA extends T_Generic
         // This prepare will commit the idle transaction.
         if (xa_tc.xa_prepare() != XATransactionController.XA_RDONLY)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "prepare of idle xact did not return XA_RDONLY.");
         }
 
@@ -795,7 +795,7 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).find(
                 new XAXactId(42, global_id, branch_id)) != null)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "A XA_RDONLY prepare-committed xact should not be findable.");
         }
 
@@ -808,7 +808,7 @@ public class T_XA extends T_Generic
     /**
      * Very simple testing of the recover() call.
      * <p>
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     void XATest_5(
     commit_method   commit_method)
@@ -820,7 +820,7 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).recover(
                 XAResource.TMSTARTRSCAN).length != 0)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "recover incorrectly returned prepared xacts.");
         }
 
@@ -828,7 +828,7 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).recover(
                 XAResource.TMNOFLAGS).length != 0)
         {
-			throw T_Fail.testFailMsg("NOFLAGS should always return 0.");
+            throw T_Fail.testFailMsg("NOFLAGS should always return 0.");
         }
 
         ContextManager cm = 
@@ -848,7 +848,7 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).recover(
                 XAResource.TMSTARTRSCAN).length != 0)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "recover incorrectly returned prepared xacts.");
         }
 
@@ -868,14 +868,14 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-		// Create a heap conglomerate.
+        // Create a heap conglomerate.
         T_AccessRow template_row = new T_AccessRow(1);
-		long conglomid = 
+        long conglomid = 
             xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
-				null, //column sort order - not required for heap
-				null,  	//default collation
+                null, //column sort order - not required for heap
+                null,      //default collation
                 null,         // default properties
                 TransactionController.IS_DEFAULT);       // not temporary
 
@@ -883,7 +883,7 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).recover(
                 XAResource.TMSTARTRSCAN).length != 0)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "recover incorrectly returned prepared xacts.");
         }
 
@@ -903,18 +903,18 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-		// Open a scan on the conglomerate.
-		ScanController scan1 = xa_tc.openScan(
-			conglomid,
-			false, // don't hold
-			0,     // not for update
+        // Open a scan on the conglomerate.
+        ScanController scan1 = xa_tc.openScan(
+            conglomid,
+            false, // don't hold
+            0,     // not for update
             TransactionController.MODE_RECORD,
             TransactionController.ISOLATION_SERIALIZABLE,
-			(FormatableBitSet) null, // all columns, all as objects
-			null, // start position - first row in conglomerate
+            (FormatableBitSet) null, // all columns, all as objects
+            null, // start position - first row in conglomerate
             0,    // unused if start position is null.
-			null, // qualifier - accept all rows
-			null, // stop position - last row in conglomerate
+            null, // qualifier - accept all rows
+            null, // stop position - last row in conglomerate
             0);   // unused if stop position is null.
 
         scan1.next();
@@ -924,7 +924,7 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).recover(
                 XAResource.TMSTARTRSCAN).length != 0)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "recover incorrectly returned prepared xacts.");
         }
 
@@ -945,14 +945,14 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-		// Create a heap conglomerate.
+        // Create a heap conglomerate.
         template_row = new T_AccessRow(1);
-		conglomid = 
+        conglomid = 
             xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
-				null, //column sort order - not required for heap
-				null,  	//default collation
+                null, //column sort order - not required for heap
+                null,      //default collation
                 null,         // default properties
                 TransactionController.IS_DEFAULT);       // not temporary
 
@@ -960,14 +960,14 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).recover(
                 XAResource.TMSTARTRSCAN).length != 0)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "recover incorrectly returned prepared xacts.");
         }
 
         // prepare the update xact.
         if (xa_tc.xa_prepare() != XATransactionController.XA_OK)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "prepare of update xact did not return XA_OK.");
         }
 
@@ -990,7 +990,7 @@ public class T_XA extends T_Generic
             scan1.next();
             scan1.close();
 
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "Should not be able to do anything on xact after prepare.");
         }
         catch (StandardException se)
@@ -1005,19 +1005,19 @@ public class T_XA extends T_Generic
 
         if (prepared_xacts.length != 1)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "recover incorrectly returned wrong prepared xacts.");
         }
 
         if (prepared_xacts[0].getFormatId() != 42)
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "bad format id = " + prepared_xacts[0].getFormatId());
 
         byte[] gid = prepared_xacts[0].getGlobalTransactionId();
 
         if (!java.util.Arrays.equals(gid, global_id))
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "bad global id = " + com.splicemachine.dbTesting.unitTests.util.BitUtil.hexDump(gid));
         }
 
@@ -1025,14 +1025,14 @@ public class T_XA extends T_Generic
 
         if (!java.util.Arrays.equals(bid, branch_id))
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "bad branch id = " + com.splicemachine.dbTesting.unitTests.util.BitUtil.hexDump(bid));
         }
 
         if (((XAResourceManager) store.getXAResourceManager()).recover(
                 XAResource.TMNOFLAGS).length != 0)
         {
-			throw T_Fail.testFailMsg("NOFLAGS should always return 0.");
+            throw T_Fail.testFailMsg("NOFLAGS should always return 0.");
         }
 
         // commit a prepared transaction - using two phase.
@@ -1042,7 +1042,7 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).recover(
                 XAResource.TMSTARTRSCAN).length != 0)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "recover incorrectly returned prepared xacts.");
         }
 
@@ -1053,7 +1053,7 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).recover(
                 XAResource.TMSTARTRSCAN).length != 0)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "recover incorrectly returned prepared xacts.");
         }
 
@@ -1064,7 +1064,7 @@ public class T_XA extends T_Generic
     /**
      * Very simple testing of changing a local transaction to a global.
      * <p>
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     void XATest_6(
     commit_method   commit_method)
@@ -1077,14 +1077,14 @@ public class T_XA extends T_Generic
 
         TransactionController   tc = store.getTransaction(cm);
 
-		// Create a heap conglomerate.
+        // Create a heap conglomerate.
         T_AccessRow template_row = new T_AccessRow(1);
-		long conglomid = 
+        long conglomid = 
             tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
-				null, //column sort order - not required for heap
-				null,  	//default collation
+                null, //column sort order - not required for heap
+                null,      //default collation
                 null,         // default properties
                 TransactionController.IS_DEFAULT);       // not temporary
 
@@ -1101,22 +1101,22 @@ public class T_XA extends T_Generic
 
         if (!xa_tc.isGlobal())
         {
-			throw T_Fail.testFailMsg("should be a global transaction.");
+            throw T_Fail.testFailMsg("should be a global transaction.");
         }
 
 
-		// Open a scan on the conglomerate.
-		ScanController scan1 = xa_tc.openScan(
-			conglomid,
-			false, // don't hold
-			0,     // not for update
+        // Open a scan on the conglomerate.
+        ScanController scan1 = xa_tc.openScan(
+            conglomid,
+            false, // don't hold
+            0,     // not for update
             TransactionController.MODE_RECORD,
             TransactionController.ISOLATION_SERIALIZABLE,
-			(FormatableBitSet) null, // all columns, all as objects
-			null, // start position - first row in conglomerate
+            (FormatableBitSet) null, // all columns, all as objects
+            null, // start position - first row in conglomerate
             0,    // unused if start position is null.
-			null, // qualifier - accept all rows
-			null, // stop position - last row in conglomerate
+            null, // qualifier - accept all rows
+            null, // stop position - last row in conglomerate
             0);   // unused if stop position is null.
 
 
@@ -1124,14 +1124,14 @@ public class T_XA extends T_Generic
         scan1.close();
 
 
-		// Create a heap conglomerate.
+        // Create a heap conglomerate.
         template_row = new T_AccessRow(1);
-		conglomid = 
+        conglomid = 
             xa_tc.createConglomerate(false,
                 "heap",       // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
-				null, //column sort order - not required for heap
-				null,  	//default collation
+                null, //column sort order - not required for heap
+                null,      //default collation
                 null,         // default properties
                 TransactionController.IS_DEFAULT);       // not temporary
 
@@ -1139,14 +1139,14 @@ public class T_XA extends T_Generic
         if (((XAResourceManager) store.getXAResourceManager()).recover(
                 XAResource.TMSTARTRSCAN).length != 0)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "recover incorrectly returned prepared xacts.");
         }
 
         // prepare the update xact.
         if (xa_tc.xa_prepare() != XATransactionController.XA_OK)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "prepare of update xact did not return XA_OK.");
         }
 
@@ -1169,7 +1169,7 @@ public class T_XA extends T_Generic
             scan1.next();
             scan1.close();
 
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "Should not be able to do anything on xact after prepare.");
         }
         catch (StandardException se)

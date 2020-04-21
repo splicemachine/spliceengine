@@ -29,54 +29,54 @@ import com.splicemachine.utils.SpliceLogUtils;
  *
  */
 public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation {
-	private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperation.class);
-
-	/**
-	 *
-	 * No arg constructor, required for Serde.
-	 *
-	 */
-    public DistinctGroupedAggregateOperation() {
-		super();
-	}
+    private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperation.class);
 
     /**
-	 * Constructor
-	 *
-	 * @param	s			input result set
-	 * @param	isInSortedOrder	true if the source results are in sorted order
-	 * @param	aggregateItem	indicates the number of the
-	 *		SavedObject off of the PreparedStatement that holds the
-	 *		AggregatorInfoList used by this routine.  
-	 * @param	orderingItem	indicates the number of the
-	 *		SavedObject off of the PreparedStatement that holds the
-	 *		ColumOrdering array used by this routine
-	 * @param	a				activation
-	 * @param	ra				generated method to build an empty
-	 *	 	output row 
-	 * @param	maxRowSize		approx row size, passed to sorter
-	 * @param	resultSetNumber	The resultSetNumber for this result set
-	 * @param 	nativeSparkMode Is native spark processing on, off, or should we
-	 *                              use the system setting (from SConfiguration)?
-	 * @exception StandardException Thrown on error
-	 */
-    public DistinctGroupedAggregateOperation(SpliceOperation s,
-					boolean isInSortedOrder,
-					int	aggregateItem,
-					int	orderingItem,
-					Activation a,
-					GeneratedMethod ra,
-					int maxRowSize,
-					int resultSetNumber,
-					double optimizerEstimatedRowCount,
-					double optimizerEstimatedCost,
-					boolean isRollup,
-					int groupingIdColPosition,
-					int groupingIdArrayItem,
-					CompilerContext.NativeSparkModeType nativeSparkMode) throws StandardException {
+     *
+     * No arg constructor, required for Serde.
+     *
+     */
+    public DistinctGroupedAggregateOperation() {
+        super();
+    }
 
-		super(s, isInSortedOrder, aggregateItem, orderingItem,a, ra, maxRowSize, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup,
-				groupingIdColPosition, groupingIdArrayItem, nativeSparkMode);
-		SpliceLogUtils.trace(LOG, "instance");
+    /**
+     * Constructor
+     *
+     * @param    s            input result set
+     * @param    isInSortedOrder    true if the source results are in sorted order
+     * @param    aggregateItem    indicates the number of the
+     *        SavedObject off of the PreparedStatement that holds the
+     *        AggregatorInfoList used by this routine.  
+     * @param    orderingItem    indicates the number of the
+     *        SavedObject off of the PreparedStatement that holds the
+     *        ColumOrdering array used by this routine
+     * @param    a                activation
+     * @param    ra                generated method to build an empty
+     *         output row 
+     * @param    maxRowSize        approx row size, passed to sorter
+     * @param    resultSetNumber    The resultSetNumber for this result set
+     * @param     nativeSparkMode Is native spark processing on, off, or should we
+     *                              use the system setting (from SConfiguration)?
+     * @exception StandardException Thrown on error
+     */
+    public DistinctGroupedAggregateOperation(SpliceOperation s,
+                    boolean isInSortedOrder,
+                    int    aggregateItem,
+                    int    orderingItem,
+                    Activation a,
+                    GeneratedMethod ra,
+                    int maxRowSize,
+                    int resultSetNumber,
+                    double optimizerEstimatedRowCount,
+                    double optimizerEstimatedCost,
+                    boolean isRollup,
+                    int groupingIdColPosition,
+                    int groupingIdArrayItem,
+                    CompilerContext.NativeSparkModeType nativeSparkMode) throws StandardException {
+
+        super(s, isInSortedOrder, aggregateItem, orderingItem,a, ra, maxRowSize, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup,
+                groupingIdColPosition, groupingIdArrayItem, nativeSparkMode);
+        SpliceLogUtils.trace(LOG, "instance");
     }
 }

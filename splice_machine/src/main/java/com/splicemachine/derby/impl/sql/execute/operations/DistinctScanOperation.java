@@ -55,15 +55,15 @@ import java.util.List;
  */
 public class DistinctScanOperation extends ScanOperation {
     private static final long serialVersionUID = 3l;
-	protected static final String NAME = DistinctScanOperation.class.getSimpleName().replaceAll("Operation","");
+    protected static final String NAME = DistinctScanOperation.class.getSimpleName().replaceAll("Operation","");
 
-	@Override
-	public String getName() {
+    @Override
+    public String getName() {
         return NAME;
     }
 
-	@SuppressWarnings("UnusedDeclaration")
-	public DistinctScanOperation() { }
+    @SuppressWarnings("UnusedDeclaration")
+    public DistinctScanOperation() { }
 
     private int hashKeyItem;
     private String tableName;

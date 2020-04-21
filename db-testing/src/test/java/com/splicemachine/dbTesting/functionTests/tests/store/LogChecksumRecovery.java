@@ -47,25 +47,25 @@ import com.splicemachine.db.tools.ij;
 
 public class LogChecksumRecovery extends LogChecksumSetup {
 
-	LogChecksumRecovery()
-	{
-		super();
-	}
-	
-	private void runTest(Connection conn) throws SQLException
-	{
-		logMessage("Begin LogCheckumRecovery Test");
-		verifyData(conn, 10);
-		updateAndCorrupt(conn, 10);
-		logMessage("End LogCheckumRecovery Test");
-	}
-	
-	public static void main(String[] argv) 
+    LogChecksumRecovery()
+    {
+        super();
+    }
+    
+    private void runTest(Connection conn) throws SQLException
+    {
+        logMessage("Begin LogCheckumRecovery Test");
+        verifyData(conn, 10);
+        updateAndCorrupt(conn, 10);
+        logMessage("End LogCheckumRecovery Test");
+    }
+    
+    public static void main(String[] argv) 
         throws Throwable
     {
-		
+        
         LogChecksumRecovery lctest = new LogChecksumRecovery();
-   		ij.getPropertyArg(argv); 
+           ij.getPropertyArg(argv); 
         Connection conn = ij.startJBMS();
         conn.setAutoCommit(false);
 
@@ -73,10 +73,10 @@ public class LogChecksumRecovery extends LogChecksumSetup {
             lctest.runTest(conn);
         }
         catch (SQLException sqle) {
-			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
-			sqle.printStackTrace(System.out);
-		}
+            sqle.printStackTrace(System.out);
+        }
     }
 }
 

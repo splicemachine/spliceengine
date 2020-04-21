@@ -224,7 +224,7 @@ public class Derby3980DeadlockTest extends BaseJDBCTestCase {
          }
       
      };
-	
+    
     }
 
     /**

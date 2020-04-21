@@ -32,35 +32,35 @@
 package com.splicemachine.db.shared.common.reference;
 
 /**
-	This class contains message identifiers for
-	strings that are not converted to SQL exceptions.
+    This class contains message identifiers for
+    strings that are not converted to SQL exceptions.
 
-	A* - Authentication
-	C* - Class Manager
-	D* - Raw Store Data
-	I* - Interface in com.ibm.db2j.core.*
-	J* - Connectivity (JDBC)
-	L* - Raw Store Log
-	M* - Message service
+    A* - Authentication
+    C* - Class Manager
+    D* - Raw Store Data
+    I* - Interface in com.ibm.db2j.core.*
+    J* - Connectivity (JDBC)
+    L* - Raw Store Log
+    M* - Message service
 */
 
 public interface MessageId {
 
-	/*
-	** Raw Store log
-	*/
+    /*
+    ** Raw Store log
+    */
 
-	String LOG_BEGIN_ERROR					= "L001";
-	String LOG_END_ERROR					= "L002";
-	String LOG_BEGIN_CORRUPT_STACK			= "L003";
-	String LOG_END_CORRUPT_STACK			= "L004";
-	String LOG_BEGIN_ERROR_STACK			= "L005";
-	String LOG_END_ERROR_STACK				= "L006";
-	String LOG_LOG_NOT_FOUND				= "L007";
-	String LOG_DELETE_INCOMPATIBLE_FILE		= "L008";
-	String LOG_DELETE_OLD_FILE				= "L009";
-	String LOG_INCOMPLETE_LOG_RECORD		= "L010";
-	String LOG_CHECKPOINT_EXCEPTION			= "L011";
+    String LOG_BEGIN_ERROR                    = "L001";
+    String LOG_END_ERROR                    = "L002";
+    String LOG_BEGIN_CORRUPT_STACK            = "L003";
+    String LOG_END_CORRUPT_STACK            = "L004";
+    String LOG_BEGIN_ERROR_STACK            = "L005";
+    String LOG_END_ERROR_STACK                = "L006";
+    String LOG_LOG_NOT_FOUND                = "L007";
+    String LOG_DELETE_INCOMPATIBLE_FILE        = "L008";
+    String LOG_DELETE_OLD_FILE                = "L009";
+    String LOG_INCOMPLETE_LOG_RECORD        = "L010";
+    String LOG_CHECKPOINT_EXCEPTION            = "L011";
     String LOG_RECORD_NOT_FIRST             = "L012";
     String LOG_RECORD_FIRST                 = "L013";
     String LOG_BAD_START_INSTANT            = "L014";
@@ -74,7 +74,7 @@ public interface MessageId {
                                                          // db.system.durability was set to test
 
     String LOG_CHANGED_DB_TO_READ_ONLY        = "L022"; // a permissions error on log caused us
-    													// to change db to read only.
+                                                        // to change db to read only.
     
     /*
      * SQLBinary.java internal translatable strings
@@ -105,43 +105,43 @@ public interface MessageId {
      */
     String STORE_STREAM_OVERFLOW_PAGE_NOT_FOUND = "D015";
 
-	/*
-	** ClassManager
-	*/
-	String CM_WROTE_CLASS_FILE				= "C000";
-	String CM_UNKNOWN_CERTIFICATE			= "C001";
-	String CM_SECURITY_EXCEPTION			= "C002";
-	String CM_LOAD_JAR_EXCEPTION			= "C003";
-	String CM_STALE_LOADER					= "C004";
-	String CM_CLASS_LOADER_START			= "C005";
-	String CM_CLASS_LOAD					= "C006";
-	String CM_CLASS_LOAD_EXCEPTION			= "C007";
-	String CM_CANNOT_LOAD_CLASS		    	= "C008";
+    /*
+    ** ClassManager
+    */
+    String CM_WROTE_CLASS_FILE                = "C000";
+    String CM_UNKNOWN_CERTIFICATE            = "C001";
+    String CM_SECURITY_EXCEPTION            = "C002";
+    String CM_LOAD_JAR_EXCEPTION            = "C003";
+    String CM_STALE_LOADER                    = "C004";
+    String CM_CLASS_LOADER_START            = "C005";
+    String CM_CLASS_LOAD                    = "C006";
+    String CM_CLASS_LOAD_EXCEPTION            = "C007";
+    String CM_CANNOT_LOAD_CLASS                = "C008";
 
-	/*
-	** Connectivity
-	*/
-	String CONN_SHUT_DOWN_ENGINE		    = "J003"; // shutting down Derby Engine
-	String CONN_DATABASE_IDENTITY			= "J004"; // database identity
-	String CONN_SHUT_DOWN_CLOUDSCAPE		= "J005"; // shut down Derby
+    /*
+    ** Connectivity
+    */
+    String CONN_SHUT_DOWN_ENGINE            = "J003"; // shutting down Derby Engine
+    String CONN_DATABASE_IDENTITY            = "J004"; // database identity
+    String CONN_SHUT_DOWN_CLOUDSCAPE        = "J005"; // shut down Derby
     String CONN_DEREGISTER_AUTOLOADEDDRIVER = "J006"; // remove registered AutoloadedDriver
-	String CONN_CREATE_DATABASE				= "J007"; // create database
-	String CONN_NO_DETAILS					= "J008"; // no details
+    String CONN_CREATE_DATABASE                = "J007"; // create database
+    String CONN_NO_DETAILS                    = "J008"; // no details
     String CONN_DATA_ENCRYPTION             = "J010"; // encrypt database on disk
     String CONN_UPGRADE_DATABASE            = "J013"; // upgrade database 
     String CONN_CRYPTO_PROVIDER             = "J016"; // cryptographic service provider
     String CONN_CRYPTO_ALGORITHM            = "J017"; // cryptographic algorithm
     String CONN_CRYPTO_KEY_LENGTH           = "J018"; // cryptographic key length
-	String CONN_CRYPTO_EXTERNAL_KEY         = "J019"; // external cryptographic key
-	String CONN_BOOT_PASSWORD               = "J020"; // secret cryptographic key
-	String CONN_LOCALE                      = "J021"; // locale for the database
-	String CONN_COLLATION                   = "J031"; // collation info for the character datatypes
-	String CONN_USERNAME_ATTR               = "J022"; // user name
-	String CONN_PASSWORD_ATTR               = "J023"; // user password
-	String CONN_LOG_DEVICE                  = "J025"; // log directory path
-	String CONN_ROLL_FORWARD_RECOVERY_FROM  = "J028"; //backup path for roll-forward recovery 
-	String CONN_CREATE_FROM                 = "J029"; //backup path for creating database from backup
-	String CONN_RESTORE_FROM                = "J030"; //backup path for restoring database from backup
+    String CONN_CRYPTO_EXTERNAL_KEY         = "J019"; // external cryptographic key
+    String CONN_BOOT_PASSWORD               = "J020"; // secret cryptographic key
+    String CONN_LOCALE                      = "J021"; // locale for the database
+    String CONN_COLLATION                   = "J031"; // collation info for the character datatypes
+    String CONN_USERNAME_ATTR               = "J022"; // user name
+    String CONN_PASSWORD_ATTR               = "J023"; // user password
+    String CONN_LOG_DEVICE                  = "J025"; // log directory path
+    String CONN_ROLL_FORWARD_RECOVERY_FROM  = "J028"; //backup path for roll-forward recovery 
+    String CONN_CREATE_FROM                 = "J029"; //backup path for creating database from backup
+    String CONN_RESTORE_FROM                = "J030"; //backup path for restoring database from backup
     String CONN_NETWORK_SERVER_CLASS_FIND   = "J100"; // Cannot find the network server starterclass
     String CONN_NETWORK_SERVER_CLASS_LOAD   = "J101"; // Cannot load the network server constructor
     String CONN_NETWORK_SERVER_START_EXCEPTION = "J102";
@@ -184,21 +184,21 @@ public interface MessageId {
     String CONN_XA_TRANSACTION_TIMED_OUT                    = "J135";
     String CONN_CLOSE_XA_TRANSACTION_ROLLED_BACK            = "J136";
 
-	/*
-	** Authentication
-	*/
-	String AUTH_NO_SERVICE_FOR_SYSTEM	= "A001"; // FATAL: There is no Authentication Service for the system
-	String AUTH_NO_SERVICE_FOR_DB		= "A002"; // FATAL: There is no Authentication Service for the database
-	String AUTH_NO_LDAP_HOST_MENTIONED	= "A011"; // No LDAP Server/Host name mentioned ...
-	String AUTH_INVALID					= "A020"; // authentication failed due to invalid password or whatever
+    /*
+    ** Authentication
+    */
+    String AUTH_NO_SERVICE_FOR_SYSTEM    = "A001"; // FATAL: There is no Authentication Service for the system
+    String AUTH_NO_SERVICE_FOR_DB        = "A002"; // FATAL: There is no Authentication Service for the database
+    String AUTH_NO_LDAP_HOST_MENTIONED    = "A011"; // No LDAP Server/Host name mentioned ...
+    String AUTH_INVALID                    = "A020"; // authentication failed due to invalid password or whatever
 
-	/*
-	** Derby interface in com.splicemachine.db.iapi.*
-	** These messages are thrown in both the server and the client side.
-	*/
-	String CORE_DATABASE_NOT_AVAILABLE	= "I024"; // Database not available
-	String CORE_DRIVER_NOT_AVAILABLE	= "I025"; // JDBC Driver not available
-	String JDBC_DRIVER_REGISTER_ERROR 	= "I026"; // Error while registering driver
+    /*
+    ** Derby interface in com.splicemachine.db.iapi.*
+    ** These messages are thrown in both the server and the client side.
+    */
+    String CORE_DATABASE_NOT_AVAILABLE    = "I024"; // Database not available
+    String CORE_DRIVER_NOT_AVAILABLE    = "I025"; // JDBC Driver not available
+    String JDBC_DRIVER_REGISTER_ERROR     = "I026"; // Error while registering driver
     /**
      * At the time InputStream.reset was invoked, either no mark was set or the
      * read ahead limit of the mark was exceeded.

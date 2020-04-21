@@ -68,12 +68,12 @@ public class HoldabilityTest extends SURBaseTest {
     
     protected void tearDown() throws Exception
     {
-    	// Commit any changes, they will be dropped
-    	// anyway by the next setUp to run or the
-    	// outer database cleaners. It's faster to
-    	// commit than rollback many changes.
-    	commit();
-    	super.tearDown();
+        // Commit any changes, they will be dropped
+        // anyway by the next setUp to run or the
+        // outer database cleaners. It's faster to
+        // commit than rollback many changes.
+        commit();
+        super.tearDown();
     }
     
     /**

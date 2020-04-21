@@ -52,12 +52,12 @@ import com.splicemachine.db.shared.common.reference.MessageId;
  */
 //@NotThreadSafe
 public final class ReaderToUTF8Stream
-	extends InputStream
+    extends InputStream
 {
     /**
      * Application's reader wrapped in a LimitReader.
      */
-	private LimitReader reader;
+    private LimitReader reader;
 
     /** Constant indicating the first iteration of {@code fillBuffer}. */
     private final static int FIRST_READ = Integer.MIN_VALUE;
@@ -75,15 +75,15 @@ public final class ReaderToUTF8Stream
      * {@linkplain #mark(int)} is invoked.
      */
     private byte[] buffer;
-	private int boff;
+    private int boff;
     private int blen = -1;
     /** Stream mark, set through {@linkplain #mark(int)}. */
     private int mark = MARK_UNSET_OR_EXCEEDED;
     /** Read ahead limit for mark, set through {@linkplain #mark(int)}. */
     private int readAheadLimit;
-	private boolean eof;
+    private boolean eof;
     /** Tells if the stream content is/was larger than the buffer size. */
-	private boolean multipleBuffer;
+    private boolean multipleBuffer;
     /**
      * The generator for the stream header to use for this stream.
      * @see #checkSufficientData()
@@ -207,7 +207,7 @@ public final class ReaderToUTF8Stream
      * @throws IOException if reading from the source stream fails
      * @see java.io.InputStream#read()
      */
-	public int read() throws IOException {
+    public int read() throws IOException {
 
         // when stream has been read and eof reached, stream is closed
         // and buffer is set to null ( see close() method)
@@ -217,14 +217,14 @@ public final class ReaderToUTF8Stream
             throw new EOFException(MessageService.getTextMessage(SQLState.STREAM_EOF));
 
         
-		// first read
-		if (blen < 0)
+        // first read
+        if (blen < 0)
             fillBuffer(FIRST_READ);
 
-		while (boff == blen)
-		{
-			// reached end of buffer, read more?
-			if (eof)
+        while (boff == blen)
+        {
+            // reached end of buffer, read more?
+            if (eof)
             {
                // we have reached the end of this stream
                // cleanup here and return -1 indicating 
@@ -234,12 +234,12 @@ public final class ReaderToUTF8Stream
             }
                 
 
-			fillBuffer(0);
-		}
+            fillBuffer(0);
+        }
 
-		return buffer[boff++] & 0xff;
+        return buffer[boff++] & 0xff;
 
-	}
+    }
 
     /**
      * Reads up to {@code len} bytes from the stream.
@@ -254,7 +254,7 @@ public final class ReaderToUTF8Stream
      * @throws IOException if reading from the source stream fails
      * @see java.io.InputStream#read(byte[],int,int)
      */
-	public int read(byte b[], int off, int len) throws IOException {
+    public int read(byte b[], int off, int len) throws IOException {
         
         // when stream has been read and eof reached, stream is closed
         // and buffer is set to null ( see close() method)
@@ -265,21 +265,21 @@ public final class ReaderToUTF8Stream
                     (SQLState.STREAM_EOF));
 
         // first read
-		if (blen < 0)
+        if (blen < 0)
             fillBuffer(FIRST_READ);
 
-		int readCount = 0;
+        int readCount = 0;
 
-		while (len > 0)
-		{
+        while (len > 0)
+        {
 
-			int copyBytes = blen - boff;
+            int copyBytes = blen - boff;
 
-			// buffer empty?
-			if (copyBytes == 0)
-			{
-				if (eof)
-				{
+            // buffer empty?
+            if (copyBytes == 0)
+            {
+                if (eof)
+                {
                     if (readCount > 0)
                     {
                         return readCount;
@@ -291,23 +291,23 @@ public final class ReaderToUTF8Stream
                         return -1;  
                     }
                     
-				}
-				fillBuffer(0);
-				continue;
-			}
+                }
+                fillBuffer(0);
+                continue;
+            }
 
-			if (len < copyBytes)
-				copyBytes = len;
+            if (len < copyBytes)
+                copyBytes = len;
 
-			System.arraycopy(buffer, boff, b, off, copyBytes);
-			boff += copyBytes;
-			len -= copyBytes;
-			readCount += copyBytes;
+            System.arraycopy(buffer, boff, b, off, copyBytes);
+            boff += copyBytes;
+            len -= copyBytes;
+            readCount += copyBytes;
             off += copyBytes;
 
-		}
-		return readCount;
-	}
+        }
+        return readCount;
+    }
 
     /**
      * Fills the internal buffer with data read from the source stream.
@@ -321,8 +321,8 @@ public final class ReaderToUTF8Stream
      *      (different than specified), or if truncation of blanks fails
      * @throws IOException if reading from the source stream fails
      */
-	private void fillBuffer(int startingOffset) throws IOException
-	{
+    private void fillBuffer(int startingOffset) throws IOException
+    {
         if (startingOffset == FIRST_READ) {
             // Generate the header. Provide the char length only if the header
             // encodes a char count and we actually know the char count.
@@ -334,15 +334,15 @@ public final class ReaderToUTF8Stream
             // Make startingOffset point at the first byte after the header.
             startingOffset = headerLength;
         }
-		int off = startingOffset;
+        int off = startingOffset;
         // In the case of a mark, the offset may be adjusted.
         // Do not change boff in the encoding loop. Before the encoding loop
         // starts, it shall point at the next byte the stream will deliver on
         // the next iteration of read or skip.
         boff = 0;
 
-		if (off == 0)
-			multipleBuffer = true;
+        if (off == 0)
+            multipleBuffer = true;
 
         // If we have a mark set, see if we have to expand the buffer, or if we
         // are going to read past the read ahead limit and can invalidate the
@@ -370,38 +370,38 @@ public final class ReaderToUTF8Stream
             }
         }
 
-		// 6! need to leave room for a three byte UTF8 encoding
-		// and 3 bytes for our special end of file marker.
+        // 6! need to leave room for a three byte UTF8 encoding
+        // and 3 bytes for our special end of file marker.
         for (; off <= buffer.length - READ_BUFFER_RESERVATION; )
-		{
-			int c = reader.read();
-			if (c < 0) {
-				eof = true;
-				break;
-			}
+        {
+            int c = reader.read();
+            if (c < 0) {
+                eof = true;
+                break;
+            }
             charCount++; // Increment the character count.
 
-			if ((c >= 0x0001) && (c <= 0x007F))
+            if ((c >= 0x0001) && (c <= 0x007F))
             {
-				buffer[off++] = (byte) c;
-			}
+                buffer[off++] = (byte) c;
+            }
             else if (c > 0x07FF)
             {
-				buffer[off++] = (byte) (0xE0 | ((c >> 12) & 0x0F));
-				buffer[off++] = (byte) (0x80 | ((c >>  6) & 0x3F));
-				buffer[off++] = (byte) (0x80 | ((c >>  0) & 0x3F));
-			}
+                buffer[off++] = (byte) (0xE0 | ((c >> 12) & 0x0F));
+                buffer[off++] = (byte) (0x80 | ((c >>  6) & 0x3F));
+                buffer[off++] = (byte) (0x80 | ((c >>  0) & 0x3F));
+            }
             else
             {
-				buffer[off++] = (byte) (0xC0 | ((c >>  6) & 0x1F));
-				buffer[off++] = (byte) (0x80 | ((c >>  0) & 0x3F));
-			}
-		}
+                buffer[off++] = (byte) (0xC0 | ((c >>  6) & 0x1F));
+                buffer[off++] = (byte) (0x80 | ((c >>  0) & 0x3F));
+            }
+        }
 
-		blen = off;
-		if (eof)
-			checkSufficientData();
-	}
+        blen = off;
+        if (eof)
+            checkSufficientData();
+    }
 
     /**
      * Validate the length of the stream, take corrective action if allowed.
@@ -416,9 +416,9 @@ public final class ReaderToUTF8Stream
      *      stream is too long and cannot be truncated, or the stream length
      *      does not match the specified length
      */
-	private void checkSufficientData() throws IOException
-	{
-		// now that we finished reading from the stream; the amount
+    private void checkSufficientData() throws IOException
+    {
+        // now that we finished reading from the stream; the amount
         // of data that we can insert,start check for trailing spaces
         if (charsToTruncate > 0)
         {
@@ -437,8 +437,8 @@ public final class ReaderToUTF8Stream
                     SQLState.SET_STREAM_INEXACT_LENGTH_DATA);
         }
 
-		// if we had a limit try reading one more character.
-		// JDBC 3.0 states the stream must have the correct number of
+        // if we had a limit try reading one more character.
+        // JDBC 3.0 states the stream must have the correct number of
         // characters in it.
         if (remainingBytes == 0 && reader.read() >= 0) {
             if (valueLength > -1) {
@@ -536,7 +536,7 @@ public final class ReaderToUTF8Stream
         // Instead of using another variable to indicate stream is closed
         // a check on (buffer==null) is used instead. 
         buffer = null;
-	}
+    }
 
     /**
      * Return an optimized version of bytes available to read from 

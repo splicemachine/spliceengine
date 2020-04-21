@@ -40,24 +40,24 @@ public class EntryPredicateFilter {
         this.returnIndex=returnIndex;
     }
 
-		public boolean match(Indexed index,
-												 Supplier<MultiFieldDecoder> decoderProvider,
-												 EntryAccumulator accumulator) throws IOException{
-				BitSet remainingFields = accumulator.getRemainingFields();
+        public boolean match(Indexed index,
+                                                 Supplier<MultiFieldDecoder> decoderProvider,
+                                                 EntryAccumulator accumulator) throws IOException{
+                BitSet remainingFields = accumulator.getRemainingFields();
 
-				MultiFieldDecoder decoder = decoderProvider.get();
-				for(int encodedPos =index.nextSetBit(0);
-						remainingFields.cardinality()>0 && encodedPos>=0&&encodedPos<=remainingFields.length();
-						encodedPos=index.nextSetBit(encodedPos + 1)){
-						if(!remainingFields.get(encodedPos)){
-								skipField(decoder,encodedPos,index);
-								continue;
-						}
+                MultiFieldDecoder decoder = decoderProvider.get();
+                for(int encodedPos =index.nextSetBit(0);
+                        remainingFields.cardinality()>0 && encodedPos>=0&&encodedPos<=remainingFields.length();
+                        encodedPos=index.nextSetBit(encodedPos + 1)){
+                        if(!remainingFields.get(encodedPos)){
+                                skipField(decoder,encodedPos,index);
+                                continue;
+                        }
 
-						int offset = decoder.offset();
+                        int offset = decoder.offset();
 
-						byte[] array = decoder.array();
-						if(offset>array.length){
+                        byte[] array = decoder.array();
+                        if(offset>array.length){
                 /*
                  * It may seem odd that this case can happen, but it occurs when the scan
                  * doesn't provide information about how many columns it expects back, and
@@ -68,28 +68,28 @@ public class EntryPredicateFilter {
                  * there actually IS data to add before adding. In that case, we've finished, so
                  * tell the accumulator
                  */
-								if(fieldsToReturn==null||fieldsToReturn.isEmpty())
-										accumulator.complete();
-								return true;
-						}
-						skipField(decoder, encodedPos, index);
+                                if(fieldsToReturn==null||fieldsToReturn.isEmpty())
+                                        accumulator.complete();
+                                return true;
+                        }
+                        skipField(decoder, encodedPos, index);
 
 
-						int limit = decoder.offset()-1-offset;
-						if(limit<=0){
-								//we have an implicit null field
-								limit=0;
-						}else if(offset+limit>array.length){
-								limit = array.length-offset;
-						}
-						accumulate(index, encodedPos, accumulator, array, offset, limit);
-				}
-				return true;
-		}
+                        int limit = decoder.offset()-1-offset;
+                        if(limit<=0){
+                                //we have an implicit null field
+                                limit=0;
+                        }else if(offset+limit>array.length){
+                                limit = array.length-offset;
+                        }
+                        accumulate(index, encodedPos, accumulator, array, offset, limit);
+                }
+                return true;
+        }
 
 
-		public boolean match(EntryDecoder entry,EntryAccumulator accumulator) throws IOException {
-				return match(entry.getCurrentIndex(),entry, accumulator);
+        public boolean match(EntryDecoder entry,EntryAccumulator accumulator) throws IOException {
+                return match(entry.getCurrentIndex(),entry, accumulator);
     }
 
     public void rowReturned(){
@@ -130,26 +130,26 @@ public class EntryPredicateFilter {
     }
 
     private void skipField(MultiFieldDecoder decoder, int position, Indexed index) {
-				if(index.isScalarType(position)){
-						decoder.skipLong();
-				}else if(index.isFloatType(position)){
-						decoder.skipFloat();
-				}else if(index.isDoubleType(position))
-						decoder.skipDouble();
-				else
-						decoder.skip();
-		}
+                if(index.isScalarType(position)){
+                        decoder.skipLong();
+                }else if(index.isFloatType(position)){
+                        decoder.skipFloat();
+                }else if(index.isDoubleType(position))
+                        decoder.skipDouble();
+                else
+                        decoder.skip();
+        }
 
-		private void accumulate(Indexed index, int position, EntryAccumulator accumulator, byte[] buffer, int offset, int length) {
-				if(index.isScalarType(position)){
-						accumulator.addScalar(position,buffer,offset,length);
-				}else if(index.isFloatType(position)){
-						accumulator.addFloat(position,buffer,offset,length);
-				}else if(index.isDoubleType(position))
-						accumulator.addDouble(position,buffer,offset,length);
-				else
-						accumulator.add(position,buffer,offset,length);
-		}
+        private void accumulate(Indexed index, int position, EntryAccumulator accumulator, byte[] buffer, int offset, int length) {
+                if(index.isScalarType(position)){
+                        accumulator.addScalar(position,buffer,offset,length);
+                }else if(index.isFloatType(position)){
+                        accumulator.addFloat(position,buffer,offset,length);
+                }else if(index.isDoubleType(position))
+                        accumulator.addDouble(position,buffer,offset,length);
+                else
+                        accumulator.add(position,buffer,offset,length);
+        }
 
     public boolean indexReturned() {
         return returnIndex;

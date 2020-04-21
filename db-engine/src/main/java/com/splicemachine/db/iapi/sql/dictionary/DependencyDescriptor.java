@@ -46,99 +46,99 @@ import com.splicemachine.db.iapi.sql.depend.Provider;
  * 
  */
 public class DependencyDescriptor extends TupleDescriptor 
-	implements UniqueTupleDescriptor
+    implements UniqueTupleDescriptor
 {
-	/** public interface for this class is:
-		<ol>
-		<li>public DependableFinder getDependentFinder();</li>
-		<li>public UUID getProviderID();</li>
-		<li>public DependableFinder getProviderFinder();</li>
-		</ol>
-	*/
+    /** public interface for this class is:
+        <ol>
+        <li>public DependableFinder getDependentFinder();</li>
+        <li>public UUID getProviderID();</li>
+        <li>public DependableFinder getProviderFinder();</li>
+        </ol>
+    */
 
-	// implementation
-	private final UUID					dependentID;
-	private final DependableFinder		dependentBloodhound;
-	private final UUID					providerID;
-	private final DependableFinder		providerBloodhound;
+    // implementation
+    private final UUID                    dependentID;
+    private final DependableFinder        dependentBloodhound;
+    private final UUID                    providerID;
+    private final DependableFinder        providerBloodhound;
 
-	/**
-	 * Constructor for a DependencyDescriptor
-	 *
-	 * @param dependent			The Dependent
-	 * @param provider			The Provider
-	 */
+    /**
+     * Constructor for a DependencyDescriptor
+     *
+     * @param dependent            The Dependent
+     * @param provider            The Provider
+     */
 
-	public DependencyDescriptor(
-			Dependent dependent,
-			Provider provider
-			)
-	{
-		dependentID = dependent.getObjectID();
-		dependentBloodhound = dependent.getDependableFinder();
-		providerID = provider.getObjectID();
-		providerBloodhound = provider.getDependableFinder();
-	}
+    public DependencyDescriptor(
+            Dependent dependent,
+            Provider provider
+            )
+    {
+        dependentID = dependent.getObjectID();
+        dependentBloodhound = dependent.getDependableFinder();
+        providerID = provider.getObjectID();
+        providerBloodhound = provider.getDependableFinder();
+    }
 
-	/**
-	 * Constructor for a DependencyDescriptor
-	 *
-	 * @param dependentID			The Dependent ID
-	 * @param dependentBloodhound	The bloodhound for finding the Dependent
-	 * @param providerID			The Provider ID
-	 * @param providerBloodhound	The bloodhound for finding the Provider
-	 */
+    /**
+     * Constructor for a DependencyDescriptor
+     *
+     * @param dependentID            The Dependent ID
+     * @param dependentBloodhound    The bloodhound for finding the Dependent
+     * @param providerID            The Provider ID
+     * @param providerBloodhound    The bloodhound for finding the Provider
+     */
 
-	public DependencyDescriptor(
-			UUID dependentID, DependableFinder dependentBloodhound,
-			UUID providerID, DependableFinder providerBloodhound
-			)
-	{
-		this.dependentID = dependentID;
-		this.dependentBloodhound = dependentBloodhound;
-		this.providerID = providerID;
-		this.providerBloodhound = providerBloodhound;
-	}
+    public DependencyDescriptor(
+            UUID dependentID, DependableFinder dependentBloodhound,
+            UUID providerID, DependableFinder providerBloodhound
+            )
+    {
+        this.dependentID = dependentID;
+        this.dependentBloodhound = dependentBloodhound;
+        this.providerID = providerID;
+        this.providerBloodhound = providerBloodhound;
+    }
 
-	// DependencyDescriptor interface
+    // DependencyDescriptor interface
 
-	/**
-	 * Get the dependent's ID for the dependency.
-	 *
-	 * @return 	The dependent's ID.
-	 */
-	public UUID getUUID()
-	{
-		return dependentID;
-	}
+    /**
+     * Get the dependent's ID for the dependency.
+     *
+     * @return     The dependent's ID.
+     */
+    public UUID getUUID()
+    {
+        return dependentID;
+    }
 
-	/**
-	 * Get the dependent's type for the dependency.
-	 *
-	 * @return The dependent's type.
-	 */
-	public DependableFinder getDependentFinder()
-	{
-		return dependentBloodhound;
-	}
+    /**
+     * Get the dependent's type for the dependency.
+     *
+     * @return The dependent's type.
+     */
+    public DependableFinder getDependentFinder()
+    {
+        return dependentBloodhound;
+    }
 
-	/**
-	 * Get the provider's ID for the dependency.
-	 *
-	 * @return 	The provider's ID.
-	 */
-	public UUID getProviderID()
-	{
-		return providerID;
-	}
+    /**
+     * Get the provider's ID for the dependency.
+     *
+     * @return     The provider's ID.
+     */
+    public UUID getProviderID()
+    {
+        return providerID;
+    }
 
-	/**
-	 * Get the provider's type for the dependency.
-	 *
-	 * @return The provider's type.
-	 */
-	public DependableFinder getProviderFinder()
-	{
-		return providerBloodhound;
-	}
+    /**
+     * Get the provider's type for the dependency.
+     *
+     * @return The provider's type.
+     */
+    public DependableFinder getProviderFinder()
+    {
+        return providerBloodhound;
+    }
 }

@@ -20,5 +20,5 @@ package com.splicemachine.metrics.util;
  */
 public interface DoubleFolder {
 
-		double fold(double previous, double next);
+        double fold(double previous, double next);
 }

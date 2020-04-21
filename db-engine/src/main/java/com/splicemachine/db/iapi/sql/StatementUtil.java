@@ -40,39 +40,39 @@ import com.splicemachine.db.iapi.reference.SQLState;
  */
 public class StatementUtil
 {
-	private StatementUtil(){}    // Do not instantiate
+    private StatementUtil(){}    // Do not instantiate
 
-	public static String typeName(int typeNumber)
-	{
-		String retval;
+    public static String typeName(int typeNumber)
+    {
+        String retval;
 
-		switch (typeNumber)
-		{
-		  case StatementType.INSERT:
-		  case StatementType.BULK_INSERT_REPLACE:
-		  case StatementType.UPDATE:
-		  case StatementType.DELETE:
-		  case StatementType.ENABLED:
-		  case StatementType.DISABLED:
-			retval = TypeNames[typeNumber];
-			break;
+        switch (typeNumber)
+        {
+          case StatementType.INSERT:
+          case StatementType.BULK_INSERT_REPLACE:
+          case StatementType.UPDATE:
+          case StatementType.DELETE:
+          case StatementType.ENABLED:
+          case StatementType.DISABLED:
+            retval = TypeNames[typeNumber];
+            break;
 
-		  default:
-			retval = MessageService.getTextMessage(SQLState.LANG_UNKNOWN);
-			break;
-		}
+          default:
+            retval = MessageService.getTextMessage(SQLState.LANG_UNKNOWN);
+            break;
+        }
 
-		return retval;
-	}
+        return retval;
+    }
 
-	private static final String[] TypeNames = 
-				{ 
-					"",
-					"INSERT",
-					"INSERT",
-					"UPDATE",
-					"DELETE",
-					"ENABLED",
-					"DISABLED"
-				};
+    private static final String[] TypeNames = 
+                { 
+                    "",
+                    "INSERT",
+                    "INSERT",
+                    "UPDATE",
+                    "DELETE",
+                    "ENABLED",
+                    "DISABLED"
+                };
 }

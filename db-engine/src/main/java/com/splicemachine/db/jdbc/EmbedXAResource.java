@@ -301,16 +301,16 @@ class EmbedXAResource implements XAResource {
                     
                     returnConnectionToResource(tranState, xid_im);
 
-					if (SanityManager.DEBUG) {
-						if (con.realConnection != null) {
-							SanityManager.ASSERT(
+                    if (SanityManager.DEBUG) {
+                        if (con.realConnection != null) {
+                            SanityManager.ASSERT(
                                 con.realConnection.transactionIsIdle(),
                                 "real connection should have been idle." +
                                 "tranState = " + tranState +
                                 "ret = " + ret +
                                 "con.realConnection = " + con.realConnection);
                         }
-					}
+                    }
                     return XAResource.XA_RDONLY;
                 }
             } catch (SQLException sqle) {
@@ -716,10 +716,10 @@ class EmbedXAResource implements XAResource {
                         // that we can restore the isolation when we are in the 
                         // local mode.
                         try {
-	                    	if (con.currentConnectionHandle != null) {
-	                    		con.currentConnectionHandle.getIsolationUptoDate();
-	                    	}
-                    	} catch (SQLException sqle) {
+                            if (con.currentConnectionHandle != null) {
+                                con.currentConnectionHandle.getIsolationUptoDate();
+                            }
+                        } catch (SQLException sqle) {
                             throw wrapInXAException(sqle);
                         }
                         
@@ -834,7 +834,7 @@ class EmbedXAResource implements XAResource {
         xae.initCause(se);
         return xae;
     }
-	
+    
     /**
      * Map a Standard exception to appropriate XAException.
      * Return the mapped XAException.

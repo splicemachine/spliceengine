@@ -50,70 +50,70 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 public class DropViewNode extends DDLStatementNode
 {
 
-	private int	dropBehavior;
-	private	TableDescriptor	td;
+    private int    dropBehavior;
+    private    TableDescriptor    td;
 
-	/**
-	 * Initializer for a DropViewNode
-	 *
-	 * @param dropObjectName	The name of the object being dropped
-	 *
-	 */
+    /**
+     * Initializer for a DropViewNode
+     *
+     * @param dropObjectName    The name of the object being dropped
+     *
+     */
 
-	public void init(Object dropObjectName, Object dropBehavior)
-		throws StandardException
-	{
-		initAndCheck(dropObjectName);
-		this.dropBehavior = ((Integer) dropBehavior).intValue();
-	}
+    public void init(Object dropObjectName, Object dropBehavior)
+        throws StandardException
+    {
+        initAndCheck(dropObjectName);
+        this.dropBehavior = ((Integer) dropBehavior).intValue();
+    }
 
-	public String statementToString()
-	{
-		return "DROP VIEW";
-	}
+    public String statementToString()
+    {
+        return "DROP VIEW";
+    }
 
- 	/**
- 	 *  Bind the drop view node
- 	 *
- 	 *
- 	 * @exception StandardException		Thrown on error
- 	 */
-	
-	public void bindStatement() throws StandardException
-	{
-		DataDictionary dd = getDataDictionary();
-		CompilerContext cc = getCompilerContext();
+     /**
+      *  Bind the drop view node
+      *
+      *
+      * @exception StandardException        Thrown on error
+      */
+    
+    public void bindStatement() throws StandardException
+    {
+        DataDictionary dd = getDataDictionary();
+        CompilerContext cc = getCompilerContext();
 
-		td = dd.getTableDescriptor(getRelativeName(),
-					getSchemaDescriptor(),
-					getLanguageConnectionContext().getTransactionCompile());
+        td = dd.getTableDescriptor(getRelativeName(),
+                    getSchemaDescriptor(),
+                    getLanguageConnectionContext().getTransactionCompile());
 
-		if (td == null && this.dropBehavior == StatementType.DROP_IF_EXISTS) {
-			StandardException e = StandardException.newException(SQLState.LANG_OBJECT_DOES_NOT_EXIST,
-					statementToString(), this.getFullName());
-			e.setSeverity(ExceptionSeverity.WARNING_SEVERITY);
-			throw e;
-		}
+        if (td == null && this.dropBehavior == StatementType.DROP_IF_EXISTS) {
+            StandardException e = StandardException.newException(SQLState.LANG_OBJECT_DOES_NOT_EXIST,
+                    statementToString(), this.getFullName());
+            e.setSeverity(ExceptionSeverity.WARNING_SEVERITY);
+            throw e;
+        }
 
-		if (td != null)
-		{
-			cc.createDependency(td);
-		}
-	}
-		
-	
-	// inherit generate() method from DDLStatementNode
+        if (td != null)
+        {
+            cc.createDependency(td);
+        }
+    }
+        
+    
+    // inherit generate() method from DDLStatementNode
 
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public ConstantAction	makeConstantAction() throws StandardException
-	{
-		return	getGenericConstantActionFactory().getDropViewConstantAction( getFullName(),
-											 getRelativeName(),
-											 getSchemaDescriptor());
-	}
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public ConstantAction    makeConstantAction() throws StandardException
+    {
+        return    getGenericConstantActionFactory().getDropViewConstantAction( getFullName(),
+                                             getRelativeName(),
+                                             getSchemaDescriptor());
+    }
 }

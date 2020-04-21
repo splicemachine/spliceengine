@@ -53,117 +53,117 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 public final class FormatIdInputStream extends DataInputStream
     implements ErrorObjectInput, Resetable, CloneableStream
 {
-	protected ClassFactory cf;
-	private ErrorInfo errorInfo;
+    protected ClassFactory cf;
+    private ErrorInfo errorInfo;
     private Exception myNestedException;
 
 
-	/**
-	  Constructor for a FormatIdInputStream
+    /**
+      Constructor for a FormatIdInputStream
 
-	  @param in bytes come from here.
-	  */
+      @param in bytes come from here.
+      */
     public FormatIdInputStream(InputStream in)
-	{
-		super(in);
-	}
+    {
+        super(in);
+    }
 
-	/**
-	  Read an object from this stream.
+    /**
+      Read an object from this stream.
 
-	  @return The read object.
-	  @exception java.io.IOException An IO or serialization error occured.
-	  @exception java.lang.ClassNotFoundException A class for an object in
-	  the stream could not be found.
-	  */
+      @return The read object.
+      @exception java.io.IOException An IO or serialization error occured.
+      @exception java.lang.ClassNotFoundException A class for an object in
+      the stream could not be found.
+      */
 
-	public Object readObject() throws IOException, ClassNotFoundException
-	{
+    public Object readObject() throws IOException, ClassNotFoundException
+    {
         setErrorInfo(null);
 
-		int fmtId = FormatIdUtil.readFormatIdInteger(this);
+        int fmtId = FormatIdUtil.readFormatIdInteger(this);
 
-		if (fmtId == StoredFormatIds.NULL_FORMAT_ID)
-		{
-			return null;
-		}
+        if (fmtId == StoredFormatIds.NULL_FORMAT_ID)
+        {
+            return null;
+        }
 
-		if (fmtId == StoredFormatIds.STRING_FORMAT_ID)
-		{
-			return readUTF();
-		}
+        if (fmtId == StoredFormatIds.STRING_FORMAT_ID)
+        {
+            return readUTF();
+        }
 
-		try
+        try
         {
 
-			if (fmtId == StoredFormatIds.SERIALIZABLE_FORMAT_ID)
-			{
-				ObjectInputStream ois = getObjectStream();
-				try {
-					return ois.readObject();
-				} catch (IOException | ClassCastException | LinkageError | ClassNotFoundException ioe) {
-					setErrorInfo((ErrorInfo) ois);
-					throw ioe;
-				}
+            if (fmtId == StoredFormatIds.SERIALIZABLE_FORMAT_ID)
+            {
+                ObjectInputStream ois = getObjectStream();
+                try {
+                    return ois.readObject();
+                } catch (IOException | ClassCastException | LinkageError | ClassNotFoundException ioe) {
+                    setErrorInfo((ErrorInfo) ois);
+                    throw ioe;
+                }
             }
 
-			try {
+            try {
 
-				Formatable f = (Formatable)Monitor.newInstanceFromIdentifier(fmtId);
-				if (f instanceof Storable)
-				{
-					boolean isNull = this.readBoolean();
-					if (isNull)
-					{
-						Storable s = (Storable)f;
-						s.restoreToNull();
-						return s;
-					}
-				}
+                Formatable f = (Formatable)Monitor.newInstanceFromIdentifier(fmtId);
+                if (f instanceof Storable)
+                {
+                    boolean isNull = this.readBoolean();
+                    if (isNull)
+                    {
+                        Storable s = (Storable)f;
+                        s.restoreToNull();
+                        return s;
+                    }
+                }
 
-				f.readExternal(this);
-				return f;
-			} catch (StandardException se) {
-				throw new ClassNotFoundException(se.toString());
-			}
+                f.readExternal(this);
+                return f;
+            } catch (StandardException se) {
+                throw new ClassNotFoundException(se.toString());
+            }
 
 
-		}
+        }
         catch (ClassCastException cce)
         {
-			// We catch this here as it is usuall a user error.
-			// they have readExternal (or SQLData) that doesn't match
-			// the writeExternal. and thus the object read is of
-			// the incorrect type, e.g. Integer i = (Integer) in.readObject();
-			StreamCorruptedException sce = new StreamCorruptedException(cce.toString());
-			sce.initCause(cce);
-			throw sce;
-		}
-	}
+            // We catch this here as it is usuall a user error.
+            // they have readExternal (or SQLData) that doesn't match
+            // the writeExternal. and thus the object read is of
+            // the incorrect type, e.g. Integer i = (Integer) in.readObject();
+            StreamCorruptedException sce = new StreamCorruptedException(cce.toString());
+            sce.initCause(cce);
+            throw sce;
+        }
+    }
 
-	/**
-	  Set the InputStream for this FormatIdInputStream to the stream
-	  provided.
+    /**
+      Set the InputStream for this FormatIdInputStream to the stream
+      provided.
 
-	  @param in The new input stream.
-	  */
-	public void setInput(InputStream in)
-	{
-		this.in = in;
-	}
+      @param in The new input stream.
+      */
+    public void setInput(InputStream in)
+    {
+        this.in = in;
+    }
 
-    public	InputStream	getInputStream()
+    public    InputStream    getInputStream()
     {
         return in;
     }
 
-	public String getErrorInfo()
+    public String getErrorInfo()
     {
-		if (errorInfo == null)
+        if (errorInfo == null)
             return "";
 
-		return errorInfo.getErrorInfo();
-	}
+        return errorInfo.getErrorInfo();
+    }
 
     public Exception getNestedException()
     {
@@ -176,35 +176,35 @@ public final class FormatIdInputStream extends DataInputStream
         return errorInfo.getNestedException();
     }
 
-	private void setErrorInfo(ErrorInfo ei)
+    private void setErrorInfo(ErrorInfo ei)
     {
         errorInfo = ei;
-	}
+    }
 
 
     ClassFactory getClassFactory() {
-		if (cf == null) {
+        if (cf == null) {
 
-			ClassFactoryContext cfc =
-				(ClassFactoryContext) ContextService.getContextOrNull
-				                                  (ClassFactoryContext.CONTEXT_ID);
+            ClassFactoryContext cfc =
+                (ClassFactoryContext) ContextService.getContextOrNull
+                                                  (ClassFactoryContext.CONTEXT_ID);
 
-			if (cfc != null)
-				cf = cfc.getClassFactory();
-		}
-		return cf;
-	}
+            if (cfc != null)
+                cf = cfc.getClassFactory();
+        }
+        return cf;
+    }
 
-	/*
-	** Class private methods
-	*/
+    /*
+    ** Class private methods
+    */
 
-	private ObjectInputStream getObjectStream() throws IOException {
+    private ObjectInputStream getObjectStream() throws IOException {
 
-		return getClassFactory() == null ?
-			new ObjectInputStream(this) :
-			new ApplicationObjectInputStream(this, cf);
-	}
+        return getClassFactory() == null ?
+            new ObjectInputStream(this) :
+            new ApplicationObjectInputStream(this, cf);
+    }
 
 
 

@@ -42,41 +42,41 @@ import java.text.MessageFormat;
  */
 public class T_StandardException extends StandardException
 {
-	String msgText = "Message text not set";
+    String msgText = "Message text not set";
 
-	protected T_StandardException(String messageID, String msgText)
-	{
-		super(messageID);
-		myConstructorCommon( messageID, msgText );
-	}
-	protected T_StandardException(String messageID, String msgText, Throwable t)
-	{
-		super(messageID, t, (Object[]) null);
-		myConstructorCommon( messageID, msgText );
-	}
-	protected T_StandardException(String messageID, String msgText, Throwable t, Object[] args)
-	{
-		super(messageID, t, args);
-		myConstructorCommon( messageID, msgText );
-	}
+    protected T_StandardException(String messageID, String msgText)
+    {
+        super(messageID);
+        myConstructorCommon( messageID, msgText );
+    }
+    protected T_StandardException(String messageID, String msgText, Throwable t)
+    {
+        super(messageID, t, (Object[]) null);
+        myConstructorCommon( messageID, msgText );
+    }
+    protected T_StandardException(String messageID, String msgText, Throwable t, Object[] args)
+    {
+        super(messageID, t, args);
+        myConstructorCommon( messageID, msgText );
+    }
 
-	protected	void	myConstructorCommon( String messageID, String msgText )
-	{
-		this.msgText = msgText;
-	}
+    protected    void    myConstructorCommon( String messageID, String msgText )
+    {
+        this.msgText = msgText;
+    }
 
-	public static
-	StandardException newT_StandardException(String messageID, Throwable t, String msgText)
-	{
-		return new T_StandardException(messageID,msgText,t);
-	}
+    public static
+    StandardException newT_StandardException(String messageID, Throwable t, String msgText)
+    {
+        return new T_StandardException(messageID,msgText,t);
+    }
 
-	public static
-	StandardException newT_StandardException(String messageID, String msgText)
-	{
-		return new T_StandardException(messageID,msgText);
-	}
+    public static
+    StandardException newT_StandardException(String messageID, String msgText)
+    {
+        return new T_StandardException(messageID,msgText);
+    }
 
-	public String getMessage() {return MessageFormat.format(msgText, getArguments());}
-	public String getErrorProperty() {throw new Error("method not supported");}
+    public String getMessage() {return MessageFormat.format(msgText, getArguments());}
+    public String getErrorProperty() {throw new Error("method not supported");}
 }

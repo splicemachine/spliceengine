@@ -23,17 +23,17 @@ import com.splicemachine.db.iapi.types.RowLocation;
 
 public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
 
-	public SMRecordWriterImpl(Configuration conf) throws IOException {
+    public SMRecordWriterImpl(Configuration conf) throws IOException {
 
-	}
-	@Override
-	public void write(RowLocation ignore, ExecRow value) throws IOException,
-			InterruptedException {
-	}
+    }
+    @Override
+    public void write(RowLocation ignore, ExecRow value) throws IOException,
+            InterruptedException {
+    }
 
-	@Override
-	public void close(TaskAttemptContext context) throws IOException,
-			InterruptedException {
+    @Override
+    public void close(TaskAttemptContext context) throws IOException,
+            InterruptedException {
 
-	}
+    }
 }

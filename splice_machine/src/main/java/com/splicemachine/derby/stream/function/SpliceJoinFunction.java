@@ -32,12 +32,12 @@ public abstract class SpliceJoinFunction<Op extends SpliceOperation, From, To>
     protected boolean initialized = false;
     protected int numberOfColumns = 0;
     protected ExecutionFactory executionFactory;
-	public SpliceJoinFunction() {
+    public SpliceJoinFunction() {
         super();
-	}
-	public SpliceJoinFunction(OperationContext<Op> operationContext) {
+    }
+    public SpliceJoinFunction(OperationContext<Op> operationContext) {
         super(operationContext);
-	}
+    }
 
     @Nullable
     @Override

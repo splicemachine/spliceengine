@@ -75,7 +75,7 @@ public class T_Diagnosticable extends T_MultiIterations
      * Simple test of DiagnosticUtil.toDiagString() and 
      * DiagnosticUtil.findDiagnostic() interfaces.
      *
-	 * @exception  T_Fail  If test fails for some reason.
+     * @exception  T_Fail  If test fails for some reason.
      **/
     private void t_001()
         throws T_Fail
@@ -83,9 +83,9 @@ public class T_Diagnosticable extends T_MultiIterations
         // Create object with also has a diagnostic interface:
         Object diag_obj = new T_DiagTestClass1("object with diag interface");
 
-		// Create an object in a sub-class that doesn't have a D_ class, but
-		// its super-class does.
-		Object diagSubObj = new T_DiagTestClass1Sub("sub-class");
+        // Create an object in a sub-class that doesn't have a D_ class, but
+        // its super-class does.
+        Object diagSubObj = new T_DiagTestClass1Sub("sub-class");
 
         // Create object with neither Diagnosticable:
         Object obj = new Long(5);
@@ -101,7 +101,7 @@ public class T_Diagnosticable extends T_MultiIterations
 
         if (str.compareTo(expected_str) != 0)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "DiagnosticUtil.toDiagString() failed, got: (" + str + 
                 "), expected: (" + expected_str + ").");
         }
@@ -122,23 +122,23 @@ public class T_Diagnosticable extends T_MultiIterations
         }
         catch (Throwable t)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "Unexpected exception from helper_class.diag() call");
         }
 
         if (!str.equals(expected_str))
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "DiagnosticUtil.toDiagString() failed, got: (" + str + 
                 "), expected: (" + expected_str + ").");
         }
 
-		// make sure the Diagnostic class picks up a super-version of the D_ class
+        // make sure the Diagnostic class picks up a super-version of the D_ class
         str          = DiagnosticUtil.toDiagString(diagSubObj);
         expected_str = "D_T_DiagTestClass1: sub-class";
         if (!str.equals(expected_str))
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "DiagnosticUtil.toDiagString() failed, got: (" + str + 
                 "), expected: (" + expected_str + ").");
         }
@@ -149,7 +149,7 @@ public class T_Diagnosticable extends T_MultiIterations
 
         if (str.compareTo(expected_str) != 0)
         {
-			throw T_Fail.testFailMsg(
+            throw T_Fail.testFailMsg(
                 "DiagnosticUtil.toDiagString() failed, got: (" + str + 
                 "), expected: (" + expected_str + ").");
         }
@@ -171,40 +171,40 @@ public class T_Diagnosticable extends T_MultiIterations
      * Do work that should only be done once, no matter how many times
      * runTests() may be executed.
      *
-	 * @exception  T_Fail  Thrown on any error.
+     * @exception  T_Fail  Thrown on any error.
      **/
     protected void setupTest()
-		throws T_Fail
+        throws T_Fail
     {
-		// don't automatic boot this service if it gets left around
-		if (startParams == null) {
-			startParams = new Properties();
-		}
-		startParams.put(Property.NO_AUTO_BOOT, Boolean.TRUE.toString());
-		// remove the service directory to ensure a clean run
-		startParams.put(Property.DELETE_ON_CREATE, Boolean.TRUE.toString());
+        // don't automatic boot this service if it gets left around
+        if (startParams == null) {
+            startParams = new Properties();
+        }
+        startParams.put(Property.NO_AUTO_BOOT, Boolean.TRUE.toString());
+        // remove the service directory to ensure a clean run
+        startParams.put(Property.DELETE_ON_CREATE, Boolean.TRUE.toString());
     }
 
-	/*
-	** Methods required by T_Generic
-	*/
+    /*
+    ** Methods required by T_Generic
+    */
 
-	public String getModuleToTestProtocolName() {
+    public String getModuleToTestProtocolName() {
         return("com.splicemachine.db.iapi.services.diag.DiagnosticUtil");
-	}
+    }
 
     /**
      * Driver routine for the btree secondary index tests.
      * <p>
      *
-	 * @exception  T_Fail  Throws T_Fail on any test failure.
+     * @exception  T_Fail  Throws T_Fail on any test failure.
      **/
-	protected void runTestSet() throws T_Fail
-	{
+    protected void runTestSet() throws T_Fail
+    {
         out.println("Executing " + testService + " test.");
 
         t_001();
 
         out.println("Finished Executing " + testService + " test.");
-	}
+    }
 }

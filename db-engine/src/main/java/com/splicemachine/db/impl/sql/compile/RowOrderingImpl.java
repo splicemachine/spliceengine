@@ -70,18 +70,18 @@ public class RowOrderingImpl implements RowOrdering{
     public int orderedOnColumn(int direction,int orderPosition,
                                    int tableNumber,int columnNumber) throws StandardException{
 
-		/*
-		** Return false if we're looking for an ordering position that isn't
-		** in this ordering.
-		*/
+        /*
+        ** Return false if we're looking for an ordering position that isn't
+        ** in this ordering.
+        */
         while (orderPosition < ordering.size()) {
 
             ColumnOrdering co = ordering.get(orderPosition);
 
-		    /*
-		    ** Is the column in question ordered with the given direction at
-		    ** this position?
-		    */
+            /*
+            ** Is the column in question ordered with the given direction at
+            ** this position?
+            */
             Boolean isOrdered = co.ordered(direction, tableNumber, columnNumber);
             if (isOrdered)
                 return orderPosition;
@@ -102,8 +102,8 @@ public class RowOrderingImpl implements RowOrdering{
         for(ColumnOrdering co : ordering){
             /*
             ** Is the column in question ordered with the given direction at
-			** this position?
-			*/
+            ** this position?
+            */
             boolean thisOrdered=co.ordered(direction, tableNumber, columnNumber);
 
             if(thisOrdered){
@@ -123,8 +123,8 @@ public class RowOrderingImpl implements RowOrdering{
         for(ColumnOrdering co : ordering){
             /*
             ** Is the column in question ordered with the given direction at
-			** this position?
-			*/
+            ** this position?
+            */
             boolean thisOrdered=co.ordered(direction, tableNumber, columnNumber);
 
             if(thisOrdered){
@@ -173,21 +173,21 @@ public class RowOrderingImpl implements RowOrdering{
 
     @Override
     public void removeOptimizable(int tableNumber){
-		/*
-		** Walk the list backwards, so we can remove elements
-		** by position.
-		*/
+        /*
+        ** Walk the list backwards, so we can remove elements
+        ** by position.
+        */
         for(int i=ordering.size()-1;i>=0;i--){
-			/*
-			** First, remove the table from all the ColumnOrderings
-			*/
+            /*
+            ** First, remove the table from all the ColumnOrderings
+            */
             ColumnOrdering ord=ordering.get(i);
             ord.removeColumns(tableNumber);
             if(ord.empty())
                 ordering.remove(i);
         }
 
-		/* Also remove from list of unordered optimizables */
+        /* Also remove from list of unordered optimizables */
         removeOptimizableFromVector(tableNumber,unorderedOptimizables);
 
     }
@@ -203,7 +203,7 @@ public class RowOrderingImpl implements RowOrdering{
 
         RowOrderingImpl dest=(RowOrderingImpl)copyTo;
 
-		/* Clear the ordering of what we're copying to */
+        /* Clear the ordering of what we're copying to */
         dest.ordering.clear();
         dest.currentColumnOrdering=null;
 

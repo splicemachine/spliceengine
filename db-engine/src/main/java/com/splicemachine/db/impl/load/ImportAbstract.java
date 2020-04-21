@@ -73,25 +73,25 @@ abstract class ImportAbstract extends VTITemplate {
   HashMap udtClasses;
   private boolean wasNull;
 
-	static final String COLUMNNAMEPREFIX = "COLUMN";
+    static final String COLUMNNAMEPREFIX = "COLUMN";
 
   abstract ImportReadData getImportReadData() throws Exception;
 
   /** Does all the work
- 	* @exception	Exception if there is an error
-	*/
+     * @exception    Exception if there is an error
+    */
   void doAllTheWork() throws Exception {
 
     //prepare the input file for import. Get the number of columns per row
     //from the input file.
     importReadData = getImportReadData();
     numberOfColumns = importReadData.getNumberOfColumns();
-	if(numberOfColumns == 0)
-	{
-		//file is empty. Assume same number of columns expected 
-		//and return no data , But No rows gets insereted.
-		this.numberOfColumns = noOfColumnsExpected;
-	}
+    if(numberOfColumns == 0)
+    {
+        //file is empty. Assume same number of columns expected 
+        //and return no data , But No rows gets insereted.
+        this.numberOfColumns = noOfColumnsExpected;
+    }
 
     columnWidths = controlFileReader.getColumnWidths();
     columnNames = new String[numberOfColumns];
@@ -101,9 +101,9 @@ abstract class ImportAbstract extends VTITemplate {
                               //                              numberOfColumns);
     columnTypeNames =  ColumnInfo.getExpectedColumnTypeNames( columnTypeNamesString, numberOfColumns );
     udtClasses = ColumnInfo.getExpectedUDTClasses( udtClassNamesString );
-	// get the ResultSetMetaData now as we know it's needed
-	importResultSetMetaData =
-		new ImportResultSetMetaData(numberOfColumns, columnNames, columnWidths,
+    // get the ResultSetMetaData now as we know it's needed
+    importResultSetMetaData =
+        new ImportResultSetMetaData(numberOfColumns, columnNames, columnWidths,
                                     tableColumnTypes, columnTypeNames, udtClasses );
 
 
@@ -119,16 +119,16 @@ abstract class ImportAbstract extends VTITemplate {
 
 
   /** Gets the resultset meta data
- 	* @exception	SQLException if there is an error
-	*/
+     * @exception    SQLException if there is an error
+    */
   public ResultSetMetaData getMetaData() {
     return importResultSetMetaData;
   }
 
   //all the resultset interface methods
   /** gets the next row
- 	* @exception	SQLException if there is an error
-	*/
+     * @exception    SQLException if there is an error
+    */
   public int getRow() throws SQLException {
     return (importReadData.getCurrentRowNumber());
   }
@@ -141,43 +141,43 @@ abstract class ImportAbstract extends VTITemplate {
       lineNumber++;
       return (importReadData.readNextRow(nextRow));
     } catch (Exception ex) {
-		throw importError(ex);
-	}
+        throw importError(ex);
+    }
   }
 
   /** closes the resultset
- 	* @exception	SQLException if there is an error
-	*/
+     * @exception    SQLException if there is an error
+    */
   public void close() throws SQLException {
     try {
-		if(importReadData!=null)
-			importReadData.closeStream();
+        if(importReadData!=null)
+            importReadData.closeStream();
     } catch (Exception ex) {
-		throw LoadError.unexpectedError(ex);
+        throw LoadError.unexpectedError(ex);
     }
   }
 
   public boolean wasNull() {
-		return wasNull;
+        return wasNull;
   }
 
   /**
- 	* @exception	SQLException if there is an error
-	*/
+     * @exception    SQLException if there is an error
+    */
   public String getString(int columnIndex) throws SQLException {
 
     if (columnIndex <= numberOfColumns) {
-		String val = nextRow[columnIndex-1];
+        String val = nextRow[columnIndex-1];
         if (isColumnInExtFile(columnIndex)) {
             // a clob column data is stored in an external 
             // file, the reference to it is in the main file. 
             // read the data from the external file using the 
             // reference from the main file. 
-			val = importReadData.getClobColumnFromExtFileAsString(val, 
+            val = importReadData.getClobColumnFromExtFileAsString(val, 
                                                                   columnIndex);
         }
-		wasNull = (val == null);
-		return val;
+        wasNull = (val == null);
+        return val;
     }
     else {
        throw LoadError.invalidColumnNumber(numberOfColumns);
@@ -191,10 +191,10 @@ abstract class ImportAbstract extends VTITemplate {
      * @param columnIndex number of the column. starts at 1.
      * @exception SQLException if any occurs during create of the clob object.
      */
-	public java.sql.Clob getClob(int columnIndex) throws SQLException {
+    public java.sql.Clob getClob(int columnIndex) throws SQLException {
 
         java.sql.Clob clob = null;
-		if (lobsInExtFile) 
+        if (lobsInExtFile) 
         {
             // lob data is in another file, read from the external file.
             clob = importReadData.getClobColumnFromExtFile(
@@ -209,19 +209,19 @@ abstract class ImportAbstract extends VTITemplate {
         
         wasNull = (clob == null);
         return clob;
-	}
+    }
 
-	
+    
     /**
      * Returns <code> java.sql.Blob </code> type object that 
      * contains the column data from the import file. 
      * @param columnIndex number of the column. starts at 1.
      * @exception SQLException if any occurs during create of the blob object.
      */
-	public java.sql.Blob getBlob(int columnIndex) throws SQLException {
+    public java.sql.Blob getBlob(int columnIndex) throws SQLException {
 
         java.sql.Blob blob = null;
-		if (lobsInExtFile) 
+        if (lobsInExtFile) 
         {
             // lob data is in another file, read from the external file.
             blob = importReadData.getBlobColumnFromExtFile(
@@ -261,7 +261,7 @@ abstract class ImportAbstract extends VTITemplate {
         
         wasNull = (blob == null);
         return blob;
-	}
+    }
 
     /**
      * Returns Object that contains the column data 
@@ -269,7 +269,7 @@ abstract class ImportAbstract extends VTITemplate {
      * @param columnIndex number of the column. starts at 1.
      * @exception SQLException if any error occurs.
      */
-	public Object getObject(int columnIndex) throws SQLException
+    public Object getObject(int columnIndex) throws SQLException
     {
         byte[] bytes = getBytes( columnIndex );
 
@@ -318,7 +318,7 @@ abstract class ImportAbstract extends VTITemplate {
      * @param columnIndex number of the column. starts at 1.
      * @exception SQLException if any error occurs.
      */
-	public byte[] getBytes(int columnIndex) throws SQLException {
+    public byte[] getBytes(int columnIndex) throws SQLException {
         
         // This method is called to import data into 
         // LONG VARCHAR FOR BIT DATA VARCHAR FOR BIT DATA,  
@@ -354,7 +354,7 @@ abstract class ImportAbstract extends VTITemplate {
             }
         }
         return data;
-	}
+    }
 
 
 
@@ -366,13 +366,13 @@ abstract class ImportAbstract extends VTITemplate {
      * @return         true, if the column data in a different file 
      *                 from the main import file , otherwise false.
      */
-	private boolean isColumnInExtFile(int colIndex) 
-	{
+    private boolean isColumnInExtFile(int colIndex) 
+    {
         return lobsInExtFile &&
                 (tableColumnTypes[colIndex - 1] == java.sql.Types.BLOB ||
                         tableColumnTypes[colIndex - 1] == java.sql.Types.CLOB);
 
-	}
+    }
         
         /**
          * Close the stream and wrap exception in a SQLException

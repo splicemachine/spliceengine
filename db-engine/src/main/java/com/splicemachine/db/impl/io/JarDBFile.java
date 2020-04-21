@@ -126,8 +126,8 @@ class JarDBFile extends InputStreamFile
     public InputStream getInputStream( ) throws FileNotFoundException
     {
         ZipEntry zipEntry = getEntry( );
-		if (zipEntry == null)
-			throw new java.io.FileNotFoundException(path);
+        if (zipEntry == null)
+            throw new java.io.FileNotFoundException(path);
 
         try
         {
@@ -145,7 +145,7 @@ class JarDBFile extends InputStreamFile
     {
         return path;
     }
-	/**
+    /**
      * Return a URL for this file (resource). Returns a URL according to the
      * spec for java.net.JarURLConnection
      * 

@@ -45,24 +45,24 @@ import java.io.ObjectInput;
 import java.io.IOException;
 
 /**
- *	Class for implementation of DependableFinder in the core DataDictionary 
- *	for referenced columns in a table.
+ *    Class for implementation of DependableFinder in the core DataDictionary 
+ *    for referenced columns in a table.
  *
  *
  */
 
 public class DDColumnDependableFinder extends DDdependableFinder
 {
-	private static final long serialVersionUID = 1L;
-	////////////////////////////////////////////////////////////////////////
-	//
-	//  STATE
-	//
-	////////////////////////////////////////////////////////////////////////
+    private static final long serialVersionUID = 1L;
+    ////////////////////////////////////////////////////////////////////////
+    //
+    //  STATE
+    //
+    ////////////////////////////////////////////////////////////////////////
 
-	// write least amount of data to disk, just the byte array, not even
-	// a FormatableBitSet
-	private byte[] columnBitMap;
+    // write least amount of data to disk, just the byte array, not even
+    // a FormatableBitSet
+    private byte[] columnBitMap;
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -70,30 +70,30 @@ public class DDColumnDependableFinder extends DDdependableFinder
     //
     ////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Serialization Constructor. DO NOT USE
-	 */
-	public DDColumnDependableFinder()
-	{
-		
-	}
+    /**
+     * Serialization Constructor. DO NOT USE
+     */
+    public DDColumnDependableFinder()
+    {
+        
+    }
 
-	/**
-	 * Constructor same as in parent.
-	 */
-	public  DDColumnDependableFinder(int formatId)
-	{
-		super(formatId);
-	}
+    /**
+     * Constructor same as in parent.
+     */
+    public  DDColumnDependableFinder(int formatId)
+    {
+        super(formatId);
+    }
 
-	/**
-	 * Constructor given referenced column bit map byte array as in FormatableBitSet
-	 */
-	public  DDColumnDependableFinder(int formatId, byte[] columnBitMap)
-	{
-		super(formatId);
-		this.columnBitMap = columnBitMap;
-	}
+    /**
+     * Constructor given referenced column bit map byte array as in FormatableBitSet
+     */
+    public  DDColumnDependableFinder(int formatId, byte[] columnBitMap)
+    {
+        super(formatId);
+        this.columnBitMap = columnBitMap;
+    }
 
     ////////////////////////////////////////////////////////////////////////
     //
@@ -101,45 +101,45 @@ public class DDColumnDependableFinder extends DDdependableFinder
     //
     ////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Get the byte array encoding the bitmap of referenced columns in
-	 * a table.
-	 *
-	 * @return		byte array as in a FormatableBitSet encoding column bit map
-	 */
-	public 	byte[]	getColumnBitMap()
-	{
-		return columnBitMap;
-	}
+    /**
+     * Get the byte array encoding the bitmap of referenced columns in
+     * a table.
+     *
+     * @return        byte array as in a FormatableBitSet encoding column bit map
+     */
+    public     byte[]    getColumnBitMap()
+    {
+        return columnBitMap;
+    }
 
-	/**
-	 * Set the byte array encoding the bitmap of referenced columns in
-	 * a table.
-	 *
-	 * @param	columnBitMap	byte array as in a FormatableBitSet encoding column bit map
-	 */
-	public	void	setColumnBitMap(byte[] columnBitMap)
-	{
-		this.columnBitMap = columnBitMap;
-	}
+    /**
+     * Set the byte array encoding the bitmap of referenced columns in
+     * a table.
+     *
+     * @param    columnBitMap    byte array as in a FormatableBitSet encoding column bit map
+     */
+    public    void    setColumnBitMap(byte[] columnBitMap)
+    {
+        this.columnBitMap = columnBitMap;
+    }
 
-	/**
-	 * Find a dependable object, which is essentially a table descriptor with
-	 * referencedColumnMap field set.
-	 *
-	 * @param	dd data dictionary
-	 * @param	dependableObjectID dependable object ID (table UUID)
-	 * @return	a dependable, a table descriptor with referencedColumnMap
-	 *			field set
-	 */
-	Dependable findDependable(DataDictionary dd, UUID dependableObjectID)
-		throws StandardException
-	{
-		TableDescriptor td = dd.getTableDescriptor(dependableObjectID);
-		if (td != null)  // see beetle 4444
-			td.setReferencedColumnMap(new FormatableBitSet(columnBitMap));
-		return td;
-	}
+    /**
+     * Find a dependable object, which is essentially a table descriptor with
+     * referencedColumnMap field set.
+     *
+     * @param    dd data dictionary
+     * @param    dependableObjectID dependable object ID (table UUID)
+     * @return    a dependable, a table descriptor with referencedColumnMap
+     *            field set
+     */
+    Dependable findDependable(DataDictionary dd, UUID dependableObjectID)
+        throws StandardException
+    {
+        TableDescriptor td = dd.getTableDescriptor(dependableObjectID);
+        if (td != null)  // see beetle 4444
+            td.setReferencedColumnMap(new FormatableBitSet(columnBitMap));
+        return td;
+    }
 
     //////////////////////////////////////////////////////////////////
     //
@@ -147,32 +147,32 @@ public class DDColumnDependableFinder extends DDdependableFinder
     //
     //////////////////////////////////////////////////////////////////
 
-	/**
-	 * Read this object from a stream of stored objects.  Just read the
-	 * byte array, besides what the parent does.
-	 *
-	 * @param in read this.
-	 */
-	public void readExternal( ObjectInput in )
-			throws IOException, ClassNotFoundException
-	{
-		super.readExternal(in);
-		FormatableHashtable fh = (FormatableHashtable)in.readObject();
-		columnBitMap = (byte[])fh.get("columnBitMap");
-	}
+    /**
+     * Read this object from a stream of stored objects.  Just read the
+     * byte array, besides what the parent does.
+     *
+     * @param in read this.
+     */
+    public void readExternal( ObjectInput in )
+            throws IOException, ClassNotFoundException
+    {
+        super.readExternal(in);
+        FormatableHashtable fh = (FormatableHashtable)in.readObject();
+        columnBitMap = (byte[])fh.get("columnBitMap");
+    }
 
-	/**
-	 * Write this object to a stream of stored objects.  Just write the
-	 * byte array, besides what the parent does.
-	 *
-	 * @param out write bytes here.
-	 */
-	public void writeExternal( ObjectOutput out )
-			throws IOException
-	{
-		super.writeExternal(out);
-		FormatableHashtable fh = new FormatableHashtable();
-		fh.put("columnBitMap", columnBitMap);
-		out.writeObject(fh);
-	}
+    /**
+     * Write this object to a stream of stored objects.  Just write the
+     * byte array, besides what the parent does.
+     *
+     * @param out write bytes here.
+     */
+    public void writeExternal( ObjectOutput out )
+            throws IOException
+    {
+        super.writeExternal(out);
+        FormatableHashtable fh = new FormatableHashtable();
+        fh.put("columnBitMap", columnBitMap);
+        out.writeObject(fh);
+    }
 }

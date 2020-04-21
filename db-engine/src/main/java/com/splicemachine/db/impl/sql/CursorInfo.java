@@ -48,147 +48,147 @@ import java.io.IOException;
  * 
  */
 public class CursorInfo
-	implements Formatable
+    implements Formatable
 {
 
-	/********************************************************
-	**
-	**	This class implements Formatable. That means that it
-	**	can write itself to and from a formatted stream. If
-	**	you add more fields to this class, make sure that you
-	**	also write/read them with the writeExternal()/readExternal()
-	**	methods.
-	**
-	**	If, inbetween releases, you add more fields to this class,
-	**	then you should bump the version number emitted by the getTypeFormatId()
-	**	method.
-	**
-	********************************************************/
+    /********************************************************
+    **
+    **    This class implements Formatable. That means that it
+    **    can write itself to and from a formatted stream. If
+    **    you add more fields to this class, make sure that you
+    **    also write/read them with the writeExternal()/readExternal()
+    **    methods.
+    **
+    **    If, inbetween releases, you add more fields to this class,
+    **    then you should bump the version number emitted by the getTypeFormatId()
+    **    method.
+    **
+    ********************************************************/
 
-	ExecCursorTableReference	targetTable; 
-	ResultColumnDescriptor[]	targetColumns; 
-	String[] 					updateColumns; 
-	int 						updateMode;
+    ExecCursorTableReference    targetTable; 
+    ResultColumnDescriptor[]    targetColumns; 
+    String[]                     updateColumns; 
+    int                         updateMode;
 
-	/**
-	 * Niladic constructor for Formatable
-	 */
-	public CursorInfo()
-	{
-	}
+    /**
+     * Niladic constructor for Formatable
+     */
+    public CursorInfo()
+    {
+    }
 
-	/**
-	 *
-	 */
-	public CursorInfo
-	(
-		int							updateMode,
-		ExecCursorTableReference	targetTable,
-		ResultColumnDescriptor[]	targetColumns,
-		String[]					updateColumns
-	)
-	{
-		this.updateMode = updateMode;
-		this.targetTable = targetTable;
-		this.targetColumns = targetColumns;
-		this.updateColumns = updateColumns;
-	}
+    /**
+     *
+     */
+    public CursorInfo
+    (
+        int                            updateMode,
+        ExecCursorTableReference    targetTable,
+        ResultColumnDescriptor[]    targetColumns,
+        String[]                    updateColumns
+    )
+    {
+        this.updateMode = updateMode;
+        this.targetTable = targetTable;
+        this.targetColumns = targetColumns;
+        this.updateColumns = updateColumns;
+    }
 
-	//////////////////////////////////////////////
-	//
-	// FORMATABLE
-	//
-	//////////////////////////////////////////////
-	/**
-	 * Write this object out
-	 *
-	 * @param out write bytes here
-	 *
- 	 * @exception IOException thrown on error
-	 */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		out.writeInt(updateMode);
-		out.writeObject(targetTable);
-		ArrayUtil.writeArray(out, targetColumns);
-		ArrayUtil.writeArray(out, updateColumns);
-	}
+    //////////////////////////////////////////////
+    //
+    // FORMATABLE
+    //
+    //////////////////////////////////////////////
+    /**
+     * Write this object out
+     *
+     * @param out write bytes here
+     *
+      * @exception IOException thrown on error
+     */
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeInt(updateMode);
+        out.writeObject(targetTable);
+        ArrayUtil.writeArray(out, targetColumns);
+        ArrayUtil.writeArray(out, updateColumns);
+    }
 
-	/**
-	 * Read this object from a stream of stored objects.
-	 *
-	 * @param in read this.
-	 *
-	 * @exception IOException					thrown on error
-	 * @exception ClassNotFoundException		thrown on error
-	 */
-	public void readExternal(ObjectInput in)
-		throws IOException, ClassNotFoundException
-	{
-		updateMode = in.readInt();
-		targetTable = (ExecCursorTableReference)in.readObject();
-		int len = ArrayUtil.readArrayLength(in);
-		if (len != 0)
-		{
-			targetColumns = new ResultColumnDescriptor[len];
-			ArrayUtil.readArrayItems(in, targetColumns);
-		}
-		len = ArrayUtil.readArrayLength(in);
-		if (len != 0)
-		{
-			updateColumns = new String[len];
-			ArrayUtil.readArrayItems(in, updateColumns);
-		}
-	}
-	
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.CURSOR_INFO_V01_ID; }
+    /**
+     * Read this object from a stream of stored objects.
+     *
+     * @param in read this.
+     *
+     * @exception IOException                    thrown on error
+     * @exception ClassNotFoundException        thrown on error
+     */
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    {
+        updateMode = in.readInt();
+        targetTable = (ExecCursorTableReference)in.readObject();
+        int len = ArrayUtil.readArrayLength(in);
+        if (len != 0)
+        {
+            targetColumns = new ResultColumnDescriptor[len];
+            ArrayUtil.readArrayItems(in, targetColumns);
+        }
+        len = ArrayUtil.readArrayLength(in);
+        if (len != 0)
+        {
+            updateColumns = new String[len];
+            ArrayUtil.readArrayItems(in, updateColumns);
+        }
+    }
+    
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId()    { return StoredFormatIds.CURSOR_INFO_V01_ID; }
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			StringBuilder strbuf = new StringBuilder();
-		
-			strbuf.append("CursorInfo" + "\n\tupdateMode: ").append(updateMode).append("\n\ttargetTable: ").append(targetTable).append("\n\tupdateColumns: ");
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            StringBuilder strbuf = new StringBuilder();
+        
+            strbuf.append("CursorInfo" + "\n\tupdateMode: ").append(updateMode).append("\n\ttargetTable: ").append(targetTable).append("\n\tupdateColumns: ");
 
-			if (updateColumns == null)
-			{
-				strbuf.append("NULL\n");
-			}
-			else
-			{
-				strbuf.append("{");
-				for (int i = 0; i < updateColumns.length; i++)
-				{
-					if (i > 0)
-						strbuf.append(",");
-					strbuf.append(updateColumns[i]);
-				}
-				strbuf.append(")\n");
-			}
+            if (updateColumns == null)
+            {
+                strbuf.append("NULL\n");
+            }
+            else
+            {
+                strbuf.append("{");
+                for (int i = 0; i < updateColumns.length; i++)
+                {
+                    if (i > 0)
+                        strbuf.append(",");
+                    strbuf.append(updateColumns[i]);
+                }
+                strbuf.append(")\n");
+            }
 
-			strbuf.append("\tTargetColumnDescriptors: \n");
-			if (targetColumns == null)
-			{
-				strbuf.append("NULL");
-			}
-			else
-			{
+            strbuf.append("\tTargetColumnDescriptors: \n");
+            if (targetColumns == null)
+            {
+                strbuf.append("NULL");
+            }
+            else
+            {
                 for (ResultColumnDescriptor targetColumn : targetColumns) {
                     strbuf.append(targetColumn);
                 }
-				strbuf.append("\n");
-			}
-			return strbuf.toString();	
-		}
-		else
-		{
-			return "";
-		}
-	}
+                strbuf.append("\n");
+            }
+            return strbuf.toString();    
+        }
+        else
+        {
+            return "";
+        }
+    }
 }

@@ -35,11 +35,11 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 
 class BCLocalField implements LocalField {
 
-	final int	   cpi; // of the Field Reference
-	final Type     type;
+    final int       cpi; // of the Field Reference
+    final Type     type;
 
-	BCLocalField(Type type, int cpi) {
-		this.cpi = cpi;
-		this.type = type;
-	}
+    BCLocalField(Type type, int cpi) {
+        this.cpi = cpi;
+        this.type = type;
+    }
 }

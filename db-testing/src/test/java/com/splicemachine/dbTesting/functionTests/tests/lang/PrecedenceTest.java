@@ -54,28 +54,28 @@ public class PrecedenceTest extends BaseJDBCTestCase {
     }
     
     public void testPrecedence() throws SQLException{
-    	String sql = "create table t1(c11 int)";
-    	Statement st = createStatement();
-    	st.executeUpdate(sql);
-    	
-    	sql = "insert into t1 values(1)";
-    	assertEquals(1, st.executeUpdate(sql));
-    	
-    	sql = "select c11 from t1 where 1 in (1,2,3) = (1=1)";
-    	JDBC.assertSingleValueResultSet(st.executeQuery(sql), "1");
-    	
-    	sql = "select c11 from t1 where 'acme widgets' " +
-    			"like 'acme%' in ('1=1')";
-    	JDBC.assertSingleValueResultSet(st.executeQuery(sql), "1");
-    	
-    	sql = "select c11 from t1 where 1 between -100 " +
-    			"and 100 is not null";
-    	JDBC.assertSingleValueResultSet(st.executeQuery(sql), "1");
-    	
-    	sql = "select c11 from t1 where exists(select *" +
-    			" from (values 1) as t) not in ('1=2')";
-    	JDBC.assertEmpty(st.executeQuery(sql));
-    	
-    	st.close();
+        String sql = "create table t1(c11 int)";
+        Statement st = createStatement();
+        st.executeUpdate(sql);
+        
+        sql = "insert into t1 values(1)";
+        assertEquals(1, st.executeUpdate(sql));
+        
+        sql = "select c11 from t1 where 1 in (1,2,3) = (1=1)";
+        JDBC.assertSingleValueResultSet(st.executeQuery(sql), "1");
+        
+        sql = "select c11 from t1 where 'acme widgets' " +
+                "like 'acme%' in ('1=1')";
+        JDBC.assertSingleValueResultSet(st.executeQuery(sql), "1");
+        
+        sql = "select c11 from t1 where 1 between -100 " +
+                "and 100 is not null";
+        JDBC.assertSingleValueResultSet(st.executeQuery(sql), "1");
+        
+        sql = "select c11 from t1 where exists(select *" +
+                " from (values 1) as t) not in ('1=2')";
+        JDBC.assertEmpty(st.executeQuery(sql));
+        
+        st.close();
     }
 }

@@ -111,24 +111,24 @@ public final class LangScripts extends ScriptTestCase {
     private static final String[] JDBC3_TESTS = {
     };
 
-	/**
-	 * Run a set of language SQL scripts (.sql files) passed in on the
-	 * command line. Note the .sql suffix must not be provided as
+    /**
+     * Run a set of language SQL scripts (.sql files) passed in on the
+     * command line. Note the .sql suffix must not be provided as
      * part of the script name.
-	 * <code>
-	 * example
-	 * java com.splicemachine.dbTesting.functionTests.tests.lang.LangScripts case union
-	 * </code>
-	 */
-	public static void main(String[] args)
-	{
-		junit.textui.TestRunner.run(getSuite(args));
-	}
+     * <code>
+     * example
+     * java com.splicemachine.dbTesting.functionTests.tests.lang.LangScripts case union
+     * </code>
+     */
+    public static void main(String[] args)
+    {
+        junit.textui.TestRunner.run(getSuite(args));
+    }
 
-	/**
-	 * Return the suite that runs all the langauge SQL scripts.
-	 */
-	public static Test suite() {
+    /**
+     * Return the suite that runs all the langauge SQL scripts.
+     */
+    public static Test suite() {
         
         TestSuite suite = new TestSuite("LangScripts");
         suite.addTest(getSuite(CLIENT_AND_EMBEDDED_TESTS));
@@ -147,25 +147,25 @@ public final class LangScripts extends ScriptTestCase {
         return suite;
     }
     
-	/*
-	 * A single JUnit test that runs a single language SQL script.
-	 */
-	private LangScripts(String langTest){
-		super(langTest);
-	}
-	
+    /*
+     * A single JUnit test that runs a single language SQL script.
+     */
+    private LangScripts(String langTest){
+        super(langTest);
+    }
+    
     /**
      * Return a suite of language SQL tests from the list of
      * script names. Each test is surrounded in a decorator
      * that cleans the database.
       */
-	private static Test getSuite(String[] list)
-	{
+    private static Test getSuite(String[] list)
+    {
         TestSuite suite = new TestSuite("SQL scripts");
         for (int i = 0; i < list.length; i++)
             suite.addTest(
-            		new CleanDatabaseTestSetup(
-            		new LangScripts(list[i])));
+                    new CleanDatabaseTestSetup(
+                    new LangScripts(list[i])));
 
         return getIJConfig(suite);
     }

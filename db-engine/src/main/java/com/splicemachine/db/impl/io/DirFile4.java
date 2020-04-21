@@ -125,40 +125,40 @@ class DirFile4 extends DirFile
 
     public synchronized int getExclusiveFileLock() throws StandardException
     {
-		boolean validExclusiveLock = false;
-		int status;
+        boolean validExclusiveLock = false;
+        int status;
 
-		/*
-		** There can be  a scenario where there is some other JVM that is before jkdk1.4
-		** had booted the system and jdk1.4 trying to boot it, in this case we will get the 
-		** Exclusive Lock even though some other JVM has already booted the database. But
-		** the lock is not a reliable one , so we should  still throw the warning.
-		** The Way we identify this case is if "dbex.lck" file size  is differen
-		** for pre jdk1.4 jvms and jdk1.4 or above.
- 		** Zero size "dbex.lck" file  is created by a jvm i.e before jdk1.4 and
+        /*
+        ** There can be  a scenario where there is some other JVM that is before jkdk1.4
+        ** had booted the system and jdk1.4 trying to boot it, in this case we will get the 
+        ** Exclusive Lock even though some other JVM has already booted the database. But
+        ** the lock is not a reliable one , so we should  still throw the warning.
+        ** The Way we identify this case is if "dbex.lck" file size  is differen
+        ** for pre jdk1.4 jvms and jdk1.4 or above.
+         ** Zero size "dbex.lck" file  is created by a jvm i.e before jdk1.4 and
         ** File created by jdk1.4 or above writes EXCLUSIVE_FILE_LOCK value into the file.
-		** If we are unable to acquire the lock means other JVM that
-		** currently booted the system is also JDK1.4 or above;
-		** In this case we could confidently throw a exception instead of 
-		** of a warning.
-		**/
+        ** If we are unable to acquire the lock means other JVM that
+        ** currently booted the system is also JDK1.4 or above;
+        ** In this case we could confidently throw a exception instead of 
+        ** of a warning.
+        **/
 
-		try
-		{
-			//create the file that us used to acquire exclusive lock if it does not exists.
-			if(createNewFile())
-			{
-				validExclusiveLock = true;
-			}	
-			else
-			{
-				if(length() > 0)
-					validExclusiveLock = true;
-			}
+        try
+        {
+            //create the file that us used to acquire exclusive lock if it does not exists.
+            if(createNewFile())
+            {
+                validExclusiveLock = true;
+            }    
+            else
+            {
+                if(length() > 0)
+                    validExclusiveLock = true;
+            }
 
-			//If we can acquire a reliable exclusive lock , try to get it.
-			if(validExclusiveLock)
-			{
+            //If we can acquire a reliable exclusive lock , try to get it.
+            if(validExclusiveLock)
+            {
                 int retries = InterruptStatus.MAX_INTERRUPT_RETRIES;
                 while (true) {
                     lockFileOpen = new RandomAccessFile((File) this, "rw");
@@ -195,26 +195,26 @@ class DirFile4 extends DirFile
 
                     break;
                 }
-			}
-			else
-			{
-				status = NO_FILE_LOCK_SUPPORT;
-			}
-		
-		}catch(IOException ioe)
-		{
+            }
+            else
+            {
+                status = NO_FILE_LOCK_SUPPORT;
+            }
+        
+        }catch(IOException ioe)
+        {
             // do nothing - it may be read only medium, who knows what the
-			// problem is
+            // problem is
 
-			//release all the possible resource we created in this functions.
-			releaseExclusiveFileLock();
-			status = NO_FILE_LOCK_SUPPORT;
-			if (SanityManager.DEBUG)
-			{
-				SanityManager.THROWASSERT("Unable to Acquire Exclusive Lock on "
-										  + getPath(), ioe);
-			}
-		} catch (OverlappingFileLockException ofle)
+            //release all the possible resource we created in this functions.
+            releaseExclusiveFileLock();
+            status = NO_FILE_LOCK_SUPPORT;
+            if (SanityManager.DEBUG)
+            {
+                SanityManager.THROWASSERT("Unable to Acquire Exclusive Lock on "
+                                          + getPath(), ioe);
+            }
+        } catch (OverlappingFileLockException ofle)
         {
             //
             // Under Java 6 and later, this exception is raised if the database
@@ -240,39 +240,39 @@ class DirFile4 extends DirFile
             status = EXCLUSIVE_FILE_LOCK_NOT_AVAILABLE;
         }
     
-		return status;
-	} // end of getExclusiveFileLock
+        return status;
+    } // end of getExclusiveFileLock
 
     public synchronized void releaseExclusiveFileLock()
     {
-		try
-		{
-			if(dbLock!=null)
-			{
-				dbLock.release();
-				dbLock =null;
-			}
-		
-			if(lockFileChannel !=null)
-			{
-				lockFileChannel.close();
-				lockFileChannel = null;
-			}
+        try
+        {
+            if(dbLock!=null)
+            {
+                dbLock.release();
+                dbLock =null;
+            }
+        
+            if(lockFileChannel !=null)
+            {
+                lockFileChannel.close();
+                lockFileChannel = null;
+            }
 
-			if(lockFileOpen !=null)
-			{
-				lockFileOpen.close();
-				lockFileOpen = null;
-			}
+            if(lockFileOpen !=null)
+            {
+                lockFileOpen.close();
+                lockFileOpen = null;
+            }
 
-			//delete the exclusive lock file name.
+            //delete the exclusive lock file name.
             super.releaseExclusiveFileLock();
-		}catch (IOException ioe)
-		{ 
-			// do nothing - it may be read only medium, who knows what the
-			// problem is
-		}
-	} // End of releaseExclusiveFileLock
+        }catch (IOException ioe)
+        { 
+            // do nothing - it may be read only medium, who knows what the
+            // problem is
+        }
+    } // End of releaseExclusiveFileLock
 
     /**
      * Get a random access (read/write) file.

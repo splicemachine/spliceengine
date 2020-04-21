@@ -94,7 +94,7 @@ public class OnlineCompressTest extends BaseTest
      * @param tblname       table to use.
      * @param num_rows      number of rows to add to the table.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     protected void createAndLoadTable(
     Connection  conn,
@@ -202,15 +202,15 @@ public class OnlineCompressTest extends BaseTest
         {
             Statement s = conn.createStatement();
 
-	    // Derby-606. Note that this table is currently only used by Test6.
-	    // Test6 needs data be to spread over 2 AllocExtents
-	    // and this table schema is chosen so that the required scenario
-	    // is exposed in minimum test execution time.
+        // Derby-606. Note that this table is currently only used by Test6.
+        // Test6 needs data be to spread over 2 AllocExtents
+        // and this table schema is chosen so that the required scenario
+        // is exposed in minimum test execution time.
             s.execute(
                 "create table " + tblname + 
                     "(keycol int, indcol1 int, indcol2 int, data1 char(24), data2 char(24), data3 char(24)," +
-			    "data4 char(24), data5 char(24), data6 char(24), data7 char(24), data8 char(24)," + 
-			    "data9 char(24), data10 char(24), inddec1 decimal(8), indcol3 int, indcol4 int, data11 varchar(50))");
+                "data4 char(24), data5 char(24), data6 char(24), data7 char(24), data8 char(24)," + 
+                "data9 char(24), data10 char(24), inddec1 decimal(8), indcol3 int, indcol4 int, data11 varchar(50))");
             s.close();
         }
 
@@ -231,7 +231,7 @@ public class OnlineCompressTest extends BaseTest
         char[]  data11_data = new char[50];
 
         for (int i = 0; i < data1_data.length; i++) 
-	{
+    {
             data1_data[i] = 'a';
             data2_data[i] = 'b';
             data3_data[i] = 'c';
@@ -242,10 +242,10 @@ public class OnlineCompressTest extends BaseTest
             data8_data[i] = 'h';
             data9_data[i] = 'i';
             data10_data[i] = 'j';
-	}
-	for( int i=0; i < data11_data.length; i++) 
-	{
-	    data11_data[i] = 'z';
+    }
+    for( int i=0; i < data11_data.length; i++) 
+    {
+        data11_data[i] = 'z';
         }
 
         String  data1_str = new String(data1_data);
@@ -280,7 +280,7 @@ public class OnlineCompressTest extends BaseTest
                 insert_stmt.setString(13, data10_str);    // data10_data
                 insert_stmt.setInt(14, i * 20);          // indcol3
                 insert_stmt.setInt(15, i * 200);         // indcol4
-		insert_stmt.setInt(16, i * 50);
+        insert_stmt.setInt(16, i * 50);
                 insert_stmt.setString(17, data11_str);    // data11_data
 
                 insert_stmt.execute();
@@ -346,7 +346,7 @@ public class OnlineCompressTest extends BaseTest
      * @param tblname       table to use.
      * @param num_rows      number of rows to add to the table.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     private void createAndLoadLongTable(
     Connection  conn,
@@ -637,7 +637,7 @@ public class OnlineCompressTest extends BaseTest
      * the table in it.
      * <p>
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     private void checkPurgePhase(
     Connection  conn,
@@ -1074,7 +1074,7 @@ public class OnlineCompressTest extends BaseTest
      * @param table_name the table to use.
      * @param num_rows      number of rows to add to the table.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     private void test5_load(
     Connection  conn,
@@ -1516,7 +1516,7 @@ public class OnlineCompressTest extends BaseTest
     {
         OnlineCompressTest test = new OnlineCompressTest();
 
-   		ij.getPropertyArg(argv); 
+           ij.getPropertyArg(argv); 
         Connection conn = ij.startJBMS();
         conn.setAutoCommit(false);
 
@@ -1526,9 +1526,9 @@ public class OnlineCompressTest extends BaseTest
         }
         catch (SQLException sqle)
         {
-			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
-			sqle.printStackTrace(System.out);
-		}
+            sqle.printStackTrace(System.out);
+        }
     }
 }

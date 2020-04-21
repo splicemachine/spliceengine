@@ -478,9 +478,9 @@ public class DDLUtils {
                 if(td==null) // Table Descriptor transaction never committed
                     return;
                 dm.invalidateFor(td,DependencyManager.RENAME,transactionResource.getLcc());
-    		/* look for foreign key dependency on the table. If found any,
-	    	use dependency manager to pass the rename action to the
-		    dependents. */
+            /* look for foreign key dependency on the table. If found any,
+            use dependency manager to pass the rename action to the
+            dependents. */
                 ConstraintDescriptorList constraintDescriptorList=dd.getConstraintDescriptors(td);
                 for(int index=0;index<constraintDescriptorList.size();index++){
                     ConstraintDescriptor constraintDescriptor=constraintDescriptorList.elementAt(index);

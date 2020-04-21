@@ -35,48 +35,48 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.Context;
 
 /**
-	Generated classes must implement this interface.
+    Generated classes must implement this interface.
 
 */
 public interface GeneratedByteCode {
 
-	/**
-		Initialize the generated class from a context.
-		Called by the class manager just after
-		creating the instance of the new class.
-	*/
-	void initFromContext(Context context)
-		throws StandardException;
+    /**
+        Initialize the generated class from a context.
+        Called by the class manager just after
+        creating the instance of the new class.
+    */
+    void initFromContext(Context context)
+        throws StandardException;
 
-	/**
-		Set the Generated Class. Call by the class manager just after
-		calling initFromContext.
-	*/
-	void setGC(GeneratedClass gc);
+    /**
+        Set the Generated Class. Call by the class manager just after
+        calling initFromContext.
+    */
+    void setGC(GeneratedClass gc);
 
-	/**
-		Called by the class manager just after calling setGC().
-	*/
-	void postConstructor() throws StandardException;
+    /**
+        Called by the class manager just after calling setGC().
+    */
+    void postConstructor() throws StandardException;
 
-	/**
-		Get the GeneratedClass object for this object.
-	*/
-	GeneratedClass getGC();
+    /**
+        Get the GeneratedClass object for this object.
+    */
+    GeneratedClass getGC();
 
-	GeneratedMethod getMethod(String methodName) throws StandardException;
+    GeneratedMethod getMethod(String methodName) throws StandardException;
 
 
-	Object e0() throws StandardException ;
-	Object e1() throws StandardException ;
-	Object e2() throws StandardException ;
-	Object e3() throws StandardException ;
-	Object e4() throws StandardException ;
-	Object e5() throws StandardException ;
-	Object e6() throws StandardException ;
-	Object e7() throws StandardException ;
-	Object e8() throws StandardException ;
-	Object e9() throws StandardException ;
+    Object e0() throws StandardException ;
+    Object e1() throws StandardException ;
+    Object e2() throws StandardException ;
+    Object e3() throws StandardException ;
+    Object e4() throws StandardException ;
+    Object e5() throws StandardException ;
+    Object e6() throws StandardException ;
+    Object e7() throws StandardException ;
+    Object e8() throws StandardException ;
+    Object e9() throws StandardException ;
 
     String e0ToString() throws StandardException ;
     String e1ToString() throws StandardException ;

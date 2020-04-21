@@ -57,43 +57,43 @@ import java.util.List;
  */
 
 public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
-    public static final String		TABLENAME_STRING = "SYSCOLUMNS";
+    public static final String        TABLENAME_STRING = "SYSCOLUMNS";
 
-    protected static final int		SYSCOLUMNS_COLUMN_COUNT = 13;
-	/* Column #s for syscolumns (1 based) */
+    protected static final int        SYSCOLUMNS_COLUMN_COUNT = 13;
+    /* Column #s for syscolumns (1 based) */
 
     //TABLEID is an obsolete name, it is better to use
     //REFERENCEID, but to make life easier you can use either
-    protected static final int		SYSCOLUMNS_TABLEID = 1;
-    protected static final int		SYSCOLUMNS_REFERENCEID = 1;
-    protected static final int		SYSCOLUMNS_COLUMNNAME = 2;
-    protected static final int		SYSCOLUMNS_COLUMNNUMBER = 3;
-    protected static final int		SYSCOLUMNS_STORAGECOLUMNNUMBER = 4;
-    protected static final int		SYSCOLUMNS_COLUMNDATATYPE = 5;
-    protected static final int		SYSCOLUMNS_COLUMNDEFAULT = 6;
-    protected static final int		SYSCOLUMNS_COLUMNDEFAULTID = 7;
-    protected static final int 		SYSCOLUMNS_AUTOINCREMENTVALUE = 8;
-    protected static final int 		SYSCOLUMNS_AUTOINCREMENTSTART = 9;
-    protected static final int		SYSCOLUMNS_AUTOINCREMENTINC = 10;
-    protected static final int		SYSCOLUMNS_COLLECTSTATS = 11;
-    protected static final int		SYSCOLUMNS_PARTITION_POSITION = 12;
+    protected static final int        SYSCOLUMNS_TABLEID = 1;
+    protected static final int        SYSCOLUMNS_REFERENCEID = 1;
+    protected static final int        SYSCOLUMNS_COLUMNNAME = 2;
+    protected static final int        SYSCOLUMNS_COLUMNNUMBER = 3;
+    protected static final int        SYSCOLUMNS_STORAGECOLUMNNUMBER = 4;
+    protected static final int        SYSCOLUMNS_COLUMNDATATYPE = 5;
+    protected static final int        SYSCOLUMNS_COLUMNDEFAULT = 6;
+    protected static final int        SYSCOLUMNS_COLUMNDEFAULTID = 7;
+    protected static final int         SYSCOLUMNS_AUTOINCREMENTVALUE = 8;
+    protected static final int         SYSCOLUMNS_AUTOINCREMENTSTART = 9;
+    protected static final int        SYSCOLUMNS_AUTOINCREMENTINC = 10;
+    protected static final int        SYSCOLUMNS_COLLECTSTATS = 11;
+    protected static final int        SYSCOLUMNS_PARTITION_POSITION = 12;
     public static final int         SYSCOLUMNS_USEEXTRAPOLATION = 13;
 
 
-    protected static final int		SYSCOLUMNS_INDEX1_ID = 0;
-    protected static final int		SYSCOLUMNS_INDEX2_ID = 1;
+    protected static final int        SYSCOLUMNS_INDEX1_ID = 0;
+    protected static final int        SYSCOLUMNS_INDEX2_ID = 1;
 
-    private	static	final	boolean[]	uniqueness = {
+    private    static    final    boolean[]    uniqueness = {
             true,
             false
     };
 
-    private	static	final	String[]	uuids =
+    private    static    final    String[]    uuids =
             {
-                    "8000001e-00d0-fd77-3ed8-000a0a0b1900"	// catalog UUID
-                    ,"80000029-00d0-fd77-3ed8-000a0a0b1900"	// heap UUID
-                    ,"80000020-00d0-fd77-3ed8-000a0a0b1900"	// SYSCOLUMNS_INDEX1 UUID
-                    ,"6839c016-00d9-2829-dfcd-000a0a411400"	// SYSCOLUMNS_INDEX2 UUID
+                    "8000001e-00d0-fd77-3ed8-000a0a0b1900"    // catalog UUID
+                    ,"80000029-00d0-fd77-3ed8-000a0a0b1900"    // heap UUID
+                    ,"80000020-00d0-fd77-3ed8-000a0a0b1900"    // SYSCOLUMNS_INDEX1 UUID
+                    ,"6839c016-00d9-2829-dfcd-000a0a411400"    // SYSCOLUMNS_INDEX2 UUID
             };
 
     private static final int[][] indexColumnPositions =
@@ -106,13 +106,13 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
 
     /////////////////////////////////////////////////////////////////////////////
     //
-    //	STATE
+    //    STATE
     //
     /////////////////////////////////////////////////////////////////////////////
 
     /////////////////////////////////////////////////////////////////////////////
     //
-    //	CONSTRUCTORS
+    //    CONSTRUCTORS
     //
     /////////////////////////////////////////////////////////////////////////////
 
@@ -130,31 +130,31 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
 
     /////////////////////////////////////////////////////////////////////////////
     //
-    //	METHODS
+    //    METHODS
     //
     /////////////////////////////////////////////////////////////////////////////
 
     /**
      * Make a SYSCOLUMNS row
      *
-     * @return	Row suitable for inserting into SYSCOLUMNS.
+     * @return    Row suitable for inserting into SYSCOLUMNS.
      *
      * @exception   StandardException thrown on failure
      */
 
     public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException{
-        ExecRow    				row;
+        ExecRow                    row;
 
-        String					colName = null;
-        String					defaultID = null;
-        String					tabID = null;
-        Integer					colID = null;
+        String                    colName = null;
+        String                    defaultID = null;
+        String                    tabID = null;
+        Integer                    colID = null;
         Integer                 storageNumber = null;
-        TypeDescriptor 		    typeDesc = null;
-        Object					defaultSerializable = null;
-        long					autoincStart = 0;
-        long					autoincInc = 0;
-        long					autoincValue = 0;
+        TypeDescriptor             typeDesc = null;
+        Object                    defaultSerializable = null;
+        long                    autoincStart = 0;
+        long                    autoincInc = 0;
+        long                    autoincValue = 0;
         int                     partitionPosition = -1;
         //The SYSCOLUMNS table's autoinc related columns change with different
         //values depending on what happened to the autoinc column, ie is the
@@ -171,8 +171,8 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
 
         if (td != null) {
             ColumnDescriptor  column = (ColumnDescriptor)td;
-		
-			      /* Lots of info in the column's type descriptor */
+        
+                  /* Lots of info in the column's type descriptor */
             typeDesc = column.getType().getCatalogType();
 
             tabID = column.getReferencingUUID().toString();
@@ -197,36 +197,36 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             useExtrapolation = column.getUseExtrapolation();
         }
 
-		/* Insert info into syscolumns */
+        /* Insert info into syscolumns */
 
-		/* RESOLVE - It would be nice to require less knowledge about syscolumns
-		 * and have this be more table driven.
-		 * RESOLVE - We'd like to store the DataTypeDescriptor in a column.
-		 */
+        /* RESOLVE - It would be nice to require less knowledge about syscolumns
+         * and have this be more table driven.
+         * RESOLVE - We'd like to store the DataTypeDescriptor in a column.
+         */
 
-		    /* Build the row to insert  */
+            /* Build the row to insert  */
         row = getExecutionFactory().getValueRow(SYSCOLUMNS_COLUMN_COUNT);
 
-		    /* 1st column is REFERENCEID (UUID - char(36)) */
+            /* 1st column is REFERENCEID (UUID - char(36)) */
         row.setColumn(SYSCOLUMNS_REFERENCEID, new SQLChar(tabID));
 
-		    /* 2nd column is COLUMNNAME (varchar(128)) */
+            /* 2nd column is COLUMNNAME (varchar(128)) */
         row.setColumn(SYSCOLUMNS_COLUMNNAME, new SQLVarchar(colName));
 
-		    /* 3rd column is COLUMNNUMBER (int) */
+            /* 3rd column is COLUMNNUMBER (int) */
         row.setColumn(SYSCOLUMNS_COLUMNNUMBER, new SQLInteger(colID));
 
         row.setColumn(SYSCOLUMNS_STORAGECOLUMNNUMBER, new SQLInteger(storageNumber));
 
-		    /* 4th column is COLUMNDATATYPE */
+            /* 4th column is COLUMNDATATYPE */
         row.setColumn(SYSCOLUMNS_COLUMNDATATYPE,
                 new UserType(typeDesc));
 
-		    /* 5th column is COLUMNDEFAULT */
+            /* 5th column is COLUMNDEFAULT */
         row.setColumn(SYSCOLUMNS_COLUMNDEFAULT,
                 new UserType(defaultSerializable));
 
-		    /* 6th column is DEFAULTID (UUID - char(36)) */
+            /* 6th column is DEFAULTID (UUID - char(36)) */
         row.setColumn(SYSCOLUMNS_COLUMNDEFAULTID, new SQLChar(defaultID));
 
         if (autoinc_create_or_modify_Start_Increment == ColumnDefinitionNode.CREATE_AUTOINCREMENT ||
@@ -267,25 +267,25 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
 
     ///////////////////////////////////////////////////////////////////////////
     //
-    //	ABSTRACT METHODS TO BE IMPLEMENTED BY CHILDREN OF CatalogRowFactory
+    //    ABSTRACT METHODS TO BE IMPLEMENTED BY CHILDREN OF CatalogRowFactory
     //
     ///////////////////////////////////////////////////////////////////////////
 
     /**
      * Make a ColumnDescriptor out of a SYSCOLUMNS row
      *
-     * @param row 					a SYSCOLUMNS row
-     * @param parentTupleDescriptor	The UniqueTupleDescriptor for the object that is tied
-     *								to this column
-     * @param dd 					dataDictionary
+     * @param row                     a SYSCOLUMNS row
+     * @param parentTupleDescriptor    The UniqueTupleDescriptor for the object that is tied
+     *                                to this column
+     * @param dd                     dataDictionary
      *
-     * @return	a column descriptor equivalent to a SYSCOLUMNS row
+     * @return    a column descriptor equivalent to a SYSCOLUMNS row
      *
      * @exception   StandardException thrown on failure
      */
     public TupleDescriptor buildDescriptor(ExecRow row,
                                            TupleDescriptor parentTupleDescriptor,
-                                           DataDictionary	dd) throws StandardException{
+                                           DataDictionary    dd) throws StandardException{
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(row.nColumns() == SYSCOLUMNS_COLUMN_COUNT,
                     "Wrong number of columns for a SYSCOLUMNS row");
@@ -295,21 +295,21 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         int storageNumber;
         String columnName;
         String defaultID;
-        DefaultInfoImpl		defaultInfo = null;
+        DefaultInfoImpl        defaultInfo = null;
         ColumnDescriptor colDesc;
-        DataValueDescriptor	defaultValue = null;
-        UUID				defaultUUID = null;
-        UUID				uuid;
-        UUIDFactory			uuidFactory = getUUIDFactory();
+        DataValueDescriptor    defaultValue = null;
+        UUID                defaultUUID = null;
+        UUID                uuid;
+        UUIDFactory            uuidFactory = getUUIDFactory();
         long autoincStart, autoincInc, autoincValue;
 
-        DataDescriptorGenerator	ddg = dd.getDataDescriptorGenerator();
+        DataDescriptorGenerator    ddg = dd.getDataDescriptorGenerator();
 
 
-		    /*
-		     ** We're going to be getting the UUID for this sucka
-		     ** so make sure it is a UniqueTupleDescriptor.
-		     */
+            /*
+             ** We're going to be getting the UUID for this sucka
+             ** so make sure it is a UniqueTupleDescriptor.
+             */
         if (parentTupleDescriptor != null) {
             if (SanityManager.DEBUG) {
                 if (!(parentTupleDescriptor instanceof UniqueTupleDescriptor)) {
@@ -319,13 +319,13 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             }
             uuid = ((UniqueTupleDescriptor)parentTupleDescriptor).getUUID();
         } else {
-			      /* 1st column is REFERENCEID (char(36)) */
+                  /* 1st column is REFERENCEID (char(36)) */
             uuid = uuidFactory.recreateUUID(row.getColumn(SYSCOLUMNS_REFERENCEID). getString());
         }
 
-		    /* NOTE: We get columns 5 and 6 next in order to work around
-		     * a 1.3.0 HotSpot bug.  (#4361550)
-		     */
+            /* NOTE: We get columns 5 and 6 next in order to work around
+             * a 1.3.0 HotSpot bug.  (#4361550)
+             */
         // 5th column is COLUMNDEFAULT (serialiazable)
         Object object = row.getColumn(SYSCOLUMNS_COLUMNDEFAULT).getObject();
         if (object instanceof DataValueDescriptor) {
@@ -335,43 +335,43 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             defaultValue = defaultInfo.getDefaultValue();
         }
 
-		    /* 6th column is DEFAULTID (char(36)) */
+            /* 6th column is DEFAULTID (char(36)) */
         defaultID = row.getColumn(SYSCOLUMNS_COLUMNDEFAULTID).getString();
 
         if (defaultID != null) {
             defaultUUID = uuidFactory.recreateUUID(defaultID);
         }
 
-		    /* 2nd column is COLUMNNAME (varchar(128)) */
+            /* 2nd column is COLUMNNAME (varchar(128)) */
         columnName = row.getColumn(SYSCOLUMNS_COLUMNNAME).getString();
 
-		    /* 3rd column is COLUMNNUMBER (int) */
+            /* 3rd column is COLUMNNUMBER (int) */
         columnNumber = row.getColumn(SYSCOLUMNS_COLUMNNUMBER).getInt();
 
         storageNumber= row.getColumn(SYSCOLUMNS_STORAGECOLUMNNUMBER).getInt();
 
 
 
-		    /* 4th column is COLUMNDATATYPE */
+            /* 4th column is COLUMNDATATYPE */
 
-		    /*
-		     ** What is stored in the column is a TypeDescriptorImpl, which
-		     ** points to a BaseTypeIdImpl.  These are simple types that are
-		     ** intended to be movable to the client, so they don't have
-		     ** the entire implementation.  We need to wrap them in DataTypeServices
-		     ** and TypeId objects that contain the full implementations for
-		     ** language processing.
-		     */
+            /*
+             ** What is stored in the column is a TypeDescriptorImpl, which
+             ** points to a BaseTypeIdImpl.  These are simple types that are
+             ** intended to be movable to the client, so they don't have
+             ** the entire implementation.  We need to wrap them in DataTypeServices
+             ** and TypeId objects that contain the full implementations for
+             ** language processing.
+             */
         TypeDescriptor catalogType = (TypeDescriptor) row.getColumn(SYSCOLUMNS_COLUMNDATATYPE). getObject();
         DataTypeDescriptor dataTypeServices = DataTypeDescriptor.getType(catalogType);
 
-		    /* 7th column is AUTOINCREMENTVALUE (long) */
+            /* 7th column is AUTOINCREMENTVALUE (long) */
         autoincValue = row.getColumn(SYSCOLUMNS_AUTOINCREMENTVALUE).getLong();
 
-		    /* 8th column is AUTOINCREMENTSTART (long) */
+            /* 8th column is AUTOINCREMENTSTART (long) */
         autoincStart = row.getColumn(SYSCOLUMNS_AUTOINCREMENTSTART).getLong();
 
-		    /* 9th column is AUTOINCREMENTINC (long) */
+            /* 9th column is AUTOINCREMENTINC (long) */
         autoincInc = row.getColumn(SYSCOLUMNS_AUTOINCREMENTINC).getLong();
 
         DataValueDescriptor col = row.getColumn(SYSCOLUMNS_AUTOINCREMENTSTART);
@@ -411,12 +411,12 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     }
 
     /**
-     *	Get the index number for the primary key index on this catalog.
+     *    Get the index number for the primary key index on this catalog.
      *
-     *	@return	a 0-based number
+     *    @return    a 0-based number
      *
      */
-    public	int	getPrimaryKeyIndexNumber() {
+    public    int    getPrimaryKeyIndexNumber() {
         return SYSCOLUMNS_INDEX1_ID;
     }
 
@@ -426,7 +426,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
      *
      * @return array of SystemColumn suitable for making this catalog.
      */
-    public SystemColumn[]	buildColumnList() throws StandardException {
+    public SystemColumn[]    buildColumnList() throws StandardException {
 
         return new SystemColumn[] {
                 SystemColumnImpl.getUUIDColumn("REFERENCEID", false),

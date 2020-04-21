@@ -39,8 +39,8 @@ import static org.junit.Assert.fail;
  */
 public class NumericPromoteCompareIT {
 
-	// This test class was added as part of fix for DB-1001.
-	
+    // This test class was added as part of fix for DB-1001.
+    
     private static final String CLASS_NAME = NumericPromoteCompareIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 
@@ -56,7 +56,7 @@ public class NumericPromoteCompareIT {
     
     @Test
     public void testMultipleTypes() throws Exception {
-    	// Compare INT to the rest
+        // Compare INT to the rest
         assertCount(5, tableName1, "cust_id_int", "=", "cust_id_int");
         assertCount(5, tableName1, "cust_id_int", "=", "cust_id_sml");
         assertCount(4, tableName1, "cust_id_int", "=", "cust_id_dec");

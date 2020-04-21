@@ -44,94 +44,94 @@ import java.io.PrintWriter;
  */
 public class ErrorStringBuilder 
 {
-	private StringWriter	stringWriter;
-	private PrintWriter		printWriter;
-	private PrintWriterGetHeader	headerGetter;
+    private StringWriter    stringWriter;
+    private PrintWriter        printWriter;
+    private PrintWriterGetHeader    headerGetter;
 
-	/**
-	** Construct an error string builder
-	*/
-	public ErrorStringBuilder(PrintWriterGetHeader headerGetter)
-	{
-		this.headerGetter = headerGetter;
-		this.stringWriter = new StringWriter();
-		this.printWriter = new PrintWriter(stringWriter);
-	}
+    /**
+    ** Construct an error string builder
+    */
+    public ErrorStringBuilder(PrintWriterGetHeader headerGetter)
+    {
+        this.headerGetter = headerGetter;
+        this.stringWriter = new StringWriter();
+        this.printWriter = new PrintWriter(stringWriter);
+    }
 
-	/**
-	** Append an error string 
-	**
-	** @param s 	the string to append
-	*/
-	public void append(String s)
-	{
-		if (headerGetter != null)
-			printWriter.print(headerGetter.getHeader());
-		printWriter.print(s);
-	}
+    /**
+    ** Append an error string 
+    **
+    ** @param s     the string to append
+    */
+    public void append(String s)
+    {
+        if (headerGetter != null)
+            printWriter.print(headerGetter.getHeader());
+        printWriter.print(s);
+    }
 
 
-	/**
-	** Append an error string with a newline
-	**
-	** @param s 	the string to append
-	*/
-	public void appendln(String s)
-	{
-		if (headerGetter != null)
-			printWriter.print(headerGetter.getHeader());
-		printWriter.println(s);
-	}
+    /**
+    ** Append an error string with a newline
+    **
+    ** @param s     the string to append
+    */
+    public void appendln(String s)
+    {
+        if (headerGetter != null)
+            printWriter.print(headerGetter.getHeader());
+        printWriter.println(s);
+    }
 
-	/**
-	** Print a stacktrace from the throwable in the error
-	** buffer.
-	**
-	** @param t	the error
-	*/
-	public void stackTrace(Throwable t)
-	{
-		int level = 0;
-		while(t != null)
-		{
-			if (level > 0)	
-				printWriter.println("============= begin nested exception, level (" +
-									level + ") ===========");
+    /**
+    ** Print a stacktrace from the throwable in the error
+    ** buffer.
+    **
+    ** @param t    the error
+    */
+    public void stackTrace(Throwable t)
+    {
+        int level = 0;
+        while(t != null)
+        {
+            if (level > 0)    
+                printWriter.println("============= begin nested exception, level (" +
+                                    level + ") ===========");
 
-			t.printStackTrace(printWriter);
+            t.printStackTrace(printWriter);
 
-			if (t instanceof java.sql.SQLException) {
-				Throwable next = ((java.sql.SQLException)t).getNextException();
-				t = (next == null) ? t.getCause() : next;
-			} else {
-				t = t.getCause();
-			}
+            if (t instanceof java.sql.SQLException) {
+                Throwable next = ((java.sql.SQLException)t).getNextException();
+                t = (next == null) ? t.getCause() : next;
+            } else {
+                t = t.getCause();
+            }
 
-			if (level > 0)	
-				printWriter.println("============= end nested exception, level (" + 
-									level + ") ===========");
+            if (level > 0)    
+                printWriter.println("============= end nested exception, level (" + 
+                                    level + ") ===========");
 
-			level++;
+            level++;
 
-		}
+        }
 
-	}
+    }
 
-	/**
-	** Reset the buffer -- truncate it down to nothing.
-	**
-	*/
-	public void reset()
-	{
-		// Is this the most effecient way to do this?
-		stringWriter.getBuffer().setLength(0);
-	}
+    /**
+    ** Reset the buffer -- truncate it down to nothing.
+    **
+    */
+    public void reset()
+    {
+        // Is this the most effecient way to do this?
+        stringWriter.getBuffer().setLength(0);
+    }
 
-	/**
-	** Get the buffer
-	*/
-	public StringBuffer get()
-	{
-		return stringWriter.getBuffer();
-	}	
-}	
+    /**
+    ** Get the buffer
+    */
+    public StringBuffer get()
+    {
+        return stringWriter.getBuffer();
+    }    
+}    

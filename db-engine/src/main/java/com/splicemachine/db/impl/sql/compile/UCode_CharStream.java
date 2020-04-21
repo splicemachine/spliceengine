@@ -74,9 +74,9 @@ public final class UCode_CharStream implements CharStream
      int newbufline[] = new int[bufsize + 2048];
      int newbufcolumn[] = new int[bufsize + 2048];
 
-	// The next line was added to support ability to get the input
-	// between two tokens.
-	int newcharOffset[] = new int[bufsize + 2048];
+    // The next line was added to support ability to get the input
+    // between two tokens.
+    int newcharOffset[] = new int[bufsize + 2048];
 
      try
      {
@@ -95,11 +95,11 @@ public final class UCode_CharStream implements CharStream
            System.arraycopy(bufcolumn, 0, newbufcolumn, bufsize - tokenBegin, bufpos);
            bufcolumn = newbufcolumn;
 
-			// The next three lines were added to support ability to get input
-			// between two tokens.
-		   System.arraycopy(charOffset, tokenBegin, newcharOffset, 0, bufsize - tokenBegin);
-		   System.arraycopy(charOffset, 0, newcharOffset, bufsize - tokenBegin, bufpos);
-		   charOffset = newcharOffset;
+            // The next three lines were added to support ability to get input
+            // between two tokens.
+           System.arraycopy(charOffset, tokenBegin, newcharOffset, 0, bufsize - tokenBegin);
+           System.arraycopy(charOffset, 0, newcharOffset, bufsize - tokenBegin, bufpos);
+           charOffset = newcharOffset;
 
            bufpos += (bufsize - tokenBegin);
         }
@@ -114,10 +114,10 @@ public final class UCode_CharStream implements CharStream
            System.arraycopy(bufcolumn, tokenBegin, newbufcolumn, 0, bufsize - tokenBegin);
            bufcolumn = newbufcolumn;
 
-			// The next two lines were added to support ability to get input
-			// between two tokens.
-		   System.arraycopy(charOffset, tokenBegin, newcharOffset, 0, bufsize - tokenBegin);
-		   charOffset = newcharOffset;
+            // The next two lines were added to support ability to get input
+            // between two tokens.
+           System.arraycopy(charOffset, tokenBegin, newcharOffset, 0, bufsize - tokenBegin);
+           charOffset = newcharOffset;
 
            bufpos -= tokenBegin;
         }
@@ -169,20 +169,20 @@ public final class UCode_CharStream implements CharStream
      if (++nextCharInd >= maxNextCharInd)
         FillBuff();
 
-	 return nextCharBuf[nextCharInd];
+     return nextCharBuf[nextCharInd];
   }
      
   public char BeginToken() throws java.io.IOException
   {     
-	 if (inBuf > 0)
-	 {
-		--inBuf;
-		return buffer[tokenBegin = (bufpos == bufsize - 1) ? (bufpos = 0)
-															: ++bufpos];
-	 }
+     if (inBuf > 0)
+     {
+        --inBuf;
+        return buffer[tokenBegin = (bufpos == bufsize - 1) ? (bufpos = 0)
+                                                            : ++bufpos];
+     }
 
      tokenBegin = 0;
-	 bufpos = -1;
+     bufpos = -1;
 
       return readChar();
   }     
@@ -223,8 +223,8 @@ public final class UCode_CharStream implements CharStream
            break;
      }
 
-	 bufline[bufpos] = line;
-	 bufcolumn[bufpos] = column;
+     bufline[bufpos] = line;
+     bufcolumn[bufpos] = column;
   }
 
   private int inBuf = 0;
@@ -258,13 +258,13 @@ public final class UCode_CharStream implements CharStream
            available = tokenBegin;
      }
 
-	 char c = ReadChar();
+     char c = ReadChar();
 
      UpdateLineColumn(c);
 
-	// The next line was added to support ability to get the input
-	// between two tokens.
-	charOffset[bufpos] = charCnt++;
+    // The next line was added to support ability to get the input
+    // between two tokens.
+    charOffset[bufpos] = charCnt++;
 
      return (buffer[bufpos] = c);
   }
@@ -306,13 +306,13 @@ public final class UCode_CharStream implements CharStream
   // This method was added to support ability to get the input
   // between two tokens.
   public final int getBeginOffset() {
-	return charOffset[tokenBegin];
+    return charOffset[tokenBegin];
   }
 
   // This method was added to support ability to get the input
   // between two tokens.
   public final int getEndOffset() {
-	return charOffset[bufpos];
+    return charOffset[bufpos];
   }
 
   public final void backup(int amount) {
@@ -335,9 +335,9 @@ public final class UCode_CharStream implements CharStream
     bufline = new int[buffersize];
     bufcolumn = new int[buffersize];
 
-	// The next line was added to support ability to get the input
-	// between two tokens.
-	charOffset = new int[buffersize];
+    // The next line was added to support ability to get the input
+    // between two tokens.
+    charOffset = new int[buffersize];
   }
 
   public UCode_CharStream(java.io.Reader dstream,
@@ -362,10 +362,10 @@ public final class UCode_CharStream implements CharStream
       bufcolumn = new int[buffersize];
     }
 
-	// The next line was added to support ability to get the input
-	// between two tokens.
-	inBuf = maxNextCharInd = charCnt = tokenBegin = 0;
-	nextCharInd = bufpos = -1;
+    // The next line was added to support ability to get the input
+    // between two tokens.
+    inBuf = maxNextCharInd = charCnt = tokenBegin = 0;
+    nextCharInd = bufpos = -1;
   }
 
   public void ReInit(java.io.Reader dstream,
@@ -428,9 +428,9 @@ public final class UCode_CharStream implements CharStream
      bufline = null;
      bufcolumn = null;
 
-	// The next line was added to support ability to get the input
-	// between two tokens.
-	 charOffset = null;
+    // The next line was added to support ability to get the input
+    // between two tokens.
+     charOffset = null;
   }
 
   /**

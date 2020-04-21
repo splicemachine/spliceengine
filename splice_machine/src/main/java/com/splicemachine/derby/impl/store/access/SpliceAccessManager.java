@@ -61,7 +61,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     private Hashtable formathash;
     private Properties serviceProperties;
     private PropertyConglomerate xactProperties;
-    private PropertyFactory 	pf;
+    private PropertyFactory     pf;
     protected ConglomerateFactory conglom_map[];
     protected SpliceDatabase database;
 
@@ -654,14 +654,14 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 
         if (SanityManager.DEBUG) {
             for (int i = 0;i < TransactionController.ISOLATION_SERIALIZABLE;i++) {
-				/*
+                /*
       SanityManager.ASSERT(
           table_level_policy[i] != null,
           "table_level_policy[" + i + "] is null");
       SanityManager.ASSERT(
           record_level_policy[i] != null,
           "record_level_policy[" + i + "] is null");
-				 */ // XXX - TODO REIMPLIMENT TABLE_LEVEL and RECORD_LEVEL
+                 */ // XXX - TODO REIMPLIMENT TABLE_LEVEL and RECORD_LEVEL
             }
         }
 

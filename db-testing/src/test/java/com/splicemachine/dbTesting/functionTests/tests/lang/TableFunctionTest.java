@@ -1183,21 +1183,21 @@ public class TableFunctionTest extends BaseJDBCTestCase
         String[][] CHAR_ROWS = new String[SIMPLE_ROWS.length][];
         for (int r = 0; r < CHAR_ROWS.length; r++)
         {
-        	CHAR_ROWS[r] = new String[SIMPLE_ROWS[r].length];
-        	for (int c = 0; c < CHAR_ROWS[r].length; c++)
-        	{
-        		String cv = SIMPLE_ROWS[r][c];
-        		if (cv != null)
-        		{
-        			if (cv.length() < 10)
-        			{
-        				StringBuffer sb = new StringBuffer(cv);
-        				for (int p = cv.length(); p < 10; p++)
-        					sb.append(' ');
-        				CHAR_ROWS[r][c] = sb.toString();
-        			}	
-        		}
-        	}
+            CHAR_ROWS[r] = new String[SIMPLE_ROWS[r].length];
+            for (int c = 0; c < CHAR_ROWS[r].length; c++)
+            {
+                String cv = SIMPLE_ROWS[r][c];
+                if (cv != null)
+                {
+                    if (cv.length() < 10)
+                    {
+                        StringBuffer sb = new StringBuffer(cv);
+                        for (int p = cv.length(); p < 10; p++)
+                            sb.append(' ');
+                        CHAR_ROWS[r][c] = sb.toString();
+                    }    
+                }
+            }
         }
         assertResults
         (
@@ -2576,7 +2576,7 @@ public class TableFunctionTest extends BaseJDBCTestCase
      * Read the value of a tag in some optimizer output.
      * </p>
      */
-    private	double  readDoubleTag( String optimizerOutput, String tag )
+    private    double  readDoubleTag( String optimizerOutput, String tag )
         throws Exception
     {
         StringReader        stringReader = new StringReader( optimizerOutput );

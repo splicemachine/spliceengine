@@ -61,14 +61,14 @@ public interface ScanManager extends ScanController, GroupFetchScanController
      *                          opened to be kept opened across commit.  This is
      *                          used to close these scans on abort.
      *
-	 * @return boolean indicating that the close has resulted in a real close
+     * @return boolean indicating that the close has resulted in a real close
      *                 of the scan.  A held scan will return false if called 
      *                 by closeForEndTransaction(false), otherwise it will 
      *                 return true.  A non-held scan will always return true.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     boolean closeForEndTransaction(boolean closeHeldScan)
-		throws StandardException;
+        throws StandardException;
 
 }

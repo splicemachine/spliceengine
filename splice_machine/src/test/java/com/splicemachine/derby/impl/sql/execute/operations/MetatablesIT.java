@@ -26,8 +26,8 @@ import java.sql.ResultSet;
  *         Created on: 2/23/13
  */
 public class MetatablesIT { 
-    private static final Logger LOG = Logger.getLogger(MetatablesIT.class);	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+    private static final Logger LOG = Logger.getLogger(MetatablesIT.class);    
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
     public void testSelectWithOr() throws Exception{

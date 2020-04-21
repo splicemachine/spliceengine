@@ -369,7 +369,7 @@ public class BlobTest
      * 
      */
      Object getNullValueForType(Class type)
-	{
+    {
         if (!type.isPrimitive()) {
             return null;
         }

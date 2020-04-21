@@ -58,43 +58,43 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 
 /**
-	A set of public static methods for dealing with File objects.
+    A set of public static methods for dealing with File objects.
 */
 public abstract class FileUtil {
 
     private static final int BUFFER_SIZE = 4096*4;
-	/**
-		Remove a directory and all of its contents.
+    /**
+        Remove a directory and all of its contents.
 
-		The results of executing File.delete() on a File object
-		that represents a directory seems to be platform
-		dependent. This method removes the directory
-		and all of its contents.
+        The results of executing File.delete() on a File object
+        that represents a directory seems to be platform
+        dependent. This method removes the directory
+        and all of its contents.
 
-		@return true if the complete directory was removed, false if it could not be.
-		If false is returned then some of the files in the directory may have been removed.
+        @return true if the complete directory was removed, false if it could not be.
+        If false is returned then some of the files in the directory may have been removed.
 
-	*/
-	public static boolean removeDirectory(File directory) {
+    */
+    public static boolean removeDirectory(File directory) {
 
-		// System.out.println("removeDirectory " + directory);
+        // System.out.println("removeDirectory " + directory);
 
-		if (directory == null)
-			return false;
-		if (!directory.exists())
-			return true;
-		if (!directory.isDirectory())
-			return false;
+        if (directory == null)
+            return false;
+        if (!directory.exists())
+            return true;
+        if (!directory.isDirectory())
+            return false;
 
-		String[] list = directory.list();
+        String[] list = directory.list();
 
-		// Some JVMs return null for File.list() when the
-		// directory is empty.
-		if (list != null) {
+        // Some JVMs return null for File.list() when the
+        // directory is empty.
+        if (list != null) {
             for (String aList : list) {
                 File entry = new File(directory, aList);
 
-                //				System.out.println("\tremoving entry " + entry);
+                //                System.out.println("\tremoving entry " + entry);
 
                 if (entry.isDirectory()) {
                     if (!removeDirectory(entry))
@@ -104,66 +104,66 @@ public abstract class FileUtil {
                         return false;
                 }
             }
-		}
+        }
 
-		return directory.delete();
-	}
+        return directory.delete();
+    }
 
-	public static boolean removeDirectory(String directory)
-	{
-	    return removeDirectory(new File(directory));
-	}
+    public static boolean removeDirectory(String directory)
+    {
+        return removeDirectory(new File(directory));
+    }
 
-	/**
-	  Copy a directory and all of its contents.
-	  */
-	public static boolean copyDirectory(File from, File to)
-	{
-		return copyDirectory(from, to, (byte[])null, (String[])null);
-	}
+    /**
+      Copy a directory and all of its contents.
+      */
+    public static boolean copyDirectory(File from, File to)
+    {
+        return copyDirectory(from, to, (byte[])null, (String[])null);
+    }
 
-	public static boolean copyDirectory(String from, String to)
-	{
-		return copyDirectory(new File(from), new File(to));
-	}
+    public static boolean copyDirectory(String from, String to)
+    {
+        return copyDirectory(new File(from), new File(to));
+    }
 
-	/**
-		@param filter - array of names to not copy.
-	*/
-	public static boolean copyDirectory(File from, File to, byte[] buffer, 
-										String[] filter)
-	{
-		//
-		// System.out.println("copyDirectory("+from+","+to+")");		
+    /**
+        @param filter - array of names to not copy.
+    */
+    public static boolean copyDirectory(File from, File to, byte[] buffer, 
+                                        String[] filter)
+    {
+        //
+        // System.out.println("copyDirectory("+from+","+to+")");        
 
-		if (from == null)
-			return false;
-		if (!from.exists())
-			return true;
-		if (!from.isDirectory())
-			return false;
+        if (from == null)
+            return false;
+        if (!from.exists())
+            return true;
+        if (!from.isDirectory())
+            return false;
 
-		if (to.exists())
-		{
-			//			System.out.println(to + " exists");
-			return false;
-		}
-		if (!to.mkdirs())
-		{
-			//			System.out.println("can't make" + to);
-			return false;
-		}			
+        if (to.exists())
+        {
+            //            System.out.println(to + " exists");
+            return false;
+        }
+        if (!to.mkdirs())
+        {
+            //            System.out.println("can't make" + to);
+            return false;
+        }            
 
         limitAccessToOwner(to);
 
-		String[] list = from.list();
+        String[] list = from.list();
 
-		// Some JVMs return null for File.list() when the
-		// directory is empty.
-		if (list != null) {
+        // Some JVMs return null for File.list() when the
+        // directory is empty.
+        if (list != null) {
 
-			if (buffer == null)
-				buffer = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
+            if (buffer == null)
+                buffer = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
 
 nextFile:
 for (String fileName : list) {
@@ -178,7 +178,7 @@ for (String fileName : list) {
 
     File entry = new File(from, fileName);
 
-    //				System.out.println("\tcopying entry " + entry);
+    //                System.out.println("\tcopying entry " + entry);
 
     if (entry.isDirectory()) {
         if (!copyDirectory(entry, new File(to, fileName), buffer, filter))
@@ -188,58 +188,58 @@ for (String fileName : list) {
             return false;
     }
 }
-		}
-		return true;
-	}		
+        }
+        return true;
+    }        
 
 
-	public static boolean copyFile(File from, File to, byte[] buf)
-	{
-		if (buf == null)
-			buf = new byte[BUFFER_SIZE];
+    public static boolean copyFile(File from, File to, byte[] buf)
+    {
+        if (buf == null)
+            buf = new byte[BUFFER_SIZE];
 
-		//
-		//		System.out.println("Copy file ("+from+","+to+")");
-		FileInputStream from_s = null;
-		FileOutputStream to_s = null;
+        //
+        //        System.out.println("Copy file ("+from+","+to+")");
+        FileInputStream from_s = null;
+        FileOutputStream to_s = null;
 
-		try {
-			from_s = new FileInputStream(from);
-			to_s = new FileOutputStream(to);
+        try {
+            from_s = new FileInputStream(from);
+            to_s = new FileOutputStream(to);
             limitAccessToOwner(to);
 
-			for (int bytesRead = from_s.read(buf);
-				 bytesRead != -1;
-				 bytesRead = from_s.read(buf))
-				to_s.write(buf,0,bytesRead);
+            for (int bytesRead = from_s.read(buf);
+                 bytesRead != -1;
+                 bytesRead = from_s.read(buf))
+                to_s.write(buf,0,bytesRead);
 
-			from_s.close();
-			from_s = null;
+            from_s.close();
+            from_s = null;
 
-			to_s.getFD().sync();  // RESOLVE: sync or no sync?
-			to_s.close();
-			to_s = null;
-		}
-		catch (IOException ioe)
-		{
-			return false;
-		}
-		finally
-		{
-			if (from_s != null)
-			{
-				try { from_s.close(); }
-				catch (IOException ignored) {}
-			}
-			if (to_s != null)
-			{
-				try { to_s.close(); }
-				catch (IOException ignored) {}
-			}
-		}
+            to_s.getFD().sync();  // RESOLVE: sync or no sync?
+            to_s.close();
+            to_s = null;
+        }
+        catch (IOException ioe)
+        {
+            return false;
+        }
+        finally
+        {
+            if (from_s != null)
+            {
+                try { from_s.close(); }
+                catch (IOException ignored) {}
+            }
+            if (to_s != null)
+            {
+                try { to_s.close(); }
+                catch (IOException ignored) {}
+            }
+        }
 
-		return true;
-	}
+        return true;
+    }
 
 
     public static boolean copyDirectory( StorageFactory storageFactory,
@@ -249,34 +249,34 @@ for (String fileName : list) {
                                          String[] filter, 
                                          boolean copySubDirs)
     {
-		if (from == null)
-			return false;
-		if (!from.exists())
-			return true;
-		if (!from.isDirectory())
-			return false;
+        if (from == null)
+            return false;
+        if (!from.exists())
+            return true;
+        if (!from.isDirectory())
+            return false;
 
-		if (to.exists())
-		{
-			//			System.out.println(to + " exists");
-			return false;
-		}
-		if (!to.mkdirs())
-		{
-			//			System.out.println("can't make" + to);
-			return false;
-		}			
+        if (to.exists())
+        {
+            //            System.out.println(to + " exists");
+            return false;
+        }
+        if (!to.mkdirs())
+        {
+            //            System.out.println("can't make" + to);
+            return false;
+        }            
 
         limitAccessToOwner(to);
 
-		String[] list = from.list();
+        String[] list = from.list();
 
-		// Some JVMs return null for File.list() when the
-		// directory is empty.
-		if (list != null)
+        // Some JVMs return null for File.list() when the
+        // directory is empty.
+        if (list != null)
         {
-			if (buffer == null)
-				buffer = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
+            if (buffer == null)
+                buffer = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
 
           nextFile:
           for (String fileName : list) {
@@ -305,60 +305,60 @@ for (String fileName : list) {
                       return false;
               }
           }
-		}
-		return true;
-	} // end of copyDirectory( StorageFactory sf, StorageFile from, File to, byte[] buf, String[] filter)
+        }
+        return true;
+    } // end of copyDirectory( StorageFactory sf, StorageFile from, File to, byte[] buf, String[] filter)
 
     public static boolean copyFile( StorageFactory storageFactory, StorageFile from, File to)
     {
         return copyFile( storageFactory, from, to, (byte[]) null);
     }
     
-	public static boolean copyFile( StorageFactory storageFactory, StorageFile from, File to, byte[] buf)
-	{
-		InputStream from_s = null;
-		FileOutputStream to_s = null;
+    public static boolean copyFile( StorageFactory storageFactory, StorageFile from, File to, byte[] buf)
+    {
+        InputStream from_s = null;
+        FileOutputStream to_s = null;
 
-		try {
-			from_s = from.getInputStream();
-			to_s = new FileOutputStream( to);
+        try {
+            from_s = from.getInputStream();
+            to_s = new FileOutputStream( to);
             limitAccessToOwner(to);
 
-			if (buf == null)
-				buf = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
+            if (buf == null)
+                buf = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
 
-			for (int bytesRead = from_s.read(buf);
-				 bytesRead != -1;
-				 bytesRead = from_s.read(buf))
-				to_s.write(buf,0,bytesRead);
+            for (int bytesRead = from_s.read(buf);
+                 bytesRead != -1;
+                 bytesRead = from_s.read(buf))
+                to_s.write(buf,0,bytesRead);
 
-			from_s.close();
-			from_s = null;
+            from_s.close();
+            from_s = null;
 
-			to_s.getFD().sync();  // RESOLVE: sync or no sync?
-			to_s.close();
-			to_s = null;
-		}
-		catch (IOException ioe)
-		{
-			return false;
-		}
-		finally
-		{
-			if (from_s != null)
-			{
-				try { from_s.close(); }
-				catch (IOException ignored) {}
-			}
-			if (to_s != null)
-			{
-				try { to_s.close(); }
-				catch (IOException ignored) {}
-			}
-		}
+            to_s.getFD().sync();  // RESOLVE: sync or no sync?
+            to_s.close();
+            to_s = null;
+        }
+        catch (IOException ioe)
+        {
+            return false;
+        }
+        finally
+        {
+            if (from_s != null)
+            {
+                try { from_s.close(); }
+                catch (IOException ignored) {}
+            }
+            if (to_s != null)
+            {
+                try { to_s.close(); }
+                catch (IOException ignored) {}
+            }
+        }
 
-		return true;
-	} // end of copyFile( StorageFactory storageFactory, StorageFile from, File to, byte[] buf)
+        return true;
+    } // end of copyFile( StorageFactory storageFactory, StorageFile from, File to, byte[] buf)
 
     public static boolean copyDirectory( WritableStorageFactory storageFactory,
                                          File from,
@@ -373,34 +373,34 @@ for (String fileName : list) {
                                          byte[] buffer,
                                          String[] filter)
     {
-		if (from == null)
-			return false;
-		if (!from.exists())
-			return true;
-		if (!from.isDirectory())
-			return false;
+        if (from == null)
+            return false;
+        if (!from.exists())
+            return true;
+        if (!from.isDirectory())
+            return false;
 
-		if (to.exists())
-		{
-			//			System.out.println(to + " exists");
-			return false;
-		}
-		if (!to.mkdirs())
-		{
-			//			System.out.println("can't make" + to);
-			return false;
-		}			
+        if (to.exists())
+        {
+            //            System.out.println(to + " exists");
+            return false;
+        }
+        if (!to.mkdirs())
+        {
+            //            System.out.println("can't make" + to);
+            return false;
+        }            
 
         to.limitAccessToOwner();
 
         String[] list = from.list();
 
-		// Some JVMs return null for File.list() when the
-		// directory is empty.
-		if (list != null)
+        // Some JVMs return null for File.list() when the
+        // directory is empty.
+        if (list != null)
         {
-			if (buffer == null)
-				buffer = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
+            if (buffer == null)
+                buffer = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
 
           nextFile:
           for (String fileName : list) {
@@ -421,59 +421,59 @@ for (String fileName : list) {
                       return false;
               }
           }
-		}
-		return true;
-	} // end of copyDirectory( StorageFactory sf, StorageFile from, File to, byte[] buf, String[] filter)
+        }
+        return true;
+    } // end of copyDirectory( StorageFactory sf, StorageFile from, File to, byte[] buf, String[] filter)
 
     public static boolean copyFile( WritableStorageFactory storageFactory, File from, StorageFile to)
     {
         return copyFile( storageFactory, from, to, (byte[]) null);
     }
     
-	public static boolean copyFile( WritableStorageFactory storageFactory, File from, StorageFile to, byte[] buf)
-	{
-		InputStream from_s = null;
-		OutputStream to_s = null;
+    public static boolean copyFile( WritableStorageFactory storageFactory, File from, StorageFile to, byte[] buf)
+    {
+        InputStream from_s = null;
+        OutputStream to_s = null;
 
-		try {
-			from_s = new FileInputStream( from);
-			to_s = to.getOutputStream();
+        try {
+            from_s = new FileInputStream( from);
+            to_s = to.getOutputStream();
 
-			if (buf == null)
-				buf = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
+            if (buf == null)
+                buf = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
 
-			for (int bytesRead = from_s.read(buf);
-				 bytesRead != -1;
-				 bytesRead = from_s.read(buf))
-				to_s.write(buf,0,bytesRead);
+            for (int bytesRead = from_s.read(buf);
+                 bytesRead != -1;
+                 bytesRead = from_s.read(buf))
+                to_s.write(buf,0,bytesRead);
 
-			from_s.close();
-			from_s = null;
+            from_s.close();
+            from_s = null;
 
-			storageFactory.sync( to_s, false);  // RESOLVE: sync or no sync?
-			to_s.close();
-			to_s = null;
-		}
-		catch (IOException ioe)
-		{
-			return false;
-		}
-		finally
-		{
-			if (from_s != null)
-			{
-				try { from_s.close(); }
-				catch (IOException ignored) {}
-			}
-			if (to_s != null)
-			{
-				try { to_s.close(); }
-				catch (IOException ignored) {}
-			}
-		}
+            storageFactory.sync( to_s, false);  // RESOLVE: sync or no sync?
+            to_s.close();
+            to_s = null;
+        }
+        catch (IOException ioe)
+        {
+            return false;
+        }
+        finally
+        {
+            if (from_s != null)
+            {
+                try { from_s.close(); }
+                catch (IOException ignored) {}
+            }
+            if (to_s != null)
+            {
+                try { to_s.close(); }
+                catch (IOException ignored) {}
+            }
+        }
 
-		return true;
-	} // end of copyFile
+        return true;
+    } // end of copyFile
 
 
     public static boolean copyFile( WritableStorageFactory storageFactory, 
@@ -482,91 +482,91 @@ for (String fileName : list) {
         return copyFile( storageFactory, from, to, (byte[]) null);
     }
     
-	public static boolean copyFile( WritableStorageFactory storageFactory, 
+    public static boolean copyFile( WritableStorageFactory storageFactory, 
                                     StorageFile from, StorageFile to, 
                                     byte[] buf)
-	{
-		InputStream from_s = null;
-		OutputStream to_s = null;
+    {
+        InputStream from_s = null;
+        OutputStream to_s = null;
 
-		try {
-			from_s = from.getInputStream();
-			to_s = to.getOutputStream();
+        try {
+            from_s = from.getInputStream();
+            to_s = to.getOutputStream();
 
-			if (buf == null)
-				buf = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
+            if (buf == null)
+                buf = new byte[BUFFER_SIZE]; // reuse this buffer to copy files
 
-			for (int bytesRead = from_s.read(buf);
-				 bytesRead != -1;
-				 bytesRead = from_s.read(buf))
-				to_s.write(buf,0,bytesRead);
+            for (int bytesRead = from_s.read(buf);
+                 bytesRead != -1;
+                 bytesRead = from_s.read(buf))
+                to_s.write(buf,0,bytesRead);
 
-			from_s.close();
-			from_s = null;
+            from_s.close();
+            from_s = null;
 
-			storageFactory.sync( to_s, false);  // RESOLVE: sync or no sync?
-			to_s.close();
-			to_s = null;
-		}
-		catch (IOException ioe)
-		{
-			return false;
-		}
-		finally
-		{
-			if (from_s != null)
-			{
-				try { from_s.close(); }
-				catch (IOException ignored) {}
-			}
-			if (to_s != null)
-			{
-				try { to_s.close(); }
-				catch (IOException ignored) {}
-			}
-		}
+            storageFactory.sync( to_s, false);  // RESOLVE: sync or no sync?
+            to_s.close();
+            to_s = null;
+        }
+        catch (IOException ioe)
+        {
+            return false;
+        }
+        finally
+        {
+            if (from_s != null)
+            {
+                try { from_s.close(); }
+                catch (IOException ignored) {}
+            }
+            if (to_s != null)
+            {
+                try { to_s.close(); }
+                catch (IOException ignored) {}
+            }
+        }
 
-		return true;
-	} // end of copyFile
+        return true;
+    } // end of copyFile
 
-	/**
-		Convert a file path into a File object with an absolute path
-		relative to a passed in root. If path is absolute then
-		a file object constructed from new File(path) is returned,
-		otherwise a file object is returned from new File(root, path)
-		if root is not null, otherwise null is returned.
-	*/
-	public static File getAbsoluteFile(File root, String path) {
-		File file = new File(path);
-		if (file.isAbsolute())
-			return file;
+    /**
+        Convert a file path into a File object with an absolute path
+        relative to a passed in root. If path is absolute then
+        a file object constructed from new File(path) is returned,
+        otherwise a file object is returned from new File(root, path)
+        if root is not null, otherwise null is returned.
+    */
+    public static File getAbsoluteFile(File root, String path) {
+        File file = new File(path);
+        if (file.isAbsolute())
+            return file;
 
-		if (root == null)
-			return null;
+        if (root == null)
+            return null;
 
-		return new File(root, path);
-	}
+        return new File(root, path);
+    }
 
-	/**
-		A replacement for new File(File, String) that correctly implements
-		the case when the first argument is null. The documentation for java.io.File
-		says that new File((File) null, name) is the same as new File(name).
-		This is not the case in pre 1.1.8 vms, a NullPointerException is thrown instead.
-	*/
-	public static File newFile(File parent, String name) {
+    /**
+        A replacement for new File(File, String) that correctly implements
+        the case when the first argument is null. The documentation for java.io.File
+        says that new File((File) null, name) is the same as new File(name).
+        This is not the case in pre 1.1.8 vms, a NullPointerException is thrown instead.
+    */
+    public static File newFile(File parent, String name) {
 
-		if (parent == null)
-			return new File(name);
-		else
-			return new File(parent, name);
-	}
+        if (parent == null)
+            return new File(name);
+        else
+            return new File(parent, name);
+    }
 
-	/**
-		Remove the leading 'file://' protocol from a filename which has been
+    /**
+        Remove the leading 'file://' protocol from a filename which has been
         expressed as an URL. If the filename is not an URL, then nothing is done.
         Otherwise, an URL like 'file:///tmp/foo.txt' is transformed into the legal
         file name '/tmp/foo.txt'.
-	*/
+    */
     public static String stripProtocolFromFileName( String originalName )
     {
         String result = originalName;

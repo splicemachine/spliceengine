@@ -81,9 +81,9 @@ public class TurnsReadOnly
                 DataSource ds = TestUtil.getDataSource(shutdownAttrs);
                 ds.getConnection();
             } catch(SQLException se) {
-				if (se.getSQLState() != null 
+                if (se.getSQLState() != null 
                     && se.getSQLState().equals("XJ015")) {
-					System.out.println("Database shutdown completed");
+                    System.out.println("Database shutdown completed");
                 } else {
                     throw se;
                 }
@@ -102,9 +102,9 @@ public class TurnsReadOnly
             try {
                 s.execute("INSERT INTO t1 VALUES(1)");
             } catch(SQLException se) {
-				if (se.getSQLState() != null 
+                if (se.getSQLState() != null 
                     && se.getSQLState().equals("25502")) {
-					System.out.println("Database is read-only");
+                    System.out.println("Database is read-only");
                 } else {
                     throw se;
                 }

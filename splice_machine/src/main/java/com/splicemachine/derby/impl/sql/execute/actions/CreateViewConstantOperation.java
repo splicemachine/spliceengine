@@ -44,8 +44,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 import java.util.Collections;
 
 /**
- *	This class  describes actions that are ALWAYS performed for a
- *	CREATE VIEW Statement at Execution time.
+ *    This class  describes actions that are ALWAYS performed for a
+ *    CREATE VIEW Statement at Execution time.
  *  A view is represented as:
  *  <UL>
  *  <LI> TableDescriptor with the name of the view and type VIEW_TYPE
@@ -64,78 +64,78 @@ import java.util.Collections;
  */
 
 public class CreateViewConstantOperation extends DDLConstantOperation {
-	private static final Logger LOG = Logger.getLogger(CreateViewConstantOperation.class);
-	private final String tableName;
-	private final String schemaName;
-	private final String viewText;
-	private final int tableType;
-	private final int checkOption;
-	private final ColumnInfo[] columnInfo;
-	private final ProviderInfo[] providerInfo;
-	private final UUID compSchemaId;
+    private static final Logger LOG = Logger.getLogger(CreateViewConstantOperation.class);
+    private final String tableName;
+    private final String schemaName;
+    private final String viewText;
+    private final int tableType;
+    private final int checkOption;
+    private final ColumnInfo[] columnInfo;
+    private final ProviderInfo[] providerInfo;
+    private final UUID compSchemaId;
 
-	/**
-	 *	Make the ConstantAction for a CREATE VIEW statement.
-	 *
-	 *  @param schemaName			name for the schema that view lives in.
-	 *  @param tableName	Name of view.
-	 *  @param tableType	Type of table (ie. TableDescriptor.VIEW_TYPE).
-	 *	@param viewText		Text of query expression for view definition
-	 *  @param checkOption	Check option type
-	 *  @param columnInfo	Information on all the columns in the table.
-	 *  @param providerInfo Information on all the Providers
-	 *  @param compSchemaId 	Compilation Schema Id
-	 */
-	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-	public CreateViewConstantOperation(String schemaName, String tableName, int tableType, String viewText,
-			int checkOption, ColumnInfo[] columnInfo, ProviderInfo[] providerInfo, UUID compSchemaId) {
-		SpliceLogUtils.trace(LOG, "CreateViewConstantOperation for %s.%s with view creation text {%s}",schemaName, tableName, viewText);
-		this.schemaName = schemaName;
-		this.tableName = tableName;
-		this.tableType = tableType;
-		this.viewText = viewText;
-		this.checkOption = checkOption;
-		this.columnInfo = columnInfo;
-		this.providerInfo = providerInfo;
-		this.compSchemaId = compSchemaId;
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(schemaName != null, "Schema name is null");
-	}
+    /**
+     *    Make the ConstantAction for a CREATE VIEW statement.
+     *
+     *  @param schemaName            name for the schema that view lives in.
+     *  @param tableName    Name of view.
+     *  @param tableType    Type of table (ie. TableDescriptor.VIEW_TYPE).
+     *    @param viewText        Text of query expression for view definition
+     *  @param checkOption    Check option type
+     *  @param columnInfo    Information on all the columns in the table.
+     *  @param providerInfo Information on all the Providers
+     *  @param compSchemaId     Compilation Schema Id
+     */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
+    public CreateViewConstantOperation(String schemaName, String tableName, int tableType, String viewText,
+            int checkOption, ColumnInfo[] columnInfo, ProviderInfo[] providerInfo, UUID compSchemaId) {
+        SpliceLogUtils.trace(LOG, "CreateViewConstantOperation for %s.%s with view creation text {%s}",schemaName, tableName, viewText);
+        this.schemaName = schemaName;
+        this.tableName = tableName;
+        this.tableType = tableType;
+        this.viewText = viewText;
+        this.checkOption = checkOption;
+        this.columnInfo = columnInfo;
+        this.providerInfo = providerInfo;
+        this.compSchemaId = compSchemaId;
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(schemaName != null, "Schema name is null");
+    }
 
-	public	String	toString() {
-		return constructToString("CREATE VIEW ", tableName);
-	}
+    public    String    toString() {
+        return constructToString("CREATE VIEW ", tableName);
+    }
 
-	/**
-	 *	This is the guts of the Execution-time logic for CREATE VIEW.
-	 *
-	 *	@see ConstantAction#executeConstantAction
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public void executeConstantAction( Activation activation ) throws StandardException {
-		SpliceLogUtils.trace(LOG, "executeConstantAction for activation {%s}",activation);
-		TableDescriptor 			td;
-		UUID 						toid;
-		ColumnDescriptor			columnDescriptor;
-		ViewDescriptor				vd;
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
-		DependencyManager dm = dd.getDependencyManager();
-		TransactionController tc = lcc.getTransactionExecute();
+    /**
+     *    This is the guts of the Execution-time logic for CREATE VIEW.
+     *
+     *    @see ConstantAction#executeConstantAction
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public void executeConstantAction( Activation activation ) throws StandardException {
+        SpliceLogUtils.trace(LOG, "executeConstantAction for activation {%s}",activation);
+        TableDescriptor             td;
+        UUID                         toid;
+        ColumnDescriptor            columnDescriptor;
+        ViewDescriptor                vd;
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        DependencyManager dm = dd.getDependencyManager();
+        TransactionController tc = lcc.getTransactionExecute();
 
-		/*
-		** Inform the data dictionary that we are about to write to it.
-		** There are several calls to data dictionary "get" methods here
-		** that might be done in "read" mode in the data dictionary, but
-		** it seemed safer to do this whole operation in "write" mode.
-		**
-		** We tell the data dictionary we're done writing at the end of
-		** the transaction.
-		*/
-		dd.startWriting(lcc);
+        /*
+        ** Inform the data dictionary that we are about to write to it.
+        ** There are several calls to data dictionary "get" methods here
+        ** that might be done in "read" mode in the data dictionary, but
+        ** it seemed safer to do this whole operation in "write" mode.
+        **
+        ** We tell the data dictionary we're done writing at the end of
+        ** the transaction.
+        */
+        dd.startWriting(lcc);
 
-		SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
+        SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
         TableDescriptor existingDescriptor = dd.getTableDescriptor(tableName, sd, tc);
         if (existingDescriptor != null) {
             throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
@@ -150,64 +150,64 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
 
-		/* Create a new table descriptor.
-		 * (Pass in row locking, even though meaningless for views.)
-		 */
-		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-		td = ddg.newTableDescriptor(tableName,sd,tableType,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
+        /* Create a new table descriptor.
+         * (Pass in row locking, even though meaningless for views.)
+         */
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+        td = ddg.newTableDescriptor(tableName,sd,tableType,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
 
-		dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
-		toid = td.getUUID();
+        dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
+        toid = td.getUUID();
 
-		// for each column, stuff system.column
-		ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnInfo.length];
-		int index = 1;
-		for (int ix = 0; ix < columnInfo.length; ix++) {
-			columnDescriptor = new ColumnDescriptor(
-				                   columnInfo[ix].name,
-								   index,
-					index,
-								   columnInfo[ix].dataType,
-								   columnInfo[ix].defaultValue,
-								   columnInfo[ix].defaultInfo,
-								   td,
-								   (UUID) null,
-								   columnInfo[ix].autoincStart,
-								   columnInfo[ix].autoincInc,
+        // for each column, stuff system.column
+        ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnInfo.length];
+        int index = 1;
+        for (int ix = 0; ix < columnInfo.length; ix++) {
+            columnDescriptor = new ColumnDescriptor(
+                                   columnInfo[ix].name,
+                                   index,
+                    index,
+                                   columnInfo[ix].dataType,
+                                   columnInfo[ix].defaultValue,
+                                   columnInfo[ix].defaultInfo,
+                                   td,
+                                   (UUID) null,
+                                   columnInfo[ix].autoincStart,
+                                   columnInfo[ix].autoincInc,
                                     index
-							   );
-			cdlArray[ix] = columnDescriptor;
-			index++;
-		}
+                               );
+            cdlArray[ix] = columnDescriptor;
+            index++;
+        }
 
-		dd.addDescriptorArray(cdlArray, td,DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+        dd.addDescriptorArray(cdlArray, td,DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
 
-		// add columns to the column descriptor list.
-		ColumnDescriptorList cdl = td.getColumnDescriptorList();
-		Collections.addAll(cdl, cdlArray);
+        // add columns to the column descriptor list.
+        ColumnDescriptorList cdl = td.getColumnDescriptorList();
+        Collections.addAll(cdl, cdlArray);
 
-		/* Get and add a view descriptor */
-		vd = ddg.newViewDescriptor(toid, tableName, viewText, 
-									checkOption, 
-									(compSchemaId == null) ?
-										lcc.getDefaultSchema().getUUID() :
-										compSchemaId);
+        /* Get and add a view descriptor */
+        vd = ddg.newViewDescriptor(toid, tableName, viewText, 
+                                    checkOption, 
+                                    (compSchemaId == null) ?
+                                        lcc.getDefaultSchema().getUUID() :
+                                        compSchemaId);
 
-		for (int ix = 0; ix < providerInfo.length; ix++) {
-			/* We should always be able to find the Provider */
-				Provider provider = (Provider) providerInfo[ix].
-										getDependableFinder().
-											getDependable(dd,
-												providerInfo[ix].getObjectId());
-				dm.addDependency(vd, provider, lcc.getContextManager());
-		}
-		//store view's dependency on various privileges in the dependeny system
-		storeViewTriggerDependenciesOnPrivileges(activation, vd);
+        for (int ix = 0; ix < providerInfo.length; ix++) {
+            /* We should always be able to find the Provider */
+                Provider provider = (Provider) providerInfo[ix].
+                                        getDependableFinder().
+                                            getDependable(dd,
+                                                providerInfo[ix].getObjectId());
+                dm.addDependency(vd, provider, lcc.getContextManager());
+        }
+        //store view's dependency on various privileges in the dependeny system
+        storeViewTriggerDependenciesOnPrivileges(activation, vd);
 
-		dd.addDescriptor(vd, sd, DataDictionary.SYSVIEWS_CATALOG_NUM, true, tc, false);
-	}
+        dd.addDescriptor(vd, sd, DataDictionary.SYSVIEWS_CATALOG_NUM, true, tc, false);
+    }
 
-	public String getScopeName() {
-		return String.format("Create View %s", tableName);
-	}
+    public String getScopeName() {
+        return String.format("Create View %s", tableName);
+    }
 }

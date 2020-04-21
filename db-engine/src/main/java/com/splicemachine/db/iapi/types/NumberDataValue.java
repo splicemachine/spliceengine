@@ -39,133 +39,133 @@ import static com.splicemachine.db.iapi.reference.Limits.DB2_MAX_DECIMAL_PRECISI
 
 public interface NumberDataValue extends DataValueDescriptor
 {
-	/**
-	 * The minimum scale when dividing Decimals
-	 */
-	int MIN_DECIMAL_DIVIDE_SCALE = 4;
-	int MAX_DECIMAL_PRECISION_SCALE = DB2_MAX_DECIMAL_PRECISION_SCALE;
-	int OLD_MAX_DECIMAL_PRECISION_SCALE = 31;
-	int MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE = MAX_DECIMAL_PRECISION_SCALE - MIN_DECIMAL_DIVIDE_SCALE;
-	int OLD_MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE = OLD_MAX_DECIMAL_PRECISION_SCALE - MIN_DECIMAL_DIVIDE_SCALE;
+    /**
+     * The minimum scale when dividing Decimals
+     */
+    int MIN_DECIMAL_DIVIDE_SCALE = 4;
+    int MAX_DECIMAL_PRECISION_SCALE = DB2_MAX_DECIMAL_PRECISION_SCALE;
+    int OLD_MAX_DECIMAL_PRECISION_SCALE = 31;
+    int MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE = MAX_DECIMAL_PRECISION_SCALE - MIN_DECIMAL_DIVIDE_SCALE;
+    int OLD_MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE = OLD_MAX_DECIMAL_PRECISION_SCALE - MIN_DECIMAL_DIVIDE_SCALE;
 
-	/**
-	 * The SQL + operator.
-	 *
-	 * @param addend1	One of the addends
-	 * @param addend2	The other addend
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	The sum of the two addends
-	 *
-	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
-	 */
-	NumberDataValue plus(NumberDataValue addend1,
-						 NumberDataValue addend2,
-						 NumberDataValue result)
-							throws StandardException;
+    /**
+     * The SQL + operator.
+     *
+     * @param addend1    One of the addends
+     * @param addend2    The other addend
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    The sum of the two addends
+     *
+     * @exception StandardException        Thrown on error, if result is non-null then its value will be unchanged.
+     */
+    NumberDataValue plus(NumberDataValue addend1,
+                         NumberDataValue addend2,
+                         NumberDataValue result)
+                            throws StandardException;
 
-	/**
-	 * The SQL - operator.
-	 *
-	 * @param left		The left operand
-	 * @param right		The right operand
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	left - right
-	 *
-	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
-	 */
-	NumberDataValue minus(NumberDataValue left,
-						  NumberDataValue right,
-						  NumberDataValue result)
-							throws StandardException;
+    /**
+     * The SQL - operator.
+     *
+     * @param left        The left operand
+     * @param right        The right operand
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    left - right
+     *
+     * @exception StandardException        Thrown on error, if result is non-null then its value will be unchanged.
+     */
+    NumberDataValue minus(NumberDataValue left,
+                          NumberDataValue right,
+                          NumberDataValue result)
+                            throws StandardException;
 
-	/**
-	 * The SQL * operator.
-	 *
-	 * @param left		The left operand
-	 * @param right		The right operand
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	left * right
-	 *
-	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
-	 */
-	NumberDataValue times(NumberDataValue left,
-						  NumberDataValue right,
-						  NumberDataValue result)
-							throws StandardException;
+    /**
+     * The SQL * operator.
+     *
+     * @param left        The left operand
+     * @param right        The right operand
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    left * right
+     *
+     * @exception StandardException        Thrown on error, if result is non-null then its value will be unchanged.
+     */
+    NumberDataValue times(NumberDataValue left,
+                          NumberDataValue right,
+                          NumberDataValue result)
+                            throws StandardException;
 
-	/**
-	 * The SQL / operator.
-	 *
-	 * @param dividend		The numerator
-	 * @param divisor		The denominator
-	 * @param result		The result of the previous call to this method, null
-	 *						if not called yet.
-	 *
-	 * @return	dividend / divisor
-	 *
-	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
-	 */
-	NumberDataValue divide(NumberDataValue dividend,
-						   NumberDataValue divisor,
-						   NumberDataValue result)
-							throws StandardException;
+    /**
+     * The SQL / operator.
+     *
+     * @param dividend        The numerator
+     * @param divisor        The denominator
+     * @param result        The result of the previous call to this method, null
+     *                        if not called yet.
+     *
+     * @return    dividend / divisor
+     *
+     * @exception StandardException        Thrown on error, if result is non-null then its value will be unchanged.
+     */
+    NumberDataValue divide(NumberDataValue dividend,
+                           NumberDataValue divisor,
+                           NumberDataValue result)
+                            throws StandardException;
 
-	/**
-	 * The SQL / operator.
-	 *
-	 * @param dividend		The numerator
-	 * @param divisor		The denominator
-	 * @param result		The result of the previous call to this method, null
-	 *						if not called yet.
-	 * @param scale			The scale of the result, for decimal type.  If pass
-	 *						in value < 0, can calculate it dynamically.
-	 *
-	 * @return	dividend / divisor
-	 *
-	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
-	 */
-	NumberDataValue divide(NumberDataValue dividend,
-						   NumberDataValue divisor,
-						   NumberDataValue result,
-						   int scale)
-							throws StandardException;
+    /**
+     * The SQL / operator.
+     *
+     * @param dividend        The numerator
+     * @param divisor        The denominator
+     * @param result        The result of the previous call to this method, null
+     *                        if not called yet.
+     * @param scale            The scale of the result, for decimal type.  If pass
+     *                        in value < 0, can calculate it dynamically.
+     *
+     * @return    dividend / divisor
+     *
+     * @exception StandardException        Thrown on error, if result is non-null then its value will be unchanged.
+     */
+    NumberDataValue divide(NumberDataValue dividend,
+                           NumberDataValue divisor,
+                           NumberDataValue result,
+                           int scale)
+                            throws StandardException;
 
 
-	/**
-	 * The SQL mod operator.
-	 *
-	 * @param dividend		The numerator
-	 * @param divisor		The denominator
-	 * @param result		The result of the previous call to this method, null
-	 *						if not called yet.
-	 *
-	 * @return	dividend / divisor
-	 *
-	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
-	 */
-	NumberDataValue mod(NumberDataValue dividend,
-						NumberDataValue divisor,
-						NumberDataValue result)
-							throws StandardException;
+    /**
+     * The SQL mod operator.
+     *
+     * @param dividend        The numerator
+     * @param divisor        The denominator
+     * @param result        The result of the previous call to this method, null
+     *                        if not called yet.
+     *
+     * @return    dividend / divisor
+     *
+     * @exception StandardException        Thrown on error, if result is non-null then its value will be unchanged.
+     */
+    NumberDataValue mod(NumberDataValue dividend,
+                        NumberDataValue divisor,
+                        NumberDataValue result)
+                            throws StandardException;
 
-	/**
-	 * The SQL unary - operator.  Negates this NumberDataValue.
-	 *
-	 * @param result	The result of the previous call to this method, null
-	 *					if not called yet.
-	 *
-	 * @return	- operand
-	 *
-	 * @exception StandardException		Thrown on error, if result is non-null then its value will be unchanged.
-	 */
-	NumberDataValue minus(NumberDataValue result)
-							throws StandardException;
+    /**
+     * The SQL unary - operator.  Negates this NumberDataValue.
+     *
+     * @param result    The result of the previous call to this method, null
+     *                    if not called yet.
+     *
+     * @return    - operand
+     *
+     * @exception StandardException        Thrown on error, if result is non-null then its value will be unchanged.
+     */
+    NumberDataValue minus(NumberDataValue result)
+                            throws StandardException;
 
     /**
      * The SQL ABSOLUTE operator.  Absolute value of this NumberDataValue.
@@ -175,7 +175,7 @@ public interface NumberDataValue extends DataValueDescriptor
      *
      * @exception StandardException     Thrown on error, if result is non-null then its value will be unchanged.
      */
-	NumberDataValue absolute(NumberDataValue result)
+    NumberDataValue absolute(NumberDataValue result)
                             throws StandardException;
 
     /**
@@ -186,57 +186,57 @@ public interface NumberDataValue extends DataValueDescriptor
      * 
      * @exception StandardException     Thrown on error (a negative number), if result is non-null then its value will be unchanged.
      */
-	NumberDataValue sqrt(NumberDataValue result)
+    NumberDataValue sqrt(NumberDataValue result)
                             throws StandardException;
 
-	/**
-	 * Set the value of this NumberDataValue to the given value.
-	   This is only intended to be called when mapping values from
-	   the Java space into the SQL space, e.g. parameters and return
-	   types from procedures and functions. Each specific type is only
-	   expected to handle the explicit type according the JDBC.
-	   <UL>
-	   <LI> SMALLINT from java.lang.Integer
-	   <LI> INTEGER from java.lang.Integer
-	   <LI> LONG from java.lang.Long
-	   <LI> FLOAT from java.lang.Float
-	   <LI> DOUBLE from java.lang.Double
-	   <LI> DECIMAL from java.math.BigDecimal
-	   </UL>
-	 *
-	 * @param theValue	An Number containing the value to set this
-	 *					NumberDataValue to.  Null means set the value
-	 *					to SQL null.
-	 *
-	 */
-	void setValue(Number theValue) throws StandardException;
+    /**
+     * Set the value of this NumberDataValue to the given value.
+       This is only intended to be called when mapping values from
+       the Java space into the SQL space, e.g. parameters and return
+       types from procedures and functions. Each specific type is only
+       expected to handle the explicit type according the JDBC.
+       <UL>
+       <LI> SMALLINT from java.lang.Integer
+       <LI> INTEGER from java.lang.Integer
+       <LI> LONG from java.lang.Long
+       <LI> FLOAT from java.lang.Float
+       <LI> DOUBLE from java.lang.Double
+       <LI> DECIMAL from java.math.BigDecimal
+       </UL>
+     *
+     * @param theValue    An Number containing the value to set this
+     *                    NumberDataValue to.  Null means set the value
+     *                    to SQL null.
+     *
+     */
+    void setValue(Number theValue) throws StandardException;
 
-	/**
-		Return the SQL precision of this specific DECIMAL value.
-		This does not match the return from BigDecimal.precision()
-		added in J2SE 5.0, which represents the precision of the unscaled value.
-		If the value does not represent a SQL DECIMAL then
-		the return is undefined.
-	*/
-	int getDecimalValuePrecision();
+    /**
+        Return the SQL precision of this specific DECIMAL value.
+        This does not match the return from BigDecimal.precision()
+        added in J2SE 5.0, which represents the precision of the unscaled value.
+        If the value does not represent a SQL DECIMAL then
+        the return is undefined.
+    */
+    int getDecimalValuePrecision();
 
-	/**
-		Return the SQL scale of this specific DECIMAL value.
-		This does not match the return from BigDecimal.scale()
-		since in J2SE 5.0 onwards that can return negative scales.
-		If the value does not represent a SQL DECIMAL then
-		the return is undefined.
-	*/
-	int getDecimalValueScale();
+    /**
+        Return the SQL scale of this specific DECIMAL value.
+        This does not match the return from BigDecimal.scale()
+        since in J2SE 5.0 onwards that can return negative scales.
+        If the value does not represent a SQL DECIMAL then
+        the return is undefined.
+    */
+    int getDecimalValueScale();
 
-	/**
-	 * Returns BigDecimal representation of value
-	 * @return BigDecimal value
-	 * @throws StandardException
-	 */
-	BigDecimal getBigDecimal() throws StandardException;
+    /**
+     * Returns BigDecimal representation of value
+     * @return BigDecimal value
+     * @throws StandardException
+     */
+    BigDecimal getBigDecimal() throws StandardException;
 
-	StringDataValue digits(NumberDataValue source, int len, StringDataValue result) throws StandardException;
+    StringDataValue digits(NumberDataValue source, int len, StringDataValue result) throws StandardException;
 }
 
 

@@ -41,27 +41,27 @@ import com.splicemachine.db.tools.dblook;
 
 public class DB_Alias
 {
-	private static final char AGGREGATE_TYPE = 'G';
+    private static final char AGGREGATE_TYPE = 'G';
     private static final char UDT_TYPE = 'A';
     private static final char PROCEDURE_TYPE = 'P';
     private static final char FUNCTION_TYPE = 'F';
 
-	// Prepared statements use throughout the DDL
-	// generation process.
+    // Prepared statements use throughout the DDL
+    // generation process.
 
-	/* ************************************************
-	 * Generate the DDL for all stored procedures,
-	 * functions, aggregates, and UDTs in a given database and write it to
-	 * output via Logs.java.
-	 * @param conn Connection to the source database.
-	 * @param at10_6 True if the database is at 10.6 or higher
-	 ****/
+    /* ************************************************
+     * Generate the DDL for all stored procedures,
+     * functions, aggregates, and UDTs in a given database and write it to
+     * output via Logs.java.
+     * @param conn Connection to the source database.
+     * @param at10_6 True if the database is at 10.6 or higher
+     ****/
 
     public static void doPFAU(Connection conn, boolean at10_6 )
-		throws SQLException {
+        throws SQLException {
 
-		// First do stored procedures.
-		PreparedStatement ps = conn.prepareStatement
+        // First do stored procedures.
+        PreparedStatement ps = conn.prepareStatement
             (
              "SELECT ALIAS, ALIASINFO, " +
              "ALIASID, SCHEMAID, JAVACLASSNAME, SYSTEMALIAS FROM SYS.SYSALIASES " +
@@ -79,25 +79,25 @@ public class DB_Alias
         {
             generateDDL( ps, UDT_TYPE ); // UDT_TYPE => for UDTs
         }
-        generateDDL( ps, PROCEDURE_TYPE );	// PROCEDURE_TYPE => for PROCEDURES
-		generateDDL( ps, FUNCTION_TYPE );	// FUNCTION_TYPE => for FUNCTIONS
-		generateDDL( ps, AGGREGATE_TYPE );
+        generateDDL( ps, PROCEDURE_TYPE );    // PROCEDURE_TYPE => for PROCEDURES
+        generateDDL( ps, FUNCTION_TYPE );    // FUNCTION_TYPE => for FUNCTIONS
+        generateDDL( ps, AGGREGATE_TYPE );
         ps.close();
 
-	}
+    }
 
     /* ************************************************
-	 * Generate the DDL for the stored procedures,
-	 * functions, or UDTs in a given database, depending on the
-	 * the received aliasType.
-	 * @param rs Result set holding either stored procedures
-	 *  or functions.
-	 * @param aliasType Indication of whether we're generating
-	 *  stored procedures or functions.
-	 ****/
-	private static void generateDDL(PreparedStatement ps, char aliasType)
-		throws SQLException
-	{
+     * Generate the DDL for the stored procedures,
+     * functions, or UDTs in a given database, depending on the
+     * the received aliasType.
+     * @param rs Result set holding either stored procedures
+     *  or functions.
+     * @param aliasType Indication of whether we're generating
+     *  stored procedures or functions.
+     ****/
+    private static void generateDDL(PreparedStatement ps, char aliasType)
+        throws SQLException
+    {
         ps.setString( 1, new String( new char[] { aliasType } ) );
 
         ResultSet rs = ps.executeQuery();
@@ -108,32 +108,32 @@ public class DB_Alias
     }
 
 
-	/* ************************************************
-	 * Generate the DDL for the stored procedures,
-	 * functions, or UDTs in a given database, depending on the
-	 * the received aliasType.
-	 * @param rs Result set holding either stored procedures
-	 *  or functions.
-	 * @param aliasType Indication of whether we're generating
-	 *  stored procedures or functions.
-	 ****/
-	private static void generateDDL(ResultSet rs, char aliasType)
-		throws SQLException
-	{
+    /* ************************************************
+     * Generate the DDL for the stored procedures,
+     * functions, or UDTs in a given database, depending on the
+     * the received aliasType.
+     * @param rs Result set holding either stored procedures
+     *  or functions.
+     * @param aliasType Indication of whether we're generating
+     *  stored procedures or functions.
+     ****/
+    private static void generateDDL(ResultSet rs, char aliasType)
+        throws SQLException
+    {
 
-		boolean firstTime = true;
-		while (rs.next()) {
+        boolean firstTime = true;
+        while (rs.next()) {
 
-			if (rs.getBoolean(6))
-			// it's a system alias, so we ignore it.
-				continue;
+            if (rs.getBoolean(6))
+            // it's a system alias, so we ignore it.
+                continue;
 
-			String procSchema = dblook.lookupSchemaId(rs.getString(4));
-			if (dblook.isIgnorableSchema(procSchema))
-				continue;
+            String procSchema = dblook.lookupSchemaId(rs.getString(4));
+            if (dblook.isIgnorableSchema(procSchema))
+                continue;
 
-			if (firstTime) {
-				Logs.reportString("----------------------------------------------");
+            if (firstTime) {
+                Logs.reportString("----------------------------------------------");
                 switch( aliasType )
                 {
                 case UDT_TYPE: Logs.reportMessage( "DBLOOK_UDTHeader" ); break;
@@ -141,41 +141,41 @@ public class DB_Alias
                 case FUNCTION_TYPE: Logs.reportMessage( "DBLOOK_FunctionHeader" ); break;
                 case AGGREGATE_TYPE: Logs.reportMessage( "DBLOOK_AggregateHeader" ); break;
                 }
-				Logs.reportString("----------------------------------------------\n");
-			}
+                Logs.reportString("----------------------------------------------\n");
+            }
 
-			String aliasName = rs.getString(1);
-			String fullName = dblook.addQuotes(
-				dblook.expandDoubleQuotes(aliasName));
-			fullName = procSchema + "." + fullName;
+            String aliasName = rs.getString(1);
+            String fullName = dblook.addQuotes(
+                dblook.expandDoubleQuotes(aliasName));
+            fullName = procSchema + "." + fullName;
 
-			String creationString = createPFAUString(
-				fullName, rs, aliasType);
-			Logs.writeToNewDDL(creationString);
-			Logs.writeStmtEndToNewDDL();
-			Logs.writeNewlineToNewDDL();
-			firstTime = false;
+            String creationString = createPFAUString(
+                fullName, rs, aliasType);
+            Logs.writeToNewDDL(creationString);
+            Logs.writeStmtEndToNewDDL();
+            Logs.writeNewlineToNewDDL();
+            firstTime = false;
 
-		}
+        }
 
-	}
+    }
 
-	/* ************************************************
-	 * Generate DDL for a specific stored procedure or
-	 * function.
-	 * @param aliasName Name of the current procedure/function
-	 * @param aliasInfo Info about the current procedure/function
-	 * @param aliasType Indicator of whether we're generating
-	 *  a stored procedure or a function.
-	 * @return DDL for the current stored procedure is
-	 *   returned, as a String.
-	 ****/
+    /* ************************************************
+     * Generate DDL for a specific stored procedure or
+     * function.
+     * @param aliasName Name of the current procedure/function
+     * @param aliasInfo Info about the current procedure/function
+     * @param aliasType Indicator of whether we're generating
+     *  a stored procedure or a function.
+     * @return DDL for the current stored procedure is
+     *   returned, as a String.
+     ****/
 
-	private static String createPFAUString(String aliasName,
-		ResultSet aliasInfo, char aliasType) throws SQLException
-	{
+    private static String createPFAUString(String aliasName,
+        ResultSet aliasInfo, char aliasType) throws SQLException
+    {
 
-		StringBuilder alias = new StringBuilder("CREATE ");
+        StringBuilder alias = new StringBuilder("CREATE ");
 
         switch( aliasType )
         {
@@ -184,26 +184,26 @@ public class DB_Alias
         case FUNCTION_TYPE: alias.append("FUNCTION "); break;
         case AGGREGATE_TYPE: alias.append("DERBY AGGREGATE "); break;
         }
-		alias.append(aliasName);
-		alias.append(" ");
+        alias.append(aliasName);
+        alias.append(" ");
 
-		String params = aliasInfo.getString(2);
+        String params = aliasInfo.getString(2);
 
-		if ( aliasType == AGGREGATE_TYPE )
+        if ( aliasType == AGGREGATE_TYPE )
         {
-			alias.append( params );
-			alias.append( " " );
+            alias.append( params );
+            alias.append( " " );
         }
-		else if ( aliasType != UDT_TYPE )
-		{
+        else if ( aliasType != UDT_TYPE )
+        {
             // Just grab the parameter part; we'll get the method name later.
             alias.append(params.substring(params.indexOf("("), params.length()));
             alias.append(" ");
         }
 
-		// Now add the external name.
-		alias.append("EXTERNAL NAME '");
-		alias.append(aliasInfo.getString(5));
+        // Now add the external name.
+        alias.append("EXTERNAL NAME '");
+        alias.append(aliasInfo.getString(5));
 
         if ( aliasType == UDT_TYPE )
         {
@@ -212,7 +212,7 @@ public class DB_Alias
         }
         else if ( aliasType == AGGREGATE_TYPE )
         {
-        	alias.append("' ");
+            alias.append("' ");
         }
         else if ( aliasType != AGGREGATE_TYPE )
         {
@@ -222,52 +222,52 @@ public class DB_Alias
             alias.append("' ");
         }
 
-		return alias.toString();
+        return alias.toString();
 
-	}
+    }
 
-	/* ************************************************
-	 * Generate the DDL for all synonyms in a given
-	 * database. On successul return, the DDL for the
-	 * synonyms has been written to output via Logs.java.
-	 * @param conn Connection to the source database.
-	 * @return 
-	 ****/
-	public static void doSynonyms(Connection conn) throws SQLException
-	{
-		Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery("SELECT ALIAS, SCHEMAID, " +
-			"ALIASINFO, SYSTEMALIAS FROM SYS.SYSALIASES A WHERE ALIASTYPE='S'");
+    /* ************************************************
+     * Generate the DDL for all synonyms in a given
+     * database. On successul return, the DDL for the
+     * synonyms has been written to output via Logs.java.
+     * @param conn Connection to the source database.
+     * @return 
+     ****/
+    public static void doSynonyms(Connection conn) throws SQLException
+    {
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT ALIAS, SCHEMAID, " +
+            "ALIASINFO, SYSTEMALIAS FROM SYS.SYSALIASES A WHERE ALIASTYPE='S'");
 
-		boolean firstTime = true;
-		while (rs.next()) {
-			if (rs.getBoolean(4))
-			// it's a system alias, so we ignore it.
-				continue;
+        boolean firstTime = true;
+        while (rs.next()) {
+            if (rs.getBoolean(4))
+            // it's a system alias, so we ignore it.
+                continue;
 
-			String aliasSchema = dblook.lookupSchemaId(rs.getString(2));
-			if (dblook.isIgnorableSchema(aliasSchema))
-				continue;
+            String aliasSchema = dblook.lookupSchemaId(rs.getString(2));
+            if (dblook.isIgnorableSchema(aliasSchema))
+                continue;
 
-			if (firstTime) {
-				Logs.reportString("----------------------------------------------");
-				Logs.reportMessage("DBLOOK_SynonymHeader");
-				Logs.reportString("----------------------------------------------\n");
-			}
+            if (firstTime) {
+                Logs.reportString("----------------------------------------------");
+                Logs.reportMessage("DBLOOK_SynonymHeader");
+                Logs.reportString("----------------------------------------------\n");
+            }
 
-			String aliasName = rs.getString(1);
-			String aliasFullName = dblook.addQuotes(
-				dblook.expandDoubleQuotes(aliasName));
-			aliasFullName = aliasSchema + "." + aliasFullName;
+            String aliasName = rs.getString(1);
+            String aliasFullName = dblook.addQuotes(
+                dblook.expandDoubleQuotes(aliasName));
+            aliasFullName = aliasSchema + "." + aliasFullName;
 
-			Logs.writeToNewDDL("CREATE SYNONYM "+aliasFullName+" FOR "+rs.getString(3));
-			Logs.writeStmtEndToNewDDL();
-			Logs.writeNewlineToNewDDL();
-			firstTime = false;
-		}
+            Logs.writeToNewDDL("CREATE SYNONYM "+aliasFullName+" FOR "+rs.getString(3));
+            Logs.writeStmtEndToNewDDL();
+            Logs.writeNewlineToNewDDL();
+            firstTime = false;
+        }
 
-		rs.close();
-		stmt.close();
+        rs.close();
+        stmt.close();
 
-	}
+    }
 }

@@ -265,7 +265,7 @@ public class NetXAResource implements XAResource {
             // to be thrown.
             throwXAException(rc, false);
         }else {
-        	conn_.setXAState(Connection.XA_T0_NOT_ASSOCIATED);
+            conn_.setXAState(Connection.XA_T0_NOT_ASSOCIATED);
         } 
     }
 
@@ -598,10 +598,10 @@ public class NetXAResource implements XAResource {
         // DERBY-1025 - Flow an auto-commit if in auto-commit mode before 
         // entering a global transaction
         try {
-        	if(conn_.autoCommit_)
-        		conn_.flowAutoCommit();
+            if(conn_.autoCommit_)
+                conn_.flowAutoCommit();
         } catch (SqlException sqle) {
-        	rc = getSqlExceptionXAErrorCode(sqle);
+            rc = getSqlExceptionXAErrorCode(sqle);
             exceptionsOnXA = com.splicemachine.db.client.am.Utils.accumulateSQLException
                     (sqle, exceptionsOnXA);
         } 
@@ -785,9 +785,9 @@ public class NetXAResource implements XAResource {
      * @throws XAException
      */
     private void setXaStateForXAException(int rc) {
-    	switch (rc)
-		{
-        	// Reset to T0, not  associated for XA_RB*, RM*
+        switch (rc)
+        {
+            // Reset to T0, not  associated for XA_RB*, RM*
            // XAER_RMFAIL and XAER_RMERR will be fatal to the connection
            // but that is not dealt with here
            case javax.transaction.xa.XAException.XAER_RMFAIL:
@@ -800,7 +800,7 @@ public class NetXAResource implements XAResource {
            case javax.transaction.xa.XAException.XA_RBPROTO:
            case javax.transaction.xa.XAException.XA_RBTIMEOUT:
            case javax.transaction.xa.XAException.XA_RBTRANSIENT:
-           	conn_.setXAState(Connection.XA_T0_NOT_ASSOCIATED);
+               conn_.setXAState(Connection.XA_T0_NOT_ASSOCIATED);
            break;
             // No change for other XAExceptions
             // javax.transaction.xa.XAException.XA_NOMIGRATE
@@ -815,10 +815,10 @@ public class NetXAResource implements XAResource {
            // javax.transaction.xa.XAException.XAER_INVAL                
            // javax.transaction.xa.XAException.XAER_PROTO
            // javax.transaction.xa.XAException.XAER_DUPID
-           // javax.transaction.xa.XAException.XAER_OUTSIDE            	
+           // javax.transaction.xa.XAException.XAER_OUTSIDE                
             default:
-  			  return;
-		}	
+                return;
+        }    
     }
 
     public boolean isSameRM(XAResource xares) throws XAException {

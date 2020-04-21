@@ -44,18 +44,18 @@ import com.splicemachine.db.catalog.UUID;
  */
 public interface ProviderInfo extends Formatable
 {
-	/**
-	 * Get the DependableFinder.
-	 */
-	DependableFinder getDependableFinder();
+    /**
+     * Get the DependableFinder.
+     */
+    DependableFinder getDependableFinder();
 
-	/**
-	 * Get the object id
-	 */
-	UUID getObjectId();
+    /**
+     * Get the object id
+     */
+    UUID getObjectId();
 
-	/**
-	 * Get the provider's name.
-	 */
-	String getProviderName();
+    /**
+     * Get the provider's name.
+     */
+    String getProviderName();
 }

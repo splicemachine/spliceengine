@@ -38,14 +38,14 @@ import javax.sql.StatementEvent;
 import javax.sql.StatementEventListener;
 
 /** 
-	A PooledConnection object is a connection object that provides hooks for
-	connection pool management.
+    A PooledConnection object is a connection object that provides hooks for
+    connection pool management.
 
-	<P>This is Derby's implementation of a PooledConnection for use in
-	the following environments:
-	<UL>
-	<LI> JDBC 4.0 - J2SE 6.0
-	</UL>
+    <P>This is Derby's implementation of a PooledConnection for use in
+    the following environments:
+    <UL>
+    <LI> JDBC 4.0 - J2SE 6.0
+    </UL>
 
  */
 class EmbedPooledConnection40 extends EmbedPooledConnection {
@@ -69,7 +69,7 @@ class EmbedPooledConnection40 extends EmbedPooledConnection {
      * <code>PreparedStatement</code> has been closed or is invalid.
      * <p> 
      * 
-     * @param listener	the component which implements the
+     * @param listener    the component which implements the
      * <code>StatementEventListener</code> interface that was previously 
      * registered with this <code>PooledConnection</code> object
      * <p>
@@ -90,7 +90,7 @@ class EmbedPooledConnection40 extends EmbedPooledConnection {
      * <code>PooledConnection</code> object.
      * <p>
      * 
-     * @param listener	an component which implements the 
+     * @param listener    an component which implements the 
      * <code>StatementEventListener</code> interface that is to be registered
      * with this <code>PooledConnection</code> object
      * <p>

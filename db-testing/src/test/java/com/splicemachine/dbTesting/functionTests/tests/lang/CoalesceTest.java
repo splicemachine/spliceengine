@@ -126,11 +126,11 @@ public class CoalesceTest extends BaseJDBCTestCase
     };
 
     /**
-	   SQL Reference Guide for DB2 has section titled "Rules for result data types" at the following url
-	   http://publib.boulder.ibm.com/infocenter/db2help/index.jsp?topic=/com.ibm.db2.udb.doc/admin/r0008480.htm
+       SQL Reference Guide for DB2 has section titled "Rules for result data types" at the following url
+       http://publib.boulder.ibm.com/infocenter/db2help/index.jsp?topic=/com.ibm.db2.udb.doc/admin/r0008480.htm
 
-	   I have constructed following table based on various tables and information under "Rules for result data types"
-	   This table has FOR BIT DATA TYPES broken out into separate columns for clarity and testing
+       I have constructed following table based on various tables and information under "Rules for result data types"
+       This table has FOR BIT DATA TYPES broken out into separate columns for clarity and testing
      **/
     public static final String[][]  resultDataTypeRulesTable = {
 
@@ -176,7 +176,7 @@ public class CoalesceTest extends BaseJDBCTestCase
         "create table tE (smallintCol smallint, intCol integer, bigintCol bigint, decimalCol1 decimal(22,2), decimalCol2 decimal(8,6), decimalCol3 decimal(31,28), realCol real, doubleCol double)",
         "create table tD (c1 int, c2 char(254))",
         "create table tB (c1 char(254), c2 char(40), vc1 varchar(253), vc2 varchar(2000), lvc1 long varchar, lvc2 long varchar, clob1 CLOB(200), clob2 CLOB(33K))",
-        "create table tC (cbd1 char(254) for bit data, cbd2 char(40) for bit data, vcbd1 varchar(253) for bit data, vcbd2 varchar(2000) for bit data, lvcbd1 long varchar for bit data, lvcbd2 long varchar for bit data, blob1 BLOB(200), blob2 BLOB(33K))",	
+        "create table tC (cbd1 char(254) for bit data, cbd2 char(40) for bit data, vcbd1 varchar(253) for bit data, vcbd2 varchar(2000) for bit data, lvcbd1 long varchar for bit data, lvcbd2 long varchar for bit data, blob1 BLOB(200), blob2 BLOB(33K))",    
         "create table tAggr (i int)"
     };
 
@@ -304,7 +304,7 @@ public class CoalesceTest extends BaseJDBCTestCase
                 "COL1(datatype : CLOB, precision : 32700, scale : 0) null 1992-01-08 1992-01-18 2000-01-01 15:30:20 ",
                 "COL1(datatype : CHAR () FOR BIT DATA, precision : 60, scale : 0) null 10aa20202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020 null 10aaaa202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020 ",
                 "COL1(datatype : VARCHAR () FOR BIT DATA, precision : 60, scale : 0) null 10aa20202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020 null 10aaaa202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020 ",
-                "COL1(datatype : LONG VARCHAR FOR BIT DATA, precision : 32700, scale : 0) null 10aa20202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020 null 10aaaa202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020 ",	
+                "COL1(datatype : LONG VARCHAR FOR BIT DATA, precision : 32700, scale : 0) null 10aa20202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020 null 10aaaa202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020 ",    
                 "COL1(datatype : VARCHAR () FOR BIT DATA, precision : 60, scale : 0) null 10bb null 10bbbb ",
                 "COL1(datatype : VARCHAR () FOR BIT DATA, precision : 60, scale : 0) null 10bb null 10bbbb ",
                 "COL1(datatype : LONG VARCHAR FOR BIT DATA, precision : 32700, scale : 0) null 10bb null 10bbbb ",
@@ -623,9 +623,9 @@ public class CoalesceTest extends BaseJDBCTestCase
         assertStatementError("22007", s, "select value(charCol,timeCol) from tG");
 
         expectedValue = "COL1(datatype : TIME, precision : 8, scale : 0) null 12:30:30 12:30:33 ";
-        dumpRS(s.executeQuery("select coalesce(timeCol,charCol) from tG"), expectedValue);			
+        dumpRS(s.executeQuery("select coalesce(timeCol,charCol) from tG"), expectedValue);            
         dumpRS(s.executeQuery("select value(timeCol,charCol) from tG"), expectedValue);
-        dumpRS(s.executeQuery("select coalesce(timeCol,varcharCol) from tG"), expectedValue);			
+        dumpRS(s.executeQuery("select coalesce(timeCol,varcharCol) from tG"), expectedValue);            
         dumpRS(s.executeQuery("select value(timeCol,varcharCol) from tG"), expectedValue);
     }
 
@@ -686,7 +686,7 @@ public class CoalesceTest extends BaseJDBCTestCase
                 "COL1(datatype : DECIMAL, precision : 22, scale : 2) 3.00 null ",
                 "COL1(datatype : DECIMAL, precision : 25, scale : 6) 3.000000 null ",
                 "COL1(datatype : DECIMAL, precision : 31, scale : 28) 3.0000000000000000000000000000 null ",
-                "COL1(datatype : DOUBLE, precision : 15, scale : 0) 3.0 null ",			
+                "COL1(datatype : DOUBLE, precision : 15, scale : 0) 3.0 null ",            
                 "COL1(datatype : DECIMAL, precision : 22, scale : 2) 4.00 null ",
                 "COL1(datatype : DECIMAL, precision : 26, scale : 6) 4.000000 null ",
                 "COL1(datatype : DECIMAL, precision : 31, scale : 28) 4.0000000000000000000000000000 null ",
@@ -694,7 +694,7 @@ public class CoalesceTest extends BaseJDBCTestCase
                 "COL1(datatype : DOUBLE, precision : 15, scale : 0) 4.0 null ",
                 "COL1(datatype : REAL, precision : 7, scale : 0) 7.7 null ",
                 "COL1(datatype : DOUBLE, precision : 15, scale : 0) 7.699999809265137 null ",
-                "COL1(datatype : DOUBLE, precision : 15, scale : 0) 3.4028235E38 null "				 
+                "COL1(datatype : DOUBLE, precision : 15, scale : 0) 3.4028235E38 null "                 
         };
 
         dumpRS(s.executeQuery("select coalesce(smallintCol,smallintCol) from tE"), expectedValues[0]);
@@ -791,7 +791,7 @@ public class CoalesceTest extends BaseJDBCTestCase
         ps.setNull(1,Types.BIGINT);
         dumpRS(ps.executeQuery(), expectedValues[index++]);
 
-        ps = prepareStatement("select coalesce(c1,?) from tD");	
+        ps = prepareStatement("select coalesce(c1,?) from tD");    
         try {
             ps.setString(1,"abc");
             dumpRS(ps.executeQuery(), "");
@@ -854,14 +854,14 @@ public class CoalesceTest extends BaseJDBCTestCase
 
         int index = 0;
 
-        dumpRS(s.executeQuery("select coalesce(c1,c2) from tB"), expectedValues[index++]);			
-        dumpRS(s.executeQuery("select value(c1,c2) from tB"), expectedValues[index++]);			
+        dumpRS(s.executeQuery("select coalesce(c1,c2) from tB"), expectedValues[index++]);            
+        dumpRS(s.executeQuery("select value(c1,c2) from tB"), expectedValues[index++]);            
         dumpRS(s.executeQuery("select coalesce(c2,c1) from tB"), expectedValues[index++]);
         dumpRS(s.executeQuery("select value(c2,c1) from tB"), expectedValues[index++]);
         dumpRS(s.executeQuery("select coalesce(c1,vc1) from tB"), expectedValues[index++]);
         dumpRS(s.executeQuery("select value(c1,vc1) from tB"), expectedValues[index++]);
         dumpRS(s.executeQuery("select coalesce(vc1,c1) from tB"), expectedValues[index++]);
-        dumpRS(s.executeQuery("select value(vc1,c1) from tB"), expectedValues[index++]);		
+        dumpRS(s.executeQuery("select value(vc1,c1) from tB"), expectedValues[index++]);        
         dumpRS(s.executeQuery("select coalesce(vc1,vc2) from tB"), expectedValues[index++]);
         dumpRS(s.executeQuery("select value(vc1,vc2) from tB"), expectedValues[index++]);
         dumpRS(s.executeQuery("select coalesce(vc2,vc1) from tB"), expectedValues[index++]);
@@ -967,7 +967,7 @@ public class CoalesceTest extends BaseJDBCTestCase
         Statement s = createStatement();
         dumpRS(s.executeQuery("select coalesce(cbd1,cbd2) from tC"), expectedValues[index++]);
         dumpRS(s.executeQuery("select value(cbd1,cbd2) from tC"), expectedValues[index++]);
-        dumpRS(s.executeQuery("select coalesce(cbd2,cbd1) from tC"), expectedValues[index++]);	
+        dumpRS(s.executeQuery("select coalesce(cbd2,cbd1) from tC"), expectedValues[index++]);    
         dumpRS(s.executeQuery("select value(cbd2,cbd1) from tC"), expectedValues[index++]);
         dumpRS(s.executeQuery("select coalesce(cbd1,vcbd1) from tC"), expectedValues[index++]);
         dumpRS(s.executeQuery("select value(cbd1,vcbd1) from tC"), expectedValues[index++]);
@@ -986,7 +986,7 @@ public class CoalesceTest extends BaseJDBCTestCase
         dumpRS(s.executeQuery("select coalesce(lvcbd1,vcbd1) from tC"), expectedValues[index++]);
         dumpRS(s.executeQuery("select value(lvcbd1,vcbd1) from tC"), expectedValues[index++]);
         dumpRS(s.executeQuery("select coalesce(lvcbd1,lvcbd2) from tC"), expectedValues[index++]);
-        dumpRS(s.executeQuery("select value(lvcbd1,lvcbd2) from tC"), expectedValues[index++]);		
+        dumpRS(s.executeQuery("select value(lvcbd1,lvcbd2) from tC"), expectedValues[index++]);        
 
         assertStatementError("42815", s, "select coalesce(blob1,cbd1) from tC");
         assertStatementError("42815", s, "select value(blob1,cbd1) from tC");
@@ -1002,7 +1002,7 @@ public class CoalesceTest extends BaseJDBCTestCase
         assertStatementError("42815", s, "select value(lvcbd2,blob2) from tC");
 
         dumpRS(s.executeQuery("select coalesce(blob1,blob2) from tC"), expectedValues[index++]);
-        dumpRS(s.executeQuery("select value(blob1,blob2) from tC"), expectedValues[index++]);	
+        dumpRS(s.executeQuery("select value(blob1,blob2) from tC"), expectedValues[index++]);    
     }
 
 
@@ -1086,7 +1086,7 @@ public class CoalesceTest extends BaseJDBCTestCase
         int numCols = rsmd.getColumnCount();
         if (numCols <= 0) return;
 
-        StringBuffer heading = new StringBuffer();	
+        StringBuffer heading = new StringBuffer();    
         for (int i=1; i<=numCols; i++)
         {
             if (i > 1) heading.append(",");
@@ -1104,7 +1104,7 @@ public class CoalesceTest extends BaseJDBCTestCase
             {
                 if (i > 1) row.append(",");
                 row.append(rs.getString(i));
-                row.append(" ");	
+                row.append(" ");    
             }
 
         }
@@ -1118,7 +1118,7 @@ public class CoalesceTest extends BaseJDBCTestCase
             } 
 
         }
-        assertEquals(expectedValue, actualValue);	
+        assertEquals(expectedValue, actualValue);    
         rs.close();
 
     }

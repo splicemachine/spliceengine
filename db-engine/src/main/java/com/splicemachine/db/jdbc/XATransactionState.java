@@ -56,42 +56,42 @@ final class XATransactionState extends ContextImpl {
 
     /** Rollback-only due to timeout */
     final static int TRO_TIMEOUT                = -3;
-	/** Rollback-only due to deadlock */
-	final static int TRO_DEADLOCK				= -2;
-	/** Rollback-only due to end(TMFAIL) */
-	final static int TRO_FAIL					= -1;
-	final static int T0_NOT_ASSOCIATED			= 0;
-	final static int T1_ASSOCIATED				= 1;
-	// final static int T2_ASSOCIATION_SUSPENDED	= 2;
-	final static int TC_COMPLETED				= 3; // rollback/commit called
+    /** Rollback-only due to deadlock */
+    final static int TRO_DEADLOCK                = -2;
+    /** Rollback-only due to end(TMFAIL) */
+    final static int TRO_FAIL                    = -1;
+    final static int T0_NOT_ASSOCIATED            = 0;
+    final static int T1_ASSOCIATED                = 1;
+    // final static int T2_ASSOCIATION_SUSPENDED    = 2;
+    final static int TC_COMPLETED                = 3; // rollback/commit called
 
-	final EmbedConnection	conn;
-	final EmbedXAResource creatingResource;
+    final EmbedConnection    conn;
+    final EmbedXAResource creatingResource;
         // owning XAResource
-	private EmbedXAResource  associatedResource;	
-	final XAXactId			xid;	
-	/**
-		When an XAResource suspends a transaction (end(TMSUSPEND)) it must be resumed
-		using the same XAConnection. This has been the traditional Cloudscape/Derby behaviour,
-		though there does not seem to be a specific reference to this behaviour in
-		the JTA spec. Note that while the transaction is suspended by this XAResource,
-		another XAResource may join the transaction and suspend it after the join.
-	*/
-	HashMap suspendedList;
+    private EmbedXAResource  associatedResource;    
+    final XAXactId            xid;    
+    /**
+        When an XAResource suspends a transaction (end(TMSUSPEND)) it must be resumed
+        using the same XAConnection. This has been the traditional Cloudscape/Derby behaviour,
+        though there does not seem to be a specific reference to this behaviour in
+        the JTA spec. Note that while the transaction is suspended by this XAResource,
+        another XAResource may join the transaction and suspend it after the join.
+    */
+    HashMap suspendedList;
 
 
-	/**
-		Association state of the transaction.
-	*/
-	int associationState;
+    /**
+        Association state of the transaction.
+    */
+    int associationState;
 
-	int rollbackOnlyCode;
+    int rollbackOnlyCode;
 
 
-	/**
-		has this transaction been prepared.
-	*/
-	boolean isPrepared;
+    /**
+        has this transaction been prepared.
+    */
+    boolean isPrepared;
 
     /** Indicates whether this transaction is supposed to be rolled back by timeout. */
     boolean performTimeoutRollback;
@@ -132,197 +132,197 @@ final class XATransactionState extends ContextImpl {
 
 
 
-	XATransactionState(ContextManager cm, EmbedConnection conn, 
+    XATransactionState(ContextManager cm, EmbedConnection conn, 
                 EmbedXAResource resource, XAXactId xid) {
 
-		super(cm, "XATransactionState");
-		this.conn = conn;
-		this.associatedResource = resource;
-		this.creatingResource = resource;
-		this.associationState = XATransactionState.T1_ASSOCIATED;
-		this.xid = xid;
-		this.performTimeoutRollback = false; // there is no transaction yet
-	}
+        super(cm, "XATransactionState");
+        this.conn = conn;
+        this.associatedResource = resource;
+        this.creatingResource = resource;
+        this.associationState = XATransactionState.T1_ASSOCIATED;
+        this.xid = xid;
+        this.performTimeoutRollback = false; // there is no transaction yet
+    }
 
-	public void cleanupOnError(Throwable t) {
+    public void cleanupOnError(Throwable t) {
 
-		if (t instanceof StandardException) {
+        if (t instanceof StandardException) {
 
-			StandardException se = (StandardException) t;
+            StandardException se = (StandardException) t;
             
             if (se.getSeverity() >= ExceptionSeverity.SESSION_SEVERITY) {
                 popMe();
                 return;
             }
 
-			if (se.getSeverity() == ExceptionSeverity.TRANSACTION_SEVERITY) {
+            if (se.getSeverity() == ExceptionSeverity.TRANSACTION_SEVERITY) {
 
-				synchronized (this) {
-					// prior to the DERBY-5552 fix, we would disable the connection
-					// here with conn.setApplicationConnection(null);
-					// which could cause a NPE
-					notifyAll();
-					associationState = TRO_FAIL;
-					if (SQLState.DEADLOCK.equals(se.getMessageId()))
-						rollbackOnlyCode = XAException.XA_RBDEADLOCK;
-					else if (se.isLockTimeout())
-						rollbackOnlyCode = XAException.XA_RBTIMEOUT;
-					else
-						rollbackOnlyCode = XAException.XA_RBOTHER;
-				}
-			}
-		}
-	}
+                synchronized (this) {
+                    // prior to the DERBY-5552 fix, we would disable the connection
+                    // here with conn.setApplicationConnection(null);
+                    // which could cause a NPE
+                    notifyAll();
+                    associationState = TRO_FAIL;
+                    if (SQLState.DEADLOCK.equals(se.getMessageId()))
+                        rollbackOnlyCode = XAException.XA_RBDEADLOCK;
+                    else if (se.isLockTimeout())
+                        rollbackOnlyCode = XAException.XA_RBTIMEOUT;
+                    else
+                        rollbackOnlyCode = XAException.XA_RBOTHER;
+                }
+            }
+        }
+    }
 
-	void start(EmbedXAResource resource, int flags) throws XAException {
+    void start(EmbedXAResource resource, int flags) throws XAException {
 
-		synchronized (this) {
-			if (associationState == XATransactionState.TRO_FAIL)
-				throw new XAException(rollbackOnlyCode);
+        synchronized (this) {
+            if (associationState == XATransactionState.TRO_FAIL)
+                throw new XAException(rollbackOnlyCode);
 
-			boolean isSuspendedByResource = (suspendedList != null) && (suspendedList.get(resource) != null);
+            boolean isSuspendedByResource = (suspendedList != null) && (suspendedList.get(resource) != null);
 
-			if (flags == XAResource.TMRESUME) {
-				if (!isSuspendedByResource)
-					throw new XAException(XAException.XAER_PROTO);
+            if (flags == XAResource.TMRESUME) {
+                if (!isSuspendedByResource)
+                    throw new XAException(XAException.XAER_PROTO);
 
-			} else {
-				// cannot join a transaction we have suspended.
-				if (isSuspendedByResource)
-					throw new XAException(XAException.XAER_PROTO);
-			}
+            } else {
+                // cannot join a transaction we have suspended.
+                if (isSuspendedByResource)
+                    throw new XAException(XAException.XAER_PROTO);
+            }
 
-			while (associationState == XATransactionState.T1_ASSOCIATED) {
-				
-				try {
-					wait();
-				} catch (InterruptedException ie) {
-					throw new XAException(XAException.XA_RETRY);
-				}
-			}
+            while (associationState == XATransactionState.T1_ASSOCIATED) {
+                
+                try {
+                    wait();
+                } catch (InterruptedException ie) {
+                    throw new XAException(XAException.XA_RETRY);
+                }
+            }
 
 
-			switch (associationState) {
-			case XATransactionState.T0_NOT_ASSOCIATED:
-				break;
+            switch (associationState) {
+            case XATransactionState.T0_NOT_ASSOCIATED:
+                break;
 
             case XATransactionState.TRO_DEADLOCK:
             case XATransactionState.TRO_TIMEOUT:
-			case XATransactionState.TRO_FAIL:
-				throw new XAException(rollbackOnlyCode);
+            case XATransactionState.TRO_FAIL:
+                throw new XAException(rollbackOnlyCode);
 
-			default:
-				throw new XAException(XAException.XAER_NOTA);
-			}
+            default:
+                throw new XAException(XAException.XAER_NOTA);
+            }
 
-			if (isPrepared)
-				throw new XAException(XAException.XAER_PROTO);
+            if (isPrepared)
+                throw new XAException(XAException.XAER_PROTO);
 
-			if (isSuspendedByResource) {
-				suspendedList.remove(resource);
-			}
+            if (isSuspendedByResource) {
+                suspendedList.remove(resource);
+            }
 
-			associationState = XATransactionState.T1_ASSOCIATED;
-			associatedResource = resource;
+            associationState = XATransactionState.T1_ASSOCIATED;
+            associatedResource = resource;
 
-		}
-	}
+        }
+    }
 
-	boolean end(EmbedXAResource resource, int flags, 
+    boolean end(EmbedXAResource resource, int flags, 
                 boolean endingCurrentXid) throws XAException {
 
-		boolean rollbackOnly = false;
-		synchronized (this) {
+        boolean rollbackOnly = false;
+        synchronized (this) {
 
 
-			boolean isSuspendedByResource = (suspendedList != null) && (suspendedList.get(resource) != null);
+            boolean isSuspendedByResource = (suspendedList != null) && (suspendedList.get(resource) != null);
 
-			if (!endingCurrentXid) {
-				while (associationState == XATransactionState.T1_ASSOCIATED) {
-					
-					try {
-						wait();
-					} catch (InterruptedException ie) {
-						throw new XAException(XAException.XA_RETRY);
-					}
-				}
-			}
+            if (!endingCurrentXid) {
+                while (associationState == XATransactionState.T1_ASSOCIATED) {
+                    
+                    try {
+                        wait();
+                    } catch (InterruptedException ie) {
+                        throw new XAException(XAException.XA_RETRY);
+                    }
+                }
+            }
 
-			switch (associationState) {
-			case XATransactionState.TC_COMPLETED:
-				throw new XAException(XAException.XAER_NOTA);
-			case XATransactionState.TRO_FAIL:
-				if (endingCurrentXid)
-					flags = XAResource.TMFAIL;
-				else
-					throw new XAException(rollbackOnlyCode);
-			}
+            switch (associationState) {
+            case XATransactionState.TC_COMPLETED:
+                throw new XAException(XAException.XAER_NOTA);
+            case XATransactionState.TRO_FAIL:
+                if (endingCurrentXid)
+                    flags = XAResource.TMFAIL;
+                else
+                    throw new XAException(rollbackOnlyCode);
+            }
 
-			boolean notify = false;
-			switch (flags) {
-			case XAResource.TMSUCCESS:
-				if (isSuspendedByResource) {
-					suspendedList.remove(resource);
-				}
-				else {
-					if (resource != associatedResource)
-						throw new XAException(XAException.XAER_PROTO);
+            boolean notify = false;
+            switch (flags) {
+            case XAResource.TMSUCCESS:
+                if (isSuspendedByResource) {
+                    suspendedList.remove(resource);
+                }
+                else {
+                    if (resource != associatedResource)
+                        throw new XAException(XAException.XAER_PROTO);
 
-					associationState = XATransactionState.T0_NOT_ASSOCIATED;
-					associatedResource = null;
-					notify = true;
-				}
+                    associationState = XATransactionState.T0_NOT_ASSOCIATED;
+                    associatedResource = null;
+                    notify = true;
+                }
 
-				conn.setApplicationConnection(null);
-				break;
+                conn.setApplicationConnection(null);
+                break;
 
-			case XAResource.TMFAIL:
+            case XAResource.TMFAIL:
 
-				if (isSuspendedByResource) {
-					suspendedList.remove(resource);
-				} else {
-					if (resource != associatedResource)
-						throw new XAException(XAException.XAER_PROTO);
-					associatedResource = null;
-				}
-				
-				if (associationState != XATransactionState.TRO_FAIL) {
-					associationState = XATransactionState.TRO_FAIL;
-					rollbackOnlyCode = XAException.XA_RBROLLBACK;
-				}
-				conn.setApplicationConnection(null);
-				notify = true;
-				rollbackOnly = true;
-				break;
+                if (isSuspendedByResource) {
+                    suspendedList.remove(resource);
+                } else {
+                    if (resource != associatedResource)
+                        throw new XAException(XAException.XAER_PROTO);
+                    associatedResource = null;
+                }
+                
+                if (associationState != XATransactionState.TRO_FAIL) {
+                    associationState = XATransactionState.TRO_FAIL;
+                    rollbackOnlyCode = XAException.XA_RBROLLBACK;
+                }
+                conn.setApplicationConnection(null);
+                notify = true;
+                rollbackOnly = true;
+                break;
 
-			case XAResource.TMSUSPEND:
-				if (isSuspendedByResource)
-					throw new XAException(XAException.XAER_PROTO);
-				
-				if (resource != associatedResource)
-					throw new XAException(XAException.XAER_PROTO);
+            case XAResource.TMSUSPEND:
+                if (isSuspendedByResource)
+                    throw new XAException(XAException.XAER_PROTO);
+                
+                if (resource != associatedResource)
+                    throw new XAException(XAException.XAER_PROTO);
 
-				if (suspendedList == null)
-					suspendedList = new HashMap();
-				suspendedList.put(resource, this);
+                if (suspendedList == null)
+                    suspendedList = new HashMap();
+                suspendedList.put(resource, this);
 
-				associationState = XATransactionState.T0_NOT_ASSOCIATED;
-				associatedResource = null;
-				conn.setApplicationConnection(null);
-				notify = true;
+                associationState = XATransactionState.T0_NOT_ASSOCIATED;
+                associatedResource = null;
+                conn.setApplicationConnection(null);
+                notify = true;
 
-				break;
+                break;
 
-			default:
-				throw new XAException(XAException.XAER_INVAL);
-			}
+            default:
+                throw new XAException(XAException.XAER_INVAL);
+            }
 
-			if (notify)
-				notifyAll();
+            if (notify)
+                notifyAll();
 
-			return rollbackOnly;
-		}
-	}
+            return rollbackOnly;
+        }
+    }
 
    /**
     * Schedule a timeout task wich will rollback the global transaction

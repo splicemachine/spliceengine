@@ -47,16 +47,16 @@ import java.sql.SQLException;
 public interface AuthenticationService 
 {
 
-	String MODULE =
-								"com.splicemachine.db.iapi.jdbc.AuthenticationService";
-	/**
-	 * Authenticate a User inside Derby.
-	 *
-	 * @param info			Connection properties info.
-	 * failure.
-	 */
-	public String authenticate(String databaseName, Properties info)
-	  throws SQLException;
+    String MODULE =
+                                "com.splicemachine.db.iapi.jdbc.AuthenticationService";
+    /**
+     * Authenticate a User inside Derby.
+     *
+     * @param info            Connection properties info.
+     * failure.
+     */
+    public String authenticate(String databaseName, Properties info)
+      throws SQLException;
 
     /**
      * <p>
@@ -64,6 +64,6 @@ public interface AuthenticationService
      * This returns null for all implementations except NATIVE authentication.
      * </p>
      */
-	String  getSystemCredentialsDatabaseName();
+    String  getSystemCredentialsDatabaseName();
 
 }

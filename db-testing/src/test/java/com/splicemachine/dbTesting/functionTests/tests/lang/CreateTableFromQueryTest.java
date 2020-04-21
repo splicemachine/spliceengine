@@ -277,7 +277,7 @@ public final class CreateTableFromQueryTest extends BaseJDBCTestCase {
         
         // DECIMAL(44,0)
         assertStatementError("42X71", stmt,
-        	"create table t(x) as values 12345678901234567890123456789012345678901234 with no data");
+            "create table t(x) as values 12345678901234567890123456789012345678901234 with no data");
     }
    
     private void positiveTest(String sql, String [] columnNames,

@@ -87,7 +87,7 @@ public class PrepareStatementTest extends BaseJDBCTestCase
      * run in both embedded and client/server.
      */
     public static Test suite()
-    {	
+    {    
         if ( JDBC.vmSupportsJSR169())
             // see DERBY-2233 for details
             return new TestSuite("empty PrepareStatementTest - client not supported on JSR169");
@@ -1125,10 +1125,10 @@ public class PrepareStatementTest extends BaseJDBCTestCase
     {
         Statement stmt = createStatement();
         String createString = "CREATE TABLE WISH_LIST  "
-        	+  "(WISH_ID INT NOT NULL GENERATED ALWAYS AS IDENTITY " 
-        	+  "   CONSTRAINT WISH_PK PRIMARY KEY, " 
-        	+  " ENTRY_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
-        	+  " WISH_ITEM VARCHAR(32) NOT NULL) " ;
+            +  "(WISH_ID INT NOT NULL GENERATED ALWAYS AS IDENTITY " 
+            +  "   CONSTRAINT WISH_PK PRIMARY KEY, " 
+            +  " ENTRY_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
+            +  " WISH_ITEM VARCHAR(32) NOT NULL) " ;
         
         stmt.executeUpdate(createString);
         PreparedStatement ps = prepareStatement("insert into WISH_LIST(WISH_ITEM) values (?)");
@@ -1140,23 +1140,23 @@ public class PrepareStatementTest extends BaseJDBCTestCase
         ps = prepareStatement("insert into WISH_LIST(WISH_ITEM) values ('bb')");
         //Try setString when no parameters in ps
         try {
-        	ps.setString(1, "aaa");
+            ps.setString(1, "aaa");
             fail("Exception expected above!");
         } catch (SQLException e)  {  
-        	if (usingDerbyNetClient())
-        		//note that SQLState is XCL14. For setObject below, the 
-        		//SQLState is XCL13. I have entered DERBY-3139 for this
-        		//difference in SQLState.
-        		assertSQLState("XCL14", e);
-        	else
-        		assertSQLState("07009", e);
+            if (usingDerbyNetClient())
+                //note that SQLState is XCL14. For setObject below, the 
+                //SQLState is XCL13. I have entered DERBY-3139 for this
+                //difference in SQLState.
+                assertSQLState("XCL14", e);
+            else
+                assertSQLState("07009", e);
         }
         //Try setObject when no parameters in ps
         try {
-        	ps.setObject(1,"cc",java.sql.Types.VARCHAR); 
+            ps.setObject(1,"cc",java.sql.Types.VARCHAR); 
             fail("Exception expected above!");
         } catch (SQLException e)  {   
-    		assertSQLState("07009", e);
+            assertSQLState("07009", e);
         }
     }
 

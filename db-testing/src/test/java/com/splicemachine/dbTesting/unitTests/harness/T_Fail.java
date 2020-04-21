@@ -32,105 +32,105 @@
 package com.splicemachine.dbTesting.unitTests.harness;
 
 /**
-	Exception used to throw for errors in a unit test.
+    Exception used to throw for errors in a unit test.
 */
 public class T_Fail extends Exception  {
 
-	private Throwable nested;
+    private Throwable nested;
 
-	/**
-	  Create a T_Fail exception which carries a message.
+    /**
+      Create a T_Fail exception which carries a message.
 
-	  @param message An Id for an error message for this exception.
-	  */
-	private T_Fail(String message) {
-		super(message);
-	}
+      @param message An Id for an error message for this exception.
+      */
+    private T_Fail(String message) {
+        super(message);
+    }
 
-	/**
-		return a T_Fail exception to indicate the configuration does
-		not specify the module to test.
+    /**
+        return a T_Fail exception to indicate the configuration does
+        not specify the module to test.
 
-		@return The exception.
-	*/
-	public static T_Fail moduleToTestIdNotFound()
-	{
-		return new T_Fail("Test failed because the configuration does not include the MODULE_TO_TEST_IDENT attribute.");
-	}
+        @return The exception.
+    */
+    public static T_Fail moduleToTestIdNotFound()
+    {
+        return new T_Fail("Test failed because the configuration does not include the MODULE_TO_TEST_IDENT attribute.");
+    }
 
-	/**
-		return a T_Fail exception to indicate the configuration does
-		not contain the module to test.
+    /**
+        return a T_Fail exception to indicate the configuration does
+        not contain the module to test.
 
-		@return The exception.
-	*/
-	public static T_Fail moduleToTestNotFound(String moduleToTest)
-	{
-		return new T_Fail("Test failed due to failure loading " + moduleToTest);
-	}
+        @return The exception.
+    */
+    public static T_Fail moduleToTestNotFound(String moduleToTest)
+    {
+        return new T_Fail("Test failed due to failure loading " + moduleToTest);
+    }
 
-	/**
-	  return a T_Fail exception to indicate the test failed due
-	  to an exception.
+    /**
+      return a T_Fail exception to indicate the test failed due
+      to an exception.
 
-	  <P>Note: Since the Test Service catches all exceptions this
-	  seems to be of limited value.
+      <P>Note: Since the Test Service catches all exceptions this
+      seems to be of limited value.
 
-	  @return The exception.
-	*/
-	public static T_Fail exceptionFail(Throwable e)
-	{
-		T_Fail tf = new T_Fail("The test failed with an exception: " + e.toString());
-		tf.nested = e;
-		return tf;
-	}
+      @return The exception.
+    */
+    public static T_Fail exceptionFail(Throwable e)
+    {
+        T_Fail tf = new T_Fail("The test failed with an exception: " + e.toString());
+        tf.nested = e;
+        return tf;
+    }
 
-	/**
-	  return a T_Fail exception to indicate the test failed.
+    /**
+      return a T_Fail exception to indicate the test failed.
 
-	  @return the exception.
-	  */
-	public static T_Fail testFail()
-	{
-		return new T_Fail("The test failed");
-	}
+      @return the exception.
+      */
+    public static T_Fail testFail()
+    {
+        return new T_Fail("The test failed");
+    }
 
-	/**
-	  return a T_Fail exception which includes a user message indicating
-	  why a test failed.
+    /**
+      return a T_Fail exception which includes a user message indicating
+      why a test failed.
 
-	  @return The exception.
-	*/
-	public static T_Fail testFailMsg(String message)
-	{
-		return new T_Fail("Test failed - " + message);
-	}
+      @return The exception.
+    */
+    public static T_Fail testFailMsg(String message)
+    {
+        return new T_Fail("Test failed - " + message);
+    }
 
-	/**
-	  Check a test condition. If it is false, throw a T_Fail exception.
+    /**
+      Check a test condition. If it is false, throw a T_Fail exception.
 
-	  @param mustBeTrue The condition.
-	  @exception T_Fail A test failure exception
-	  */
-	public static final void T_ASSERT(boolean mustBeTrue)
-		 throws T_Fail
-	{
-		if (!mustBeTrue)
-			throw testFail();
-	}
+      @param mustBeTrue The condition.
+      @exception T_Fail A test failure exception
+      */
+    public static final void T_ASSERT(boolean mustBeTrue)
+         throws T_Fail
+    {
+        if (!mustBeTrue)
+            throw testFail();
+    }
 
-	/**
-	  Check a test condition. If it is false, throw a T_Fail exception which
-	  includes a message.
+    /**
+      Check a test condition. If it is false, throw a T_Fail exception which
+      includes a message.
 
-	  @param mustBeTrue The condition.
-	  @param msg A message describing the failue.
-	  @exception T_Fail A test failure exception
-	  */
-	public static final void T_ASSERT(boolean mustBeTrue,String msg)
-		 throws T_Fail
-	{
-		if (!mustBeTrue)
-			throw testFailMsg(msg);
-	}
+      @param mustBeTrue The condition.
+      @param msg A message describing the failue.
+      @exception T_Fail A test failure exception
+      */
+    public static final void T_ASSERT(boolean mustBeTrue,String msg)
+         throws T_Fail
+    {
+        if (!mustBeTrue)
+            throw testFailMsg(msg);
+    }
 }

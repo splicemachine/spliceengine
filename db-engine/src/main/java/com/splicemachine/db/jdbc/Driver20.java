@@ -58,54 +58,54 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 /**
-	This class extends the local JDBC driver in order to determine at JBMS
-	boot-up if the JVM that runs us does support JDBC 2.0. If it is the case
-	then we will load the appropriate class(es) that have JDBC 2.0 new public
-	methods and sql types.
+    This class extends the local JDBC driver in order to determine at JBMS
+    boot-up if the JVM that runs us does support JDBC 2.0. If it is the case
+    then we will load the appropriate class(es) that have JDBC 2.0 new public
+    methods and sql types.
 */
 
 public abstract class Driver20 extends InternalDriver implements Driver {
 
-	private static final String[] BOOLEAN_CHOICES = {"false", "true"};
+    private static final String[] BOOLEAN_CHOICES = {"false", "true"};
 
-	private Class  antiGCDriverManager;
+    private Class  antiGCDriverManager;
 
-	/*
-	**	Methods from ModuleControl
-	*/
+    /*
+    **    Methods from ModuleControl
+    */
 
-	public void boot(boolean create, Properties properties) throws StandardException {
+    public void boot(boolean create, Properties properties) throws StandardException {
 
-		super.boot(create, properties);
+        super.boot(create, properties);
 
-		// Register with the driver manager
-		AutoloadedDriver.registerDriverModule( this );
+        // Register with the driver manager
+        AutoloadedDriver.registerDriverModule( this );
 
-		// hold onto the driver manager to avoid its being garbage collected.
-		// make sure the class is loaded by using .class
-		antiGCDriverManager = java.sql.DriverManager.class;
-	}
+        // hold onto the driver manager to avoid its being garbage collected.
+        // make sure the class is loaded by using .class
+        antiGCDriverManager = java.sql.DriverManager.class;
+    }
 
-	public void stop() {
+    public void stop() {
 
-		super.stop();
+        super.stop();
 
-		AutoloadedDriver.unregisterDriverModule();
-	}
+        AutoloadedDriver.unregisterDriverModule();
+    }
   
-	public EmbedResultSet
-	newEmbedResultSet(EmbedConnection conn, ResultSet results, boolean forMetaData, EmbedStatement statement, boolean isAtomic)
-		throws SQLException
-	{
-		return new EmbedResultSet20(conn, results, forMetaData, statement,
-								 isAtomic); 
-	}
+    public EmbedResultSet
+    newEmbedResultSet(EmbedConnection conn, ResultSet results, boolean forMetaData, EmbedStatement statement, boolean isAtomic)
+        throws SQLException
+    {
+        return new EmbedResultSet20(conn, results, forMetaData, statement,
+                                 isAtomic); 
+    }
 
-//	@Override
-	public Logger getParentLogger() throws SQLFeatureNotSupportedException{ throw new SQLFeatureNotSupportedException(); }
+//    @Override
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException{ throw new SQLFeatureNotSupportedException(); }
 
 
-	public abstract BrokeredConnection newBrokeredConnection(
+    public abstract BrokeredConnection newBrokeredConnection(
             BrokeredConnectionControl control) throws SQLException;
 
     /**
@@ -124,103 +124,103 @@ public abstract class Driver20 extends InternalDriver implements Driver {
      *          are required.
      * @exception SQLException if a database-access error occurs.
      */
-	public  DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
+    public  DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
 
-		// RESOLVE other properties should be added into this method in the future ... 
+        // RESOLVE other properties should be added into this method in the future ... 
 
         if (info != null) {
-			if (Boolean.valueOf(info.getProperty(Attribute.SHUTDOWN_ATTR))) {
-	
-				// no other options possible when shutdown is set to be true
-				return new DriverPropertyInfo[0];
-			}
-		}
+            if (Boolean.valueOf(info.getProperty(Attribute.SHUTDOWN_ATTR))) {
+    
+                // no other options possible when shutdown is set to be true
+                return new DriverPropertyInfo[0];
+            }
+        }
 
-		// at this point we have databaseName, 
+        // at this point we have databaseName, 
 
-		String dbname = InternalDriver.getDatabaseName(url, info);
+        String dbname = InternalDriver.getDatabaseName(url, info);
 
-		// convert the ;name=value attributes in the URL into
-		// properties.
-		FormatableProperties finfo = getAttributes(url, info);
-		info = null; // ensure we don't use this reference directly again.
-		boolean encryptDB = Boolean.valueOf(finfo.getProperty(Attribute.DATA_ENCRYPTION));
-		String encryptpassword = finfo.getProperty(Attribute.BOOT_PASSWORD);
+        // convert the ;name=value attributes in the URL into
+        // properties.
+        FormatableProperties finfo = getAttributes(url, info);
+        info = null; // ensure we don't use this reference directly again.
+        boolean encryptDB = Boolean.valueOf(finfo.getProperty(Attribute.DATA_ENCRYPTION));
+        String encryptpassword = finfo.getProperty(Attribute.BOOT_PASSWORD);
 
-		if (dbname.isEmpty() || (encryptDB && encryptpassword == null)) {
+        if (dbname.isEmpty() || (encryptDB && encryptpassword == null)) {
 
-			// with no database name we can have shutdown or a database name
+            // with no database name we can have shutdown or a database name
 
-			// In future, if any new attribute info needs to be included in this
-			// method, it just has to be added to either string or boolean or secret array
-			// depending on whether it accepts string or boolean or secret(ie passwords) value. 
+            // In future, if any new attribute info needs to be included in this
+            // method, it just has to be added to either string or boolean or secret array
+            // depending on whether it accepts string or boolean or secret(ie passwords) value. 
 
-			String[][] connStringAttributes = {
-				{Attribute.DBNAME_ATTR, MessageId.CONN_DATABASE_IDENTITY},
-				{Attribute.CRYPTO_PROVIDER, MessageId.CONN_CRYPTO_PROVIDER},
-				{Attribute.CRYPTO_ALGORITHM, MessageId.CONN_CRYPTO_ALGORITHM},
-				{Attribute.CRYPTO_KEY_LENGTH, MessageId.CONN_CRYPTO_KEY_LENGTH},
-				{Attribute.CRYPTO_EXTERNAL_KEY, MessageId.CONN_CRYPTO_EXTERNAL_KEY},
-				{Attribute.TERRITORY, MessageId.CONN_LOCALE},
-				{Attribute.COLLATION, MessageId.CONN_COLLATION},
-				{Attribute.USERNAME_ATTR, MessageId.CONN_USERNAME_ATTR},
-				{Attribute.LOG_DEVICE, MessageId.CONN_LOG_DEVICE},
-				{Attribute.ROLL_FORWARD_RECOVERY_FROM, MessageId.CONN_ROLL_FORWARD_RECOVERY_FROM},
-				{Attribute.CREATE_FROM, MessageId.CONN_CREATE_FROM},
-				{Attribute.RESTORE_FROM, MessageId.CONN_RESTORE_FROM},
-			};
+            String[][] connStringAttributes = {
+                {Attribute.DBNAME_ATTR, MessageId.CONN_DATABASE_IDENTITY},
+                {Attribute.CRYPTO_PROVIDER, MessageId.CONN_CRYPTO_PROVIDER},
+                {Attribute.CRYPTO_ALGORITHM, MessageId.CONN_CRYPTO_ALGORITHM},
+                {Attribute.CRYPTO_KEY_LENGTH, MessageId.CONN_CRYPTO_KEY_LENGTH},
+                {Attribute.CRYPTO_EXTERNAL_KEY, MessageId.CONN_CRYPTO_EXTERNAL_KEY},
+                {Attribute.TERRITORY, MessageId.CONN_LOCALE},
+                {Attribute.COLLATION, MessageId.CONN_COLLATION},
+                {Attribute.USERNAME_ATTR, MessageId.CONN_USERNAME_ATTR},
+                {Attribute.LOG_DEVICE, MessageId.CONN_LOG_DEVICE},
+                {Attribute.ROLL_FORWARD_RECOVERY_FROM, MessageId.CONN_ROLL_FORWARD_RECOVERY_FROM},
+                {Attribute.CREATE_FROM, MessageId.CONN_CREATE_FROM},
+                {Attribute.RESTORE_FROM, MessageId.CONN_RESTORE_FROM},
+            };
 
-			String[][] connBooleanAttributes = {
-				{Attribute.SHUTDOWN_ATTR, MessageId.CONN_SHUT_DOWN_CLOUDSCAPE},
+            String[][] connBooleanAttributes = {
+                {Attribute.SHUTDOWN_ATTR, MessageId.CONN_SHUT_DOWN_CLOUDSCAPE},
                 {Attribute.DEREGISTER_ATTR, MessageId.CONN_DEREGISTER_AUTOLOADEDDRIVER},
-				{Attribute.CREATE_ATTR, MessageId.CONN_CREATE_DATABASE},
-				{Attribute.DATA_ENCRYPTION, MessageId.CONN_DATA_ENCRYPTION},
-				{Attribute.UPGRADE_ATTR, MessageId.CONN_UPGRADE_DATABASE},
-				};
+                {Attribute.CREATE_ATTR, MessageId.CONN_CREATE_DATABASE},
+                {Attribute.DATA_ENCRYPTION, MessageId.CONN_DATA_ENCRYPTION},
+                {Attribute.UPGRADE_ATTR, MessageId.CONN_UPGRADE_DATABASE},
+                };
 
-			String[][] connStringSecretAttributes = {
-				{Attribute.BOOT_PASSWORD, MessageId.CONN_BOOT_PASSWORD},
-				{Attribute.PASSWORD_ATTR, MessageId.CONN_PASSWORD_ATTR},
-				};
+            String[][] connStringSecretAttributes = {
+                {Attribute.BOOT_PASSWORD, MessageId.CONN_BOOT_PASSWORD},
+                {Attribute.PASSWORD_ATTR, MessageId.CONN_PASSWORD_ATTR},
+                };
 
-			
-			DriverPropertyInfo[] optionsNoDB = new 	DriverPropertyInfo[connStringAttributes.length+
-																	  connBooleanAttributes.length+
-			                                                          connStringSecretAttributes.length];
-			
-			int attrIndex = 0;
-			for( int i = 0; i < connStringAttributes.length; i++, attrIndex++ )
-			{
-				optionsNoDB[attrIndex] = new DriverPropertyInfo(connStringAttributes[i][0], 
-									  finfo.getProperty(connStringAttributes[i][0]));
-				optionsNoDB[attrIndex].description = MessageService.getTextMessage(connStringAttributes[i][1]);
-			}
+            
+            DriverPropertyInfo[] optionsNoDB = new     DriverPropertyInfo[connStringAttributes.length+
+                                                                      connBooleanAttributes.length+
+                                                                      connStringSecretAttributes.length];
+            
+            int attrIndex = 0;
+            for( int i = 0; i < connStringAttributes.length; i++, attrIndex++ )
+            {
+                optionsNoDB[attrIndex] = new DriverPropertyInfo(connStringAttributes[i][0], 
+                                      finfo.getProperty(connStringAttributes[i][0]));
+                optionsNoDB[attrIndex].description = MessageService.getTextMessage(connStringAttributes[i][1]);
+            }
 
-			optionsNoDB[0].choices = Monitor.getMonitor().getServiceList(Property.DATABASE_MODULE);
-			// since database name is not stored in FormatableProperties, we
-			// assign here explicitly
-			optionsNoDB[0].value = dbname;
+            optionsNoDB[0].choices = Monitor.getMonitor().getServiceList(Property.DATABASE_MODULE);
+            // since database name is not stored in FormatableProperties, we
+            // assign here explicitly
+            optionsNoDB[0].value = dbname;
 
-			for( int i = 0; i < connStringSecretAttributes.length; i++, attrIndex++ )
-			{
-				optionsNoDB[attrIndex] = new DriverPropertyInfo(connStringSecretAttributes[i][0], 
-									  (finfo.getProperty(connStringSecretAttributes[i][0]) == null? "" : "****"));
-				optionsNoDB[attrIndex].description = MessageService.getTextMessage(connStringSecretAttributes[i][1]);
-			}
+            for( int i = 0; i < connStringSecretAttributes.length; i++, attrIndex++ )
+            {
+                optionsNoDB[attrIndex] = new DriverPropertyInfo(connStringSecretAttributes[i][0], 
+                                      (finfo.getProperty(connStringSecretAttributes[i][0]) == null? "" : "****"));
+                optionsNoDB[attrIndex].description = MessageService.getTextMessage(connStringSecretAttributes[i][1]);
+            }
 
-			for( int i = 0; i < connBooleanAttributes.length; i++, attrIndex++ )
-			{
-				optionsNoDB[attrIndex] = new DriverPropertyInfo(connBooleanAttributes[i][0], 
-           		    Boolean.valueOf(finfo == null? "" : finfo.getProperty(connBooleanAttributes[i][0])).toString());
-				optionsNoDB[attrIndex].description = MessageService.getTextMessage(connBooleanAttributes[i][1]);
-				optionsNoDB[attrIndex].choices = BOOLEAN_CHOICES;				
-			}
+            for( int i = 0; i < connBooleanAttributes.length; i++, attrIndex++ )
+            {
+                optionsNoDB[attrIndex] = new DriverPropertyInfo(connBooleanAttributes[i][0], 
+                       Boolean.valueOf(finfo == null? "" : finfo.getProperty(connBooleanAttributes[i][0])).toString());
+                optionsNoDB[attrIndex].description = MessageService.getTextMessage(connBooleanAttributes[i][1]);
+                optionsNoDB[attrIndex].choices = BOOLEAN_CHOICES;                
+            }
 
-			return optionsNoDB;
-		}
+            return optionsNoDB;
+        }
 
-		return new DriverPropertyInfo[0];
-	}
+        return new DriverPropertyInfo[0];
+    }
 
     /**
      * Checks for System Privileges.

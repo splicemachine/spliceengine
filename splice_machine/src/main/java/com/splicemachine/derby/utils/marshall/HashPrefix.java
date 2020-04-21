@@ -32,7 +32,7 @@ import java.io.Closeable;
  */
 public interface HashPrefix extends Closeable {
 
-		int getPrefixLength();
+        int getPrefixLength();
 
-		void encode(byte[] bytes,int offset,byte[] hashBytes);
+        void encode(byte[] bytes,int offset,byte[] hashBytes);
 }

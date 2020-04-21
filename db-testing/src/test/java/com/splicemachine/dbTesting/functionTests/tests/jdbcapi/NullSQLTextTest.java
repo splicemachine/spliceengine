@@ -200,7 +200,7 @@ public class NullSQLTextTest extends BaseJDBCTestCase {
         testCommentStmt(
                 stmt,
                 " -- This is \n -- \n --3 comments\nvalues 8", 
-  		false);
+          false);
                 
         rs = stmt.getResultSet();
         expectedRows = new String[][] { { "8" } };
@@ -317,8 +317,8 @@ public class NullSQLTextTest extends BaseJDBCTestCase {
             boolean expectFailure) throws SQLException {
         try {
             st.execute(sql);
-	    if (expectFailure)
-		fail("Unexpected Failure -- execute() should have failed.");	
+        if (expectFailure)
+        fail("Unexpected Failure -- execute() should have failed.");    
         } catch (SQLException se) {
                 assertSQLState("42X01", se);
         }

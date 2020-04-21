@@ -45,7 +45,7 @@ import com.splicemachine.db.shared.common.reference.JDBC40Translation;
 /**
     <P>Use of VirtualTableInterface to provide support for
     DatabaseMetaData.getProcedureColumns().
-	
+    
 
     <P>This class is called from a Query constructed in 
     java/com.splicemachine.db.impl.jdbc/metadata.properties:
@@ -91,33 +91,33 @@ import com.splicemachine.db.shared.common.reference.JDBC40Translation;
 
 public class GetProcedureColumns extends com.splicemachine.db.vti.VTITemplate
 {
-	private int translate(int val) {
-		if (!isFunction) { return val; }
-		switch (val) {
-		case DatabaseMetaData.procedureColumnUnknown:
-			return JDBC40Translation.FUNCTION_PARAMETER_UNKNOWN;	
-		case DatabaseMetaData.procedureColumnIn:
-			return JDBC40Translation.FUNCTION_PARAMETER_IN;
-		case DatabaseMetaData.procedureColumnInOut:
-			return JDBC40Translation.FUNCTION_PARAMETER_INOUT;	
-		case DatabaseMetaData.procedureColumnOut:
-			return JDBC40Translation.FUNCTION_PARAMETER_OUT;
-		case DatabaseMetaData.procedureColumnReturn:
-			return JDBC40Translation.FUNCTION_RETURN;
-		default:
-			return JDBC40Translation.FUNCTION_PARAMETER_UNKNOWN;	
-		}
+    private int translate(int val) {
+        if (!isFunction) { return val; }
+        switch (val) {
+        case DatabaseMetaData.procedureColumnUnknown:
+            return JDBC40Translation.FUNCTION_PARAMETER_UNKNOWN;    
+        case DatabaseMetaData.procedureColumnIn:
+            return JDBC40Translation.FUNCTION_PARAMETER_IN;
+        case DatabaseMetaData.procedureColumnInOut:
+            return JDBC40Translation.FUNCTION_PARAMETER_INOUT;    
+        case DatabaseMetaData.procedureColumnOut:
+            return JDBC40Translation.FUNCTION_PARAMETER_OUT;
+        case DatabaseMetaData.procedureColumnReturn:
+            return JDBC40Translation.FUNCTION_RETURN;
+        default:
+            return JDBC40Translation.FUNCTION_PARAMETER_UNKNOWN;    
+        }
     }
 
-	private boolean isProcedure;
-	private boolean isFunction;
-	private int          rowCount;
-	private int          returnedTableColumnCount;
-	private TypeDescriptor tableFunctionReturnType;
+    private boolean isProcedure;
+    private boolean isFunction;
+    private int          rowCount;
+    private int          returnedTableColumnCount;
+    private TypeDescriptor tableFunctionReturnType;
     
-	// state for procedures.
-	private RoutineAliasInfo procedure;
-	private int paramCursor;
+    // state for procedures.
+    private RoutineAliasInfo procedure;
+    private int paramCursor;
     private short method_count;
     private short param_number;
 
@@ -139,63 +139,63 @@ public class GetProcedureColumns extends com.splicemachine.db.vti.VTITemplate
     //
     public GetProcedureColumns(AliasInfo aliasInfo, String aliasType) throws SQLException
     {
-		int     functionParamCursor = -2;
+        int     functionParamCursor = -2;
 
-		// compile time aliasInfo will be null.
-		if (aliasInfo != null) {
-			isProcedure = aliasType.equals("P");
-			isFunction = aliasType.equals("F");
-			procedure = (RoutineAliasInfo) aliasInfo;
-			method_count = (short) procedure.getParameterCount();
+        // compile time aliasInfo will be null.
+        if (aliasInfo != null) {
+            isProcedure = aliasType.equals("P");
+            isFunction = aliasType.equals("F");
+            procedure = (RoutineAliasInfo) aliasInfo;
+            method_count = (short) procedure.getParameterCount();
             
-			rowCount = procedure.getParameterCount();
-			if ( procedure.isTableFunction() ) {
-			    tableFunctionReturnType = procedure.getReturnType();
-			    returnedTableColumnCount = tableFunctionReturnType.getRowColumnNames().length;
-			    rowCount += returnedTableColumnCount;
-			    functionParamCursor = -1;
-		        }
-		}
-		if (aliasType == null) { 
-			nullable = 0;
-			return;
-		}
+            rowCount = procedure.getParameterCount();
+            if ( procedure.isTableFunction() ) {
+                tableFunctionReturnType = procedure.getReturnType();
+                returnedTableColumnCount = tableFunctionReturnType.getRowColumnNames().length;
+                rowCount += returnedTableColumnCount;
+                functionParamCursor = -1;
+                }
+        }
+        if (aliasType == null) { 
+            nullable = 0;
+            return;
+        }
 
-		if (isFunction) {
-			nullable = (short) JDBC40Translation.FUNCTION_NULLABLE;
-			sqlType = procedure.getReturnType();
-			columnName = "";  // COLUMN_NAME is VARCHAR NOT NULL
-			columnType = (short) JDBC40Translation.FUNCTION_RETURN;
-			paramCursor = functionParamCursor;
-			return;
-		}
-		nullable = (short) DatabaseMetaData.procedureNullable;
+        if (isFunction) {
+            nullable = (short) JDBC40Translation.FUNCTION_NULLABLE;
+            sqlType = procedure.getReturnType();
+            columnName = "";  // COLUMN_NAME is VARCHAR NOT NULL
+            columnType = (short) JDBC40Translation.FUNCTION_RETURN;
+            paramCursor = functionParamCursor;
+            return;
+        }
+        nullable = (short) DatabaseMetaData.procedureNullable;
 
-		paramCursor = -1;
+        paramCursor = -1;
     }
 
     public boolean next() throws SQLException {
-		if (++paramCursor >= rowCount)
-			return false;
+        if (++paramCursor >= rowCount)
+            return false;
 
-		if ( procedure.isTableFunction() && (  paramCursor >= procedure.getParameterCount() ) ) {
-			int     idx = paramCursor - procedure.getParameterCount();
+        if ( procedure.isTableFunction() && (  paramCursor >= procedure.getParameterCount() ) ) {
+            int     idx = paramCursor - procedure.getParameterCount();
             
-			sqlType      = tableFunctionReturnType.getRowTypes()[ idx ];
-			columnName   = tableFunctionReturnType.getRowColumnNames()[ idx ];
-			columnType   = (short) JDBC40Translation.FUNCTION_COLUMN_RESULT;
-		}
-		else if (paramCursor > -1) {
-			sqlType      = procedure.getParameterTypes()[paramCursor];
-			columnName   = procedure.getParameterNames()[paramCursor];
-			columnType   = 
-				(short)translate(procedure.getParameterModes()[paramCursor]);
-		}
+            sqlType      = tableFunctionReturnType.getRowTypes()[ idx ];
+            columnName   = tableFunctionReturnType.getRowColumnNames()[ idx ];
+            columnType   = (short) JDBC40Translation.FUNCTION_COLUMN_RESULT;
+        }
+        else if (paramCursor > -1) {
+            sqlType      = procedure.getParameterTypes()[paramCursor];
+            columnName   = procedure.getParameterNames()[paramCursor];
+            columnType   = 
+                (short)translate(procedure.getParameterModes()[paramCursor]);
+        }
         
-		param_number = (short) paramCursor;
+        param_number = (short) paramCursor;
 
-		return true;
-	}   
+        return true;
+    }   
 
     //
     // Get the value of the specified data type from a column.
@@ -207,13 +207,13 @@ public class GetProcedureColumns extends com.splicemachine.db.vti.VTITemplate
     {
         switch (column) 
         {
-		case 1: // COLUMN_NAME:
-			return columnName;
+        case 1: // COLUMN_NAME:
+            return columnName;
 
-		case 4: //_TYPE_NAME: 
+        case 4: //_TYPE_NAME: 
                return sqlType.getTypeName();
                
-		case 10: // REMARKS:
+        case 10: // REMARKS:
                 return null;
 
             default: 
@@ -237,7 +237,7 @@ public class GetProcedureColumns extends com.splicemachine.db.vti.VTITemplate
             }
             return java.sql.Types.JAVA_OBJECT;
 
-		case 5: // PRECISION:
+        case 5: // PRECISION:
                 if (sqlType != null)
                 {
                     int type = sqlType.getJDBCTypeId();
@@ -253,7 +253,7 @@ public class GetProcedureColumns extends com.splicemachine.db.vti.VTITemplate
                 // No corresponding SQL type
                 return 0;
 
-		case 6: // LENGTH (in bytes):
+        case 6: // LENGTH (in bytes):
                 if (sqlType != null)
                     return sqlType.getMaximumWidthInBytes();
 
@@ -275,17 +275,17 @@ public class GetProcedureColumns extends com.splicemachine.db.vti.VTITemplate
     {
         switch (column) 
         {
-		case 2: // COLUMN_TYPE:
-			return columnType;
+        case 2: // COLUMN_TYPE:
+            return columnType;
 
-		case 7: // SCALE:
+        case 7: // SCALE:
                 if (sqlType != null)
                     return (short)sqlType.getScale();
 
                 // No corresponding SQL type
                 return 0;
 
-		case 8: // RADIX:
+        case 8: // RADIX:
                 if (sqlType != null)
                 {
                     int sqlTypeID = sqlType.getJDBCTypeId();
@@ -301,14 +301,14 @@ public class GetProcedureColumns extends com.splicemachine.db.vti.VTITemplate
                 // No corresponding SQL type
                 return 0;
 
-		//FIXME
-		case 9: // NULLABLE:
-			return nullable;
+        //FIXME
+        case 9: // NULLABLE:
+            return nullable;
 
-		case 11: // METHOD_ID: 
+        case 11: // METHOD_ID: 
                 return method_count;
 
-		case 12: // PARAMETER_ID: 
+        case 12: // PARAMETER_ID: 
                 return param_number;
 
             default:
@@ -328,36 +328,36 @@ public class GetProcedureColumns extends com.splicemachine.db.vti.VTITemplate
      */
     public int findColumn(String columnName) throws SQLException
     {
-    	int count = columnInfo.length;
-    	for (int i = 0; i < count; i++)
-    	{
-    		if (columnInfo[i].getName().equals(columnName))
-    		{
-    			return i+1;
-    		}
-    	}
+        int count = columnInfo.length;
+        for (int i = 0; i < count; i++)
+        {
+            if (columnInfo[i].getName().equals(columnName))
+            {
+                return i+1;
+            }
+        }
 
-    	throw new SQLException(String.format("Unknown column name: %s", columnName));
+        throw new SQLException(String.format("Unknown column name: %s", columnName));
     }
 
-	/*
-	** Metadata
-	*/
-	private static final ResultColumnDescriptor[] columnInfo = {
+    /*
+    ** Metadata
+    */
+    private static final ResultColumnDescriptor[] columnInfo = {
 
-		EmbedResultSetMetaData.getResultColumnDescriptor("COLUMN_NAME",				 Types.VARCHAR, false, 128),
-		EmbedResultSetMetaData.getResultColumnDescriptor("COLUMN_TYPE",				 Types.SMALLINT, false),
-		EmbedResultSetMetaData.getResultColumnDescriptor("DATA_TYPE",				 Types.INTEGER, false),
-		EmbedResultSetMetaData.getResultColumnDescriptor("TYPE_NAME",				 Types.VARCHAR, false, 22),
-		EmbedResultSetMetaData.getResultColumnDescriptor("PRECISION",				 Types.INTEGER, false),
-		EmbedResultSetMetaData.getResultColumnDescriptor("LENGTH",					 Types.INTEGER, false),
-		EmbedResultSetMetaData.getResultColumnDescriptor("SCALE",					 Types.SMALLINT, false),
+        EmbedResultSetMetaData.getResultColumnDescriptor("COLUMN_NAME",                 Types.VARCHAR, false, 128),
+        EmbedResultSetMetaData.getResultColumnDescriptor("COLUMN_TYPE",                 Types.SMALLINT, false),
+        EmbedResultSetMetaData.getResultColumnDescriptor("DATA_TYPE",                 Types.INTEGER, false),
+        EmbedResultSetMetaData.getResultColumnDescriptor("TYPE_NAME",                 Types.VARCHAR, false, 22),
+        EmbedResultSetMetaData.getResultColumnDescriptor("PRECISION",                 Types.INTEGER, false),
+        EmbedResultSetMetaData.getResultColumnDescriptor("LENGTH",                     Types.INTEGER, false),
+        EmbedResultSetMetaData.getResultColumnDescriptor("SCALE",                     Types.SMALLINT, false),
 
-		EmbedResultSetMetaData.getResultColumnDescriptor("RADIX",					 Types.SMALLINT, false),
-		EmbedResultSetMetaData.getResultColumnDescriptor("NULLABLE",				 Types.SMALLINT, false),
-		EmbedResultSetMetaData.getResultColumnDescriptor("REMARKS",					 Types.VARCHAR, true, 22),
-		EmbedResultSetMetaData.getResultColumnDescriptor("METHOD_ID",				 Types.SMALLINT, false),
-		EmbedResultSetMetaData.getResultColumnDescriptor("PARAMETER_ID",			 Types.SMALLINT, false),
-	};
-	private static final ResultSetMetaData metadata = new EmbedResultSetMetaData(columnInfo);
+        EmbedResultSetMetaData.getResultColumnDescriptor("RADIX",                     Types.SMALLINT, false),
+        EmbedResultSetMetaData.getResultColumnDescriptor("NULLABLE",                 Types.SMALLINT, false),
+        EmbedResultSetMetaData.getResultColumnDescriptor("REMARKS",                     Types.VARCHAR, true, 22),
+        EmbedResultSetMetaData.getResultColumnDescriptor("METHOD_ID",                 Types.SMALLINT, false),
+        EmbedResultSetMetaData.getResultColumnDescriptor("PARAMETER_ID",             Types.SMALLINT, false),
+    };
+    private static final ResultSetMetaData metadata = new EmbedResultSetMetaData(columnInfo);
 }

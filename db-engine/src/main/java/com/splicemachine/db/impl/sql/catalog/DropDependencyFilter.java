@@ -58,161 +58,161 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 */
 public class DropDependencyFilter implements TupleFilter
 {
-	//////////////////////////////////////////////////////////////////////////////////////
-	//
-	//	CONSTANTS
-	//
-	//////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////
+    //
+    //    CONSTANTS
+    //
+    //////////////////////////////////////////////////////////////////////////////////////
 
 
-	//////////////////////////////////////////////////////////////////////////////////////
-	//
-	//	STATE
-	//
-	//////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////
+    //
+    //    STATE
+    //
+    //////////////////////////////////////////////////////////////////////////////////////
 
-	UUID				providerID;
+    UUID                providerID;
 
-	UUIDFactory			uuidFactory = null;
-	DataValueFactory	dataValueFactory = null;
+    UUIDFactory            uuidFactory = null;
+    DataValueFactory    dataValueFactory = null;
 
-	BooleanDataValue	trueValue;
-	BooleanDataValue	falseValue;
+    BooleanDataValue    trueValue;
+    BooleanDataValue    falseValue;
 
-	//////////////////////////////////////////////////////////////////////////////////////
-	//
-	//	CONSTRUCTORS
-	//
-	//////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////
+    //
+    //    CONSTRUCTORS
+    //
+    //////////////////////////////////////////////////////////////////////////////////////
 
-	/**
-	  *	Construct a TupleFilter to qualify SYSDEPENDS rows with the
-	  * designated providerID.
-	  *
-	  *	@param	providerID	UUID of provider. Tuples with this ID qualify.
-	  */
-	public	DropDependencyFilter( UUID providerID )
-	{
-		this.providerID = providerID;
-	}
-
-
-	//////////////////////////////////////////////////////////////////////////////////////
-	//
-	//	TupleFilter BEHAVIOR
-	//
-	//////////////////////////////////////////////////////////////////////////////////////
-
-	/**
-	  *	Initialize a Filter with a vector of parameters. This is a NOP.
-	  * We initialize this filter at Constructor time.
-	  *
-	  *	@param	parameters	An ExecRow of parameter values
-	  *
-	  * @exception StandardException		Thrown on error
-	  */
-    public	void	init( ExecRow parameters )
-		throws StandardException
-	{}
-
-	/**
-	  *	Pump a SYSDEPENDS row through the Filter. If the providerID of the
-	  * row matches our providerID, we return true. Otherwise we return false.
-	  *
-	  *	@param	currentRow		SYSDEPENDS row
-	  *
-	  *	@return	True if the row has our providerID. False otherwise.
-	  *
-	  * @exception StandardException		Thrown on error
-	  */
-    public	BooleanDataValue	execute( ExecRow currentRow )
-		throws StandardException
-	{
-		/* 3rd column is PROVIDERID (UUID - char(36)) */
-		DataValueDescriptor	col = currentRow.getColumn(SYSDEPENDSRowFactory.SYSDEPENDS_PROVIDERID);
-		String	providerIDstring = col.getString();
-		UUID	providerUUID = getUUIDFactory().recreateUUID(providerIDstring);
-
-		if ( providerID.equals( providerUUID ) ) { return getTrueValue(); }
-		else { return getFalseValue(); }
-	}
+    /**
+      *    Construct a TupleFilter to qualify SYSDEPENDS rows with the
+      * designated providerID.
+      *
+      *    @param    providerID    UUID of provider. Tuples with this ID qualify.
+      */
+    public    DropDependencyFilter( UUID providerID )
+    {
+        this.providerID = providerID;
+    }
 
 
-	//////////////////////////////////////////////////////////////////////////////////////
-	//
-	//	MINIONS
-	//
-	//////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////
+    //
+    //    TupleFilter BEHAVIOR
+    //
+    //////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+      *    Initialize a Filter with a vector of parameters. This is a NOP.
+      * We initialize this filter at Constructor time.
+      *
+      *    @param    parameters    An ExecRow of parameter values
+      *
+      * @exception StandardException        Thrown on error
+      */
+    public    void    init( ExecRow parameters )
+        throws StandardException
+    {}
+
+    /**
+      *    Pump a SYSDEPENDS row through the Filter. If the providerID of the
+      * row matches our providerID, we return true. Otherwise we return false.
+      *
+      *    @param    currentRow        SYSDEPENDS row
+      *
+      *    @return    True if the row has our providerID. False otherwise.
+      *
+      * @exception StandardException        Thrown on error
+      */
+    public    BooleanDataValue    execute( ExecRow currentRow )
+        throws StandardException
+    {
+        /* 3rd column is PROVIDERID (UUID - char(36)) */
+        DataValueDescriptor    col = currentRow.getColumn(SYSDEPENDSRowFactory.SYSDEPENDS_PROVIDERID);
+        String    providerIDstring = col.getString();
+        UUID    providerUUID = getUUIDFactory().recreateUUID(providerIDstring);
+
+        if ( providerID.equals( providerUUID ) ) { return getTrueValue(); }
+        else { return getFalseValue(); }
+    }
 
 
-	/**
-	  *	Get the UUID factory
-	  *
-	  *	@return	the UUID factory
-	  *
-	  * @exception   StandardException thrown on failure
-	  */
-	private	UUIDFactory	getUUIDFactory()
-		throws StandardException
-	{
-		if ( uuidFactory == null )
-		{
-			uuidFactory = Monitor.getMonitor().getUUIDFactory();
-		}
-		return	uuidFactory;
-	}
+    //////////////////////////////////////////////////////////////////////////////////////
+    //
+    //    MINIONS
+    //
+    //////////////////////////////////////////////////////////////////////////////////////
 
-	/**
-	  *	Gets the DataValueFactory for this connection.
-	  *
-	  *	@return	the data value factory for this connection
-	  */
-	private DataValueFactory	getDataValueFactory()
-	{
-		if ( dataValueFactory == null )
-		{
-			LanguageConnectionContext	lcc = (LanguageConnectionContext) 
-					                          ContextService.getContext
-							                  (LanguageConnectionContext.CONTEXT_ID);
 
-			dataValueFactory = lcc.getDataValueFactory();
-		}
+    /**
+      *    Get the UUID factory
+      *
+      *    @return    the UUID factory
+      *
+      * @exception   StandardException thrown on failure
+      */
+    private    UUIDFactory    getUUIDFactory()
+        throws StandardException
+    {
+        if ( uuidFactory == null )
+        {
+            uuidFactory = Monitor.getMonitor().getUUIDFactory();
+        }
+        return    uuidFactory;
+    }
 
-		return	dataValueFactory;
-	}
+    /**
+      *    Gets the DataValueFactory for this connection.
+      *
+      *    @return    the data value factory for this connection
+      */
+    private DataValueFactory    getDataValueFactory()
+    {
+        if ( dataValueFactory == null )
+        {
+            LanguageConnectionContext    lcc = (LanguageConnectionContext) 
+                                              ContextService.getContext
+                                              (LanguageConnectionContext.CONTEXT_ID);
 
-	/**
-	  *	Gets a BooleanDataValue representing TRUE.
-	  *
-	  *	@return	a TRUE value
-	  * @exception StandardException		Thrown on error
-	  */
-	private BooleanDataValue	getTrueValue()
-		throws StandardException
-	{
-		if ( trueValue == null )
-		{
-			trueValue = new SQLBoolean( true );
-		}
+            dataValueFactory = lcc.getDataValueFactory();
+        }
 
-		return	trueValue;
-	}
+        return    dataValueFactory;
+    }
 
-	/**
-	  *	Gets a BooleanDataValue representing FALSE
-	  *
-	  *	@return	a FALSE value
-	  * @exception StandardException		Thrown on error
-	  */
-	private BooleanDataValue	getFalseValue()
-		throws StandardException
-	{
-		if ( falseValue == null )
-		{
-			falseValue = new SQLBoolean( false );
-		}
+    /**
+      *    Gets a BooleanDataValue representing TRUE.
+      *
+      *    @return    a TRUE value
+      * @exception StandardException        Thrown on error
+      */
+    private BooleanDataValue    getTrueValue()
+        throws StandardException
+    {
+        if ( trueValue == null )
+        {
+            trueValue = new SQLBoolean( true );
+        }
 
-		return	falseValue;
-	}
+        return    trueValue;
+    }
+
+    /**
+      *    Gets a BooleanDataValue representing FALSE
+      *
+      *    @return    a FALSE value
+      * @exception StandardException        Thrown on error
+      */
+    private BooleanDataValue    getFalseValue()
+        throws StandardException
+    {
+        if ( falseValue == null )
+        {
+            falseValue = new SQLBoolean( false );
+        }
+
+        return    falseValue;
+    }
 
 }

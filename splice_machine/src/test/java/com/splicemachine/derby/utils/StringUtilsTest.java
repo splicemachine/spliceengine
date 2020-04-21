@@ -26,22 +26,22 @@ import org.junit.experimental.categories.Category;
  */
 @Category(ArchitectureIndependent.class)
 public class StringUtilsTest {
-	@Test
-	public void testStrip() throws Exception {
-		String escape = "\"";
-		String value = "\"10000\"";
-		String result = StringUtils.strip(value, escape, '\\');
-		Assert.assertEquals("10000",result);
-	}
+    @Test
+    public void testStrip() throws Exception {
+        String escape = "\"";
+        String value = "\"10000\"";
+        String result = StringUtils.strip(value, escape, '\\');
+        Assert.assertEquals("10000",result);
+    }
 
-	@Test
-	public void testStripEscaped() throws Exception{
-		String escape ="\"";
-		String value = "\\\"10000\"";
-		String result = StringUtils.strip(value,escape,'\\');
+    @Test
+    public void testStripEscaped() throws Exception{
+        String escape ="\"";
+        String value = "\\\"10000\"";
+        String result = StringUtils.strip(value,escape,'\\');
 
-		Assert.assertEquals("\"10000",result);
-	}
+        Assert.assertEquals("\"10000",result);
+    }
 
     @Test
     public void testControlCharacters() throws Exception{

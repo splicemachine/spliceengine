@@ -70,8 +70,8 @@ public class RunTest
     
     // Framework support
     static String[] validFrameworks = {"embedded","",
-				       "DerbyNet","DerbyNetClient", "DB2jcc",
-				       "DB2app"};
+                       "DerbyNet","DerbyNetClient", "DB2jcc",
+                       "DB2app"};
     static NetServer ns;
     static boolean serverNeedsStopping = false; // used in controlling network server when useprocess=false:
     static boolean jvmnet = false; // switch to see if we need have client & server in a different jvm
@@ -80,74 +80,74 @@ public class RunTest
     static String dbName;
 
     // Test properties
-	static String jvmName = "currentjvm";
-	static String javaCmd;
-	static String javaVersion; // System.getProperty("java.version")
-	static String majorVersion;
-	static String minorVersion;
-	static int jccMajor;
-	static int jccMinor;
-	static int imajor;
-	static int iminor;
-	static boolean isjdk12test = false;
-	static String classpath = "";
-	static String classpathServer = "";
+    static String jvmName = "currentjvm";
+    static String javaCmd;
+    static String javaVersion; // System.getProperty("java.version")
+    static String majorVersion;
+    static String minorVersion;
+    static int jccMajor;
+    static int jccMinor;
+    static int imajor;
+    static int iminor;
+    static boolean isjdk12test = false;
+    static String classpath = "";
+    static String classpathServer = "";
     public static String framework = "embedded";
     public static String J9_STATEMENTCACHESIZE = "20";
 
     static String usesystem = "";
     static String searchCP = "";
     static boolean useCommonDB = false;
-	static boolean keepfiles = false;
-	static boolean useprocess = true;
-	static boolean systemdiff = false; // can set true if there is a system diff
-	static boolean upgradetest = false;
-	static boolean encryption = false; // requires jdk12ext plus encryptionProtocol
-	static boolean jdk12exttest = false; // requires jdk12ext
+    static boolean keepfiles = false;
+    static boolean useprocess = true;
+    static boolean systemdiff = false; // can set true if there is a system diff
+    static boolean upgradetest = false;
+    static boolean encryption = false; // requires jdk12ext plus encryptionProtocol
+    static boolean jdk12exttest = false; // requires jdk12ext
     static boolean generateUTF8Out = false; // setting to create a utf8 encoded master file.
-	static String runningdir = ""; // where the tests are run and suppfiles placed
-	static String outputdir = ""; // user can specify as a property (optional)
-	static String canondir; // optional (to specify other than "master")
-	static String bootcp; // for j9 bootclasspath
-	static String canonpath; // special full path (will be platform dependent)
-	static String mtestdir = ""; // for MultiTest user must specify testdir
-	static String testSpecialProps = ""; // any special suite properties
-	static String testJavaFlags = ""; // special command line flags
-	static String jvmflags; // java special flags
-	static boolean reportstderr = true;
-	static int timeout = -1; // in case tests are hanging
-	public static String timeoutStr;
-	static String jarfile; // some tests have jar files (like upgrade)
-	static boolean skipsed = false;
-	static String commonDBHome = "testCSHome";
-	static boolean dbIsNew = true;
-	static String runwithjvm="true";
-	static boolean startServer=true; // should test harness start the server
-	static String hostName; // needs to be settable for ipv testing, localhost otherwise.)
-	static String testEncoding; // Encoding used for child jvm and to read the test output
-	static String upgradejarpath; // Encoding used for child jvm and to read the test output
-	static boolean replacePolicyFile=false; // property used to see if we need to replace the default policy file or append to it.
+    static String runningdir = ""; // where the tests are run and suppfiles placed
+    static String outputdir = ""; // user can specify as a property (optional)
+    static String canondir; // optional (to specify other than "master")
+    static String bootcp; // for j9 bootclasspath
+    static String canonpath; // special full path (will be platform dependent)
+    static String mtestdir = ""; // for MultiTest user must specify testdir
+    static String testSpecialProps = ""; // any special suite properties
+    static String testJavaFlags = ""; // special command line flags
+    static String jvmflags; // java special flags
+    static boolean reportstderr = true;
+    static int timeout = -1; // in case tests are hanging
+    public static String timeoutStr;
+    static String jarfile; // some tests have jar files (like upgrade)
+    static boolean skipsed = false;
+    static String commonDBHome = "testCSHome";
+    static boolean dbIsNew = true;
+    static String runwithjvm="true";
+    static boolean startServer=true; // should test harness start the server
+    static String hostName; // needs to be settable for ipv testing, localhost otherwise.)
+    static String testEncoding; // Encoding used for child jvm and to read the test output
+    static String upgradejarpath; // Encoding used for child jvm and to read the test output
+    static boolean replacePolicyFile=false; // property used to see if we need to replace the default policy file or append to it.
 
-	// Other test variables for directories, files, output
-	static String scriptName = ""; // testname as passed in
-	static String scriptFileName; // testname with extension
-	static String testDirName = ""; // test directory name
+    // Other test variables for directories, files, output
+    static String scriptName = ""; // testname as passed in
+    static String scriptFileName; // testname with extension
+    static String testDirName = ""; // test directory name
         static String defaultPackageName = "/org/apache/derbyTesting/";
         static String javaPath = "com.splicemachine.dbTesting."; // for java tests
-	static String testType; // sql, java, unit, etc.
-	static String testBase; // testname without extension
-	static String testOutName; // output name without path or extension (optional)
-	static String passFileName; // file listing passed tests
-	static String failFileName; // file listing failed tests
+    static String testType; // sql, java, unit, etc.
+    static String testBase; // testname without extension
+    static String testOutName; // output name without path or extension (optional)
+    static String passFileName; // file listing passed tests
+    static String failFileName; // file listing failed tests
     static String UTF8OutName; // file name for utf8 encoded out - not used for file comparison
-	static String tempMasterName; //file name for master, converted to local encoding, and for network server, corrected master
-	static File passFile;
+    static String tempMasterName; //file name for master, converted to local encoding, and for network server, corrected master
+    static File passFile;
     static File failFile;
-	static String shutdownurl = "";
+    static String shutdownurl = "";
     static boolean useOutput; // use output or assume .tmp file is produced?
     static boolean outcopy; // copy support files to outDir rather than runDir
-	static String userdir; // current user directory
-	static char fileSep; // file separator for the system
+    static String userdir; // current user directory
+    static char fileSep; // file separator for the system
     static PrintWriter printWriter = null; // used to write test output to .tmp
     static PrintWriter pwDiff = null; // for writing test output and info
     static File script; // The file created for test files other than java tests
@@ -166,9 +166,9 @@ public class RunTest
     static File diffFile; // To indicate diffs
     static File tsuiteDir; // Final output dir for suite(s)
     static File rsuiteDir; // Where to report .pass and .fail for suite(s)
-	static File extInDir;    //Where all external test input files exist.
-	static File extOutDir;    //Where all external test input files exist.
-	static File extInOutDir;    //Where all external test input files exist.
+    static File extInDir;    //Where all external test input files exist.
+    static File extOutDir;    //Where all external test input files exist.
+    static File extInOutDir;    //Where all external test input files exist.
 
     // This test may be part of a suite
     // (RunTest may need to know this is a suite to avoid dup output like sysinfo)
@@ -195,58 +195,58 @@ public class RunTest
 
     static InputStream isSed = null; // For test_sed.properties // Cliff
 
-	public static void main(String[] args)
-		throws Exception
-	{
-		Locale.setDefault(Locale.US);
-		skiptestReason.setLength(0); // 0 out for useprocess
-		// Determine the test type
-		if (args.length == 0)
-		{
-			// No script name provided
-			System.out.println("no test name provided");
-			System.exit(1);
-		}
-		scriptName = args[0];
+    public static void main(String[] args)
+        throws Exception
+    {
+        Locale.setDefault(Locale.US);
+        skiptestReason.setLength(0); // 0 out for useprocess
+        // Determine the test type
+        if (args.length == 0)
+        {
+            // No script name provided
+            System.out.println("no test name provided");
+            System.exit(1);
+        }
+        scriptName = args[0];
 
-		if (Boolean.getBoolean("listOnly")) 
-		{
-			System.out.println("LISTONLY :" + scriptName);
-			return;
-		}
+        if (Boolean.getBoolean("listOnly")) 
+        {
+            System.out.println("LISTONLY :" + scriptName);
+            return;
+        }
 
-		if ( (scriptName == null) || (scriptName.isEmpty()) )
-		{
-		    System.out.println("Null or blank test script name.");
-		    System.exit(1);
-		}
-		// If useprocess=false RunList calls this main method with 7 arguments...
-		if (args.length == 7)
-		{
-		    defaultPackageName = args[1];
-		    usesystem = args[2];
-		    useprocess = false;
-		    shutdownurl = args[4];
-		    isSuiteRun = true;
-		    suiteName = args[5];
-		    //System.out.println("suiteName: " + suiteName);
-		    framework=args[6];		    
-		    // initializing startServer to true (which it would be if we'd
-		    // run with useprocess=true) or network server will not get started
-		    startServer=true;		    
-		}
-		
-		testType = scriptName.substring(scriptName.lastIndexOf(".") + 1);
+        if ( (scriptName == null) || (scriptName.isEmpty()) )
+        {
+            System.out.println("Null or blank test script name.");
+            System.exit(1);
+        }
+        // If useprocess=false RunList calls this main method with 7 arguments...
+        if (args.length == 7)
+        {
+            defaultPackageName = args[1];
+            usesystem = args[2];
+            useprocess = false;
+            shutdownurl = args[4];
+            isSuiteRun = true;
+            suiteName = args[5];
+            //System.out.println("suiteName: " + suiteName);
+            framework=args[6];            
+            // initializing startServer to true (which it would be if we'd
+            // run with useprocess=true) or network server will not get started
+            startServer=true;            
+        }
+        
+        testType = scriptName.substring(scriptName.lastIndexOf(".") + 1);
 
-		verifyTestType();
+        verifyTestType();
 
         // Get the properties for the test
-		Properties sp = System.getProperties();
+        Properties sp = System.getProperties();
 
-		// For useprocess=false, some system wide properties need to be reset
-		if (useprocess == false)
-		{
-		    sp.put("useprocess", "false");
+        // For useprocess=false, some system wide properties need to be reset
+        if (useprocess == false)
+        {
+            sp.put("useprocess", "false");
             // Reset maximumDisplayWidth because some tests set this in app properties
             // and when running in same process, can cause extra long lines and diffs
             if ( sp.getProperty("maximumDisplayWidth") == null )
@@ -256,8 +256,8 @@ public class RunTest
             System.setProperties(sp);
         }
         
-        JavaVersionHolder	jvhs = getProperties(sp);
-		boolean				isJDBC4 = jvhs.atLeast( 1, 6 );
+        JavaVersionHolder    jvhs = getProperties(sp);
+        boolean                isJDBC4 = jvhs.atLeast( 1, 6 );
 
         // Setup the directories for the test and test output
         setDirectories(scriptName,sp);
@@ -277,20 +277,20 @@ public class RunTest
             sysLog.exec(jvmName, javaCmd, classpath, framework, pwDiff, useprocess);
         }
 
-	    String startTime = CurrentTime.getTime();
-	    StringBuilder sb = new StringBuilder();
-	    sb.append("*** Start: " + testBase + " jdk" + javaVersion + " ");
-	    if ( (!framework.isEmpty()) && (!framework.startsWith("embedded")) )
-	        sb.append(framework + " ");
-	    if ( (suiteName != null) && (!suiteName.isEmpty()) )
-	        sb.append(suiteName + " ");
-	    sb.append(startTime + " ***");
-	    System.out.println(sb.toString());
-	    pwDiff.println(sb.toString());
+        String startTime = CurrentTime.getTime();
+        StringBuilder sb = new StringBuilder();
+        sb.append("*** Start: " + testBase + " jdk" + javaVersion + " ");
+        if ( (!framework.isEmpty()) && (!framework.startsWith("embedded")) )
+            sb.append(framework + " ");
+        if ( (suiteName != null) && (!suiteName.isEmpty()) )
+            sb.append(suiteName + " ");
+        sb.append(startTime + " ***");
+        System.out.println(sb.toString());
+        pwDiff.println(sb.toString());
 
             // Run the Server if needed
-	    if ((driverName != null) && (!skiptest) )
-	    {
+        if ((driverName != null) && (!skiptest) )
+        {
             // before going further, get the policy file copied and if
             // needed, modify it with the test's policy file
             composePolicyFile();
@@ -335,7 +335,7 @@ public class RunTest
             // and leave serverNeedsStopping=false, unless startServer=false, then, 
             // if network server is running, stop it.
             if ((!useprocess) && (isSuiteRun))
-            {            	   
+            {                   
                 boolean started = false;
                 try 
                 {
@@ -355,7 +355,7 @@ public class RunTest
         }
 
 
-		
+        
         // If the test has a jar file (such as upgrade) unjar it
         if (jarfile != null)
         {
@@ -370,24 +370,24 @@ public class RunTest
         }
         else
         {
-			if (skiptestReason.length() == 0)
-				addSkiptestReason("Test skipped: skiptest set without setting skiptestReason, please fix RunTest.java...");
-		    pwDiff.println(skiptestReason);
-		    System.out.println(skiptestReason);
+            if (skiptestReason.length() == 0)
+                addSkiptestReason("Test skipped: skiptest set without setting skiptestReason, please fix RunTest.java...");
+            pwDiff.println(skiptestReason);
+            System.out.println(skiptestReason);
             doCleanup(javaVersion);
             return;
         }
             
         // Stop the Network server if necessary
-		if (serverNeedsStopping)
-		{
-		    ns.stop();
-		}
+        if (serverNeedsStopping)
+        {
+            ns.stop();
+        }
 
-		// Do "sed" to strip some unwanted stuff from the output file
-		// unless flag skipsed is set to true (for special cases)
-		
-		String outName = finalOutFile.getPath();
+        // Do "sed" to strip some unwanted stuff from the output file
+        // unless flag skipsed is set to true (for special cases)
+        
+        String outName = finalOutFile.getPath();
 
         if (skipsed)
         {
@@ -400,18 +400,18 @@ public class RunTest
                         Sed sed = new Sed();
                         sed.exec(tmpOutFile,finalOutFile, isSed, 
                                         NetServer.isClientConnection(framework), isI18N, isJDBC4);
-		    }
-		    catch (ClassFormatError cfe)
-		    {
-		        if (verbose) System.out.println("SED Error: " + cfe.getMessage());
-		    }
+            }
+            catch (ClassFormatError cfe)
+            {
+                if (verbose) System.out.println("SED Error: " + cfe.getMessage());
+            }
         }
         // Now do a diff between the out and the master files
-    	// Use the system's diff if systemdiff is true
-    	String frameworkMaster = framework;
-    	if (framework.startsWith("embedded"))
-    	    frameworkMaster = "";
-    	FileCompare diff = new FileCompare();
+        // Use the system's diff if systemdiff is true
+        String frameworkMaster = framework;
+        if (framework.startsWith("embedded"))
+            frameworkMaster = "";
+        FileCompare diff = new FileCompare();
 
         if (verbose)
         {
@@ -431,49 +431,49 @@ public class RunTest
                 ")\n");
         }
 
-    	boolean status;
+        boolean status;
 
-    	// allow for server jvmName to be different from client jvmName
-    	if (jvmnet)
-    	{
+        // allow for server jvmName to be different from client jvmName
+        if (jvmnet)
+        {
             // first check to see if properties were set to use a different jvm for server/client
             if (jvmnetjvm == null) 
             {
                 // default to the latest one we know 
                 jvmnetjvm = "j9_22";
             }
-    	    status = diff.exec(outName, outDir, pwDiff, testOutName,
-    		    frameworkMaster, jvmName, iminor, useprocess, systemdiff, canondir, 
-			    canonpath, jvmnetjvm);
-        }
-    	else
-      	    status = diff.exec(outName, outDir, pwDiff, testOutName,
-    		    frameworkMaster, jvmName, iminor, useprocess, systemdiff, canondir, 
-			    canonpath, null);
-
-    	if (status == true)
-    	{
-    		lastTestFailed = true;
-    		pwDiff.println("Test Failed.");
-    		System.out.println("Test Failed.");
-    		keepfiles = true;
-		    addToFailures(scriptName);
-		    if (useCommonDB) {
-	    		status = baseDir.delete();
-//System.out.println("basedir delete status: " + status );
-    		}
+            status = diff.exec(outName, outDir, pwDiff, testOutName,
+                frameworkMaster, jvmName, iminor, useprocess, systemdiff, canondir, 
+                canonpath, jvmnetjvm);
         }
         else
-    	{
-			addToSuccesses(scriptName);
-    		pwDiff.flush();
+              status = diff.exec(outName, outDir, pwDiff, testOutName,
+                frameworkMaster, jvmName, iminor, useprocess, systemdiff, canondir, 
+                canonpath, null);
+
+        if (status == true)
+        {
+            lastTestFailed = true;
+            pwDiff.println("Test Failed.");
+            System.out.println("Test Failed.");
+            keepfiles = true;
+            addToFailures(scriptName);
+            if (useCommonDB) {
+                status = baseDir.delete();
+//System.out.println("basedir delete status: " + status );
+            }
+        }
+        else
+        {
+            addToSuccesses(scriptName);
+            pwDiff.flush();
         }
 
         generateUTF8OutFile(finalOutFile);
         
-		// Cleanup files
-		doCleanup(javaVersion);
-	}
+        // Cleanup files
+        doCleanup(javaVersion);
+    }
 
     private static void testRun(String propString, Properties sysProp)
         throws FileNotFoundException, IOException, Exception
@@ -483,27 +483,27 @@ public class RunTest
         if (testType.startsWith("sql"))
             scriptPath = script.getPath();
                 
-	    // cleanup for all tests that re-use standard testCSHome/wombat database
-	    if (useCommonDB == true 
-	    	&& (usesystem == null || usesystem == "")
-	    	&& (testType.equals("sql") || testType.equals("java")
-			|| testType.equals("sql2"))) {
-	        dbcleanup.doit(dbIsNew);
-	    }
-	
+        // cleanup for all tests that re-use standard testCSHome/wombat database
+        if (useCommonDB == true 
+            && (usesystem == null || usesystem == "")
+            && (testType.equals("sql") || testType.equals("java")
+            || testType.equals("sql2"))) {
+            dbcleanup.doit(dbIsNew);
+        }
+    
 
         // Create a process to execute the command unless useprocess is false
         if ( useprocess )
-		{
+        {
             // Build the test command
             String[] testCmd = 
-        		buildTestCommand(propString, systemHome, scriptPath);
+                buildTestCommand(propString, systemHome, scriptPath);
             execTestProcess(testCmd);
-		}
+        }
         else
-		{
+        {
             execTestNoProcess(sysProp, systemHome, propString, scriptPath);
-		}
+        }
     }
 
     /** This is the method which created directories and looks for script file,
@@ -565,13 +565,13 @@ public class RunTest
         // Get the test name without the extension
         testBase = scriptFileName.substring(0, scriptFileName.lastIndexOf("."+testType));
 
-		if (testType.equals("java") || testType.equals("junit"))
-		{
+        if (testType.equals("java") || testType.equals("junit"))
+        {
                     //get the javaPath
-		    String tmp = defaultPackageName.replace('/', '.');
+            String tmp = defaultPackageName.replace('/', '.');
                     int tl = tmp.length()-1;
-		    javaPath = (tl==0)?"":tmp.substring(1, tl);
-		}
+            javaPath = (tl==0)?"":tmp.substring(1, tl);
+        }
 
         // Check for runDir
         if ( (runningdir != null) && (!runningdir.isEmpty()) )
@@ -594,7 +594,7 @@ public class RunTest
             
         if ( (outputdir == null) || (outputdir.isEmpty()) )
         {
-        	if (File.separatorChar == '\\')
+            if (File.separatorChar == '\\')
             {
                 //need to replace / in path with \ for windows
                 userdirWin = convertPathForWin(userdir);
@@ -603,7 +603,7 @@ public class RunTest
             else
             {
                 tmpoutDir =
-		        new File((new File(userdir)).getCanonicalPath());
+                new File((new File(userdir)).getCanonicalPath());
             }
         }       
         else
@@ -628,14 +628,14 @@ public class RunTest
         if ( (!isSuiteRun) && (!framework.startsWith("embedded")) )
         {
             runDir = tmpoutDir;
-		    outDir = new File(tmpoutDir, framework);
-		    outDir.mkdir();
-		}
-		else // This is a Suite Run
-		{
-		    outDir = tmpoutDir;
-		    outDir.mkdir();
-		    if ( (topsuitedir != null) && (!topsuitedir.isEmpty()) )
+            outDir = new File(tmpoutDir, framework);
+            outDir.mkdir();
+        }
+        else // This is a Suite Run
+        {
+            outDir = tmpoutDir;
+            outDir.mkdir();
+            if ( (topsuitedir != null) && (!topsuitedir.isEmpty()) )
                     {
                         if (File.separatorChar == '\\')
                         {
@@ -648,12 +648,12 @@ public class RunTest
                             tsuiteDir = new File((new File(topsuitedir)).getCanonicalPath());
                         }
                     }
-		    else
+            else
                     {
-		        tsuiteDir = outDir;
+                tsuiteDir = outDir;
                     }
-		    tsuiteDir.mkdir();
-		    if ( (topreportdir != null) && (!topreportdir.isEmpty()) )
+            tsuiteDir.mkdir();
+            if ( (topreportdir != null) && (!topreportdir.isEmpty()) )
                     {
                         if (File.separatorChar == '\\')
                         {
@@ -667,14 +667,14 @@ public class RunTest
                                 new File((new File(topreportdir)).getCanonicalPath());
                         }
                     }
-		    else
+            else
                     {
-		        rsuiteDir = outDir;
+                rsuiteDir = outDir;
                     }
-		    rsuiteDir.mkdir();		    
-		}
-		        
-	    fileSep = File.separatorChar;
+            rsuiteDir.mkdir();            
+        }
+                
+        fileSep = File.separatorChar;
 
         // For multi tests, the user should have specified mtestdir (full path)
         // unless this is a Suite, in which case outDir is used for mtestdir
@@ -695,28 +695,28 @@ public class RunTest
             InputStream is =
                 loadTestResource("tests/" + testDirName + "/" + scriptFileName); 
 
-			if (is == null)
-			{
-			    System.out.println("Could not locate " + scriptName);
-			    addToFailures(scriptName);
-				throw new FileNotFoundException(resourceName);
-			}
+            if (is == null)
+            {
+                System.out.println("Could not locate " + scriptName);
+                addToFailures(scriptName);
+                throw new FileNotFoundException(resourceName);
+            }
 
             // Read the test file and copy it to the outDir
             // except for multi tests (for multi we just need to locate it)
             BufferedReader in = new BufferedReader(new InputStreamReader(is, "UTF-8"));
             if (upgradetest)
-		
+        
                 //these calls to getCanonicalPath catch IOExceptions as a workaround to
                 //a bug in the EPOC jvm. 
                 try { script = new File((new File(userdir, scriptFileName)).getCanonicalPath()); }
                 catch (IOException e) {
                     File f = new File(userdir, scriptFileName);
-        		    FileWriter fw = new FileWriter(f);
+                    FileWriter fw = new FileWriter(f);
                     fw.close();
                     script = new File(f.getCanonicalPath());
                 }
-			// else is probably only multi test
+            // else is probably only multi test
             else
                 try { script = new File((new File(outDir, scriptFileName)).getCanonicalPath()); } 
                 catch (IOException e) {
@@ -743,7 +743,7 @@ public class RunTest
         // This is the base directory for creating a database (under the outDir)
         baseDir = null;
 
-    	if (useCommonDB == true)
+        if (useCommonDB == true)
         {
             if (File.separatorChar == '\\')
             {
@@ -752,7 +752,7 @@ public class RunTest
             }
             else
             {
-    		baseDir = new File(userdir, commonDBHome);
+            baseDir = new File(userdir, commonDBHome);
             }
         }
         else if ( (!useprocess) && isSuiteRun && ((usesystem==null) || (usesystem.length()<=0)) )
@@ -839,32 +839,32 @@ public class RunTest
         // Always create a.tmpmstr copy of the master file in local encoding.
         // With network server, this gets adjusted for displaywidth 
         tempMasterName = testOutName+".tmpmstr";
-		UTF8OutName = testOutName+".utf8out";
-		// Define the .out file which will be created by massaging the tmp.out
-		finalOutFile = new File(outDir, testOutName + ".out");
+        UTF8OutName = testOutName+".utf8out";
+        // Define the .out file which will be created by massaging the tmp.out
+        finalOutFile = new File(outDir, testOutName + ".out");
 
-		// Define the .diff file which will contain diffs and other info
-		diffFile = new File(outDir, testOutName + ".diff");
-		stdOutFile = new File(outDir, testOutName + ".std");
+        // Define the .diff file which will contain diffs and other info
+        diffFile = new File(outDir, testOutName + ".diff");
+        stdOutFile = new File(outDir, testOutName + ".std");
 
         // Define also the .pass and .fail files        
-		if ( isSuiteRun ) 
-		{
-		    String sname = suiteName.substring(0,suiteName.indexOf(":"));
-		    //System.out.println("sname: " + sname);
-		    //System.out.println("topsuiteName: " + topsuiteName);
-		    passFileName = sname+".pass";
-		    passFile = new File(rsuiteDir, passFileName);
-		    failFileName = sname+".fail";
-		    failFile = new File(rsuiteDir, failFileName);
-		}
-		else
-		{
-		    passFileName=testBase+".pass";
-	        passFile = new File(outDir, passFileName);
-	        failFileName=testBase+".fail";
-	        failFile = new File(outDir, failFileName);
-	    }
+        if ( isSuiteRun ) 
+        {
+            String sname = suiteName.substring(0,suiteName.indexOf(":"));
+            //System.out.println("sname: " + sname);
+            //System.out.println("topsuiteName: " + topsuiteName);
+            passFileName = sname+".pass";
+            passFile = new File(rsuiteDir, passFileName);
+            failFileName = sname+".fail";
+            failFile = new File(rsuiteDir, failFileName);
+        }
+        else
+        {
+            passFileName=testBase+".pass";
+            passFile = new File(outDir, passFileName);
+            failFileName=testBase+".fail";
+            failFile = new File(outDir, failFileName);
+        }
         //System.out.println("passFileName: " + passFileName);
         boolean status = true;
 
@@ -874,7 +874,7 @@ public class RunTest
         tempMasterFile = new File(outDir, tempMasterName);
         if (tempMasterFile.exists())
             status = tempMasterFile.delete();
-		if (finalOutFile.exists())
+        if (finalOutFile.exists())
             status = finalOutFile.delete();
         if (diffFile.exists())
             status = diffFile.delete();
@@ -925,15 +925,15 @@ public class RunTest
         }
         
         searchCP = sp.getProperty("ij.searchClassPath");
-		String frameworkp = sp.getProperty("framework");
-		if (frameworkp != null)
-			framework = frameworkp;
-		if (framework == null)
-			framework = "embedded";
-		if (!verifyFramework(framework))
-			framework = "";
-		else
-			driverName = NetServer.getDriverName(framework);
+        String frameworkp = sp.getProperty("framework");
+        if (frameworkp != null)
+            framework = frameworkp;
+        if (framework == null)
+            framework = "embedded";
+        if (!verifyFramework(framework))
+            framework = "";
+        else
+            driverName = NetServer.getDriverName(framework);
         String junitXAProp = sp.getProperty ("derbyTesting.xa.single");
         if (junitXAProp != null && junitXAProp.equals ("true")) {
             junitXASingle = true;
@@ -942,10 +942,10 @@ public class RunTest
         // force hostName to localhost if it is not set
         if (hostName == null)
            hostName="localhost";
-		
+        
         String generateUTF8OutProp = sp.getProperty("generateUTF8Out");
         if (generateUTF8OutProp != null && generateUTF8OutProp.equals("true"))
-        	generateUTF8Out = true;
+            generateUTF8Out = true;
         
         // Some tests will not work with some frameworks,
         // so check suite exclude files for tests to be skipped
@@ -967,38 +967,38 @@ public class RunTest
                 addSkiptestReason("Test skipped: listed in " + skipFile + 
                      " file, skipping test: " + scriptName);
         }
-		
-		jvmName = sp.getProperty("jvm");
+        
+        jvmName = sp.getProperty("jvm");
 
-		//System.out.println("jvmName is: " + jvmName);
-		if ( (jvmName == null) || (jvmName.isEmpty()) || (jvmName.equals("jview")))
-		{
-		    javaVersion = System.getProperty("java.version");
-		    //System.out.println("javaVersion is: " + javaVersion);
-		}
-		else
-		    javaVersion = jvmName;
+        //System.out.println("jvmName is: " + jvmName);
+        if ( (jvmName == null) || (jvmName.isEmpty()) || (jvmName.equals("jview")))
+        {
+            javaVersion = System.getProperty("java.version");
+            //System.out.println("javaVersion is: " + javaVersion);
+        }
+        else
+            javaVersion = jvmName;
 
-		//hang on a minute - if j9, we need to check further
-		String javavmVersion;
-		if (sp.getProperty("java.vm.name").equals("J9"))
-			javavmVersion = (sp.getProperty("java.vm.version"));
-		else
-			javavmVersion = javaVersion;
+        //hang on a minute - if j9, we need to check further
+        String javavmVersion;
+        if (sp.getProperty("java.vm.name").equals("J9"))
+            javavmVersion = (sp.getProperty("java.vm.version"));
+        else
+            javavmVersion = javaVersion;
 
 
-		JavaVersionHolder jvh = new JavaVersionHolder(javavmVersion);
-		majorVersion = jvh.getMajorVersion();
-		minorVersion = jvh.getMinorVersion();
+        JavaVersionHolder jvh = new JavaVersionHolder(javavmVersion);
+        majorVersion = jvh.getMajorVersion();
+        minorVersion = jvh.getMinorVersion();
         iminor = jvh.getMinorNumber();
         imajor = jvh.getMajorNumber();
 
-		if ( (jvmName == null) || (!jvmName.equals("jview")) )
-		{
-		    if ( (iminor < 2) && (imajor < 2) )
-		        jvmName = "currentjvm";
-		    else
-		    {
+        if ( (jvmName == null) || (!jvmName.equals("jview")) )
+        {
+            if ( (iminor < 2) && (imajor < 2) )
+                jvmName = "currentjvm";
+            else
+            {
                 if (System.getProperty("java.vm.vendor").startsWith("IBM"))
                 {
                     if (System.getProperty("java.vm.name").equals("J9"))
@@ -1035,7 +1035,7 @@ public class RunTest
                         jvmName = "ibm" + majorVersion + minorVersion;
                 }
                 else
-  		    jvmName = "jdk" + majorVersion + minorVersion;
+              jvmName = "jdk" + majorVersion + minorVersion;
             }
         }
 
@@ -1051,7 +1051,7 @@ public class RunTest
             skiptest = true;
             addSkiptestReason("derbyTesting.encoding can only be used with jdk15, skipping test");
         }
-		
+        
         String replace_policy = sp.getProperty("derbyTesting.replacePolicyFile");
         if ((replace_policy != null) && (replace_policy.equals("true")))
             replacePolicyFile=true;
@@ -1061,245 +1061,245 @@ public class RunTest
         javaCmd = sp.getProperty("javaCmd");
         bootcp = sp.getProperty("bootcp");
         jvmflags = sp.getProperty("jvmflags");
-		testJavaFlags = sp.getProperty("testJavaFlags");
-		classpath = sp.getProperty("classpath");
-		//System.out.println("classpath set to: " + classpath);
-		classpathServer = sp.getProperty("classpathServer");
-		if ( (classpathServer == null) || (classpathServer.startsWith("${")) )
-		    classpathServer = classpath;
-		//System.out.println("classpathServer set to: " + classpathServer);
-		jarfile = sp.getProperty("jarfile");
-		String upg = sp.getProperty("upgradetest");
-		if (upg != null)
-		{
-		    upg = upg.toLowerCase();
-		    if (upg.equals("true"))
-		        upgradetest = true;
-		}
-	
+        testJavaFlags = sp.getProperty("testJavaFlags");
+        classpath = sp.getProperty("classpath");
+        //System.out.println("classpath set to: " + classpath);
+        classpathServer = sp.getProperty("classpathServer");
+        if ( (classpathServer == null) || (classpathServer.startsWith("${")) )
+            classpathServer = classpath;
+        //System.out.println("classpathServer set to: " + classpathServer);
+        jarfile = sp.getProperty("jarfile");
+        String upg = sp.getProperty("upgradetest");
+        if (upg != null)
+        {
+            upg = upg.toLowerCase();
+            if (upg.equals("true"))
+                upgradetest = true;
+        }
+    
         if ( framework.equals("DerbyNet") && (! jvmName.startsWith("j9_foundation")))
-		{	
+        {    
 
-			Class c = null;
-			Method m = null;
-			Object o = null;
-			Integer i = null;
- 			try	
-			{
-				c = Class.forName("com.ibm.db2.jcc.DB2Driver");
-				o = c.newInstance();
-				m = c.getMethod("getMajorVersion");
-				i = (Integer)m.invoke(o);
-				jccMajor = i.intValue();
-				m = c.getMethod("getMinorVersion");
-				i = (Integer)m.invoke(o);
-				jccMinor = i.intValue();
-			} catch (ClassNotFoundException e) {}
+            Class c = null;
+            Method m = null;
+            Object o = null;
+            Integer i = null;
+             try    
+            {
+                c = Class.forName("com.ibm.db2.jcc.DB2Driver");
+                o = c.newInstance();
+                m = c.getMethod("getMajorVersion");
+                i = (Integer)m.invoke(o);
+                jccMajor = i.intValue();
+                m = c.getMethod("getMinorVersion");
+                i = (Integer)m.invoke(o);
+                jccMinor = i.intValue();
+            } catch (ClassNotFoundException e) {}
 
-			String excludeJcc = sp.getProperty("excludeJCC");
-			try {
-				RunList.checkClientExclusion(excludeJcc, "JCC", jccMajor, jccMinor, javaVersion);
-			} catch (Exception e) {
-				skiptest = true;
-				addSkiptestReason(e.getMessage());
-			}
-		}
-			
-		String sysdiff = sp.getProperty("systemdiff");
-		if (sysdiff != null)
-		{
-		    sysdiff = sysdiff.toLowerCase();
-		    if (sysdiff.equals("true"))
-		        systemdiff = true;
-		}
-		String keep = sp.getProperty("keepfiles");
-		if (keep != null)
-		{
-		    keep = keep.toLowerCase();
-		    if (keep.equals("true"))
-		        keepfiles = true;
-		}
-		String encrypt = sp.getProperty("encryption");
-		if ( (encrypt != null) && (encrypt.equalsIgnoreCase("true")) )
-		    encryption = true;
-		String jdk12ext = sp.getProperty("jdk12exttest");
-		if ( (jdk12ext != null) && (jdk12ext.equalsIgnoreCase("true")) )
-		    jdk12exttest = true; // applied to jdk12 or higher
-		if ( encryption || jdk12exttest )
-		{
-		    // Must be running jdk12 or higher and must have extensions
-		    if ( iminor < 2 ) // this is 1.1.x
-			{
-		        skiptest = true;
-				addSkiptestReason("Test skipped: encryption or jdk12exttest requires jdk12 or higher; this is jdk1"+iminor+", skipping test: " + scriptFileName);
-			}
-		    else // now check for extensions
-		    {
-			    try
-			    {
+            String excludeJcc = sp.getProperty("excludeJCC");
+            try {
+                RunList.checkClientExclusion(excludeJcc, "JCC", jccMajor, jccMinor, javaVersion);
+            } catch (Exception e) {
+                skiptest = true;
+                addSkiptestReason(e.getMessage());
+            }
+        }
+            
+        String sysdiff = sp.getProperty("systemdiff");
+        if (sysdiff != null)
+        {
+            sysdiff = sysdiff.toLowerCase();
+            if (sysdiff.equals("true"))
+                systemdiff = true;
+        }
+        String keep = sp.getProperty("keepfiles");
+        if (keep != null)
+        {
+            keep = keep.toLowerCase();
+            if (keep.equals("true"))
+                keepfiles = true;
+        }
+        String encrypt = sp.getProperty("encryption");
+        if ( (encrypt != null) && (encrypt.equalsIgnoreCase("true")) )
+            encryption = true;
+        String jdk12ext = sp.getProperty("jdk12exttest");
+        if ( (jdk12ext != null) && (jdk12ext.equalsIgnoreCase("true")) )
+            jdk12exttest = true; // applied to jdk12 or higher
+        if ( encryption || jdk12exttest )
+        {
+            // Must be running jdk12 or higher and must have extensions
+            if ( iminor < 2 ) // this is 1.1.x
+            {
+                skiptest = true;
+                addSkiptestReason("Test skipped: encryption or jdk12exttest requires jdk12 or higher; this is jdk1"+iminor+", skipping test: " + scriptFileName);
+            }
+            else // now check for extensions
+            {
+                try
+                {
                     Class jtaClass = Class.forName("javax.transaction.xa.Xid");
                 } 
                 catch (ClassNotFoundException cnfe)
                 {
                     // at least one of the extension classes was not found
                     skiptest = true;
-				    addSkiptestReason("Test skipped: javax.transaction.xa.Xid not found, skipping test: " + scriptFileName);
-                }			
-			    try
-			    {
+                    addSkiptestReason("Test skipped: javax.transaction.xa.Xid not found, skipping test: " + scriptFileName);
+                }            
+                try
+                {
                     Class jdbcClass = Class.forName("javax.sql.RowSet");
                 } 
                 catch (ClassNotFoundException cnfe2)
                 {
                     // at least one of the extension classes was not found
                     skiptest = true;
-				    addSkiptestReason("Test skipped: javax.sql.RowSet not found, skipping test: " + scriptFileName);
-                }			
-		    }
-		}
-		runningdir = sp.getProperty("rundir");
-		if (runningdir == null)
-		    runningdir = "";
-		outputdir = sp.getProperty("outputdir");
-		if (outputdir == null)
-		    outputdir = "";
-		
-		canondir = sp.getProperty("canondir");
-		canonpath = sp.getProperty("canonpath");
-
-		testOutName = sp.getProperty("testoutname");
-		useOutput = new Boolean(sp.getProperty("useoutput","true")).booleanValue();
-		outcopy = new Boolean(sp.getProperty("outcopy","false")).booleanValue();
-		mtestdir = sp.getProperty("mtestdir"); // used by multi tests
-		if (mtestdir == null)
-		    mtestdir = "";
-		    
-		String usepr = sp.getProperty("useprocess");
-		if (usepr != null)
-		{
-		    usepr = usepr.toLowerCase();
-		    if (usepr.equals("false"))
-		        useprocess = false;
-		    else
-		        useprocess = true;
-		}
-		else
-		    useprocess = true;
-		
+                    addSkiptestReason("Test skipped: javax.sql.RowSet not found, skipping test: " + scriptFileName);
+                }            
+            }
+        }
+        runningdir = sp.getProperty("rundir");
+        if (runningdir == null)
+            runningdir = "";
+        outputdir = sp.getProperty("outputdir");
+        if (outputdir == null)
+            outputdir = "";
         
-		// if the hostName is something other than localhost, we must
-		// be trying to connect to a remote server, and so, 
-		// startServer should be false.
-		if (!hostName.equals("localhost"))
-		{
-        	    startServer=false;
-		}
-		
-		String nosed = sp.getProperty("skipsed");
-		if (nosed != null)
-		{
-		    nosed = nosed.toLowerCase();
-		    if (nosed.equals("true"))
-		        skipsed = true;
-		}
+        canondir = sp.getProperty("canondir");
+        canonpath = sp.getProperty("canonpath");
 
-		    
-		String dbug = sp.getProperty("verbose");
-		if (dbug != null)
-		{
-		    dbug = dbug.toLowerCase();
-		    if (dbug.equals("true"))
-		        verbose = true;
-		}
-		String rstderr = sp.getProperty("reportstderr");
-		if (rstderr != null)
-		{
-		    rstderr = rstderr.toLowerCase();
-		    if (rstderr.equals("false"))
-		        reportstderr = false;
-		}
+        testOutName = sp.getProperty("testoutname");
+        useOutput = new Boolean(sp.getProperty("useoutput","true")).booleanValue();
+        outcopy = new Boolean(sp.getProperty("outcopy","false")).booleanValue();
+        mtestdir = sp.getProperty("mtestdir"); // used by multi tests
+        if (mtestdir == null)
+            mtestdir = "";
+            
+        String usepr = sp.getProperty("useprocess");
+        if (usepr != null)
+        {
+            usepr = usepr.toLowerCase();
+            if (usepr.equals("false"))
+                useprocess = false;
+            else
+                useprocess = true;
+        }
+        else
+            useprocess = true;
+        
+        
+        // if the hostName is something other than localhost, we must
+        // be trying to connect to a remote server, and so, 
+        // startServer should be false.
+        if (!hostName.equals("localhost"))
+        {
+                startServer=false;
+        }
+        
+        String nosed = sp.getProperty("skipsed");
+        if (nosed != null)
+        {
+            nosed = nosed.toLowerCase();
+            if (nosed.equals("true"))
+                skipsed = true;
+        }
 
-		// default to -1 (no timeout) if no property is set
-		if (timeoutStr == null)
-		{
-			timeoutStr = sp.getProperty("timeout", "-1");
+            
+        String dbug = sp.getProperty("verbose");
+        if (dbug != null)
+        {
+            dbug = dbug.toLowerCase();
+            if (dbug.equals("true"))
+                verbose = true;
+        }
+        String rstderr = sp.getProperty("reportstderr");
+        if (rstderr != null)
+        {
+            rstderr = rstderr.toLowerCase();
+            if (rstderr.equals("false"))
+                reportstderr = false;
+        }
+
+        // default to -1 (no timeout) if no property is set
+        if (timeoutStr == null)
+        {
+            timeoutStr = sp.getProperty("timeout", "-1");
             //System.out.println("+++setting timeoutStr to " + timeoutStr + " in RunTest::getProperties");
-		}
+        }
         else
         {
             //System.out.println("+++timeoutStr was already " + timeoutStr + " in RunTest::getProperties");
         }
         
-		try
-		{
-			timeout = Integer.parseInt(timeoutStr);
-		}
-		catch (NumberFormatException nfe)
-		{
-			timeout = -1;
-		}
+        try
+        {
+            timeout = Integer.parseInt(timeoutStr);
+        }
+        catch (NumberFormatException nfe)
+        {
+            timeout = -1;
+        }
         
         //System.out.println("RunTest timeout is: " + timeout);
         
-		testSpecialProps = sp.getProperty("testSpecialProps");
-		
-		if (useprocess)
-		{
-		    String defrespckg = sp.getProperty("ij.defaultResourcePackage");
-		    if (defrespckg != null) // if not set there is a default defined
-		    {
-		        defaultPackageName = defrespckg;
-		        if (!defaultPackageName.endsWith("/"))
-		            defaultPackageName += "/";
-		    }
-		    usesystem = sp.getProperty("usesystem");
-		}
+        testSpecialProps = sp.getProperty("testSpecialProps");
+        
+        if (useprocess)
+        {
+            String defrespckg = sp.getProperty("ij.defaultResourcePackage");
+            if (defrespckg != null) // if not set there is a default defined
+            {
+                defaultPackageName = defrespckg;
+                if (!defaultPackageName.endsWith("/"))
+                    defaultPackageName += "/";
+            }
+            usesystem = sp.getProperty("usesystem");
+        }
 
-		// Some tests will not run well in a suite with use process false 
-		// with some frameworks, so skip
-		if (!useprocess && !skiptest )
-		{
-		    String tsuiteName = null;
-		    if (suiteName != null) 
-		        tsuiteName = suiteName; 
-		    else
-		        tsuiteName = sp.getProperty("suitename");
-		    if ( (tsuiteName != null) && (!tsuiteName.isEmpty()) )
-		    {	                
-		        skipFile = framework + "Useprocess.exclude";
-		        if (!framework.isEmpty())
-		        {
-		            skiptest = (SkipTest.skipIt(skipFile, scriptName));
-		            if (skiptest) 
-		            {
-		                skiptest=true;
-		                addSkiptestReason("Test " + scriptName + " skipped, " +
-                   		   "listed in " + framework + "Useprocess.exclude file.");  				      
-		            }
-		        }
-		    }	                
-		}
-		
-		if ( (useprocess) || (suiteName == null) )
-		{
-		    if (useprocess)
-		    	suiteName = sp.getProperty("suitename");
-		    if ( (suiteName != null) && (!suiteName.isEmpty()) )
-		    {
-		        // This is a suite run
-		        isSuiteRun = true;		        
-		        if (useprocess) 
-		            // If a suite, it could be part of a top suite
-		            topsuiteName = sp.getProperty("topsuitename");
-		        topsuitedir = sp.getProperty("topsuitedir");
-		        topreportdir = sp.getProperty("topreportdir");
-		    }
-		}
-		String uscdb = sp.getProperty("useCommonDB");
-		if (uscdb != null && uscdb.equals("true"))
-			useCommonDB = true;
+        // Some tests will not run well in a suite with use process false 
+        // with some frameworks, so skip
+        if (!useprocess && !skiptest )
+        {
+            String tsuiteName = null;
+            if (suiteName != null) 
+                tsuiteName = suiteName; 
+            else
+                tsuiteName = sp.getProperty("suitename");
+            if ( (tsuiteName != null) && (!tsuiteName.isEmpty()) )
+            {                    
+                skipFile = framework + "Useprocess.exclude";
+                if (!framework.isEmpty())
+                {
+                    skiptest = (SkipTest.skipIt(skipFile, scriptName));
+                    if (skiptest) 
+                    {
+                        skiptest=true;
+                        addSkiptestReason("Test " + scriptName + " skipped, " +
+                              "listed in " + framework + "Useprocess.exclude file.");                        
+                    }
+                }
+            }                    
+        }
+        
+        if ( (useprocess) || (suiteName == null) )
+        {
+            if (useprocess)
+                suiteName = sp.getProperty("suitename");
+            if ( (suiteName != null) && (!suiteName.isEmpty()) )
+            {
+                // This is a suite run
+                isSuiteRun = true;                
+                if (useprocess) 
+                    // If a suite, it could be part of a top suite
+                    topsuiteName = sp.getProperty("topsuitename");
+                topsuitedir = sp.getProperty("topsuitedir");
+                topreportdir = sp.getProperty("topreportdir");
+            }
+        }
+        String uscdb = sp.getProperty("useCommonDB");
+        if (uscdb != null && uscdb.equals("true"))
+            useCommonDB = true;
 
-		return jvhs;
+        return jvhs;
     }
 
     private static String createPropString(AppsRequiredPassword creds)
@@ -1308,40 +1308,40 @@ public class RunTest
         // Check for existence of app properties and/or db.properties files
         // Copy the db.properties to the db base directory
         // Then create the -p string for the test
-		String propString = "";
-		
-		// General purpose variables
-		BufferedReader in = null;
-		BufferedOutputStream bos = null;
-		BufferedOutputStream bos2 = null;
-		String str = "";
-		
-		// InputStreams for all possible properties files
-		InputStream isCl = null; // For test_derby.properties
-		InputStream isClDef = null; // For default_derby.properties
-		InputStream isAp = null; // For test_app.properties
-		InputStream isApDef = null; // For default_app.properties
+        String propString = "";
+        
+        // General purpose variables
+        BufferedReader in = null;
+        BufferedOutputStream bos = null;
+        BufferedOutputStream bos2 = null;
+        String str = "";
+        
+        // InputStreams for all possible properties files
+        InputStream isCl = null; // For test_derby.properties
+        InputStream isClDef = null; // For default_derby.properties
+        InputStream isAp = null; // For test_app.properties
+        InputStream isApDef = null; // For default_app.properties
 
-		// Resource names for locating the various properties files
-		String clDefProp = "tests/" + testDirName + "/" + "default_derby.properties";
-		String apDefProp = null;
-		if (useCommonDB)
-		    apDefProp = "tests/" + testDirName + "/" + "commonDB_app.properties";
-		else
-		    apDefProp = "tests/" + testDirName + "/" + "default_app.properties" ;
+        // Resource names for locating the various properties files
+        String clDefProp = "tests/" + testDirName + "/" + "default_derby.properties";
+        String apDefProp = null;
+        if (useCommonDB)
+            apDefProp = "tests/" + testDirName + "/" + "commonDB_app.properties";
+        else
+            apDefProp = "tests/" + testDirName + "/" + "default_app.properties" ;
 
-		// Properties
-		Properties clp = new Properties();
-		Properties ap = new Properties();
+        // Properties
+        Properties clp = new Properties();
+        Properties ap = new Properties();
 
         // If there are special flags for ij or server, load these
         // into properties to be merged with app and/or db props
         Properties ijProps = new Properties();
         Properties srvProps = new Properties();
-		if ( (testSpecialProps != null) && (!testSpecialProps.isEmpty()))
-		{
-		    SpecialFlags.parse(testSpecialProps, ijProps, srvProps);
-		}
+        if ( (testSpecialProps != null) && (!testSpecialProps.isEmpty()))
+        {
+            SpecialFlags.parse(testSpecialProps, ijProps, srvProps);
+        }
 
         /* If there are more than one db.properties, the rule is to
            load either the test_derby.properties or the default one,
@@ -1349,7 +1349,7 @@ public class RunTest
         
         // Check for default_derby.properties
         isClDef = loadTestResource(clDefProp);
-		// Check for test specific props 
+        // Check for test specific props 
         isCl = loadTestResource("tests/" + testDirName + "/" + testBase + "_derby.properties");
 //System.out.println("**************");
 //System.out.println("isCl = " + isCl);
@@ -1357,16 +1357,16 @@ public class RunTest
 //System.out.println("**************");
         
         // Now load and merge the properties based on above rules
-		if (isCl != null) // In case there exists a test_derby.properties
-		{
-		    clp.load(isCl);
+        if (isCl != null) // In case there exists a test_derby.properties
+        {
+            clp.load(isCl);
 clp.list(System.out);
-		}
-		// Try the default_derby.properties instead
-		else if (isClDef != null)
-		{
-		    clp.load(isClDef);
-		}
+        }
+        // Try the default_derby.properties instead
+        else if (isClDef != null)
+        {
+            clp.load(isClDef);
+        }
 
         // j9 will run out of memory with the default cache size (100), so
         // forcing it lower unless set in _derby.properties file for a specific test
@@ -1400,7 +1400,7 @@ clp.list(System.out);
                         // but if the original property is null, just put the srvProp
                         if (cval != null)
                         {
-			                if (!cval.isEmpty()) {
+                            if (!cval.isEmpty()) {
                                 // debug property exists, so edit it
                                 value = value + "," + cval;
                             } else {
@@ -1421,18 +1421,18 @@ clp.list(System.out);
 
             // This call to getCanonicalPath catches IOExceptions as a workaround to
             // a bug in the EPOC jvm. 
-      	    try { clPropFile = new File((new File(baseDir, "derby.properties")).getCanonicalPath()); }
-    	    catch (IOException e) {
-    		    File f = new File(baseDir, "derby.properties");
-    		    FileWriter fw = new FileWriter(f);
-    		    fw.close();
-    		    clPropFile = new File(f.getCanonicalPath());
-    	    }
+              try { clPropFile = new File((new File(baseDir, "derby.properties")).getCanonicalPath()); }
+            catch (IOException e) {
+                File f = new File(baseDir, "derby.properties");
+                FileWriter fw = new FileWriter(f);
+                fw.close();
+                clPropFile = new File(f.getCanonicalPath());
+            }
 
 //System.out.println("clPropFile: " + clPropFile.getPath());
             bos = new BufferedOutputStream(new FileOutputStream(clPropFile));
             clp.store(bos, "Derby Properties");
-        	bos.close();
+            bos.close();
 
             String auth = clp.getProperty(
                 "derby.connection.requireAuthentication");
@@ -1449,7 +1449,7 @@ clp.list(System.out);
             }
         }
 
-		// --------------------------------- 
+        // --------------------------------- 
         // Check for existence of sed properties file (test_sed.properties)
         // See jdbc_sed.properties
         //  Multiple patterns for DELETE: comma separated
@@ -1461,23 +1461,23 @@ clp.list(System.out);
         //  No commas or semicolons can be allowed in the patterns/subsitutes.  //
        
         if ( testType.equals("multi") )
-        	isSed = loadTestResource("multi/stress/" + testBase + "_sed.properties");
+            isSed = loadTestResource("multi/stress/" + testBase + "_sed.properties");
         else
-        	isSed = loadTestResource("tests/" + testDirName + "/" + testBase + "_sed.properties");
+            isSed = loadTestResource("tests/" + testDirName + "/" + testBase + "_sed.properties");
 //System.out.println("**************");
 //System.out.println("isSed = " + isSed);
 //System.out.println(defaultPackageName + testBase + "_sed.properties");
 //System.out.println("**************");
-		// --------------------------------- 
+        // --------------------------------- 
 
         // Check for existence of app properties file
         // If there is an test_app, use it to overwrite default_app
         // Then create the -p string for the test
         Properties dp = new Properties();
-	    String testPropName = null;
-	    String testPropSDName = null; // name for shutdown properties file if needed
-	    if (useCommonDB) testPropName = "CDB" + testBase + "_app.properties";
-	    else testPropName = testBase + "_app.properties";
+        String testPropName = null;
+        String testPropSDName = null; // name for shutdown properties file if needed
+        if (useCommonDB) testPropName = "CDB" + testBase + "_app.properties";
+        else testPropName = testBase + "_app.properties";
 
         // Check for default_app.properties
         isApDef = loadTestResource(apDefProp);
@@ -1500,13 +1500,13 @@ clp.list(System.out);
         {
             ap.load(isAp);
             // Check for a property usedefaults; if true merge in default props
-		    for (Enumeration e = ap.propertyNames(); e.hasMoreElements(); )
-		    {
-			    String key = (String)e.nextElement();
-			    String value = ap.getProperty(key);
-			    if ( (key.equals("usedefaults")) && (value.equals("true")) )
-			    {
-			        // merge in the default properties
+            for (Enumeration e = ap.propertyNames(); e.hasMoreElements(); )
+            {
+                String key = (String)e.nextElement();
+                String value = ap.getProperty(key);
+                if ( (key.equals("usedefaults")) && (value.equals("true")) )
+                {
+                    // merge in the default properties
                     if ( isApDef != null )
                     {
                         dp.load(isApDef);
@@ -1546,55 +1546,55 @@ clp.list(System.out);
         if ( !ap.isEmpty() )
         {
                 // Create the file and load the properties
-	        // This call to getCanonicalPath catches IOExceptions as a workaround to
-	        // a bug in the EPOC jvm. 
+            // This call to getCanonicalPath catches IOExceptions as a workaround to
+            // a bug in the EPOC jvm. 
             try 
             { 
                 appPropFile = new File((new File(baseDir, testPropName)).getCanonicalPath());                 
             }
-	        catch (IOException e) 
-	        {
-		        File f = new File(baseDir, testPropName);
-		        FileWriter fw = new FileWriter(f);
-		        fw.close();
-		        appPropFile = new File(f.getCanonicalPath());		        
-	        }
+            catch (IOException e) 
+            {
+                File f = new File(baseDir, testPropName);
+                FileWriter fw = new FileWriter(f);
+                fw.close();
+                appPropFile = new File(f.getCanonicalPath());                
+            }
 
-			// For IBM14 the console encoding is different from the platform
-			// encoding on windows.  We want it to be the same for our
-			// test output like the other JDK's.
-			//
-			// For i18n test, we want UTF-8 encoding (DERBY-244).
-			String conEnc = System.getProperty("console.encoding");
-			String fileEnc = System.getProperty("file.encoding");
-		
-			if (ap.getProperty("derby.ui.codeset") != null) {
-				// db.ui.codeset is specified explicitly, don't override
-				codeset = ap.getProperty("derby.ui.codeset");
-			} else if (isI18N) {
-				ap.put("derby.ui.codeset", "UTF-8");
-			} else if ((conEnc != null) &&  (fileEnc != null )  &&
-				conEnc.startsWith("Cp850"))
-			{
-				ap.put("derby.ui.codeset",fileEnc);
-			}
+            // For IBM14 the console encoding is different from the platform
+            // encoding on windows.  We want it to be the same for our
+            // test output like the other JDK's.
+            //
+            // For i18n test, we want UTF-8 encoding (DERBY-244).
+            String conEnc = System.getProperty("console.encoding");
+            String fileEnc = System.getProperty("file.encoding");
+        
+            if (ap.getProperty("derby.ui.codeset") != null) {
+                // db.ui.codeset is specified explicitly, don't override
+                codeset = ap.getProperty("derby.ui.codeset");
+            } else if (isI18N) {
+                ap.put("derby.ui.codeset", "UTF-8");
+            } else if ((conEnc != null) &&  (fileEnc != null )  &&
+                conEnc.startsWith("Cp850"))
+            {
+                ap.put("derby.ui.codeset",fileEnc);
+            }
 
-			if (verbose)
-				System.out.println("console.encoding:" + conEnc + 
-								   " file.encoding:" + fileEnc +
-							   " db.ui.codeset: " + ap.getProperty("derby.ui.codeset"));
-			
-			// If the initial connection is being specified as a DataSource
-			// on the command line using -Dij.dataSource=<dsclassname>
-			// then remove the ij.database property that comes from any
-			// default_app or other properties file. This is because the
-			// ij.database will override the ij.dataSource property.
-			if (System.getProperty("ij.dataSource") != null)
-			{
-				ap.remove("ij.database");
-				ap.remove("ij.protocol");
-			}
-		
+            if (verbose)
+                System.out.println("console.encoding:" + conEnc + 
+                                   " file.encoding:" + fileEnc +
+                               " db.ui.codeset: " + ap.getProperty("derby.ui.codeset"));
+            
+            // If the initial connection is being specified as a DataSource
+            // on the command line using -Dij.dataSource=<dsclassname>
+            // then remove the ij.database property that comes from any
+            // default_app or other properties file. This is because the
+            // ij.database will override the ij.dataSource property.
+            if (System.getProperty("ij.dataSource") != null)
+            {
+                ap.remove("ij.database");
+                ap.remove("ij.protocol");
+            }
+        
 //System.out.println("appPropFile: " + appPropFile.getPath());
             bos = new BufferedOutputStream(new FileOutputStream(appPropFile));
             ap.store(bos, "App Properties");
@@ -1647,46 +1647,46 @@ clp.list(System.out);
                     System.out.println("Exception: " + e.getMessage());
                     e.printStackTrace();
                 }
-		
+        
                 // write the new properties to the appPropFile
-        		appPropFile = new File(baseDir, testBase + "_app.properties");
-        		try
-        		{
-            		bos = new BufferedOutputStream(new FileOutputStream(appPropFile));
-            		ap.store(bos, "Test Properties");
-            		bos.close();
+                appPropFile = new File(baseDir, testBase + "_app.properties");
+                try
+                {
+                    bos = new BufferedOutputStream(new FileOutputStream(appPropFile));
+                    ap.store(bos, "Test Properties");
+                    bos.close();
                 }
-            	catch(IOException ioe)
-            	{
-            		System.out.println("IOException creating prop file: " + ioe.getMessage());
-            	}
+                catch(IOException ioe)
+                {
+                    System.out.println("IOException creating prop file: " + ioe.getMessage());
+                }
             }
         }
 
-    	if ( (appPropFile != null) && (appPropFile.exists()) )
-    	{
-    	    // Create the properties string for the test
-    		propString = appPropFile.getPath();
-    		
-    		// Check for shutdown url
-    		shutdownurl = ap.getProperty("shutdown");
-    		
-    		// Check for jdk12test set to true
-	        String jdk12test = ap.getProperty("jdk12test");
-	        //System.out.println("jdk12test: " + jdk12test);
-	        //System.out.println("jvmName: " + jvmName);
-	        if (jdk12test != null)
-	        {
-	            if (jdk12test.toLowerCase().equals("true"))
-	            {
-	                isjdk12test = true;
-	                //System.out.println("isjdk12test " + isjdk12test);
-	                if (jvmName.equals("currentjvm")) { // This is not at least jdk12
-	                    skiptest = true;
-						addSkiptestReason("Test skipped: test needs jdk12, jvm is reporting currentjvm; skipping test: " + scriptFileName);
-					}
-	            }
-	        }
+        if ( (appPropFile != null) && (appPropFile.exists()) )
+        {
+            // Create the properties string for the test
+            propString = appPropFile.getPath();
+            
+            // Check for shutdown url
+            shutdownurl = ap.getProperty("shutdown");
+            
+            // Check for jdk12test set to true
+            String jdk12test = ap.getProperty("jdk12test");
+            //System.out.println("jdk12test: " + jdk12test);
+            //System.out.println("jvmName: " + jvmName);
+            if (jdk12test != null)
+            {
+                if (jdk12test.toLowerCase().equals("true"))
+                {
+                    isjdk12test = true;
+                    //System.out.println("isjdk12test " + isjdk12test);
+                    if (jvmName.equals("currentjvm")) { // This is not at least jdk12
+                        skiptest = true;
+                        addSkiptestReason("Test skipped: test needs jdk12, jvm is reporting currentjvm; skipping test: " + scriptFileName);
+                    }
+                }
+            }
 
             String srvJvm = System.getProperty("serverJvm");
             if (srvJvm !=null) 
@@ -1694,7 +1694,7 @@ clp.list(System.out);
 
             String excludeJcc = ap.getProperty("excludeJCC");
             if ( framework.equals("DerbyNet") )
-            {	
+            {    
                 try {
                     RunList.checkClientExclusion(excludeJcc, "JCC", jccMajor, jccMinor, javaVersion);
                 } catch (Exception e) {
@@ -1702,91 +1702,91 @@ clp.list(System.out);
                     addSkiptestReason(e.getMessage());
                 }
             }
-		
+        
             // for now we want just want to have a single property
             // for all j9 versions exception j9_foundation
             // which we map to the generic name foundation.
             String testJVM = jvmName;
             if (jvmName.startsWith("j9"))
             {
-            	if (jvmName.equals("j9_foundation"))
-            		testJVM = "foundation";
-            	else if (jvmName.equals("j9_foundation11"))
-            		testJVM = "foundation";
+                if (jvmName.equals("j9_foundation"))
+                    testJVM = "foundation";
+                else if (jvmName.equals("j9_foundation11"))
+                    testJVM = "foundation";
                 else if (jvmName.equalsIgnoreCase("j9dee15"))
                     testJVM = "j9dee15";
-            	else
-            		testJVM = "j9";
+                else
+                    testJVM = "j9";
             }
             runwithjvm = ap.getProperty("runwith" + testJVM);
             if  ((runwithjvm != null) && (runwithjvm.equalsIgnoreCase("false")))
             {
-				skiptest = true;
-				addSkiptestReason("Test skipped: test cannot run with jvm: " +
-								  jvmName + ".  " + scriptFileName);
-			}
-			// startServer will determine whether the server will be started 
-			// for network server tests or that will be left to the test.
-			String startServerProp = ap.getProperty("startServer");
-			if (startServerProp != null &&
-				startServerProp.equalsIgnoreCase("false"))
-				startServer =false;
-			
-	        //Check derbyTesting.encoding property
-	        if(testEncoding == null) {
-	            testEncoding = ap.getProperty("derbyTesting.encoding");
-	            // only bother if we have jdk15, otherwise we'll be skipping
-	            if ((jvmName.equals("jdk15")) && (testEncoding != null))
-	            {
-	                    jvmflags = (jvmflags==null?"":jvmflags+" ") 
-	                                + "-Dfile.encoding=" + testEncoding; 
-	                    ap.put("file.encoding",testEncoding);
-	            }
-	        }
-	       
-	        if(!replacePolicyFile) 
-	        {
-	            String replace_policy = ap.getProperty("derbyTesting.replacePolicyFile");
-	            if (replace_policy != null && replace_policy.equals("true"))
-	                replacePolicyFile = true;
-	            else
-	                replacePolicyFile = false;
+                skiptest = true;
+                addSkiptestReason("Test skipped: test cannot run with jvm: " +
+                                  jvmName + ".  " + scriptFileName);
+            }
+            // startServer will determine whether the server will be started 
+            // for network server tests or that will be left to the test.
+            String startServerProp = ap.getProperty("startServer");
+            if (startServerProp != null &&
+                startServerProp.equalsIgnoreCase("false"))
+                startServer =false;
+            
+            //Check derbyTesting.encoding property
+            if(testEncoding == null) {
+                testEncoding = ap.getProperty("derbyTesting.encoding");
+                // only bother if we have jdk15, otherwise we'll be skipping
+                if ((jvmName.equals("jdk15")) && (testEncoding != null))
+                {
+                        jvmflags = (jvmflags==null?"":jvmflags+" ") 
+                                    + "-Dfile.encoding=" + testEncoding; 
+                        ap.put("file.encoding",testEncoding);
+                }
+            }
+           
+            if(!replacePolicyFile) 
+            {
+                String replace_policy = ap.getProperty("derbyTesting.replacePolicyFile");
+                if (replace_policy != null && replace_policy.equals("true"))
+                    replacePolicyFile = true;
+                else
+                    replacePolicyFile = false;
 
-	        }
+            }
 
  
-	        if (NetServer.isJCCConnection(framework)
-	        		|| "true".equalsIgnoreCase(ap.getProperty("noSecurityManager")))
-	        	runWithoutSecurityManager = true;
-	        
-   		// Also check for supportfiles
-    		String suppFiles = ap.getProperty("supportfiles");
-			boolean copySupportFiles = ((suppFiles != null) && (!suppFiles.isEmpty()));
-			boolean createExtDirs= new Boolean(ap.getProperty("useextdirs","false")).booleanValue();
-    		if (copySupportFiles || createExtDirs)
-    		{
-				File copyOutDir = null;
+            if (NetServer.isJCCConnection(framework)
+                    || "true".equalsIgnoreCase(ap.getProperty("noSecurityManager")))
+                runWithoutSecurityManager = true;
+            
+           // Also check for supportfiles
+            String suppFiles = ap.getProperty("supportfiles");
+            boolean copySupportFiles = ((suppFiles != null) && (!suppFiles.isEmpty()));
+            boolean createExtDirs= new Boolean(ap.getProperty("useextdirs","false")).booleanValue();
+            if (copySupportFiles || createExtDirs)
+            {
+                File copyOutDir = null;
 
-    		    if (testType.equals("sql2"))
-    		    {
-    		        if ( (isSuiteRun) || (!framework.isEmpty()) )
-						copyOutDir = outDir;
-    		        else if ( (runDir != null) && (runDir.exists()) )
-						copyOutDir = runDir;
-    		        else
-						copyOutDir = outDir;
-    		    }
-    		    else if ( testType.equals("multi") )
-    		    {
-    		        if ( (isSuiteRun) || (mtestdir == null) || (mtestdir.isEmpty()) )
-    		        {
-						copyOutDir = outDir;
-    		        }
-    		        else
-    		        {
+                if (testType.equals("sql2"))
+                {
+                    if ( (isSuiteRun) || (!framework.isEmpty()) )
+                        copyOutDir = outDir;
+                    else if ( (runDir != null) && (runDir.exists()) )
+                        copyOutDir = runDir;
+                    else
+                        copyOutDir = outDir;
+                }
+                else if ( testType.equals("multi") )
+                {
+                    if ( (isSuiteRun) || (mtestdir == null) || (mtestdir.isEmpty()) )
+                    {
+                        copyOutDir = outDir;
+                    }
+                    else
+                    {
                         copyOutDir = new File(mtestdir);
-    		        }
-    		    }
+                    }
+                }
                 else if ( outcopy == true )
                     copyOutDir = outDir;
                 else if ( (runDir != null) && (runDir.exists()) )
@@ -1796,43 +1796,43 @@ clp.list(System.out);
                 else
                     copyOutDir = outDir;
 
-				if(createExtDirs)
-				{
-					extInDir = copyOutDir;
-					//create the support file directory for input files
-					extInDir = new File(copyOutDir , "extin");
-					if(!extInDir.exists())
-						extInDir.mkdirs();
-					//create the support file directory for output files.
-					extOutDir = new File(copyOutDir , "extout");
-					if(!extOutDir.exists())
-						extOutDir.mkdirs();
-					//create the support file directory for input output files.
-					extInOutDir = new File(copyOutDir , "extinout");
-					if(!extInOutDir.exists())
-						extInOutDir.mkdirs();
-					copyOutDir = extInDir;
-				}
-				if(copySupportFiles)
-				   CopySuppFiles.copyFiles(copyOutDir, suppFiles);
-    		}
-    		else
-    		{
-				// for useprocess false, set ext* (back) to null, or it
-				// later tries to delete files even though they don't exist
-				extInDir = null;
-				extOutDir = null;
-				extInOutDir = null;
-    		}
-    	}
+                if(createExtDirs)
+                {
+                    extInDir = copyOutDir;
+                    //create the support file directory for input files
+                    extInDir = new File(copyOutDir , "extin");
+                    if(!extInDir.exists())
+                        extInDir.mkdirs();
+                    //create the support file directory for output files.
+                    extOutDir = new File(copyOutDir , "extout");
+                    if(!extOutDir.exists())
+                        extOutDir.mkdirs();
+                    //create the support file directory for input output files.
+                    extInOutDir = new File(copyOutDir , "extinout");
+                    if(!extInOutDir.exists())
+                        extInOutDir.mkdirs();
+                    copyOutDir = extInDir;
+                }
+                if(copySupportFiles)
+                   CopySuppFiles.copyFiles(copyOutDir, suppFiles);
+            }
+            else
+            {
+                // for useprocess false, set ext* (back) to null, or it
+                // later tries to delete files even though they don't exist
+                extInDir = null;
+                extOutDir = null;
+                extInOutDir = null;
+            }
+        }
         return propString;
     }
 
     public static String setTestJavaFlags(String tflags)
     {
         StringBuilder sb = new StringBuilder();
-	    if (verbose) System.out.println("testJavaflags: " + tflags);
-	    String dintro = "-D";
+        if (verbose) System.out.println("testJavaflags: " + tflags);
+        String dintro = "-D";
         try
         {
             dintro = jvm.getJvm(jvmName).getDintro();
@@ -1841,13 +1841,13 @@ clp.list(System.out);
         {
             System.out.println("Problem getting jvm "+jvmName+" Dintro: ");
             e.printStackTrace(System.out);
-		    System.exit(1);
+            System.exit(1);
         }
-	    // Parse because there could be a list of flags
-	    StringTokenizer st = new StringTokenizer(tflags,"^");
+        // Parse because there could be a list of flags
+        StringTokenizer st = new StringTokenizer(tflags,"^");
         while (st.hasMoreTokens())
         {
-	        String token = st.nextToken();
+            String token = st.nextToken();
             if (! (token.startsWith("-"))) { sb.append(dintro); }
             sb.append(token);
             sb.append(" ");
@@ -1856,24 +1856,24 @@ clp.list(System.out);
         return sb.toString();
     }
 
-	private static void loadProps(Properties p, File f) throws Exception
-	{
-		if (f.canRead())
-		{
-			FileInputStream fis = new FileInputStream(f);
-			p.load(fis);
-			fis.close();
-		}
-	}
+    private static void loadProps(Properties p, File f) throws Exception
+    {
+        if (f.canRead())
+        {
+            FileInputStream fis = new FileInputStream(f);
+            p.load(fis);
+            fis.close();
+        }
+    }
 
-	private static void mergeProps(Properties to, Properties from)
-	{
-		for (Enumeration e = from.propertyNames(); e.hasMoreElements(); )
-		{
-			String key = (String)e.nextElement();
-			to.put(key, from.getProperty(key));
-		}
-	}
+    private static void mergeProps(Properties to, Properties from)
+    {
+        for (Enumeration e = from.propertyNames(); e.hasMoreElements(); )
+        {
+            String key = (String)e.nextElement();
+            to.put(key, from.getProperty(key));
+        }
+    }
 
 
 
@@ -1885,66 +1885,66 @@ clp.list(System.out);
             // No properties
             return;
         }
-		for (Enumeration e = p.propertyNames(); e.hasMoreElements(); )
-		{
-			String key = (String)e.nextElement();
-			String value = p.getProperty(key);
+        for (Enumeration e = p.propertyNames(); e.hasMoreElements(); )
+        {
+            String key = (String)e.nextElement();
+            String value = p.getProperty(key);
 
-			if (key.equals("driver") || key.equals("ij.driver") || key.equals("jdbc.drivers"))
-			{
-			    p.put(key, driverName);
-			}
-			else if (key.startsWith("ij.protocol") || key.equals("protocol"))
-			{
-			    value = NetServer.alterURL(framework,value);
-			    p.put(key, value);
-			}
-			else if (key.equals("database") || key.equals("ij.database") || key.startsWith("ij.connection") || key.equals("jdbc.url"))
-			{
-			    dbName = value.substring(value.lastIndexOf(':') + 1 ,
-						     value.length());
-			    value = NetServer.alterURL(framework,value);
-			    p.put(key, value);
-			}
-			else // for any other properties, just copy them
-			    p.put(key, value);
-			
-		}
+            if (key.equals("driver") || key.equals("ij.driver") || key.equals("jdbc.drivers"))
+            {
+                p.put(key, driverName);
+            }
+            else if (key.startsWith("ij.protocol") || key.equals("protocol"))
+            {
+                value = NetServer.alterURL(framework,value);
+                p.put(key, value);
+            }
+            else if (key.equals("database") || key.equals("ij.database") || key.startsWith("ij.connection") || key.equals("jdbc.url"))
+            {
+                dbName = value.substring(value.lastIndexOf(':') + 1 ,
+                             value.length());
+                value = NetServer.alterURL(framework,value);
+                p.put(key, value);
+            }
+            else // for any other properties, just copy them
+                p.put(key, value);
+            
+        }
 
-		
-		// jcc default requires userid
-		// db client will default to "SPLICE" so doesn't need harness
-		// to set a user.
-		if (NetServer.isJCCConnection(framework))
-		{
-			String user = System.getProperty("ij.user");
-			if (user == null) user = "SPLICE";
-		    p.put("ij.user",user);
-		}
+        
+        // jcc default requires userid
+        // db client will default to "SPLICE" so doesn't need harness
+        // to set a user.
+        if (NetServer.isJCCConnection(framework))
+        {
+            String user = System.getProperty("ij.user");
+            if (user == null) user = "SPLICE";
+            p.put("ij.user",user);
+        }
 
-		// both jcc and client require password for the moment
-		if (NetServer.isClientConnection(framework))
-		{	
-			String password = System.getProperty("ij.password");
-			if (password == null) password = "SPLICE";
-		    p.put("ij.password",password);
-		}
-		
-		if (NetServer.isJCCConnection(framework))
-		{
-			// force messages to show
-			p.put("ij.retrieveMessagesFromServerOnGetMessage","true");	
-		}
+        // both jcc and client require password for the moment
+        if (NetServer.isClientConnection(framework))
+        {    
+            String password = System.getProperty("ij.password");
+            if (password == null) password = "SPLICE";
+            p.put("ij.password",password);
+        }
+        
+        if (NetServer.isJCCConnection(framework))
+        {
+            // force messages to show
+            p.put("ij.retrieveMessagesFromServerOnGetMessage","true");    
+        }
 
-		// If this is not a known protocol for ij we
-		// need to set the driver
-		if (driverName != null)
-		    p.put("ij.driver",driverName);
-	}
-	
+        // If this is not a known protocol for ij we
+        // need to set the driver
+        if (driverName != null)
+            p.put("ij.driver",driverName);
+    }
+    
 
-	private static void encryptionProtocol(Properties p) throws Exception
-	{
+    private static void encryptionProtocol(Properties p) throws Exception
+    {
         String encryptUrl = "dataEncryption=true;bootPassword=Thursday";
 
         if (p == null)
@@ -1956,27 +1956,27 @@ clp.list(System.out);
         // add encryption algorithm and provider to database creation URL
         String v = p.getProperty("testEncryptionAlgorithm");
 
-		for (Enumeration e = p.propertyNames(); e.hasMoreElements(); )
-		{
-			String key = (String)e.nextElement();
-			String value = p.getProperty(key);
+        for (Enumeration e = p.propertyNames(); e.hasMoreElements(); )
+        {
+            String key = (String)e.nextElement();
+            String value = p.getProperty(key);
 
-			if (key.equals("database") || key.equals("ij.database") || key.startsWith("ij.connection") || key.equals("jdbc.url"))
-			{
-				// edit the url if necessary
-				int index = value.indexOf(encryptUrl);
-				if ( index == -1)
-				{
-				    value = value + ";" + encryptUrl;
-			    }
-				p.put(key, value);
-			}
+            if (key.equals("database") || key.equals("ij.database") || key.startsWith("ij.connection") || key.equals("jdbc.url"))
+            {
+                // edit the url if necessary
+                int index = value.indexOf(encryptUrl);
+                if ( index == -1)
+                {
+                    value = value + ";" + encryptUrl;
+                }
+                p.put(key, value);
+            }
             else if (key.equals("testEncryptionAlgorithm") || key.equals("testEncryptionProvider"))
                 {} // ignore, do not copy
-			else // for any other properties, just copy them
-			    p.put(key, value);
-		}
-	}
+            else // for any other properties, just copy them
+                p.put(key, value);
+        }
+    }
 
     private static void cleanupBaseDir(File baseDir)
     {
@@ -2027,16 +2027,16 @@ clp.list(System.out);
             //System.out.println("Status was: " + status);
         }
 
-	    String endTime = CurrentTime.getTime();
-	    StringBuilder sbend = new StringBuilder();
-	    sbend.append("*** End:   " + testBase + " jdk" + javaVersion + " ");
-	    if ( (!framework.isEmpty()) && (!framework.startsWith("embedded")) )
-	        sbend.append(framework + " ");
-	    if ( (suiteName != null) && (!suiteName.isEmpty()) )
-	        sbend.append(suiteName + " ");
-	    sbend.append(endTime + " ***");
-	    System.out.println(sbend.toString());
-	    pwDiff.println(sbend.toString());
+        String endTime = CurrentTime.getTime();
+        StringBuilder sbend = new StringBuilder();
+        sbend.append("*** End:   " + testBase + " jdk" + javaVersion + " ");
+        if ( (!framework.isEmpty()) && (!framework.startsWith("embedded")) )
+            sbend.append(framework + " ");
+        if ( (suiteName != null) && (!suiteName.isEmpty()) )
+            sbend.append(suiteName + " ");
+        sbend.append(endTime + " ***");
+        System.out.println(sbend.toString());
+        pwDiff.println(sbend.toString());
         pwDiff.flush();
         pwDiff.close();
         pwDiff = null;
@@ -2063,18 +2063,18 @@ clp.list(System.out);
             {
                 if (useCommonDB == false) 
                 {
-                	//System.out.println("Should delete the baseDir: " + baseDir.getPath());
-                	deleteFile(baseDir);
-		        }
-		        else 
-		        {
-			        status = appPropFile.delete();
-			        //no permission in Java to drop db.log
-			        //File logfile = new File(baseDir, "derby.log");
-			        //System.out.println("delete db.log ");
-			        //System.out.println(logfile.getPath());
-			        //status = logfile.delete();
-		        }
+                    //System.out.println("Should delete the baseDir: " + baseDir.getPath());
+                    deleteFile(baseDir);
+                }
+                else 
+                {
+                    status = appPropFile.delete();
+                    //no permission in Java to drop db.log
+                    //File logfile = new File(baseDir, "derby.log");
+                    //System.out.println("delete db.log ");
+                    //System.out.println(logfile.getPath());
+                    //status = logfile.delete();
+                }
 
                 // delete the directories where external input/output files 
                 // were created
@@ -2083,16 +2083,16 @@ clp.list(System.out);
                 if (extInOutDir!=null) deleteFile(extInOutDir);
             }
         }
-	    // reset for next test
-	    // the next line is a bug fix to get cleanup working correctly when
-	    // useprocess==false;  without this the first failing test causes all
-	    // subsequent tests not to clean up, since keepfiles is static; a
-	    // more general solution is to make the variable non-static, and to
-	    // set the default in the initializer; I(john) have not done this
-	    // because the same reasoning probably applies to many of the static
-	    // variables, and the whole subject should probably be approached in
-	    // a coordinated way when someone has the time for it.
-	    keepfiles = false;
+        // reset for next test
+        // the next line is a bug fix to get cleanup working correctly when
+        // useprocess==false;  without this the first failing test causes all
+        // subsequent tests not to clean up, since keepfiles is static; a
+        // more general solution is to make the variable non-static, and to
+        // set the default in the initializer; I(john) have not done this
+        // because the same reasoning probably applies to many of the static
+        // variables, and the whole subject should probably be approached in
+        // a coordinated way when someone has the time for it.
+        keepfiles = false;
 
     }
 
@@ -2100,9 +2100,9 @@ clp.list(System.out);
      * For recursively deleting a directory
      *
      */
-	public static void deleteFile(File f)
-	{
-	    boolean status = true;
+    public static void deleteFile(File f)
+    {
+        boolean status = true;
         if (f == null)
         {
             System.out.println(f.getName() + " is null");
@@ -2115,93 +2115,93 @@ clp.list(System.out);
         }
 
         //System.out.println("Trying to delete: " + f.getPath());
-	    status = f.delete();
+        status = f.delete();
 
-	    if (status == true)
-	        return;
-	    else
-	    {
-	        // Could not delete; this could be a non-empty directory
-	        if (!f.isDirectory())
-	        { 
-	            System.out.println("Could not delete file " + f.getName() + ", going on");
-	            return;
-	        } 
-	        //System.out.println("Recursively delete...");
-	        String[] files = f.list();
-	        for (int i = 0; i < files.length; i++)
-	        {
-	            File sub = new File(f.getPath(), files[i]);
-	            if (sub == null)
-	                continue;
-	            //System.out.println("Try to delete: " + sub.getPath());
-	            status = sub.delete();
-	            if (status != true)
-	            {
-	                // Could not delete; it may be a non-empty dir
-	                if ( sub.isDirectory() )
-	                {
-	                    //System.out.println("Recursing again ... ");
-	                    deleteFile(sub);
-	                    // It should be empty now; try again
-	                    status = sub.delete();
-	                    //System.out.println("Recurse delete status: " + status);
-	                }
-	                //else
-	                // The file delete failed
-	                //System.out.println("Failed to clean up file: " + sub.getPath());
-	            }
-	        }
-	    }
-	    //Should be able to delete the top directory now
-	    status = f.delete();
-	    if (status == false)
-	    {
-	        System.out.println("Warning: Cleanup failed on baseDir: " + f.getPath());
-	    }
-	}
-
-	static void addToFailures(String testName) throws IOException
-	{
-		if (failFileName==null)
-		{
-			if (isSuiteRun) failFileName = suiteName+".fail";
-			else failFileName=testBase+".fail";
+        if (status == true)
+            return;
+        else
+        {
+            // Could not delete; this could be a non-empty directory
+            if (!f.isDirectory())
+            { 
+                System.out.println("Could not delete file " + f.getName() + ", going on");
+                return;
+            } 
+            //System.out.println("Recursively delete...");
+            String[] files = f.list();
+            for (int i = 0; i < files.length; i++)
+            {
+                File sub = new File(f.getPath(), files[i]);
+                if (sub == null)
+                    continue;
+                //System.out.println("Try to delete: " + sub.getPath());
+                status = sub.delete();
+                if (status != true)
+                {
+                    // Could not delete; it may be a non-empty dir
+                    if ( sub.isDirectory() )
+                    {
+                        //System.out.println("Recursing again ... ");
+                        deleteFile(sub);
+                        // It should be empty now; try again
+                        status = sub.delete();
+                        //System.out.println("Recurse delete status: " + status);
+                    }
+                    //else
+                    // The file delete failed
+                    //System.out.println("Failed to clean up file: " + sub.getPath());
+                }
+            }
         }
-		addToListFile(failFileName,testName);
-	}
-
-	static void addToSuccesses(String testName) throws IOException
-	{
-		if (passFileName==null)
-		{
-			if (isSuiteRun) passFileName = suiteName+".pass";
-			else passFileName=testBase+".pass";
+        //Should be able to delete the top directory now
+        status = f.delete();
+        if (status == false)
+        {
+            System.out.println("Warning: Cleanup failed on baseDir: " + f.getPath());
         }
-		addToListFile(passFileName,testName);
     }
 
-	static void addToListFile(String fileName, String testName) throws IOException
-	{
-	    File f;
-	    if (isSuiteRun)
-	        f = new File(rsuiteDir,fileName);
-	    else
-	        f = new File(outDir,fileName);
-		PrintStream ps = null;
+    static void addToFailures(String testName) throws IOException
+    {
+        if (failFileName==null)
+        {
+            if (isSuiteRun) failFileName = suiteName+".fail";
+            else failFileName=testBase+".fail";
+        }
+        addToListFile(failFileName,testName);
+    }
 
-		// This call to getCanonicalPath catches IOExceptions as a workaround to
-		// a bug in the EPOC jvm. 
-		try { ps = new PrintStream( new FileOutputStream(f.getCanonicalPath(),true) ); }
-		catch (IOException e) {
-		    FileWriter fw = new FileWriter(f);
-		    fw.close();
-		    ps = new PrintStream( new FileOutputStream(f.getCanonicalPath(),true) ); 
-		}
+    static void addToSuccesses(String testName) throws IOException
+    {
+        if (passFileName==null)
+        {
+            if (isSuiteRun) passFileName = suiteName+".pass";
+            else passFileName=testBase+".pass";
+        }
+        addToListFile(passFileName,testName);
+    }
 
-		ps.println(testName);
-		ps.flush();
-		ps.close();
+    static void addToListFile(String fileName, String testName) throws IOException
+    {
+        File f;
+        if (isSuiteRun)
+            f = new File(rsuiteDir,fileName);
+        else
+            f = new File(outDir,fileName);
+        PrintStream ps = null;
+
+        // This call to getCanonicalPath catches IOExceptions as a workaround to
+        // a bug in the EPOC jvm. 
+        try { ps = new PrintStream( new FileOutputStream(f.getCanonicalPath(),true) ); }
+        catch (IOException e) {
+            FileWriter fw = new FileWriter(f);
+            fw.close();
+            ps = new PrintStream( new FileOutputStream(f.getCanonicalPath(),true) ); 
+        }
+
+        ps.println(testName);
+        ps.flush();
+        ps.close();
     }
 
     static void appendStderr(BufferedOutputStream bos, InputStream is)
@@ -2226,11 +2226,11 @@ clp.list(System.out);
         //java requires '/' as separator to look into jar, irrespective of OS
         InputStream is =
             loadTestResource("harness/testtypes.properties");
-		Properties p = new Properties();
-		p.load(is);
+        Properties p = new Properties();
+        p.load(is);
         String testtypes = p.getProperty("testtypes");
-	    StringTokenizer st = new StringTokenizer(testtypes,",");
-	    String ttype = "";
+        StringTokenizer st = new StringTokenizer(testtypes,",");
+        String ttype = "";
         while (st.hasMoreTokens())
         {
             ttype = st.nextToken();
@@ -2242,55 +2242,55 @@ clp.list(System.out);
         System.exit(1);
     }
 
-	public static void
-	addStandardTestJvmProps(Vector testJvmProps,String derbySystemHome,
-							String userDirName, jvm jvm)
-	{
-		if (derbySystemHome==null || derbySystemHome.isEmpty())
-			derbySystemHome = userDirName;
-		testJvmProps.addElement("derby.system.home=" + derbySystemHome);
-		testJvmProps.addElement("derby.infolog.append=true ");
-		// Why is this being done here
-		//if (jvm != null)
-		    //testJvmProps.addElement("jvm="+jvm.getName());
-	}
-	
-	private static String[] buildTestCommand(String propString,
-	    String systemHome, String scriptPath)
-	    throws FileNotFoundException, IOException, Exception
-	{
-    	composePolicyFile();
+    public static void
+    addStandardTestJvmProps(Vector testJvmProps,String derbySystemHome,
+                            String userDirName, jvm jvm)
+    {
+        if (derbySystemHome==null || derbySystemHome.isEmpty())
+            derbySystemHome = userDirName;
+        testJvmProps.addElement("derby.system.home=" + derbySystemHome);
+        testJvmProps.addElement("derby.infolog.append=true ");
+        // Why is this being done here
+        //if (jvm != null)
+            //testJvmProps.addElement("jvm="+jvm.getName());
+    }
+    
+    private static String[] buildTestCommand(String propString,
+        String systemHome, String scriptPath)
+        throws FileNotFoundException, IOException, Exception
+    {
+        composePolicyFile();
         
-	    //System.out.println("testType: " + testType);
-	    String ij = "";
+        //System.out.println("testType: " + testType);
+        String ij = "";
         // Create the test command line
         if (testType.equals("sql"))
             ij = "ij";
-		jvm jvm = null; // to quiet compiler
-		jvm = jvm.getJvm(jvmName);
+        jvm jvm = null; // to quiet compiler
+        jvm = jvm.getJvm(jvmName);
         if (javaCmd != null)
             jvm.setJavaCmd(javaCmd);
 
         if ( (classpath != null) && (!classpath.isEmpty()) )
             jvm.setClasspath(classpath);
         else  { // gd
-        	jvm.setClasspath(System.getProperty("java.class.path"));
+            jvm.setClasspath(System.getProperty("java.class.path"));
         }
         
-		Vector jvmProps = new Vector();
-		if ( testType.equals("java"))
-		    addStandardTestJvmProps(jvmProps,systemHome,
-			    outDir.getCanonicalPath(),null);		    
+        Vector jvmProps = new Vector();
+        if ( testType.equals("java"))
+            addStandardTestJvmProps(jvmProps,systemHome,
+                outDir.getCanonicalPath(),null);            
         else if ( (runDir != null) && (runDir.exists()) )
-		    addStandardTestJvmProps(jvmProps,systemHome,
-			    runDir.getCanonicalPath(),jvm);
+            addStandardTestJvmProps(jvmProps,systemHome,
+                runDir.getCanonicalPath(),jvm);
         else
-			addStandardTestJvmProps(jvmProps,systemHome,
-				outDir.getCanonicalPath(),jvm);
-		
+            addStandardTestJvmProps(jvmProps,systemHome,
+                outDir.getCanonicalPath(),jvm);
+        
         if ( (testJavaFlags != null) && (!testJavaFlags.isEmpty()) )
         {
-	    String parsedFlags = setTestJavaFlags(testJavaFlags);
+        String parsedFlags = setTestJavaFlags(testJavaFlags);
             StringTokenizer st = new StringTokenizer(parsedFlags," ");
             while (st.hasMoreTokens())
             {
@@ -2306,7 +2306,7 @@ clp.list(System.out);
         {
             jvmProps.addElement("framework=" + framework);
             if ((hostName != null) && (!hostName.equals("localhost")))
-            		jvmProps.addElement("hostName=" + hostName);
+                    jvmProps.addElement("hostName=" + hostName);
         }
         
         if (junitXASingle)
@@ -2361,7 +2361,7 @@ clp.list(System.out);
         if (!runWithoutSecurityManager)
             jvm.setSecurityProps();
         else
-        	System.out.println("-- SecurityManager not installed --");
+            System.out.println("-- SecurityManager not installed --");
             
         Vector v = jvm.getCommandLine();
         if ( ij.startsWith("ij") )
@@ -2384,9 +2384,9 @@ clp.list(System.out);
             if (ij.equals("ij"))
             {
                 //TODO: is there a setting/property we could check after which
-            	// we can use v.addElement("-fr"); (read from the classpath?)
+                // we can use v.addElement("-fr"); (read from the classpath?)
                 // then we can also use v.addElement(scriptFile);
-            	v.addElement("-f");
+                v.addElement("-f");
                 v.addElement(outDir.toString() + File.separatorChar + scriptFileName);
             }
             v.addElement("-p");
@@ -2421,7 +2421,7 @@ clp.list(System.out);
         }
         else if ( testType.equals("multi") )
         {
-	System.out.println("scriptiflename is: " + scriptFileName);
+    System.out.println("scriptiflename is: " + scriptFileName);
             v.addElement("com.splicemachine.dbTesting.functionTests.harness.MultiTest");
             v.addElement(scriptFileName);
             v.addElement("-i");
@@ -2444,15 +2444,15 @@ clp.list(System.out);
 
     public static String spaceJvmFlags(String caretedJvmFlags)
     {
-    	String spacedJvmFlags = "";
-    	// there must at least be one
-    	StringTokenizer st = new StringTokenizer(jvmflags,"^");
-    	while (st.hasMoreTokens())
-    	{
-    	    spacedJvmFlags += st.nextToken() + " ";
-    	}
-    	spacedJvmFlags = spacedJvmFlags.substring(0,spacedJvmFlags.length() -1);
-    	return spacedJvmFlags;    
+        String spacedJvmFlags = "";
+        // there must at least be one
+        StringTokenizer st = new StringTokenizer(jvmflags,"^");
+        while (st.hasMoreTokens())
+        {
+            spacedJvmFlags += st.nextToken() + " ";
+        }
+        spacedJvmFlags = spacedJvmFlags.substring(0,spacedJvmFlags.length() -1);
+        return spacedJvmFlags;    
     }
     
     public static void composePolicyFile() throws ClassNotFoundException
@@ -2468,8 +2468,8 @@ clp.list(System.out);
             // do not use the default policy file at all, otherwise, append
             if (!replacePolicyFile)
             {
-            	File userDirHandle = new File(userdir);
-            	CopySuppFiles.copyFiles(userDirHandle, default_policy);
+                File userDirHandle = new File(userdir);
+                CopySuppFiles.copyFiles(userDirHandle, default_policy);
             }
             // see if there is a suite specific policy file and append or replace
             if ((isSuiteRun) && (suiteName!=null)) 
@@ -2525,9 +2525,9 @@ clp.list(System.out);
         throws Exception
     {
         // Execute the process and handle the results
-    	Process pr = null;
-    	try
-    	{
+        Process pr = null;
+        try
+        {
             // We need the process inputstream and errorstream
             ProcessStreamResult prout = null;
             ProcessStreamResult prerr = null;
@@ -2583,11 +2583,11 @@ clp.list(System.out);
             if (framework != null && !framework.isEmpty())
                 if (verbose) System.out.println("The test should be running...");
 
-			if (timeout != -1) {
-				TimedProcess tp = new TimedProcess(pr);
-				tp.waitFor(timeout*60);
-				pr = null;
-			}
+            if (timeout != -1) {
+                TimedProcess tp = new TimedProcess(pr);
+                tp.waitFor(timeout*60);
+                pr = null;
+            }
 
             // determine if the process is done or was interrupted
             boolean outInterrupt = prout.Wait();
@@ -2639,33 +2639,33 @@ clp.list(System.out);
         // for framework tests, we may need to pick up the hostName 
         // passed on on command line to individual tests...
         if (framework.startsWith("DerbyNet"))
-        	ptmp.put("hostName=", hostName);
+            ptmp.put("hostName=", hostName);
         System.setProperties(ptmp);
 
-	    String pathStr = "";
+        String pathStr = "";
 
-	    //these calls to getCanonicalPath catch IOExceptions as a workaround to
-	    //a bug in the EPOC jvm. 
-	    try 
-	    { 
-	        pathStr = tmpOutFile.getCanonicalPath().replace(File.separatorChar,fileSep); 
-	    }
-	    catch (IOException e) 
-	    {
-	        FileWriter fw = new FileWriter(tmpOutFile);
-	        fw.close();
-	        pathStr = tmpOutFile.getCanonicalPath().replace(File.separatorChar,fileSep);
-	    }
-	    
+        //these calls to getCanonicalPath catch IOExceptions as a workaround to
+        //a bug in the EPOC jvm. 
+        try 
+        { 
+            pathStr = tmpOutFile.getCanonicalPath().replace(File.separatorChar,fileSep); 
+        }
+        catch (IOException e) 
+        {
+            FileWriter fw = new FileWriter(tmpOutFile);
+            fw.close();
+            pathStr = tmpOutFile.getCanonicalPath().replace(File.separatorChar,fileSep);
+        }
+        
 
-    	PrintStream ps = new PrintStream(new FileOutputStream(pathStr), true);
-    	
-    	// Install a security manager within this JVM for this test.
-    	composePolicyFile();
-    	boolean installedSecurityManager = installSecurityManager();
-    	if (testType.equals("sql"))
-    	{
-    	    String[] ijarg = new String[3];
+        PrintStream ps = new PrintStream(new FileOutputStream(pathStr), true);
+        
+        // Install a security manager within this JVM for this test.
+        composePolicyFile();
+        boolean installedSecurityManager = installSecurityManager();
+        if (testType.equals("sql"))
+        {
+            String[] ijarg = new String[3];
             ijarg[0] = "-p";
             ijarg[1] = propString;
             ijarg[2] = scriptPath;
@@ -2674,47 +2674,47 @@ clp.list(System.out);
             PrintStream stderr = System.err;
             System.setOut(ps);
             System.setErr(ps);
-			RunIJ ij = new RunIJ(ijarg);
-			Thread ijThread = new Thread(ij);
-			try
-			{
-				ijThread.start();
-				if (timeout < 0)
-				{
-					ijThread.join();
-				}
-				else
-				{
-				    ijThread.join(timeout * 60 * 1000);
-				}
-			}
-			catch (Exception e)
-			{
-				System.out.println("Aiiie! Got some kind of exception " + e);
-			}
+            RunIJ ij = new RunIJ(ijarg);
+            Thread ijThread = new Thread(ij);
+            try
+            {
+                ijThread.start();
+                if (timeout < 0)
+                {
+                    ijThread.join();
+                }
+                else
+                {
+                    ijThread.join(timeout * 60 * 1000);
+                }
+            }
+            catch (Exception e)
+            {
+                System.out.println("Aiiie! Got some kind of exception " + e);
+            }
 
-			// Now make sure a shutdown is complete if necessary
-			if (shutdownurl != null)
-			{
-			    String[] sdargs = new String[2];
-			    sdargs[0] = systemHome;
-			    sdargs[1] = shutdownurl;
-			    shutdown.main(sdargs);
-			}
-			// Reset ij.defaultResourcePackage
-			ptmp = System.getProperties();
+            // Now make sure a shutdown is complete if necessary
+            if (shutdownurl != null)
+            {
+                String[] sdargs = new String[2];
+                sdargs[0] = systemHome;
+                sdargs[1] = shutdownurl;
+                shutdown.main(sdargs);
+            }
+            // Reset ij.defaultResourcePackage
+            ptmp = System.getProperties();
                         ptmp.put("ij.defaultResourcePackage", "/org/apache/derbyTesting/");
-			ptmp.put("usesystem", "");
-			System.setProperties(ptmp);
-			// Reset System.out and System.err
-			System.setOut(stdout);
-			System.setErr(stderr);
+            ptmp.put("usesystem", "");
+            System.setProperties(ptmp);
+            // Reset System.out and System.err
+            System.setOut(stdout);
+            System.setErr(stderr);
         }
         else if (testType.equals("java"))
         {
-	    if (javaPath == null)
-	            javaPath = "com.splicemachine.dbTesting.functionTests.tests." + testDirName;
-	    
+        if (javaPath == null)
+                javaPath = "com.splicemachine.dbTesting.functionTests.tests." + testDirName;
+        
             String[] args = new String[2];
             args[0] = "-p";
             args[1] = propString;
@@ -2730,41 +2730,41 @@ clp.list(System.out);
             Method testMain = JavaTest.getMethod("main", classArray);
             Object[] argObj = new Object[1];
             argObj[0] = args;
-			RunClass testObject = new RunClass(testMain, argObj);
-			Thread testThread = new Thread(testObject);
-			try
-			{
-				testThread.start();
-				if (timeout < 0)
-				{
-					testThread.join();
-				}
-				else
-				{
-					testThread.join(timeout * 60 * 1000);
-				}
-			}
-			catch(Exception e)
-			{
-				System.out.println("Exception upon invoking test..." + e);
-				e.printStackTrace();
-			}
+            RunClass testObject = new RunClass(testMain, argObj);
+            Thread testThread = new Thread(testObject);
+            try
+            {
+                testThread.start();
+                if (timeout < 0)
+                {
+                    testThread.join();
+                }
+                else
+                {
+                    testThread.join(timeout * 60 * 1000);
+                }
+            }
+            catch(Exception e)
+            {
+                System.out.println("Exception upon invoking test..." + e);
+                e.printStackTrace();
+            }
 
-			try 
-			{
-				java.sql.DriverManager.getConnection("jdbc:splice:;shutdown=true");
-			} 
-			catch (java.sql.SQLException e) 
-			{
-				// ignore the errors, they are expected.
-			}
-	        // Reset System.out and System.err
-	        System.setOut(stdout);
-	        System.setErr(stderr);
+            try 
+            {
+                java.sql.DriverManager.getConnection("jdbc:splice:;shutdown=true");
+            } 
+            catch (java.sql.SQLException e) 
+            {
+                // ignore the errors, they are expected.
+            }
+            // Reset System.out and System.err
+            System.setOut(stdout);
+            System.setErr(stderr);
         }
         else if (testType.equals("multi"))
         {
-	System.out.println("scriptiflename is: later " + scriptFileName);
+    System.out.println("scriptiflename is: later " + scriptFileName);
             // multi tests will now run with useprocess=false;
             // however, probably because they use Threads, if run 
             // within another test suite, the next suite will not run
@@ -2794,8 +2794,8 @@ clp.list(System.out);
             // Reset System.out and System.err
             System.setOut(stdout);
             System.setErr(stderr);
-	        // repeat to stdout...
-	        System.out.println("Unit tests not implemented yet with useprocess=false");
+            // repeat to stdout...
+            System.out.println("Unit tests not implemented yet with useprocess=false");
             //System.exit(1);
             /*
             String[] args = new String[2];
@@ -2868,31 +2868,31 @@ clp.list(System.out);
         ps.close();
          if (installedSecurityManager)
         {
-        	System.setSecurityManager(null);
-        	
+            System.setSecurityManager(null);
+            
         }        
     }
 
     static void addSkiptestReason(String reason) {
-		if (skiptestReason.length() > 0)
-			skiptestReason.append(System.getProperty("line.separator","\n"));
-		skiptestReason.append(reason);
+        if (skiptestReason.length() > 0)
+            skiptestReason.append(System.getProperty("line.separator","\n"));
+        skiptestReason.append(reason);
     }
 
     static boolean verifyFramework (String framework) {
-    	String validFmString = "";
-    	for (int i = 0 ; i < validFrameworks.length; i++)
-    	{
-    	    validFmString   += " " + validFrameworks[i];
-    	    if (validFrameworks[i].equals(framework))
-        		return true;
-	    }
-    	System.err.println("Invalid framework: " + framework);
-	
-    	System.err.println("Valid frameworks are: " + 
-			   validFmString);
-    	return false;
-	
+        String validFmString = "";
+        for (int i = 0 ; i < validFrameworks.length; i++)
+        {
+            validFmString   += " " + validFrameworks[i];
+            if (validFrameworks[i].equals(framework))
+                return true;
+        }
+        System.err.println("Invalid framework: " + framework);
+    
+        System.err.println("Valid frameworks are: " + 
+               validFmString);
+        return false;
+    
     }
 
     /*
@@ -2935,45 +2935,45 @@ clp.list(System.out);
      */
     private static boolean installSecurityManager() throws ClassNotFoundException, IOException
     {
-    	// SecurityManager not currently work with older j9 and useProcess=false
-    	// need to disable to allow tests to run.
-   	if (jvmName.startsWith("j9") && (!jvmName.equals("j9_foundation11")))
-   		return false;
-    	
-    	boolean installedSecurityManager = false;
-    	// Set up the SecurityManager in this JVM for this test.
-    	boolean haveSecurityManagerAlready = System.getSecurityManager() != null;
+        // SecurityManager not currently work with older j9 and useProcess=false
+        // need to disable to allow tests to run.
+       if (jvmName.startsWith("j9") && (!jvmName.equals("j9_foundation11")))
+           return false;
+        
+        boolean installedSecurityManager = false;
+        // Set up the SecurityManager in this JVM for this test.
+        boolean haveSecurityManagerAlready = System.getSecurityManager() != null;
         if (runWithoutSecurityManager)
         {
-        	// Test doesn't run with a SecurityManager,
-        	// print a warning if one is there already.
-        	if (haveSecurityManagerAlready)
-        		System.out.println(
-        				"noSecurityManager=true,useProcess=false but SecurityManager installed by previous test");
-        	else
-        	    System.out.println("-- SecurityManager not installed --");
+            // Test doesn't run with a SecurityManager,
+            // print a warning if one is there already.
+            if (haveSecurityManagerAlready)
+                System.out.println(
+                        "noSecurityManager=true,useProcess=false but SecurityManager installed by previous test");
+            else
+                System.out.println("-- SecurityManager not installed --");
         }     
         else if (!haveSecurityManagerAlready)
-    	{
-        	// Get the set of -D options that would be needed
-        	// for a spawned VM and convert them to system properties.
-    	    Vector propList = jvm.getSecurityProps(null);
-    	    for (Enumeration e = propList.elements(); e.hasMoreElements();)
-    	    {
-    	    	String dashDOpt = (String) e.nextElement();
-    	    	if ("java.security.manager".equals(dashDOpt))
-    	    		continue;
-    	    	
-    	    	int eq = dashDOpt.indexOf("=");
-    	    	String key = dashDOpt.substring(0, eq);
-    	    	String value = dashDOpt.substring(eq + 1);
-    	    	
-    	    	System.setProperty(key, value);
-    	    	
-     	    }
-		    System.setSecurityManager(new SecurityManager());
-		    installedSecurityManager = true;
-    	}
+        {
+            // Get the set of -D options that would be needed
+            // for a spawned VM and convert them to system properties.
+            Vector propList = jvm.getSecurityProps(null);
+            for (Enumeration e = propList.elements(); e.hasMoreElements();)
+            {
+                String dashDOpt = (String) e.nextElement();
+                if ("java.security.manager".equals(dashDOpt))
+                    continue;
+                
+                int eq = dashDOpt.indexOf("=");
+                String key = dashDOpt.substring(0, eq);
+                String value = dashDOpt.substring(eq + 1);
+                
+                System.setProperty(key, value);
+                
+             }
+            System.setSecurityManager(new SecurityManager());
+            installedSecurityManager = true;
+        }
         
         return installedSecurityManager;
     }
@@ -2986,18 +2986,18 @@ clp.list(System.out);
         if (generateUTF8Out) 
         {
             keepfiles=true;
-        	File UTF8OutFile = new File(UTF8OutName);
-        	
-        	// start reading the .out file back in, using default encoding
-        	BufferedReader inFile = new BufferedReader(new FileReader(FinalOutFile));
-        	FileOutputStream fos = new FileOutputStream(UTF8OutFile);
-        	BufferedWriter bw = new BufferedWriter (new OutputStreamWriter(fos, "UTF-8"));  
-        	int c;
-        	while ((c = inFile.read()) != -1)
-        		bw.write(c);
-        	bw.flush();
-        	bw.close();
-        	fos.close();     
+            File UTF8OutFile = new File(UTF8OutName);
+            
+            // start reading the .out file back in, using default encoding
+            BufferedReader inFile = new BufferedReader(new FileReader(FinalOutFile));
+            FileOutputStream fos = new FileOutputStream(UTF8OutFile);
+            BufferedWriter bw = new BufferedWriter (new OutputStreamWriter(fos, "UTF-8"));  
+            int c;
+            while ((c = inFile.read()) != -1)
+                bw.write(c);
+            bw.flush();
+            bw.close();
+            fos.close();     
         }
     }
 

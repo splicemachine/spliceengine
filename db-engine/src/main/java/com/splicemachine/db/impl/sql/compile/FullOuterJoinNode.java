@@ -76,16 +76,16 @@ public class FullOuterJoinNode extends JoinNode {
                 tableProperties,
                 null);
 
-		/* We can only flatten an outer join
+        /* We can only flatten an outer join
          * using the null intolerant predicate xform.
-		 * In that case, we may return a Left/Right/InnerJoin.
-		 */
+         * In that case, we may return a Left/Right/InnerJoin.
+         */
         flattenableJoin=false;
     }
 
-	/*
-	 *  Optimizable interface
-	 */
+    /*
+     *  Optimizable interface
+     */
 
     @Override
     public boolean pushOptPredicate(OptimizablePredicate optimizablePredicate) throws StandardException{
@@ -134,11 +134,11 @@ public class FullOuterJoinNode extends JoinNode {
         FromTable leftFromTable=(FromTable)leftResultSet;
         FromTable rightFromTable=(FromTable)rightResultSet;
 
-		/* Push the pushable outer join predicates to the right.  This is done
-		 * bottom up, hence at the end of this method, so that outer join
-		 * conditions only get pushed down 1 level.
-		 * We use the optimizer's logic for pushing down join clause here.
-		 */
+        /* Push the pushable outer join predicates to the right.  This is done
+         * bottom up, hence at the end of this method, so that outer join
+         * conditions only get pushed down 1 level.
+         * We use the optimizer's logic for pushing down join clause here.
+         */
         // Walk joinPredicates backwards due to possible deletes
         for(int index=joinPredicates.size()-1;index>=0;index--){
             Predicate predicate;
@@ -152,11 +152,11 @@ public class FullOuterJoinNode extends JoinNode {
                     "FullOuterJoinNode pushing predicate right.",predicate);
             getRightPredicateList().addPredicate(predicate);
 
-			/* Remove the matching predicate from the outer list */
+            /* Remove the matching predicate from the outer list */
             joinPredicates.removeElementAt(index);
         }
 
-		/* Recurse down both sides of tree */
+        /* Recurse down both sides of tree */
         PredicateList noPredicates= (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
         leftFromTable.pushExpressions(noPredicates);
         rightFromTable.pushExpressions(noPredicates);
@@ -174,13 +174,13 @@ public class FullOuterJoinNode extends JoinNode {
 
     @Override
     protected int addOuterJoinArguments(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException{
-		/* Nulls from the left */
+        /* Nulls from the left */
         leftResultSet.getResultColumns().generateNulls(acb,mb);
 
         /* Nulls from the right */
         rightResultSet.getResultColumns().generateNulls(acb,mb);
 
-		/* wasRightOuterJoin */
+        /* wasRightOuterJoin */
         mb.push(false);
 
         return 3;
@@ -191,7 +191,7 @@ public class FullOuterJoinNode extends JoinNode {
      */
     @Override
     protected int getNumJoinArguments(){
-		/* We add two more arguments than the superclass does */
+        /* We add two more arguments than the superclass does */
         return super.getNumJoinArguments()+3;
     }
 

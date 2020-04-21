@@ -38,139 +38,139 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class GenericAggregateOperation extends SpliceBaseOperation {
-		private static final long serialVersionUID = 1l;
-		private static Logger LOG = Logger.getLogger(GenericAggregateOperation.class);
-		protected SpliceOperation source;
-		protected AggregateContext aggregateContext;
-		public SpliceGenericAggregator[] aggregates;
-		protected ExecIndexRow sourceExecIndexRow;
-		protected ExecIndexRow sortTemplateRow;
-		protected CompilerContext.NativeSparkModeType nativeSparkMode =
-		           CompilerContext.DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
-		protected boolean nativeSparkUsed = false;
+        private static final long serialVersionUID = 1l;
+        private static Logger LOG = Logger.getLogger(GenericAggregateOperation.class);
+        protected SpliceOperation source;
+        protected AggregateContext aggregateContext;
+        public SpliceGenericAggregator[] aggregates;
+        protected ExecIndexRow sourceExecIndexRow;
+        protected ExecIndexRow sortTemplateRow;
+        protected CompilerContext.NativeSparkModeType nativeSparkMode =
+                   CompilerContext.DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
+        protected boolean nativeSparkUsed = false;
 
-		public GenericAggregateOperation () {
-				super();
-				SpliceLogUtils.trace(LOG, "instantiated");
-		}
+        public GenericAggregateOperation () {
+                super();
+                SpliceLogUtils.trace(LOG, "instantiated");
+        }
 
-		public GenericAggregateOperation (SpliceOperation source,
-		                                  int	aggregateItem,
-		                                  Activation activation,
-		                                  GeneratedMethod	ra,
-		                                  int resultSetNumber,
-		                                  double optimizerEstimatedRowCount,
-		                                  double optimizerEstimatedCost,
-		                                  CompilerContext.NativeSparkModeType nativeSparkMode) throws StandardException {
-				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-				this.source = source;
-				this.aggregateContext = new DerbyAggregateContext(ra==null? null:ra.getMethodName(),aggregateItem);
-				if (nativeSparkMode == CompilerContext.NativeSparkModeType.SYSTEM) {
-					this.nativeSparkMode =
-					  EngineDriver.driver().getConfiguration().getNativeSparkAggregationMode();
-					// If the system-level setting was never set up for whatever reason, pick
-					// up the default setting here.
-					if (this.nativeSparkMode == CompilerContext.NativeSparkModeType.SYSTEM)
-						this.nativeSparkMode = SQLConfiguration.DEFAULT_NATIVE_SPARK_AGGREGATION_MODE_VALUE;
-				}
-				else
-					this.nativeSparkMode = nativeSparkMode;
-		}
+        public GenericAggregateOperation (SpliceOperation source,
+                                          int    aggregateItem,
+                                          Activation activation,
+                                          GeneratedMethod    ra,
+                                          int resultSetNumber,
+                                          double optimizerEstimatedRowCount,
+                                          double optimizerEstimatedCost,
+                                          CompilerContext.NativeSparkModeType nativeSparkMode) throws StandardException {
+                super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+                this.source = source;
+                this.aggregateContext = new DerbyAggregateContext(ra==null? null:ra.getMethodName(),aggregateItem);
+                if (nativeSparkMode == CompilerContext.NativeSparkModeType.SYSTEM) {
+                    this.nativeSparkMode =
+                      EngineDriver.driver().getConfiguration().getNativeSparkAggregationMode();
+                    // If the system-level setting was never set up for whatever reason, pick
+                    // up the default setting here.
+                    if (this.nativeSparkMode == CompilerContext.NativeSparkModeType.SYSTEM)
+                        this.nativeSparkMode = SQLConfiguration.DEFAULT_NATIVE_SPARK_AGGREGATION_MODE_VALUE;
+                }
+                else
+                    this.nativeSparkMode = nativeSparkMode;
+        }
 
-		public boolean nativeSparkForced() {
-			return nativeSparkMode == CompilerContext.NativeSparkModeType.FORCED;
-		}
-		public boolean nativeSparkEnabled() {
-			return nativeSparkMode == CompilerContext.NativeSparkModeType.ON ||
-			       nativeSparkMode == CompilerContext.NativeSparkModeType.FORCED;
-		}
-		public boolean nativeSparkUsed() { return nativeSparkUsed; }
+        public boolean nativeSparkForced() {
+            return nativeSparkMode == CompilerContext.NativeSparkModeType.FORCED;
+        }
+        public boolean nativeSparkEnabled() {
+            return nativeSparkMode == CompilerContext.NativeSparkModeType.ON ||
+                   nativeSparkMode == CompilerContext.NativeSparkModeType.FORCED;
+        }
+        public boolean nativeSparkUsed() { return nativeSparkUsed; }
 
-		@Override
-		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-				SpliceLogUtils.trace(LOG,"readExternal");
-				super.readExternal(in);
-				this.nativeSparkMode = CompilerContext.NativeSparkModeType.values()[in.readInt()];
-				this.aggregateContext = (AggregateContext)in.readObject();
-				source = (SpliceOperation)in.readObject();
-		}
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+                SpliceLogUtils.trace(LOG,"readExternal");
+                super.readExternal(in);
+                this.nativeSparkMode = CompilerContext.NativeSparkModeType.values()[in.readInt()];
+                this.aggregateContext = (AggregateContext)in.readObject();
+                source = (SpliceOperation)in.readObject();
+        }
 
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				SpliceLogUtils.trace(LOG,"writeExternal");
-				super.writeExternal(out);
-				out.writeInt(nativeSparkMode.ordinal());
-				out.writeObject(aggregateContext);
-				out.writeObject(source);
-		}
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+                SpliceLogUtils.trace(LOG,"writeExternal");
+                super.writeExternal(out);
+                out.writeInt(nativeSparkMode.ordinal());
+                out.writeObject(aggregateContext);
+                out.writeObject(source);
+        }
 
-		@Override
-		public List<SpliceOperation> getSubOperations() {
-				SpliceLogUtils.trace(LOG, "getSubOperations");
-				List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
-				operations.add(source);
-				return operations;
-		}
+        @Override
+        public List<SpliceOperation> getSubOperations() {
+                SpliceLogUtils.trace(LOG, "getSubOperations");
+                List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
+                operations.add(source);
+                return operations;
+        }
 
 
-		@Override
-		public void init(SpliceOperationContext context) throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG, "init called");
-				super.init(context);
-				if(source!=null)
-						source.init(context);
-				aggregateContext.init(context);
-				aggregates = aggregateContext.getAggregators();
-				sortTemplateRow = aggregateContext.getSortTemplateRow();
-				sourceExecIndexRow = aggregateContext.getSourceIndexRow();
-		}
+        @Override
+        public void init(SpliceOperationContext context) throws StandardException, IOException {
+                SpliceLogUtils.trace(LOG, "init called");
+                super.init(context);
+                if(source!=null)
+                        source.init(context);
+                aggregateContext.init(context);
+                aggregates = aggregateContext.getAggregators();
+                sortTemplateRow = aggregateContext.getSortTemplateRow();
+                sourceExecIndexRow = aggregateContext.getSourceIndexRow();
+        }
 
-		@Override
-		public SpliceOperation getLeftOperation() {
-				if (LOG.isTraceEnabled())
-						LOG.trace("getLeftOperation");
-				return this.source;
-		}
+        @Override
+        public SpliceOperation getLeftOperation() {
+                if (LOG.isTraceEnabled())
+                        LOG.trace("getLeftOperation");
+                return this.source;
+        }
 
-		//	@Override
-		public void cleanup() {
-				if (LOG.isTraceEnabled())
-						LOG.trace("cleanup");
-		}
+        //    @Override
+        public void cleanup() {
+                if (LOG.isTraceEnabled())
+                        LOG.trace("cleanup");
+        }
 
-		public SpliceOperation getSource() {
-				return this.source;
-		}
+        public SpliceOperation getSource() {
+                return this.source;
+        }
 
     @Override
     public String toString() {
         return String.format("GenericAggregateOperation {resultSetNumber=%d, source=%s}", resultSetNumber, source);
     }
 
-		@Override
-		public String prettyPrint(int indentLevel) {
-				String indent = "\n"+ Strings.repeat("\t",indentLevel);
+        @Override
+        public String prettyPrint(int indentLevel) {
+                String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
-				return "Aggregate:" + indent +
-								"resultSetNumber:" + operationInformation.getResultSetNumber() +
-								"optimizerEstimatedCost:" + optimizerEstimatedCost + 
-								"optimizerEstimatedRowCount:" + optimizerEstimatedRowCount + 								
-								indent +
-								"source:" + source.prettyPrint(indentLevel + 1);
-		}
+                return "Aggregate:" + indent +
+                                "resultSetNumber:" + operationInformation.getResultSetNumber() +
+                                "optimizerEstimatedCost:" + optimizerEstimatedCost + 
+                                "optimizerEstimatedRowCount:" + optimizerEstimatedRowCount +                                 
+                                indent +
+                                "source:" + source.prettyPrint(indentLevel + 1);
+        }
 
-		@Override
-		public int[] getRootAccessedCols(long tableNumber) throws StandardException {
-				if(source.isReferencingTable(tableNumber))
-						return source.getRootAccessedCols(tableNumber);
+        @Override
+        public int[] getRootAccessedCols(long tableNumber) throws StandardException {
+                if(source.isReferencingTable(tableNumber))
+                        return source.getRootAccessedCols(tableNumber);
 
-				return null;
-		}
+                return null;
+        }
 
-		@Override
-		public boolean isReferencingTable(long tableNumber) {
-				return source.isReferencingTable(tableNumber);
-		}
+        @Override
+        public boolean isReferencingTable(long tableNumber) {
+                return source.isReferencingTable(tableNumber);
+        }
 
     public void initializeVectorAggregation(ExecRow aggResult) throws StandardException{
         for(SpliceGenericAggregator aggregator:aggregates){
@@ -194,7 +194,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
         this.setCurrentRow(row);
     }
 
-	public ExecIndexRow getSourceExecIndexRow() {
-		return sourceExecIndexRow;
-	}
+    public ExecIndexRow getSourceExecIndexRow() {
+        return sourceExecIndexRow;
+    }
 }

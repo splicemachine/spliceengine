@@ -36,18 +36,18 @@ import java.io.*;
 public class BackgroundStreamDrainer implements Runnable
 {
 
-	protected ByteArrayOutputStream data;
-	protected InputStream in;
-	protected boolean finished;
-	protected IOException ioe;
-	protected long startTime;
-	protected Thread myThread;
-	protected int timeout;
+    protected ByteArrayOutputStream data;
+    protected InputStream in;
+    protected boolean finished;
+    protected IOException ioe;
+    protected long startTime;
+    protected Thread myThread;
+    protected int timeout;
 
-	public BackgroundStreamDrainer(InputStream in, String timemin)
-	{
-		data = new ByteArrayOutputStream();
-		this.in = in;
+    public BackgroundStreamDrainer(InputStream in, String timemin)
+    {
+        data = new ByteArrayOutputStream();
+        this.in = in;
         this.startTime = System.currentTimeMillis();;
         if (timemin != null)
         {
@@ -58,83 +58,83 @@ public class BackgroundStreamDrainer implements Runnable
             timeout = 0;
         //System.out.println("timeout set to: " + timeout);
 
-		myThread = new Thread(this, getClass().getName());
-		myThread.setPriority(Thread.MIN_PRIORITY);
-		myThread.start();
-	}
+        myThread = new Thread(this, getClass().getName());
+        myThread.setPriority(Thread.MIN_PRIORITY);
+        myThread.start();
+    }
 
-	public void run()
-	{
+    public void run()
+    {
         if ( in == null )
         {
             System.out.println("The inputstream is null");
             System.exit(1);
         }
 
-		try
-		{
-			byte[] ca = new byte[1024];
-			int valid;
-			while ((valid = in.read(ca, 0, ca.length)) != -1)
-			{
+        try
+        {
+            byte[] ca = new byte[1024];
+            int valid;
+            while ((valid = in.read(ca, 0, ca.length)) != -1)
+            {
                 if (timeout > 0)
-			    {
-					long millis = System.currentTimeMillis();
+                {
+                    long millis = System.currentTimeMillis();
 
-					long diff = millis - startTime;
+                    long diff = millis - startTime;
 
-					int mins = (int) (diff / (1000 * 60));
+                    int mins = (int) (diff / (1000 * 60));
 
-					if (mins > timeout) {
+                    if (mins > timeout) {
 
-						System.out.println("kill stderr thread...");
-						synchronized (this)
-						{
-							finished = true;
-							break;
-						}
-					}
-			    }
-			    //System.out.println("Bytes read to write data: " + valid);
-				data.write(ca, 0, valid);
-			}
-		}
-		catch (IOException ioe)
-		{
-			this.ioe = ioe;
-			System.out.println(ioe.getMessage());
-		}
+                        System.out.println("kill stderr thread...");
+                        synchronized (this)
+                        {
+                            finished = true;
+                            break;
+                        }
+                    }
+                }
+                //System.out.println("Bytes read to write data: " + valid);
+                data.write(ca, 0, valid);
+            }
+        }
+        catch (IOException ioe)
+        {
+            this.ioe = ioe;
+            System.out.println(ioe.getMessage());
+        }
 
-		synchronized (this)
-		{
-			finished = true;
-			notifyAll();
-		}
-	}
+        synchronized (this)
+        {
+            finished = true;
+            notifyAll();
+        }
+    }
 
-	public InputStream getData() throws IOException
-	{
-	    // FIXME: On Netware, the last read throws an IOException,
-	    // which prevents the test output from getting written
-		//if (ioe != null)
-		//{
-			//throw ioe;
+    public InputStream getData() throws IOException
+    {
+        // FIXME: On Netware, the last read throws an IOException,
+        // which prevents the test output from getting written
+        //if (ioe != null)
+        //{
+            //throw ioe;
         //}
 
-		synchronized (this)
-		{
-			try
-			{
-				while (!finished)
-				{
-					wait();
-				}
-			} catch (InterruptedException ie)
-			{
-			    System.out.println("IOException: " + ie);
-				throw new IOException(ie.toString());
-			}
-		}
-		return new ByteArrayInputStream(data.toByteArray());
-	}
+        synchronized (this)
+        {
+            try
+            {
+                while (!finished)
+                {
+                    wait();
+                }
+            } catch (InterruptedException ie)
+            {
+                System.out.println("IOException: " + ie);
+                throw new IOException(ie.toString());
+            }
+        }
+        return new ByteArrayInputStream(data.toByteArray());
+    }
 }

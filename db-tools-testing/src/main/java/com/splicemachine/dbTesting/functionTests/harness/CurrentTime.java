@@ -41,16 +41,16 @@ import java.lang.String;
 public class CurrentTime
 {
 
-	public static String getTime()
-	{
+    public static String getTime()
+    {
         // Get the current time and convert to a String
         long millis = System.currentTimeMillis();
         Timestamp ts = new Timestamp(millis);
         String s = ts.toString();
         s = s.substring(0, s.lastIndexOf("."));
         return s;
-	}
+    }
 
-	// no instances permitted.
-	private CurrentTime() {}
+    // no instances permitted.
+    private CurrentTime() {}
 }

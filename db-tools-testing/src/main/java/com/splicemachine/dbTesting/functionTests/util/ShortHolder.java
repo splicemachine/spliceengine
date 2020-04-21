@@ -41,27 +41,27 @@ import java.io.Serializable;
 
 public class ShortHolder implements Serializable
 {
-	short		value;
+    short        value;
 
-	/**
-	 * Constructor for an ShortHolder
-	 *
-	 * @param value		The value of the short to store in the new object
-	 */
+    /**
+     * Constructor for an ShortHolder
+     *
+     * @param value        The value of the short to store in the new object
+     */
 
-	public ShortHolder(short value)
-	{
-		this.value = value;
-	}
+    public ShortHolder(short value)
+    {
+        this.value = value;
+    }
 
-	/**
-	 * Get the short value out of this object
-	 *
-	 * @return	The value of the short in this object
-	 */
+    /**
+     * Get the short value out of this object
+     *
+     * @return    The value of the short in this object
+     */
 
-	public short getValue()
-	{
-		return value;
-	}
+    public short getValue()
+    {
+        return value;
+    }
 }

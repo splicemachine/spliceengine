@@ -38,25 +38,25 @@ package com.splicemachine.dbTesting.functionTests.util;
 public class SubSubClass extends SubClass
 {
 
-	public static int OVEROVERLOADED_INTSTATIC = 3;
+    public static int OVEROVERLOADED_INTSTATIC = 3;
 
-	public SubSubClass(int value)
-	{
-		super(value);
-	}
+    public SubSubClass(int value)
+    {
+        super(value);
+    }
 
-	public String parmType(Integer value)
-	{
-		return "java.lang.Integer parameter in SubSubClass";
-	}
+    public String parmType(Integer value)
+    {
+        return "java.lang.Integer parameter in SubSubClass";
+    }
 
-	public String parmType(Boolean value)
-	{
-		return "java.lang.Boolean parameter in SubSubClass";
-	}
+    public String parmType(Boolean value)
+    {
+        return "java.lang.Boolean parameter in SubSubClass";
+    }
 
-	public static int overloadedStaticMethod()
-	{
-		return 3;
-	}
+    public static int overloadedStaticMethod()
+    {
+        return 3;
+    }
 }

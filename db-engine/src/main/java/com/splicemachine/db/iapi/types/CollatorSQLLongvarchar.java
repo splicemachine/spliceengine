@@ -51,128 +51,128 @@ import java.text.RuleBasedCollator;
  */
 class CollatorSQLLongvarchar extends SQLLongvarchar implements CollationElementsInterface
 {
-	private WorkHorseForCollatorDatatypes holderForCollationSensitiveInfo;
+    private WorkHorseForCollatorDatatypes holderForCollationSensitiveInfo;
 
-	/*
-	 * constructors
-	 */
+    /*
+     * constructors
+     */
 
 
     /**
      * Create SQL LONG VARCHAR value initially set to NULL that
      * performs collation according to collatorForCharacterDatatypes 
      */
-	CollatorSQLLongvarchar(RuleBasedCollator collatorForCharacterDatatypes)
-	{
+    CollatorSQLLongvarchar(RuleBasedCollator collatorForCharacterDatatypes)
+    {
         setCollator(collatorForCharacterDatatypes);
-	}
+    }
     
     /**
      * Create SQL LONG VARCHAR value initially set to value that
      * performs collation according to collatorForCharacterDatatypes 
      */
-	CollatorSQLLongvarchar(String val, RuleBasedCollator collatorForCharacterDatatypes)
-	{
-		super(val);
-		setCollator(collatorForCharacterDatatypes);
-	}
+    CollatorSQLLongvarchar(String val, RuleBasedCollator collatorForCharacterDatatypes)
+    {
+        super(val);
+        setCollator(collatorForCharacterDatatypes);
+    }
 
-	/**
-	 * Set the RuleBasedCollator for this instance of CollatorSQLLongvarchar. 
-	 * It will be used to do the collation.
-	 */
-	protected void setCollator(RuleBasedCollator collatorForCharacterDatatypes)
-	{
-		holderForCollationSensitiveInfo = 
-			new WorkHorseForCollatorDatatypes(collatorForCharacterDatatypes, this);
-	}
+    /**
+     * Set the RuleBasedCollator for this instance of CollatorSQLLongvarchar. 
+     * It will be used to do the collation.
+     */
+    protected void setCollator(RuleBasedCollator collatorForCharacterDatatypes)
+    {
+        holderForCollationSensitiveInfo = 
+            new WorkHorseForCollatorDatatypes(collatorForCharacterDatatypes, this);
+    }
 
-	/**
-	 * Get the RuleBasedCollator for this instance of CollatorSQLLongvarchar. 
-	 * It will be used to do the collation.
-	 * 
-	 * @return	The Collator object which should be used for collation 
-	 * operation on this object
-	 */
-	protected RuleBasedCollator getCollatorForCollation() throws StandardException
-	{
-		return holderForCollationSensitiveInfo.getCollatorForCollation();
-	}
-	
-	/** @see CollationElementsInterface#getCollationElementsForString */
-	public int[] getCollationElementsForString() throws StandardException 
-	{
-		return holderForCollationSensitiveInfo.getCollationElementsForString();
-	}
+    /**
+     * Get the RuleBasedCollator for this instance of CollatorSQLLongvarchar. 
+     * It will be used to do the collation.
+     * 
+     * @return    The Collator object which should be used for collation 
+     * operation on this object
+     */
+    protected RuleBasedCollator getCollatorForCollation() throws StandardException
+    {
+        return holderForCollationSensitiveInfo.getCollatorForCollation();
+    }
+    
+    /** @see CollationElementsInterface#getCollationElementsForString */
+    public int[] getCollationElementsForString() throws StandardException 
+    {
+        return holderForCollationSensitiveInfo.getCollationElementsForString();
+    }
 
-	/** @see CollationElementsInterface#getCountOfCollationElements */
-	public int getCountOfCollationElements()
-	{
-		return holderForCollationSensitiveInfo.getCountOfCollationElements();
-	}
+    /** @see CollationElementsInterface#getCountOfCollationElements */
+    public int getCountOfCollationElements()
+    {
+        return holderForCollationSensitiveInfo.getCountOfCollationElements();
+    }
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
 
     /**
      * @see DataValueDescriptor#cloneValue
      */
     public DataValueDescriptor cloneValue(boolean forceMaterialization)
-	{
-		try
-		{
-			return new CollatorSQLLongvarchar(getString(), 
-					holderForCollationSensitiveInfo.getCollatorForCollation());
-		}
-		catch (StandardException se)
-		{
-			if (SanityManager.DEBUG)
-				SanityManager.THROWASSERT("Unexpected exception", se);
-			return null;
-		}
-	}
+    {
+        try
+        {
+            return new CollatorSQLLongvarchar(getString(), 
+                    holderForCollationSensitiveInfo.getCollatorForCollation());
+        }
+        catch (StandardException se)
+        {
+            if (SanityManager.DEBUG)
+                SanityManager.THROWASSERT("Unexpected exception", se);
+            return null;
+        }
+    }
 
-	/**
-	 * @see DataValueDescriptor#getNewNull
-	 */
-	public DataValueDescriptor getNewNull()
-	{
-		return new CollatorSQLLongvarchar(
-				holderForCollationSensitiveInfo.getCollatorForCollation());
-	}
+    /**
+     * @see DataValueDescriptor#getNewNull
+     */
+    public DataValueDescriptor getNewNull()
+    {
+        return new CollatorSQLLongvarchar(
+                holderForCollationSensitiveInfo.getCollatorForCollation());
+    }
 
-	/**
-	 * We do not anticipate this method on collation sensitive DVD to be
-	 * ever called in Derby 10.3 In future, when Derby will start supporting
-	 * SQL standard COLLATE clause, this method might get called on the
-	 * collation sensitive DVDs.
-	 *  
-	 * @see StringDataValue#getValue(RuleBasedCollator) 
-	 */
-	public StringDataValue getValue(RuleBasedCollator collatorForComparison)
-	{
-		if (collatorForComparison != null)
-		{
-			//non-null collatorForComparison means use this collator sensitive
-			//implementation of SQLLongvarchar
-		    setCollator(collatorForComparison);
-		    return this;			
-		} else {
-			//null collatorForComparison means use UCS_BASIC for collation.
-			//For that, we need to use the base class SQLLongvarchar
-			SQLLongvarchar s = new SQLLongvarchar();
-			s.copyState(this);
-			return s;
-		}
-	}
-	
-	/** @see SQLChar#stringCompare(SQLChar, SQLChar) */
-	 protected int stringCompare(SQLChar char1, SQLChar char2)
-	 throws StandardException
-	 {
-		 return holderForCollationSensitiveInfo.stringCompare(char1, char2);
-	 }
+    /**
+     * We do not anticipate this method on collation sensitive DVD to be
+     * ever called in Derby 10.3 In future, when Derby will start supporting
+     * SQL standard COLLATE clause, this method might get called on the
+     * collation sensitive DVDs.
+     *  
+     * @see StringDataValue#getValue(RuleBasedCollator) 
+     */
+    public StringDataValue getValue(RuleBasedCollator collatorForComparison)
+    {
+        if (collatorForComparison != null)
+        {
+            //non-null collatorForComparison means use this collator sensitive
+            //implementation of SQLLongvarchar
+            setCollator(collatorForComparison);
+            return this;            
+        } else {
+            //null collatorForComparison means use UCS_BASIC for collation.
+            //For that, we need to use the base class SQLLongvarchar
+            SQLLongvarchar s = new SQLLongvarchar();
+            s.copyState(this);
+            return s;
+        }
+    }
+    
+    /** @see SQLChar#stringCompare(SQLChar, SQLChar) */
+     protected int stringCompare(SQLChar char1, SQLChar char2)
+     throws StandardException
+     {
+         return holderForCollationSensitiveInfo.stringCompare(char1, char2);
+     }
 
     /**
       * Return a hash code that is consistent with
@@ -184,38 +184,38 @@ class CollatorSQLLongvarchar extends SQLLongvarchar implements CollationElements
          return hashCodeForCollation();
      }
 
-	/**
-	 * This method implements the like function for char (with no escape value).
-	 * The difference in this method and the same method in superclass is that
-	 * here we use special Collator object to do the comparison rather than
-	 * using the Collator object associated with the default jvm locale.
-	 *
-	 * @param pattern		The pattern to use
-	 *
-	 * @return	A SQL boolean value telling whether the first operand is
-	 *			like the second operand
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public BooleanDataValue like(DataValueDescriptor pattern)
-								throws StandardException
-	{
-		return(holderForCollationSensitiveInfo.like(pattern));
-	}
-	
-	/**
-	 * This method implements the like function for char with an escape value.
-	 * 
-	 * @param pattern		The pattern to use
-	 * 								 
-	 * @return	A SQL boolean value telling whether the first operand is
-	 * like the second operand
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public BooleanDataValue like(DataValueDescriptor pattern,
-			DataValueDescriptor escape) throws StandardException
-	{
-		return(holderForCollationSensitiveInfo.like(pattern, escape));
-	}
+    /**
+     * This method implements the like function for char (with no escape value).
+     * The difference in this method and the same method in superclass is that
+     * here we use special Collator object to do the comparison rather than
+     * using the Collator object associated with the default jvm locale.
+     *
+     * @param pattern        The pattern to use
+     *
+     * @return    A SQL boolean value telling whether the first operand is
+     *            like the second operand
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public BooleanDataValue like(DataValueDescriptor pattern)
+                                throws StandardException
+    {
+        return(holderForCollationSensitiveInfo.like(pattern));
+    }
+    
+    /**
+     * This method implements the like function for char with an escape value.
+     * 
+     * @param pattern        The pattern to use
+     *                                  
+     * @return    A SQL boolean value telling whether the first operand is
+     * like the second operand
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public BooleanDataValue like(DataValueDescriptor pattern,
+            DataValueDescriptor escape) throws StandardException
+    {
+        return(holderForCollationSensitiveInfo.like(pattern, escape));
+    }
 }

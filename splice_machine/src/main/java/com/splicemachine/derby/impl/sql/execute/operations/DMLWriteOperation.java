@@ -291,13 +291,13 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     @Override
     public ExecRow getExecRowDefinition() throws StandardException{
                 /*
-				 * Typically, we just call down to our source and then pass that along
-				 * unfortunately, with autoincrement columns this can lead to a
-				 * StackOverflow, so we can't do that(see DB-1098 for more info)
-				 *
-				 * Luckily, DML operations are the top of their stack, so we can
-				 * just form our exec row from our result description.
-				 */
+                 * Typically, we just call down to our source and then pass that along
+                 * unfortunately, with autoincrement columns this can lead to a
+                 * StackOverflow, so we can't do that(see DB-1098 for more info)
+                 *
+                 * Luckily, DML operations are the top of their stack, so we can
+                 * just form our exec row from our result description.
+                 */
         ResultDescription description=writeInfo.getResultDescription();
         ResultColumnDescriptor[] rcd=description.getColumnInfo();
         DataValueDescriptor[] dvds=new DataValueDescriptor[rcd.length];

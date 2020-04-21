@@ -49,9 +49,9 @@ import com.splicemachine.utils.logging.Logging;
 public class JMXUtils {
 
 
-	public static final String LOGGING_MANAGEMENT = "com.splicemachine.utils.logging:type=LogManager";
+    public static final String LOGGING_MANAGEMENT = "com.splicemachine.utils.logging:type=LogManager";
     public static final String MONITORED_THREAD_POOL = "com.splicemachine.writer.async:type=ThreadPoolStatus";
-	public static final String STATEMENT_MANAGEMENT_BASE = "com.splicemachine.statement:type=StatementManagement";
+    public static final String STATEMENT_MANAGEMENT_BASE = "com.splicemachine.statement:type=StatementManagement";
     public static final String ACTIVE_WRITE_HANDLERS = "com.splicemachine.derby.hbase:type=ActiveWriteHandlers";
     public static final String EXECUTOR_SERVICE =  "com.splicemachine.derby.lifecycle:type=ExecutorService";
     public static final String MANAGED_CACHE =  "com.splicemachine.db.impl.sql.catalog:type=";
@@ -59,7 +59,7 @@ public class JMXUtils {
     public static final String SPLICEMACHINE_VERSION = "com.splicemachine.version:type=DatabaseVersion";
     public static final String TIMESTAMP_MASTER_MANAGEMENT = "com.splicemachine.si.client.timestamp.generator:type=TimestampMasterManagement";
     public static final String TIMESTAMP_REGION_MANAGEMENT = "com.splicemachine.si.client.timestamp.request:type=TimestampRegionManagement";
-	public static final String DATABASE_PROPERTY_MANAGEMENT = "com.splicemachine.derby.utils:type=DatabasePropertyManagement";
+    public static final String DATABASE_PROPERTY_MANAGEMENT = "com.splicemachine.derby.utils:type=DatabasePropertyManagement";
 
     public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<Pair<String,String>> serverConnections) throws IOException {
         List<Pair<String,JMXConnector>> mbscArray =new ArrayList<>(serverConnections.size());
@@ -86,17 +86,17 @@ public class JMXUtils {
 
     //TODO -sf- this won't work in MapR
     protected static final String REGION_SERVER_STATISTICS = "Hadoop:service=HBase,name=RegionServer,sub=Server";
-	public static ObjectName getRegionServerStatistics() throws MalformedObjectNameException {
+    public static ObjectName getRegionServerStatistics() throws MalformedObjectNameException {
         return JMXUtils.getDynamicMBean(REGION_SERVER_STATISTICS);
-	}
-	
-	public static List<ThreadPoolStatus> getMonitoredThreadPools(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-		List<ThreadPoolStatus> monitoredThreadPools =new ArrayList<>();
-		for (Pair<String,JMXConnector> mbsc: mbscArray) {
-			monitoredThreadPools.add(getNewMBeanProxy(mbsc.getSecond(),MONITORED_THREAD_POOL,ThreadPoolStatus.class));
-		}
-		return monitoredThreadPools;
-	}
+    }
+    
+    public static List<ThreadPoolStatus> getMonitoredThreadPools(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
+        List<ThreadPoolStatus> monitoredThreadPools =new ArrayList<>();
+        for (Pair<String,JMXConnector> mbsc: mbscArray) {
+            monitoredThreadPools.add(getNewMBeanProxy(mbsc.getSecond(),MONITORED_THREAD_POOL,ThreadPoolStatus.class));
+        }
+        return monitoredThreadPools;
+    }
 
     public static List<PipelineDriver.ActiveWriteHandlersIface> getActiveWriteHandlers(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
         List<PipelineDriver.ActiveWriteHandlersIface> activeWrites =new ArrayList<>();
@@ -138,13 +138,13 @@ public class JMXUtils {
         return versions;
     }
 
-	public static List<Pair<String,StatementManagement>> getStatementManagers(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException {
-		List<Pair<String,StatementManagement>> managers = Lists.newArrayListWithCapacity(connections.size());
-		for(Pair<String,JMXConnector> connectorPair:connections){
-				managers.add(Pair.newPair(connectorPair.getFirst(),getNewMXBeanProxy(connectorPair.getSecond(),STATEMENT_MANAGEMENT_BASE,StatementManagement.class)));
-		}
-		return managers;
-	}
+    public static List<Pair<String,StatementManagement>> getStatementManagers(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException {
+        List<Pair<String,StatementManagement>> managers = Lists.newArrayListWithCapacity(connections.size());
+        for(Pair<String,JMXConnector> connectorPair:connections){
+                managers.add(Pair.newPair(connectorPair.getFirst(),getNewMXBeanProxy(connectorPair.getSecond(),STATEMENT_MANAGEMENT_BASE,StatementManagement.class)));
+        }
+        return managers;
+    }
 
     public static List<TimestampOracleStatistics> getTimestampOracleStatistics(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException {
         List<TimestampOracleStatistics> managers = new ArrayList<>();
@@ -165,20 +165,20 @@ public class JMXUtils {
     public static List<DatabasePropertyManagement> getDatabasePropertyManagement(List<Pair<String, JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
         List<DatabasePropertyManagement> dbProps =new ArrayList<>();
         for (Pair<String, JMXConnector> mbsc : mbscArray) {
-        	dbProps.add(getNewMXBeanProxy(mbsc.getSecond(), DATABASE_PROPERTY_MANAGEMENT, DatabasePropertyManagement.class));
+            dbProps.add(getNewMXBeanProxy(mbsc.getSecond(), DATABASE_PROPERTY_MANAGEMENT, DatabasePropertyManagement.class));
         }
         return dbProps;
     }
 
-	public static <T> T getNewMBeanProxy(JMXConnector mbsc, String mbeanName, Class<T> type) throws MalformedObjectNameException, IOException {
-		ObjectName objectName = new ObjectName(mbeanName);
-		return JMX.newMBeanProxy(mbsc.getMBeanServerConnection(), objectName,type, true);
-	}
+    public static <T> T getNewMBeanProxy(JMXConnector mbsc, String mbeanName, Class<T> type) throws MalformedObjectNameException, IOException {
+        ObjectName objectName = new ObjectName(mbeanName);
+        return JMX.newMBeanProxy(mbsc.getMBeanServerConnection(), objectName,type, true);
+    }
 
-	public static <T> T getNewMXBeanProxy(JMXConnector mbsc, String mbeanName, Class<T> type) throws MalformedObjectNameException, IOException {
-		ObjectName objectName = new ObjectName(mbeanName);
-		return JMX.newMXBeanProxy(mbsc.getMBeanServerConnection(), objectName,type, true);
-	}
+    public static <T> T getNewMXBeanProxy(JMXConnector mbsc, String mbeanName, Class<T> type) throws MalformedObjectNameException, IOException {
+        ObjectName objectName = new ObjectName(mbeanName);
+        return JMX.newMXBeanProxy(mbsc.getMBeanServerConnection(), objectName,type, true);
+    }
 
     public static <T> T getLocalMBeanProxy(String mbeanName, Class<T> type) throws MalformedObjectNameException, IOException {
         ObjectName objectName = new ObjectName(mbeanName);
@@ -191,7 +191,7 @@ public class JMXUtils {
     }
 
     public static ObjectName getDynamicMBean(String mbeanName) throws MalformedObjectNameException {
-	    return new ObjectName(mbeanName);
-	}
+        return new ObjectName(mbeanName);
+    }
 
 }

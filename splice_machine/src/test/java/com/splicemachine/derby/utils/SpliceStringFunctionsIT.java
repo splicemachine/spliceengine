@@ -49,7 +49,7 @@ import static org.junit.Assert.fail;
  * @author Walt Koetke
  */
 public class SpliceStringFunctionsIT {
-	
+    
     private static final String CLASS_NAME = SpliceStringFunctionsIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
@@ -61,15 +61,15 @@ public class SpliceStringFunctionsIT {
 
     // Table for INSTR testing.
     private static final SpliceTableWatcher tableWatcherB = new SpliceTableWatcher(
-    	"B", schemaWatcher.schemaName, "(a int, b varchar(30), c varchar(30), d int)");
+        "B", schemaWatcher.schemaName, "(a int, b varchar(30), c varchar(30), d int)");
 
     // Table for INITCAP testing.
     private static final SpliceTableWatcher tableWatcherC = new SpliceTableWatcher(
-    	"C", schemaWatcher.schemaName, "(a varchar(30), b varchar(30))");
+        "C", schemaWatcher.schemaName, "(a varchar(30), b varchar(30))");
 
     // Table for CONCAT testing.
     private static final SpliceTableWatcher tableWatcherD = new SpliceTableWatcher(
-    	"D", schemaWatcher.schemaName, "(a varchar(30), b varchar(30), c varchar(30))");
+        "D", schemaWatcher.schemaName, "(a varchar(30), b varchar(30), c varchar(30))");
 
     // Table for CHR testing.
     private static final SpliceTableWatcher tableWatcherE = new SpliceTableWatcher(
@@ -319,61 +319,61 @@ public class SpliceStringFunctionsIT {
     @Test
     public void testInstrFunction() throws Exception {
         int count = 0;
-	    String sCell1 = null;
-	    String sCell2 = null;
-	    ResultSet rs;
-	    
-	    rs = methodWatcher.executeQuery("SELECT INSTR(b, c), d from " + tableWatcherB);
-	    count = 0;
-	    while (rs.next()) {
-    		sCell1 = rs.getString(1);
+        String sCell1 = null;
+        String sCell2 = null;
+        ResultSet rs;
+        
+        rs = methodWatcher.executeQuery("SELECT INSTR(b, c), d from " + tableWatcherB);
+        count = 0;
+        while (rs.next()) {
+            sCell1 = rs.getString(1);
             sCell2 = rs.getString(2);
             Assert.assertEquals("Wrong result value", sCell1, sCell2);
             count++;
-	    }
-	    Assert.assertEquals("Incorrect row count", 9, count);
+        }
+        Assert.assertEquals("Incorrect row count", 9, count);
     }
 
     @Test
     public void testInitcapFunction() throws Exception {
-	    String sCell1 = null;
-	    String sCell2 = null;
-	    ResultSet rs;
-	    
-	    rs = methodWatcher.executeQuery("SELECT INITCAP(a), b from " + tableWatcherC);
-	    while (rs.next()) {
-    		sCell1 = rs.getString(1);
+        String sCell1 = null;
+        String sCell2 = null;
+        ResultSet rs;
+        
+        rs = methodWatcher.executeQuery("SELECT INITCAP(a), b from " + tableWatcherC);
+        while (rs.next()) {
+            sCell1 = rs.getString(1);
             sCell2 = rs.getString(2);
             Assert.assertEquals("Wrong result value", sCell2, sCell1);
-	    }
+        }
     }
 
     @Test
     public void testConcatFunction() throws Exception {
-	    String sCell1 = null;
-	    String sCell2 = null;
-	    ResultSet rs;
-	    
-	    rs = methodWatcher.executeQuery("SELECT CONCAT(a, b), c from " + tableWatcherD);
-	    while (rs.next()) {
-    		sCell1 = rs.getString(1);
+        String sCell1 = null;
+        String sCell2 = null;
+        ResultSet rs;
+        
+        rs = methodWatcher.executeQuery("SELECT CONCAT(a, b), c from " + tableWatcherD);
+        while (rs.next()) {
+            sCell1 = rs.getString(1);
             sCell2 = rs.getString(2);
             Assert.assertEquals("Wrong result value", sCell2, sCell1);
-	    }
+        }
     }
 
     @Test
     public void testConcatAliasFunction() throws Exception {
-	    String sCell1 = null;
-	    String sCell2 = null;
-	    ResultSet rs;
+        String sCell1 = null;
+        String sCell2 = null;
+        ResultSet rs;
 
-	    rs = methodWatcher.executeQuery("SELECT a CONCAT b, c from " + tableWatcherD);
-	    while (rs.next()) {
+        rs = methodWatcher.executeQuery("SELECT a CONCAT b, c from " + tableWatcherD);
+        while (rs.next()) {
             sCell1 = rs.getString(1);
             sCell2 = rs.getString(2);
             Assert.assertEquals("Wrong result value", sCell2, sCell1);
-	    }
+        }
     }
 
     @Test

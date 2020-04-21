@@ -176,12 +176,12 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
 
         mb.push(isolationLevel);
 
-		/* 1 row scans (avoiding 2nd next()) are
+        /* 1 row scans (avoiding 2nd next()) are
           * only meaningful for some join strategies.
-		 * (Only an issue for outer table, which currently
-		 * can only be nested loop, as avoidance of 2nd next
-		 * on inner table already factored in to join node.)
-		 */
+         * (Only an issue for outer table, which currently
+         * can only be nested loop, as avoidance of 2nd next
+         * on inner table already factored in to join node.)
+         */
         if(validForOutermostTable()){
             mb.push(innerTable.isOneRowScan());
         }

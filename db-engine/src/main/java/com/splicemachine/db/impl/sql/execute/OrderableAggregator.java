@@ -48,104 +48,104 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
  */
 abstract class OrderableAggregator extends SystemAggregator
 {
-	protected DataValueDescriptor value;
+    protected DataValueDescriptor value;
 
-	/**
-	 */
-	public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType )
-	{
-			return this;
-	}
+    /**
+     */
+    public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType )
+    {
+            return this;
+    }
 
-	/**
-	 * @see ExecAggregator#merge
-	 *
-	 * @exception StandardException on error
-	 */
-	public void merge(ExecAggregator addend)
-		throws StandardException
-	{
-			/*
-			 * Derby(pre-splice) requires that both sides of the aggregate field be initialized. This is
-			 * an expensive proposition, because it requires object creation for every aggregate for every row, which
-			 * rapidly adds up.
-			 *
-			 * However, if we avoid initialization on every row (instead doing it once for each DISTINCT row), then
-			 * we must make sure that our individual aggregators properly handle null addends. For OrderableAggregators,
-			 * we can treat null as "not contributing". That is, for sums, null is equivalent to adding 0; for min
-			 * and max computations, null is ignored as not contributory. In either case, we can just return directly.
-			 * This involves a null check for every row, but that is substantially cheaper than an object creation.
-			 */
-			if(addend==null) return;
-			if (SanityManager.DEBUG)
-			{
-					SanityManager.ASSERT(addend instanceof OrderableAggregator,
-									"addend is supposed to be the same type of aggregator for the merge operator");
-			}
+    /**
+     * @see ExecAggregator#merge
+     *
+     * @exception StandardException on error
+     */
+    public void merge(ExecAggregator addend)
+        throws StandardException
+    {
+            /*
+             * Derby(pre-splice) requires that both sides of the aggregate field be initialized. This is
+             * an expensive proposition, because it requires object creation for every aggregate for every row, which
+             * rapidly adds up.
+             *
+             * However, if we avoid initialization on every row (instead doing it once for each DISTINCT row), then
+             * we must make sure that our individual aggregators properly handle null addends. For OrderableAggregators,
+             * we can treat null as "not contributing". That is, for sums, null is equivalent to adding 0; for min
+             * and max computations, null is ignored as not contributory. In either case, we can just return directly.
+             * This involves a null check for every row, but that is substantially cheaper than an object creation.
+             */
+            if(addend==null) return;
+            if (SanityManager.DEBUG)
+            {
+                    SanityManager.ASSERT(addend instanceof OrderableAggregator,
+                                    "addend is supposed to be the same type of aggregator for the merge operator");
+            }
 
-			// Don't bother merging if the other has never been used.
-			DataValueDescriptor bv = ((OrderableAggregator)addend).value;
-			if (bv != null)
-					this.accumulate(bv);
-	}
+            // Don't bother merging if the other has never been used.
+            DataValueDescriptor bv = ((OrderableAggregator)addend).value;
+            if (bv != null)
+                    this.accumulate(bv);
+    }
 
-	public void add(DataValueDescriptor addend) throws StandardException{
-		this.accumulate(addend);
-	}	
+    public void add(DataValueDescriptor addend) throws StandardException{
+        this.accumulate(addend);
+    }    
 
-	/**
-	 * Return the result of the operations that we
-	 * have been performing.  Returns a DataValueDescriptor.
-	 *
-	 * @return the result as a DataValueDescriptor 
-	 */
-	public DataValueDescriptor getResult() throws StandardException
-	{
-		return value;
-	}
+    /**
+     * Return the result of the operations that we
+     * have been performing.  Returns a DataValueDescriptor.
+     *
+     * @return the result as a DataValueDescriptor 
+     */
+    public DataValueDescriptor getResult() throws StandardException
+    {
+        return value;
+    }
         public String toString()
         {
             return "OrderableAggregator: " + value;
         }
 
-	/////////////////////////////////////////////////////////////
-	// 
-	// EXTERNALIZABLE INTERFACE
-	// 
-	/////////////////////////////////////////////////////////////
-	/** 
-	 * Although we are not expected to be persistent per se,
-	 * we may be written out by the sorter temporarily.  So
-	 * we need to be able to write ourselves out and read
-	 * ourselves back in.  We rely on formatable to handle
-	 * situations where <I>value</I> is null.
-	 * <p>
-	 * Why would we be called to write ourselves out if we
-	 * are null?  For scalar aggregates, we don't bother
-	 * setting up the aggregator since we only need a single
-	 * row.  So for a scalar aggregate that needs to go to
-	 * disk, the aggregator might be null.
-	 * 
-	 * @exception IOException on error
-	 *
-	 * @see java.io.Externalizable#writeExternal
-	 */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		super.writeExternal(out);
-		out.writeObject(value);
-	}
+    /////////////////////////////////////////////////////////////
+    // 
+    // EXTERNALIZABLE INTERFACE
+    // 
+    /////////////////////////////////////////////////////////////
+    /** 
+     * Although we are not expected to be persistent per se,
+     * we may be written out by the sorter temporarily.  So
+     * we need to be able to write ourselves out and read
+     * ourselves back in.  We rely on formatable to handle
+     * situations where <I>value</I> is null.
+     * <p>
+     * Why would we be called to write ourselves out if we
+     * are null?  For scalar aggregates, we don't bother
+     * setting up the aggregator since we only need a single
+     * row.  So for a scalar aggregate that needs to go to
+     * disk, the aggregator might be null.
+     * 
+     * @exception IOException on error
+     *
+     * @see java.io.Externalizable#writeExternal
+     */
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        super.writeExternal(out);
+        out.writeObject(value);
+    }
 
-	/** 
-	 * @see java.io.Externalizable#readExternal 
-	 *
-	 * @exception IOException on error
-	 * @exception ClassNotFoundException on error
-	 */
-	public void readExternal(ObjectInput in) 
-		throws IOException, ClassNotFoundException
-	{
-		super.readExternal(in);
-		value = (DataValueDescriptor) in.readObject();
-	}
+    /** 
+     * @see java.io.Externalizable#readExternal 
+     *
+     * @exception IOException on error
+     * @exception ClassNotFoundException on error
+     */
+    public void readExternal(ObjectInput in) 
+        throws IOException, ClassNotFoundException
+    {
+        super.readExternal(in);
+        value = (DataValueDescriptor) in.readObject();
+    }
 }

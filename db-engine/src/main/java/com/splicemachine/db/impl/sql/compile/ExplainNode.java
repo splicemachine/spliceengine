@@ -163,7 +163,7 @@ public class ExplainNode extends DMLStatementNode {
 
     @Override
     public ConstantAction makeConstantAction() throws StandardException {
-        return	node.makeConstantAction();
+        return    node.makeConstantAction();
     }
 
     @Override

@@ -50,123 +50,123 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
  */
 public class VerifyAggregateExpressionsVisitor implements Visitor
 {
-	private GroupByList groupByList;
+    private GroupByList groupByList;
 
-	public VerifyAggregateExpressionsVisitor(GroupByList groupByList)
-	{
-		this.groupByList = groupByList;
-	}
+    public VerifyAggregateExpressionsVisitor(GroupByList groupByList)
+    {
+        this.groupByList = groupByList;
+    }
 
 
-	////////////////////////////////////////////////
-	//
-	// VISITOR INTERFACE
-	//
-	////////////////////////////////////////////////
+    ////////////////////////////////////////////////
+    //
+    // VISITOR INTERFACE
+    //
+    ////////////////////////////////////////////////
 
-	/**
-	 * Verify that this expression is ok
-	 * for an aggregate query.  
-	 *
-	 * @param node 	the node to process
-	 *
-	 * @return me
-	 *
-	 * @exception StandardException on ColumnReference not
-	 * 	in group by list, ValueNode or	
-	 * 	JavaValueNode that isn't under an
-	 * 	aggregate
-	 */
+    /**
+     * Verify that this expression is ok
+     * for an aggregate query.  
+     *
+     * @param node     the node to process
+     *
+     * @return me
+     *
+     * @exception StandardException on ColumnReference not
+     *     in group by list, ValueNode or    
+     *     JavaValueNode that isn't under an
+     *     aggregate
+     */
     @Override
-	public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
-		if (node instanceof ColumnReference)
-		{
-			ColumnReference cr = (ColumnReference)node;
-		
-			if (groupByList == null)
-			{
-				throw StandardException.newException(SQLState.LANG_INVALID_COL_REF_NON_GROUPED_SELECT_LIST, cr.getSQLColumnName());
-			}
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
+        if (node instanceof ColumnReference)
+        {
+            ColumnReference cr = (ColumnReference)node;
+        
+            if (groupByList == null)
+            {
+                throw StandardException.newException(SQLState.LANG_INVALID_COL_REF_NON_GROUPED_SELECT_LIST, cr.getSQLColumnName());
+            }
 
-			if (groupByList.findGroupingColumn(cr) == null)
-			{
-				throw StandardException.newException(SQLState.LANG_INVALID_COL_REF_GROUPED_SELECT_LIST, cr.getSQLColumnName());
-			}
-		} 
-		
-		/*
-		** Subqueries are only valid if they do not have
-		** correlations and are expression subqueries.  RESOLVE:
-		** this permits VARIANT expressions in the subquery --
-		** should this be allowed?  may be confusing to
-		** users to complain about:
-		**
-		**	select max(x), (select sum(y).toString() from y) from x
-		*/
-		else if (node instanceof SubqueryNode)
-		{
-			SubqueryNode subq = (SubqueryNode)node;
-		
-			if ((subq.getSubqueryType() != SubqueryNode.EXPRESSION_SUBQUERY) ||
-				 subq.hasCorrelatedCRs())
-			{
-				throw StandardException.newException( (groupByList == null) ?
-							SQLState.LANG_INVALID_NON_GROUPED_SELECT_LIST :
-							SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
-			}
+            if (groupByList.findGroupingColumn(cr) == null)
+            {
+                throw StandardException.newException(SQLState.LANG_INVALID_COL_REF_GROUPED_SELECT_LIST, cr.getSQLColumnName());
+            }
+        } 
+        
+        /*
+        ** Subqueries are only valid if they do not have
+        ** correlations and are expression subqueries.  RESOLVE:
+        ** this permits VARIANT expressions in the subquery --
+        ** should this be allowed?  may be confusing to
+        ** users to complain about:
+        **
+        **    select max(x), (select sum(y).toString() from y) from x
+        */
+        else if (node instanceof SubqueryNode)
+        {
+            SubqueryNode subq = (SubqueryNode)node;
+        
+            if ((subq.getSubqueryType() != SubqueryNode.EXPRESSION_SUBQUERY) ||
+                 subq.hasCorrelatedCRs())
+            {
+                throw StandardException.newException( (groupByList == null) ?
+                            SQLState.LANG_INVALID_NON_GROUPED_SELECT_LIST :
+                            SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
+            }
 
-			/*
-			** TEMPORARY RESTRICTION: we cannot handle an aggregate
-			** in the subquery 
-			*/
-			HasNodeVisitor visitor = new HasNodeVisitor(AggregateNode.class);
-			subq.accept(visitor);
-			if (visitor.hasNode())
-			{	
-				throw StandardException.newException( (groupByList == null) ?
-							SQLState.LANG_INVALID_NON_GROUPED_SELECT_LIST :
-							SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
-			}
-		} else if (node instanceof GroupingFunctionNode) {
-			if (groupByList == null || !groupByList.isRollup()) {
-				throw StandardException.newException(com.splicemachine.db.shared.common.reference.SQLState.LANG_FUNCTION_NOT_ALLOWED,
-						"GROUPING",
-						"Query without OLAP operations like rollup, cube, groupingsets");
-			} else if (!((GroupingFunctionNode) node).isSingleColumnExpression()) {
-				throw StandardException.newException(com.splicemachine.db.shared.common.reference.SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
-						node.toString(),
-						"GROUPING");
-			}
-		}
-		return node;
-	}
+            /*
+            ** TEMPORARY RESTRICTION: we cannot handle an aggregate
+            ** in the subquery 
+            */
+            HasNodeVisitor visitor = new HasNodeVisitor(AggregateNode.class);
+            subq.accept(visitor);
+            if (visitor.hasNode())
+            {    
+                throw StandardException.newException( (groupByList == null) ?
+                            SQLState.LANG_INVALID_NON_GROUPED_SELECT_LIST :
+                            SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
+            }
+        } else if (node instanceof GroupingFunctionNode) {
+            if (groupByList == null || !groupByList.isRollup()) {
+                throw StandardException.newException(com.splicemachine.db.shared.common.reference.SQLState.LANG_FUNCTION_NOT_ALLOWED,
+                        "GROUPING",
+                        "Query without OLAP operations like rollup, cube, groupingsets");
+            } else if (!((GroupingFunctionNode) node).isSingleColumnExpression()) {
+                throw StandardException.newException(com.splicemachine.db.shared.common.reference.SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
+                        node.toString(),
+                        "GROUPING");
+            }
+        }
+        return node;
+    }
 
-	/**
-	 * Don't visit children under an aggregate, subquery or any node which
-	 * is equivalent to any of the group by expressions.
-	 *
-	 * @param node 	the node to process
-	 *
-	 * @return true/false
-	 * @throws StandardException 
-	 */
-	public boolean skipChildren(Visitable node) throws StandardException 
-	{
-		// skip aggregate node but not window function node
-		return ((node instanceof AggregateNode && !(node instanceof WindowFunctionNode)) ||
-				(node instanceof SubqueryNode) ||
-				(node instanceof ValueNode &&
-						groupByList != null 
-						&& groupByList.findGroupingColumn((ValueNode)node) != null));
-	}
-	
-	public boolean stopTraversal()
-	{
-		return false;
-	}
+    /**
+     * Don't visit children under an aggregate, subquery or any node which
+     * is equivalent to any of the group by expressions.
+     *
+     * @param node     the node to process
+     *
+     * @return true/false
+     * @throws StandardException 
+     */
+    public boolean skipChildren(Visitable node) throws StandardException 
+    {
+        // skip aggregate node but not window function node
+        return ((node instanceof AggregateNode && !(node instanceof WindowFunctionNode)) ||
+                (node instanceof SubqueryNode) ||
+                (node instanceof ValueNode &&
+                        groupByList != null 
+                        && groupByList.findGroupingColumn((ValueNode)node) != null));
+    }
+    
+    public boolean stopTraversal()
+    {
+        return false;
+    }
 
-	public boolean visitChildrenFirst(Visitable node)
-	{
-		return false;
-	}
-}	
+    public boolean visitChildrenFirst(Visitable node)
+    {
+        return false;
+    }
+}    

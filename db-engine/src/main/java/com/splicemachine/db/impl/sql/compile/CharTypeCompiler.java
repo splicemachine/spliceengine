@@ -52,48 +52,48 @@ import com.splicemachine.db.iapi.reference.ClassName;
 
 public final class CharTypeCompiler extends BaseTypeCompiler
 {
-	   /**
+       /**
          * Tell whether this type (char) can be converted to the given type.
          *
-		 * @see TypeCompiler#convertible
+         * @see TypeCompiler#convertible
          */
         public boolean convertible(TypeId otherType, boolean forDataTypeFunction)
         {
             if ( otherType.getBaseTypeId().isAnsiUDT() ) { return false; }
             
-			// LONGVARCHAR can only be converted from  character types
-			// or CLOB or boolean.
-			if (getTypeId().isLongVarcharTypeId())
-			{
-				return (otherType.isStringTypeId() || otherType.isBooleanTypeId());
-			}
-			// The double function and CAST can convert CHAR and VARCHAR to double
-			if (otherType.isDoubleTypeId())
-				return (getTypeId().isCharOrVarChar());
+            // LONGVARCHAR can only be converted from  character types
+            // or CLOB or boolean.
+            if (getTypeId().isLongVarcharTypeId())
+            {
+                return (otherType.isStringTypeId() || otherType.isBooleanTypeId());
+            }
+            // The double function and CAST can convert CHAR and VARCHAR to double
+            if (otherType.isDoubleTypeId())
+                return (getTypeId().isCharOrVarChar());
 
-			if (otherType.isBitTypeId())
-			    return true;
+            if (otherType.isBitTypeId())
+                return true;
 
-			// can't CAST to CHAR and VARCHAR from REAL or DOUBLE
-			// or binary types or XML
-			// all other types are ok.
+            // can't CAST to CHAR and VARCHAR from REAL or DOUBLE
+            // or binary types or XML
+            // all other types are ok.
             return !(otherType.isFloatingPointTypeId() || otherType.isBitTypeId() ||
                     otherType.isBlobTypeId() || otherType.isXMLTypeId());
 
         }
-	
+    
 
 
-	/**
-	 * Tell whether this type (char) is compatible with the given type.
-	 *
-	 * @param otherType     The TypeId of the other type.
-	 */
-	public boolean compatible(TypeId otherType)
-	{
-		return (otherType.isStringTypeId() || (otherType.isDateTimeTimeStampTypeId() && !getTypeId().isLongVarcharTypeId()));
-		
-	}
+    /**
+     * Tell whether this type (char) is compatible with the given type.
+     *
+     * @param otherType     The TypeId of the other type.
+     */
+    public boolean compatible(TypeId otherType)
+    {
+        return (otherType.isStringTypeId() || (otherType.isDateTimeTimeStampTypeId() && !getTypeId().isLongVarcharTypeId()));
+        
+    }
 
         /**
          * Tell whether this type (char) can be stored into from the given type.
@@ -104,10 +104,10 @@ public final class CharTypeCompiler extends BaseTypeCompiler
 
         public boolean storable(TypeId otherType, ClassFactory cf)
         {
-				// Same rules as cast
-				if (convertible(otherType,false) && 
-					!otherType.isBlobTypeId())
-						return true;
+                // Same rules as cast
+                if (convertible(otherType,false) && 
+                    !otherType.isBlobTypeId())
+                        return true;
 
                 /*
                 ** If the other type is user-defined, use the java types to determine

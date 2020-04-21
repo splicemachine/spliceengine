@@ -64,7 +64,7 @@ public class UTF extends UserType
 
         UTF arg = (UTF) other;
 
-		return ((String) getObject()).compareTo((String) arg.getObject());
+        return ((String) getObject()).compareTo((String) arg.getObject());
 
     }
 }

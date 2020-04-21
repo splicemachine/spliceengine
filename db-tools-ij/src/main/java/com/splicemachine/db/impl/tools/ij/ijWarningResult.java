@@ -42,12 +42,12 @@ import java.sql.SQLWarning;
  */
 class ijWarningResult extends ijResultImpl {
 
-	SQLWarning warn;
+    SQLWarning warn;
 
-	ijWarningResult(SQLWarning w) {
-		warn = w;
-	}
+    ijWarningResult(SQLWarning w) {
+        warn = w;
+    }
 
-	public SQLWarning getSQLWarnings() { return warn; }
-	public void clearSQLWarnings() { warn = null; }
+    public SQLWarning getSQLWarnings() { return warn; }
+    public void clearSQLWarnings() { warn = null; }
 }

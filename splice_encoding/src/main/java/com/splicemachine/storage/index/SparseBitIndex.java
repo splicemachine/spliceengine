@@ -344,7 +344,7 @@ public class SparseBitIndex implements BitIndex {
         return new SparseBitIndex(bitSet,scalarFields,floatFields,doubleFields);
     }
 
-		public static void main(String... args) throws Exception{
+        public static void main(String... args) throws Exception{
         BitSet test = new BitSet();
         test.set(0);
         test.set(1);

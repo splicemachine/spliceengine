@@ -35,59 +35,59 @@ import com.splicemachine.db.iapi.util.ByteArray;
 
 public final class ReflectLoaderJava2 extends ClassLoader {
 
-	/*
-	**	Fields
-	*/
+    /*
+    **    Fields
+    */
 
-	private final DatabaseClasses cf;
-	
-	/*
-	** Constructor
-	*/
+    private final DatabaseClasses cf;
+    
+    /*
+    ** Constructor
+    */
 
-	public ReflectLoaderJava2(ClassLoader parent, DatabaseClasses cf) {
-		super(parent);
-		this.cf = cf;
-	}
+    public ReflectLoaderJava2(ClassLoader parent, DatabaseClasses cf) {
+        super(parent);
+        this.cf = cf;
+    }
 
-	protected Class findClass(String name)
-		throws ClassNotFoundException {
-		return cf.loadApplicationClass(name);
-	}
+    protected Class findClass(String name)
+        throws ClassNotFoundException {
+        return cf.loadApplicationClass(name);
+    }
 
-	/*
-	** Implementation specific methods
-	** NOTE these are COPIED from ReflectLoader as the two classes cannot be made into
-	   a super/sub class pair. Because the Java2 one needs to call super(ClassLoader)
-	   that was added in Java2 and it needs to not implement loadClass()
-	*/
+    /*
+    ** Implementation specific methods
+    ** NOTE these are COPIED from ReflectLoader as the two classes cannot be made into
+       a super/sub class pair. Because the Java2 one needs to call super(ClassLoader)
+       that was added in Java2 and it needs to not implement loadClass()
+    */
 
-	/**
-		Load a generated class from the passed in class data.
-	*/
-	public LoadedGeneratedClass loadGeneratedClass(String name, ByteArray classData) {
+    /**
+        Load a generated class from the passed in class data.
+    */
+    public LoadedGeneratedClass loadGeneratedClass(String name, ByteArray classData) {
 
-		Class jvmClass = defineClass(name, classData.getArray(), classData.getOffset(), classData.getLength());
+        Class jvmClass = defineClass(name, classData.getArray(), classData.getOffset(), classData.getLength());
 
-		resolveClass(jvmClass);
+        resolveClass(jvmClass);
 
-		/*
-			DJD - not enabling this yet, need more memory testing, may only
-			create a factory instance when a number of instances are created.
-			This would avoid a factory instance for DDL
+        /*
+            DJD - not enabling this yet, need more memory testing, may only
+            create a factory instance when a number of instances are created.
+            This would avoid a factory instance for DDL
 
-		// now generate a factory class that loads instances
-		int lastDot = name.lastIndexOf('.');
-		String factoryName = name.substring(lastDot + 1, name.length()).concat("_F");
+        // now generate a factory class that loads instances
+        int lastDot = name.lastIndexOf('.');
+        String factoryName = name.substring(lastDot + 1, name.length()).concat("_F");
 
-		classData = cf.buildSpecificFactory(name, factoryName);
-		Class factoryClass = defineClass(CodeGeneration.GENERATED_PACKAGE_PREFIX.concat(factoryName),
-			classData.getArray(), classData.getOffset(), classData.getLength());
-		resolveClass(factoryClass);
-		
-		  */
-		Class factoryClass = null;
+        classData = cf.buildSpecificFactory(name, factoryName);
+        Class factoryClass = defineClass(CodeGeneration.GENERATED_PACKAGE_PREFIX.concat(factoryName),
+            classData.getArray(), classData.getOffset(), classData.getLength());
+        resolveClass(factoryClass);
+        
+          */
+        Class factoryClass = null;
 
-		return new ReflectGeneratedClass(cf, jvmClass, factoryClass);
-	}
+        return new ReflectGeneratedClass(cf, jvmClass, factoryClass);
+    }
 }

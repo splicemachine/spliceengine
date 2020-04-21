@@ -50,19 +50,19 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 */ 
 public interface RowSource {
 
-	/**
-		Get the next row as an array of column objects. The column objects can
-		be a JBMS Storable or any
-		Serializable/Externalizable/Formattable/Streaming type.
-		<BR>
-		A return of null indicates that the complete set of rows has been read.
+    /**
+        Get the next row as an array of column objects. The column objects can
+        be a JBMS Storable or any
+        Serializable/Externalizable/Formattable/Streaming type.
+        <BR>
+        A return of null indicates that the complete set of rows has been read.
 
-		<p>
-		A null column can be specified by leaving the object null, or indicated
-		by returning a non-null getValidColumns.  On streaming columns, it can
-		be indicated by returning a non-null get FieldStates.
+        <p>
+        A null column can be specified by leaving the object null, or indicated
+        by returning a non-null getValidColumns.  On streaming columns, it can
+        be indicated by returning a non-null get FieldStates.
 
-		<p>
+        <p>
         If RowSource.needToClone() is true then the returned row 
         (the DataValueDescriptor[]) is guaranteed not to be modified by drainer
         of the RowSource (except that the input stream will be read, of course) 
@@ -71,19 +71,19 @@ public interface RowSource {
         in subsequent nextRow calls if that is desirable for performance 
         reasons.  
 
-		<p>
+        <p>
         If RowSource.needToClone() is false then the returned row (the 
         DataValueDescriptor[]) may be be modified by drainer of the RowSource, 
         and the drainer may keep a reference to it after making the subsequent 
         nextRow call.  In this case the client should severe all references to 
         the row after returning it from getNextRowFromRowSource().
 
-		@exception StandardException Standard Derby Error Policy
-	 */
-	DataValueDescriptor[] getNextRowFromRowSource()
+        @exception StandardException Standard Derby Error Policy
+     */
+    DataValueDescriptor[] getNextRowFromRowSource()
         throws StandardException;
 
-	/**
+    /**
         Does the caller of getNextRowFromRowSource() need to clone the row
         in order to keep a reference to the row past the 
         getNextRowFromRowSource() call which returned the row.  This call
@@ -91,34 +91,34 @@ public interface RowSource {
         caller will call this once per scan from a RowSource and assume the
         behavior is true for all rows in the RowSource).
 
-	 */
-	boolean needsToClone();
+     */
+    boolean needsToClone();
 
-	/**
-	  getValidColumns describes the DataValueDescriptor[] returned by all calls
+    /**
+      getValidColumns describes the DataValueDescriptor[] returned by all calls
       to the getNextRowFromRowSource() call. 
 
-	  If getValidColumns returns null, the number of columns is given by the
-	  DataValueDescriptor.length where DataValueDescriptor[] is returned by the
+      If getValidColumns returns null, the number of columns is given by the
+      DataValueDescriptor.length where DataValueDescriptor[] is returned by the
       preceeding getNextRowFromRowSource() call.  Column N maps to 
       DataValueDescriptor[N], where column numbers start at zero.
 
-	  If getValidColumns return a non null validColumns FormatableBitSet the number of
-	  columns is given by the number of bits set in validColumns.  Column N is
-	  not in the partial row if validColumns.get(N) returns false.  Column N is
-	  in the partial row if validColumns.get(N) returns true.  If column N is
-	  in the partial row then it maps to DataValueDescriptor[M] where M is the 
+      If getValidColumns return a non null validColumns FormatableBitSet the number of
+      columns is given by the number of bits set in validColumns.  Column N is
+      not in the partial row if validColumns.get(N) returns false.  Column N is
+      in the partial row if validColumns.get(N) returns true.  If column N is
+      in the partial row then it maps to DataValueDescriptor[M] where M is the 
       count of calls to validColumns.get(i) that return true where i < N.  If
-	  DataValueDescriptor.length is greater than the number of columns 
+      DataValueDescriptor.length is greater than the number of columns 
       indicated by validColumns the extra entries are ignored.  
-	*/
-	FormatableBitSet getValidColumns(); 
+    */
+    FormatableBitSet getValidColumns(); 
 
-	/**
-		closeRowSource tells the RowSource that it will no longer need to
-		return any rows and it can release any resource it may have.
-		Subsequent call to any method on the RowSource will result in undefined
-		behavior.  A closed rowSource can be closed again.
-	*/
-	void closeRowSource();
+    /**
+        closeRowSource tells the RowSource that it will no longer need to
+        return any rows and it can release any resource it may have.
+        Subsequent call to any method on the RowSource will result in undefined
+        behavior.  A closed rowSource can be closed again.
+    */
+    void closeRowSource();
 }

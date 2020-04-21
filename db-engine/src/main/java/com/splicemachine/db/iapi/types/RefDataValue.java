@@ -34,12 +34,12 @@ package com.splicemachine.db.iapi.types;
 public interface RefDataValue extends DataValueDescriptor
 {
 
-	/**
-	 * Set the value of this RefDataValue.
-	 *
-	 * @param theValue	Contains the boolean value to set this RefDataValue
-	 *					to.  Null means set this RefDataValue to null.
-	 */
-	void setValue(RowLocation theValue);
+    /**
+     * Set the value of this RefDataValue.
+     *
+     * @param theValue    Contains the boolean value to set this RefDataValue
+     *                    to.  Null means set this RefDataValue to null.
+     */
+    void setValue(RowLocation theValue);
 
 }

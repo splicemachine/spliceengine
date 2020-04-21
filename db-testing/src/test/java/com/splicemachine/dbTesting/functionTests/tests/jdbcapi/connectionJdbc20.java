@@ -47,23 +47,23 @@ import com.splicemachine.db.tools.ij;
 
 public class connectionJdbc20{ 
 
-	public static void main(String[] args) {
-		Connection conn, connreturn;
-		Statement stmt, stmtreturn;
+    public static void main(String[] args) {
+        Connection conn, connreturn;
+        Statement stmt, stmtreturn;
 
 
-		System.out.println("Test connection20 starting");
-		try
-		{
-			// use the ij utility to read the property file and
-			// make the initial connection.
-			 ij.getPropertyArg(args);
-			 conn = ij.startJBMS();
+        System.out.println("Test connection20 starting");
+        try
+        {
+            // use the ij utility to read the property file and
+            // make the initial connection.
+             ij.getPropertyArg(args);
+             conn = ij.startJBMS();
 
-			 stmt = conn.createStatement();
+             stmt = conn.createStatement();
 
             //create a table, insert a row, do a select from the table,
-			 stmt.execute("create table tab1("+
+             stmt.execute("create table tab1("+
                                            "c1 char(100) for bit data,"+
                                            "c2 varchar(100) for bit data," +
                                            "c3 long varchar for bit data,"+
@@ -80,18 +80,18 @@ public class connectionJdbc20{
             // load some data into this table ..
             load_data(connreturn);
             
-			// read the data   of each type with all the possible functions
-			ResultSet rs = stmt.executeQuery("select " + 
-							 "c1," + 
-							 "c2," + 
-							 "c3," + 
-							 "c4," + 
-							 "c5," + 
-							 "c6," + 
-							 "c1 as c1_spare," + 
-							 "c2 as c2_spare,"  +
-							 "c3 as c3_spare "  +
-							 "from tab1");
+            // read the data   of each type with all the possible functions
+            ResultSet rs = stmt.executeQuery("select " + 
+                             "c1," + 
+                             "c2," + 
+                             "c3," + 
+                             "c4," + 
+                             "c5," + 
+                             "c6," + 
+                             "c1 as c1_spare," + 
+                             "c2 as c2_spare,"  +
+                             "c3 as c3_spare "  +
+                             "from tab1");
             int loop = 0;
             while(loop < 2 )
             {
@@ -101,8 +101,8 @@ public class connectionJdbc20{
                     {
                         get_using_object(rs, i);
                         get_using_string(rs, i);
-			
-			get_using_ascii_stream(rs, i);
+            
+            get_using_ascii_stream(rs, i);
 
                         if(i < 4 ) // only c1 , c2, c3
                         {
@@ -119,26 +119,26 @@ public class connectionJdbc20{
                     System.out.println("Got Different Statement Object");
                 
                 rs.close();
-		rs = stmt.executeQuery("select " + 
-				       "c1," + 
-				       "c2," + 
-				       "c3," + 
-				       "c4," + 
-				       "c5," + 
-				       "c6," + 
-				       "c1 as c1_spare," + 
-				       "c2 as c2_spare,"  +
-				       "c3 as c3_spare "  +
-				       "from tab1");
-		loop++;
+        rs = stmt.executeQuery("select " + 
+                       "c1," + 
+                       "c2," + 
+                       "c3," + 
+                       "c4," + 
+                       "c5," + 
+                       "c6," + 
+                       "c1 as c1_spare," + 
+                       "c2 as c2_spare,"  +
+                       "c3 as c3_spare "  +
+                       "from tab1");
+        loop++;
             }
 
-	    stmt.close();
+        stmt.close();
 
             // Try to get the connection object thro database meta data
             DatabaseMetaData dbmeta = conn.getMetaData();
 
-			rs = dbmeta.getTypeInfo();
+            rs = dbmeta.getTypeInfo();
             while (rs.next())
             {
                System.out.println(rs.getString(1)); 
@@ -166,19 +166,19 @@ public class connectionJdbc20{
                 System.out.println("Got Different Connection Object");
 
             cs.close();
-			conn.close();
+            conn.close();
 
-		}
-		catch (SQLException e) {
-			dumpSQLExceptions(e);
-			e.printStackTrace();
-		}
-		catch (Throwable e) {
-			System.out.println("FAIL -- unexpected exception: "+e);
-			e.printStackTrace();
-		}
+        }
+        catch (SQLException e) {
+            dumpSQLExceptions(e);
+            e.printStackTrace();
+        }
+        catch (Throwable e) {
+            System.out.println("FAIL -- unexpected exception: "+e);
+            e.printStackTrace();
+        }
 
-		System.out.println("Test getConnection  finished");
+        System.out.println("Test getConnection  finished");
     }
 
 
@@ -222,86 +222,86 @@ public class connectionJdbc20{
         }
     }
 
-	static private void dumpSQLExceptions (SQLException se) {
-		System.out.println("FAIL -- unexpected exception");
-		while (se != null) {
-			System.out.println("SQLSTATE("+se.getSQLState()+"): "+se);
-			se = se.getNextException();
-		}
-	}
+    static private void dumpSQLExceptions (SQLException se) {
+        System.out.println("FAIL -- unexpected exception");
+        while (se != null) {
+            System.out.println("SQLSTATE("+se.getSQLState()+"): "+se);
+            se = se.getNextException();
+        }
+    }
 
-	static private void dumpExpectedSQLExceptions (SQLException se) {
-		System.out.println("PASS -- expected exception");
-		while (se != null) {
-			System.out.println("SQLSTATE("+se.getSQLState()+"): "+se);
-			se = se.getNextException();
+    static private void dumpExpectedSQLExceptions (SQLException se) {
+        System.out.println("PASS -- expected exception");
+        while (se != null) {
+            System.out.println("SQLSTATE("+se.getSQLState()+"): "+se);
+            se = se.getNextException();
         }
     }
 
     static private int printbytearray(byte [] a , int len, int count){
 
-		for (int i =0 ; i < len; i++, count++) {
+        for (int i =0 ; i < len; i++, count++) {
 
-			System.out.print("x" + Integer.toHexString(a[i]));
+            System.out.print("x" + Integer.toHexString(a[i]));
 
-			if ((i > 0) && ((i % 20) == 0))
-				System.out.println("");
-		}
-		return count;
+            if ((i > 0) && ((i % 20) == 0))
+                System.out.println("");
+        }
+        return count;
     }
 
     static void get_using_object(ResultSet rs, int col_no) throws Exception{
-		System.out.println("getObject(" + col_no + ")");
+        System.out.println("getObject(" + col_no + ")");
         Object cobj = rs.getObject(col_no);
         if (cobj instanceof byte[]){
             byte[] bytearray = (byte[]) cobj;
-			System.out.println("  as byte[] length " + bytearray.length);
+            System.out.println("  as byte[] length " + bytearray.length);
             printbytearray(bytearray, bytearray.length, 0);
-			System.out.println("");
+            System.out.println("");
         }else {
-			System.out.println("  as String");
+            System.out.println("  as String");
             System.out.println(cobj.toString());
-		}
+        }
     }
 
     static void get_using_bytes(ResultSet rs, int col_no) throws Exception{
-		System.out.println("getBytes(" + col_no + ")");
+        System.out.println("getBytes(" + col_no + ")");
        byte[] bytearray = (byte[]) rs.getBytes(col_no);
        printbytearray(bytearray, bytearray.length, 0);
-		System.out.println("");
+        System.out.println("");
     }
 
     static void get_using_string(ResultSet rs, int col_no) throws Exception{
-		String s = rs.getString(col_no);
-		System.out.println("getString(" + col_no + ") length " + s.length());
+        String s = rs.getString(col_no);
+        System.out.println("getString(" + col_no + ") length " + s.length());
         System.out.println(s);
     }
 
     static void get_using_ascii_stream(ResultSet rs, int col_no) throws Exception{
- 		System.out.println("getAsciiStream(" + col_no + ")");
-		int no_bytes_read = 0;
+         System.out.println("getAsciiStream(" + col_no + ")");
+        int no_bytes_read = 0;
         InputStream rsbin = rs.getAsciiStream(col_no);
         byte [] bytearray = new byte[200];
-		int count = 0;
+        int count = 0;
         while((no_bytes_read=rsbin.read(bytearray)) != -1)
         {
-			count = printbytearray(bytearray, no_bytes_read, count);
+            count = printbytearray(bytearray, no_bytes_read, count);
         }
-		System.out.println("");
+        System.out.println("");
 
     }
 
     static void get_using_binary_stream(ResultSet rs, int col_no) throws Exception{
- 		System.out.println("getBinaryStream(" + col_no + ")");
+         System.out.println("getBinaryStream(" + col_no + ")");
         int no_bytes_read = 0;
         InputStream rsbin = rs.getBinaryStream(col_no);
         byte [] bytearray = new byte[200];
-		int count = 0;
+        int count = 0;
         while((no_bytes_read=rsbin.read(bytearray)) != -1)
         {
-			count = printbytearray(bytearray, no_bytes_read, count);
+            count = printbytearray(bytearray, no_bytes_read, count);
         }
-		System.out.println("");
+        System.out.println("");
     }
 
 }

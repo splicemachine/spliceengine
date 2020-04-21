@@ -36,32 +36,32 @@ import java.io.IOException;
 
 /** Float Constant - page 96 */
 final class CONSTANT_Float_info extends ConstantPoolEntry {
-	private final float value;
+    private final float value;
 
-	CONSTANT_Float_info(float value) {
-		super(VMDescriptor.CONSTANT_Float);
-		this.value = value;
-	}
+    CONSTANT_Float_info(float value) {
+        super(VMDescriptor.CONSTANT_Float);
+        this.value = value;
+    }
 
-	public int hashCode() {
-		return (int) value;
-	}
+    public int hashCode() {
+        return (int) value;
+    }
 
-	public boolean equals(Object other) {
+    public boolean equals(Object other) {
 
         // check it is the right type
         return other instanceof CONSTANT_Float_info && value == ((CONSTANT_Float_info) other).value;
 
     }
 
-	int classFileSize() {
-		// 1 (tag) + 4 (float length)
-		return 1 + 4;
-	}
+    int classFileSize() {
+        // 1 (tag) + 4 (float length)
+        return 1 + 4;
+    }
 
-	void put(ClassFormatOutput out) throws IOException {
-		super.put(out);
-		out.writeFloat(value);
-	}
+    void put(ClassFormatOutput out) throws IOException {
+        super.put(out);
+        out.writeFloat(value);
+    }
 }
 

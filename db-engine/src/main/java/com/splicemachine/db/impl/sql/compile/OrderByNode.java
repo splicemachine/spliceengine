@@ -42,7 +42,7 @@ import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 
 public class OrderByNode extends SingleChildResultSetNode {
-    OrderByList		orderByList;
+    OrderByList        orderByList;
     @Override
     public boolean isParallelizable() {
         return true; //represented by a sort operation
@@ -53,11 +53,11 @@ public class OrderByNode extends SingleChildResultSetNode {
     /**
      * Initializer for a OrderByNode.
      *
-     * @param childResult	The child ResultSetNode
-     * @param orderByList	The order by list.
-     * @param tableProperties	Properties list associated with the table
+     * @param childResult    The child ResultSetNode
+     * @param orderByList    The order by list.
+     * @param tableProperties    Properties list associated with the table
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public void init(
             Object childResult,
@@ -71,25 +71,25 @@ public class OrderByNode extends SingleChildResultSetNode {
 
         ResultColumnList prRCList;
 
-		/*
-			We want our own resultColumns, which are virtual columns
-			pointing to the child result's columns.
+        /*
+            We want our own resultColumns, which are virtual columns
+            pointing to the child result's columns.
 
-			We have to have the original object in the distinct node,
-			and give the underlying project the copy.
-		 */
+            We have to have the original object in the distinct node,
+            and give the underlying project the copy.
+         */
 
-		/* We get a shallow copy of the ResultColumnList and its
-		 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
-		 */
+        /* We get a shallow copy of the ResultColumnList and its
+         * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+         */
         prRCList = child.getResultColumns().copyListAndObjects();
         resultColumns = child.getResultColumns();
         child.setResultColumns(prRCList);
 
-		/* Replace ResultColumn.expression with new VirtualColumnNodes
-		 * in the DistinctNode's RCL.  (VirtualColumnNodes include
-		 * pointers to source ResultSetNode, this, and source ResultColumn.)
-		 */
+        /* Replace ResultColumn.expression with new VirtualColumnNodes
+         * in the DistinctNode's RCL.  (VirtualColumnNodes include
+         * pointers to source ResultSetNode, this, and source ResultColumn.)
+         */
         resultColumns.genVirtualColumnNodes(this, prRCList);
     }
 
@@ -98,7 +98,7 @@ public class OrderByNode extends SingleChildResultSetNode {
      * Prints the sub-nodes of this object.  See QueryTreeNode.java for
      * how tree printing is supposed to work.
      *
-     * @param depth		The depth of this node in the tree
+     * @param depth        The depth of this node in the tree
      */
 
     public void printSubNodes(int depth)

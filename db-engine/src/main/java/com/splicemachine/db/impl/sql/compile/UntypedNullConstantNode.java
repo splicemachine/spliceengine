@@ -47,72 +47,72 @@ import java.util.Vector;
 
 public final class UntypedNullConstantNode extends ConstantNode
 {
-	/**
-	 * Constructor for an UntypedNullConstantNode.  Untyped constants
-	 * contain no state (not too surprising).
-	 */
+    /**
+     * Constructor for an UntypedNullConstantNode.  Untyped constants
+     * contain no state (not too surprising).
+     */
 
-	public UntypedNullConstantNode()
-	{
-		super();
-	}
+    public UntypedNullConstantNode()
+    {
+        super();
+    }
 
-	/**
-	 * Return the length
-	 *
-	 * @return	The length of the value this node represents
-	 *
-	 */
+    /**
+     * Return the length
+     *
+     * @return    The length of the value this node represents
+     *
+     */
 
-	//public int	getLength()
-	//{
-	//	if (SanityManager.DEBUG)
-	//	SanityManager.ASSERT(false,
-	//	  "Unimplemented method - should not be called on UntypedNullConstantNode");
-	//	return 0;
-	//}
+    //public int    getLength()
+    //{
+    //    if (SanityManager.DEBUG)
+    //    SanityManager.ASSERT(false,
+    //      "Unimplemented method - should not be called on UntypedNullConstantNode");
+    //    return 0;
+    //}
 
-	/**
-	 * Should never be called for UntypedNullConstantNode because
-	 * we shouldn't make it to generate
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class being built
-	 * @param mb	The method the expression will go into
-	 */
-	void generateConstant(ExpressionClassBuilder acb, MethodBuilder mb)
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.THROWASSERT("generateConstant() not expected to be called for UntypedNullConstantNode because we have implemented our own generateExpression().");
-		}
-	}
+    /**
+     * Should never be called for UntypedNullConstantNode because
+     * we shouldn't make it to generate
+     *
+     * @param acb    The ExpressionClassBuilder for the class being built
+     * @param mb    The method the expression will go into
+     */
+    void generateConstant(ExpressionClassBuilder acb, MethodBuilder mb)
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.THROWASSERT("generateConstant() not expected to be called for UntypedNullConstantNode because we have implemented our own generateExpression().");
+        }
+    }
 
-	/**
-	 * Translate a Default node into a default value, given a type descriptor.
-	 *
-	 * @param typeDescriptor	A description of the required data type.
-	 *
-	 */
-	public DataValueDescriptor convertDefaultNode(DataTypeDescriptor typeDescriptor)
-	throws StandardException
-	{
-		/*
-		** The default value is null, so set nullability to TRUE
-		*/
-		return typeDescriptor.getNull();
-	}
-	
-	/** @see ValueNode#bindExpression(FromList, SubqueryList, Vector)
-	 * @see ResultColumnList#bindUntypedNullsToResultColumns
-	 * This does nothing-- the node is actually bound when
-	 * bindUntypedNullsToResultColumns is called.
-	 */
-	public ValueNode bindExpression(FromList fromList, SubqueryList	subqueryList, List<AggregateNode> aggregateVector)
-	{
-		return this;
-	}
-	
-	public int hashCode(){
-		return value==null? 0: value.hashCode();
-	}
+    /**
+     * Translate a Default node into a default value, given a type descriptor.
+     *
+     * @param typeDescriptor    A description of the required data type.
+     *
+     */
+    public DataValueDescriptor convertDefaultNode(DataTypeDescriptor typeDescriptor)
+    throws StandardException
+    {
+        /*
+        ** The default value is null, so set nullability to TRUE
+        */
+        return typeDescriptor.getNull();
+    }
+    
+    /** @see ValueNode#bindExpression(FromList, SubqueryList, Vector)
+     * @see ResultColumnList#bindUntypedNullsToResultColumns
+     * This does nothing-- the node is actually bound when
+     * bindUntypedNullsToResultColumns is called.
+     */
+    public ValueNode bindExpression(FromList fromList, SubqueryList    subqueryList, List<AggregateNode> aggregateVector)
+    {
+        return this;
+    }
+    
+    public int hashCode(){
+        return value==null? 0: value.hashCode();
+    }
 }

@@ -44,42 +44,42 @@ import java.util.Properties;
 import com.splicemachine.dbTesting.system.optimizer.StaticValues;
 
 public class QueryList {
-	private static ArrayList qList=new ArrayList();
-	public static boolean queryListOnly=false;
-	public static void init(Connection conn){
-		GenericQuery q=new GenericQuery();
-		File queryFile = new File(StaticValues.queryFile);
-		if(queryFile.exists()){
-			System.out.println("External query list found, adding to the run...");
-			Properties p=new Properties();
-			queryListOnly=true;
-			try{
-				p.load(new FileInputStream(queryFile));
-				q.generateQueries(p);
-				getQList().add(q);
-				if(queryListOnly){
-					return;
-				}
-			}catch(IOException ioe){
-				ioe.printStackTrace();
-			}
-		}
-		
-		q=new Query1();
-		getQList().add(q);
-		q=new Query2();
-		getQList().add(q);
-		q=new Query3();
-		getQList().add(q);
-		q=new Query4();
-		getQList().add(q);
-		q=new Query5();
-		getQList().add(q);
-		q=new Query6();
-		getQList().add(q);
-		
-	}
-	public static ArrayList getQList() {
-		return qList;
-	}
+    private static ArrayList qList=new ArrayList();
+    public static boolean queryListOnly=false;
+    public static void init(Connection conn){
+        GenericQuery q=new GenericQuery();
+        File queryFile = new File(StaticValues.queryFile);
+        if(queryFile.exists()){
+            System.out.println("External query list found, adding to the run...");
+            Properties p=new Properties();
+            queryListOnly=true;
+            try{
+                p.load(new FileInputStream(queryFile));
+                q.generateQueries(p);
+                getQList().add(q);
+                if(queryListOnly){
+                    return;
+                }
+            }catch(IOException ioe){
+                ioe.printStackTrace();
+            }
+        }
+        
+        q=new Query1();
+        getQList().add(q);
+        q=new Query2();
+        getQList().add(q);
+        q=new Query3();
+        getQList().add(q);
+        q=new Query4();
+        getQList().add(q);
+        q=new Query5();
+        getQList().add(q);
+        q=new Query6();
+        getQList().add(q);
+        
+    }
+    public static ArrayList getQList() {
+        return qList;
+    }
 }

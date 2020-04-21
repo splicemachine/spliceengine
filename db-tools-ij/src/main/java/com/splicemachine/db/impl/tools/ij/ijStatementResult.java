@@ -44,24 +44,24 @@ import java.sql.SQLWarning;
  */
 class ijStatementResult extends ijResultImpl {
 
-	Statement statement;
-	boolean closeWhenDone;
+    Statement statement;
+    boolean closeWhenDone;
 
-	ijStatementResult(Statement s, boolean c) {
-		statement = s;
-		closeWhenDone = c;
-	}
+    ijStatementResult(Statement s, boolean c) {
+        statement = s;
+        closeWhenDone = c;
+    }
 
-	public boolean isStatement() { return true; }
-	public boolean isResultSet() throws SQLException { return statement.getUpdateCount() == -1; }
-	public boolean isUpdateCount() throws SQLException { return statement.getUpdateCount() >= 0; }
+    public boolean isStatement() { return true; }
+    public boolean isResultSet() throws SQLException { return statement.getUpdateCount() == -1; }
+    public boolean isUpdateCount() throws SQLException { return statement.getUpdateCount() >= 0; }
 
-	public Statement getStatement() { return statement; }
-	public int getUpdateCount() throws SQLException { return statement.getUpdateCount(); }
-	public ResultSet getResultSet() throws SQLException { return statement.getResultSet(); }
+    public Statement getStatement() { return statement; }
+    public int getUpdateCount() throws SQLException { return statement.getUpdateCount(); }
+    public ResultSet getResultSet() throws SQLException { return statement.getResultSet(); }
 
-	public void closeStatement() throws SQLException { if (closeWhenDone) statement.close(); }
+    public void closeStatement() throws SQLException { if (closeWhenDone) statement.close(); }
 
-	public SQLWarning getSQLWarnings() throws SQLException { return statement.getWarnings(); }
-	public void clearSQLWarnings() throws SQLException { statement.clearWarnings(); }
+    public SQLWarning getSQLWarnings() throws SQLException { return statement.getWarnings(); }
+    public void clearSQLWarnings() throws SQLException { statement.clearWarnings(); }
 }

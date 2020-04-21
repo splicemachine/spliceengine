@@ -167,9 +167,9 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
         return -1; // There is only one kind of privilege per row so delete the whole row.
     } // end of removePermissions
 
-	/** 
-	 * @see PermissionsCatalogRowFactory#setUUIDOfThePassedDescriptor
-	 */
+    /** 
+     * @see PermissionsCatalogRowFactory#setUUIDOfThePassedDescriptor
+     */
     void setUUIDOfThePassedDescriptor(ExecRow row, PermissionsDescriptor perm) throws StandardException
     {
         DataValueDescriptor existingPermDVD = row.getColumn(SYSPERMS_PERMISSIONID);
@@ -202,8 +202,8 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
             UUID pid = sd.getUUID();
             if ( pid == null )
             {
-				pid = getUUIDFactory().createUUID();
-				sd.setUUID(pid);
+                pid = getUUIDFactory().createUUID();
+                sd.setUUID(pid);
             }
             permIdString = pid.toString();
 

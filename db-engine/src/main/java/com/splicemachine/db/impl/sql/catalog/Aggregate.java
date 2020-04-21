@@ -62,15 +62,15 @@ public class Aggregate {
     }
 
     public void createSystemAggregate(DataDictionary dataDictionary, TransactionController tc)
-		throws StandardException {
-    	// By default, puts aggregate function into SYSCS_UTIL schema
-    	// unless you invoke the method that takes schema UUID argument.
+        throws StandardException {
+        // By default, puts aggregate function into SYSCS_UTIL schema
+        // unless you invoke the method that takes schema UUID argument.
         UUID schemaId = dataDictionary.getSystemUtilSchemaDescriptor().getUUID();
         createSystemAggregate(dataDictionary, tc, schemaId);
     }
 
     public void createSystemAggregate(DataDictionary dataDictionary, TransactionController tc, UUID schemaId)
-		throws StandardException {
+        throws StandardException {
 
         char aliasType = AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR;
         char namespace = AliasInfo.ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR;

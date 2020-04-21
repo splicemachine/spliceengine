@@ -31,50 +31,50 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class SMWrappedRecordReader extends RecordReader<RowLocationWritable,ExecRowWritable> {
     protected static final Logger LOG = Logger.getLogger(SMWrappedRecordReader.class);
-	protected SMRecordReaderImpl delegate;
-	protected RowLocationWritable key; 
-	protected ExecRowWritable value;
-	
-	public SMWrappedRecordReader(SMRecordReaderImpl reader) {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "SMWrappedRecordReader with reader=%s",reader);
-		this.delegate = reader;	
-		this.key = new RowLocationWritable();
-		this.value = new ExecRowWritable(delegate.getExecRow());
-	}
+    protected SMRecordReaderImpl delegate;
+    protected RowLocationWritable key; 
+    protected ExecRowWritable value;
+    
+    public SMWrappedRecordReader(SMRecordReaderImpl reader) {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "SMWrappedRecordReader with reader=%s",reader);
+        this.delegate = reader;    
+        this.key = new RowLocationWritable();
+        this.value = new ExecRowWritable(delegate.getExecRow());
+    }
 
-	@Override
-	public void initialize(InputSplit split, TaskAttemptContext context)
-			throws IOException, InterruptedException {
-		delegate.initialize(split, context);
-	}
+    @Override
+    public void initialize(InputSplit split, TaskAttemptContext context)
+            throws IOException, InterruptedException {
+        delegate.initialize(split, context);
+    }
 
-	@Override
-	public boolean nextKeyValue() throws IOException, InterruptedException {
-		return delegate.nextKeyValue();
-	}
+    @Override
+    public boolean nextKeyValue() throws IOException, InterruptedException {
+        return delegate.nextKeyValue();
+    }
 
-	@Override
-	public RowLocationWritable getCurrentKey() throws IOException, InterruptedException {
-		key.set(delegate.getCurrentKey());
-		return key;
-	}
+    @Override
+    public RowLocationWritable getCurrentKey() throws IOException, InterruptedException {
+        key.set(delegate.getCurrentKey());
+        return key;
+    }
 
-	@Override
-	public ExecRowWritable getCurrentValue() throws IOException,
-			InterruptedException {
-		value.set(delegate.getCurrentValue());
-		return value;
-	}
+    @Override
+    public ExecRowWritable getCurrentValue() throws IOException,
+            InterruptedException {
+        value.set(delegate.getCurrentValue());
+        return value;
+    }
 
-	@Override
-	public float getProgress() throws IOException, InterruptedException {
-		return delegate.getProgress();
-	}
+    @Override
+    public float getProgress() throws IOException, InterruptedException {
+        return delegate.getProgress();
+    }
 
-	@Override
-	public void close() throws IOException {
-		 delegate.close();
-	}
+    @Override
+    public void close() throws IOException {
+         delegate.close();
+    }
 
 }

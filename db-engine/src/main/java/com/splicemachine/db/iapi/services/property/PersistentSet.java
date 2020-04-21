@@ -41,16 +41,16 @@ public interface PersistentSet
 {
     /**
      * Gets a value for a stored property. The returned value will be:
-	 *
-	 * <OL>
-	 * <LI> the de-serialized object associated with the key
-	 *      using setProperty if such a value is defined or
-	 * <LI> the default de-serialized object associated with
-	 *      the key using setPropertyDefault if such a value
-	 *      is defined or
-	 * <LI> null
-	 * </OL>
-	 *      
+     *
+     * <OL>
+     * <LI> the de-serialized object associated with the key
+     *      using setProperty if such a value is defined or
+     * <LI> the default de-serialized object associated with
+     *      the key using setPropertyDefault if such a value
+     *      is defined or
+     * <LI> null
+     * </OL>
+     *      
      * <p>
      * The Store provides a transaction protected list of database properties.
      * Higher levels of the system can store and retrieve these properties
@@ -60,25 +60,25 @@ public interface PersistentSet
      *
      * @param key     The "key" of the property that is being requested.
      *
-	 * @return object The requested object or null.
+     * @return object The requested object or null.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	Serializable getProperty(
-			String key)
+    Serializable getProperty(
+            String key)
         throws StandardException;
 
     /**
      * Gets a default value for a stored property. The returned
-	 * value will be:
-	 *
-	 * <OL>
-	 * <LI> the default de-serialized object associated with
-	 *      the key using setPropertyDefault if such a value
-	 *      is defined or
-	 * <LI> null
-	 * </OL>
-	 *      
+     * value will be:
+     *
+     * <OL>
+     * <LI> the default de-serialized object associated with
+     *      the key using setPropertyDefault if such a value
+     *      is defined or
+     * <LI> null
+     * </OL>
+     *      
      * <p>
      * The Store provides a transaction protected list of database properties.
      * Higher levels of the system can store and retrieve these properties
@@ -88,23 +88,23 @@ public interface PersistentSet
      *
      * @param key     The "key" of the property that is being requested.
      *
-	 * @return object The requested object or null.
+     * @return object The requested object or null.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	Serializable getPropertyDefault(
-			String key)
+    Serializable getPropertyDefault(
+            String key)
         throws StandardException;
 
 
     /**
      * Return true if the default property is visible. A default
-	 * is visible as long as the property is not set.
+     * is visible as long as the property is not set.
      *
      * @param key     The "key" of the property that is being requested.
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	boolean propertyDefaultIsVisible(String key) throws StandardException;
+    boolean propertyDefaultIsVisible(String key) throws StandardException;
 
     /**
      * Sets the Serializable object associated with a property key.
@@ -112,61 +112,61 @@ public interface PersistentSet
      * See the discussion of getProperty().
      * <p>
      * The value stored may be a Formatable object or a Serializable object
-	 * whose class name starts with java.*. This stops arbitary objects being
-	 * stored in the database by class name, which will cause problems in
-	 * obfuscated/non-obfuscated systems.
+     * whose class name starts with java.*. This stops arbitary objects being
+     * stored in the database by class name, which will cause problems in
+     * obfuscated/non-obfuscated systems.
      *
-	 * @param	key		The key used to lookup this property.
-	 * @param	value	The value to be associated with this key. If null, 
+     * @param    key        The key used to lookup this property.
+     * @param    value    The value to be associated with this key. If null, 
      *                  delete the property from the properties list.
-	   @param   dbOnlyProperty True if property is only ever searched for int the database properties.
+       @param   dbOnlyProperty True if property is only ever searched for int the database properties.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	void	setProperty(
-			String key,
-			Serializable value,
-			boolean dbOnlyProperty)
+    void    setProperty(
+            String key,
+            Serializable value,
+            boolean dbOnlyProperty)
         throws StandardException;
 
     /**
      * Sets the Serializable object default value associated with a property
-	 * key.
+     * key.
      * <p>
      * See the discussion of getProperty().
      * <p>
      * The value stored may be a Formatable object or a Serializable object
-	 * whose class name starts with java.*. This stops arbitary objects being
-	 * stored in the database by class name, which will cause problems in
-	 * obfuscated/non-obfuscated systems.
+     * whose class name starts with java.*. This stops arbitary objects being
+     * stored in the database by class name, which will cause problems in
+     * obfuscated/non-obfuscated systems.
      *
-	 * @param	key		The key used to lookup this propertyDefault.
-	 * @param	value	The default value to be associated with this key. 
+     * @param    key        The key used to lookup this propertyDefault.
+     * @param    value    The default value to be associated with this key. 
      *                  If null, delete the property default from the
-	 *                  properties list.
+     *                  properties list.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	void	setPropertyDefault(
-			String key,
-			Serializable value)
+    void    setPropertyDefault(
+            String key,
+            Serializable value)
         throws StandardException;
 
     /**
      * Get properties that can be stored in a java.util.Properties object.
      * <p>
-	 * Get the sub-set of stored properties that can be stored in a 
+     * Get the sub-set of stored properties that can be stored in a 
      * java.util.Properties object. That is all the properties that have a
      * value of type java.lang.String.  Changes to this properties object are
      * not reflected in any persisent storage.
      * <p>
      * Code must use the setProperty() method call.
      *
-	 * @return The sub-set of stored properties that can be stored in a 
+     * @return The sub-set of stored properties that can be stored in a 
      *         java.util.Propertes object.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	Properties getProperties()
+    Properties getProperties()
         throws StandardException;
 }

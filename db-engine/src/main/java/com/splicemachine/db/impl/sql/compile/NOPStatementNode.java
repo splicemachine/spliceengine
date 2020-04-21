@@ -43,31 +43,31 @@ import com.splicemachine.db.iapi.reference.SQLState;
 
 public class NOPStatementNode extends StatementNode
 {
-	public String statementToString()
-	{
-		return "NO-OP";
-	}
+    public String statementToString()
+    {
+        return "NO-OP";
+    }
 
-	/**
-	 * Bind this NOP statement.  This throws an exception, because NOP
-	 * statements by definition stop after parsing.
-	 *
-	 *
-	 * @exception StandardException		Always thrown to stop after parsing
-	 */
-	public void bindStatement() throws StandardException
-	{
-		/*
-		** Prevent this statement from getting to execution by throwing
-		** an exception during the bind phase.  This way, we don't
-		** have to generate a class.
-		*/
+    /**
+     * Bind this NOP statement.  This throws an exception, because NOP
+     * statements by definition stop after parsing.
+     *
+     *
+     * @exception StandardException        Always thrown to stop after parsing
+     */
+    public void bindStatement() throws StandardException
+    {
+        /*
+        ** Prevent this statement from getting to execution by throwing
+        ** an exception during the bind phase.  This way, we don't
+        ** have to generate a class.
+        */
 
-		throw StandardException.newException(SQLState.LANG_PARSE_ONLY);
-	}
+        throw StandardException.newException(SQLState.LANG_PARSE_ONLY);
+    }
 
-	int activationKind()
-	{
-		   return StatementNode.NEED_NOTHING_ACTIVATION;
-	}
+    int activationKind()
+    {
+           return StatementNode.NEED_NOTHING_ACTIVATION;
+    }
 }

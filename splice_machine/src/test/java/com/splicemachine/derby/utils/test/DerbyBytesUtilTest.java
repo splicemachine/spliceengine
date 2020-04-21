@@ -90,37 +90,37 @@ public class DerbyBytesUtilTest{
                 DerbyBytesUtil.generateScanKeyForIndex(descriptors,ScanController.GT,null,tableVersion,false))<0);
     }
 
-//	@Test
-//	public void testGenerateSortedHashScan() throws Exception {
-//		GenericScanQualifier gsq = new GenericScanQualifier();
-//		gsq.setQualifier(0, generateDataValueDescriptor("test1"),0,false,false,false);
-//		Qualifier[][] qs = new Qualifier[][] { new Qualifier[] { gsq } };
+//    @Test
+//    public void testGenerateSortedHashScan() throws Exception {
+//        GenericScanQualifier gsq = new GenericScanQualifier();
+//        gsq.setQualifier(0, generateDataValueDescriptor("test1"),0,false,false,false);
+//        Qualifier[][] qs = new Qualifier[][] { new Qualifier[] { gsq } };
 //
-//		byte[] bytes = DerbyBytesUtil.generateSortedHashScan(qs,
-//				gsq.getOrderable());
+//        byte[] bytes = DerbyBytesUtil.generateSortedHashScan(qs,
+//                gsq.getOrderable());
 //
-//		// check that it deserializes correctly
-//		 RowKey rowKey = DerbyBytesUtil.getRowKey(gsq.getOrderable());
-//		 Object o = rowKey.deserialize(bytes);
-//		 assertEquals(gsq.getOrderable().getString(),(String)o);
-//	}
+//        // check that it deserializes correctly
+//         RowKey rowKey = DerbyBytesUtil.getRowKey(gsq.getOrderable());
+//         Object o = rowKey.deserialize(bytes);
+//         assertEquals(gsq.getOrderable().getString(),(String)o);
+//    }
 
     //removed--tested in the Encoding tests
-//	@Test
-//	public void testComparingIncrementedSortedHashScan() throws Exception {
-//		GenericScanQualifier gsq = new GenericScanQualifier();
-//		gsq.setQualifier(0, generateDataValueDescriptor("test1"),0,false,false,false);
-//		Qualifier[][] qs = new Qualifier[][] { new Qualifier[] { gsq } };
+//    @Test
+//    public void testComparingIncrementedSortedHashScan() throws Exception {
+//        GenericScanQualifier gsq = new GenericScanQualifier();
+//        gsq.setQualifier(0, generateDataValueDescriptor("test1"),0,false,false,false);
+//        Qualifier[][] qs = new Qualifier[][] { new Qualifier[] { gsq } };
 //
-//		byte[] bytes = DerbyBytesUtil.generateSortedHashScan(qs,
-//				gsq.getOrderable());
+//        byte[] bytes = DerbyBytesUtil.generateSortedHashScan(qs,
+//                gsq.getOrderable());
 //
-//		// check that it deserializes correctly
-////		 RowKey rowKey = DerbyBytesUtil.getRowKey(gsq.getOrderable());
-////		 Object o = rowKey.deserialize(bytes);
-////		 assertEquals(gsq.getOrderable().getString(),(String)o);
+//        // check that it deserializes correctly
+////         RowKey rowKey = DerbyBytesUtil.getRowKey(gsq.getOrderable());
+////         Object o = rowKey.deserialize(bytes);
+////         assertEquals(gsq.getOrderable().getString(),(String)o);
 //
-//	}
+//    }
 
 
     @Test

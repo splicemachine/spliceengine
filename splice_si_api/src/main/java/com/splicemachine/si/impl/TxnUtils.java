@@ -24,25 +24,25 @@ import static com.splicemachine.si.constants.SIConstants.TRANSACTION_TABLE_BUCKE
  */
 public class TxnUtils {
 
-	private TxnUtils(){}
+    private TxnUtils(){}
 
-	public static byte[] getRowKey(long txnId) {
-		long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
-		byte[] rowKey = new byte[9];
-		rowKey[0] = (byte)((beginTS / SIConstants.TRASANCTION_INCREMENT) & (TRANSACTION_TABLE_BUCKET_COUNT-1));
-		Bytes.longToBytes(beginTS, rowKey, 1);
-		return rowKey;
-	}
+    public static byte[] getRowKey(long txnId) {
+        long beginTS = txnId & SIConstants.TRANSANCTION_ID_MASK;
+        byte[] rowKey = new byte[9];
+        rowKey[0] = (byte)((beginTS / SIConstants.TRASANCTION_INCREMENT) & (TRANSACTION_TABLE_BUCKET_COUNT-1));
+        Bytes.longToBytes(beginTS, rowKey, 1);
+        return rowKey;
+    }
 
 
-	public static long txnIdFromRowKey(byte[] buffer, int rowOffset, int rowLength) {
-		return Bytes.toLong(buffer, rowOffset + 1, rowLength - 1);
-	}
+    public static long txnIdFromRowKey(byte[] buffer, int rowOffset, int rowLength) {
+        return Bytes.toLong(buffer, rowOffset + 1, rowLength - 1);
+    }
 
-	public static byte[] getOldRowKey(long txnId) {
-		byte[] rowKey = new byte[9];
-		rowKey[0] = (byte) (txnId & (TRANSACTION_TABLE_BUCKET_COUNT - 1));
-		Bytes.longToBytes(txnId, rowKey, 1);
-		return rowKey;
-	}
+    public static byte[] getOldRowKey(long txnId) {
+        byte[] rowKey = new byte[9];
+        rowKey[0] = (byte) (txnId & (TRANSACTION_TABLE_BUCKET_COUNT - 1));
+        Bytes.longToBytes(txnId, rowKey, 1);
+        return rowKey;
+    }
 }

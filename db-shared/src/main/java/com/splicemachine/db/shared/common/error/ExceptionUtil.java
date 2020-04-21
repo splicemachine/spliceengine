@@ -35,87 +35,87 @@ package com.splicemachine.db.shared.common.error;
  */
 public class ExceptionUtil
 {
-   	/**
-	 *  Convert a message identifer from 
+       /**
+     *  Convert a message identifer from 
      *  com.splicemachine.db.shared.common.reference.SQLState to
-	 *  a SQLState five character string.
+     *  a SQLState five character string.
      *
-	 *	@param messageID - the sql state id of the message from Derby
-	 *	@return String 	 - the 5 character code of the SQLState ID to returned to the user 
-	*/
-	public static String getSQLStateFromIdentifier(String messageID) {
+     *    @param messageID - the sql state id of the message from Derby
+     *    @return String      - the 5 character code of the SQLState ID to returned to the user 
+    */
+    public static String getSQLStateFromIdentifier(String messageID) {
 
-		if (messageID.length() == 5)
-			return messageID;
-		return messageID.substring(0, 5);
-	}
+        if (messageID.length() == 5)
+            return messageID;
+        return messageID.substring(0, 5);
+    }
     
-   	/**
-	* Get the severity given a message identifier from SQLState.
-	*/
-	public static int getSeverityFromIdentifier(String messageID) {
+       /**
+    * Get the severity given a message identifier from SQLState.
+    */
+    public static int getSeverityFromIdentifier(String messageID) {
 
-		int lseverity = ExceptionSeverity.NO_APPLICABLE_SEVERITY;
+        int lseverity = ExceptionSeverity.NO_APPLICABLE_SEVERITY;
 
-		switch (messageID.length()) {
-		case 5:
-			switch (messageID.charAt(0)) {
-			case '0':
-				switch (messageID.charAt(1)) {
-				case '1':
-					lseverity = ExceptionSeverity.WARNING_SEVERITY;
-					break;
-				case 'A':
-				case '7':
-					lseverity = ExceptionSeverity.STATEMENT_SEVERITY;
-					break;
-				case '8':
-					lseverity = ExceptionSeverity.SESSION_SEVERITY;
-					break;
-				}
-				break;	
-			case '2':
-			case '3':
-				lseverity = ExceptionSeverity.STATEMENT_SEVERITY;
-				break;
-			case '4':
-				switch (messageID.charAt(1)) {
-				case '0':
-					lseverity = ExceptionSeverity.TRANSACTION_SEVERITY;
-					break;
-				case '2':
-					lseverity = ExceptionSeverity.STATEMENT_SEVERITY;
-					break;
-				}
-				break;	
-			}
-			break;
+        switch (messageID.length()) {
+        case 5:
+            switch (messageID.charAt(0)) {
+            case '0':
+                switch (messageID.charAt(1)) {
+                case '1':
+                    lseverity = ExceptionSeverity.WARNING_SEVERITY;
+                    break;
+                case 'A':
+                case '7':
+                    lseverity = ExceptionSeverity.STATEMENT_SEVERITY;
+                    break;
+                case '8':
+                    lseverity = ExceptionSeverity.SESSION_SEVERITY;
+                    break;
+                }
+                break;    
+            case '2':
+            case '3':
+                lseverity = ExceptionSeverity.STATEMENT_SEVERITY;
+                break;
+            case '4':
+                switch (messageID.charAt(1)) {
+                case '0':
+                    lseverity = ExceptionSeverity.TRANSACTION_SEVERITY;
+                    break;
+                case '2':
+                    lseverity = ExceptionSeverity.STATEMENT_SEVERITY;
+                    break;
+                }
+                break;    
+            }
+            break;
 
-		default:
-			switch (messageID.charAt(6)) {
-			case 'M':
-				lseverity = ExceptionSeverity.SYSTEM_SEVERITY;
-				break;
-			case 'D':
-				lseverity = ExceptionSeverity.DATABASE_SEVERITY;
-				break;
-			case 'C':
-				lseverity = ExceptionSeverity.SESSION_SEVERITY;
-				break;
-			case 'T':
-				lseverity = ExceptionSeverity.TRANSACTION_SEVERITY;
-				break;
-			case 'S':
-				lseverity = ExceptionSeverity.STATEMENT_SEVERITY;
-				break;
-			case 'U':
-				lseverity = ExceptionSeverity.NO_APPLICABLE_SEVERITY;
-				break;
-			}
-			break;
-		}
+        default:
+            switch (messageID.charAt(6)) {
+            case 'M':
+                lseverity = ExceptionSeverity.SYSTEM_SEVERITY;
+                break;
+            case 'D':
+                lseverity = ExceptionSeverity.DATABASE_SEVERITY;
+                break;
+            case 'C':
+                lseverity = ExceptionSeverity.SESSION_SEVERITY;
+                break;
+            case 'T':
+                lseverity = ExceptionSeverity.TRANSACTION_SEVERITY;
+                break;
+            case 'S':
+                lseverity = ExceptionSeverity.STATEMENT_SEVERITY;
+                break;
+            case 'U':
+                lseverity = ExceptionSeverity.NO_APPLICABLE_SEVERITY;
+                break;
+            }
+            break;
+        }
 
-		return lseverity;
-	}
+        return lseverity;
+    }
 
 }

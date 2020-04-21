@@ -158,96 +158,96 @@ public class Submitter {
      * Return a Submitter than only executes stock level transactions.
      */
     public static Submitter stockLevelOnly(Display display,
-    		Operations ops, OERandom rand,
+            Operations ops, OERandom rand,
             short maxW)
     {
-    	return new Submitter(display, ops, rand, maxW)
-		{
-			protected int mixType(final int chooseType)
-			{
-				return Submitter.STOCK_LEVEL;
-			}
-		};  	
+        return new Submitter(display, ops, rand, maxW)
+        {
+            protected int mixType(final int chooseType)
+            {
+                return Submitter.STOCK_LEVEL;
+            }
+        };      
     }
     /**
      * Return a Submitter than only executes order
      * status by identifier transactions.
      */
     public static Submitter orderStatusByIdOnly(Display display,
-    		Operations ops, OERandom rand,
+            Operations ops, OERandom rand,
             short maxW)
     {
-    	return new Submitter(display, ops, rand, maxW)
-		{
-			protected int mixType(final int chooseType)
-			{
-				return Submitter.ORDER_STATUS_BY_ID;
-			}
-		};  	
+        return new Submitter(display, ops, rand, maxW)
+        {
+            protected int mixType(final int chooseType)
+            {
+                return Submitter.ORDER_STATUS_BY_ID;
+            }
+        };      
     }
     /**
      * Return a Submitter than only executes order
      * status by name transactions.
      */
     public static Submitter orderStatusByNameOnly(Display display,
-    		Operations ops, OERandom rand,
+            Operations ops, OERandom rand,
             short maxW)
     {
-    	return new Submitter(display, ops, rand, maxW)
-		{
-			protected int mixType(final int chooseType)
-			{
-				return Submitter.ORDER_STATUS_BY_NAME;
-			}
-		};  	
+        return new Submitter(display, ops, rand, maxW)
+        {
+            protected int mixType(final int chooseType)
+            {
+                return Submitter.ORDER_STATUS_BY_NAME;
+            }
+        };      
     }    
     /**
      * Return a Submitter than only executes payment
      * by identifier transactions.
      */
     public static Submitter paymentByIdOnly(Display display,
-    		Operations ops, OERandom rand,
+            Operations ops, OERandom rand,
             short maxW)
     {
-    	return new Submitter(display, ops, rand, maxW)
-		{
-			protected int mixType(final int chooseType)
-			{
-				return Submitter.PAYMENT_BY_ID;
-			}
-		};  	
+        return new Submitter(display, ops, rand, maxW)
+        {
+            protected int mixType(final int chooseType)
+            {
+                return Submitter.PAYMENT_BY_ID;
+            }
+        };      
     }
     /**
      * Return a Submitter than only executes payment
      * by name transactions.
      */
     public static Submitter paymentByNameOnly(Display display,
-    		Operations ops, OERandom rand,
+            Operations ops, OERandom rand,
             short maxW)
     {
-    	return new Submitter(display, ops, rand, maxW)
-		{
-			protected int mixType(final int chooseType)
-			{
-				return Submitter.PAYMENT_BY_NAME;
-			}
-		};  	
+        return new Submitter(display, ops, rand, maxW)
+        {
+            protected int mixType(final int chooseType)
+            {
+                return Submitter.PAYMENT_BY_NAME;
+            }
+        };      
     }    
     /**
      * Return a Submitter than only executes new order
      * transactions with no rollback
      */
     public static Submitter newOrderOnly(Display display,
-    		Operations ops, OERandom rand,
+            Operations ops, OERandom rand,
             short maxW)
     {
-    	return new Submitter(display, ops, rand, maxW)
-		{
-			protected int mixType(final int chooseType)
-			{
-				return Submitter.NEW_ORDER;
-			}
-		};  	
+        return new Submitter(display, ops, rand, maxW)
+        {
+            protected int mixType(final int chooseType)
+            {
+                return Submitter.NEW_ORDER;
+            }
+        };      
     }        
     
     /**
@@ -379,51 +379,51 @@ public class Submitter {
     protected void runNewOrder(Object displayData, boolean forRollback)
         throws Exception
    {
-    	short homeWarehouse = warehouse();
-    	
-    	final int orderItemCount = rand.randomInt(5, 15);
-    	
-    	int[] items = new int[orderItemCount];
-    	short[] quantities = new short[orderItemCount];
-    	short[] supplyW = new short[orderItemCount];
-    	
-    	for (int i = 0; i < orderItemCount; i++)
-    	{
-    		// Section 2.4.1.5
-    		
-    		// 1)
-    		items[i] = rand.NURand8191();
-    		
-    		// 2)
-    		if (maxW == 1 || rand.randomInt(1, 100) > 1)
-    		{
-    			supplyW[i] = homeWarehouse;
-    		}
-    		else
-    		{
-    			short sw = warehouse();
-    			while (sw == homeWarehouse)
-    				sw = warehouse();
-    			supplyW[i] = sw;
-    		}
-    		supplyW[i] = rand.randomInt(1, 100) > 1 ?
-    				homeWarehouse : warehouse();
-    		
-    		// 3) 
-    		quantities[i] = (short) rand.randomInt(1, 10);
-    	}
-    	
-    	// Section 2.4.1.4
-    	if (forRollback)
-    	{
-    		items[orderItemCount - 1] = 2334432;
-    	}
-    	
+        short homeWarehouse = warehouse();
+        
+        final int orderItemCount = rand.randomInt(5, 15);
+        
+        int[] items = new int[orderItemCount];
+        short[] quantities = new short[orderItemCount];
+        short[] supplyW = new short[orderItemCount];
+        
+        for (int i = 0; i < orderItemCount; i++)
+        {
+            // Section 2.4.1.5
+            
+            // 1)
+            items[i] = rand.NURand8191();
+            
+            // 2)
+            if (maxW == 1 || rand.randomInt(1, 100) > 1)
+            {
+                supplyW[i] = homeWarehouse;
+            }
+            else
+            {
+                short sw = warehouse();
+                while (sw == homeWarehouse)
+                    sw = warehouse();
+                supplyW[i] = sw;
+            }
+            supplyW[i] = rand.randomInt(1, 100) > 1 ?
+                    homeWarehouse : warehouse();
+            
+            // 3) 
+            quantities[i] = (short) rand.randomInt(1, 10);
+        }
+        
+        // Section 2.4.1.4
+        if (forRollback)
+        {
+            items[orderItemCount - 1] = 2334432;
+        }
+        
         ops.newOrder(display, displayData,
-        		homeWarehouse, rand.district(),
-        		rand.NURand1023(),
-        		items, quantities, supplyW);
-        		
+                homeWarehouse, rand.district(),
+                rand.NURand1023(),
+                items, quantities, supplyW);
+                
     }
 
     protected void runScheduleDelivery(Object displayData) {
@@ -457,8 +457,8 @@ public class Submitter {
      * @return a random warehouse
      */
     private final short warehouse() {
-    	if (maxW == 1)
-    		return 1;
+        if (maxW == 1)
+            return 1;
         return (short) rand.randomInt(1, maxW);
     }
 

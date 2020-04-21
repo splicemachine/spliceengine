@@ -40,66 +40,66 @@ import com.splicemachine.db.tools.dblook;
 
 public class DB_View {
 
-	/* ************************************************
-	 * Generate the DDL for all views in a given
-	 * database.
-	 * @param conn Connection to the source database.
-	 * @return The DDL for the views has been written
-	 *  to output via Logs.java.
-	 ****/
+    /* ************************************************
+     * Generate the DDL for all views in a given
+     * database.
+     * @param conn Connection to the source database.
+     * @return The DDL for the views has been written
+     *  to output via Logs.java.
+     ****/
 
-	public static void doViews(Connection conn)
-		throws SQLException {
+    public static void doViews(Connection conn)
+        throws SQLException {
 
-		Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery("SELECT V.VIEWDEFINITION, " +
-			"T.TABLENAME, T.SCHEMAID, V.COMPILATIONSCHEMAID FROM SYS.SYSVIEWS V, " +
-			"SYS.SYSTABLES T WHERE T.TABLEID = V.TABLEID");
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT V.VIEWDEFINITION, " +
+            "T.TABLENAME, T.SCHEMAID, V.COMPILATIONSCHEMAID FROM SYS.SYSVIEWS V, " +
+            "SYS.SYSTABLES T WHERE T.TABLEID = V.TABLEID");
 
-		boolean firstTime = true;
-		while (rs.next()) {
+        boolean firstTime = true;
+        while (rs.next()) {
 
-			String viewSchema = dblook.lookupSchemaId(rs.getString(3));
-			if (dblook.isIgnorableSchema(viewSchema))
-				continue;
+            String viewSchema = dblook.lookupSchemaId(rs.getString(3));
+            if (dblook.isIgnorableSchema(viewSchema))
+                continue;
 
-			if (!dblook.stringContainsTargetTable(rs.getString(1)))
-				continue;
+            if (!dblook.stringContainsTargetTable(rs.getString(1)))
+                continue;
 
-			if (firstTime) {
-				Logs.reportString("----------------------------------------------");
-				Logs.reportMessage("DBLOOK_ViewsHeader");
-				Logs.reportString("----------------------------------------------\n");
-			}
+            if (firstTime) {
+                Logs.reportString("----------------------------------------------");
+                Logs.reportMessage("DBLOOK_ViewsHeader");
+                Logs.reportString("----------------------------------------------\n");
+            }
 
-			// We are using the exact text that was entered by the user,
-			// which means the view name that is given might not include
-			// the schema in which the view was created.  So, we change
-			// our schema to be the one in which the view was created
-			// before we execute the create statement.
-			Logs.writeToNewDDL("SET SCHEMA ");
-			Logs.writeToNewDDL(dblook.lookupSchemaId(rs.getString(4)));
-			Logs.writeStmtEndToNewDDL();
+            // We are using the exact text that was entered by the user,
+            // which means the view name that is given might not include
+            // the schema in which the view was created.  So, we change
+            // our schema to be the one in which the view was created
+            // before we execute the create statement.
+            Logs.writeToNewDDL("SET SCHEMA ");
+            Logs.writeToNewDDL(dblook.lookupSchemaId(rs.getString(4)));
+            Logs.writeStmtEndToNewDDL();
 
-			// Now, go ahead and create the view.
-			Logs.writeToNewDDL(dblook.removeNewlines(rs.getString(1)));
-			Logs.writeStmtEndToNewDDL();
-			Logs.writeNewlineToNewDDL();
-			firstTime = false;
+            // Now, go ahead and create the view.
+            Logs.writeToNewDDL(dblook.removeNewlines(rs.getString(1)));
+            Logs.writeStmtEndToNewDDL();
+            Logs.writeNewlineToNewDDL();
+            firstTime = false;
 
-		}
+        }
 
-		// Set schema back to default ("SPLICE").
-		if (!firstTime) {
-			Logs.reportMessage("DBLOOK_DefaultSchema");
-			Logs.writeToNewDDL("SET SCHEMA \"SPLICE\"");
-			Logs.writeStmtEndToNewDDL();
-			Logs.writeNewlineToNewDDL();
-		}
+        // Set schema back to default ("SPLICE").
+        if (!firstTime) {
+            Logs.reportMessage("DBLOOK_DefaultSchema");
+            Logs.writeToNewDDL("SET SCHEMA \"SPLICE\"");
+            Logs.writeStmtEndToNewDDL();
+            Logs.writeNewlineToNewDDL();
+        }
 
-		rs.close();
-		stmt.close();
+        rs.close();
+        stmt.close();
 
-	}
+    }
 
 }

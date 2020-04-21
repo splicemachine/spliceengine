@@ -39,59 +39,59 @@ package com.splicemachine.db.iapi.sql;
 
 public interface ResultDescription
 {
-	/**
-	 * Returns an identifier that tells what type of statement has been
-	 * executed. This can be used to determine what other methods to call
-	 * to get the results back from a statement. For example, a SELECT
-	 * statement returns rows and columns, while other statements don't,
-	 * so you would only call getColumnCount() or getColumnType() for
-	 * SELECT statements.
-	 *
-	 * @return	A String identifier telling what type of statement this
-	 *		is.
-	 */
-	String	getStatementType();	
+    /**
+     * Returns an identifier that tells what type of statement has been
+     * executed. This can be used to determine what other methods to call
+     * to get the results back from a statement. For example, a SELECT
+     * statement returns rows and columns, while other statements don't,
+     * so you would only call getColumnCount() or getColumnType() for
+     * SELECT statements.
+     *
+     * @return    A String identifier telling what type of statement this
+     *        is.
+     */
+    String    getStatementType();    
 
-	/**
-	 * Returns the number of columns in the result set.
-	 *
-	 * @return	The number of columns in the result set.
-	 */
-	int	getColumnCount();
+    /**
+     * Returns the number of columns in the result set.
+     *
+     * @return    The number of columns in the result set.
+     */
+    int    getColumnCount();
 
-	/**
-		Return information about all the columns.
-	*/
-	ResultColumnDescriptor[] getColumnInfo();
+    /**
+        Return information about all the columns.
+    */
+    ResultColumnDescriptor[] getColumnInfo();
 
-	/**
-	 * Returns a ResultColumnDescriptor for the column, given the ordiinal
-	 * position of the column.
-	 * NOTE - position is 1-based.
-	 *
-	 * @param position	The oridinal position of a column in the
-	 *			ResultSet.
-	 *
-	 * @return		A ResultColumnDescriptor describing the
-	 *			column in the ResultSet.
-	 */
-	ResultColumnDescriptor	getColumnDescriptor(int position);
+    /**
+     * Returns a ResultColumnDescriptor for the column, given the ordiinal
+     * position of the column.
+     * NOTE - position is 1-based.
+     *
+     * @param position    The oridinal position of a column in the
+     *            ResultSet.
+     *
+     * @return        A ResultColumnDescriptor describing the
+     *            column in the ResultSet.
+     */
+    ResultColumnDescriptor    getColumnDescriptor(int position);
 
-	/**
-	 * Get a new result description that has been truncated
-	 * from input column number.   If the input column is
-	 * 5, then columns 5 to getColumnCount() are removed.
-	 * The new ResultDescription points to the same
-	 * ColumnDescriptors (this method performs a shallow
-	 * copy. The saved JDBC ResultSetMetaData will
+    /**
+     * Get a new result description that has been truncated
+     * from input column number.   If the input column is
+     * 5, then columns 5 to getColumnCount() are removed.
+     * The new ResultDescription points to the same
+     * ColumnDescriptors (this method performs a shallow
+     * copy. The saved JDBC ResultSetMetaData will
      * not be copied.
-	 *
-	 * @param truncateFrom the starting column to remove,
-	 * 1-based.
-	 *
-	 * @return a new ResultDescription
-	 */
-	ResultDescription truncateColumns(int truncateFrom);
+     *
+     * @param truncateFrom the starting column to remove,
+     * 1-based.
+     *
+     * @return a new ResultDescription
+     */
+    ResultDescription truncateColumns(int truncateFrom);
     
     /**
      * Set the JDBC ResultSetMetaData for this ResultDescription.
@@ -108,7 +108,7 @@ public interface ResultDescription
      * It is assumed the JDBC layer passes in a ResultSetMetaData
      * object based upon this.
      */
-	void setMetaData(java.sql.ResultSetMetaData rsmd);
+    void setMetaData(java.sql.ResultSetMetaData rsmd);
     
     /**
      * Get the saved JDBC ResultSetMetaData. Will return
@@ -116,7 +116,7 @@ public interface ResultDescription
      * object. The caller then should manufacture a
      * ResultSetMetaData object and pass it into setMetaData.
      */
-	java.sql.ResultSetMetaData getMetaData();
+    java.sql.ResultSetMetaData getMetaData();
     
     /**
      * Return the position of the column matching the
@@ -128,5 +128,5 @@ public interface ResultDescription
      * @param name
      * @return Position of the column (1-based), -1 if no match.
      */
-	int findColumnInsenstive(String name);
+    int findColumnInsenstive(String name);
 }

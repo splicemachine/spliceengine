@@ -49,9 +49,9 @@ import java.io.IOException;
 class ImportClob implements java.sql.Clob {
 
     private ImportLobFile lobFile;
-	private long position; // postion in the import file in bytes.
+    private long position; // postion in the import file in bytes.
     private long length;  // length in bytes
-	private long clobLength; // length of clob in chars. 
+    private long clobLength; // length of clob in chars. 
     private String clobData = null;
 
 
@@ -64,12 +64,12 @@ class ImportClob implements java.sql.Clob {
      */
     public ImportClob(ImportLobFile lobFile, long position, long length) 
         throws IOException 
-	{
-		this.lobFile = lobFile;
-		this.position = position;
+    {
+        this.lobFile = lobFile;
+        this.position = position;
         this.length = length;
-		this.clobLength = lobFile.getClobDataLength(position, length);
-	}
+        this.clobLength = lobFile.getClobDataLength(position, length);
+    }
 
 
     /**
@@ -88,9 +88,9 @@ class ImportClob implements java.sql.Clob {
    * @return length of the <code>CLOB</code> in characters
    * @exception SQLException on any error.
    */
-	public long length() throws SQLException {
-		return clobLength;
-	}
+    public long length() throws SQLException {
+        return clobLength;
+    }
 
 
     /**
@@ -116,9 +116,9 @@ class ImportClob implements java.sql.Clob {
             } else {
                 return lobFile.getCharacterStream(position, length);
             }
-		} catch (Exception e) {
-			throw LoadError.unexpectedError(e);
-		}
+        } catch (Exception e) {
+            throw LoadError.unexpectedError(e);
+        }
     }
 
 

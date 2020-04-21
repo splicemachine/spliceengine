@@ -47,73 +47,73 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
  */
 public class WindowFunctionInfoList extends Vector<WindowFunctionInfo> implements Formatable
 {
-	/********************************************************
-	**
-	**	This class implements Formatable. That means that it
-	**	can write itself to and from a formatted stream. If
-	**	you add more fields to this class, make sure that you
-	**	also write/read them with the writeExternal()/readExternal()
-	**	methods.
-	**
-	**	If, inbetween releases, you add more fields to this class,
-	**	then you should bump the version number emitted by the getTypeFormatId()
-	**	method.  OR, since this is something that is used
-	**	in stored prepared statements, it is ok to change it
-	**	if you make sure that stored prepared statements are
-	**	invalidated across releases.
-	**
-	********************************************************/
+    /********************************************************
+    **
+    **    This class implements Formatable. That means that it
+    **    can write itself to and from a formatted stream. If
+    **    you add more fields to this class, make sure that you
+    **    also write/read them with the writeExternal()/readExternal()
+    **    methods.
+    **
+    **    If, inbetween releases, you add more fields to this class,
+    **    then you should bump the version number emitted by the getTypeFormatId()
+    **    method.  OR, since this is something that is used
+    **    in stored prepared statements, it is ok to change it
+    **    if you make sure that stored prepared statements are
+    **    invalidated across releases.
+    **
+    ********************************************************/
 
-	/**
-	 * Niladic constructor for Formatable
-	 */
-	public WindowFunctionInfoList() {}
+    /**
+     * Niladic constructor for Formatable
+     */
+    public WindowFunctionInfoList() {}
 
-	//////////////////////////////////////////////
-	//
-	// FORMATABLE
-	//
-	//////////////////////////////////////////////
+    //////////////////////////////////////////////
+    //
+    // FORMATABLE
+    //
+    //////////////////////////////////////////////
 
-	/** @exception  java.io.IOException thrown on error */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		int count = size();
-		out.writeInt(count);
-		for (int i = 0; i < count; i++)
-		{
-			out.writeObject(elementAt(i));
-		}
-	}
+    /** @exception  java.io.IOException thrown on error */
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        int count = size();
+        out.writeInt(count);
+        for (int i = 0; i < count; i++)
+        {
+            out.writeObject(elementAt(i));
+        }
+    }
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception java.io.IOException on error
-	 * @exception ClassNotFoundException on error	
-	 */
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
-	{
-		int count = in.readInt();
+    /**
+     * @see java.io.Externalizable#readExternal
+     *
+     * @exception java.io.IOException on error
+     * @exception ClassNotFoundException on error    
+     */
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
+    {
+        int count = in.readInt();
 
-		ensureCapacity(count);
-		for (int i = 0; i < count; i++)
-		{
+        ensureCapacity(count);
+        for (int i = 0; i < count; i++)
+        {
             WindowFunctionInfo info = (WindowFunctionInfo)in.readObject();
-			addElement(info);
-		}	
-	}
+            addElement(info);
+        }    
+    }
 
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.AGG_INFO_LIST_V01_ID; }
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId()    { return StoredFormatIds.AGG_INFO_LIST_V01_ID; }
 
-	///////////////////////////////////////////////////////////////
-	//
-	// OBJECT INTERFACE
-	//
-	///////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////
+    //
+    // OBJECT INTERFACE
+    //
+    ///////////////////////////////////////////////////////////////
 }

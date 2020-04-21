@@ -58,83 +58,83 @@ import com.splicemachine.dbTesting.functionTests.util.TestUtil;
 public class RunList
 {
 
-	static String jvmName = "currentjvm";
-	static String javaCmd = "java";
-	static String javaArgs;
-	static jvm jvm;
-	static String javaVersion; // System.getProperty("java.version")
-	static String majorVersion;
-	static String minorVersion;
-	static String jversion; // to pass jvm to RunTest as -Djvm=1.2 etc.
-	static int iminor;
-	static int imajor;
-	static boolean skip = false;
-	static boolean driverNotFound = false;
-	static boolean needSync = false;
-	static boolean needJdk12 = false;
-	static boolean needJdk12ext = false;
-	static boolean excludedFromJCC = false;
-	static String clientExclusionMessage;
-	static Boolean needIBMjvm = null;
-	static boolean needEncryption = false;
-	static String jvmflags;
-	static String testJavaFlags;
-	static String classpath;
-	static String classpathServer;
+    static String jvmName = "currentjvm";
+    static String javaCmd = "java";
+    static String javaArgs;
+    static jvm jvm;
+    static String javaVersion; // System.getProperty("java.version")
+    static String majorVersion;
+    static String minorVersion;
+    static String jversion; // to pass jvm to RunTest as -Djvm=1.2 etc.
+    static int iminor;
+    static int imajor;
+    static boolean skip = false;
+    static boolean driverNotFound = false;
+    static boolean needSync = false;
+    static boolean needJdk12 = false;
+    static boolean needJdk12ext = false;
+    static boolean excludedFromJCC = false;
+    static String clientExclusionMessage;
+    static Boolean needIBMjvm = null;
+    static boolean needEncryption = false;
+    static String jvmflags;
+    static String testJavaFlags;
+    static String classpath;
+    static String classpathServer;
     static String framework;
     static String usesystem;
     static String upgradetest;
     static String jarfile;
     static String useoutput;
-	static String keepfiles = "false";
-	static String encryption;
-	static String testEncryptionProvider;
-	static String testEncryptionAlgorithm;
-	static String jdk12test;
-	static String jdk12exttest;
-	static String runwithibmjvm = null;
-	static String runwithj9;
-	static String runwithjvm;
-	static String excludeJCC;
-	static boolean useprocess = true;
-	static String skipsed = "false";
-	static boolean fw_set = false;
-	static String systemdiff = "false";
-	static String suiteName = "";
-	static String fullsuiteName = "";
-	static String topSuiteName = ""; // The very top suite creating RunLists
-	static String topParentSuite = ""; // The "subparent" of the very top suite
-	static String topSpecialProps = ""; // special properties at the top suite
-	static String otherSpecialProps = ""; // special properties (individual suite)
-	static String ijdefaultResourcePackage; // for ij tests, the package resource
-	static String outcopy; // cases where copyfiles should go to outDir
-	static String userdir; // current user directory
-	static String mtestdir; // required by multi tests
-	static boolean verbose = false; // for debug output
-	static String reportstderr;
-	static String timeout;
-	static String shutdownurl;
+    static String keepfiles = "false";
+    static String encryption;
+    static String testEncryptionProvider;
+    static String testEncryptionAlgorithm;
+    static String jdk12test;
+    static String jdk12exttest;
+    static String runwithibmjvm = null;
+    static String runwithj9;
+    static String runwithjvm;
+    static String excludeJCC;
+    static boolean useprocess = true;
+    static String skipsed = "false";
+    static boolean fw_set = false;
+    static String systemdiff = "false";
+    static String suiteName = "";
+    static String fullsuiteName = "";
+    static String topSuiteName = ""; // The very top suite creating RunLists
+    static String topParentSuite = ""; // The "subparent" of the very top suite
+    static String topSpecialProps = ""; // special properties at the top suite
+    static String otherSpecialProps = ""; // special properties (individual suite)
+    static String ijdefaultResourcePackage; // for ij tests, the package resource
+    static String outcopy; // cases where copyfiles should go to outDir
+    static String userdir; // current user directory
+    static String mtestdir; // required by multi tests
+    static boolean verbose = false; // for debug output
+    static String reportstderr;
+    static String timeout;
+    static String shutdownurl;
     static PrintWriter pwOut; // for writing suite output
-	static String outputdir; // location of output (default is userdir)
-	static String topsuitedir; // for nested suites, need top output location
-	static String topreportdir; // where to place the .pass and .fail files
-	static String canondir; // location of masters (default is master)
-	static String bootcp; // for j9 bootclasspath
-	static String serverJvm; // for starting another jvm for networkserver, j9 default.
-	static String serverJvmName; // for starting another jvm for networkserver, j9_22 default.
+    static String outputdir; // location of output (default is userdir)
+    static String topsuitedir; // for nested suites, need top output location
+    static String topreportdir; // where to place the .pass and .fail files
+    static String canondir; // location of masters (default is master)
+    static String bootcp; // for j9 bootclasspath
+    static String serverJvm; // for starting another jvm for networkserver, j9 default.
+    static String serverJvmName; // for starting another jvm for networkserver, j9_22 default.
     static File outDir; // test out dir
     static File outFile; // suite output file
     static File runDir; // location of suite.runall (list of tests)
-	static File runFile; // suite.runall file
-	static Properties suiteProperties;
-	static Properties specialProperties; // for testSpecialProps
-	static BufferedReader runlistFile;
-	static String hostName;
-	static String testEncoding;	// Encoding used for child jvm and to read the test output 
-	static String upgradejarpath;	// Encoding used for child jvm and to read the test output 
+    static File runFile; // suite.runall file
+    static Properties suiteProperties;
+    static Properties specialProperties; // for testSpecialProps
+    static BufferedReader runlistFile;
+    static String hostName;
+    static String testEncoding;    // Encoding used for child jvm and to read the test output 
+    static String upgradejarpath;    // Encoding used for child jvm and to read the test output 
         static String derbyTestingXaSingle;// Run junit test cases with under 
                                            // single branck xa transaction
-	
+    
     static String [] clientExclusionKeywords = {
         "at-or-before:", "at-or-after:", "when-at-or-before:jdk",
         "when-at-or-after:jdk", "when:jdk"
@@ -261,19 +261,19 @@ public class RunList
                     pwOut.println("Framework: No special framework.");
 
                 // Create the file to list the suites that get skipped
-	            File f = new File(outDir, topSuiteName);
-	            File skipFile = new File(f, topSuiteName+".skip");
+                File f = new File(outDir, topSuiteName);
+                File skipFile = new File(f, topSuiteName+".skip");
 
-		    //we catch an IOException here to work around a jvm bug on the Psion.
-		    PrintStream ps = null;
-		    try { ps = new PrintStream
-		            ( new FileOutputStream(skipFile.getCanonicalPath(),true) ); }
-		    catch (IOException e) {
-			FileWriter fw = new FileWriter(skipFile);
-			fw.close();
-			ps = new PrintStream
-			    ( new FileOutputStream(skipFile.getCanonicalPath(),true) );
-		    }
+            //we catch an IOException here to work around a jvm bug on the Psion.
+            PrintStream ps = null;
+            try { ps = new PrintStream
+                    ( new FileOutputStream(skipFile.getCanonicalPath(),true) ); }
+            catch (IOException e) {
+            FileWriter fw = new FileWriter(skipFile);
+            fw.close();
+            ps = new PrintStream
+                ( new FileOutputStream(skipFile.getCanonicalPath(),true) );
+            }
 
                 // Due to autoloading of JDBC drivers introduced in JDBC4
                 // (see DERBY-930) the embedded driver and Derby engine
@@ -289,23 +289,23 @@ public class RunList
                 //System.out.println("shutdownurl: " + shutdownurl);
 
                 if (skip) // Skip a suite under certain environments
-				{
-				    addToSkipFile(topSuiteName+":"+fullsuiteName, ps);
-					if(driverNotFound)
-                    	pwOut.println("Cannot run the suite, framework driver not found");
-					else if(needSync)
-                    	pwOut.println("Cannot run the suite, sync product not found");
-					else if(needJdk12ext)
-                    	pwOut.println("Cannot run the suite, requires jdk12 or higher with extensions");
-					else if(needJdk12)
-                    	pwOut.println("Cannot run the suite, requires jdk12 or higher, have jdk" + javaVersion);
-					else if(excludedFromJCC)
-                    	pwOut.println(clientExclusionMessage);
-					else if((needIBMjvm == null || needIBMjvm.booleanValue() == false))
-                    	pwOut.println("Cannot run the suite, requires IBM jvm, jvm vendor is " + System.getProperty("java.vendor"));
-					else
-                    	pwOut.println("Cannot run the suite, have jdk" + javaVersion);
-				 }
+                {
+                    addToSkipFile(topSuiteName+":"+fullsuiteName, ps);
+                    if(driverNotFound)
+                        pwOut.println("Cannot run the suite, framework driver not found");
+                    else if(needSync)
+                        pwOut.println("Cannot run the suite, sync product not found");
+                    else if(needJdk12ext)
+                        pwOut.println("Cannot run the suite, requires jdk12 or higher with extensions");
+                    else if(needJdk12)
+                        pwOut.println("Cannot run the suite, requires jdk12 or higher, have jdk" + javaVersion);
+                    else if(excludedFromJCC)
+                        pwOut.println(clientExclusionMessage);
+                    else if((needIBMjvm == null || needIBMjvm.booleanValue() == false))
+                        pwOut.println("Cannot run the suite, requires IBM jvm, jvm vendor is " + System.getProperty("java.vendor"));
+                    else
+                        pwOut.println("Cannot run the suite, have jdk" + javaVersion);
+                 }
                 else
                 {
                     System.out.println("Run the tests...");
@@ -320,9 +320,9 @@ public class RunList
                         {
                             // need to rename the directory
                             // such as kimono -- rename to convertKimono
-			    String tmpname = jarfile.substring(0, jarfile.indexOf("JAR"));
+                String tmpname = jarfile.substring(0, jarfile.indexOf("JAR"));
                             File tmp = new File(outDir, tmpname);
-			    File convert = new File(outDir, usesystem);
+                File convert = new File(outDir, usesystem);
                             boolean renamed = tmp.renameTo(convert);
                             //System.out.println("renamed: " + renamed);
                         }
@@ -346,30 +346,30 @@ public class RunList
     private static void runTests(Properties suiteProps, String suite)
         throws IOException, Exception
     {
-	    // save a copy of the system properties at this point; when runing with
-	    // java threads we need to reset the system properties to this list;
-	    // otherwise we start to accumulate extraneous properties from
-	    // individual tests (does not happen with exec (useprocess==true)
-	    // because each test case has its own fresh VM
-	    ManageSysProps.saveSysProps();
+        // save a copy of the system properties at this point; when runing with
+        // java threads we need to reset the system properties to this list;
+        // otherwise we start to accumulate extraneous properties from
+        // individual tests (does not happen with exec (useprocess==true)
+        // because each test case has its own fresh VM
+        ManageSysProps.saveSysProps();
 
         // Build command string for RunTest()
         StringBuilder sb = new StringBuilder();
-	    jvm = jvm.getJvm(jvmName);
-	    Vector jvmProps = new Vector();
-	    if ((!javaCmd.isEmpty()) )
-	    {
-	        jvm.setJavaCmd(javaCmd);
-	        jvmProps.addElement("javaCmd=" + javaCmd);
-	    }
+        jvm = jvm.getJvm(jvmName);
+        Vector jvmProps = new Vector();
+        if ((!javaCmd.isEmpty()) )
+        {
+            jvm.setJavaCmd(javaCmd);
+            jvmProps.addElement("javaCmd=" + javaCmd);
+        }
         if ( (testJavaFlags != null) && (!testJavaFlags.isEmpty()) )
             jvmProps.addElement("testJavaFlags=" + testJavaFlags);
-	    if (classpath != null)
-	        jvmProps.addElement("classpath=" + classpath);
-	    if (classpathServer != null)
-	        jvmProps.addElement("classpathServer=" + classpathServer);
-	    if (jversion != null)
-	        jvmProps.addElement("jvm=" + jversion);
+        if (classpath != null)
+            jvmProps.addElement("classpath=" + classpath);
+        if (classpathServer != null)
+            jvmProps.addElement("classpathServer=" + classpathServer);
+        if (jversion != null)
+            jvmProps.addElement("jvm=" + jversion);
         if (framework != null)
             jvmProps.addElement("framework=" + framework);
         if (usesystem != null)
@@ -397,7 +397,7 @@ public class RunList
         if ( (timeout != null) && (!timeout.isEmpty()) )
         {
             if (useprocess)
-			{
+            {
                 jvmProps.addElement("timeout=" + timeout);            
             }
             else
@@ -405,8 +405,8 @@ public class RunList
                 com.splicemachine.dbTesting.functionTests.harness.RunTest.timeoutStr = timeout;
             }
         }
-		if (Boolean.getBoolean("listOnly"))
-			jvmProps.addElement("listOnly=true");
+        if (Boolean.getBoolean("listOnly"))
+            jvmProps.addElement("listOnly=true");
 
         if (encryption != null)
             jvmProps.addElement("encryption=" + encryption);
@@ -445,7 +445,7 @@ public class RunList
         if (upgradejarpath != null)
             jvmProps.addElement("derbyTesting.jar.path=" + upgradejarpath);
         if ( (hostName != null) && (!hostName.isEmpty()) )
-        	jvmProps.addElement("hostName=" + hostName);
+            jvmProps.addElement("hostName=" + hostName);
         if ( useprocess == false )
             jvmProps.addElement("useprocess=false");
         if ( skipsed.equals("true") )
@@ -482,9 +482,9 @@ public class RunList
         Properties sysProps = System.getProperties();
         for (Enumeration e = sysProps.keys(); e.hasMoreElements(); )
         {
-        	String key = (String) e.nextElement();
-        	if (key.startsWith("ij.dataSource"))
-        		jvmProps.addElement(key + "=" +  sysProps.getProperty(key)); 		
+            String key = (String) e.nextElement();
+            if (key.startsWith("ij.dataSource"))
+                jvmProps.addElement(key + "=" +  sysProps.getProperty(key));         
         }
 
         jvmProps.addElement("suitename=" + suite);
@@ -500,19 +500,19 @@ public class RunList
         v.addElement("com.splicemachine.dbTesting.functionTests.harness.RunTest");
 
         String str = "";
-	    String lastTest = null;
-	    String skipTo = System.getProperties().getProperty("skipToFile");
-	    String stopAfter = System.getProperties().getProperty("stopAfterFile");
+        String lastTest = null;
+        String skipTo = System.getProperties().getProperty("skipToFile");
+        String stopAfter = System.getProperties().getProperty("stopAfterFile");
         // Read the individual tests
         // Example: "lang/avg.sql" or "conn/resultset.java"
         while ( (str = runlistFile.readLine()) != null )
         {
-	        // skip tests if specified
-	        if (skipTo != null && !str.equals(skipTo)) 
-	            continue;
-	        else 
-		        skipTo = null;
-	        if (stopAfter != null && lastTest != null && lastTest.equals(stopAfter)) break;
+            // skip tests if specified
+            if (skipTo != null && !str.equals(skipTo)) 
+                continue;
+            else 
+                skipTo = null;
+            if (stopAfter != null && lastTest != null && lastTest.equals(stopAfter)) break;
             // Create the command for RunTest
             // Create a string array from the vector
             String testCmd[] = new String[v.size() + 1];
@@ -528,16 +528,16 @@ public class RunList
             //if (verbose) 
                 //System.out.println("Execute command: " + verboseSb.toString());
 
-	        String uc = System.getProperties().getProperty("useCommonDB");
-		    if (uc == null) uc = "false";
+            String uc = System.getProperties().getProperty("useCommonDB");
+            if (uc == null) uc = "false";
             if ( useprocess == true && uc.equals("true")==false)
             {
                 System.out.println("Execute command: " + verboseSb.toString());
 
                 // Now execute the command to run the test
-        		Process pr = null;
-        		try
-        		{
+                Process pr = null;
+                try
+                {
                     pr = Runtime.getRuntime().exec(testCmd);
 
                     // We need the process inputstream to capture into the output file
@@ -611,10 +611,10 @@ public class RunList
                 }
 
             }
-	    // reset the system properties to prevent confusion
-	    // when running with java threads
-	    ManageSysProps.resetSysProps();
-	    lastTest = str;
+        // reset the system properties to prevent confusion
+        // when running with java threads
+        ManageSysProps.resetSysProps();
+        lastTest = str;
         }
 
         // If useprocess is false, and this is a networkserver test,
@@ -689,11 +689,11 @@ public class RunList
             // And do the same for jdk12test
             jdk12test = parentProps.getProperty("jdk12test");
             jdk12exttest = parentProps.getProperty("jdk12exttest");
-	        runwithj9 = parentProps.getProperty("runwithj9");
+            runwithj9 = parentProps.getProperty("runwithj9");
             runwithibmjvm = parentProps.getProperty("runwithibmjvm");
             String testJVM = jvmName;
             if (jvmName.startsWith("j9") && (!jvmName.startsWith("j9dee")))
-            	testJVM = (jvmName.startsWith("j9_foundation") ? "foundation" : "j9");            
+                testJVM = (jvmName.startsWith("j9_foundation") ? "foundation" : "j9");            
             runwithjvm = parentProps.getProperty("runwith" + testJVM);
             excludeJCC = parentProps.getProperty("excludeJCC");
         }                
@@ -708,42 +708,42 @@ public class RunList
     private static void setTopSuiteProperties()
         throws ClassNotFoundException, IOException
     {
-		framework = suiteProperties.getProperty("framework");
-		
-		jversion = suiteProperties.getProperty("jversion");
-		//System.out.println("RunList top jversion= " + jversion);
-		
-		jvmName = suiteProperties.getProperty("jvm");
-		String j9config = System.getProperty("com.ibm.oti.configuration");	
-		if (j9config != null)
-			if (j9config.equals("foun10")) 
-				jvmName="j9_foundation";
-			else if (j9config.equals("foun11"))
-				jvmName="j9_foundation11";
-			else if (j9config.equals("max"))
-				jvmName="j9_13";
-			else if (j9config.equals("dee"))
-				jvmName="j9dee15";
+        framework = suiteProperties.getProperty("framework");
+        
+        jversion = suiteProperties.getProperty("jversion");
+        //System.out.println("RunList top jversion= " + jversion);
+        
+        jvmName = suiteProperties.getProperty("jvm");
+        String j9config = System.getProperty("com.ibm.oti.configuration");    
+        if (j9config != null)
+            if (j9config.equals("foun10")) 
+                jvmName="j9_foundation";
+            else if (j9config.equals("foun11"))
+                jvmName="j9_foundation11";
+            else if (j9config.equals("max"))
+                jvmName="j9_13";
+            else if (j9config.equals("dee"))
+                jvmName="j9dee15";
 
-		if (jversion == null)
-		    javaVersion = System.getProperty("java.version");
-		else
-		    javaVersion = jversion;
-		    
-		//System.out.println("RunList setTopSuiteProperties javaVersion: " + javaVersion);
+        if (jversion == null)
+            javaVersion = System.getProperty("java.version");
+        else
+            javaVersion = jversion;
+            
+        //System.out.println("RunList setTopSuiteProperties javaVersion: " + javaVersion);
 
-		javaCmd = suiteProperties.getProperty("javaCmd");
-		if (javaCmd == null)
-		    javaCmd = "java";
-		else if (javaCmd.equals("jview"))
-		    jvmName = "jview";
+        javaCmd = suiteProperties.getProperty("javaCmd");
+        if (javaCmd == null)
+            javaCmd = "java";
+        else if (javaCmd.equals("jview"))
+            jvmName = "jview";
 
-		// if j9, we need to check further
-		String javavmVersion;
-		if (System.getProperty("java.vm.name").equals("J9"))
-			javavmVersion = (System.getProperty("java.vm.version"));
-		else
-			javavmVersion = javaVersion;
+        // if j9, we need to check further
+        String javavmVersion;
+        if (System.getProperty("java.vm.name").equals("J9"))
+            javavmVersion = (System.getProperty("java.vm.version"));
+        else
+            javavmVersion = javaVersion;
 
 
         JavaVersionHolder jvh = new JavaVersionHolder(javavmVersion);
@@ -752,81 +752,81 @@ public class RunList
         iminor = jvh.getMinorNumber();
         imajor = jvh.getMajorNumber();
 
-		if ( (jvmName == null) || (jvmName.equals("jview")) )
-		{
-		    if ( (iminor < 2) && (imajor < 2) )
-		        jvmName = "currentjvm";
-		    else
-		        jvmName = "jdk" + majorVersion + minorVersion;
-		}
-	
-		if (jvmName.equals("j9_13"))
-		{ 
-			javaVersion = javaVersion + " - " + majorVersion + "." + minorVersion;
-			System.out.println("javaVersion now: " + javaVersion);
-			// up to j9 2.1 (jdk 1.3.1. subset) the results are the same for all versions, or
-			// we don't care about it anymore. So switch back to 1.3 (java.version values).
-			if ((imajor <= 2) && (iminor < 2))
-			{
-				majorVersion = "1";
-				minorVersion = "3";
-				imajor = 1;
-				iminor = 3;
-			}
-			else 
-				jvmName = "j9_" + majorVersion + minorVersion;
-		}
+        if ( (jvmName == null) || (jvmName.equals("jview")) )
+        {
+            if ( (iminor < 2) && (imajor < 2) )
+                jvmName = "currentjvm";
+            else
+                jvmName = "jdk" + majorVersion + minorVersion;
+        }
+    
+        if (jvmName.equals("j9_13"))
+        { 
+            javaVersion = javaVersion + " - " + majorVersion + "." + minorVersion;
+            System.out.println("javaVersion now: " + javaVersion);
+            // up to j9 2.1 (jdk 1.3.1. subset) the results are the same for all versions, or
+            // we don't care about it anymore. So switch back to 1.3 (java.version values).
+            if ((imajor <= 2) && (iminor < 2))
+            {
+                majorVersion = "1";
+                minorVersion = "3";
+                imajor = 1;
+                iminor = 3;
+            }
+            else 
+                jvmName = "j9_" + majorVersion + minorVersion;
+        }
 
-		jvmflags = suiteProperties.getProperty("jvmflags");
-		testJavaFlags = suiteProperties.getProperty("testJavaFlags");
-		classpath = suiteProperties.getProperty("classpath");
-		classpathServer = suiteProperties.getProperty("classpathServer");
-		usesystem = suiteProperties.getProperty("usesystem");
-		upgradetest = suiteProperties.getProperty("upgradetest");
+        jvmflags = suiteProperties.getProperty("jvmflags");
+        testJavaFlags = suiteProperties.getProperty("testJavaFlags");
+        classpath = suiteProperties.getProperty("classpath");
+        classpathServer = suiteProperties.getProperty("classpathServer");
+        usesystem = suiteProperties.getProperty("usesystem");
+        upgradetest = suiteProperties.getProperty("upgradetest");
         outcopy = suiteProperties.getProperty("outcopy");
-		useoutput = suiteProperties.getProperty("useoutput");
-		encryption = suiteProperties.getProperty("encryption");
-		testEncryptionProvider = suiteProperties.getProperty("testEncryptionProvider");
-		testEncryptionAlgorithm = suiteProperties.getProperty("testEncryptionAlgorithm");
-		jdk12test = suiteProperties.getProperty("jdk12test");
-		jdk12exttest = suiteProperties.getProperty("jdk12exttest");
-		runwithibmjvm = suiteProperties.getProperty("runwithibmjvm");
-		runwithj9 = suiteProperties.getProperty("runwithj9");
+        useoutput = suiteProperties.getProperty("useoutput");
+        encryption = suiteProperties.getProperty("encryption");
+        testEncryptionProvider = suiteProperties.getProperty("testEncryptionProvider");
+        testEncryptionAlgorithm = suiteProperties.getProperty("testEncryptionAlgorithm");
+        jdk12test = suiteProperties.getProperty("jdk12test");
+        jdk12exttest = suiteProperties.getProperty("jdk12exttest");
+        runwithibmjvm = suiteProperties.getProperty("runwithibmjvm");
+        runwithj9 = suiteProperties.getProperty("runwithj9");
                 derbyTestingXaSingle = suiteProperties.getProperty("derbyTesting.xa.single");
         String testJVM = jvmName;
         if (jvmName.startsWith("j9") && (!jvmName.startsWith("j9dee")))
-        	testJVM = (jvmName.startsWith("j9_foundation") ? "foundation" : "j9");
+            testJVM = (jvmName.startsWith("j9_foundation") ? "foundation" : "j9");
         runwithjvm = suiteProperties.getProperty("runwith" + testJVM);
-		excludeJCC = suiteProperties.getProperty("excludeJCC");
-		keepfiles = suiteProperties.getProperty("keepfiles");
-		systemdiff = suiteProperties.getProperty("systemdiff");
-		outputdir = suiteProperties.getProperty("outputdir");
-		if (outputdir == null)
-		    outputdir = userdir;
-		topsuitedir = suiteProperties.getProperty("topsuitedir");
-		if (topsuitedir == null)
-		    topsuitedir = outputdir;
-		bootcp = suiteProperties.getProperty("bootcp");
-		serverJvm = suiteProperties.getProperty("serverJvm");
-		serverJvmName = suiteProperties.getProperty("serverJvmName");
-		hostName = suiteProperties.getProperty("hostName");
-		testEncoding = suiteProperties.getProperty("derbyTesting.encoding");
-		upgradejarpath = suiteProperties.getProperty("derbyTesting.jar.path");
-		canondir = suiteProperties.getProperty("canondir");
-		mtestdir = suiteProperties.getProperty("mtestdir");
-		String usepr = suiteProperties.getProperty("useprocess");
-		if ( (usepr != null) && (usepr.equals("false")) )
-		    useprocess = false;
-		skipsed = suiteProperties.getProperty("skipsed");
-		String dbug = suiteProperties.getProperty("verbose");
-		if ( (dbug != null) && (dbug.equals("true")) )
-		    verbose = true;
-		reportstderr = suiteProperties.getProperty("reportstderr");
-		timeout = suiteProperties.getProperty("timeout");
-		shutdownurl = suiteProperties.getProperty("shutdownurl");
-		topSuiteName = suiteProperties.getProperty("suitename");
-		ijdefaultResourcePackage =
-		    suiteProperties.getProperty("ij.defaultResourcePackage");
+        excludeJCC = suiteProperties.getProperty("excludeJCC");
+        keepfiles = suiteProperties.getProperty("keepfiles");
+        systemdiff = suiteProperties.getProperty("systemdiff");
+        outputdir = suiteProperties.getProperty("outputdir");
+        if (outputdir == null)
+            outputdir = userdir;
+        topsuitedir = suiteProperties.getProperty("topsuitedir");
+        if (topsuitedir == null)
+            topsuitedir = outputdir;
+        bootcp = suiteProperties.getProperty("bootcp");
+        serverJvm = suiteProperties.getProperty("serverJvm");
+        serverJvmName = suiteProperties.getProperty("serverJvmName");
+        hostName = suiteProperties.getProperty("hostName");
+        testEncoding = suiteProperties.getProperty("derbyTesting.encoding");
+        upgradejarpath = suiteProperties.getProperty("derbyTesting.jar.path");
+        canondir = suiteProperties.getProperty("canondir");
+        mtestdir = suiteProperties.getProperty("mtestdir");
+        String usepr = suiteProperties.getProperty("useprocess");
+        if ( (usepr != null) && (usepr.equals("false")) )
+            useprocess = false;
+        skipsed = suiteProperties.getProperty("skipsed");
+        String dbug = suiteProperties.getProperty("verbose");
+        if ( (dbug != null) && (dbug.equals("true")) )
+            verbose = true;
+        reportstderr = suiteProperties.getProperty("reportstderr");
+        timeout = suiteProperties.getProperty("timeout");
+        shutdownurl = suiteProperties.getProperty("shutdownurl");
+        topSuiteName = suiteProperties.getProperty("suitename");
+        ijdefaultResourcePackage =
+            suiteProperties.getProperty("ij.defaultResourcePackage");
         // The top level suiteProperties may have special
         // properties which need to be added to testSpecialProps
         if ( (specialProperties != null) && (!specialProperties.isEmpty()) )
@@ -848,10 +848,10 @@ public class RunList
         // In that case, these will be preserved for the rest
         if (jversion != null)
             p.put("jvm", jversion);
-    	if ( jvmName == null )
-    		jvmName = "currentjvm";
-    	else
-    		p.put("jvm", jvmName);
+        if ( jvmName == null )
+            jvmName = "currentjvm";
+        else
+            p.put("jvm", jvmName);
 
         if ( javaCmd == null )
             javaCmd = "java";
@@ -879,10 +879,10 @@ public class RunList
             jvmflags= totaljvmflags;
         }
 
-    	if ( classpath != null )
-    		p.put("classpath", classpath);
-    	if ( classpathServer != null )
-    		p.put("classpathServer", classpathServer);
+        if ( classpath != null )
+            p.put("classpath", classpath);
+        if ( classpathServer != null )
+            p.put("classpathServer", classpathServer);
         if ( systemdiff != null )
             p.put("systemdiff", systemdiff);
         if ( verbose == true )
@@ -892,109 +892,109 @@ public class RunList
         if ( canondir != null )
             p.put("canondir", canondir);
 
-		if ( (outputdir == null) || (outputdir.isEmpty()) )
-		{
-		    outputdir = p.getProperty("outputdir");
-		    if (outputdir == null)
-		        outputdir = userdir;
-		}
+        if ( (outputdir == null) || (outputdir.isEmpty()) )
+        {
+            outputdir = p.getProperty("outputdir");
+            if (outputdir == null)
+                outputdir = userdir;
+        }
 
-	    // framework may be set at the top, or just
-	    // set for individual suites
-	    if ( parentProperties.getProperty("framework") != null )
-		    p.put("framework", framework);
-		else
+        // framework may be set at the top, or just
+        // set for individual suites
+        if ( parentProperties.getProperty("framework") != null )
+            p.put("framework", framework);
+        else
             framework = p.getProperty("framework");
 
-		// same for serverJvm and serverJvmName
+        // same for serverJvm and serverJvmName
         if ( parentProperties.getProperty("serverJvm") != null )
             p.put("serverJvm", serverJvm);
-		else
+        else
             serverJvm = p.getProperty("serverJvm");
         if ( parentProperties.getProperty("serverJvmName") != null )
             p.put("serverJvmName", serverJvmName);
-		else
+        else
             serverJvmName = p.getProperty("serverJvmName");
         
         // derbyTesting.encoding may be set at the top, or just
         // set for individual suites
         if(parentProperties.getProperty("derbyTesting.encoding") != null)
-		    p.put("derbyTesting.encoding", testEncoding);
-		else
+            p.put("derbyTesting.encoding", testEncoding);
+        else
             testEncoding = p.getProperty("derbyTesting.encoding");
 
         if(parentProperties.getProperty("derbyTesting.jar.path") != null)
-		    p.put("derbyTesting.jar.path", upgradejarpath);
-		else
+            p.put("derbyTesting.jar.path", upgradejarpath);
+        else
             upgradejarpath = p.getProperty("derbyTesting.jar.path");
 
         if ( hostName != null )
             p.put("hostName", hostName);
         else
-        	p.put("hostName","localhost");
+            p.put("hostName","localhost");
         // Encryption may be set at the top or just for a subsuite
-	    if ( parentProperties.getProperty("encryption") != null )
-		    p.put("encryption", encryption);
-		else
+        if ( parentProperties.getProperty("encryption") != null )
+            p.put("encryption", encryption);
+        else
             encryption = p.getProperty("encryption");
 
-	// Encryption provider may be set at the top or just for a subsuite
-	    if ( parentProperties.getProperty("testEncryptionProvider") != null )
-		    p.put("testEncryptionProvider", testEncryptionProvider);
-		else
+    // Encryption provider may be set at the top or just for a subsuite
+        if ( parentProperties.getProperty("testEncryptionProvider") != null )
+            p.put("testEncryptionProvider", testEncryptionProvider);
+        else
             testEncryptionProvider = p.getProperty("testEncryptionProvider");
 
-	// Encryption algorithm may be set at the top or just for a subsuite
-	    if ( parentProperties.getProperty("testEncryptionAlgorithm") != null )
-		    p.put("testEncryptionAlgorithm", testEncryptionAlgorithm);
-		else
+    // Encryption algorithm may be set at the top or just for a subsuite
+        if ( parentProperties.getProperty("testEncryptionAlgorithm") != null )
+            p.put("testEncryptionAlgorithm", testEncryptionAlgorithm);
+        else
             testEncryptionAlgorithm = p.getProperty("testEncryptionAlgorithm");
 
         // jdk12test may be set at the top or just for a subsuite
-	    if ( parentProperties.getProperty("jdk12test") != null )
-		    p.put("jdk12test", jdk12test);
-		else
+        if ( parentProperties.getProperty("jdk12test") != null )
+            p.put("jdk12test", jdk12test);
+        else
             jdk12test = p.getProperty("jdk12test");
 
         // jdk12exttest may be set at the top or just for a subsuite
-	    if ( parentProperties.getProperty("jdk12exttest") != null )
-		    p.put("jdk12exttest", jdk12exttest);
-		else
+        if ( parentProperties.getProperty("jdk12exttest") != null )
+            p.put("jdk12exttest", jdk12exttest);
+        else
             jdk12exttest = p.getProperty("jdk12exttest");
 
         // runwithibmjvm may be set at the top or just for a subsuite
-	    if ( parentProperties.getProperty("runwithibmjvm") != null )
-		    p.put("runwithibmjvm", runwithibmjvm);
-		else
+        if ( parentProperties.getProperty("runwithibmjvm") != null )
+            p.put("runwithibmjvm", runwithibmjvm);
+        else
             runwithibmjvm = p.getProperty("runwithibmjvm");
 
         // runwithjvm may be set at the top or just for a subsuite
-	    String testJVM = jvmName;
+        String testJVM = jvmName;
         if (jvmName.startsWith("j9") && (!jvmName.startsWith("j9dee")))
-        	testJVM = (jvmName.startsWith("j9_foundation") ? "foundation" : "j9");
-	    if ( parentProperties.getProperty("runwith" + testJVM) != null )
-		    p.put("runwith" + testJVM, runwithjvm);
-		else
+            testJVM = (jvmName.startsWith("j9_foundation") ? "foundation" : "j9");
+        if ( parentProperties.getProperty("runwith" + testJVM) != null )
+            p.put("runwith" + testJVM, runwithjvm);
+        else
             runwithjvm = p.getProperty("runwith" + testJVM);
 
         // runwithj9 may be set at the top or just for a subsuite
-	    if ( parentProperties.getProperty("runwithj9") != null )
-		    p.put("runwithj9", runwithj9);
-		else
+        if ( parentProperties.getProperty("runwithj9") != null )
+            p.put("runwithj9", runwithj9);
+        else
             runwithj9 = p.getProperty("runwithj9");
 
         // excludeJCC may be set at the top or just for a subsuite
-	    if ( parentProperties.getProperty("excludeJCC") != null )
-		    p.put("excludeJCC", excludeJCC);
-		else
+        if ( parentProperties.getProperty("excludeJCC") != null )
+            p.put("excludeJCC", excludeJCC);
+        else
             excludeJCC = p.getProperty("excludeJCC");
 
         // useprocess may be set at the top or just for a subsuite
         String upr = parentProperties.getProperty("useprocess");
-	    if ( upr != null )
-		    p.put("useprocess", upr);
-		else
-		{
+        if ( upr != null )
+            p.put("useprocess", upr);
+        else
+        {
             upr = p.getProperty("useprocess");
             if ( upr == null)
                 useprocess = true;
@@ -1003,16 +1003,16 @@ public class RunList
             else
                 useprocess = true;
         }
-		// properties specific to a single suite
-		usesystem = p.getProperty("usesystem");
-		shutdownurl = p.getProperty("shutdownurl");
+        // properties specific to a single suite
+        usesystem = p.getProperty("usesystem");
+        shutdownurl = p.getProperty("shutdownurl");
         upgradetest = p.getProperty("upgradetest");
         jarfile = p.getProperty("jarfile");
         skipsed = p.getProperty("skipsed");
         if (skipsed == null)
             skipsed = "false";
-		if ( "true".equals(keepfiles) )
-		    p.put("keepfiles", keepfiles);
+        if ( "true".equals(keepfiles) )
+            p.put("keepfiles", keepfiles);
 
         // testJavaFlags should get appended
 
@@ -1028,8 +1028,8 @@ public class RunList
         else
             testJavaFlags = p.getProperty("testJavaFlags");
 
-		// The following could change between suites or
-		// may be set for the whole set of suites
+        // The following could change between suites or
+        // may be set for the whole set of suites
 
         if ( parentProperties.getProperty("reportstderr") != null )
             p.put("reportstderr", reportstderr);
@@ -1044,8 +1044,8 @@ public class RunList
         // outcopy is very specific to a single suite
         outcopy = p.getProperty("outcopy");
 
-		// useoutput is very specific to a single suite
-		useoutput = p.getProperty("useoutput");
+        // useoutput is very specific to a single suite
+        useoutput = p.getProperty("useoutput");
 
 
         // mtestdir is very specific to a multi suite
@@ -1054,13 +1054,13 @@ public class RunList
         // ijdefaultResourcePackage is specific for a suite
         ijdefaultResourcePackage = p.getProperty("ij.defaultResourcePackage");
 
-		if ( topSuiteName == null )
-		    topSuiteName = p.getProperty("suitename");
-		else
-		    p.put("suitename", topSuiteName);
+        if ( topSuiteName == null )
+            topSuiteName = p.getProperty("suitename");
+        else
+            p.put("suitename", topSuiteName);
 
-		skip = shouldSkipTest();
-		    
+        skip = shouldSkipTest();
+            
         // Set the suite subdir under top outputdir
         setSuiteDir(suiteName, isParent, isTop);
 
@@ -1073,103 +1073,103 @@ public class RunList
             setSpecialProps(specialProps, false);
     }
 
-	/**
-		Determine if a test should be skipped or not.
-		These are ad-hoc rules, see comments within for details.
-		Examples of what is checked: JVM version, framework,
-		encryption, jdk12test, 
-		Sets some global variables so that skip reporting is clearer.
+    /**
+        Determine if a test should be skipped or not.
+        These are ad-hoc rules, see comments within for details.
+        Examples of what is checked: JVM version, framework,
+        encryption, jdk12test, 
+        Sets some global variables so that skip reporting is clearer.
 
-		@return true if test should not be run.
+        @return true if test should not be run.
     */
     private static boolean shouldSkipTest()
     {
-	boolean result = false;
+    boolean result = false;
 
-	// figure out if suite should be skipped ... adhoc rules
-	boolean isJdk12 = false; // really now 'isJdk12orHigher'
-	boolean isJdk118 = false;
-	boolean isJdk117 = false;
-	boolean isEncryption = false;
-	boolean isJdk12Test = false;
-	boolean isJdk12ExtTest = false;
-	boolean isSyncTest = false;
-	boolean isSyncProduct = false;
-	boolean isExcludeJCC = false;
-	// runwithibmjvm is really tri-state. null = run-anywhere,
-	// true = only ibm jvms, false = only non-IBM jvms.
+    // figure out if suite should be skipped ... adhoc rules
+    boolean isJdk12 = false; // really now 'isJdk12orHigher'
+    boolean isJdk118 = false;
+    boolean isJdk117 = false;
+    boolean isEncryption = false;
+    boolean isJdk12Test = false;
+    boolean isJdk12ExtTest = false;
+    boolean isSyncTest = false;
+    boolean isSyncProduct = false;
+    boolean isExcludeJCC = false;
+    // runwithibmjvm is really tri-state. null = run-anywhere,
+    // true = only ibm jvms, false = only non-IBM jvms.
 
-	// reset skip reason parameters
-	driverNotFound = false;
-	needSync = false;
-	needJdk12 = false;
-	needJdk12ext = false;
-	excludedFromJCC = false;
-	needIBMjvm = null;
+    // reset skip reason parameters
+    driverNotFound = false;
+    needSync = false;
+    needJdk12 = false;
+    needJdk12ext = false;
+    excludedFromJCC = false;
+    needIBMjvm = null;
 
 
-	// Determine if this is jdk12 or higher (with or without extensions)
+    // Determine if this is jdk12 or higher (with or without extensions)
     if (iminor >= 2) isJdk12 = true;
-	if ( System.getProperty("java.version").startsWith("1.1.8") ) isJdk118 = true;
+    if ( System.getProperty("java.version").startsWith("1.1.8") ) isJdk118 = true;
     if ( System.getProperty("java.version").startsWith("1.1.7") ) isJdk117 = true;
     
-	// if a test needs an ibm jvm, skip if runwithibmjvm is true.
-	// if a test needs to not run in an ibm jvm, skip if runwithibmjvm is false.
-	// if null, continue in all cases.
-	if (runwithibmjvm != null) 
-	{ 
-	    if (runwithibmjvm.isEmpty()) { needIBMjvm = null; }
-	    else { needIBMjvm = new Boolean(runwithibmjvm); }
-	}
-	if (runwithibmjvm == null) { needIBMjvm = null; }
-	if (needIBMjvm != null)
-	{
-	    boolean needsibm = needIBMjvm.booleanValue();
-	    boolean ibmjvm = false;
-	    String vendor = System.getProperty("java.vendor");
-	    if (vendor.startsWith("IBM")) { ibmjvm = true; }
-	    if (!needsibm && ibmjvm) { return true; }
-	    if (needsibm && !ibmjvm) { return true; }
-	}
+    // if a test needs an ibm jvm, skip if runwithibmjvm is true.
+    // if a test needs to not run in an ibm jvm, skip if runwithibmjvm is false.
+    // if null, continue in all cases.
+    if (runwithibmjvm != null) 
+    { 
+        if (runwithibmjvm.isEmpty()) { needIBMjvm = null; }
+        else { needIBMjvm = new Boolean(runwithibmjvm); }
+    }
+    if (runwithibmjvm == null) { needIBMjvm = null; }
+    if (needIBMjvm != null)
+    {
+        boolean needsibm = needIBMjvm.booleanValue();
+        boolean ibmjvm = false;
+        String vendor = System.getProperty("java.vendor");
+        if (vendor.startsWith("IBM")) { ibmjvm = true; }
+        if (!needsibm && ibmjvm) { return true; }
+        if (needsibm && !ibmjvm) { return true; }
+    }
 
-	if (runwithjvm != null && runwithjvm.equals("false"))
-	{
-	    return true;
-	}
+    if (runwithjvm != null && runwithjvm.equals("false"))
+    {
+        return true;
+    }
 
         if ( (framework != null) && (!framework.isEmpty()) )
-	{
+    {
             if (framework.equals("DerbyNet"))
-	    {
-		// skip if the derbynet.jar is not in the Classpath
-		try {
-			Class.forName("com.splicemachine.db.drda.NetworkServerControl");
-		} catch (ClassNotFoundException cnfe) {
-			driverNotFound = true;
-			result = true;
-		}
+        {
+        // skip if the derbynet.jar is not in the Classpath
+        try {
+            Class.forName("com.splicemachine.db.drda.NetworkServerControl");
+        } catch (ClassNotFoundException cnfe) {
+            driverNotFound = true;
+            result = true;
+        }
 
-		// skip if the IBM Universal JDBC Driver is not in the Classpath
-		// note that that driver loads some javax.naming.* classes which may not
-		// be present at runtime, and thus we need to catch a possible error too 
-		try {
-			Class.forName("com.ibm.db2.jcc.DB2Driver");
-		} catch (ClassNotFoundException cnfe) {
-			driverNotFound = true;
-			result = true;
-		} catch (NoClassDefFoundError err) {
-			driverNotFound = true;
-			result = true;
-		}
-	    }
-	}
+        // skip if the IBM Universal JDBC Driver is not in the Classpath
+        // note that that driver loads some javax.naming.* classes which may not
+        // be present at runtime, and thus we need to catch a possible error too 
+        try {
+            Class.forName("com.ibm.db2.jcc.DB2Driver");
+        } catch (ClassNotFoundException cnfe) {
+            driverNotFound = true;
+            result = true;
+        } catch (NoClassDefFoundError err) {
+            driverNotFound = true;
+            result = true;
+        }
+        }
+    }
 
-	if (result) return true; // stop looking once know should skip
+    if (result) return true; // stop looking once know should skip
 
         if ( (encryption != null) && (!encryption.isEmpty()) )
             if ("true".equalsIgnoreCase(encryption)) isEncryption = true;
         if ( (jdk12test != null) && (!jdk12test.isEmpty()) )
-            if ("true".equalsIgnoreCase(jdk12test)) isJdk12Test = true;		
+            if ("true".equalsIgnoreCase(jdk12test)) isJdk12Test = true;        
         if ( (jdk12exttest != null) && (!jdk12exttest.isEmpty()) )
             if ("true".equalsIgnoreCase(jdk12exttest)) isJdk12ExtTest = true;
         
@@ -1181,13 +1181,13 @@ public class RunList
                 needJdk12 = true;
                 result = true; // Can't run in this combination
             }
-	    if (result) return true; // stop looking once know should skip
- 	}		
+        if (result) return true; // stop looking once know should skip
+     }        
 
     // Also require jdk12 extensions for encryption and jdk12exttest
-	if ( (isEncryption) || (isJdk12ExtTest) )
-	{
-	    needJdk12ext = true;
+    if ( (isEncryption) || (isJdk12ExtTest) )
+    {
+        needJdk12ext = true;
             // Check for extensions
             try
             {
@@ -1198,8 +1198,8 @@ public class RunList
             {
                 // at least one of the extension classes was not found
                 result = true; // skip this test
-            }			
-	    if (result) return true; // stop looking once know should skip
+            }            
+        if (result) return true; // stop looking once know should skip
         }
 
         if (isEncryption)  // make sure encryption classes are available
@@ -1216,38 +1216,38 @@ public class RunList
             if (result) return true;
         }
 
-	if (excludeJCC != null)
-	{
-	    Class c = null;
-	    Method m = null;
-	    Object o = null;
-	    Integer i = null;
-	    int jccMajor = 0;
-	    int jccMinor = 0;
-	    try	
-	    {
-		c = Class.forName("com.ibm.db2.jcc.DB2Driver");
-		o = c.newInstance();
-		m = c.getMethod("getMajorVersion", null);
-		i = (Integer)m.invoke(o, null);
-		jccMajor = i.intValue();
-		m = c.getMethod("getMinorVersion", null);
-		i = (Integer)m.invoke(o, null);
-		jccMinor = i.intValue();
-	    } catch (Exception e) {
-	        if (verbose) System.out.println("Exception in shouldSkipTest: " + e);
+    if (excludeJCC != null)
+    {
+        Class c = null;
+        Method m = null;
+        Object o = null;
+        Integer i = null;
+        int jccMajor = 0;
+        int jccMinor = 0;
+        try    
+        {
+        c = Class.forName("com.ibm.db2.jcc.DB2Driver");
+        o = c.newInstance();
+        m = c.getMethod("getMajorVersion", null);
+        i = (Integer)m.invoke(o, null);
+        jccMajor = i.intValue();
+        m = c.getMethod("getMinorVersion", null);
+        i = (Integer)m.invoke(o, null);
+        jccMinor = i.intValue();
+        } catch (Exception e) {
+            if (verbose) System.out.println("Exception in shouldSkipTest: " + e);
             }
 
-		try {
-			checkClientExclusion(excludeJCC, "JCC", jccMajor, jccMinor, javaVersion);
-		} catch (Exception e) {
-			excludedFromJCC = true;
-			clientExclusionMessage = e.getMessage();
-			return true;
-		}
+        try {
+            checkClientExclusion(excludeJCC, "JCC", jccMajor, jccMinor, javaVersion);
+        } catch (Exception e) {
+            excludedFromJCC = true;
+            clientExclusionMessage = e.getMessage();
+            return true;
+        }
     }
 
-	return result; // last test result is returned
+    return result; // last test result is returned
     }
 
 
@@ -1257,20 +1257,20 @@ public class RunList
         if (isTop) // This is the very top suite for this RunList
         {
             // Here we want to set the topsuitedir
-		    if ( (topsuitedir == null) || (topsuitedir.isEmpty()) )
-		    {
-		        topsuitedir = userdir;
-		        outputdir = topsuitedir;
-		    }
-		    else
-		        outputdir = topsuitedir;
-		    
-		    // Create the topsuite directory under the outputdir
-		    File topdir = new File(outputdir, topSuiteName);
-		    topdir.mkdir();
-		    if (!topParentSuite.equals(topSuiteName))
-		    {
-		        File topparent = new File(topdir, topParentSuite);
+            if ( (topsuitedir == null) || (topsuitedir.isEmpty()) )
+            {
+                topsuitedir = userdir;
+                outputdir = topsuitedir;
+            }
+            else
+                outputdir = topsuitedir;
+            
+            // Create the topsuite directory under the outputdir
+            File topdir = new File(outputdir, topSuiteName);
+            topdir.mkdir();
+            if (!topParentSuite.equals(topSuiteName))
+            {
+                File topparent = new File(topdir, topParentSuite);
                 topparent.mkdir();
                 outputdir = topparent.getCanonicalPath();
             }
@@ -1287,17 +1287,17 @@ public class RunList
                 File f = new File(outputdir, framework);
                 f.mkdir();
                 outputdir =  f.getCanonicalPath();
-		        fw_set = true; // framework dir set at top level
+                fw_set = true; // framework dir set at top level
                 //System.out.println("RunList for framework outputdir: " + outputdir);
             }
-		    topsuitedir = outputdir; 	
-		}
-		else if (isParent) // reset outputdir to topsuitedir for a new parent
-		{
-		    outputdir = topsuitedir;
-		    //System.out.println("outputdir reset for parent: " + outputdir);
-		    if (!suiteName.equals(topParentSuite))
-		    {
+            topsuitedir = outputdir;     
+        }
+        else if (isParent) // reset outputdir to topsuitedir for a new parent
+        {
+            outputdir = topsuitedir;
+            //System.out.println("outputdir reset for parent: " + outputdir);
+            if (!suiteName.equals(topParentSuite))
+            {
                 File suitedir = new File(outputdir, suiteName);
                 suitedir.mkdir();
                 outputdir = suitedir.getCanonicalPath();
@@ -1314,8 +1314,8 @@ public class RunList
             }
         }
 
-		else if ( upgradetest == null ) // this is a child suite of a parent
-		{
+        else if ( upgradetest == null ) // this is a child suite of a parent
+        {
             File suitedir = new File(outputdir, suiteName);
             suitedir.mkdir();
             outputdir = suitedir.getCanonicalPath();
@@ -1323,35 +1323,35 @@ public class RunList
         }
     }
 
-	private static void setSpecialProps(Properties p, boolean isTop)
-	{
+    private static void setSpecialProps(Properties p, boolean isTop)
+    {
         // Just build  string for RunTest to parse (^ is the separator)
         // and determine which special flags are for ij or for server
         // These special flags come from specialProperties, not from
         // the usual properties (RunSuite will give these for the top suite)
         String tmp = "";
-		for (Enumeration e = p.propertyNames(); e.hasMoreElements(); )
-		{
-			String key = (String)e.nextElement();
-			// Note: RunSuite will already have excluded
-			// suites, useoutput, usesystem,keepfiles from these
-			tmp += key + "=" + p.getProperty(key) + "^";
-		}
-		if (!tmp.isEmpty())
-		{
-		    if ( isTop == true ) // This is the top level suite
-		        topSpecialProps = tmp.substring(0, tmp.lastIndexOf('^'));
-		    else // This is a nested suite, do not apply to all the suites
-		        otherSpecialProps = tmp.substring(0, tmp.lastIndexOf('^'));
-		}
-	}
-	
-	static void addToSkipFile(String suiteName, PrintStream ps) throws IOException
-	{
-		ps.println(suiteName);
-		ps.flush();
+        for (Enumeration e = p.propertyNames(); e.hasMoreElements(); )
+        {
+            String key = (String)e.nextElement();
+            // Note: RunSuite will already have excluded
+            // suites, useoutput, usesystem,keepfiles from these
+            tmp += key + "=" + p.getProperty(key) + "^";
+        }
+        if (!tmp.isEmpty())
+        {
+            if ( isTop == true ) // This is the top level suite
+                topSpecialProps = tmp.substring(0, tmp.lastIndexOf('^'));
+            else // This is a nested suite, do not apply to all the suites
+                otherSpecialProps = tmp.substring(0, tmp.lastIndexOf('^'));
+        }
     }
-	
+    
+    static void addToSkipFile(String suiteName, PrintStream ps) throws IOException
+    {
+        ps.println(suiteName);
+        ps.flush();
+    }
+    
     /* ****
      * Look at the received exclusion property and use it to
      * figure out if this test/suite should be skipped based

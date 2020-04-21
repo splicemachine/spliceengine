@@ -46,101 +46,101 @@ import java.sql.SQLException;
 /**
  */
 public class EmbedConnectionContext extends ContextImpl
-		implements ConnectionContext
+        implements ConnectionContext
 {
 
-	/**
-		We hold a soft reference to the connection so that when the application
-		releases its reference to the Connection without closing it, its finalize
-		method will be called, which will then close the connection. If a direct
-		reference is used here, such a Connection will never be closed or garbage
-		collected as modules hold onto the ContextManager and thus there would
-		be a direct reference through this object.
-	*/
-	private java.lang.ref.SoftReference	connRef;
+    /**
+        We hold a soft reference to the connection so that when the application
+        releases its reference to the Connection without closing it, its finalize
+        method will be called, which will then close the connection. If a direct
+        reference is used here, such a Connection will never be closed or garbage
+        collected as modules hold onto the ContextManager and thus there would
+        be a direct reference through this object.
+    */
+    private java.lang.ref.SoftReference    connRef;
 
 
-	public EmbedConnectionContext(ContextManager cm, EmbedConnection conn) {
-		super(cm, ConnectionContext.CONTEXT_ID);
+    public EmbedConnectionContext(ContextManager cm, EmbedConnection conn) {
+        super(cm, ConnectionContext.CONTEXT_ID);
 
-		connRef = new java.lang.ref.SoftReference(conn);
-	}
+        connRef = new java.lang.ref.SoftReference(conn);
+    }
 
-	public void cleanupOnError(Throwable error) {
+    public void cleanupOnError(Throwable error) {
 
-		if (connRef == null)
-			return;
+        if (connRef == null)
+            return;
 
-		EmbedConnection conn = (EmbedConnection) connRef.get();
+        EmbedConnection conn = (EmbedConnection) connRef.get();
 
-		if (error instanceof StandardException) {
+        if (error instanceof StandardException) {
 
-			StandardException se = (StandardException) error;
-			if (se.getSeverity() < ExceptionSeverity.SESSION_SEVERITY) {
+            StandardException se = (StandardException) error;
+            if (se.getSeverity() < ExceptionSeverity.SESSION_SEVERITY) {
 
-				// any error in auto commit mode that does not close the
-				// session will cause a rollback, thus remvoing the need
-				// for any commit. We could check this flag under autoCommit
-				// being true but the flag is ignored when autoCommit is false
-				// so why add the extra check
-				if (conn != null) {
-					conn.needCommit = false;
-				}
-				return;
-			}
-		}
+                // any error in auto commit mode that does not close the
+                // session will cause a rollback, thus remvoing the need
+                // for any commit. We could check this flag under autoCommit
+                // being true but the flag is ignored when autoCommit is false
+                // so why add the extra check
+                if (conn != null) {
+                    conn.needCommit = false;
+                }
+                return;
+            }
+        }
 
-		// This may be a transaction without connection.
-		if (conn != null)
-			conn.setInactive(); // make the connection inactive & empty
+        // This may be a transaction without connection.
+        if (conn != null)
+            conn.setInactive(); // make the connection inactive & empty
 
-		connRef = null;
-		popMe();
-	}
+        connRef = null;
+        popMe();
+    }
 
-	//public java.sql.Connection getEmbedConnection()
-	//{
-	///	return conn;
-	//}
+    //public java.sql.Connection getEmbedConnection()
+    //{
+    ///    return conn;
+    //}
 
-	/**
-		Get a connection equivalent to the call
-		<PRE>
-		DriverManager.getConnection("jdbc:default:connection");
-		</PRE>
-	*/
-	public java.sql.Connection getNestedConnection(boolean internal) throws SQLException {
+    /**
+        Get a connection equivalent to the call
+        <PRE>
+        DriverManager.getConnection("jdbc:default:connection");
+        </PRE>
+    */
+    public java.sql.Connection getNestedConnection(boolean internal) throws SQLException {
 
-		EmbedConnection conn = (EmbedConnection) connRef.get();
+        EmbedConnection conn = (EmbedConnection) connRef.get();
 
-		if ((conn == null) || conn.isClosed())
-			throw Util.noCurrentConnection();
+        if ((conn == null) || conn.isClosed())
+            throw Util.noCurrentConnection();
 
-		if (!internal) {
-			StatementContext sc = conn.getLanguageConnection().getStatementContext();
-			if ((sc == null) || (sc.getSQLAllowed() < com.splicemachine.db.catalog.types.RoutineAliasInfo.MODIFIES_SQL_DATA))
-				throw Util.noCurrentConnection();
-		}
+        if (!internal) {
+            StatementContext sc = conn.getLanguageConnection().getStatementContext();
+            if ((sc == null) || (sc.getSQLAllowed() < com.splicemachine.db.catalog.types.RoutineAliasInfo.MODIFIES_SQL_DATA))
+                throw Util.noCurrentConnection();
+        }
 
-		return conn.getLocalDriver().getNewNestedConnection(conn);
-	}
+        return conn.getLocalDriver().getNewNestedConnection(conn);
+    }
 
-	/**
-	 * Get a jdbc ResultSet based on the execution ResultSet.
-	 *
-	 * @param executionResultSet	a result set as gotten from execution
-	 *	
-	 */	
-	public java.sql.ResultSet getResultSet
-	(
-		ResultSet 				executionResultSet
-	) throws SQLException
-	{
-		EmbedConnection conn = (EmbedConnection) connRef.get();
+    /**
+     * Get a jdbc ResultSet based on the execution ResultSet.
+     *
+     * @param executionResultSet    a result set as gotten from execution
+     *    
+     */    
+    public java.sql.ResultSet getResultSet
+    (
+        ResultSet                 executionResultSet
+    ) throws SQLException
+    {
+        EmbedConnection conn = (EmbedConnection) connRef.get();
 
-		return conn.getLocalDriver().newEmbedResultSet(conn, executionResultSet,
-							false, (EmbedStatement) null, true);
-	}
+        return conn.getLocalDriver().newEmbedResultSet(conn, executionResultSet,
+                            false, (EmbedStatement) null, true);
+    }
 
     /**
      * Process a ResultSet from a procedure to be a dynamic result,

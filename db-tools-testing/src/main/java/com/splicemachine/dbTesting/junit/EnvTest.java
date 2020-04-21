@@ -42,39 +42,39 @@ import junit.framework.TestCase;
  *
  */
 public class EnvTest extends TestCase {
-	
-	public EnvTest(String name)
-	{
-		super(name);
-	}
-	/*
-	** Tests of the JDBC.vmSupportsXXX to see which JDBC support is available.
-	*/
-	public void testJSR169() {
-		setName(JDBC.vmSupportsJSR169() + "_vmSupportsJSR169()");
-	}
-	public void testJDBC3() {
-		setName(JDBC.vmSupportsJDBC3() + "_vmSupportsJDBC3()");
-	}
-	public void testJDBC4() {
-		setName(JDBC.vmSupportsJDBC4() + "_vmSupportsJDBC4()");
-	}
-	/*
-	** Tests of the Derby.hasXXX to see which Derby code is
-	** available for the tests.
-	*/
-	public void testHasServer() {
-		setName(Derby.hasServer() + "_hasServer");
-	}
-	public void testHasClient() {
-		setName(Derby.hasClient() + "_hasClient");
-	}
-	public void testHasEmbedded() {
-		setName(Derby.hasEmbedded() + "_hasEmbedded");
-	}
-	public void testHasTools() {
-		setName(Derby.hasTools() + "_hasTools");
-	}
+    
+    public EnvTest(String name)
+    {
+        super(name);
+    }
+    /*
+    ** Tests of the JDBC.vmSupportsXXX to see which JDBC support is available.
+    */
+    public void testJSR169() {
+        setName(JDBC.vmSupportsJSR169() + "_vmSupportsJSR169()");
+    }
+    public void testJDBC3() {
+        setName(JDBC.vmSupportsJDBC3() + "_vmSupportsJDBC3()");
+    }
+    public void testJDBC4() {
+        setName(JDBC.vmSupportsJDBC4() + "_vmSupportsJDBC4()");
+    }
+    /*
+    ** Tests of the Derby.hasXXX to see which Derby code is
+    ** available for the tests.
+    */
+    public void testHasServer() {
+        setName(Derby.hasServer() + "_hasServer");
+    }
+    public void testHasClient() {
+        setName(Derby.hasClient() + "_hasClient");
+    }
+    public void testHasEmbedded() {
+        setName(Derby.hasEmbedded() + "_hasEmbedded");
+    }
+    public void testHasTools() {
+        setName(Derby.hasTools() + "_hasTools");
+    }
     /*
     ** XML related tests
     */

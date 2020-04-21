@@ -36,97 +36,97 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 
 
 /**
-	A class that represents a key for a module search.
+    A class that represents a key for a module search.
 */
 
 
 class ProtocolKey {
 
-	/*
-	** Fields.
-	*/
+    /*
+    ** Fields.
+    */
 
-	/**
-		The class of the factory
-	*/
-	protected Class factoryInterface;
+    /**
+        The class of the factory
+    */
+    protected Class factoryInterface;
 
-	/**
-		name of module, can be null
-	*/
-	protected String		identifier;
+    /**
+        name of module, can be null
+    */
+    protected String        identifier;
 
-	/*
-	** Constructor
-	*/
+    /*
+    ** Constructor
+    */
 
-	protected ProtocolKey(Class factoryInterface, String identifier)
-	{
-		super();
-		this.factoryInterface = factoryInterface;
-		this.identifier = identifier;
-	}
+    protected ProtocolKey(Class factoryInterface, String identifier)
+    {
+        super();
+        this.factoryInterface = factoryInterface;
+        this.identifier = identifier;
+    }
 
-	static ProtocolKey create(String className, String identifier) throws StandardException {
+    static ProtocolKey create(String className, String identifier) throws StandardException {
 
-		Throwable t;
-		try {
-			return new ProtocolKey(Class.forName(className), identifier);
+        Throwable t;
+        try {
+            return new ProtocolKey(Class.forName(className), identifier);
 
-		} catch (ClassNotFoundException | IllegalArgumentException cnfe) {
-			t = cnfe;
-		}
+        } catch (ClassNotFoundException | IllegalArgumentException cnfe) {
+            t = cnfe;
+        }
 
         throw Monitor.exceptionStartingModule(t);
-	}
+    }
 
-	/*
-	** Methods required to use this key
-	*/
+    /*
+    ** Methods required to use this key
+    */
 
-	protected Class getFactoryInterface() {
-		return factoryInterface;
-	}
+    protected Class getFactoryInterface() {
+        return factoryInterface;
+    }
 
-	protected String getIdentifier() {
-		return identifier;
-	}
+    protected String getIdentifier() {
+        return identifier;
+    }
 
-	/*
-	**
-	*/
+    /*
+    **
+    */
 
-	public int hashCode() {
-		return factoryInterface.hashCode() +
-			(identifier == null ? 0  : identifier.hashCode());
-	}
+    public int hashCode() {
+        return factoryInterface.hashCode() +
+            (identifier == null ? 0  : identifier.hashCode());
+    }
 
-	public boolean equals(Object other) {
-		if (other instanceof ProtocolKey) {
-			ProtocolKey otherKey = (ProtocolKey) other;
+    public boolean equals(Object other) {
+        if (other instanceof ProtocolKey) {
+            ProtocolKey otherKey = (ProtocolKey) other;
 
-			if (factoryInterface != otherKey.factoryInterface)
-				return false;
+            if (factoryInterface != otherKey.factoryInterface)
+                return false;
 
-			if (identifier == null) {
-				if (otherKey.identifier != null)
-					return false;
-			} else {
+            if (identifier == null) {
+                if (otherKey.identifier != null)
+                    return false;
+            } else {
 
-				if (otherKey.identifier == null)
-					return false;
+                if (otherKey.identifier == null)
+                    return false;
 
-				if (!identifier.equals(otherKey.identifier))
-					return false;
-			}
+                if (!identifier.equals(otherKey.identifier))
+                    return false;
+            }
 
-			return true;
-		}
-		return false;
-	}
+            return true;
+        }
+        return false;
+    }
 
-	public String toString() {
+    public String toString() {
 
-		return factoryInterface.getName() + " (" + identifier + ")";
-	}
+        return factoryInterface.getName() + " (" + identifier + ")";
+    }
 }

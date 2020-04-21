@@ -51,81 +51,81 @@ import com.splicemachine.dbTesting.junit.SupportFilesSetup;
  */
 public class IjTestCase extends ScriptTestCase {
 
-	String scriptName;
-	String outfileName;
+    String scriptName;
+    String outfileName;
     File outfile;
-	
+    
     /**
      * Create a script testcase that runs the .sql script with the
      * given name. The name should not include the ".sql" suffix.
      */
-	public IjTestCase(String name) {
-		super(name);
-		scriptName = getName() + ".sql";
-		outfileName = SupportFilesSetup.EXTINOUT + "/" + getName() + ".out";
-		outfile = new File(outfileName);
-	}
-	
-	public void setUp() {
-	    super.setUp();
-		setSystemProperty("ij.outfile", outfileName);
-		setSystemProperty("ij.defaultResourcePackage",
-				"/com/splicemachine/dbTesting/functionTests/tests/"
-				+ getArea() + "/");
-	}
-	
-	public void tearDown() throws Exception {
-		super.tearDown();
-		removeSystemProperty("ij.outfile");
-		removeSystemProperty("ij.defaultResourcePackage");
-	}
-	
-	/**
-	 * Run a .sql test, calling ij's main method.
-	 * Then, take the output file and read it into our OutputStream
-	 * so that it can be compared via compareCanon().
-	 * TODO:
-	 * Note that the output will include a version number;
-	 * this should get filtered/ignored in compareCanon
-	 */
-	public void runTest() throws Throwable {
-		String [] args = { "-fr", scriptName };
-		// splice ij.main(args);
-		
-		String canon =
-			"com/splicemachine/dbTesting/functionTests/master/"
-			+ getName() + ".out";
-		
-		final File out = outfile;
-		FileInputStream fis = (FileInputStream) AccessController.doPrivileged(new PrivilegedAction() {
-			public Object run() {
-				FileInputStream fis = null;
-				try {
-					fis = new FileInputStream(out);
-				} catch (FileNotFoundException e) {
-					fail("Could not open ij output file.");
-				}				
-				return fis;
-			}
-		});
-		OutputStream os = getOutputStream();
-		int b;
-		while ((b = fis.read()) != -1) {
-			os.write(b);
-		}
-		fis.close();
-		
-		Boolean deleted = (Boolean) AccessController.doPrivileged(new PrivilegedAction() {
-			public Object run() {
-				boolean d = outfile.delete();
-				
-				return new Boolean(d);
-			}
-		});
-		
-		if (!deleted.booleanValue())
-			println("Could not delete outfile for " + scriptName);
-		
-		this.compareCanon(canon);
-	}
+    public IjTestCase(String name) {
+        super(name);
+        scriptName = getName() + ".sql";
+        outfileName = SupportFilesSetup.EXTINOUT + "/" + getName() + ".out";
+        outfile = new File(outfileName);
+    }
+    
+    public void setUp() {
+        super.setUp();
+        setSystemProperty("ij.outfile", outfileName);
+        setSystemProperty("ij.defaultResourcePackage",
+                "/com/splicemachine/dbTesting/functionTests/tests/"
+                + getArea() + "/");
+    }
+    
+    public void tearDown() throws Exception {
+        super.tearDown();
+        removeSystemProperty("ij.outfile");
+        removeSystemProperty("ij.defaultResourcePackage");
+    }
+    
+    /**
+     * Run a .sql test, calling ij's main method.
+     * Then, take the output file and read it into our OutputStream
+     * so that it can be compared via compareCanon().
+     * TODO:
+     * Note that the output will include a version number;
+     * this should get filtered/ignored in compareCanon
+     */
+    public void runTest() throws Throwable {
+        String [] args = { "-fr", scriptName };
+        // splice ij.main(args);
+        
+        String canon =
+            "com/splicemachine/dbTesting/functionTests/master/"
+            + getName() + ".out";
+        
+        final File out = outfile;
+        FileInputStream fis = (FileInputStream) AccessController.doPrivileged(new PrivilegedAction() {
+            public Object run() {
+                FileInputStream fis = null;
+                try {
+                    fis = new FileInputStream(out);
+                } catch (FileNotFoundException e) {
+                    fail("Could not open ij output file.");
+                }                
+                return fis;
+            }
+        });
+        OutputStream os = getOutputStream();
+        int b;
+        while ((b = fis.read()) != -1) {
+            os.write(b);
+        }
+        fis.close();
+        
+        Boolean deleted = (Boolean) AccessController.doPrivileged(new PrivilegedAction() {
+            public Object run() {
+                boolean d = outfile.delete();
+                
+                return new Boolean(d);
+            }
+        });
+        
+        if (!deleted.booleanValue())
+            println("Could not delete outfile for " + scriptName);
+        
+        this.compareCanon(canon);
+    }
 }

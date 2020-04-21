@@ -20,7 +20,7 @@ package com.splicemachine.encoding;
  */
 @Deprecated
 public class StringEncodingMicroBenchmark {
-	/*
+    /*
     private static int numSerializations = 1000000;
 
     private static final String chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?;:,.~'\"[]{}\\|/";

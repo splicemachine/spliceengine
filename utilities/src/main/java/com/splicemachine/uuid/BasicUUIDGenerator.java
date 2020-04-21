@@ -24,24 +24,24 @@ import java.util.UUID;
  * Date: 2/26/14
  */
 public class BasicUUIDGenerator implements UUIDGenerator {
-		@Override
-		public byte[] nextBytes() {
-				UUID next = UUID.randomUUID();
-				byte[] data = new byte[16];
-				Bytes.toBytes(next.getMostSignificantBits(), data, 0);
-				Bytes.toBytes(next.getLeastSignificantBits(), data, 8);
-				return data;
-		}
+        @Override
+        public byte[] nextBytes() {
+                UUID next = UUID.randomUUID();
+                byte[] data = new byte[16];
+                Bytes.toBytes(next.getMostSignificantBits(), data, 0);
+                Bytes.toBytes(next.getLeastSignificantBits(), data, 8);
+                return data;
+        }
 
-		@Override
-		public int encodedLength() {
-				return 16;
-		}
+        @Override
+        public int encodedLength() {
+                return 16;
+        }
 
-		@Override
-		public void next(byte[] data, int offset) {
-				UUID next = UUID.randomUUID();
-				Bytes.toBytes(next.getMostSignificantBits(), data, offset);
-				Bytes.toBytes(next.getLeastSignificantBits(), data, offset + 8);
-		}
+        @Override
+        public void next(byte[] data, int offset) {
+                UUID next = UUID.randomUUID();
+                Bytes.toBytes(next.getMostSignificantBits(), data, offset);
+                Bytes.toBytes(next.getLeastSignificantBits(), data, offset + 8);
+        }
 }

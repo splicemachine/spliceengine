@@ -50,82 +50,82 @@ import java.io.ObjectOutput;
  *
  */
 public final class MaxMinAggregator extends OrderableAggregator {
-	private boolean isMax; // true for max, false for min
-	/**
-	 */
-	public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType ) {
-			super.setup( cf, aggregateName, returnType );
-			isMax = aggregateName.equals("MAX");
-			return this;
-	}
+    private boolean isMax; // true for max, false for min
+    /**
+     */
+    public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType ) {
+            super.setup( cf, aggregateName, returnType );
+            isMax = aggregateName.equals("MAX");
+            return this;
+    }
 
-	/**
-	 * Accumulate
- 	 *
-	 * @param addend	value to be added in
-	 *
-	 * @exception StandardException on error
-	 *
-	 */
-	protected void accumulate(DataValueDescriptor addend) throws StandardException {
-		if (value == null)
-			value = addend.cloneValue(false);			
-		else {
-			int compare = value.compare(addend);
-			if ( (isMax && compare <0) || (!isMax && compare >0)) {
-				value = addend.cloneValue(false);
-			}
-		}
-	}
+    /**
+     * Accumulate
+      *
+     * @param addend    value to be added in
+     *
+     * @exception StandardException on error
+     *
+     */
+    protected void accumulate(DataValueDescriptor addend) throws StandardException {
+        if (value == null)
+            value = addend.cloneValue(false);            
+        else {
+            int compare = value.compare(addend);
+            if ( (isMax && compare <0) || (!isMax && compare >0)) {
+                value = addend.cloneValue(false);
+            }
+        }
+    }
 
-	/**
-	 * @return ExecAggregator the new aggregator
-	 */
-	public ExecAggregator newAggregator()
-	{
-		MaxMinAggregator ma = new MaxMinAggregator();
-		ma.isMax = isMax;
-		return ma;
-	}
+    /**
+     * @return ExecAggregator the new aggregator
+     */
+    public ExecAggregator newAggregator()
+    {
+        MaxMinAggregator ma = new MaxMinAggregator();
+        ma.isMax = isMax;
+        return ma;
+    }
 
-	/////////////////////////////////////////////////////////////
-	// 
-	// FORMATABLE INTERFACE
-	// 
-	// Formatable implementations usually invoke the super()
-	// version of readExternal or writeExternal first, then
-	// do the additional actions here. However, since the
-	// superclass of this class requires that its externalized
-	// data must be the last data in the external stream, we
-	// invoke the superclass's read/writeExternal method
-	// last, not first. See DERBY-3219 for more discussion.
-	/////////////////////////////////////////////////////////////
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		out.writeBoolean(isMax);
-		super.writeExternal(out);
-	}
+    /////////////////////////////////////////////////////////////
+    // 
+    // FORMATABLE INTERFACE
+    // 
+    // Formatable implementations usually invoke the super()
+    // version of readExternal or writeExternal first, then
+    // do the additional actions here. However, since the
+    // superclass of this class requires that its externalized
+    // data must be the last data in the external stream, we
+    // invoke the superclass's read/writeExternal method
+    // last, not first. See DERBY-3219 for more discussion.
+    /////////////////////////////////////////////////////////////
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeBoolean(isMax);
+        super.writeExternal(out);
+    }
 
-	/** 
-	 * @see java.io.Externalizable#readExternal 
-	 *
-	 * @exception IOException on error
-	 * @exception ClassNotFoundException on error
-	 */
-	public void readExternal(ObjectInput in) 
-		throws IOException, ClassNotFoundException {
-		isMax = in.readBoolean();
-		super.readExternal(in);
-	}
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.AGG_MAX_MIN_V01_ID; }
+    /** 
+     * @see java.io.Externalizable#readExternal 
+     *
+     * @exception IOException on error
+     * @exception ClassNotFoundException on error
+     */
+    public void readExternal(ObjectInput in) 
+        throws IOException, ClassNotFoundException {
+        isMax = in.readBoolean();
+        super.readExternal(in);
+    }
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId()    { return StoredFormatIds.AGG_MAX_MIN_V01_ID; }
     public String toString() {
-    	if (isMax)
-    		return "Max (" + (value !=null?value:"NULL") + ")";
-		return "Min (" + (value !=null?value:"NULL") + ")";
+        if (isMax)
+            return "Max (" + (value !=null?value:"NULL") + ")";
+        return "Min (" + (value !=null?value:"NULL") + ")";
     }
 }

@@ -46,20 +46,20 @@ public abstract class NullValueData
 {
 
 
-	protected boolean isNull = true;
+    protected boolean isNull = true;
 
-	public boolean isNull()
-	{
-		return isNull;
-	}
+    public boolean isNull()
+    {
+        return isNull;
+    }
 
-	public final boolean getIsNull()
-	{
-		return isNull;
-	}
+    public final boolean getIsNull()
+    {
+        return isNull;
+    }
 
-	public final void setIsNull(boolean value)
-	{
-		isNull = value;
-	}
+    public final void setIsNull(boolean value)
+    {
+        isNull = value;
+    }
 }

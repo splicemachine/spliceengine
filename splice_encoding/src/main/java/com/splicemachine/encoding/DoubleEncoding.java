@@ -47,9 +47,9 @@ class DoubleEncoding {
 
         byte[] bytes = Bytes.toBytes(l);
         if(desc) {
-        	for(int i=0;i<bytes.length;i++){
-        		bytes[i] ^= 0xff;
-        	}
+            for(int i=0;i<bytes.length;i++){
+                bytes[i] ^= 0xff;
+            }
         }
         return bytes;
     }
@@ -69,16 +69,16 @@ class DoubleEncoding {
     }
 
     public static double toDouble(byte[] data, int offset,boolean desc){
-    	byte[] val = data;
-    	if(desc){
-    		val = new byte[8];
-    		System.arraycopy(data,offset,val,0,val.length);
-    		for(int i=0;i<8;i++){
-    			val[i] ^= 0xff;
-    		}
-    		offset=0;
-    	}
-    		
+        byte[] val = data;
+        if(desc){
+            val = new byte[8];
+            System.arraycopy(data,offset,val,0,val.length);
+            for(int i=0;i<8;i++){
+                val[i] ^= 0xff;
+            }
+            offset=0;
+        }
+            
         long l = Bytes.toLong(val,offset);
 
         l--;

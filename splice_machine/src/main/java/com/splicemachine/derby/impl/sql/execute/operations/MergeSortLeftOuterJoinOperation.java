@@ -30,52 +30,52 @@ import java.io.IOException;
 public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
     private static Logger LOG = Logger.getLogger(MergeSortLeftOuterJoinOperation.class);
 
-		@SuppressWarnings("UnusedDeclaration")
-		public MergeSortLeftOuterJoinOperation() {
-				super();
-		}
+        @SuppressWarnings("UnusedDeclaration")
+        public MergeSortLeftOuterJoinOperation() {
+                super();
+        }
 
-		public MergeSortLeftOuterJoinOperation(
-						SpliceOperation leftResultSet,
-						int leftNumCols,
-						SpliceOperation rightResultSet,
-						int rightNumCols,
-						int leftHashKeyItem,
-						int rightHashKeyItem,
-						Activation activation,
-						GeneratedMethod restriction,
-						int resultSetNumber,
-						GeneratedMethod emptyRowFun,
-						boolean wasRightOuterJoin,
-						boolean oneRowRightSide,
-						boolean notExistsRightSide,
-						boolean rightFromSSQ,
-						double optimizerEstimatedRowCount,
-						double optimizerEstimatedCost,
-						String userSuppliedOptimizerOverrides,
-						String sparkExpressionTreeAsString) throws StandardException {
-				super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
-								activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ,
-								optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
-								sparkExpressionTreeAsString);
-				SpliceLogUtils.trace(LOG, "instantiate");
-				this.rightEmptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
-				this.wasRightOuterJoin = wasRightOuterJoin;
+        public MergeSortLeftOuterJoinOperation(
+                        SpliceOperation leftResultSet,
+                        int leftNumCols,
+                        SpliceOperation rightResultSet,
+                        int rightNumCols,
+                        int leftHashKeyItem,
+                        int rightHashKeyItem,
+                        Activation activation,
+                        GeneratedMethod restriction,
+                        int resultSetNumber,
+                        GeneratedMethod emptyRowFun,
+                        boolean wasRightOuterJoin,
+                        boolean oneRowRightSide,
+                        boolean notExistsRightSide,
+                        boolean rightFromSSQ,
+                        double optimizerEstimatedRowCount,
+                        double optimizerEstimatedCost,
+                        String userSuppliedOptimizerOverrides,
+                        String sparkExpressionTreeAsString) throws StandardException {
+                super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
+                                activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ,
+                                optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
+                                sparkExpressionTreeAsString);
+                SpliceLogUtils.trace(LOG, "instantiate");
+                this.rightEmptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
+                this.wasRightOuterJoin = wasRightOuterJoin;
                 this.joinType = JoinNode.LEFTOUTERJOIN;
-				init();
-		}
+                init();
+        }
 
-		@Override
-		public void init(SpliceOperationContext context) throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG, "init");
-				super.init(context);
-				rightEmptyRowFun = (rightEmptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(rightEmptyRowFunMethodName,context.getActivation());
-		}
+        @Override
+        public void init(SpliceOperationContext context) throws StandardException, IOException {
+                SpliceLogUtils.trace(LOG, "init");
+                super.init(context);
+                rightEmptyRowFun = (rightEmptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(rightEmptyRowFunMethodName,context.getActivation());
+        }
 
-		@Override
-		public String prettyPrint(int indentLevel) {
-				return "LeftOuter"+super.prettyPrint(indentLevel);
-		}
+        @Override
+        public String prettyPrint(int indentLevel) {
+                return "LeftOuter"+super.prettyPrint(indentLevel);
+        }
 
     @Override
     public ExecRow getRightEmptyRow() throws StandardException {

@@ -60,169 +60,169 @@ import com.splicemachine.db.iapi.types.UserType;
 
 public class SYSCHECKSRowFactory extends CatalogRowFactory
 {
-	private  static final String	TABLENAME_STRING = "SYSCHECKS";
+    private  static final String    TABLENAME_STRING = "SYSCHECKS";
 
-	private static final int		SYSCHECKS_COLUMN_COUNT = 3;
-	private static final int		SYSCHECKS_CONSTRAINTID = 1;
-	private static final int		SYSCHECKS_CHECKDEFINITION = 2;
-	private static final int		SYSCHECKS_REFERENCEDCOLUMNS = 3;
+    private static final int        SYSCHECKS_COLUMN_COUNT = 3;
+    private static final int        SYSCHECKS_CONSTRAINTID = 1;
+    private static final int        SYSCHECKS_CHECKDEFINITION = 2;
+    private static final int        SYSCHECKS_REFERENCEDCOLUMNS = 3;
 
-	static final int		SYSCHECKS_INDEX1_ID = 0;
+    static final int        SYSCHECKS_INDEX1_ID = 0;
 
-	// index is unique.
-    private	static	final	boolean[]	uniqueness = null;
+    // index is unique.
+    private    static    final    boolean[]    uniqueness = null;
 
-	private static final int[][] indexColumnPositions =
-	{	
-		{SYSCHECKS_CONSTRAINTID}
-	};
+    private static final int[][] indexColumnPositions =
+    {    
+        {SYSCHECKS_CONSTRAINTID}
+    };
 
-	private	static	final	String[]	uuids =
-	{
-		 "80000056-00d0-fd77-3ed8-000a0a0b1900"	// catalog UUID
-		,"80000059-00d0-fd77-3ed8-000a0a0b1900"	// heap UUID
-		,"80000058-00d0-fd77-3ed8-000a0a0b1900"	// SYSCHECKS_INDEX1 UUID
-	};
+    private    static    final    String[]    uuids =
+    {
+         "80000056-00d0-fd77-3ed8-000a0a0b1900"    // catalog UUID
+        ,"80000059-00d0-fd77-3ed8-000a0a0b1900"    // heap UUID
+        ,"80000058-00d0-fd77-3ed8-000a0a0b1900"    // SYSCHECKS_INDEX1 UUID
+    };
 
 
 
-	/////////////////////////////////////////////////////////////////////////////
-	//
-	//	CONSTRUCTORS
-	//
-	/////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////
+    //
+    //    CONSTRUCTORS
+    //
+    /////////////////////////////////////////////////////////////////////////////
 
-	public SYSCHECKSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
-	{
-		super(uuidf,ef,dvf);
-		initInfo(SYSCHECKS_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids );
-	}
+    public SYSCHECKSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    {
+        super(uuidf,ef,dvf);
+        initInfo(SYSCHECKS_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids );
+    }
 
-	/////////////////////////////////////////////////////////////////////////////
-	//
-	//	METHODS
-	//
-	/////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////
+    //
+    //    METHODS
+    //
+    /////////////////////////////////////////////////////////////////////////////
 
   /**
-	 * Make a SYSCHECKS row
-	 *
-	 * @param td CheckConstraintDescriptorImpl
-	 *
-	 * @return	Row suitable for inserting into SYSCHECKS.
-	 *
-	 * @exception   StandardException thrown on failure
-	 */
-	public ExecRow makeRow(TupleDescriptor	td, TupleDescriptor parent)
-					throws StandardException 
-	{
-		DataValueDescriptor		col;
-		ExecIndexRow			row;
-		ReferencedColumns rcd = null;
-		String					checkDefinition = null;
-		String					constraintID = null;
+     * Make a SYSCHECKS row
+     *
+     * @param td CheckConstraintDescriptorImpl
+     *
+     * @return    Row suitable for inserting into SYSCHECKS.
+     *
+     * @exception   StandardException thrown on failure
+     */
+    public ExecRow makeRow(TupleDescriptor    td, TupleDescriptor parent)
+                    throws StandardException 
+    {
+        DataValueDescriptor        col;
+        ExecIndexRow            row;
+        ReferencedColumns rcd = null;
+        String                    checkDefinition = null;
+        String                    constraintID = null;
 
-		if (td != null)
-		{
-			CheckConstraintDescriptor cd = (CheckConstraintDescriptor)td;
-			/*
-			** We only allocate a new UUID if the descriptor doesn't already have one.
-			** For descriptors replicated from a Source system, we already have an UUID.
-			*/
-			constraintID = cd.getUUID().toString();
+        if (td != null)
+        {
+            CheckConstraintDescriptor cd = (CheckConstraintDescriptor)td;
+            /*
+            ** We only allocate a new UUID if the descriptor doesn't already have one.
+            ** For descriptors replicated from a Source system, we already have an UUID.
+            */
+            constraintID = cd.getUUID().toString();
 
-			checkDefinition = cd.getConstraintText();
+            checkDefinition = cd.getConstraintText();
 
-			rcd = cd.getReferencedColumnsDescriptor();
-		}
+            rcd = cd.getReferencedColumnsDescriptor();
+        }
 
-		/* Build the row */
-		row = getExecutionFactory().getIndexableRow(SYSCHECKS_COLUMN_COUNT);
+        /* Build the row */
+        row = getExecutionFactory().getIndexableRow(SYSCHECKS_COLUMN_COUNT);
 
-		/* 1st column is CONSTRAINTID (UUID - char(36)) */
-		row.setColumn(SYSCHECKS_CONSTRAINTID, new SQLChar(constraintID));
+        /* 1st column is CONSTRAINTID (UUID - char(36)) */
+        row.setColumn(SYSCHECKS_CONSTRAINTID, new SQLChar(constraintID));
 
-		/* 2nd column is CHECKDEFINITION */
-		row.setColumn(SYSCHECKS_CHECKDEFINITION,
-				dvf.getLongvarcharDataValue(checkDefinition));
+        /* 2nd column is CHECKDEFINITION */
+        row.setColumn(SYSCHECKS_CHECKDEFINITION,
+                dvf.getLongvarcharDataValue(checkDefinition));
 
-		/* 3rd column is REFERENCEDCOLUMNS
-		 *  (user type com.splicemachine.db.catalog.ReferencedColumns)
-		 */
-		row.setColumn(SYSCHECKS_REFERENCEDCOLUMNS,
-			new UserType(rcd));
+        /* 3rd column is REFERENCEDCOLUMNS
+         *  (user type com.splicemachine.db.catalog.ReferencedColumns)
+         */
+        row.setColumn(SYSCHECKS_REFERENCEDCOLUMNS,
+            new UserType(rcd));
 
-		return row;
-	}
+        return row;
+    }
 
-	///////////////////////////////////////////////////////////////////////////
-	//
-	//	ABSTRACT METHODS TO BE IMPLEMENTED BY CHILDREN OF CatalogRowFactory
-	//
-	///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    //
+    //    ABSTRACT METHODS TO BE IMPLEMENTED BY CHILDREN OF CatalogRowFactory
+    //
+    ///////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Make a ViewDescriptor out of a SYSCHECKS row
-	 *
-	 * @param row a SYSCHECKS row
-	 * @param parentTupleDescriptor	Null for this kind of descriptor.
-	 * @param dd dataDictionary
-	 *
-	 * @exception   StandardException thrown on failure
-	 */
-	public TupleDescriptor buildDescriptor(
-		ExecRow					row,
-		TupleDescriptor			parentTupleDescriptor,
-		DataDictionary 			dd )
-					throws StandardException
-	{
-		SubCheckConstraintDescriptor checkDesc = null;
+    /**
+     * Make a ViewDescriptor out of a SYSCHECKS row
+     *
+     * @param row a SYSCHECKS row
+     * @param parentTupleDescriptor    Null for this kind of descriptor.
+     * @param dd dataDictionary
+     *
+     * @exception   StandardException thrown on failure
+     */
+    public TupleDescriptor buildDescriptor(
+        ExecRow                    row,
+        TupleDescriptor            parentTupleDescriptor,
+        DataDictionary             dd )
+                    throws StandardException
+    {
+        SubCheckConstraintDescriptor checkDesc = null;
 
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(
-				row.nColumns() == SYSCHECKS_COLUMN_COUNT, 
-				"Wrong number of columns for a SYSCHECKS row");
-		}
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(
+                row.nColumns() == SYSCHECKS_COLUMN_COUNT, 
+                "Wrong number of columns for a SYSCHECKS row");
+        }
 
-		DataValueDescriptor		col;
-		DataDescriptorGenerator ddg;
-		ReferencedColumns	referencedColumns;
-		String				constraintText;
-		String				constraintUUIDString;
-		UUID				constraintUUID;
+        DataValueDescriptor        col;
+        DataDescriptorGenerator ddg;
+        ReferencedColumns    referencedColumns;
+        String                constraintText;
+        String                constraintUUIDString;
+        UUID                constraintUUID;
 
-		ddg = dd.getDataDescriptorGenerator();
+        ddg = dd.getDataDescriptorGenerator();
 
-		/* 1st column is CONSTRAINTID (UUID - char(36)) */
-		col = row.getColumn(SYSCHECKS_CONSTRAINTID);
-		constraintUUIDString = col.getString();
-		constraintUUID = getUUIDFactory().recreateUUID(constraintUUIDString);
+        /* 1st column is CONSTRAINTID (UUID - char(36)) */
+        col = row.getColumn(SYSCHECKS_CONSTRAINTID);
+        constraintUUIDString = col.getString();
+        constraintUUID = getUUIDFactory().recreateUUID(constraintUUIDString);
 
-		/* 2nd column is CHECKDEFINITION */
-		col = row.getColumn(SYSCHECKS_CHECKDEFINITION);
-		constraintText = col.getString();
+        /* 2nd column is CHECKDEFINITION */
+        col = row.getColumn(SYSCHECKS_CHECKDEFINITION);
+        constraintText = col.getString();
 
-		/* 3rd column is REFERENCEDCOLUMNS */
-		col = row.getColumn(SYSCHECKS_REFERENCEDCOLUMNS);
-		referencedColumns =
-			(ReferencedColumns) col.getObject();
+        /* 3rd column is REFERENCEDCOLUMNS */
+        col = row.getColumn(SYSCHECKS_REFERENCEDCOLUMNS);
+        referencedColumns =
+            (ReferencedColumns) col.getObject();
 
-		/* now build and return the descriptor */
+        /* now build and return the descriptor */
 
-		checkDesc = new SubCheckConstraintDescriptor(
-										constraintUUID,
-										constraintText,
-										referencedColumns);
-		return checkDesc;
-	}
+        checkDesc = new SubCheckConstraintDescriptor(
+                                        constraintUUID,
+                                        constraintText,
+                                        referencedColumns);
+        return checkDesc;
+    }
 
-	/**
-	 * Builds a list of columns suitable for creating this Catalog.
-	 *
-	 *
-	 * @return array of SystemColumn suitable for making this catalog.
-	 */
+    /**
+     * Builds a list of columns suitable for creating this Catalog.
+     *
+     *
+     * @return array of SystemColumn suitable for making this catalog.
+     */
 
     public SystemColumn[] buildColumnList()
         throws StandardException

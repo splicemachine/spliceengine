@@ -284,35 +284,35 @@ public class ZkUtils{
      */
     public static long nextSequenceId(String counterNode) throws IOException{
         /*
-		 * When generating a new, Monotonically increasing identifier
-		 * based off of zookeeper, you have essentially two choices:
-		 *
-		 * 1. Create a new sequential znode under a base znode, then
-		 * read off the assigned sequential identifier.
-		 * 2. Use optimistic versioning to push increments to a single znode
-		 * atomically.
-		 *
-		 * Case 1 is the simplest to implement, but it has some notable issues:
-		 *  1. There is no contiguity of numbers. ZooKeeper guarantees
-		 *  monotonically increasing sequence numbers(Up to Integer.MAX_VALUE
-		 *  at any rate), but does not guarantee contiguiity of those numbers.
-		 *  Thus, it's possible to see 1, then the next be 10
-		 * 2. Lots of znodes. If you have a few thousand conglomerates, then
-		 * you'll have a few thousand znodes, whose only purpose was to
-		 * grab the sequential identifier. Not only does this add to the
-		 * conceptual difficulty in understanding the zookeeper layout, but it
-		 * also adds additional load to the ZooKeeper cluster itself.
-		 * 3. Rollovers. The sequential identifier supplied by zookeeper is
-		 * limited to integers, which can cause a rollover eventually.
-		 * 4. Expensive to read. To get the highest sequence element (without
-		 * updating), you must get *all* the znode children, then sort them
-		 * by sequence number, and then pick out the highest (or lowest). This
-		 * is a large network operation when there are a few thousand znodes.
-		 * 5. It's difficult to watch. You can watch on children, but in
-		 * order to act on them, you must first
-		 *
-		 * this implementation uses the second option
-		 */
+         * When generating a new, Monotonically increasing identifier
+         * based off of zookeeper, you have essentially two choices:
+         *
+         * 1. Create a new sequential znode under a base znode, then
+         * read off the assigned sequential identifier.
+         * 2. Use optimistic versioning to push increments to a single znode
+         * atomically.
+         *
+         * Case 1 is the simplest to implement, but it has some notable issues:
+         *  1. There is no contiguity of numbers. ZooKeeper guarantees
+         *  monotonically increasing sequence numbers(Up to Integer.MAX_VALUE
+         *  at any rate), but does not guarantee contiguiity of those numbers.
+         *  Thus, it's possible to see 1, then the next be 10
+         * 2. Lots of znodes. If you have a few thousand conglomerates, then
+         * you'll have a few thousand znodes, whose only purpose was to
+         * grab the sequential identifier. Not only does this add to the
+         * conceptual difficulty in understanding the zookeeper layout, but it
+         * also adds additional load to the ZooKeeper cluster itself.
+         * 3. Rollovers. The sequential identifier supplied by zookeeper is
+         * limited to integers, which can cause a rollover eventually.
+         * 4. Expensive to read. To get the highest sequence element (without
+         * updating), you must get *all* the znode children, then sort them
+         * by sequence number, and then pick out the highest (or lowest). This
+         * is a large network operation when there are a few thousand znodes.
+         * 5. It's difficult to watch. You can watch on children, but in
+         * order to act on them, you must first
+         *
+         * this implementation uses the second option
+         */
 
         RecoverableZooKeeper rzk=ZkUtils.getRecoverableZooKeeper();
         int maxTries=10;
@@ -358,15 +358,15 @@ public class ZkUtils{
                 throw new IOException(e);
             }
         }
-		/*
-		 * We've tried to get the latest sequence number a whole bunch of times,
-		 * without success. That means either a problem with ZooKeeper, or a LOT
-		 * of contention in getting the sequence. Need to back off and deal with it
-		 * at a higher level
-		 *
-		 * TODO -sf- we could fix this by putting in a non-optimistic lock at this point, but
-		 * it's probably best to see if it poses a problem as written first.
-		 */
+        /*
+         * We've tried to get the latest sequence number a whole bunch of times,
+         * without success. That means either a problem with ZooKeeper, or a LOT
+         * of contention in getting the sequence. Need to back off and deal with it
+         * at a higher level
+         *
+         * TODO -sf- we could fix this by putting in a non-optimistic lock at this point, but
+         * it's probably best to see if it poses a problem as written first.
+         */
         throw new IOException("Unable to get next conglomerate sequence, there is an issue "+
                 "speaking with ZooKeeper");
     }
@@ -400,12 +400,12 @@ public class ZkUtils{
             }
             return;
         }
-		/*
-		 * We've tried to set the sequence number a whole bunch of times,
-		 * without success. That means either a problem with ZooKeeper
-		 * Need to back off and deal with it
-		 * at a higher level
-		 */
+        /*
+         * We've tried to set the sequence number a whole bunch of times,
+         * without success. That means either a problem with ZooKeeper
+         * Need to back off and deal with it
+         * at a higher level
+         */
         throw new IOException("Unable to set next conglomerate sequence, there is an issue "+
                 "speaking with ZooKeeper");
     }

@@ -34,8 +34,8 @@ package com.splicemachine.db.vti;
 import java.sql.SQLException;
 
 /**
-	Support for pushing SQL statement information
-	down into a virtual table.
+    Support for pushing SQL statement information
+    down into a virtual table.
 
   A read-write virtual tables (one that implements java.sql.PreparedStatement)
   implements this interface to support pushing information into the VTI.
@@ -46,38 +46,38 @@ import java.sql.SQLException;
 public interface Pushable {
 
 
-	/**
-		Indicates the columns that must be returned by a read-write VTI's ResultSet.
-		This method is called only during the runtime execution of the VTI, after it has been
-		constructed and before the executeQuery() method is called.
-		At compile time the VTI needs to describe the complete set of columns it can return.
-		<BR>
-		The column identifiers contained in projectedColumns
-		map to the columns described by the VTI's PreparedStatement's
-		ResultSetMetaData. The ResultSet returned by
-		PreparedStatement.executeQuery() must contain
-		these columns in the order given. Column 1 in this
-		ResultSet maps the the column of the VTI identified
-		by projectedColumns[0], column 2 maps to projectedColumns[1] etc.
-		<BR>
-		Any additional columns contained in the ResultSet are ignored
-		by the database engine. The ResultSetMetaData returned by
-		ResultSet.getMetaData() must match the ResultSet.
-		<P>
-		PreparedStatement's ResultSetMetaData column list {"id", "desc", "price", "tax", "brand"}
-		<BR>
-		projectedColumns = { 2, 3, 5}
-		<BR>
-		results in a ResultSet containing at least these 3 columns
-		{"desc", "price", "brand"}
+    /**
+        Indicates the columns that must be returned by a read-write VTI's ResultSet.
+        This method is called only during the runtime execution of the VTI, after it has been
+        constructed and before the executeQuery() method is called.
+        At compile time the VTI needs to describe the complete set of columns it can return.
+        <BR>
+        The column identifiers contained in projectedColumns
+        map to the columns described by the VTI's PreparedStatement's
+        ResultSetMetaData. The ResultSet returned by
+        PreparedStatement.executeQuery() must contain
+        these columns in the order given. Column 1 in this
+        ResultSet maps the the column of the VTI identified
+        by projectedColumns[0], column 2 maps to projectedColumns[1] etc.
+        <BR>
+        Any additional columns contained in the ResultSet are ignored
+        by the database engine. The ResultSetMetaData returned by
+        ResultSet.getMetaData() must match the ResultSet.
+        <P>
+        PreparedStatement's ResultSetMetaData column list {"id", "desc", "price", "tax", "brand"}
+        <BR>
+        projectedColumns = { 2, 3, 5}
+        <BR>
+        results in a ResultSet containing at least these 3 columns
+        {"desc", "price", "brand"}
 
 
-		The  JDBC column numbering scheme (1 based) ise used for projectedColumns.
+        The  JDBC column numbering scheme (1 based) ise used for projectedColumns.
 
 
-		@exception SQLException Error processing the request.
-	*/
-	boolean pushProjection(VTIEnvironment vtiEnvironment, int[] projectedColumns)
-		throws SQLException;
+        @exception SQLException Error processing the request.
+    */
+    boolean pushProjection(VTIEnvironment vtiEnvironment, int[] projectedColumns)
+        throws SQLException;
 
 }

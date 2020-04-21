@@ -42,29 +42,29 @@ import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
 /**
-	Basic implementation of ColumnOrdering.
-	Not sure what to tell callers about 0-based versus 1-based numbering.
-	Assume 0-based for now.
+    Basic implementation of ColumnOrdering.
+    Not sure what to tell callers about 0-based versus 1-based numbering.
+    Assume 0-based for now.
 
  */
 public class IndexColumnOrder implements ColumnOrdering, Formatable
 {
-	/********************************************************
-	**
-	**	This class implements Formatable. That means that it
-	**	can write itself to and from a formatted stream. If
-	**	you add more fields to this class, make sure that you
-	**	also write/read them with the writeExternal()/readExternal()
-	**	methods.
-	**
-	**	If, inbetween releases, you add more fields to this class,
-	**	then you should bump the version number emitted by the getTypeFormatId()
-	**	method.
-	**
-	********************************************************/
+    /********************************************************
+    **
+    **    This class implements Formatable. That means that it
+    **    can write itself to and from a formatted stream. If
+    **    you add more fields to this class, make sure that you
+    **    also write/read them with the writeExternal()/readExternal()
+    **    methods.
+    **
+    **    If, inbetween releases, you add more fields to this class,
+    **    then you should bump the version number emitted by the getTypeFormatId()
+    **    method.
+    **
+    ********************************************************/
 
-	int colNum;
-	boolean ascending;
+    int colNum;
+    boolean ascending;
         /**
          * indicate whether NULL values should sort low.
          *
@@ -76,28 +76,28 @@ public class IndexColumnOrder implements ColumnOrdering, Formatable
          */
         boolean nullsOrderedLow;
 
-	/*
-	 * class interface
-	 */
+    /*
+     * class interface
+     */
 
-	/**
-	 * Niladic constructor for formatable
-	 */
-	public IndexColumnOrder() 
-	{
-	}
+    /**
+     * Niladic constructor for formatable
+     */
+    public IndexColumnOrder() 
+    {
+    }
 
-	public IndexColumnOrder(int colNum) {
-		 this.colNum = colNum;
-		 this.ascending = true;
+    public IndexColumnOrder(int colNum) {
+         this.colNum = colNum;
+         this.ascending = true;
                  this.nullsOrderedLow = false;
-	}
+    }
 
-	public IndexColumnOrder(int colNum, boolean ascending) {
-		 this.colNum = colNum;
-		 this.ascending = ascending;
+    public IndexColumnOrder(int colNum, boolean ascending) {
+         this.colNum = colNum;
+         this.ascending = ascending;
                  this.nullsOrderedLow = false;
-	}
+    }
 
         /**
          * constructor used by the ORDER BY clause.
@@ -112,24 +112,24 @@ public class IndexColumnOrder implements ColumnOrdering, Formatable
          * @param ascending whether the ORDER BY is ascendeing or descending
          * @param nullsLow whether nulls should be ordered low
          */
-	public IndexColumnOrder(int colNum, boolean ascending,
+    public IndexColumnOrder(int colNum, boolean ascending,
                 boolean nullsLow)
         {
-		 this.colNum = colNum;
-		 this.ascending = ascending;
+         this.colNum = colNum;
+         this.ascending = ascending;
                  this.nullsOrderedLow = nullsLow;
-	}
+    }
 
-	/*
-	 * ColumnOrdering interface
- 	 */
-	public int getColumnId() {
-		return colNum;
-	}
+    /*
+     * ColumnOrdering interface
+      */
+    public int getColumnId() {
+        return colNum;
+    }
 
-	public boolean getIsAscending() {
-		return ascending;
-	}
+    public boolean getIsAscending() {
+        return ascending;
+    }
 
         /**
          * Indicate whether NULL values should be ordered below non-NULL.
@@ -140,61 +140,61 @@ public class IndexColumnOrder implements ColumnOrdering, Formatable
          *
          * @return whether nulls should sort low
          */
-	public boolean getIsNullsOrderedLow() {
-		return nullsOrderedLow;
-	}
+    public boolean getIsNullsOrderedLow() {
+        return nullsOrderedLow;
+    }
 
-	//////////////////////////////////////////////
-	//
-	// FORMATABLE
-	//
-	//////////////////////////////////////////////
-	/**
-	 * Write this object out
-	 *
-	 * @param out write bytes here
-	 *
- 	 * @exception IOException thrown on error
-	 */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		out.writeInt(colNum);
-		out.writeBoolean(ascending);
-		out.writeBoolean(nullsOrderedLow);
-	}
+    //////////////////////////////////////////////
+    //
+    // FORMATABLE
+    //
+    //////////////////////////////////////////////
+    /**
+     * Write this object out
+     *
+     * @param out write bytes here
+     *
+      * @exception IOException thrown on error
+     */
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeInt(colNum);
+        out.writeBoolean(ascending);
+        out.writeBoolean(nullsOrderedLow);
+    }
 
-	/**
-	 * Read this object from a stream of stored objects.
-	 *
-	 * @param in read this.
-	 *
-	 * @exception IOException					thrown on error
-	 * @exception ClassNotFoundException		thrown on error
-	 */
-	public void readExternal(ObjectInput in)
-		throws IOException, ClassNotFoundException
-	{
-		colNum = in.readInt();
-		ascending = in.readBoolean();
-		nullsOrderedLow = in.readBoolean();
-	}
-	
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.INDEX_COLUMN_ORDER_V01_ID; }
+    /**
+     * Read this object from a stream of stored objects.
+     *
+     * @param in read this.
+     *
+     * @exception IOException                    thrown on error
+     * @exception ClassNotFoundException        thrown on error
+     */
+    public void readExternal(ObjectInput in)
+        throws IOException, ClassNotFoundException
+    {
+        colNum = in.readInt();
+        ascending = in.readBoolean();
+        nullsOrderedLow = in.readBoolean();
+    }
+    
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId()    { return StoredFormatIds.INDEX_COLUMN_ORDER_V01_ID; }
 
-	public String toString() {
-		if (SanityManager.DEBUG) {
-			return
-				"IndexColumnOrder.colNum: " + colNum + "\n" +
-				"IndexColumnOrder.ascending: " + ascending  + "\n" +
-				"IndexColumnOrder.nullsOrderedLow: " + nullsOrderedLow;
-		} else {
-			return super.toString();
-		}
+    public String toString() {
+        if (SanityManager.DEBUG) {
+            return
+                "IndexColumnOrder.colNum: " + colNum + "\n" +
+                "IndexColumnOrder.ascending: " + ascending  + "\n" +
+                "IndexColumnOrder.nullsOrderedLow: " + nullsOrderedLow;
+        } else {
+            return super.toString();
+        }
 
-	}
+    }
 }

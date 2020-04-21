@@ -66,11 +66,11 @@ public class T_MarkedLimitInputStream extends T_Generic
         // make a MarkedLimitInputStream
         return makeMLIS(baos.toByteArray());
 
-	}
+    }
 
-	private static void writeDos(InputStream x, DataOutputStream out)
+    private static void writeDos(InputStream x, DataOutputStream out)
         throws Exception
-	{
+    {
         boolean isLastBlock = false;
         byte[] b = new byte[BLOCK_SIZE];
 
@@ -180,15 +180,15 @@ public class T_MarkedLimitInputStream extends T_Generic
     }
 
 
-	/** Methods required by T_Generic
-	*/
-	public String getModuleToTestProtocolName()
-	{
-		return "internalUtils.MarkedLimitInputStream";
-	}
+    /** Methods required by T_Generic
+    */
+    public String getModuleToTestProtocolName()
+    {
+        return "internalUtils.MarkedLimitInputStream";
+    }
 
 
-	protected void runTests()
+    protected void runTests()
         throws Exception
     {
         boolean success = true;

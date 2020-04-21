@@ -103,10 +103,10 @@ public class UncompressedBitIndex implements BitIndex {
         return bytes;
     }
 
-		@Override
-		public int nextSetBit(int currentPosition) {
-				return bitSet.nextSetBit(currentPosition);
-		}
+        @Override
+        public int nextSetBit(int currentPosition) {
+                return bitSet.nextSetBit(currentPosition);
+        }
 
     @Override
     public int encodedSize() {
@@ -218,7 +218,7 @@ public class UncompressedBitIndex implements BitIndex {
         return result;
     }
 
-		public static BitIndex create(BitSet setCols,BitSet lengthDelimitedFields,BitSet floatFields,BitSet doubleFields) {
+        public static BitIndex create(BitSet setCols,BitSet lengthDelimitedFields,BitSet floatFields,BitSet doubleFields) {
         return new UncompressedBitIndex(setCols,lengthDelimitedFields,floatFields,doubleFields);
     }
 

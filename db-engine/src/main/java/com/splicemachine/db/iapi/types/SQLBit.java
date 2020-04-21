@@ -44,195 +44,195 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
  * SQLBit represents the SQL type CHAR FOR BIT DATA
  */
 public class SQLBit
-	extends SQLBinary
+    extends SQLBinary
 {
 
-	/**
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public Object	getObject() throws StandardException
-	{
-		return getBytes();
-	}
+    /**
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public Object    getObject() throws StandardException
+    {
+        return getBytes();
+    }
 
 
-	public String getTypeName()
-	{
-		return TypeId.BIT_NAME;
-	}
+    public String getTypeName()
+    {
+        return TypeId.BIT_NAME;
+    }
 
-	/**
-	 * Return max memory usage for a SQL Bit
-	 */
-	int getMaxMemoryUsage()
-	{
-		return Limits.DB2_CHAR_MAXWIDTH;
-	}
+    /**
+     * Return max memory usage for a SQL Bit
+     */
+    int getMaxMemoryUsage()
+    {
+        return Limits.DB2_CHAR_MAXWIDTH;
+    }
 
-	/*
-	 * Storable interface, implies Externalizable, TypedFormat
-	 */
+    /*
+     * Storable interface, implies Externalizable, TypedFormat
+     */
 
-	/**
-		Return my format identifier.
+    /**
+        Return my format identifier.
 
-		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
-	public int getTypeFormatId()
-	{
-		return StoredFormatIds.SQL_BIT_ID;
-	}
+        @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
+    */
+    public int getTypeFormatId()
+    {
+        return StoredFormatIds.SQL_BIT_ID;
+    }
 
 
-	/** @see DataValueDescriptor#getNewNull */
-	public DataValueDescriptor getNewNull()
-	{
-		return new SQLBit();
-	}
+    /** @see DataValueDescriptor#getNewNull */
+    public DataValueDescriptor getNewNull()
+    {
+        return new SQLBit();
+    }
 
-	/** 
-	 * Obtain the value using getBytes. This works for all FOR BIT DATA types.
-	 * Getting a stream is problematic as any other getXXX() call on the ResultSet
-	 * will close the stream we fetched. Therefore we have to create the value in-memory
-	 * as a byte array.
-	 * @see DataValueDescriptor#setValueFromResultSet 
-	 *
-	 * @exception SQLException		Thrown on error
-	 */
-	public final void setValueFromResultSet(ResultSet resultSet, int colNumber,
-									  boolean isNullable)
-		throws SQLException
-	{
-			setValue(resultSet.getBytes(colNumber));
-	}
+    /** 
+     * Obtain the value using getBytes. This works for all FOR BIT DATA types.
+     * Getting a stream is problematic as any other getXXX() call on the ResultSet
+     * will close the stream we fetched. Therefore we have to create the value in-memory
+     * as a byte array.
+     * @see DataValueDescriptor#setValueFromResultSet 
+     *
+     * @exception SQLException        Thrown on error
+     */
+    public final void setValueFromResultSet(ResultSet resultSet, int colNumber,
+                                      boolean isNullable)
+        throws SQLException
+    {
+            setValue(resultSet.getBytes(colNumber));
+    }
 
-	/*
-	 * DataValueDescriptor interface
-	 */
+    /*
+     * DataValueDescriptor interface
+     */
 
-	/** @see DataValueDescriptor#typePrecedence */
-	public int typePrecedence()
-	{
-		return TypeId.BIT_PRECEDENCE;
-	}
-	
-	/**
-	 * Set the value from an non-null object.
-	 */
-	final void setObject(Object theValue)
-		throws StandardException
-	{
-		setValue((byte[]) theValue);
-	}
+    /** @see DataValueDescriptor#typePrecedence */
+    public int typePrecedence()
+    {
+        return TypeId.BIT_PRECEDENCE;
+    }
+    
+    /**
+     * Set the value from an non-null object.
+     */
+    final void setObject(Object theValue)
+        throws StandardException
+    {
+        setValue((byte[]) theValue);
+    }
 
-	/*
-	 * constructors
-	 */
+    /*
+     * constructors
+     */
 
-	/**
-		no-arg constructor, required by Formattable.
-	*/
-	public SQLBit()
-	{
-	}
+    /**
+        no-arg constructor, required by Formattable.
+    */
+    public SQLBit()
+    {
+    }
 
-	public SQLBit(byte[] val)
-	{
-		setValue(val);
-	}
+    public SQLBit(byte[] val)
+    {
+        setValue(val);
+    }
 
-	/**
-	 * Normalization method - this method may be called when putting
-	 * a value into a SQLBit, for example, when inserting into a SQLBit
-	 * column.  See NormalizeResultSet in execution.
-	 *
-	 * @param desiredType	The type to normalize the source column to
-	 * @param source		The value to normalize
-	 *
-	 * @exception StandardException				Thrown for null into
-	 *											non-nullable column, and for
-	 *											truncation error
-	 */
+    /**
+     * Normalization method - this method may be called when putting
+     * a value into a SQLBit, for example, when inserting into a SQLBit
+     * column.  See NormalizeResultSet in execution.
+     *
+     * @param desiredType    The type to normalize the source column to
+     * @param source        The value to normalize
+     *
+     * @exception StandardException                Thrown for null into
+     *                                            non-nullable column, and for
+     *                                            truncation error
+     */
 
-	public void normalize(
-				DataTypeDescriptor desiredType,
-				DataValueDescriptor source)
-					throws StandardException
-	{
-		int		desiredWidth = desiredType.getMaximumWidth();
+    public void normalize(
+                DataTypeDescriptor desiredType,
+                DataValueDescriptor source)
+                    throws StandardException
+    {
+        int        desiredWidth = desiredType.getMaximumWidth();
 
-		((SQLBinary) this).setValue(source.getBytes());
-		setWidth(desiredWidth, 0, true);
-	}
+        ((SQLBinary) this).setValue(source.getBytes());
+        setWidth(desiredWidth, 0, true);
+    }
 
-	/**
-	 * Set the width of the to the desired value.  Used
-	 * when CASTing.  Ideally we'd recycle normalize(), but
-	 * the behavior is different (we issue a warning instead
-	 * of an error, and we aren't interested in nullability).
-	 *
-	 * @param desiredWidth	the desired length	
-	 * @param desiredScale	the desired scale (ignored)	
-	 * @param errorOnTrunc	throw error on truncation
-	 *
-	 * @exception StandardException		Thrown on non-zero truncation
-	 *		if errorOnTrunc is true	
-	 */
-	public void setWidth(int desiredWidth, 
-			int desiredScale,	// Ignored 
-			boolean errorOnTrunc)
-			throws StandardException
-	{
-		/*
-		** If the input is NULL, nothing to do.
-		*/
-		if (getValue() == null)
-		{
-			return;
-		}
+    /**
+     * Set the width of the to the desired value.  Used
+     * when CASTing.  Ideally we'd recycle normalize(), but
+     * the behavior is different (we issue a warning instead
+     * of an error, and we aren't interested in nullability).
+     *
+     * @param desiredWidth    the desired length    
+     * @param desiredScale    the desired scale (ignored)    
+     * @param errorOnTrunc    throw error on truncation
+     *
+     * @exception StandardException        Thrown on non-zero truncation
+     *        if errorOnTrunc is true    
+     */
+    public void setWidth(int desiredWidth, 
+            int desiredScale,    // Ignored 
+            boolean errorOnTrunc)
+            throws StandardException
+    {
+        /*
+        ** If the input is NULL, nothing to do.
+        */
+        if (getValue() == null)
+        {
+            return;
+        }
 
-		int sourceWidth = dataValue.length;
+        int sourceWidth = dataValue.length;
 
-		/*
-		** If the input is shorter than the desired type,
-		** then pad with blanks to the right length.
-		*/
-		if (sourceWidth < desiredWidth)
-		{
-			byte[] actualData = new byte[desiredWidth];
-			System.arraycopy(dataValue, 0, actualData, 0, dataValue.length);
-			java.util.Arrays.fill(actualData, dataValue.length, actualData.length, SQLBinary.PAD);
-			dataValue = actualData;
-		}
-		/*
-		** Truncation?
-		*/
-		else if (sourceWidth > desiredWidth)
-		{
-			if (errorOnTrunc)
-			{
-				// error if truncating non pad characters.
-				for (int i = desiredWidth; i < dataValue.length; i++) {
+        /*
+        ** If the input is shorter than the desired type,
+        ** then pad with blanks to the right length.
+        */
+        if (sourceWidth < desiredWidth)
+        {
+            byte[] actualData = new byte[desiredWidth];
+            System.arraycopy(dataValue, 0, actualData, 0, dataValue.length);
+            java.util.Arrays.fill(actualData, dataValue.length, actualData.length, SQLBinary.PAD);
+            dataValue = actualData;
+        }
+        /*
+        ** Truncation?
+        */
+        else if (sourceWidth > desiredWidth)
+        {
+            if (errorOnTrunc)
+            {
+                // error if truncating non pad characters.
+                for (int i = desiredWidth; i < dataValue.length; i++) {
 
-					if (dataValue[i] != SQLBinary.PAD)
-						throw StandardException.newException(SQLState.LANG_STRING_TRUNCATION, getTypeName(), 
-									StringUtil.formatForPrint(this.toString()),
-									String.valueOf(desiredWidth));
-				}
-			}
-	
-			/*
-			** Truncate to the desired width.
-			*/
+                    if (dataValue[i] != SQLBinary.PAD)
+                        throw StandardException.newException(SQLState.LANG_STRING_TRUNCATION, getTypeName(), 
+                                    StringUtil.formatForPrint(this.toString()),
+                                    String.valueOf(desiredWidth));
+                }
+            }
+    
+            /*
+            ** Truncate to the desired width.
+            */
             truncate(sourceWidth, desiredWidth, !errorOnTrunc);
-		}
-	}
+        }
+    }
 
 
-	public Format getFormat() {
-		return Format.BIT;
-	}
+    public Format getFormat() {
+        return Format.BIT;
+    }
 
 
 }

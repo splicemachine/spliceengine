@@ -39,178 +39,178 @@ import com.splicemachine.db.iapi.error.StandardException;
 import java.util.Properties;
 
 /**
-	Abstract class which executes a unit test.
+    Abstract class which executes a unit test.
 
-	<P>To write a test,	extend this class with a class which implements the two
-	abstract methods:
-<UL>	
+    <P>To write a test,    extend this class with a class which implements the two
+    abstract methods:
+<UL>    
     <LI>runTests
-	<LI>setUp
+    <LI>setUp
 </UL>
-	@see UnitTest
-	@see ModuleControl
+    @see UnitTest
+    @see ModuleControl
 */
 public abstract class T_Generic implements UnitTest, ModuleControl
 {
-	/**
-	  The unqualified name for the module to test. This is set by the generic
-	  code.
-	  */
-	protected String shortModuleToTestName;
+    /**
+      The unqualified name for the module to test. This is set by the generic
+      code.
+      */
+    protected String shortModuleToTestName;
 
-	/**
-	  The start parameters for your test. This is set by generic code.
-	  */
-	protected Properties startParams;
+    /**
+      The start parameters for your test. This is set by generic code.
+      */
+    protected Properties startParams;
 
-	/**
-	  The HeaderPrintWriter for test output. This is set by the
-	  generic code.
-	  */
-	protected HeaderPrintWriter out;
+    /**
+      The HeaderPrintWriter for test output. This is set by the
+      generic code.
+      */
+    protected HeaderPrintWriter out;
 
-	protected T_Generic()
-	{
-	}
+    protected T_Generic()
+    {
+    }
 
-	/*
-	** Public methods of ModuleControl
-	*/
+    /*
+    ** Public methods of ModuleControl
+    */
 
-	/**
-	  ModuleControl.start
-	  
-	  @see ModuleControl#boot
-	  @exception StandardException Module cannot be started.
-	  */
-	public void boot(boolean create, Properties startParams)
-		 throws StandardException
-	{
-		shortModuleToTestName =
-			getModuleToTestProtocolName()
-			.substring(getModuleToTestProtocolName().lastIndexOf('.')+1);
+    /**
+      ModuleControl.start
+      
+      @see ModuleControl#boot
+      @exception StandardException Module cannot be started.
+      */
+    public void boot(boolean create, Properties startParams)
+         throws StandardException
+    {
+        shortModuleToTestName =
+            getModuleToTestProtocolName()
+            .substring(getModuleToTestProtocolName().lastIndexOf('.')+1);
 
-		this.startParams = startParams;
-	}
+        this.startParams = startParams;
+    }
 
-	/**
-	  ModuleControl.stop
-	  
-	  @see ModuleControl#stop
-	  */
-	public void stop() {
-	}
+    /**
+      ModuleControl.stop
+      
+      @see ModuleControl#stop
+      */
+    public void stop() {
+    }
 
-	/*
-	** Public methods of UnitTest
-	*/
-	/**
-	  UnitTest.Execute
-	  
-	  @see UnitTest#Execute
-	  */
-	public boolean Execute(HeaderPrintWriter out)
-	{
-		this.out = out;
+    /*
+    ** Public methods of UnitTest
+    */
+    /**
+      UnitTest.Execute
+      
+      @see UnitTest#Execute
+      */
+    public boolean Execute(HeaderPrintWriter out)
+    {
+        this.out = out;
 
-		String myClass = this.getClass().getName();
-		String testName = myClass.substring(myClass.lastIndexOf('.') + 1);
+        String myClass = this.getClass().getName();
+        String testName = myClass.substring(myClass.lastIndexOf('.') + 1);
 
-		System.out.println("-- Unit Test " + testName + " starting");
+        System.out.println("-- Unit Test " + testName + " starting");
 
-		try
-		{
-			runTests();
-		}
-		
-		catch (Throwable t)
-		{
-			FAIL(t.toString());
-			out.printThrowable(t);
-			return false;
-		}
+        try
+        {
+            runTests();
+        }
+        
+        catch (Throwable t)
+        {
+            FAIL(t.toString());
+            out.printThrowable(t);
+            return false;
+        }
 
-		System.out.println("-- Unit Test " + testName + " finished");
+        System.out.println("-- Unit Test " + testName + " finished");
 
-		return true;
-	}
+        return true;
+    }
 
-	/**
-	  UnitTest.UnitTestDuration
-	  
-	  @return UnitTestConstants.DURATION_MICRO
-	  @see UnitTest#UnitTestDuration
-	  @see UnitTestConstants
-	  */
-	public int UnitTestDuration() {
-		return UnitTestConstants.DURATION_MICRO;
-	}
+    /**
+      UnitTest.UnitTestDuration
+      
+      @return UnitTestConstants.DURATION_MICRO
+      @see UnitTest#UnitTestDuration
+      @see UnitTestConstants
+      */
+    public int UnitTestDuration() {
+        return UnitTestConstants.DURATION_MICRO;
+    }
 
-	/**
-	  UnitTest.UnitTestType
-	  
-	  @return UnitTestConstants.TYPE_COMMON
-	  @see UnitTest#UnitTestType
-	  @see UnitTestConstants
-	  */
-	public int UnitTestType() {
-		return UnitTestConstants.TYPE_COMMON;
-	}
+    /**
+      UnitTest.UnitTestType
+      
+      @return UnitTestConstants.TYPE_COMMON
+      @see UnitTest#UnitTestType
+      @see UnitTestConstants
+      */
+    public int UnitTestType() {
+        return UnitTestConstants.TYPE_COMMON;
+    }
 
-	/**
-	  Emit a message indicating why the test failed.
+    /**
+      Emit a message indicating why the test failed.
 
-	  RESOLVE: Should this be localized?
+      RESOLVE: Should this be localized?
 
-	  @param msg the message.
-	  @return false
-	*/
-	protected boolean FAIL(String msg) {
-		out.println("[" + Thread.currentThread().getName() + "] FAIL - " + msg);
-		return false;
-	}
+      @param msg the message.
+      @return false
+    */
+    protected boolean FAIL(String msg) {
+        out.println("[" + Thread.currentThread().getName() + "] FAIL - " + msg);
+        return false;
+    }
 
-	/**
-	  Emit a message saying the test passed.
-	  You may use this to emit messages indicating individual test cases
-	  within a unit test passed.
+    /**
+      Emit a message saying the test passed.
+      You may use this to emit messages indicating individual test cases
+      within a unit test passed.
 
-	  <P>RESOLVE:Localize this.
-	  @param testName the test which passed.
-	  @return true
-	  */
-	protected boolean PASS(String testName) {
-		out.println("[" + Thread.currentThread().getName() + "] Pass - "+shortModuleToTestName +" " + testName);
-		return true;
-	}
+      <P>RESOLVE:Localize this.
+      @param testName the test which passed.
+      @return true
+      */
+    protected boolean PASS(String testName) {
+        out.println("[" + Thread.currentThread().getName() + "] Pass - "+shortModuleToTestName +" " + testName);
+        return true;
+    }
 
-	/**
-		Emit a message during a unit test run, indent the message
-		to allow the PASS/FAIL messages to stand out.
-	*/
-	public void REPORT(String msg) {
-		out.println("[" + Thread.currentThread().getName() + "]     " + msg);
-	}
+    /**
+        Emit a message during a unit test run, indent the message
+        to allow the PASS/FAIL messages to stand out.
+    */
+    public void REPORT(String msg) {
+        out.println("[" + Thread.currentThread().getName() + "]     " + msg);
+    }
 
-	
-	/**
-	  Abstract methods to implement for your test.
-	  */
-	
-	/**
-	  Run the test. The test should raise an exception if it
-	  fails. runTests should return if the tests pass.
+    
+    /**
+      Abstract methods to implement for your test.
+      */
+    
+    /**
+      Run the test. The test should raise an exception if it
+      fails. runTests should return if the tests pass.
 
-	  @exception Exception Test code throws these
-	  */
-	protected abstract void runTests() throws Exception;
+      @exception Exception Test code throws these
+      */
+    protected abstract void runTests() throws Exception;
 
-	/**
-	  Get the name of the protocol for the module to test.
-	  This is the 'factory.MODULE' variable.
-	  
-	  'moduleName' to the name of the module to test. 
+    /**
+      Get the name of the protocol for the module to test.
+      This is the 'factory.MODULE' variable.
+      
+      'moduleName' to the name of the module to test. 
 
-	  */
-	protected abstract String getModuleToTestProtocolName();
+      */
+    protected abstract String getModuleToTestProtocolName();
 }

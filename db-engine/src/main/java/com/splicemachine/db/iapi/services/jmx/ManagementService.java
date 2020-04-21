@@ -40,7 +40,7 @@ import com.splicemachine.db.mbeans.ManagementMBean;
 * service is started by the Derby monitor if the system property db.system.jmx has
 * been set. The following services are provided:
 * 
-*	<li> Create and start an instance of MBean server to register MBeans.
+*    <li> Create and start an instance of MBean server to register MBeans.
 *       <li> Create managed beans (MBeans) to instrument db resources for
 *            management and monitoring.
 * 

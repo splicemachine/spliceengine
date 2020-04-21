@@ -5479,7 +5479,7 @@ public class GeneratedColumnsTest extends GeneratedColumnsHelper
     public void test_derby_4779()
         throws Exception
     {
-    	Connection conn = getConnection();
+        Connection conn = getConnection();
 
         goodStatement
         (

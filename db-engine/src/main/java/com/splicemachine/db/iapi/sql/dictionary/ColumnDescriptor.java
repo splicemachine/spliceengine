@@ -66,18 +66,18 @@ public final class ColumnDescriptor extends TupleDescriptor
 {
 
     // implementation
-    private DefaultInfo			columnDefaultInfo;
-    private TableDescriptor		table;
-    private String			columnName;
-    private int			columnPosition;
+    private DefaultInfo            columnDefaultInfo;
+    private TableDescriptor        table;
+    private String            columnName;
+    private int            columnPosition;
     private int         storagePosition;
-    private DataTypeDescriptor	columnType;
-    private DataValueDescriptor	columnDefault;
-    private UUID				uuid;
-    private UUID				defaultUUID;
-    private long				autoincStart;
-    private long				autoincInc;
-    private long				autoincValue;
+    private DataTypeDescriptor    columnType;
+    private DataValueDescriptor    columnDefault;
+    private UUID                uuid;
+    private UUID                defaultUUID;
+    private long                autoincStart;
+    private long                autoincInc;
+    private long                autoincValue;
     private boolean collectStatistics;
     private int partitionPosition = -1;
     private byte  useExtrapolation = 0;
@@ -86,7 +86,7 @@ public final class ColumnDescriptor extends TupleDescriptor
     //column, or if user is altering the existing autoincrement column to change
     //the increment value or to change the start value. If none of the above,
     //then it will be set to -1
-    long				autoinc_create_or_modify_Start_Increment = -1;
+    long                autoinc_create_or_modify_Start_Increment = -1;
 
     /**
      * Constructor for a ColumnDescriptor when the column involved
@@ -95,24 +95,24 @@ public final class ColumnDescriptor extends TupleDescriptor
      * the autoincrement column is being modified to change the
      * increment value or to change the start value
      *
-     * @param columnName		The name of the column
-     * @param columnPosition	The ordinal position of the column in the table
-     * @param storagePosition	The ordinal position of the column on disk (Accounts for alter table)
+     * @param columnName        The name of the column
+     * @param columnPosition    The ordinal position of the column in the table
+     * @param storagePosition    The ordinal position of the column on disk (Accounts for alter table)
      *
-     * @param columnType		A DataTypeDescriptor for the type of
-     *				the column
-     * @param columnDefault		A DataValueDescriptor representing the
-     *							default value of the column, if any
-     *							(null if no default)
-     * @param columnDefaultInfo		The default info for the column.
-     * @param table			A TableDescriptor for the table the
-     *						column is in
-     * @param defaultUUID			The UUID for the default, if any.
-     * @param autoincStart	Start value for an autoincrement column.
-     * @param autoincInc	Increment for autoincrement column
-     * @param userChangedWhat		Adding an autoincrement column OR
-     *						changing increment value or start value of
-     *						the autoincrement column.
+     * @param columnType        A DataTypeDescriptor for the type of
+     *                the column
+     * @param columnDefault        A DataValueDescriptor representing the
+     *                            default value of the column, if any
+     *                            (null if no default)
+     * @param columnDefaultInfo        The default info for the column.
+     * @param table            A TableDescriptor for the table the
+     *                        column is in
+     * @param defaultUUID            The UUID for the default, if any.
+     * @param autoincStart    Start value for an autoincrement column.
+     * @param autoincInc    Increment for autoincrement column
+     * @param userChangedWhat        Adding an autoincrement column OR
+     *                        changing increment value or start value of
+     *                        the autoincrement column.
      * @param partitionPosition
      * @param useExtrapolation indicates whether we want to do extrapolation for stats estimation
      */
@@ -135,20 +135,20 @@ public final class ColumnDescriptor extends TupleDescriptor
     /**
      * Constructor for a ColumnDescriptor
      *
-     * @param columnName		The name of the column
-     * @param columnPosition	The ordinal position of the column
-     * @param storagePosition	The ordinal position of the column on disk (Accounts for alter table)
-     * @param columnType		A DataTypeDescriptor for the type of
-     *				the column
-     * @param columnDefault		A DataValueDescriptor representing the
-     *							default value of the column, if any
-     *							(null if no default)
-     * @param columnDefaultInfo		The default info for the column.
-     * @param table			A TableDescriptor for the table the
-     *						column is in
-     * @param defaultUUID			The UUID for the default, if any.
-     * @param autoincStart	Start value for an autoincrement column.
-     * @param autoincInc	Increment for autoincrement column
+     * @param columnName        The name of the column
+     * @param columnPosition    The ordinal position of the column
+     * @param storagePosition    The ordinal position of the column on disk (Accounts for alter table)
+     * @param columnType        A DataTypeDescriptor for the type of
+     *                the column
+     * @param columnDefault        A DataValueDescriptor representing the
+     *                            default value of the column, if any
+     *                            (null if no default)
+     * @param columnDefaultInfo        The default info for the column.
+     * @param table            A TableDescriptor for the table the
+     *                        column is in
+     * @param defaultUUID            The UUID for the default, if any.
+     * @param autoincStart    Start value for an autoincrement column.
+     * @param autoincInc    Increment for autoincrement column
      * @param partitionPosition
      * @param useExtrapolation indicates whether we want to do extrapolation for stats estimation
      */
@@ -208,21 +208,21 @@ public final class ColumnDescriptor extends TupleDescriptor
      * columnDescriptor doesn't know/care about a table
      * descriptor.
      *
-     * @param columnName		The name of the column
-     * @param columnPosition	The ordinal position of the column
-     * @param storagePosition	The ordinal position of the column on disk (Accounts for alter table)
-     * @param columnType		A DataTypeDescriptor for the type of
-     *				the column
-     * @param columnDefault		A DataValueDescriptor representing the
-     *							default value of the column, if any
-     *							(null if no default)
-     * @param columnDefaultInfo		The default info for the column.
-     * @param uuid			A uuid for the object that this column
-     *						is in.
-     * @param defaultUUID			The UUID for the default, if any.
-     * @param autoincStart	Start value for an autoincrement column.
-     * @param autoincInc	Increment for autoincrement column
-     * @param autoincValue	Current value of the autoincrement column
+     * @param columnName        The name of the column
+     * @param columnPosition    The ordinal position of the column
+     * @param storagePosition    The ordinal position of the column on disk (Accounts for alter table)
+     * @param columnType        A DataTypeDescriptor for the type of
+     *                the column
+     * @param columnDefault        A DataValueDescriptor representing the
+     *                            default value of the column, if any
+     *                            (null if no default)
+     * @param columnDefaultInfo        The default info for the column.
+     * @param uuid            A uuid for the object that this column
+     *                        is in.
+     * @param defaultUUID            The UUID for the default, if any.
+     * @param autoincStart    Start value for an autoincrement column.
+     * @param autoincInc    Increment for autoincrement column
+     * @param autoincValue    Current value of the autoincrement column
      */
     public ColumnDescriptor(String columnName, int columnPosition, int storagePosition,
                             DataTypeDescriptor columnType, DataValueDescriptor columnDefault,
@@ -295,9 +295,9 @@ public final class ColumnDescriptor extends TupleDescriptor
     /**
      * Get the UUID of the object the column is a part of.
      *
-     * @return	The UUID of the table the column is a part of.
+     * @return    The UUID of the table the column is a part of.
      */
-    public UUID	getReferencingUUID()
+    public UUID    getReferencingUUID()
     {
         return uuid;
     }
@@ -305,9 +305,9 @@ public final class ColumnDescriptor extends TupleDescriptor
     /**
      * Get the TableDescriptor of the column's table.
      *
-     * @return	The TableDescriptor of the column's table.
+     * @return    The TableDescriptor of the column's table.
      */
-    public TableDescriptor	getTableDescriptor()
+    public TableDescriptor    getTableDescriptor()
     {
         return table;
     }
@@ -315,9 +315,9 @@ public final class ColumnDescriptor extends TupleDescriptor
     /**
      * Get the name of the column.
      *
-     * @return	A String containing the name of the column.
+     * @return    A String containing the name of the column.
      */
-    public String	getColumnName()
+    public String    getColumnName()
     {
         return columnName;
     }
@@ -325,9 +325,9 @@ public final class ColumnDescriptor extends TupleDescriptor
     /**
      * Sets the column name in case of rename column.
      *
-     * @param newColumnName	The new column name.
+     * @param newColumnName    The new column name.
      */
-    public void	setColumnName(String newColumnName)
+    public void    setColumnName(String newColumnName)
     {
         this.columnName = newColumnName;
     }
@@ -335,9 +335,9 @@ public final class ColumnDescriptor extends TupleDescriptor
     /**
      * Sets the table descriptor for the column.
      *
-     * @param tableDescriptor	The table descriptor for this column
+     * @param tableDescriptor    The table descriptor for this column
      */
-    public void	setTableDescriptor(TableDescriptor tableDescriptor)
+    public void    setTableDescriptor(TableDescriptor tableDescriptor)
     {
         this.table = tableDescriptor;
     }
@@ -351,9 +351,9 @@ public final class ColumnDescriptor extends TupleDescriptor
      *
      *
      *
-     * @return	The ordinal position of the column.
+     * @return    The ordinal position of the column.
      */
-    public int	getPosition()
+    public int    getPosition()
     {
         return columnPosition;
     }
@@ -362,9 +362,9 @@ public final class ColumnDescriptor extends TupleDescriptor
      * For example, if you had a 3 column table where you add and drop a column 1K times and then add it again, that columns position will
      * still be 1,004.
      *
-     * @return	The ordinal position of the column.
+     * @return    The ordinal position of the column.
      */
-    public int	getStoragePosition() {
+    public int    getStoragePosition() {
         return storagePosition;
     }
 
@@ -372,7 +372,7 @@ public final class ColumnDescriptor extends TupleDescriptor
     /**
      * Get the TypeDescriptor of the column's datatype.
      *
-     * @return	The TypeDescriptor of the column's datatype.
+     * @return    The TypeDescriptor of the column's datatype.
      */
     public DataTypeDescriptor getType()
     {
@@ -395,8 +395,8 @@ public final class ColumnDescriptor extends TupleDescriptor
      * For example, for a float column, getDefaultValue() will return
      * a Float.
      *
-     * @return	An object with the value and type of the default value
-     *		for the column. Returns NULL if there is no default.
+     * @return    An object with the value and type of the default value
+     *        for the column. Returns NULL if there is no default.
      */
     public DataValueDescriptor getDefaultValue()
     {
@@ -426,9 +426,9 @@ public final class ColumnDescriptor extends TupleDescriptor
     /**
      * Get a DefaultDescriptor for the default, if any, associated with this column.
      *
-     * @param	dd	The DataDictionary.
+     * @param    dd    The DataDictionary.
      *
-     * @return	A DefaultDescriptor if this column has a column default.
+     * @return    A DefaultDescriptor if this column has a column default.
      */
     public DefaultDescriptor getDefaultDescriptor(DataDictionary dd)
     {
@@ -531,7 +531,7 @@ public final class ColumnDescriptor extends TupleDescriptor
     /**
      * Set the ordinal position of the column.
      */
-    public void	setPosition(int columnPosition)
+    public void    setPosition(int columnPosition)
     {
         this.columnPosition = columnPosition;
     }
@@ -539,17 +539,17 @@ public final class ColumnDescriptor extends TupleDescriptor
     /**
      * Convert the ColumnDescriptor to a String.
      *
-     * @return	A String representation of this ColumnDescriptor
+     * @return    A String representation of this ColumnDescriptor
      */
 
-    public String	toString()
+    public String    toString()
     {
         if (SanityManager.DEBUG)
         {
-			/*
-			** NOTE: This does not format table, because table.toString()
-			** formats columns, leading to infinite recursion.
-			*/
+            /*
+            ** NOTE: This does not format table, because table.toString()
+            ** formats columns, leading to infinite recursion.
+            */
             return "columnName: " + columnName + "\n" +
                     "columnPosition: " + columnPosition + "\n" +
                     "storagePosition: " + storagePosition + "\n" +

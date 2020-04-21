@@ -66,7 +66,7 @@ public class AutoloadTest extends BaseJDBCTestCase
 {
     private Class spawnedTestClass;
 
-	public	AutoloadTest( String name ) { super( name ); }
+    public    AutoloadTest( String name ) { super( name ); }
 
     /**
      * Create a test case that runs this test in a separate JVM.
@@ -199,7 +199,7 @@ public class AutoloadTest extends BaseJDBCTestCase
         }
         
         suite.addTest(new AutoloadTest("testSuccessfulConnect"));
-      	
+          
         if ("embedded".equals(which)) {
             suite.addTest(SecurityManagerSetup.noSecurityManager(
                 new AutoloadTest("testEmbeddedStarted")));
@@ -208,7 +208,7 @@ public class AutoloadTest extends BaseJDBCTestCase
         suite.addTest(new AutoloadTest("testUnsuccessfulConnect"));
         suite.addTest(new AutoloadTest("testExplicitLoad"));
 
-	 if ("embedded".equals(which)) {
+     if ("embedded".equals(which)) {
             suite.addTest(new AutoloadTest("testAutoloadDriverUnregister"));
         }
         return suite;
@@ -266,11 +266,11 @@ public class AutoloadTest extends BaseJDBCTestCase
         }
     }
 
-	// ///////////////////////////////////////////////////////////
-	//
-	// TEST ENTRY POINTS
-	//
-	// ///////////////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////////////
+    //
+    // TEST ENTRY POINTS
+    //
+    // ///////////////////////////////////////////////////////////
 
     /**
      * Test DERBY-2905:Shutting down embedded Derby does remove all code,
@@ -388,13 +388,13 @@ public class AutoloadTest extends BaseJDBCTestCase
         return false;
     }
 
-	/**
-     	 * Test we can connect successfully to a database.
-	 */
-	public void testSuccessfulConnect()
+    /**
+          * Test we can connect successfully to a database.
+     */
+    public void testSuccessfulConnect()
        throws SQLException
-	{
-		println( "We ARE autoloading..." );
+    {
+        println( "We ARE autoloading..." );
        
         // Test we can connect successfully to a database!
         String url = getTestConfiguration().getJDBCUrl();
@@ -402,7 +402,7 @@ public class AutoloadTest extends BaseJDBCTestCase
         String user = getTestConfiguration().getUserName();
         String password = getTestConfiguration().getUserPassword();
         DriverManager.getConnection(url, user, password).close();
-	}
+    }
     /**
      * Test the error code on an unsuccessful connect
      * to ensure it is not one returned by DriverManager.
@@ -513,16 +513,16 @@ public class AutoloadTest extends BaseJDBCTestCase
 
     private boolean getRegisteredDrivers(String driver) {
 
-	Enumeration e = DriverManager.getDrivers();
+    Enumeration e = DriverManager.getDrivers();
 
         while(e.hasMoreElements())
         {
                 Driver drv = (Driver)e.nextElement();
-                if(drv.getClass().getName().equals(driver))	
-			return true;
+                if(drv.getClass().getName().equals(driver))    
+            return true;
         }
 
-	return false;
+    return false;
     }
 
     public void testAssertShutdownOK() throws SQLException {

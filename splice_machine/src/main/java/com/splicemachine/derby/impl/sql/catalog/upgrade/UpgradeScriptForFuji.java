@@ -24,7 +24,7 @@ import org.apache.log4j.Logger;
  * Created by jyuan on 10/17/14.
  */
 public class UpgradeScriptForFuji extends UpgradeScriptBase {
-	protected static final Logger LOG = Logger.getLogger(UpgradeScriptForFuji.class);
+    protected static final Logger LOG = Logger.getLogger(UpgradeScriptForFuji.class);
 
     public UpgradeScriptForFuji (SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
@@ -44,7 +44,7 @@ public class UpgradeScriptForFuji extends UpgradeScriptBase {
 
     @Override
     protected void upgradeSystemFunctions() throws StandardException {
-    	if (LOG.isInfoEnabled()) LOG.info("Dropping Xplain system functions");
+        if (LOG.isInfoEnabled()) LOG.info("Dropping Xplain system functions");
         dropSystemProcedureOrFunction("SYSCS_UTIL", "SYSCS_GET_XPLAIN_MODE", AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR);
         dropSystemProcedureOrFunction("SYSCS_UTIL", "SYSCS_GET_XPLAIN_SCHEMA", AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR);
         // Drop this function because it is has been renamed to SYSCS_GET_RUNTIME_STATISTICS and moved to the SpliceAdmin class.

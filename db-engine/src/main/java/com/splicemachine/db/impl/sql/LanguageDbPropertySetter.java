@@ -50,68 +50,68 @@ import java.util.Dictionary;
  */
 public class LanguageDbPropertySetter implements PropertySetCallback
 {
-	public void init(boolean dbOnly, Dictionary p) {
-		// not called yet ...
-	}
-	/** @exception StandardException Thrown on error. */
-	public boolean validate
-	(
-		String			key,
-		Serializable	value,
-		Dictionary		p
-	) throws StandardException 
-	{
+    public void init(boolean dbOnly, Dictionary p) {
+        // not called yet ...
+    }
+    /** @exception StandardException Thrown on error. */
+    public boolean validate
+    (
+        String            key,
+        Serializable    value,
+        Dictionary        p
+    ) throws StandardException 
+    {
         // Can't change the dictionary version manually. That could make the database
         // unbootable. See DERBY-5838.
-		if ( key.trim().equals( DataDictionary.CORE_DATA_DICTIONARY_VERSION ) )
-		{
+        if ( key.trim().equals( DataDictionary.CORE_DATA_DICTIONARY_VERSION ) )
+        {
             throw StandardException.newException( SQLState.PROPERTY_UNSUPPORTED_CHANGE, key, value );
         }
         
-		// Disallow changing sqlAuthorization from true to false or null after
-		// switching to Standard authorization
-		if (key.trim().equals(Property.SQL_AUTHORIZATION_PROPERTY))
-		{
-			LanguageConnectionContext lcc = (LanguageConnectionContext)
-					ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+        // Disallow changing sqlAuthorization from true to false or null after
+        // switching to Standard authorization
+        if (key.trim().equals(Property.SQL_AUTHORIZATION_PROPERTY))
+        {
+            LanguageConnectionContext lcc = (LanguageConnectionContext)
+                    ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
 
-			if (lcc.usesSqlAuthorization() && !Boolean.valueOf((String) value))
-				throw StandardException.newException(SQLState.PROPERTY_UNSUPPORTED_CHANGE,
-					key, value);
-		}
+            if (lcc.usesSqlAuthorization() && !Boolean.valueOf((String) value))
+                throw StandardException.newException(SQLState.PROPERTY_UNSUPPORTED_CHANGE,
+                    key, value);
+        }
 
-		if (key.equals(Property.LANGUAGE_STALE_PLAN_CHECK_INTERVAL)) {
-			PropertyUtil.intPropertyValue(
-						Property.LANGUAGE_STALE_PLAN_CHECK_INTERVAL,
-						value,
-						Property.MIN_LANGUAGE_STALE_PLAN_CHECK_INTERVAL,
-						Integer.MAX_VALUE,
-						Property.DEFAULT_LANGUAGE_STALE_PLAN_CHECK_INTERVAL
-						);
-			return true;
-		}
+        if (key.equals(Property.LANGUAGE_STALE_PLAN_CHECK_INTERVAL)) {
+            PropertyUtil.intPropertyValue(
+                        Property.LANGUAGE_STALE_PLAN_CHECK_INTERVAL,
+                        value,
+                        Property.MIN_LANGUAGE_STALE_PLAN_CHECK_INTERVAL,
+                        Integer.MAX_VALUE,
+                        Property.DEFAULT_LANGUAGE_STALE_PLAN_CHECK_INTERVAL
+                        );
+            return true;
+        }
 
-		return false;
-	}
+        return false;
+    }
 
-	public Serviceable apply
-	(
-		String			key,
-		Serializable	value,
-		Dictionary		p,
-		TransactionController tc
-	) 
-	{
-		return null;
-	}
+    public Serviceable apply
+    (
+        String            key,
+        Serializable    value,
+        Dictionary        p,
+        TransactionController tc
+    ) 
+    {
+        return null;
+    }
 
- 	public Serializable map
-	(
-		String			key,
-		Serializable	value,
-		Dictionary		p
-	) 
-	{
-		return null;
-	}
+     public Serializable map
+    (
+        String            key,
+        Serializable    value,
+        Dictionary        p
+    ) 
+    {
+        return null;
+    }
 }

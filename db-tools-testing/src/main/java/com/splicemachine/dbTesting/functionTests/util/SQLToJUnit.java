@@ -83,7 +83,7 @@ public class SQLToJUnit
     // IJ-only (non-SQL) commands
     private static final String [] IJ_COMMANDS =
     {
-    	"show", "describe"
+        "show", "describe"
     };
 
     /* Positive numbers (and zero) indicate that we need to
@@ -217,12 +217,12 @@ public class SQLToJUnit
                 //       some comments are recorded with their ij prompt intact.
                 if (nextLineType == SET_CONNECTION)
                 {
-                	CONN_OBJECT_NAME = str.substring(str.indexOf("set connection ") + 15, str.length());
-                	STMT_OBJECT_NAME = "st_" + CONN_OBJECT_NAME;
-            	    IJ_PROMPT = "ij(" + CONN_OBJECT_NAME.toUpperCase()+ ")>";
-                	USER_NAME = (String)userConnections.getProperty(CONN_OBJECT_NAME);
-                	junit.write("// set connection " + CONN_OBJECT_NAME);
-                	writeJUnitEOL();
+                    CONN_OBJECT_NAME = str.substring(str.indexOf("set connection ") + 15, str.length());
+                    STMT_OBJECT_NAME = "st_" + CONN_OBJECT_NAME;
+                    IJ_PROMPT = "ij(" + CONN_OBJECT_NAME.toUpperCase()+ ")>";
+                    USER_NAME = (String)userConnections.getProperty(CONN_OBJECT_NAME);
+                    junit.write("// set connection " + CONN_OBJECT_NAME);
+                    writeJUnitEOL();
                 }
 
                 // Ignore IJ-specific warnings for now.
@@ -298,14 +298,14 @@ public class SQLToJUnit
                 jTestName + ".junit'.\n\n");
             
             if (multipleUserConnections) {
-            	System.out.print("Found multiple users: ");
-            	for (Enumeration e = userConnections.elements(); e.hasMoreElements(); )
-            	{
-            		System.out.print("\"");
-            		System.out.print(e.nextElement());
-            		System.out.print("\"");
-            		System.out.print((e.hasMoreElements() ? ", " : ""));
-            	}
+                System.out.print("Found multiple users: ");
+                for (Enumeration e = userConnections.elements(); e.hasMoreElements(); )
+                {
+                    System.out.print("\"");
+                    System.out.print(e.nextElement());
+                    System.out.print("\"");
+                    System.out.print((e.hasMoreElements() ? ", " : ""));
+                }
             }
 
             System.out.println("\n\nDone.\n");
@@ -529,7 +529,7 @@ public class SQLToJUnit
             writeQuotedLine(stmt, "");
             
             if (success) {
-            	writeJUnitEOL();
+                writeJUnitEOL();
                 writeAssertDDLCount(null, result, CSTMT_OBJECT_NAME);
             }
             else
@@ -573,47 +573,47 @@ public class SQLToJUnit
             writeJUnitEOL();
         } else if (prevLineType == CONNECT)
         {
-        	multipleUserConnections = true;
-        	int userpos = 0;
-        	boolean anonymous = false;
-        	
-        	if (stmt.indexOf("user=") > 0) {
-        		userpos = stmt.indexOf("user=") + 4;
-        		if (stmt.indexOf(" as ") < 0) {
-        			anonymous = true;
-        		}
-        	} else
-        	{
-        		userpos = stmt.indexOf("'", stmt.indexOf("user") + 1);
-        	}
-        	
-            if (anonymous) {
-            	CONN_OBJECT_NAME = "CONNECTION" + anonymousCount;
-            	anonymousCount++;
-            } else {
-            	int connpos = stmt.indexOf(" as ");
-            	CONN_OBJECT_NAME = stmt.substring(connpos + 4, stmt.length());
+            multipleUserConnections = true;
+            int userpos = 0;
+            boolean anonymous = false;
+            
+            if (stmt.indexOf("user=") > 0) {
+                userpos = stmt.indexOf("user=") + 4;
+                if (stmt.indexOf(" as ") < 0) {
+                    anonymous = true;
+                }
+            } else
+            {
+                userpos = stmt.indexOf("'", stmt.indexOf("user") + 1);
             }
-        	STMT_OBJECT_NAME = "st_" + CONN_OBJECT_NAME;
-        	USER_NAME = stmt.substring(userpos + 1, stmt.indexOf("'", userpos + 1));
-        	if (userConnections.get(USER_NAME) == null) {
-        		junit.write("Connection ");
-        		junit.write(CONN_OBJECT_NAME);
-        		junit.write(" = openUserConnection(\"");
-        		junit.write(USER_NAME);
-        		junit.write("\");");
-        		writeJUnitEOL();
-        		junit.write("Statement ");
-        		junit.write(STMT_OBJECT_NAME);
-        		junit.write(" = ");
-        		junit.write(CONN_OBJECT_NAME);
-        		junit.write(".createStatement();");
-        		writeJUnitEOL();
-        	}
-        	userConnections.setProperty(CONN_OBJECT_NAME, USER_NAME);
-        	usersConnected++;
-        	if (usersConnected > 1)
-        	    IJ_PROMPT = "ij(" + CONN_OBJECT_NAME.toUpperCase()+ ")>";
+            
+            if (anonymous) {
+                CONN_OBJECT_NAME = "CONNECTION" + anonymousCount;
+                anonymousCount++;
+            } else {
+                int connpos = stmt.indexOf(" as ");
+                CONN_OBJECT_NAME = stmt.substring(connpos + 4, stmt.length());
+            }
+            STMT_OBJECT_NAME = "st_" + CONN_OBJECT_NAME;
+            USER_NAME = stmt.substring(userpos + 1, stmt.indexOf("'", userpos + 1));
+            if (userConnections.get(USER_NAME) == null) {
+                junit.write("Connection ");
+                junit.write(CONN_OBJECT_NAME);
+                junit.write(" = openUserConnection(\"");
+                junit.write(USER_NAME);
+                junit.write("\");");
+                writeJUnitEOL();
+                junit.write("Statement ");
+                junit.write(STMT_OBJECT_NAME);
+                junit.write(" = ");
+                junit.write(CONN_OBJECT_NAME);
+                junit.write(".createStatement();");
+                writeJUnitEOL();
+            }
+            userConnections.setProperty(CONN_OBJECT_NAME, USER_NAME);
+            usersConnected++;
+            if (usersConnected > 1)
+                IJ_PROMPT = "ij(" + CONN_OBJECT_NAME.toUpperCase()+ ")>";
         } 
     }
 
@@ -688,11 +688,11 @@ public class SQLToJUnit
     {
         int pos_1 = stmt.indexOf("cursor") + 7;
         if (pos_1 < 0) 
-        	pos_1 = stmt.indexOf("CURSOR") + 7;
+            pos_1 = stmt.indexOf("CURSOR") + 7;
         
         int pos_2 = stmt.indexOf(" as ");
         if (pos_2 < 0) 
-        	pos_2 = stmt.indexOf(" AS ");
+            pos_2 = stmt.indexOf(" AS ");
         String cName = stmt.substring(pos_1, pos_2).trim();
         junit.write("PreparedStatement ps_");
         junit.write(cName);
@@ -863,7 +863,7 @@ public class SQLToJUnit
         else if (str.startsWith("warning"))
             return SQL_WARNING;
         else if (isIjCommand(str))
-        	return IJ_COMMAND;
+            return IJ_COMMAND;
         else if (isQueryStatement(str))
             return EXEC_QUERY;
         else if (isDDLWithRowCount(str))
@@ -904,9 +904,9 @@ public class SQLToJUnit
         else if (str.startsWith("close"))
             return CURSOR_CLOSE;
         else if (str.startsWith("connect"))
-        	return CONNECT;
+            return CONNECT;
         else if (str.startsWith("set connection"))
-        	return SET_CONNECTION;
+            return SET_CONNECTION;
         else
             return UNKNOWN_LINE;
     }
@@ -988,8 +988,8 @@ public class SQLToJUnit
             // ignore last line ROW_COUNTs
             // continue to write out assert statement.
             if (getLineType(row) == ROW_COUNT) {
-            	rowCount--;
-            	continue;
+                rowCount--;
+                continue;
             }
 
             // First row is column names.
@@ -1071,17 +1071,17 @@ public class SQLToJUnit
     private String extractSQLState(StringBuffer errString)
         throws Exception
     {
-    	String sqlState;
-    	if (errString.indexOf("SQLSTATE") > 0)
-    	{
-    		sqlState = errString.delete(0, errString.indexOf(" ", errString.indexOf("SQLSTATE")) + 1).toString().substring(0,5);
-    		errString.delete(0, 6);
-    	} else {
+        String sqlState;
+        if (errString.indexOf("SQLSTATE") > 0)
+        {
+            sqlState = errString.delete(0, errString.indexOf(" ", errString.indexOf("SQLSTATE")) + 1).toString().substring(0,5);
+            errString.delete(0, 6);
+        } else {
             sqlState =
                 errString.substring(
                     errString.indexOf(" ") + 1, errString.indexOf(":"));
-            errString.delete(0, errString.length());	
-    	}
+            errString.delete(0, errString.length());    
+        }
         return sqlState;
     }
 
@@ -1168,7 +1168,7 @@ public class SQLToJUnit
 
         if (tmpBuf.length() > 0)
         {
-        	// get pushed back command 
+            // get pushed back command 
             nextline = tmpBuf.toString();
             tmpBuf.delete(0, tmpBuf.length());
             readFromTmpBuf = true;
@@ -1176,93 +1176,93 @@ public class SQLToJUnit
 
         while(!done)
         {
-        	if (!readFromTmpBuf) {
-            	nextline = ijScript.readLine();	
-        	} else {
-        		readFromTmpBuf = false;
-        	}
-        	int linetype;
-        	
+            if (!readFromTmpBuf) {
+                nextline = ijScript.readLine();    
+            } else {
+                readFromTmpBuf = false;
+            }
+            int linetype;
+            
             // Skip entirely blank lines:
             while (nextline != null)
             {
                 nextline = nextline.trim();
                 if (nextline.isEmpty())
-                    nextline = ijScript.readLine();	
+                    nextline = ijScript.readLine();    
                 else
                     break;
             }
-        	if (nextline == null) {
-        		c = -1;
-        		break;
-        	} else {
-        		linetype = getLineType(nextline);
-        		// multiple lines of SQL comments will be condensed in convert().
-        		// If we are inside a result set, allow the first line of a command
-        		// to be pushed back, otherwise Once we are accumulating lines for a command,
-        		// don't stop until we find a semicolon.
-        		if (!insideRS) 
-        			gotCommand = gotCommand || (linetype > -1 && linetype != COMMENT);
-        	}
-        		
+            if (nextline == null) {
+                c = -1;
+                break;
+            } else {
+                linetype = getLineType(nextline);
+                // multiple lines of SQL comments will be condensed in convert().
+                // If we are inside a result set, allow the first line of a command
+                // to be pushed back, otherwise Once we are accumulating lines for a command,
+                // don't stop until we find a semicolon.
+                if (!insideRS) 
+                    gotCommand = gotCommand || (linetype > -1 && linetype != COMMENT);
+            }
+                
             if (!insideRS && (nextline.charAt(nextline.length() - 1) == ';'))
-        	{
+            {
                 // most likely a single-line command, chomp the semicolon and return
-  			    aLine.append(nextline.substring(0, nextline.length() - 1));
-  			    // if we're getting runtime statistics, skip the next command inside a 
-  			    // result set, it will be the command that we're getting RS for.
-  			    if (nextline.indexOf("GET_RUNTIMESTATISTICS()") > 0)
-  			    	gotRuntimeStatistics = true;
-  			    break;
-        	} else {
-        		// unknown lines are assumed to be a part of a command if we got one previously.
-        		// otherwise, must be part of a result set.
-        		if (!gotCommand) {
-        			// must be part of a result set
-        			if (linetype == UNKNOWN_LINE || (linetype == COMMENT && !gotFirstComment && insideRS)) {
-            			insideRS = true;
-            			if (linetype == COMMENT) gotFirstComment = true;
-      			        aLine.append(nextline);
-      			        aLine.append("\n");
-      			        continue;
-        			}
-        	    }
-        		if (insideRS) {
-        			if (linetype > -1) {
-            			// got a command, comment or query. Result
-            			// set is over and we went one line too far, hold it for
-            			// the next call.
+                  aLine.append(nextline.substring(0, nextline.length() - 1));
+                  // if we're getting runtime statistics, skip the next command inside a 
+                  // result set, it will be the command that we're getting RS for.
+                  if (nextline.indexOf("GET_RUNTIMESTATISTICS()") > 0)
+                      gotRuntimeStatistics = true;
+                  break;
+            } else {
+                // unknown lines are assumed to be a part of a command if we got one previously.
+                // otherwise, must be part of a result set.
+                if (!gotCommand) {
+                    // must be part of a result set
+                    if (linetype == UNKNOWN_LINE || (linetype == COMMENT && !gotFirstComment && insideRS)) {
+                        insideRS = true;
+                        if (linetype == COMMENT) gotFirstComment = true;
+                          aLine.append(nextline);
+                          aLine.append("\n");
+                          continue;
+                    }
+                }
+                if (insideRS) {
+                    if (linetype > -1) {
+                        // got a command, comment or query. Result
+                        // set is over and we went one line too far, hold it for
+                        // the next call.
 
                         // put the first command found into the resulset if this is a
-        				// RuntimeStatistics resultset.
-            			if (gotRuntimeStatistics) {
-            				gotRuntimeStatistics = false;
-              			    aLine.append(nextline);
-              			    aLine.append("\n");
-            				continue;
-            			}
-            			
-            			tmpBuf.append(nextline);
-            			break;
-            		} else {
-            			// got a row count or error, return it with the result set.
-          			    aLine.append(nextline);
-          			    break;
-            		}
-        		}  else {
-      			    aLine.append(nextline);
-      			    if (gotCommand){
-            			// multi-line command or comment, keep going till
-            			// we get a semicolon. Add a space to avoid glomming
-      			    	// multiple trimmed strings together.
-      			    	aLine.append(" ");
-      			    	continue;
-      			    } else{
-      			    	// single line warning or error, finished
-      			    	break;
-      			    }
-        		}
-        	}
+                        // RuntimeStatistics resultset.
+                        if (gotRuntimeStatistics) {
+                            gotRuntimeStatistics = false;
+                              aLine.append(nextline);
+                              aLine.append("\n");
+                            continue;
+                        }
+                        
+                        tmpBuf.append(nextline);
+                        break;
+                    } else {
+                        // got a row count or error, return it with the result set.
+                          aLine.append(nextline);
+                          break;
+                    }
+                }  else {
+                      aLine.append(nextline);
+                      if (gotCommand){
+                        // multi-line command or comment, keep going till
+                        // we get a semicolon. Add a space to avoid glomming
+                          // multiple trimmed strings together.
+                          aLine.append(" ");
+                          continue;
+                      } else{
+                          // single line warning or error, finished
+                          break;
+                      }
+                }
+            }
         }
 
         return (c != -1);

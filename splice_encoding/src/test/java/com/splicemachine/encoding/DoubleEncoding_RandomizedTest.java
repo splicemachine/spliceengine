@@ -100,7 +100,7 @@ public class DoubleEncoding_RandomizedTest {
         Arrays.sort(data);
         double[] reversed = new double[data.length];
         for(int i=data.length-1,j=0;i>=0;i--,j++){
-        	reversed[j] = data[i];
+            reversed[j] = data[i];
         }
 
         assertArrayEquals("Incorrect sort ordering", reversed, deserialized, 1e-12);

@@ -56,7 +56,7 @@ public final class GroupingFunctionNode extends UnaryOperatorNode {
     private ValueNode groupingIdRef = null;
     private ValueNode groupingIdRefForSpark = null;
 
-    public void init(Object	operand)
+    public void init(Object    operand)
     {
         super.init( operand, "grouping", "isGrouping");
     }

@@ -40,31 +40,31 @@ package com.splicemachine.db.impl.sql.compile;
 
 abstract class TransactionStatementNode extends StatementNode
 {
-	int activationKind()
-	{
-		   return StatementNode.NEED_NOTHING_ACTIVATION;
-	}
-	/**
-	 * COMMIT and ROLLBACK are allowed to commit
-	 * and rollback, duh.
-	 *
-	 * @return false 
-	 */	
-	public boolean isAtomic() 
-	{
-		return false;
-	}
+    int activationKind()
+    {
+           return StatementNode.NEED_NOTHING_ACTIVATION;
+    }
+    /**
+     * COMMIT and ROLLBACK are allowed to commit
+     * and rollback, duh.
+     *
+     * @return false 
+     */    
+    public boolean isAtomic() 
+    {
+        return false;
+    }
 
-	/**
-	 * Returns whether or not this Statement requires a set/clear savepoint
-	 * around its execution.  The following statement "types" do not require them:
-	 *		Cursor	- unnecessary and won't work in a read only environment
-	 *		Xact	- savepoint will get blown away underneath us during commit/rollback
-	 *
-	 * @return boolean	Whether or not this Statement requires a set/clear savepoint
-	 */
-	public boolean needsSavepoint()
-	{
-		return false;
-	}
+    /**
+     * Returns whether or not this Statement requires a set/clear savepoint
+     * around its execution.  The following statement "types" do not require them:
+     *        Cursor    - unnecessary and won't work in a read only environment
+     *        Xact    - savepoint will get blown away underneath us during commit/rollback
+     *
+     * @return boolean    Whether or not this Statement requires a set/clear savepoint
+     */
+    public boolean needsSavepoint()
+    {
+        return false;
+    }
 }

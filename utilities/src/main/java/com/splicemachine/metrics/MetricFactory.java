@@ -20,16 +20,16 @@ package com.splicemachine.metrics;
  */
 public interface MetricFactory {
 
-		Counter newCounter();
+        Counter newCounter();
 
-		Timer newTimer();
+        Timer newTimer();
 
-		Timer newWallTimer();
+        Timer newWallTimer();
 
-		//TODO -sf- clean this up?
-		Gauge newMaxGauge();
+        //TODO -sf- clean this up?
+        Gauge newMaxGauge();
 
-		Gauge newMinGauge();
+        Gauge newMinGauge();
 
-		boolean isActive();
+        boolean isActive();
 }

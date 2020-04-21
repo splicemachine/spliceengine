@@ -60,7 +60,7 @@ public class RowId implements java.sql.RowId{
         return false;
     }
 
-    public  byte[] 	getBytes() {
+    public  byte[]     getBytes() {
         return bytes;
     }
 
@@ -68,7 +68,7 @@ public class RowId implements java.sql.RowId{
         return 0;
     }
 
-    public  String 	toString() {
+    public  String     toString() {
         return toHex(bytes, 0, bytes.length);
     }
 

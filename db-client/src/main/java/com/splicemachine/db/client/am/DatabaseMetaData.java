@@ -1763,9 +1763,9 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         
         boolean storesUpper = false;
         try {
-        	storesUpper = storesUpperCaseIdentifiers();
+            storesUpper = storesUpperCaseIdentifiers();
         } catch (SQLException e) {
-        	// Ok to swallow this one. Assume false.
+            // Ok to swallow this one. Assume false.
         }
 
         PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLPRIMARYKEYS(?,?,?,?)");
@@ -2419,7 +2419,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     private boolean getMetaDataInfoBoolean(int infoCallIndex) throws SQLException {
         try
         {
-			if ( !metaDataInfoIsCached_) { metaDataInfoCall(); }
+            if ( !metaDataInfoIsCached_) { metaDataInfoCall(); }
 
             if ( serverSupportsBooleanValues() )
             {
@@ -2436,7 +2436,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         }
     }
 
-	private int getMetaDataInfoInt(int infoCallIndex) throws SQLException {
+    private int getMetaDataInfoInt(int infoCallIndex) throws SQLException {
         try
         {
             if (metaDataInfoIsCached_) {
@@ -2579,17 +2579,17 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         // The stored procured will return a String containing a list
         // of lists: For each result set type in the outer list, an
         // inner list gives the allowed concurrencies for that type:
-	// The encoding syntax is reproduced here from the server file
-	// 'metadata_net.properties (please keep in synch!):  
-	//
+    // The encoding syntax is reproduced here from the server file
+    // 'metadata_net.properties (please keep in synch!):  
+    //
         // String syntax:  
-	// <type> { "," <concurrency>}* { ";" <type> { "," <concurrency>}* }}*
-	//
-	// <type> ::= <the integer value for that type from interface java.sql.Resultset
-	//             i.e. TYPE_FORWARD_ONLY is 1003>
-	// <concurrency> ::= <the integer value for that concurrency
-	//                    from interface java.sql.Resultset, i.e.
-	//                    CONCUR_UPDATABLE is 1008>
+    // <type> { "," <concurrency>}* { ";" <type> { "," <concurrency>}* }}*
+    //
+    // <type> ::= <the integer value for that type from interface java.sql.Resultset
+    //             i.e. TYPE_FORWARD_ONLY is 1003>
+    // <concurrency> ::= <the integer value for that concurrency
+    //                    from interface java.sql.Resultset, i.e.
+    //                    CONCUR_UPDATABLE is 1008>
         try
         {
             String returnedFromSP = null;
@@ -2602,7 +2602,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
             java.util.StringTokenizer st = new java.util.StringTokenizer(returnedFromSP, ";");
             while (st.hasMoreTokens()) {
                 java.util.StringTokenizer stForConc = 
-		    new java.util.StringTokenizer(st.nextToken(), ",");
+            new java.util.StringTokenizer(st.nextToken(), ",");
                 if ((Integer.parseInt(stForConc.nextToken())) == type) {
                     while (stForConc.hasMoreTokens()) {
                         if ((Integer.parseInt(stForConc.nextToken())) == concurrency) {

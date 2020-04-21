@@ -56,239 +56,239 @@ import java.util.Arrays;
  * would be a forward reference.
  */
 final class CodeChunk {
-	
-	/**
-	 * Starting point of the byte code stream in the underlying stream/array.
-	 */
-	private static final int CODE_OFFSET = 8;
-		
-	// The use of ILOAD for the non-integer types is correct.
-	// We have to assume that the appropriate checks/conversions
-	// are defined on math operation results to ensure that
-	// the type is preserved when/as needed.
-	static final short[] LOAD_VARIABLE = {
-		VMOpcode.ILOAD,	/* vm_byte */
-		VMOpcode.ILOAD,	/* vm_short */
-		VMOpcode.ILOAD,	/* vm_int */
-		VMOpcode.LLOAD,	/* vm_long */
-		VMOpcode.FLOAD,	/* vm_float */
-		VMOpcode.DLOAD,	/* vm_double */
-		VMOpcode.ILOAD,	/* vm_char */
-		VMOpcode.ALOAD	/* vm_reference */
-	};
+    
+    /**
+     * Starting point of the byte code stream in the underlying stream/array.
+     */
+    private static final int CODE_OFFSET = 8;
+        
+    // The use of ILOAD for the non-integer types is correct.
+    // We have to assume that the appropriate checks/conversions
+    // are defined on math operation results to ensure that
+    // the type is preserved when/as needed.
+    static final short[] LOAD_VARIABLE = {
+        VMOpcode.ILOAD,    /* vm_byte */
+        VMOpcode.ILOAD,    /* vm_short */
+        VMOpcode.ILOAD,    /* vm_int */
+        VMOpcode.LLOAD,    /* vm_long */
+        VMOpcode.FLOAD,    /* vm_float */
+        VMOpcode.DLOAD,    /* vm_double */
+        VMOpcode.ILOAD,    /* vm_char */
+        VMOpcode.ALOAD    /* vm_reference */
+    };
 
-	static final short[] LOAD_VARIABLE_FAST = {
-		VMOpcode.ILOAD_0,	/* vm_byte */
-		VMOpcode.ILOAD_0,	/* vm_short */
-		VMOpcode.ILOAD_0,	/* vm_int */
-		VMOpcode.LLOAD_0,	/* vm_long */
-		VMOpcode.FLOAD_0,	/* vm_float */
-		VMOpcode.DLOAD_0,	/* vm_double */
-		VMOpcode.ILOAD_0,	/* vm_char */
-		VMOpcode.ALOAD_0	/* vm_reference */
-	};
+    static final short[] LOAD_VARIABLE_FAST = {
+        VMOpcode.ILOAD_0,    /* vm_byte */
+        VMOpcode.ILOAD_0,    /* vm_short */
+        VMOpcode.ILOAD_0,    /* vm_int */
+        VMOpcode.LLOAD_0,    /* vm_long */
+        VMOpcode.FLOAD_0,    /* vm_float */
+        VMOpcode.DLOAD_0,    /* vm_double */
+        VMOpcode.ILOAD_0,    /* vm_char */
+        VMOpcode.ALOAD_0    /* vm_reference */
+    };
 
-	// The ISTOREs for non-int types are how things work.
-	// It assumes that the appropriate casts are done
-	// on operations on non-ints to ensure that the values
-	// remain in the valid ranges.
-	static final short[] STORE_VARIABLE = {
-		VMOpcode.ISTORE,	/* vm_byte */
-		VMOpcode.ISTORE,	/* vm_short */
-		VMOpcode.ISTORE,	/* vm_int */
-		VMOpcode.LSTORE,	/* vm_long */
-		VMOpcode.FSTORE,	/* vm_float */
-		VMOpcode.DSTORE,	/* vm_double */
-		VMOpcode.ISTORE,	/* vm_char */
-		VMOpcode.ASTORE	/* vm_reference */
-	};
+    // The ISTOREs for non-int types are how things work.
+    // It assumes that the appropriate casts are done
+    // on operations on non-ints to ensure that the values
+    // remain in the valid ranges.
+    static final short[] STORE_VARIABLE = {
+        VMOpcode.ISTORE,    /* vm_byte */
+        VMOpcode.ISTORE,    /* vm_short */
+        VMOpcode.ISTORE,    /* vm_int */
+        VMOpcode.LSTORE,    /* vm_long */
+        VMOpcode.FSTORE,    /* vm_float */
+        VMOpcode.DSTORE,    /* vm_double */
+        VMOpcode.ISTORE,    /* vm_char */
+        VMOpcode.ASTORE    /* vm_reference */
+    };
 
-	static final short[] STORE_VARIABLE_FAST = {
-		VMOpcode.ISTORE_0,	/* vm_byte */
-		VMOpcode.ISTORE_0,	/* vm_short */
-		VMOpcode.ISTORE_0,	/* vm_int */
-		VMOpcode.LSTORE_0,	/* vm_long */
-		VMOpcode.FSTORE_0,	/* vm_float */
-		VMOpcode.DSTORE_0,	/* vm_double */
-		VMOpcode.ISTORE_0,	/* vm_char */
-		VMOpcode.ASTORE_0	/* vm_reference */
-	};
+    static final short[] STORE_VARIABLE_FAST = {
+        VMOpcode.ISTORE_0,    /* vm_byte */
+        VMOpcode.ISTORE_0,    /* vm_short */
+        VMOpcode.ISTORE_0,    /* vm_int */
+        VMOpcode.LSTORE_0,    /* vm_long */
+        VMOpcode.FSTORE_0,    /* vm_float */
+        VMOpcode.DSTORE_0,    /* vm_double */
+        VMOpcode.ISTORE_0,    /* vm_char */
+        VMOpcode.ASTORE_0    /* vm_reference */
+    };
 
-	static final short ARRAY_ACCESS[] = {
-		VMOpcode.BALOAD,	/* vm_byte */
-		VMOpcode.SALOAD,	/* vm_short */
-		VMOpcode.IALOAD,	/* vm_int */
-		VMOpcode.LALOAD,	/* vm_long */
-		VMOpcode.FALOAD,	/* vm_float */
-		VMOpcode.DALOAD,	/* vm_double */
-		VMOpcode.CALOAD,	/* vm_char */
-		VMOpcode.AALOAD	/* vm_reference */
-	};
-	static final short ARRAY_STORE[] = {
-		VMOpcode.BASTORE,	/* vm_byte */
-		VMOpcode.SASTORE,	/* vm_short */
-		VMOpcode.IASTORE,	/* vm_int */
-		VMOpcode.LASTORE,	/* vm_long */
-		VMOpcode.FASTORE,	/* vm_float */
-		VMOpcode.DASTORE,	/* vm_double */
-		VMOpcode.CASTORE,	/* vm_char */
-		VMOpcode.AASTORE	/* vm_reference */
-	};	
-	static final short[] RETURN_OPCODE = {
-		VMOpcode.IRETURN,  /* 0 = byte      */
-		VMOpcode.IRETURN,  /* 1 = short     */
-		VMOpcode.IRETURN,  /* 2 = int       */
-		VMOpcode.LRETURN,  /* 3 = long      */
-		VMOpcode.FRETURN,  /* 4 = float     */
-		VMOpcode.DRETURN,  /* 5 = double    */
-		VMOpcode.IRETURN,  /* 6 = char      */
-		VMOpcode.ARETURN   /* 7 = reference */
-		};
+    static final short ARRAY_ACCESS[] = {
+        VMOpcode.BALOAD,    /* vm_byte */
+        VMOpcode.SALOAD,    /* vm_short */
+        VMOpcode.IALOAD,    /* vm_int */
+        VMOpcode.LALOAD,    /* vm_long */
+        VMOpcode.FALOAD,    /* vm_float */
+        VMOpcode.DALOAD,    /* vm_double */
+        VMOpcode.CALOAD,    /* vm_char */
+        VMOpcode.AALOAD    /* vm_reference */
+    };
+    static final short ARRAY_STORE[] = {
+        VMOpcode.BASTORE,    /* vm_byte */
+        VMOpcode.SASTORE,    /* vm_short */
+        VMOpcode.IASTORE,    /* vm_int */
+        VMOpcode.LASTORE,    /* vm_long */
+        VMOpcode.FASTORE,    /* vm_float */
+        VMOpcode.DASTORE,    /* vm_double */
+        VMOpcode.CASTORE,    /* vm_char */
+        VMOpcode.AASTORE    /* vm_reference */
+    };    
+    static final short[] RETURN_OPCODE = {
+        VMOpcode.IRETURN,  /* 0 = byte      */
+        VMOpcode.IRETURN,  /* 1 = short     */
+        VMOpcode.IRETURN,  /* 2 = int       */
+        VMOpcode.LRETURN,  /* 3 = long      */
+        VMOpcode.FRETURN,  /* 4 = float     */
+        VMOpcode.DRETURN,  /* 5 = double    */
+        VMOpcode.IRETURN,  /* 6 = char      */
+        VMOpcode.ARETURN   /* 7 = reference */
+        };
 
-	// the first dimension is the current vmTypeId
-	// the second dimension is the target vmTypeId
-	//
-	// the cells of the entry at [current,target] are:
-	// 0: operation
-	// 1: result type of operation
-	// if entry[1] = target, we are done. otherwise,
-	// you have to continue with entry[1] as the new current
-	// after generating the opcode listed (don't generate if it is NOP).
-	// if entry[0] = BAD, we can
-	
-	static final short CAST_CONVERSION_INFO[][][] = {
-		/* current = vm_byte */
-		{
-		/* target = vm_byte      */ { VMOpcode.NOP, BCExpr.vm_byte },
-		/* target = vm_short     */ { VMOpcode.NOP, BCExpr.vm_short },
-		/* target = vm_int       */ { VMOpcode.NOP, BCExpr.vm_int },
-		/* target = vm_long      */ { VMOpcode.NOP, BCExpr.vm_int },
-		/* target = vm_float     */ { VMOpcode.NOP, BCExpr.vm_int },
-		/* target = vm_double    */ { VMOpcode.NOP, BCExpr.vm_int },
-		/* target = vm_char      */ { VMOpcode.NOP, BCExpr.vm_char }, 
-		/* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
-		},
-		/* current = vm_short */
-		{
-		/* target = vm_byte      */ { VMOpcode.NOP, BCExpr.vm_byte },
-		/* target = vm_short     */ { VMOpcode.NOP, BCExpr.vm_short },
-		/* target = vm_int       */ { VMOpcode.NOP, BCExpr.vm_int },
-		/* target = vm_long      */ { VMOpcode.NOP, BCExpr.vm_int },
-		/* target = vm_float     */ { VMOpcode.NOP, BCExpr.vm_int },
-		/* target = vm_double    */ { VMOpcode.NOP, BCExpr.vm_int },
-		/* target = vm_char      */ { VMOpcode.NOP, BCExpr.vm_char }, 
-		/* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
-		},
-		/* current = vm_int */
-		{
-		/* target = vm_byte      */ { VMOpcode.I2B, BCExpr.vm_byte },
-		/* target = vm_short     */ { VMOpcode.I2S, BCExpr.vm_short },
-		/* target = vm_int       */ { VMOpcode.NOP, BCExpr.vm_int },
-		/* target = vm_long      */ { VMOpcode.I2L, BCExpr.vm_long },
-		/* target = vm_float     */ { VMOpcode.I2F, BCExpr.vm_float },
-		/* target = vm_double    */ { VMOpcode.I2D, BCExpr.vm_double },
-		/* target = vm_char      */ { VMOpcode.I2B, BCExpr.vm_char }, 
-		/* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
-		},
-		/* current = vm_long */
-		{
-		/* target = vm_byte      */ { VMOpcode.L2I, BCExpr.vm_int },
-		/* target = vm_short     */ { VMOpcode.L2I, BCExpr.vm_int },
-		/* target = vm_int       */ { VMOpcode.L2I, BCExpr.vm_int },
-		/* target = vm_long      */ { VMOpcode.NOP, BCExpr.vm_long },
-		/* target = vm_float     */ { VMOpcode.L2F, BCExpr.vm_float },
-		/* target = vm_double    */ { VMOpcode.L2D, BCExpr.vm_double },
-		/* target = vm_char      */ { VMOpcode.L2I, BCExpr.vm_int }, 
-		/* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
-		},
-		/* current = vm_float */
-		{
-		/* target = vm_byte      */ { VMOpcode.F2I, BCExpr.vm_int },
-		/* target = vm_short     */ { VMOpcode.F2I, BCExpr.vm_int },
-		/* target = vm_int       */ { VMOpcode.F2I, BCExpr.vm_int },
-		/* target = vm_long      */ { VMOpcode.F2L, BCExpr.vm_long },
-		/* target = vm_float     */ { VMOpcode.NOP, BCExpr.vm_float },
-		/* target = vm_double    */ { VMOpcode.F2D, BCExpr.vm_double },
-		/* target = vm_char      */ { VMOpcode.F2I, BCExpr.vm_int }, 
-		/* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
-		},
-		/* current = vm_double */
-		{
-		/* target = vm_byte      */ { VMOpcode.D2I, BCExpr.vm_int },
-		/* target = vm_short     */ { VMOpcode.D2I, BCExpr.vm_int },
-		/* target = vm_int       */ { VMOpcode.D2I, BCExpr.vm_int },
-		/* target = vm_long      */ { VMOpcode.D2L, BCExpr.vm_long },
-		/* target = vm_float     */ { VMOpcode.D2F, BCExpr.vm_float },
-		/* target = vm_double    */ { VMOpcode.NOP, BCExpr.vm_double },
-		/* target = vm_char      */ { VMOpcode.D2I, BCExpr.vm_int }, 
-		/* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
-		},
-		/* current = vm_char */
-		{
-		/* target = vm_byte      */ { VMOpcode.NOP, BCExpr.vm_byte },
-		/* target = vm_short     */ { VMOpcode.NOP, BCExpr.vm_short },
-		/* target = vm_int       */ { VMOpcode.NOP, BCExpr.vm_int },
-		/* target = vm_long      */ { VMOpcode.NOP, BCExpr.vm_int },
-		/* target = vm_float     */ { VMOpcode.NOP, BCExpr.vm_int },
-		/* target = vm_double    */ { VMOpcode.NOP, BCExpr.vm_int },
-		/* target = vm_char      */ { VMOpcode.NOP, BCExpr.vm_char },
-		/* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
-		},
-		/* current = vm_reference */
-		{
-		/* target = vm_byte      */ { VMOpcode.BAD, BCExpr.vm_byte },
-		/* target = vm_short     */ { VMOpcode.BAD, BCExpr.vm_short },
-		/* target = vm_int       */ { VMOpcode.BAD, BCExpr.vm_int },
-		/* target = vm_long      */ { VMOpcode.BAD, BCExpr.vm_long },
-		/* target = vm_float     */ { VMOpcode.BAD, BCExpr.vm_float },
-		/* target = vm_double    */ { VMOpcode.BAD, BCExpr.vm_double },
-		/* target = vm_char      */ { VMOpcode.BAD, BCExpr.vm_char },
-		/* target = vm_reference */ { VMOpcode.NOP, BCExpr.vm_reference }
-		}
-	};
-	
-	/**
-	 * Constant used by OPCODE_ACTION to represent the
-	 * common action of push one word, 1 byte
-	 * for the instruction.
-	 */
-	private static final byte[] push1_1i = {1, 1};
+    // the first dimension is the current vmTypeId
+    // the second dimension is the target vmTypeId
+    //
+    // the cells of the entry at [current,target] are:
+    // 0: operation
+    // 1: result type of operation
+    // if entry[1] = target, we are done. otherwise,
+    // you have to continue with entry[1] as the new current
+    // after generating the opcode listed (don't generate if it is NOP).
+    // if entry[0] = BAD, we can
+    
+    static final short CAST_CONVERSION_INFO[][][] = {
+        /* current = vm_byte */
+        {
+        /* target = vm_byte      */ { VMOpcode.NOP, BCExpr.vm_byte },
+        /* target = vm_short     */ { VMOpcode.NOP, BCExpr.vm_short },
+        /* target = vm_int       */ { VMOpcode.NOP, BCExpr.vm_int },
+        /* target = vm_long      */ { VMOpcode.NOP, BCExpr.vm_int },
+        /* target = vm_float     */ { VMOpcode.NOP, BCExpr.vm_int },
+        /* target = vm_double    */ { VMOpcode.NOP, BCExpr.vm_int },
+        /* target = vm_char      */ { VMOpcode.NOP, BCExpr.vm_char }, 
+        /* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
+        },
+        /* current = vm_short */
+        {
+        /* target = vm_byte      */ { VMOpcode.NOP, BCExpr.vm_byte },
+        /* target = vm_short     */ { VMOpcode.NOP, BCExpr.vm_short },
+        /* target = vm_int       */ { VMOpcode.NOP, BCExpr.vm_int },
+        /* target = vm_long      */ { VMOpcode.NOP, BCExpr.vm_int },
+        /* target = vm_float     */ { VMOpcode.NOP, BCExpr.vm_int },
+        /* target = vm_double    */ { VMOpcode.NOP, BCExpr.vm_int },
+        /* target = vm_char      */ { VMOpcode.NOP, BCExpr.vm_char }, 
+        /* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
+        },
+        /* current = vm_int */
+        {
+        /* target = vm_byte      */ { VMOpcode.I2B, BCExpr.vm_byte },
+        /* target = vm_short     */ { VMOpcode.I2S, BCExpr.vm_short },
+        /* target = vm_int       */ { VMOpcode.NOP, BCExpr.vm_int },
+        /* target = vm_long      */ { VMOpcode.I2L, BCExpr.vm_long },
+        /* target = vm_float     */ { VMOpcode.I2F, BCExpr.vm_float },
+        /* target = vm_double    */ { VMOpcode.I2D, BCExpr.vm_double },
+        /* target = vm_char      */ { VMOpcode.I2B, BCExpr.vm_char }, 
+        /* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
+        },
+        /* current = vm_long */
+        {
+        /* target = vm_byte      */ { VMOpcode.L2I, BCExpr.vm_int },
+        /* target = vm_short     */ { VMOpcode.L2I, BCExpr.vm_int },
+        /* target = vm_int       */ { VMOpcode.L2I, BCExpr.vm_int },
+        /* target = vm_long      */ { VMOpcode.NOP, BCExpr.vm_long },
+        /* target = vm_float     */ { VMOpcode.L2F, BCExpr.vm_float },
+        /* target = vm_double    */ { VMOpcode.L2D, BCExpr.vm_double },
+        /* target = vm_char      */ { VMOpcode.L2I, BCExpr.vm_int }, 
+        /* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
+        },
+        /* current = vm_float */
+        {
+        /* target = vm_byte      */ { VMOpcode.F2I, BCExpr.vm_int },
+        /* target = vm_short     */ { VMOpcode.F2I, BCExpr.vm_int },
+        /* target = vm_int       */ { VMOpcode.F2I, BCExpr.vm_int },
+        /* target = vm_long      */ { VMOpcode.F2L, BCExpr.vm_long },
+        /* target = vm_float     */ { VMOpcode.NOP, BCExpr.vm_float },
+        /* target = vm_double    */ { VMOpcode.F2D, BCExpr.vm_double },
+        /* target = vm_char      */ { VMOpcode.F2I, BCExpr.vm_int }, 
+        /* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
+        },
+        /* current = vm_double */
+        {
+        /* target = vm_byte      */ { VMOpcode.D2I, BCExpr.vm_int },
+        /* target = vm_short     */ { VMOpcode.D2I, BCExpr.vm_int },
+        /* target = vm_int       */ { VMOpcode.D2I, BCExpr.vm_int },
+        /* target = vm_long      */ { VMOpcode.D2L, BCExpr.vm_long },
+        /* target = vm_float     */ { VMOpcode.D2F, BCExpr.vm_float },
+        /* target = vm_double    */ { VMOpcode.NOP, BCExpr.vm_double },
+        /* target = vm_char      */ { VMOpcode.D2I, BCExpr.vm_int }, 
+        /* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
+        },
+        /* current = vm_char */
+        {
+        /* target = vm_byte      */ { VMOpcode.NOP, BCExpr.vm_byte },
+        /* target = vm_short     */ { VMOpcode.NOP, BCExpr.vm_short },
+        /* target = vm_int       */ { VMOpcode.NOP, BCExpr.vm_int },
+        /* target = vm_long      */ { VMOpcode.NOP, BCExpr.vm_int },
+        /* target = vm_float     */ { VMOpcode.NOP, BCExpr.vm_int },
+        /* target = vm_double    */ { VMOpcode.NOP, BCExpr.vm_int },
+        /* target = vm_char      */ { VMOpcode.NOP, BCExpr.vm_char },
+        /* target = vm_reference */ { VMOpcode.BAD, BCExpr.vm_reference }
+        },
+        /* current = vm_reference */
+        {
+        /* target = vm_byte      */ { VMOpcode.BAD, BCExpr.vm_byte },
+        /* target = vm_short     */ { VMOpcode.BAD, BCExpr.vm_short },
+        /* target = vm_int       */ { VMOpcode.BAD, BCExpr.vm_int },
+        /* target = vm_long      */ { VMOpcode.BAD, BCExpr.vm_long },
+        /* target = vm_float     */ { VMOpcode.BAD, BCExpr.vm_float },
+        /* target = vm_double    */ { VMOpcode.BAD, BCExpr.vm_double },
+        /* target = vm_char      */ { VMOpcode.BAD, BCExpr.vm_char },
+        /* target = vm_reference */ { VMOpcode.NOP, BCExpr.vm_reference }
+        }
+    };
+    
+    /**
+     * Constant used by OPCODE_ACTION to represent the
+     * common action of push one word, 1 byte
+     * for the instruction.
+     */
+    private static final byte[] push1_1i = {1, 1};
 
-	/**
-	 * Constant used by OPCODE_ACTION to represent the
-	 * common action of push two words, 1 byte
-	 * for the instruction.
-	 */
-	private static final byte[] push2_1i = {2, 1};	
-	/**
-	 * Constant used by OPCODE_ACTION to the opcode is
-	 * not yet supported.
-	 */
-	private static final byte[] NS = {0, -1};
-	
-	
-	/**
-	 * Value for OPCODE_ACTION[opcode][0] to represent
-	 * the number of words popped or pushed in variable.
-	 */
-	private static final byte VARIABLE_STACK = -128;
-	
-	/**
-	 * Array that provides two pieces of information about
-	 * each VM opcode. Each opcode has a two byte array.
-	 * <P>
-	 * The first element in the array [0] is the number of
-	 * stack words (double/long count as two) pushed by the opcode.
-	 * Will be negative if the opcode pops values.
-	 * 
-	 * <P>
-	 * The second element in the array [1] is the number of bytes
-	 * in the instruction stream that this opcode's instruction
-	 * takes up, including the opocode.
-	 */
-	private static final byte[][] OPCODE_ACTION =
-	{
-	
+    /**
+     * Constant used by OPCODE_ACTION to represent the
+     * common action of push two words, 1 byte
+     * for the instruction.
+     */
+    private static final byte[] push2_1i = {2, 1};    
+    /**
+     * Constant used by OPCODE_ACTION to the opcode is
+     * not yet supported.
+     */
+    private static final byte[] NS = {0, -1};
+    
+    
+    /**
+     * Value for OPCODE_ACTION[opcode][0] to represent
+     * the number of words popped or pushed in variable.
+     */
+    private static final byte VARIABLE_STACK = -128;
+    
+    /**
+     * Array that provides two pieces of information about
+     * each VM opcode. Each opcode has a two byte array.
+     * <P>
+     * The first element in the array [0] is the number of
+     * stack words (double/long count as two) pushed by the opcode.
+     * Will be negative if the opcode pops values.
+     * 
+     * <P>
+     * The second element in the array [1] is the number of bytes
+     * in the instruction stream that this opcode's instruction
+     * takes up, including the opocode.
+     */
+    private static final byte[][] OPCODE_ACTION =
+    {
+    
     /* NOP  0 */           { 0, 1 },
     
     /* ACONST_NULL  1 */  push1_1i,
@@ -505,9 +505,9 @@ final class CodeChunk {
     /* GOTO_W  200 */              {0, VMOpcode.GOTO_W_INS_LENGTH },
     /* JSR_W  201 */               NS,
     /* BREAKPOINT  202 */          NS,
-	
-	};
-	
+    
+    };
+    
     /**
      * Assume an IOException means some limit of the class file
      * format was hit
@@ -517,168 +517,168 @@ final class CodeChunk {
     {
         cb.addLimitExceeded(ioe.toString());
     }
-	
-	
-	/**
-	 * Add an instruction that has no operand.
-	 * All opcodes are 1 byte large.
-	 */
-	void addInstr(short opcode) {
-		try {
-		cout.putU1(opcode);
-		} catch (IOException ioe) {
+    
+    
+    /**
+     * Add an instruction that has no operand.
+     * All opcodes are 1 byte large.
+     */
+    void addInstr(short opcode) {
+        try {
+        cout.putU1(opcode);
+        } catch (IOException ioe) {
             limitHit(ioe);
-		}
+        }
 
-		if (SanityManager.DEBUG) {			
-			if (OPCODE_ACTION[opcode][1] != 1)
-				SanityManager.THROWASSERT("Opcode " + opcode + " incorrect entry in OPCODE_ACTION -" +
-						" writing 1 byte - set as " + OPCODE_ACTION[opcode][1]);		
-		}
-	}
+        if (SanityManager.DEBUG) {            
+            if (OPCODE_ACTION[opcode][1] != 1)
+                SanityManager.THROWASSERT("Opcode " + opcode + " incorrect entry in OPCODE_ACTION -" +
+                        " writing 1 byte - set as " + OPCODE_ACTION[opcode][1]);        
+        }
+    }
 
-	/**
-	 * Add an instruction that has a 16 bit operand.
-	 */
-	void addInstrU2(short opcode, int operand) {
+    /**
+     * Add an instruction that has a 16 bit operand.
+     */
+    void addInstrU2(short opcode, int operand) {
         
-		try {
-		cout.putU1(opcode);
-		cout.putU2(operand);
-		} catch (IOException ioe) {
+        try {
+        cout.putU1(opcode);
+        cout.putU2(operand);
+        } catch (IOException ioe) {
             limitHit(ioe);
-		}
+        }
 
-		if (SanityManager.DEBUG) {			
-			if (OPCODE_ACTION[opcode][1] != 3)
-				SanityManager.THROWASSERT("Opcode " + opcode + " incorrect entry in OPCODE_ACTION -" +
-						" writing 3 bytes - set as " + OPCODE_ACTION[opcode][1]);		
-		}
-	}
+        if (SanityManager.DEBUG) {            
+            if (OPCODE_ACTION[opcode][1] != 3)
+                SanityManager.THROWASSERT("Opcode " + opcode + " incorrect entry in OPCODE_ACTION -" +
+                        " writing 3 bytes - set as " + OPCODE_ACTION[opcode][1]);        
+        }
+    }
 
-	/**
-	 * Add an instruction that has a 32 bit operand.
-	 */
+    /**
+     * Add an instruction that has a 32 bit operand.
+     */
      void addInstrU4(short opcode, int operand) {
-		try {
-		cout.putU1(opcode);
-		cout.putU4(operand);
-		} catch (IOException ioe) {
+        try {
+        cout.putU1(opcode);
+        cout.putU4(operand);
+        } catch (IOException ioe) {
             limitHit(ioe);
-		}
-		if (SanityManager.DEBUG) {			
-			if (OPCODE_ACTION[opcode][1] != 5)
-				SanityManager.THROWASSERT("Opcode " + opcode + " incorrect entry in OPCODE_ACTION -" +
-						" writing 5 bytes - set as " + OPCODE_ACTION[opcode][1]);		
-		}
-	}
+        }
+        if (SanityManager.DEBUG) {            
+            if (OPCODE_ACTION[opcode][1] != 5)
+                SanityManager.THROWASSERT("Opcode " + opcode + " incorrect entry in OPCODE_ACTION -" +
+                        " writing 5 bytes - set as " + OPCODE_ACTION[opcode][1]);        
+        }
+    }
 
      
- 	/**
- 	 * Add an instruction that has an 8 bit operand.
- 	 */
+     /**
+      * Add an instruction that has an 8 bit operand.
+      */
      void addInstrU1(short opcode, int operand) {
-		try {
-		cout.putU1(opcode);
-		cout.putU1(operand);
-		} catch (IOException ioe) {
+        try {
+        cout.putU1(opcode);
+        cout.putU1(operand);
+        } catch (IOException ioe) {
             limitHit(ioe);
-		}
+        }
 
-		// Only debug code from here.
-		if (SanityManager.DEBUG) {
-			
-			if (OPCODE_ACTION[opcode][1] != 2)
-				SanityManager.THROWASSERT("Opcode " + opcode + " incorrect entry in OPCODE_ACTION -" +
-						" writing 2 bytes - set as " + OPCODE_ACTION[opcode][1]);
-		
-		}
-	}
+        // Only debug code from here.
+        if (SanityManager.DEBUG) {
+            
+            if (OPCODE_ACTION[opcode][1] != 2)
+                SanityManager.THROWASSERT("Opcode " + opcode + " incorrect entry in OPCODE_ACTION -" +
+                        " writing 2 bytes - set as " + OPCODE_ACTION[opcode][1]);
+        
+        }
+    }
 
-	/**
-	 * This takes an instruction that has a narrow
-	 * and a wide form for CPE access, and
-	 * generates accordingly the right one.
-	 * We assume the narrow instruction is what
-	 * we were given, and that the wide form is
-	 * the next possible instruction.
-	 */
-	void addInstrCPE(short opcode, int cpeNum) {
-		if (cpeNum < 256) {
-			addInstrU1(opcode, cpeNum);
-		}
-		else {
-			addInstrU2((short) (opcode+1), cpeNum);
-		}
-	}
+    /**
+     * This takes an instruction that has a narrow
+     * and a wide form for CPE access, and
+     * generates accordingly the right one.
+     * We assume the narrow instruction is what
+     * we were given, and that the wide form is
+     * the next possible instruction.
+     */
+    void addInstrCPE(short opcode, int cpeNum) {
+        if (cpeNum < 256) {
+            addInstrU1(opcode, cpeNum);
+        }
+        else {
+            addInstrU2((short) (opcode+1), cpeNum);
+        }
+    }
 
-	/**
-	 * This takes an instruction that can be wrapped in
-	 * a wide for large variable #s and does so.
-	 */
-	void addInstrWide(short opcode, int varNum) {
-		if (varNum < 256) {
-			addInstrU1(opcode, varNum);
-		}
-		else {
-			addInstr(VMOpcode.WIDE);
-			addInstrU2(opcode, varNum);
-		}
-	}
+    /**
+     * This takes an instruction that can be wrapped in
+     * a wide for large variable #s and does so.
+     */
+    void addInstrWide(short opcode, int varNum) {
+        if (varNum < 256) {
+            addInstrU1(opcode, varNum);
+        }
+        else {
+            addInstr(VMOpcode.WIDE);
+            addInstrU2(opcode, varNum);
+        }
+    }
 
-	/**
-	 * For adding an instruction with 3 operands, a U2 and two U1's.
-	 * So far, this is used by VMOpcode.INVOKEINTERFACE.
-	 */
-	void addInstrU2U1U1(short opcode, int operand1, short operand2,
-		short operand3) {
-		try {
-		cout.putU1(opcode);
-		cout.putU2(operand1);
-		cout.putU1(operand2);
-		cout.putU1(operand3);
-		} catch (IOException ioe) {
+    /**
+     * For adding an instruction with 3 operands, a U2 and two U1's.
+     * So far, this is used by VMOpcode.INVOKEINTERFACE.
+     */
+    void addInstrU2U1U1(short opcode, int operand1, short operand2,
+        short operand3) {
+        try {
+        cout.putU1(opcode);
+        cout.putU2(operand1);
+        cout.putU1(operand2);
+        cout.putU1(operand3);
+        } catch (IOException ioe) {
             limitHit(ioe);
-		}
-		if (SanityManager.DEBUG) {			
-			if (OPCODE_ACTION[opcode][1] != 5)
-				SanityManager.THROWASSERT("Opcode " + opcode + " incorrect entry in OPCODE_ACTION -" +
-						" writing 5 bytes - set as " + OPCODE_ACTION[opcode][1]);		
-		}
-	}
+        }
+        if (SanityManager.DEBUG) {            
+            if (OPCODE_ACTION[opcode][1] != 5)
+                SanityManager.THROWASSERT("Opcode " + opcode + " incorrect entry in OPCODE_ACTION -" +
+                        " writing 5 bytes - set as " + OPCODE_ACTION[opcode][1]);        
+        }
+    }
 
-	/** Get the current program counter */
-	int getPC() {
-		return cout.size() + pcDelta;
-	}
-	
-	/**
-	 * Return the complete instruction length for the
-	 * passed in opcode. This will include the space for
-	 * the opcode and its operand.
-	 */
-	private static int instructionLength(short opcode)
-	{
-		int instructionLength = OPCODE_ACTION[opcode][1];
-		
-		if (SanityManager.DEBUG)
-		{
-			if (instructionLength < 0)
-				SanityManager.THROWASSERT("Opcode without instruction length " + opcode);
-		}
-		
-		return instructionLength;
-	}
-	
-	/**
-	 * The delta between cout.size() and the pc.
-	 * For an initial code chunk this is -8 (CODE_OFFSET)
-	 * since 8 bytes are written.
-	 * For a nested CodeChunk return by insertCodeSpace the delta
-	 * corresponds to the original starting pc.
-	 * @see #insertCodeSpace
-	 */
-	private final int pcDelta;
+    /** Get the current program counter */
+    int getPC() {
+        return cout.size() + pcDelta;
+    }
+    
+    /**
+     * Return the complete instruction length for the
+     * passed in opcode. This will include the space for
+     * the opcode and its operand.
+     */
+    private static int instructionLength(short opcode)
+    {
+        int instructionLength = OPCODE_ACTION[opcode][1];
+        
+        if (SanityManager.DEBUG)
+        {
+            if (instructionLength < 0)
+                SanityManager.THROWASSERT("Opcode without instruction length " + opcode);
+        }
+        
+        return instructionLength;
+    }
+    
+    /**
+     * The delta between cout.size() and the pc.
+     * For an initial code chunk this is -8 (CODE_OFFSET)
+     * since 8 bytes are written.
+     * For a nested CodeChunk return by insertCodeSpace the delta
+     * corresponds to the original starting pc.
+     * @see #insertCodeSpace
+     */
+    private final int pcDelta;
     
     /**
      * The class we are generating code for, used to indicate that
@@ -686,261 +686,261 @@ final class CodeChunk {
      */
     final BCClass       cb;
 
-	CodeChunk(BCClass cb) {
+    CodeChunk(BCClass cb) {
         this.cb = cb;
         cout = new ClassFormatOutput();
-		try {
-			cout.putU2(0); // max_stack, placeholder for now
-			cout.putU2(0); // max_locals, placeholder for now
-			cout.putU4(0); // code_length, placeholder 4 now
-		} catch (IOException ioe) {
+        try {
+            cout.putU2(0); // max_stack, placeholder for now
+            cout.putU2(0); // max_locals, placeholder for now
+            cout.putU4(0); // code_length, placeholder 4 now
+        } catch (IOException ioe) {
             limitHit(ioe);
-		}
-		pcDelta = - CodeChunk.CODE_OFFSET;
-	}
-	
-	/**
-	 * Return a CodeChunk that has limited visibility into
-	 * this CodeChunk. Used when a caller needs to insert instructions
-	 * into an existing stream.
-	 * @param pc
-	 * @param byteCount
-	 */
-	private CodeChunk(CodeChunk main, int pc, int byteCount)
-	{
+        }
+        pcDelta = - CodeChunk.CODE_OFFSET;
+    }
+    
+    /**
+     * Return a CodeChunk that has limited visibility into
+     * this CodeChunk. Used when a caller needs to insert instructions
+     * into an existing stream.
+     * @param pc
+     * @param byteCount
+     */
+    private CodeChunk(CodeChunk main, int pc, int byteCount)
+    {
         this.cb = main.cb;
-		ArrayOutputStream aos =
-			new ArrayOutputStream(main.cout.getData());
-		
-		try {
-			aos.setPosition(CODE_OFFSET + pc);
-			aos.setLimit(byteCount);
-		} catch (IOException e) {
+        ArrayOutputStream aos =
+            new ArrayOutputStream(main.cout.getData());
+        
+        try {
+            aos.setPosition(CODE_OFFSET + pc);
+            aos.setLimit(byteCount);
+        } catch (IOException e) {
             limitHit(e);
-		}
-		
-		cout = new ClassFormatOutput(aos);
-		pcDelta = pc;
-	}
+        }
+        
+        cout = new ClassFormatOutput(aos);
+        pcDelta = pc;
+    }
 
-	private final ClassFormatOutput cout;
+    private final ClassFormatOutput cout;
 
-	/**
-	 * now that we have codeBytes, fix the lengths fields in it
-	 * to reflect what was stored.
-	 * Limits checked here are from these sections of the JVM spec.
-	 * <UL>
-	 * <LI> 4.7.3 The Code Attribute
-	 * <LI> 4.10 Limitations of the Java Virtual Machine 
-	 * </UL>
-	 */
-	private void fixLengths(BCMethod mb, int maxStack, int maxLocals, int codeLength) {
+    /**
+     * now that we have codeBytes, fix the lengths fields in it
+     * to reflect what was stored.
+     * Limits checked here are from these sections of the JVM spec.
+     * <UL>
+     * <LI> 4.7.3 The Code Attribute
+     * <LI> 4.10 Limitations of the Java Virtual Machine 
+     * </UL>
+     */
+    private void fixLengths(BCMethod mb, int maxStack, int maxLocals, int codeLength) {
 
-		byte[] codeBytes = cout.getData();
+        byte[] codeBytes = cout.getData();
 
-		// max_stack is in bytes 0-1
-		if (mb != null && maxStack > 65535)
-			cb.addLimitExceeded(mb, "max_stack", 65535, maxStack);
-			
-		codeBytes[0] = (byte)(maxStack >> 8 );
-		codeBytes[1] = (byte)(maxStack );
+        // max_stack is in bytes 0-1
+        if (mb != null && maxStack > 65535)
+            cb.addLimitExceeded(mb, "max_stack", 65535, maxStack);
+            
+        codeBytes[0] = (byte)(maxStack >> 8 );
+        codeBytes[1] = (byte)(maxStack );
 
-		// max_locals is in bytes 2-3
-		if (mb != null && maxLocals > 65535)
-			cb.addLimitExceeded(mb, "max_locals", 65535, maxLocals);
-		codeBytes[2] = (byte)(maxLocals >> 8 );
-		codeBytes[3] = (byte)(maxLocals );
+        // max_locals is in bytes 2-3
+        if (mb != null && maxLocals > 65535)
+            cb.addLimitExceeded(mb, "max_locals", 65535, maxLocals);
+        codeBytes[2] = (byte)(maxLocals >> 8 );
+        codeBytes[3] = (byte)(maxLocals );
 
-		// code_length is in bytes 4-7
-		if (mb != null && codeLength > VMOpcode.MAX_CODE_LENGTH)
-			cb.addLimitExceeded(mb, "code_length",
-					VMOpcode.MAX_CODE_LENGTH, codeLength);
-		codeBytes[4] = (byte)(codeLength >> 24 );
-		codeBytes[5] = (byte)(codeLength >> 16 );
-		codeBytes[6] = (byte)(codeLength >> 8 );
-		codeBytes[7] = (byte)(codeLength );			
-	}
+        // code_length is in bytes 4-7
+        if (mb != null && codeLength > VMOpcode.MAX_CODE_LENGTH)
+            cb.addLimitExceeded(mb, "code_length",
+                    VMOpcode.MAX_CODE_LENGTH, codeLength);
+        codeBytes[4] = (byte)(codeLength >> 24 );
+        codeBytes[5] = (byte)(codeLength >> 16 );
+        codeBytes[6] = (byte)(codeLength >> 8 );
+        codeBytes[7] = (byte)(codeLength );            
+    }
 
-	/**
-	 * wrap up the entry and stuff it in the class,
-	 * now that it holds all of the instructions and
-	 * the exception table.
-	 */
-	void complete(BCMethod mb, ClassHolder ch,
-			ClassMember method, int maxStack, int maxLocals) {
+    /**
+     * wrap up the entry and stuff it in the class,
+     * now that it holds all of the instructions and
+     * the exception table.
+     */
+    void complete(BCMethod mb, ClassHolder ch,
+            ClassMember method, int maxStack, int maxLocals) {
 
         int codeLength =  getPC();
 
-		ClassFormatOutput out = cout;
-		
-		try {
+        ClassFormatOutput out = cout;
+        
+        try {
 
-			out.putU2(0); // exception_table_length
+            out.putU2(0); // exception_table_length
 
-			if (SanityManager.DEBUG) {
-			  if (SanityManager.DEBUG_ON("ClassLineNumbers")) {
-				// Add a single attribute - LineNumberTable
-				// This add fake line numbers that are the pc offset in the method.
-				out.putU2(1); // attributes_count
+            if (SanityManager.DEBUG) {
+              if (SanityManager.DEBUG_ON("ClassLineNumbers")) {
+                // Add a single attribute - LineNumberTable
+                // This add fake line numbers that are the pc offset in the method.
+                out.putU2(1); // attributes_count
 
-				int cpiUTF = ch.addUtf8("LineNumberTable");
+                int cpiUTF = ch.addUtf8("LineNumberTable");
 
-				out.putU2(cpiUTF);
-				out.putU4((codeLength * 4) + 2);
-				out.putU2(codeLength);
-				for (int i = 0; i < codeLength; i++) {
-					out.putU2(i);
-					out.putU2(i);
-				}
-			  } else {
-				  out.putU2(0); // attributes_count
-			  }
+                out.putU2(cpiUTF);
+                out.putU4((codeLength * 4) + 2);
+                out.putU2(codeLength);
+                for (int i = 0; i < codeLength; i++) {
+                    out.putU2(i);
+                    out.putU2(i);
+                }
+              } else {
+                  out.putU2(0); // attributes_count
+              }
 
-			} else {
-				out.putU2(0); // attributes_count
-				// attributes is empty, a 0-element array.
-			}
-		} catch (IOException ioe) {
+            } else {
+                out.putU2(0); // attributes_count
+                // attributes is empty, a 0-element array.
+            }
+        } catch (IOException ioe) {
             limitHit(ioe);
-		}
+        }
 
-		fixLengths(mb, maxStack, maxLocals, codeLength);
-		method.addAttribute("Code", out);
-		
-		if (SanityManager.DEBUG)
-		{
+        fixLengths(mb, maxStack, maxLocals, codeLength);
+        method.addAttribute("Code", out);
+        
+        if (SanityManager.DEBUG)
+        {
             // Only validate if the class file format is valid.
             // Ok code length and guaranteed no errors building the class.
             if ((codeLength <= VMOpcode.MAX_CODE_LENGTH)
                 && (mb != null && mb.cb.limitMsg == null))
             {              
-				// Validate the alternate way to calculate the
-				// max stack agrees with the dynamic as the code
-				// is built way.
-				int walkedMaxStack = findMaxStack(ch, 0, codeLength);
-				if (walkedMaxStack != maxStack)
-				{
-					SanityManager.THROWASSERT("MAX STACK MISMATCH!! " +
-							maxStack + " <> " + walkedMaxStack);
-				}
-			}
-		}
+                // Validate the alternate way to calculate the
+                // max stack agrees with the dynamic as the code
+                // is built way.
+                int walkedMaxStack = findMaxStack(ch, 0, codeLength);
+                if (walkedMaxStack != maxStack)
+                {
+                    SanityManager.THROWASSERT("MAX STACK MISMATCH!! " +
+                            maxStack + " <> " + walkedMaxStack);
+                }
+            }
+        }
 
-	}
-	/**
-	 * Return the opcode at the given pc.
-	 */
-	short getOpcode(int pc)
-	{
-		return (short) (cout.getData()[CODE_OFFSET + pc] & 0xff);
-	}
-	
-	/**
-	 * Get the unsigned short value for the opcode at the program
-	 * counter pc.
-	 */
-	private int getU2(int pc)
-	{
-		byte[] codeBytes = cout.getData();
-		
-		int u2p = CODE_OFFSET + pc + 1;
-        		
-		return ((codeBytes[u2p] & 0xff) << 8) | (codeBytes[u2p+1] & 0xff);
-	}
+    }
+    /**
+     * Return the opcode at the given pc.
+     */
+    short getOpcode(int pc)
+    {
+        return (short) (cout.getData()[CODE_OFFSET + pc] & 0xff);
+    }
+    
+    /**
+     * Get the unsigned short value for the opcode at the program
+     * counter pc.
+     */
+    private int getU2(int pc)
+    {
+        byte[] codeBytes = cout.getData();
+        
+        int u2p = CODE_OFFSET + pc + 1;
+                
+        return ((codeBytes[u2p] & 0xff) << 8) | (codeBytes[u2p+1] & 0xff);
+    }
 
-	/**
-	 * Get the unsigned 32 bit value for the opcode at the program
-	 * counter pc.
-	 */
-	private int getU4(int pc)
-	{
-		byte[] codeBytes = cout.getData();
-		
-		int u4p = CODE_OFFSET + pc + 1;
-		
-		return (((codeBytes[u4p] & 0xff) << 24) |
-		        ((codeBytes[u4p+1] & 0xff) << 16) |
-		        ((codeBytes[u4p+2] & 0xff) << 8) |
-		        ((codeBytes[u4p+3] & 0xff)));
-	}	
-	/**
-	 * Insert room for byteCount bytes after the instruction at pc
-	 * and prepare to replace the instruction at pc. The instruction
-	 * at pc is not modified by this call, space is allocated after it.
-	 * The newly inserted space will be filled with NOP instructions.
-	 * 
-	 * Returns a CodeChunk positioned at pc and available to write
-	 * instructions upto (byteCode + length(existing instruction at pc) bytes.
-	 * 
-	 * This chunk is left correctly positioned at the end of the code
-	 * stream, ready to accept more code. Its pc will have increased by
-	 * additionalBytes.
-	 * 
-	 * It is the responsibility of the caller to patch up any
-	 * branches or gotos.
-	 * 
-	 * @param pc
-	 * @param additionalBytes
-	 */
-	CodeChunk insertCodeSpace(int pc, int additionalBytes)
-	{
-		short existingOpcode = getOpcode(pc);
+    /**
+     * Get the unsigned 32 bit value for the opcode at the program
+     * counter pc.
+     */
+    private int getU4(int pc)
+    {
+        byte[] codeBytes = cout.getData();
+        
+        int u4p = CODE_OFFSET + pc + 1;
+        
+        return (((codeBytes[u4p] & 0xff) << 24) |
+                ((codeBytes[u4p+1] & 0xff) << 16) |
+                ((codeBytes[u4p+2] & 0xff) << 8) |
+                ((codeBytes[u4p+3] & 0xff)));
+    }    
+    /**
+     * Insert room for byteCount bytes after the instruction at pc
+     * and prepare to replace the instruction at pc. The instruction
+     * at pc is not modified by this call, space is allocated after it.
+     * The newly inserted space will be filled with NOP instructions.
+     * 
+     * Returns a CodeChunk positioned at pc and available to write
+     * instructions upto (byteCode + length(existing instruction at pc) bytes.
+     * 
+     * This chunk is left correctly positioned at the end of the code
+     * stream, ready to accept more code. Its pc will have increased by
+     * additionalBytes.
+     * 
+     * It is the responsibility of the caller to patch up any
+     * branches or gotos.
+     * 
+     * @param pc
+     * @param additionalBytes
+     */
+    CodeChunk insertCodeSpace(int pc, int additionalBytes)
+    {
+        short existingOpcode = getOpcode(pc);
 
-		int lengthOfExistingInstruction
-		    = instructionLength(existingOpcode);
-			
-		
-		if (additionalBytes > 0)
-		{
-			// Size of the current code after this pc.
-			int sizeToMove = (getPC() - pc) - lengthOfExistingInstruction;
+        int lengthOfExistingInstruction
+            = instructionLength(existingOpcode);
+            
+        
+        if (additionalBytes > 0)
+        {
+            // Size of the current code after this pc.
+            int sizeToMove = (getPC() - pc) - lengthOfExistingInstruction;
 
-			// Increase the code by the number of bytes to be
-			// inserted. These NOPs will be overwritten by the
-			// moved code by the System.arraycopy below.
-			// It's assumed that the number of inserted bytes
-			// is small, one or two instructions worth, so it
-			// won't be a performance issue.
-			for (int i = 0; i < additionalBytes; i++)
-				addInstr(VMOpcode.NOP);
-		
-			// Must get codeBytes here as the array might have re-sized.
-			byte[] codeBytes = cout.getData();
-			
-			int byteOffset = CODE_OFFSET + pc + lengthOfExistingInstruction;
-					
-			
-			// Shift the existing code stream down
-			System.arraycopy(
-					codeBytes, byteOffset,
-					codeBytes, byteOffset + additionalBytes,
-					sizeToMove);
-			
-			// Place NOPs in the space just freed by the move.
-			// This is not required, it ias assumed the caller
-			// will overwrite all the bytes they requested, but
-			// to be safe fill in with NOPs rather than leaving code
-			// that could break the verifier.
-			Arrays.fill(codeBytes, byteOffset, byteOffset + additionalBytes,
-					(byte) VMOpcode.NOP);
-		}
-		
-		// The caller must overwrite the original instruction
-		// at pc, thus increase the range of the limit stream
-		// created to include those bytes.
-		additionalBytes += lengthOfExistingInstruction;
-		
-		// Now the caller needs to fill in the instructions
-		// that make up the modified byteCount bytes of bytecode stream.
-		// Return a CodeChunk that can be used for this and
-		// is limited to only those bytes.
-		// The pc of the original code chunk is left unchanged.
-		
-		return new CodeChunk(this, pc, additionalBytes);
-						
-	}
-	
-	/*
+            // Increase the code by the number of bytes to be
+            // inserted. These NOPs will be overwritten by the
+            // moved code by the System.arraycopy below.
+            // It's assumed that the number of inserted bytes
+            // is small, one or two instructions worth, so it
+            // won't be a performance issue.
+            for (int i = 0; i < additionalBytes; i++)
+                addInstr(VMOpcode.NOP);
+        
+            // Must get codeBytes here as the array might have re-sized.
+            byte[] codeBytes = cout.getData();
+            
+            int byteOffset = CODE_OFFSET + pc + lengthOfExistingInstruction;
+                    
+            
+            // Shift the existing code stream down
+            System.arraycopy(
+                    codeBytes, byteOffset,
+                    codeBytes, byteOffset + additionalBytes,
+                    sizeToMove);
+            
+            // Place NOPs in the space just freed by the move.
+            // This is not required, it ias assumed the caller
+            // will overwrite all the bytes they requested, but
+            // to be safe fill in with NOPs rather than leaving code
+            // that could break the verifier.
+            Arrays.fill(codeBytes, byteOffset, byteOffset + additionalBytes,
+                    (byte) VMOpcode.NOP);
+        }
+        
+        // The caller must overwrite the original instruction
+        // at pc, thus increase the range of the limit stream
+        // created to include those bytes.
+        additionalBytes += lengthOfExistingInstruction;
+        
+        // Now the caller needs to fill in the instructions
+        // that make up the modified byteCount bytes of bytecode stream.
+        // Return a CodeChunk that can be used for this and
+        // is limited to only those bytes.
+        // The pc of the original code chunk is left unchanged.
+        
+        return new CodeChunk(this, pc, additionalBytes);
+                        
+    }
+    
+    /*
      * * Methods related to splitting the byte code chunks into sections that
      * fit in the JVM's limits for a single method.
      */
@@ -1024,7 +1024,7 @@ final class CodeChunk {
         int descriptor = cii.getI2();
         CONSTANT_Utf8_info type = (CONSTANT_Utf8_info) ch.getEntry(descriptor);
 
-		return type.toString();
+        return type.toString();
     }
 
     /**
@@ -1797,9 +1797,9 @@ final class CodeChunk {
                 // to see how a conditional should be handled
                 // with an expression split. So for the time
                 // being just bail.
-				if(true) {
-					return -1;
-				}
+                if(true) {
+                    return -1;
+                }
                 // an else block exists, skip the then block.
                 if (cond_pcs[3] != -1) {
                     pc = cond_pcs[3];
@@ -1853,8 +1853,8 @@ final class CodeChunk {
             case VMOpcode.D2L:
             case VMOpcode.DNEG:
             case VMOpcode.F2I:
-            	break;
-            	
+                break;
+                
             // Independent instructions that push one word
             case VMOpcode.ALOAD_0:
             case VMOpcode.ALOAD_1:
@@ -1877,8 +1877,8 @@ final class CodeChunk {
             case VMOpcode.LDC:
             case VMOpcode.LDC_W:
             case VMOpcode.SIPUSH:
-            	earliestIndepPC[stack] = opcode_pc;
-            	break;
+                earliestIndepPC[stack] = opcode_pc;
+                break;
             
             // Independent instructions that push two words
             case VMOpcode.DCONST_0:
@@ -1923,12 +1923,12 @@ final class CodeChunk {
             case VMOpcode.INVOKEINTERFACE:
             case VMOpcode.INVOKEVIRTUAL:
             {
-            	//   ...,objectref[,word]*
-            	//   
-            	// => ...
-            	// => ...,word
-            	// => ...,word1,word2
-            	
+                //   ...,objectref[,word]*
+                //   
+                // => ...
+                // => ...,word
+                // => ...,word1,word2
+                
                 // Width of the value returned by the method call.
                 String vmDescriptor = getTypeDescriptor(ch, opcode_pc);
                 int width = CodeChunk.getDescriptorWordCount(vmDescriptor);
@@ -2013,7 +2013,7 @@ final class CodeChunk {
                         }
                     }
                 }
-            	break;
+                break;
               }
             }   
             

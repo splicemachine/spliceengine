@@ -50,167 +50,167 @@ import com.splicemachine.db.tools.ij;
 
 public class MaxLogNumber{
 
-	MaxLogNumber() {
-	}
-	
+    MaxLogNumber() {
+    }
+    
 
-	private void runTest(Connection conn) throws SQLException {
-		logMessage("Begin MaxLogNumber Test");
-		// perform a checkpoint otherwise recovery test will look at log1 
-		// instead of the log number that gets by the testMaxLogFileNumber 
-		// debug flags.
-		performCheckPoint(conn);
-		createTable(conn);
-		insert(conn, 100, COMMIT, 10);
-		insert(conn, 100, ROLLBACK, 10);
-		update(conn, 50, COMMIT, 10);
-		update(conn, 50, ROLLBACK, 10);
-		verifyData(conn, 100);
-		//do some inserts that will be rolled back by recovey
-		insert(conn, 2000, NOACTION, 2000);
-		logMessage("End MaxLogNumber Test");
-	}
+    private void runTest(Connection conn) throws SQLException {
+        logMessage("Begin MaxLogNumber Test");
+        // perform a checkpoint otherwise recovery test will look at log1 
+        // instead of the log number that gets by the testMaxLogFileNumber 
+        // debug flags.
+        performCheckPoint(conn);
+        createTable(conn);
+        insert(conn, 100, COMMIT, 10);
+        insert(conn, 100, ROLLBACK, 10);
+        update(conn, 50, COMMIT, 10);
+        update(conn, 50, ROLLBACK, 10);
+        verifyData(conn, 100);
+        //do some inserts that will be rolled back by recovey
+        insert(conn, 2000, NOACTION, 2000);
+        logMessage("End MaxLogNumber Test");
+    }
 
-	void performCheckPoint(Connection conn) throws SQLException
-	{
-		Statement stmt = conn.createStatement();
-		//wait to make sure that checkpoint thread finished it's work
-		stmt.executeUpdate("CALL SYSCS_UTIL.SYSCS_CHECKPOINT_DATABASE()");
-		stmt.close();
-	}
+    void performCheckPoint(Connection conn) throws SQLException
+    {
+        Statement stmt = conn.createStatement();
+        //wait to make sure that checkpoint thread finished it's work
+        stmt.executeUpdate("CALL SYSCS_UTIL.SYSCS_CHECKPOINT_DATABASE()");
+        stmt.close();
+    }
 
-		
-	/**
-	 * Insert some rows into the table.
-	 */
-	void insert(Connection conn, int rowCount, 
-				int txStatus, int commitCount) throws SQLException {
+        
+    /**
+     * Insert some rows into the table.
+     */
+    void insert(Connection conn, int rowCount, 
+                int txStatus, int commitCount) throws SQLException {
 
-		PreparedStatement ps = conn.prepareStatement("INSERT INTO " + 
-													 "emp" + 
-													 " VALUES(?,?,?)");
-		for (int i = 0; i < rowCount; i++) {
-			
-			ps.setInt(1, i); // ID
-			ps.setString(2 , "skywalker" + i);
-			ps.setFloat(3, (float)(i * 2000)); 
-			ps.executeUpdate();
-			if ((i % commitCount) == 0)
-			{
-				endTransaction(conn, txStatus);
-			}
-		}
+        PreparedStatement ps = conn.prepareStatement("INSERT INTO " + 
+                                                     "emp" + 
+                                                     " VALUES(?,?,?)");
+        for (int i = 0; i < rowCount; i++) {
+            
+            ps.setInt(1, i); // ID
+            ps.setString(2 , "skywalker" + i);
+            ps.setFloat(3, (float)(i * 2000)); 
+            ps.executeUpdate();
+            if ((i % commitCount) == 0)
+            {
+                endTransaction(conn, txStatus);
+            }
+        }
 
-		endTransaction(conn, txStatus);
-		ps.close();
-	}
+        endTransaction(conn, txStatus);
+        ps.close();
+    }
 
 
-	static final int COMMIT = 1;
+    static final int COMMIT = 1;
     static final int ROLLBACK = 2;
-	static final int NOACTION = 3;
+    static final int NOACTION = 3;
 
-	void endTransaction(Connection conn, int txStatus) throws SQLException
-	{
-		switch(txStatus){
-		case COMMIT: 
-			conn.commit();
-			break;
-		case ROLLBACK:
-			conn.rollback();
-			break;
-		case NOACTION:
-			//do nothing
-			break;
-		}
-	}
-		
-	/**
-	 * update some rows in the table.
-	 */
+    void endTransaction(Connection conn, int txStatus) throws SQLException
+    {
+        switch(txStatus){
+        case COMMIT: 
+            conn.commit();
+            break;
+        case ROLLBACK:
+            conn.rollback();
+            break;
+        case NOACTION:
+            //do nothing
+            break;
+        }
+    }
+        
+    /**
+     * update some rows in the table.
+     */
 
-	void update(Connection conn, int rowCount, 
-				int txStatus, int commitCount) throws SQLException
-	{
+    void update(Connection conn, int rowCount, 
+                int txStatus, int commitCount) throws SQLException
+    {
 
-		PreparedStatement ps = conn.prepareStatement("update " + "emp" + 
-													 " SET salary=? where id=?");
-		
-		for (int i = 0; i < rowCount; i++) {
+        PreparedStatement ps = conn.prepareStatement("update " + "emp" + 
+                                                     " SET salary=? where id=?");
+        
+        for (int i = 0; i < rowCount; i++) {
 
-			ps.setFloat(1, (float)(i * 2000 * 0.08));
-			ps.setInt(2, i); // ID
-			ps.executeUpdate();
-			if ((i % commitCount) == 0)
-			{
-				endTransaction(conn, txStatus);
-			}
-		}
-		endTransaction(conn, txStatus);
-		ps.close();
-	}
+            ps.setFloat(1, (float)(i * 2000 * 0.08));
+            ps.setInt(2, i); // ID
+            ps.executeUpdate();
+            if ((i % commitCount) == 0)
+            {
+                endTransaction(conn, txStatus);
+            }
+        }
+        endTransaction(conn, txStatus);
+        ps.close();
+    }
 
 
-	/*
-	 * verify the rows in the table. 
-	 */
-	void verifyData(Connection conn, int expectedRowCount) throws SQLException {
-		
-		Statement s = conn.createStatement();
-		ResultSet rs = s.executeQuery("SELECT ID, name from emp order by id" );
-		int count = 0;
-		int id = 0;
-		while(rs.next())
-		{
-			int tid = rs.getInt(1);
-			String name = rs.getString(2);
-			if(name.equals("skywalker" + id) && tid!= id)
-			{
-				
-				logMessage("DATA IN THE TABLE IS NOT AS EXPECTED");
-				logMessage("Got :ID=" +  tid + " Name=:" + name);
-				logMessage("Expected: ID=" + id + "Name=" + "skywalker" + id );
-			}
+    /*
+     * verify the rows in the table. 
+     */
+    void verifyData(Connection conn, int expectedRowCount) throws SQLException {
+        
+        Statement s = conn.createStatement();
+        ResultSet rs = s.executeQuery("SELECT ID, name from emp order by id" );
+        int count = 0;
+        int id = 0;
+        while(rs.next())
+        {
+            int tid = rs.getInt(1);
+            String name = rs.getString(2);
+            if(name.equals("skywalker" + id) && tid!= id)
+            {
+                
+                logMessage("DATA IN THE TABLE IS NOT AS EXPECTED");
+                logMessage("Got :ID=" +  tid + " Name=:" + name);
+                logMessage("Expected: ID=" + id + "Name=" + "skywalker" + id );
+            }
 
-			id++;
-			count++;
-		}
+            id++;
+            count++;
+        }
 
-		if(count != expectedRowCount)
-		{
-			logMessage("Expected Number Of Rows (" + 
-					   expectedRowCount + ")" +  "!="  + 
-					   "No Of rows in the Table(" + 
-					   count + ")");
-		}
-		s.close();
-	}
+        if(count != expectedRowCount)
+        {
+            logMessage("Expected Number Of Rows (" + 
+                       expectedRowCount + ")" +  "!="  + 
+                       "No Of rows in the Table(" + 
+                       count + ")");
+        }
+        s.close();
+    }
 
-	/* 
-	 * create the tables that are used by this test.
-	 */
-	void createTable(Connection conn) throws SQLException {
+    /* 
+     * create the tables that are used by this test.
+     */
+    void createTable(Connection conn) throws SQLException {
 
-		Statement s = conn.createStatement();
-		s.executeUpdate("CREATE TABLE " + "emp" + 
-						"(id INT," +
-						"name CHAR(200),"+ 
-						"salary float)");
-		s.executeUpdate("create index emp_idx on emp(id) ");
-		conn.commit();
-		s.close();
-	}
+        Statement s = conn.createStatement();
+        s.executeUpdate("CREATE TABLE " + "emp" + 
+                        "(id INT," +
+                        "name CHAR(200),"+ 
+                        "salary float)");
+        s.executeUpdate("create index emp_idx on emp(id) ");
+        conn.commit();
+        s.close();
+    }
 
-	void logMessage(String   str)
+    void logMessage(String   str)
     {
         System.out.println(str);
     }
-	
-	
-	public static void main(String[] argv) throws Throwable {
-		
+    
+    
+    public static void main(String[] argv) throws Throwable {
+        
         MaxLogNumber test = new MaxLogNumber();
-   		ij.getPropertyArg(argv); 
+           ij.getPropertyArg(argv); 
         Connection conn = ij.startJBMS();
         conn.setAutoCommit(false);
 
@@ -218,9 +218,9 @@ public class MaxLogNumber{
             test.runTest(conn);
         }
         catch (SQLException sqle) {
-			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
-			sqle.printStackTrace(System.out);
-		}
+            sqle.printStackTrace(System.out);
+        }
     }
 }

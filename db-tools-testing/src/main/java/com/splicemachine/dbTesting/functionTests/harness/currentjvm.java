@@ -41,12 +41,12 @@ import java.util.StringTokenizer;
 
 public class currentjvm extends jvm {
 
-	public String getName() {return "currentjvm";}
+    public String getName() {return "currentjvm";}
     public currentjvm(boolean noasyncgc, boolean verbosegc, boolean noclassgc,
     long ss, long oss, long ms, long mx, String classpath, String prof,
     boolean verify, boolean noverify, boolean nojit, Vector D) {
         super(noasyncgc,verbosegc,noclassgc,ss,oss,ms,mx,classpath,prof,
-		verify,noverify,nojit,D);
+        verify,noverify,nojit,D);
     }
     // more typical use:
     public currentjvm(String classpath, Vector D) {
@@ -109,10 +109,10 @@ public class currentjvm extends jvm {
         if (nojit) sb.append(" -nojit");
         if (D!=null)
           for (int i=0; i<D.size();i++) {
-	        sb.append(" -D");
-	        sb.append((String)(D.elementAt(i)));
+            sb.append(" -D");
+            sb.append((String)(D.elementAt(i)));
           }
     }
 
-	public String getDintro() { return "-D"; }
+    public String getDintro() { return "-D"; }
 }

@@ -400,9 +400,9 @@ public class CreateAliasNode extends DDLStatementNode{
         TypeDescriptor aType=rai.getReturnType();
         TypeId compTypeId;
         /*
-		** Try for a built in type matching the
-		** type name.  
-		*/
+        ** Try for a built in type matching the
+        ** type name.  
+        */
         if(aType!=null) //that means we are not dealing with a procedure
         {
             compTypeId=TypeId.getBuiltInTypeId(aType.getTypeName());

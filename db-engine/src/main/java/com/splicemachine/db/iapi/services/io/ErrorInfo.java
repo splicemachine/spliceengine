@@ -36,7 +36,7 @@ package com.splicemachine.db.iapi.services.io;
  */
 interface ErrorInfo
 {
-	String getErrorInfo();
+    String getErrorInfo();
 
     Exception getNestedException();
 }

@@ -59,42 +59,42 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 public interface DaemonService 
 {
-	int TIMER_DELAY = 10000; // wake up once per TIMER_DELAY milli-second
+    int TIMER_DELAY = 10000; // wake up once per TIMER_DELAY milli-second
 
 
-	/**
-		Trace flag that can be used by Daemons to print stuff out
-	*/
-	String DaemonTrace = SanityManager.DEBUG ? "DaemonTrace" : null;
+    /**
+        Trace flag that can be used by Daemons to print stuff out
+    */
+    String DaemonTrace = SanityManager.DEBUG ? "DaemonTrace" : null;
 
-	/**
-		Trace flag that can be used to turn off background daemons
-		If DaemonOff is set, background Daemon will not attempt to do anything.
-	*/
-	String DaemonOff = SanityManager.DEBUG ? "DaemonOff" : null;
-
-
-	/**
-		Add a new client that this daemon needs to service
-
-		@param newClient a Serviceable object this daemon will service from time to time
-		@param onDemandOnly only service this client when it ask for service with a serviceNow request
-		@return a client number that uniquely identifies this client (this subscription) 
-	*/
-	int subscribe(Serviceable newClient, boolean onDemandOnly);
+    /**
+        Trace flag that can be used to turn off background daemons
+        If DaemonOff is set, background Daemon will not attempt to do anything.
+    */
+    String DaemonOff = SanityManager.DEBUG ? "DaemonOff" : null;
 
 
-	/**
-		Get rid of a client from the daemon. If a client is being serviced when
-		the call is made, the implementation may choose whether or not the call
-		should block until the client has completed its work. If the call does
-		not block, the client must be prepared to handle calls to its
-		<code>performWork()</code> method even after <code>unsubscribe()</code>
-		has returned.
+    /**
+        Add a new client that this daemon needs to service
 
-		@param clientNumber the number that uniquely identify the client
-	*/
-	void unsubscribe(int clientNumber);
+        @param newClient a Serviceable object this daemon will service from time to time
+        @param onDemandOnly only service this client when it ask for service with a serviceNow request
+        @return a client number that uniquely identifies this client (this subscription) 
+    */
+    int subscribe(Serviceable newClient, boolean onDemandOnly);
+
+
+    /**
+        Get rid of a client from the daemon. If a client is being serviced when
+        the call is made, the implementation may choose whether or not the call
+        should block until the client has completed its work. If the call does
+        not block, the client must be prepared to handle calls to its
+        <code>performWork()</code> method even after <code>unsubscribe()</code>
+        has returned.
+
+        @param clientNumber the number that uniquely identify the client
+    */
+    void unsubscribe(int clientNumber);
 
 
     /**
@@ -110,57 +110,57 @@ public interface DaemonService
      *
      * @param clientNumber the number that uniquely identifies the client
      */
-	void serviceNow(int clientNumber);
+    void serviceNow(int clientNumber);
 
 
-	/**
-		Request a one time service from the Daemon.  Unless performWork returns
-		REQUEUE (see Serviceable), the daemon will service this client once
-		and then it will get rid of this client.  Since no client number is
-		associated with this client, it cannot request to be serviced or be
-		unsubscribed. 
+    /**
+        Request a one time service from the Daemon.  Unless performWork returns
+        REQUEUE (see Serviceable), the daemon will service this client once
+        and then it will get rid of this client.  Since no client number is
+        associated with this client, it cannot request to be serviced or be
+        unsubscribed. 
 
-		The work is always added to the deamon, regardless of the
-		state it returns.
+        The work is always added to the deamon, regardless of the
+        state it returns.
 
-		@param newClient the object that needs a one time service
+        @param newClient the object that needs a one time service
 
-		@param serviceNow if true, this client should be serviced ASAP, as if a
-		serviceNow has been issued.  If false, then this client will be
-		serviced with the normal scheduled.
+        @param serviceNow if true, this client should be serviced ASAP, as if a
+        serviceNow has been issued.  If false, then this client will be
+        serviced with the normal scheduled.
 
-		@return true if the daemon indicates it is being overloaded,
-		false it's happy.
-	*/
-	boolean enqueue(Serviceable newClient, boolean serviceNow);
+        @return true if the daemon indicates it is being overloaded,
+        false it's happy.
+    */
+    boolean enqueue(Serviceable newClient, boolean serviceNow);
 
-	/**
-		Pause.  No new service is performed until a resume is issued.
-	*/
-	void pause();
-	
+    /**
+        Pause.  No new service is performed until a resume is issued.
+    */
+    void pause();
+    
 
-	/**
-		Resume service after a pause
-	*/
-	void resume();
-	
+    /**
+        Resume service after a pause
+    */
+    void resume();
+    
 
-	/**
-		End this daemon service
-	 */
-	void stop();
+    /**
+        End this daemon service
+     */
+    void stop();
 
-	/**
-		Clear all the queued up work from this daemon.  Subscriptions are not
-		affected. 
-	 */
-	void clear();
+    /**
+        Clear all the queued up work from this daemon.  Subscriptions are not
+        affected. 
+     */
+    void clear();
 
-	/*
-	 *Wait until work in the high priorty queue is done.
-	 */
-	void waitUntilQueueIsEmpty();
-	
+    /*
+     *Wait until work in the high priorty queue is done.
+     */
+    void waitUntilQueueIsEmpty();
+    
 }
 

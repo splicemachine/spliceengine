@@ -60,41 +60,41 @@ import com.splicemachine.dbTesting.junit.SQLUtilities;
  */
 public class GroupByTest extends BaseJDBCTestCase {
 
-	public GroupByTest(String name) {
-		super(name);
-	}
-	
-	public static Test suite() {
-		return new CleanDatabaseTestSetup(
-				new TestSuite(GroupByTest.class, "GroupByTest")) {
-			protected void decorateSQL(Statement s)
-				throws SQLException
-			{
-				createSchemaObjects(s);
-			}
-		};
-	}
+    public GroupByTest(String name) {
+        super(name);
+    }
+    
+    public static Test suite() {
+        return new CleanDatabaseTestSetup(
+                new TestSuite(GroupByTest.class, "GroupByTest")) {
+            protected void decorateSQL(Statement s)
+                throws SQLException
+            {
+                createSchemaObjects(s);
+            }
+        };
+    }
 
-	String [][] expRS;
-	String [] expColNames;
+    String [][] expRS;
+    String [] expColNames;
 
-	/**
-	 * Creates a variety of tables used by the various GroupBy tests
-	 * @throws SQLException
-	 */
-	private static void createSchemaObjects(Statement st)
-		throws SQLException
-	{
-		st.executeUpdate("create table bug280 (a int, b int)");
-		st.executeUpdate("insert into bug280 (a, b) " +
-						"values (1,1), (1,2), (1,3), (2,1), (2,2)");
+    /**
+     * Creates a variety of tables used by the various GroupBy tests
+     * @throws SQLException
+     */
+    private static void createSchemaObjects(Statement st)
+        throws SQLException
+    {
+        st.executeUpdate("create table bug280 (a int, b int)");
+        st.executeUpdate("insert into bug280 (a, b) " +
+                        "values (1,1), (1,2), (1,3), (2,1), (2,2)");
         st.executeUpdate("CREATE TABLE A2937 (C CHAR(10) NOT NULL, " +
                 "D DATE NOT NULL, DC DECIMAL(6,2))");
         st.executeUpdate("INSERT INTO A2937 VALUES ('aaa', " +
                 "DATE('2007-07-10'), 500.00)");
-		st.executeUpdate("create table yy (a double, b double)");
-		st.executeUpdate("insert into yy values (2,4), (2, 4), " +
-			"(5,7), (2,3), (2,3), (2,3), (2,3), (9,7)");
+        st.executeUpdate("create table yy (a double, b double)");
+        st.executeUpdate("insert into yy values (2,4), (2, 4), " +
+            "(5,7), (2,3), (2,3), (2,3), (2,3), (9,7)");
         
         st.executeUpdate("create table t1 (a int, b int, c int)");
         st.executeUpdate("create table t2 (a int, b int, c int)");
@@ -118,15 +118,15 @@ public class GroupByTest extends BaseJDBCTestCase {
 
         st.execute("create table d3219 (a varchar(10), b varchar(1000))");
 
-		st.execute("CREATE TABLE d3904_T1( " +
-				"D1 DATE NOT NULL PRIMARY KEY, N1 VARCHAR( 10 ))");
-		st.execute("CREATE TABLE d3904_T2( " +
-				"D2 DATE NOT NULL PRIMARY KEY, N2 VARCHAR( 10 ))");
-		st.execute("INSERT INTO d3904_T1 VALUES "+
-				"( DATE( '2008-10-01' ), 'something' ), "+
-				"( DATE( '2008-10-02' ), 'something' )" );
-		st.execute("INSERT INTO d3904_T2 VALUES" +
-				"( DATE( '2008-10-01' ), 'something' )" ); 
+        st.execute("CREATE TABLE d3904_T1( " +
+                "D1 DATE NOT NULL PRIMARY KEY, N1 VARCHAR( 10 ))");
+        st.execute("CREATE TABLE d3904_T2( " +
+                "D2 DATE NOT NULL PRIMARY KEY, N2 VARCHAR( 10 ))");
+        st.execute("INSERT INTO d3904_T1 VALUES "+
+                "( DATE( '2008-10-01' ), 'something' ), "+
+                "( DATE( '2008-10-02' ), 'something' )" );
+        st.execute("INSERT INTO d3904_T2 VALUES" +
+                "( DATE( '2008-10-01' ), 'something' )" ); 
 
         st.executeUpdate("create table d2457_o (name varchar(20), ord int)");
         st.executeUpdate("create table d2457_a (ord int, amount int)");
@@ -276,26 +276,26 @@ public class GroupByTest extends BaseJDBCTestCase {
         
         //Following setup is for DERBY-3872
         st.executeUpdate(
-        		"CREATE TABLE EMPTAB (EMPID INTEGER NOT NULL, "
-        		+ "SALARY DECIMAL(10, 4), DEPT_DEPTNO INTEGER)"); 
+                "CREATE TABLE EMPTAB (EMPID INTEGER NOT NULL, "
+                + "SALARY DECIMAL(10, 4), DEPT_DEPTNO INTEGER)"); 
 
         st.executeUpdate(
-        		"ALTER TABLE EMPTAB ADD CONSTRAINT " +
-        		"PK_EMPTAB PRIMARY KEY (EMPID)"); 
+                "ALTER TABLE EMPTAB ADD CONSTRAINT " +
+                "PK_EMPTAB PRIMARY KEY (EMPID)"); 
 
         st.executeUpdate(
-        		"CREATE TABLE DEPTTAB (DEPTNO INTEGER NOT NULL)");
+                "CREATE TABLE DEPTTAB (DEPTNO INTEGER NOT NULL)");
 
       st.executeUpdate(
-    		  "ALTER TABLE DEPTTAB ADD CONSTRAINT "+
-    		  "PK_DEPTTAB PRIMARY KEY (DEPTNO)");
+              "ALTER TABLE DEPTTAB ADD CONSTRAINT "+
+              "PK_DEPTTAB PRIMARY KEY (DEPTNO)");
 
       st.executeUpdate(
-    		  "insert into DEPTTAB values( 1 )");
+              "insert into DEPTTAB values( 1 )");
 
       st.executeUpdate(
-    		  "insert into EMPTAB values( 1, 1000, 1 )"); 
-	
+              "insert into EMPTAB values( 1, 1000, 1 )"); 
+    
       // tables for DERBY-3880 testing
       st.executeUpdate("CREATE TABLE T1_D3880(i int, c varchar(20))");
       st.executeUpdate("create table t2_D3880(i int, c2 varchar(20), i2 int)");
@@ -312,16 +312,16 @@ public class GroupByTest extends BaseJDBCTestCase {
       st.executeUpdate("INSERT INTO Testd3631 VALUES (2, -7, 2)");
       st.executeUpdate("INSERT INTO Testd3631 VALUES (2, 1, -5)");
       
-	}
+    }
 
-	/**
-	 * Test various invalid GROUP BY statements.
-	 * @throws Exception
-	 */
+    /**
+     * Test various invalid GROUP BY statements.
+     * @throws Exception
+     */
     public void testGroupByErrors()
-		throws Exception
+        throws Exception
     {
-		Statement st = createStatement();
+        Statement st = createStatement();
 
         // group by constant. should compile but fail because it 
         // is not a valid grouping expression.
@@ -380,18 +380,18 @@ public class GroupByTest extends BaseJDBCTestCase {
         
         assertStatementError("X0X67", st,
             " select c1, max(1) from unmapped group by c1");
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * Verify the correct behavior of GROUP BY with various datatypes.
-	 * @throws Exception
-	 */
-	public void testGroupByWithVariousDatatypes()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+    /**
+     * Verify the correct behavior of GROUP BY with various datatypes.
+     * @throws Exception
+     */
+    public void testGroupByWithVariousDatatypes()
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         // Test group by and having clauses with no aggregates 
         
@@ -582,18 +582,18 @@ public class GroupByTest extends BaseJDBCTestCase {
         
         assertStatementError("X0X67", st,
             "select lbv from t group by lbv order by lbv");
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * Test multicolumn grouping.
-	 * @throws Exception
-	 */
+    /**
+     * Test multicolumn grouping.
+     * @throws Exception
+     */
     public void testMulticolumnGrouping()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         rs = st.executeQuery(
             "select i, dt, b from t where 1=1 group by i, dt, b "
@@ -663,18 +663,18 @@ public class GroupByTest extends BaseJDBCTestCase {
         };
         
         JDBC.assertFullResultSet(rs, expRS, true);
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * Test the use of a subquery to group by an expression.
-	 * @throws Exception
-	 */
-	public void testGroupByExpression()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+    /**
+     * Test the use of a subquery to group by an expression.
+     * @throws Exception
+     */
+    public void testGroupByExpression()
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         rs = st.executeQuery(
             "select expr1, expr2 from (select i * s, c || v from "
@@ -694,18 +694,18 @@ public class GroupByTest extends BaseJDBCTestCase {
         };
         
         JDBC.assertFullResultSet(rs, expRS, true);
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * Test using GROUP BY in a correlated subquery.
-	 * @throws Exception
-	 */
-	public void testGroupByCorrelatedSubquery()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+    /**
+     * Test using GROUP BY in a correlated subquery.
+     * @throws Exception
+     */
+    public void testGroupByCorrelatedSubquery()
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         rs = st.executeQuery(
             "select i, expr1 from (select i, (select distinct i "
@@ -723,18 +723,18 @@ public class GroupByTest extends BaseJDBCTestCase {
         };
         
         JDBC.assertFullResultSet(rs, expRS, true);
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * Test GROUP BY and DISTINCT.
-	 * @throws Exception
-	 */
-	public void testGroupByDistinct()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+    /**
+     * Test GROUP BY and DISTINCT.
+     * @throws Exception
+     */
+    public void testGroupByDistinct()
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         rs = st.executeQuery(
             "select distinct i, dt, b from t group by i, dt, b "
@@ -753,18 +753,18 @@ public class GroupByTest extends BaseJDBCTestCase {
         };
         
         JDBC.assertFullResultSet(rs, expRS, true);
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * Test combinations of GROUP BY and ORDER BY.
-	 * @throws Exception
-	 */
-	public void testGroupByOrderBy()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+    /**
+     * Test combinations of GROUP BY and ORDER BY.
+     * @throws Exception
+     */
+    public void testGroupByOrderBy()
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         // order by and group by same order
         
@@ -841,18 +841,18 @@ public class GroupByTest extends BaseJDBCTestCase {
         };
         
         JDBC.assertFullResultSet(rs, expRS, true);
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * group by without having in from subquery.
-	 * @throws Exception
-	 */
-	public void testGroupByInSubquery()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+    /**
+     * group by without having in from subquery.
+     * @throws Exception
+     */
+    public void testGroupByInSubquery()
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         
         rs = st.executeQuery(
@@ -959,18 +959,18 @@ public class GroupByTest extends BaseJDBCTestCase {
         };
         
         JDBC.assertFullResultSet(rs, expRS, true);
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * additional columns in group by list not in select list.
-	 * @throws Exception
-	 */
-	public void testGroupByWithAdditionalColumns()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+    /**
+     * additional columns in group by list not in select list.
+     * @throws Exception
+     */
+    public void testGroupByWithAdditionalColumns()
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         rs = st.executeQuery(
             "select i, dt, b from t group by i, dt, b order by i,dt,b");
@@ -1058,23 +1058,23 @@ public class GroupByTest extends BaseJDBCTestCase {
         };
         
         JDBC.assertFullResultSet(rs, expRS, true);
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * Test parameter markers in the having clause.
-	 * @throws Exception
-	 */
-	public void testParameterMarkersInHavingClause()
-		throws Exception
-	{
-		ResultSet rs = null;
+    /**
+     * Test parameter markers in the having clause.
+     * @throws Exception
+     */
+    public void testParameterMarkersInHavingClause()
+        throws Exception
+    {
+        ResultSet rs = null;
 
-		PreparedStatement pSt = prepareStatement(
+        PreparedStatement pSt = prepareStatement(
             "select i, dt, b from t group by i, dt, b having i = "
             + "? order by i,dt,b");
         
-		pSt.setInt(1, 0);
+        pSt.setInt(1, 0);
         
         rs = pSt.executeQuery();
         expColNames = new String [] {"I", "DT", "B"};
@@ -1088,18 +1088,18 @@ public class GroupByTest extends BaseJDBCTestCase {
         };
         
         JDBC.assertFullResultSet(rs, expRS, true);
-		pSt.close();
-	}
+        pSt.close();
+    }
 
-	/**
-	 * group by with having in from subquery.
-	 * @throws Exception
-	 */
-	public void testHavingClauseInSubquery()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+    /**
+     * group by with having in from subquery.
+     * @throws Exception
+     */
+    public void testHavingClauseInSubquery()
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         rs = st.executeQuery(
             "select * from (select i, dt from t group by i, dt "
@@ -1168,29 +1168,29 @@ public class GroupByTest extends BaseJDBCTestCase {
         //clause incorrectly with the ResultColumn used for the join
         //clause. More info can be found in the jira
         rs = st.executeQuery(
-        		"select  q1.DEPTNO from DEPTTAB q1, EMPTAB q2 where "+ 
-        		"( integer (1.1) = 1)  and  ( q2.DEPT_DEPTNO = q1.DEPTNO) "+
-        		" GROUP BY q1.DEPTNO HAVING  max( q2.SALARY) >=  "+
-        		"( select  q3.SALARY from EMPTAB q3 where  "+
-        		"(q3.EMPID =  q1.DEPTNO) )");
+                "select  q1.DEPTNO from DEPTTAB q1, EMPTAB q2 where "+ 
+                "( integer (1.1) = 1)  and  ( q2.DEPT_DEPTNO = q1.DEPTNO) "+
+                " GROUP BY q1.DEPTNO HAVING  max( q2.SALARY) >=  "+
+                "( select  q3.SALARY from EMPTAB q3 where  "+
+                "(q3.EMPID =  q1.DEPTNO) )");
         
         expRS = new String [][]
         {
             {"1"}
         };
         JDBC.assertFullResultSet(rs, expRS, true);
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * correlated subquery in having clause.
-	 * @throws Exception
-	 */
-	public void testCorrelatedSubqueryInHavingClause()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+    /**
+     * correlated subquery in having clause.
+     * @throws Exception
+     */
+    public void testCorrelatedSubqueryInHavingClause()
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         rs = st.executeQuery(
             "select i, dt from t group by i, dt having i = "
@@ -1225,18 +1225,18 @@ public class GroupByTest extends BaseJDBCTestCase {
         };
         
         JDBC.assertFullResultSet(rs, expRS, true);
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * column references in having clause match columns in group by list.
-	 * @throws Exception
-	 */
-	public void testHavingClauseColumnRef()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+    /**
+     * column references in having clause match columns in group by list.
+     * @throws Exception
+     */
+    public void testHavingClauseColumnRef()
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         rs = st.executeQuery(
             "select i as outer_i, dt from t group by i, dt "
@@ -1255,18 +1255,18 @@ public class GroupByTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(rs, expRS, true);
         
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * additional columns in group by list not in select list.
-	 * @throws Exception
-	 */
-	public void testGroupByColumnsNotInSelectList()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+    /**
+     * additional columns in group by list not in select list.
+     * @throws Exception
+     */
+    public void testGroupByColumnsNotInSelectList()
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         rs = st.executeQuery(
             "select i, dt from t group by i, dt order by i,dt");
@@ -1326,17 +1326,17 @@ public class GroupByTest extends BaseJDBCTestCase {
         };
         
         JDBC.assertFullResultSet(rs, expRS, true);
-		st.close();
-	}
+        st.close();
+    }
         
-	/**
-	 * negative tests for selects with a having clause without a group by.
-	 * @throws Exception
-	 */
-	public void testInvalidHavingClauses()
-		throws Exception
-	{
-		Statement st = createStatement();
+    /**
+     * negative tests for selects with a having clause without a group by.
+     * @throws Exception
+     */
+    public void testInvalidHavingClauses()
+        throws Exception
+    {
+        Statement st = createStatement();
 
         // binding of having clause
         
@@ -1357,18 +1357,18 @@ public class GroupByTest extends BaseJDBCTestCase {
         assertStatementError("42Y35", st,
             "select * from t_twoints t1_outer having 1 = (select 1 from "
             + "t_twoints where c1 = t1_outer.c1)");
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * Tests for Bug 5653 restrictions.
-	 * @throws Exception
-	 */
-	public void testHavingClauseRestrictions5653()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+    /**
+     * Tests for Bug 5653 restrictions.
+     * @throws Exception
+     */
+    public void testHavingClauseRestrictions5653()
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         // bug 5653 test (almost useful) restrictions on a having 
         // clause without a group by clause create the table
@@ -1414,18 +1414,18 @@ public class GroupByTest extends BaseJDBCTestCase {
         
         assertStatementError("42Y35", st,
             "select * from t5653 having 1 between 1 and 2");
-		st.close();
-	}
+        st.close();
+    }
 
-	/**
-	 * bug 5920 test that HAVING without GROUPBY makes one group.
-	 * @throws Exception
-	 */
-	public void testHavingWithoutGroupBy5920()
-		throws Exception
-	{
-		Statement st = createStatement();
-		ResultSet rs = null;
+    /**
+     * bug 5920 test that HAVING without GROUPBY makes one group.
+     * @throws Exception
+     */
+    public void testHavingWithoutGroupBy5920()
+        throws Exception
+    {
+        Statement st = createStatement();
+        ResultSet rs = null;
 
         rs = st.executeQuery(
             " select avg(c) from t5920 having 1 < 2");
@@ -1469,344 +1469,344 @@ public class GroupByTest extends BaseJDBCTestCase {
         };
         
         JDBC.assertFullResultSet(rs, expRS, true);
-		st.close();
+        st.close();
     }
 
-	/**
-	 * DERBY-5613: Queries with group by column not included in the column list
-	 * 	for JOIN(INNER or OUTER) with NATURAL or USING does not fail
-	 *  
-	 * Derby does not replace join columns in the select list with coalesce as
-	 *  suggested by SQL spec, instead it binds the join column with the left 
-	 *  table when working with natural left outer join or inner join and it 
-	 *  binds the join column with the right table when working with natural 
-	 *  right outer join. This causes incorrect GROUP BY and HAVING queries
-	 *  to pass as shown below.
-	 *  
-	 * The tests below show that GROUP BY and HAVING clauses are able to use a 
-	 *  column which is not part of the SELECT list. This happens for USING
-	 *  clause & NATURAL joins with queries using INNER JOINS and OUTER JOINS.
-	 *  When using the JOIN with ON clause, we do not run into this problem 
-	 *  because we are expected to qualify the JOIN column with table name 
-	 *  in the SELECT list when using thw ON clause.
-	 * 
-	 * @throws SQLException
-	 */
-	public void testGroupByWithUsingClause() throws SQLException {
-		Statement s = createStatement();
-		//JOIN queries with ON clause do not cause ambiguity on join columns
-		// because such queries require that join columns in SELECT query
-		// should be qualified with left or right table name. Just a note
-		// that ON clause is not allowed on CROSS and NATURAL JOINS.
-		//
+    /**
+     * DERBY-5613: Queries with group by column not included in the column list
+     *     for JOIN(INNER or OUTER) with NATURAL or USING does not fail
+     *  
+     * Derby does not replace join columns in the select list with coalesce as
+     *  suggested by SQL spec, instead it binds the join column with the left 
+     *  table when working with natural left outer join or inner join and it 
+     *  binds the join column with the right table when working with natural 
+     *  right outer join. This causes incorrect GROUP BY and HAVING queries
+     *  to pass as shown below.
+     *  
+     * The tests below show that GROUP BY and HAVING clauses are able to use a 
+     *  column which is not part of the SELECT list. This happens for USING
+     *  clause & NATURAL joins with queries using INNER JOINS and OUTER JOINS.
+     *  When using the JOIN with ON clause, we do not run into this problem 
+     *  because we are expected to qualify the JOIN column with table name 
+     *  in the SELECT list when using thw ON clause.
+     * 
+     * @throws SQLException
+     */
+    public void testGroupByWithUsingClause() throws SQLException {
+        Statement s = createStatement();
+        //JOIN queries with ON clause do not cause ambiguity on join columns
+        // because such queries require that join columns in SELECT query
+        // should be qualified with left or right table name. Just a note
+        // that ON clause is not allowed on CROSS and NATURAL JOINS.
+        //
         //The join queries with ON clause are not impacted by DERBY-5613 and 
         // hence following tests are showing the correct behavior.
-		//
-		//Try INNER JOIN with ON clause.
+        //
+        //Try INNER JOIN with ON clause.
         assertStatementError("42X03", s,
                 "select i from t1_D3880 " +
-				"inner join t2_D3880 ON t1_D3880.i = t2_D3880.i " +
+                "inner join t2_D3880 ON t1_D3880.i = t2_D3880.i " +
                 "group by t1_D3880.i");
-		ResultSet rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
-				"inner join t2_D3880 ON t1_D3880.i = t2_D3880.i " +
+        ResultSet rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
+                "inner join t2_D3880 ON t1_D3880.i = t2_D3880.i " +
                 "group by t1_D3880.i");
-		String[][] expRs = new String[][] {{"1"},{"2"}};
-		JDBC.assertFullResultSet(rs,expRs);
-		//Try LEFT OUTER JOIN with ON clause.
+        String[][] expRs = new String[][] {{"1"},{"2"}};
+        JDBC.assertFullResultSet(rs,expRs);
+        //Try LEFT OUTER JOIN with ON clause.
         assertStatementError("42X03", s,
                 "select i from t1_D3880 " +
-				"LEFT OUTER JOIN t2_D3880 ON t1_D3880.i = t2_D3880.i " +
+                "LEFT OUTER JOIN t2_D3880 ON t1_D3880.i = t2_D3880.i " +
                 "group by t1_D3880.i");
-		rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
-				"LEFT OUTER JOIN t2_D3880 ON t1_D3880.i = t2_D3880.i " +
+        rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
+                "LEFT OUTER JOIN t2_D3880 ON t1_D3880.i = t2_D3880.i " +
                 "group by t1_D3880.i");
-		JDBC.assertFullResultSet(rs,expRs);
-		//Try RIGHT OUTER JOIN with ON clause.
+        JDBC.assertFullResultSet(rs,expRs);
+        //Try RIGHT OUTER JOIN with ON clause.
         assertStatementError("42X03", s,
                 "select i from t1_D3880 " +
-				"RIGHT OUTER JOIN t2_D3880 ON t1_D3880.i = t2_D3880.i " +
+                "RIGHT OUTER JOIN t2_D3880 ON t1_D3880.i = t2_D3880.i " +
                 "group by t1_D3880.i");
-		rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
-				"RIGHT OUTER JOIN t2_D3880 ON t1_D3880.i = t2_D3880.i " +
+        rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
+                "RIGHT OUTER JOIN t2_D3880 ON t1_D3880.i = t2_D3880.i " +
                 "group by t1_D3880.i");
-		JDBC.assertFullResultSet(rs,expRs);
+        JDBC.assertFullResultSet(rs,expRs);
 
-		//Test group by on a column which is not part of SELECT query (query 
-		// uses USING clause). We see the incorrect behavior where the group 
-		// by does not raise an error for using 
-		// leftTable(orRightTable).joinColumn even though that column is not 
-		// part of the SELECT list. Just a note that ON clause is not allowed 
-		// on CROSS and NATURAL JOINS.
-		//
-		//Try INNER JOIN with USING clause.
-		//Following query should have given compile time error. 
-		//Once DERBY-5613 is fixed, this query will run into compile time
-		// error for using t1_D3880.i in group by clause because that column
-		// is not part of the SELECT list. 
-		rs = s.executeQuery("select i from t1_D3880 " +
-				"inner join t2_D3880 USING(i) group by t1_D3880.i");
-		expRs = new String[][] {{"1"},{"2"}};
-		JDBC.assertFullResultSet(rs,expRs);
-		//Following query does not allow t2_D3880.i in group by clause
-		// because join column i the select query gets associated with
-		// left table in case of INNER JOIN.
+        //Test group by on a column which is not part of SELECT query (query 
+        // uses USING clause). We see the incorrect behavior where the group 
+        // by does not raise an error for using 
+        // leftTable(orRightTable).joinColumn even though that column is not 
+        // part of the SELECT list. Just a note that ON clause is not allowed 
+        // on CROSS and NATURAL JOINS.
+        //
+        //Try INNER JOIN with USING clause.
+        //Following query should have given compile time error. 
+        //Once DERBY-5613 is fixed, this query will run into compile time
+        // error for using t1_D3880.i in group by clause because that column
+        // is not part of the SELECT list. 
+        rs = s.executeQuery("select i from t1_D3880 " +
+                "inner join t2_D3880 USING(i) group by t1_D3880.i");
+        expRs = new String[][] {{"1"},{"2"}};
+        JDBC.assertFullResultSet(rs,expRs);
+        //Following query does not allow t2_D3880.i in group by clause
+        // because join column i the select query gets associated with
+        // left table in case of INNER JOIN.
         assertStatementError("42Y36", s,
-        		"select i from t1_D3880 " +
-				"inner join t2_D3880 USING(i) group by t2_D3880.i");
+                "select i from t1_D3880 " +
+                "inner join t2_D3880 USING(i) group by t2_D3880.i");
 
         //Test the GROUP BY problem with LEFT OUTER JOIN and USING clause.
-		//Following query should have given compile time error. 
-		//Once DERBY-5613 is fixed, this query will run into compile time
-		// error for using t1_D3880.i in group by clause because that column
-		// is not part of the SELECT list. 
-		rs = s.executeQuery("select i from t1_D3880 " +
-				"LEFT OUTER JOIN t2_D3880 USING(i) GROUP BY t1_D3880.i");
-		JDBC.assertFullResultSet(rs,expRs);
-		//Following query does not allow t2_D3880.i in group by clause
-		// because join column i the select query gets associated with
-		// left table in case of LEFT OUTER JOIN.
+        //Following query should have given compile time error. 
+        //Once DERBY-5613 is fixed, this query will run into compile time
+        // error for using t1_D3880.i in group by clause because that column
+        // is not part of the SELECT list. 
+        rs = s.executeQuery("select i from t1_D3880 " +
+                "LEFT OUTER JOIN t2_D3880 USING(i) GROUP BY t1_D3880.i");
+        JDBC.assertFullResultSet(rs,expRs);
+        //Following query does not allow t2_D3880.i in group by clause
+        // because join column i the select query gets associated with
+        // left table in case of LEFT OUTER JOIN.
         assertStatementError("42Y36", s,
-        		"select i from t1_D3880 " +
-				"LEFT OUTER JOIN t2_D3880 USING(i) GROUP BY t2_D3880.i");
+                "select i from t1_D3880 " +
+                "LEFT OUTER JOIN t2_D3880 USING(i) GROUP BY t2_D3880.i");
 
         //Test the GROUP BY problem with RIGHT OUTER JOIN and USING clause.
-		//Following query should have given compile time error. 
-		//Once DERBY-5613 is fixed, this query will run into compile time
-		// error for using t2_D3880.i in group by clause because that column
-		// is not part of the SELECT list. 
-		rs = s.executeQuery("select i from t1_D3880 " +
-				"RIGHT OUTER JOIN t2_D3880 USING(i) GROUP BY t2_D3880.i");
-		JDBC.assertFullResultSet(rs,expRs);
-		//Following query does not allow t1_D3880.i in group by clause
-		// because join column i the select query gets associated with
-		// right table in case of RIGHT OUTER JOIN.
+        //Following query should have given compile time error. 
+        //Once DERBY-5613 is fixed, this query will run into compile time
+        // error for using t2_D3880.i in group by clause because that column
+        // is not part of the SELECT list. 
+        rs = s.executeQuery("select i from t1_D3880 " +
+                "RIGHT OUTER JOIN t2_D3880 USING(i) GROUP BY t2_D3880.i");
+        JDBC.assertFullResultSet(rs,expRs);
+        //Following query does not allow t1_D3880.i in group by clause
+        // because join column i the select query gets associated with
+        // right table in case of RIGHT OUTER JOIN.
         assertStatementError("42Y36", s,
-        		"select i from t1_D3880 " +
-				"RIGHT OUTER JOIN t2_D3880 USING(i) GROUP BY t1_D3880.i");
-		
-		//The correct queries for GROUP BY and USING clause
-		//
-		//INNER JOIN with USING clause.
-		rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
-				"inner join t2_D3880 USING(i) group by t1_D3880.i");
-		JDBC.assertFullResultSet(rs,expRs);
-		//GROUP BY with LEFT OUTER JOIN and USING clause.
-		rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
-				"LEFT OUTER JOIN t2_D3880 USING(i) GROUP BY t1_D3880.i");
-		JDBC.assertFullResultSet(rs,expRs);
-		//GROUP BY with RIGHT OUTER JOIN and USING clause.
-		rs = s.executeQuery("select t2_D3880.i from t1_D3880 " +
-				"RIGHT OUTER JOIN t2_D3880 USING(i) GROUP BY t2_D3880.i");
-		JDBC.assertFullResultSet(rs,expRs);
-		
-		//Test group by on a column which is not part of SELECT query (query 
-		// uses NATURAL JOIN). We see the incorrect behavior where the group 
-		// by does not raise an error for using 		
-		// leftTable(orRightTable).joinColumn even though that column is not
-		// part of the SELECT list. Just a note that a CROSS JOIN can't be a 
-		// NATURAL JOIN.
-		//
-		//Try the GROUP BY problem with NATURAL INNER JOIN
-		//Following query should have given compile time error. 
-		//Once DERBY-5613 is fixed, this query will run into compile time
-		// error for using t1_D3880.i in group by clause because that column
-		// is not part of the SELECT list. 
-		rs = s.executeQuery("select i from t1_D3880 " +
-				"NATURAL inner join t2_D3880 group by t1_D3880.i");
-		JDBC.assertFullResultSet(rs,expRs);
-		//Test the GROUP BY problem with NATURAL LEFT OUTER JOIN
-		//Following query should have given compile time error. 
-		//Once DERBY-5613 is fixed, this query will run into compile time
-		// error for using t1_D3880.i in group by clause because that column
-		// is not part of the SELECT list. 
-		rs = s.executeQuery("select i from t1_D3880 " +
-				"NATURAL LEFT OUTER JOIN t2_D3880 GROUP BY t1_D3880.i");
-		JDBC.assertFullResultSet(rs,expRs);
-		//Test the GROUP BY problem with NATURAL RIGHT OUTER JOIN
-		//Following query should have given compile time error. 
-		//Once DERBY-5613 is fixed, this query will run into compile time
-		// error for using t2_D3880.i in group by clause because that column
-		// is not part of the SELECT list. 
-		rs = s.executeQuery("select i from t1_D3880 " +
-				"NATURAL RIGHT OUTER JOIN t2_D3880 GROUP BY t2_D3880.i");
-		JDBC.assertFullResultSet(rs,expRs);
-		
-		//The correct queries for GROUP BY and NATURAL JOIN
-		//
-		//NATURAL INNER JOIN
-		rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
-				"NATURAL inner join t2_D3880 group by t1_D3880.i");
-		JDBC.assertFullResultSet(rs,expRs);
-		//NATURAL LEFT OUTER JOIN
-		rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
-				"NATURAL LEFT OUTER JOIN t2_D3880 GROUP BY t1_D3880.i");
-		JDBC.assertFullResultSet(rs,expRs);
-		//NATURAL RIGHT OUTER JOIN
-		//Following query should have given compile time error. 
-		//Once DERBY-5613 is fixed, this query will run into compile time
-		// error for using t2_D3880.i in group by clause because that column
-		// is not part of the SELECT list. 
-		rs = s.executeQuery("select t2_D3880.i from t1_D3880 " +
-				"NATURAL RIGHT OUTER JOIN t2_D3880 GROUP BY t2_D3880.i");
-		JDBC.assertFullResultSet(rs,expRs);
+                "select i from t1_D3880 " +
+                "RIGHT OUTER JOIN t2_D3880 USING(i) GROUP BY t1_D3880.i");
+        
+        //The correct queries for GROUP BY and USING clause
+        //
+        //INNER JOIN with USING clause.
+        rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
+                "inner join t2_D3880 USING(i) group by t1_D3880.i");
+        JDBC.assertFullResultSet(rs,expRs);
+        //GROUP BY with LEFT OUTER JOIN and USING clause.
+        rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
+                "LEFT OUTER JOIN t2_D3880 USING(i) GROUP BY t1_D3880.i");
+        JDBC.assertFullResultSet(rs,expRs);
+        //GROUP BY with RIGHT OUTER JOIN and USING clause.
+        rs = s.executeQuery("select t2_D3880.i from t1_D3880 " +
+                "RIGHT OUTER JOIN t2_D3880 USING(i) GROUP BY t2_D3880.i");
+        JDBC.assertFullResultSet(rs,expRs);
+        
+        //Test group by on a column which is not part of SELECT query (query 
+        // uses NATURAL JOIN). We see the incorrect behavior where the group 
+        // by does not raise an error for using         
+        // leftTable(orRightTable).joinColumn even though that column is not
+        // part of the SELECT list. Just a note that a CROSS JOIN can't be a 
+        // NATURAL JOIN.
+        //
+        //Try the GROUP BY problem with NATURAL INNER JOIN
+        //Following query should have given compile time error. 
+        //Once DERBY-5613 is fixed, this query will run into compile time
+        // error for using t1_D3880.i in group by clause because that column
+        // is not part of the SELECT list. 
+        rs = s.executeQuery("select i from t1_D3880 " +
+                "NATURAL inner join t2_D3880 group by t1_D3880.i");
+        JDBC.assertFullResultSet(rs,expRs);
+        //Test the GROUP BY problem with NATURAL LEFT OUTER JOIN
+        //Following query should have given compile time error. 
+        //Once DERBY-5613 is fixed, this query will run into compile time
+        // error for using t1_D3880.i in group by clause because that column
+        // is not part of the SELECT list. 
+        rs = s.executeQuery("select i from t1_D3880 " +
+                "NATURAL LEFT OUTER JOIN t2_D3880 GROUP BY t1_D3880.i");
+        JDBC.assertFullResultSet(rs,expRs);
+        //Test the GROUP BY problem with NATURAL RIGHT OUTER JOIN
+        //Following query should have given compile time error. 
+        //Once DERBY-5613 is fixed, this query will run into compile time
+        // error for using t2_D3880.i in group by clause because that column
+        // is not part of the SELECT list. 
+        rs = s.executeQuery("select i from t1_D3880 " +
+                "NATURAL RIGHT OUTER JOIN t2_D3880 GROUP BY t2_D3880.i");
+        JDBC.assertFullResultSet(rs,expRs);
+        
+        //The correct queries for GROUP BY and NATURAL JOIN
+        //
+        //NATURAL INNER JOIN
+        rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
+                "NATURAL inner join t2_D3880 group by t1_D3880.i");
+        JDBC.assertFullResultSet(rs,expRs);
+        //NATURAL LEFT OUTER JOIN
+        rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
+                "NATURAL LEFT OUTER JOIN t2_D3880 GROUP BY t1_D3880.i");
+        JDBC.assertFullResultSet(rs,expRs);
+        //NATURAL RIGHT OUTER JOIN
+        //Following query should have given compile time error. 
+        //Once DERBY-5613 is fixed, this query will run into compile time
+        // error for using t2_D3880.i in group by clause because that column
+        // is not part of the SELECT list. 
+        rs = s.executeQuery("select t2_D3880.i from t1_D3880 " +
+                "NATURAL RIGHT OUTER JOIN t2_D3880 GROUP BY t2_D3880.i");
+        JDBC.assertFullResultSet(rs,expRs);
 
-		//Similar query for HAVING clause. HAVING clause should not be able
-		// to use a column which is not part of the SELECT column list.
-		// Doing this testing with USING clause
-		//Following query should have given compile time error. 
-		//Once DERBY-5613 is fixed, this query will run into compile time
-		// error for using t1_D3880.i in group by clause because that column
-		// is not part of the SELECT list. 
-		rs = s.executeQuery("select i from t1_D3880 " +
-				"inner join t2_D3880 USING(i) group by t1_D3880.i " +
-				"HAVING t1_D3880.i > 1");
-		expRs = new String[][] {{"2"}};
-		JDBC.assertFullResultSet(rs,expRs);
-		// Doing the same test as above with NATURAL JOIN
-		//Following query should have given compile time error. 
-		//Once DERBY-5613 is fixed, this query will run into compile time
-		// error for using t1_D3880.i in group by clause because that column
-		// is not part of the SELECT list. 
-		rs = s.executeQuery("select i from t1_D3880 " +
-				"NATURAL inner join  t2_D3880 group by t1_D3880.i " +
-				"HAVING t1_D3880.i > 1");
-		expRs = new String[][] {{"2"}};
-		JDBC.assertFullResultSet(rs,expRs);
-		//Following query should have given compile time error. 
-		//Once DERBY-5613 is fixed, this query will run into compile time
-		// error for using t1_D3880.i in group by clause because that column
-		// is not part of the SELECT list. 
-		rs = s.executeQuery("select i from t1_D3880 " +
-				"LEFT OUTER join t2_D3880 USING(i) group by t1_D3880.i " +
-				"HAVING t1_D3880.i > 1");
-		JDBC.assertFullResultSet(rs,expRs);
-		//Following query should have given compile time error. 
-		//Once DERBY-5613 is fixed, this query will run into compile time
-		// error for using t1_D3880.i in group by clause because that column
-		// is not part of the SELECT list. 
-		rs = s.executeQuery("select i from t1_D3880 " +
-				"NATURAL LEFT OUTER join t2_D3880 group by t1_D3880.i " +
-				"HAVING t1_D3880.i > 1");
-		JDBC.assertFullResultSet(rs,expRs);
-		//Following query should have given compile time error. 
-		//Once DERBY-5613 is fixed, this query will run into compile time
-		// error for using t2_D3880.i in group by clause because that column
-		// is not part of the SELECT list. 
-		rs = s.executeQuery("select i from t1_D3880 " +
-				"RIGHT OUTER join t2_D3880 USING(i) group by t2_D3880.i " +
-				"HAVING t2_D3880.i > 1");
-		JDBC.assertFullResultSet(rs,expRs);
-		//Following query should have given compile time error. 
-		//Once DERBY-5613 is fixed, this query will run into compile time
-		// error for using t2_D3880.i in group by clause because that column
-		// is not part of the SELECT list. 
-		rs = s.executeQuery("select i from t1_D3880 " +
-				"NATURAL RIGHT OUTER join t2_D3880 group by t2_D3880.i " +
-				"HAVING t2_D3880.i > 1");
-		JDBC.assertFullResultSet(rs,expRs);
-		
-		//The correct query for HAVING should be written as follows
-		rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
-				"inner join t2_D3880 USING(i) group by t1_D3880.i " +
-				"HAVING t1_D3880.i > 1");
-		JDBC.assertFullResultSet(rs,expRs);
-		rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
-				"NATURAL inner join  t2_D3880 group by t1_D3880.i " +
-				"HAVING t1_D3880.i > 1");
-		JDBC.assertFullResultSet(rs,expRs);
-		rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
-				"LEFT OUTER join t2_D3880 USING(i) group by t1_D3880.i " +
-				"HAVING t1_D3880.i > 1");
-		JDBC.assertFullResultSet(rs,expRs);
-		rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
-				"NATURAL LEFT OUTER join t2_D3880 group by t1_D3880.i " +
-				"HAVING t1_D3880.i > 1");
-		JDBC.assertFullResultSet(rs,expRs);
-		rs = s.executeQuery("select t2_D3880.i from t1_D3880 " +
-				"RIGHT OUTER join t2_D3880 USING(i) group by t2_D3880.i " +
-				"HAVING t2_D3880.i > 1");
-		JDBC.assertFullResultSet(rs,expRs);
-		rs = s.executeQuery("select t2_D3880.i from t1_D3880 " +
-				"NATURAL RIGHT OUTER join t2_D3880 group by t2_D3880.i " +
-				"HAVING t2_D3880.i > 1");
-		JDBC.assertFullResultSet(rs,expRs);
+        //Similar query for HAVING clause. HAVING clause should not be able
+        // to use a column which is not part of the SELECT column list.
+        // Doing this testing with USING clause
+        //Following query should have given compile time error. 
+        //Once DERBY-5613 is fixed, this query will run into compile time
+        // error for using t1_D3880.i in group by clause because that column
+        // is not part of the SELECT list. 
+        rs = s.executeQuery("select i from t1_D3880 " +
+                "inner join t2_D3880 USING(i) group by t1_D3880.i " +
+                "HAVING t1_D3880.i > 1");
+        expRs = new String[][] {{"2"}};
+        JDBC.assertFullResultSet(rs,expRs);
+        // Doing the same test as above with NATURAL JOIN
+        //Following query should have given compile time error. 
+        //Once DERBY-5613 is fixed, this query will run into compile time
+        // error for using t1_D3880.i in group by clause because that column
+        // is not part of the SELECT list. 
+        rs = s.executeQuery("select i from t1_D3880 " +
+                "NATURAL inner join  t2_D3880 group by t1_D3880.i " +
+                "HAVING t1_D3880.i > 1");
+        expRs = new String[][] {{"2"}};
+        JDBC.assertFullResultSet(rs,expRs);
+        //Following query should have given compile time error. 
+        //Once DERBY-5613 is fixed, this query will run into compile time
+        // error for using t1_D3880.i in group by clause because that column
+        // is not part of the SELECT list. 
+        rs = s.executeQuery("select i from t1_D3880 " +
+                "LEFT OUTER join t2_D3880 USING(i) group by t1_D3880.i " +
+                "HAVING t1_D3880.i > 1");
+        JDBC.assertFullResultSet(rs,expRs);
+        //Following query should have given compile time error. 
+        //Once DERBY-5613 is fixed, this query will run into compile time
+        // error for using t1_D3880.i in group by clause because that column
+        // is not part of the SELECT list. 
+        rs = s.executeQuery("select i from t1_D3880 " +
+                "NATURAL LEFT OUTER join t2_D3880 group by t1_D3880.i " +
+                "HAVING t1_D3880.i > 1");
+        JDBC.assertFullResultSet(rs,expRs);
+        //Following query should have given compile time error. 
+        //Once DERBY-5613 is fixed, this query will run into compile time
+        // error for using t2_D3880.i in group by clause because that column
+        // is not part of the SELECT list. 
+        rs = s.executeQuery("select i from t1_D3880 " +
+                "RIGHT OUTER join t2_D3880 USING(i) group by t2_D3880.i " +
+                "HAVING t2_D3880.i > 1");
+        JDBC.assertFullResultSet(rs,expRs);
+        //Following query should have given compile time error. 
+        //Once DERBY-5613 is fixed, this query will run into compile time
+        // error for using t2_D3880.i in group by clause because that column
+        // is not part of the SELECT list. 
+        rs = s.executeQuery("select i from t1_D3880 " +
+                "NATURAL RIGHT OUTER join t2_D3880 group by t2_D3880.i " +
+                "HAVING t2_D3880.i > 1");
+        JDBC.assertFullResultSet(rs,expRs);
+        
+        //The correct query for HAVING should be written as follows
+        rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
+                "inner join t2_D3880 USING(i) group by t1_D3880.i " +
+                "HAVING t1_D3880.i > 1");
+        JDBC.assertFullResultSet(rs,expRs);
+        rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
+                "NATURAL inner join  t2_D3880 group by t1_D3880.i " +
+                "HAVING t1_D3880.i > 1");
+        JDBC.assertFullResultSet(rs,expRs);
+        rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
+                "LEFT OUTER join t2_D3880 USING(i) group by t1_D3880.i " +
+                "HAVING t1_D3880.i > 1");
+        JDBC.assertFullResultSet(rs,expRs);
+        rs = s.executeQuery("select t1_D3880.i from t1_D3880 " +
+                "NATURAL LEFT OUTER join t2_D3880 group by t1_D3880.i " +
+                "HAVING t1_D3880.i > 1");
+        JDBC.assertFullResultSet(rs,expRs);
+        rs = s.executeQuery("select t2_D3880.i from t1_D3880 " +
+                "RIGHT OUTER join t2_D3880 USING(i) group by t2_D3880.i " +
+                "HAVING t2_D3880.i > 1");
+        JDBC.assertFullResultSet(rs,expRs);
+        rs = s.executeQuery("select t2_D3880.i from t1_D3880 " +
+                "NATURAL RIGHT OUTER join t2_D3880 group by t2_D3880.i " +
+                "HAVING t2_D3880.i > 1");
+        JDBC.assertFullResultSet(rs,expRs);
     }
 
-	/**
-	 * DERBY-578: select with group by on a temp table caused NPE
-	 * @throws SQLException
-	 */
-	public void testGroupByWithTempTable() throws SQLException {
-		Statement s = createStatement();
-		s.execute("declare global temporary table session.ztemp ( orderID varchar( 50 ) ) not logged");
-		JDBC.assertEmpty(s.executeQuery("select orderID from session.ztemp group by orderID"));
-	}
+    /**
+     * DERBY-578: select with group by on a temp table caused NPE
+     * @throws SQLException
+     */
+    public void testGroupByWithTempTable() throws SQLException {
+        Statement s = createStatement();
+        s.execute("declare global temporary table session.ztemp ( orderID varchar( 50 ) ) not logged");
+        JDBC.assertEmpty(s.executeQuery("select orderID from session.ztemp group by orderID"));
+    }
 
-	public void testHavingWithInnerJoinDerby3880() throws SQLException {
-		Statement s = createStatement();
-		ResultSet rs = s.executeQuery("select   t1_D3880.i, avg(t2_D3880.i2)  from t1_D3880 " +
-				"inner join t2_D3880 on (t1_D3880.i = t2_D3880.i) group by t1_D3880.i having "  +
-						"avg(t2_D3880.i2) > 0");
-		String[][] expRs = new String[][] {{"1","15"},{"2","30"}};
-		JDBC.assertFullResultSet(rs,expRs);
+    public void testHavingWithInnerJoinDerby3880() throws SQLException {
+        Statement s = createStatement();
+        ResultSet rs = s.executeQuery("select   t1_D3880.i, avg(t2_D3880.i2)  from t1_D3880 " +
+                "inner join t2_D3880 on (t1_D3880.i = t2_D3880.i) group by t1_D3880.i having "  +
+                        "avg(t2_D3880.i2) > 0");
+        String[][] expRs = new String[][] {{"1","15"},{"2","30"}};
+        JDBC.assertFullResultSet(rs,expRs);
 
-	}
-	
-	/**
-	 * DERBY-280: Wrong result from select when aliasing to same name as used
-	 * in group by
-	 */
-	public void testGroupByWithAliasToSameName() throws SQLException {
+    }
+    
+    /**
+     * DERBY-280: Wrong result from select when aliasing to same name as used
+     * in group by
+     */
+    public void testGroupByWithAliasToSameName() throws SQLException {
 
-		Statement s = createStatement();
+        Statement s = createStatement();
 
-		String[][] expected1 = {{"1", "3"}, {"2", "2"}};
-		JDBC.assertUnorderedResultSet(
-			s.executeQuery("select a, count(a) from bug280 group by a"),
-			expected1);
-		// The second query should return the same results as the first. Would
-		// throw exception before DERBY-681.
-		JDBC.assertUnorderedResultSet(
-			s.executeQuery("select a, count(a) as a from bug280 group by a"),
-			expected1);
+        String[][] expected1 = {{"1", "3"}, {"2", "2"}};
+        JDBC.assertUnorderedResultSet(
+            s.executeQuery("select a, count(a) from bug280 group by a"),
+            expected1);
+        // The second query should return the same results as the first. Would
+        // throw exception before DERBY-681.
+        JDBC.assertUnorderedResultSet(
+            s.executeQuery("select a, count(a) as a from bug280 group by a"),
+            expected1);
 
-		// should return same results as first query (but with extra column)
-		String[][] expected2 = {{"1", "3", "1"}, {"2", "2", "2"}};
-		JDBC.assertUnorderedResultSet(
-			s.executeQuery("select a, count(a), a from bug280 group by a"),
-			expected2);
+        // should return same results as first query (but with extra column)
+        String[][] expected2 = {{"1", "3", "1"}, {"2", "2", "2"}};
+        JDBC.assertUnorderedResultSet(
+            s.executeQuery("select a, count(a), a from bug280 group by a"),
+            expected2);
 
-		// different tables with same column name ok
-		String[][] expected3 = {
-			{"1","1"}, {"1","1"}, {"1","1"}, {"2","2"}, {"2","2"} };
-		JDBC.assertFullResultSet(
-			s.executeQuery("select t.t_i, m.t_i from " +
-						   "(select a, b from bug280 group by a, b) " +
-						   "t (t_i, t_dt), " +
-						   "(select a, b from bug280 group by a, b) " +
-						   "m (t_i, t_dt) " +
-						   "where t.t_i = m.t_i and t.t_dt = m.t_dt " +
-						   "group by t.t_i, t.t_dt, m.t_i, m.t_dt " +
-						   "order by t.t_i,m.t_i"),
-			expected3);
+        // different tables with same column name ok
+        String[][] expected3 = {
+            {"1","1"}, {"1","1"}, {"1","1"}, {"2","2"}, {"2","2"} };
+        JDBC.assertFullResultSet(
+            s.executeQuery("select t.t_i, m.t_i from " +
+                           "(select a, b from bug280 group by a, b) " +
+                           "t (t_i, t_dt), " +
+                           "(select a, b from bug280 group by a, b) " +
+                           "m (t_i, t_dt) " +
+                           "where t.t_i = m.t_i and t.t_dt = m.t_dt " +
+                           "group by t.t_i, t.t_dt, m.t_i, m.t_dt " +
+                           "order by t.t_i,m.t_i"),
+            expected3);
 
-		// should be allowed
-		String[][] expected4 = { {"1", "1"}, {"2", "2"} };
-		JDBC.assertUnorderedResultSet(
-			s.executeQuery("select a, a from bug280 group by a"),
-			expected4);
-		JDBC.assertUnorderedResultSet(
-			s.executeQuery("select bug280.a, a from bug280 group by a"),
-			expected4);
-		JDBC.assertUnorderedResultSet(
-			s.executeQuery("select bug280.a, bug280.a from bug280 group by a"),
-			expected4);
-		JDBC.assertUnorderedResultSet(
-			s.executeQuery("select a, bug280.a from bug280 group by a"),
-			expected4);
+        // should be allowed
+        String[][] expected4 = { {"1", "1"}, {"2", "2"} };
+        JDBC.assertUnorderedResultSet(
+            s.executeQuery("select a, a from bug280 group by a"),
+            expected4);
+        JDBC.assertUnorderedResultSet(
+            s.executeQuery("select bug280.a, a from bug280 group by a"),
+            expected4);
+        JDBC.assertUnorderedResultSet(
+            s.executeQuery("select bug280.a, bug280.a from bug280 group by a"),
+            expected4);
+        JDBC.assertUnorderedResultSet(
+            s.executeQuery("select a, bug280.a from bug280 group by a"),
+            expected4);
 
-		s.close();
-	}
+        s.close();
+    }
     
     /**
      * DERBY-2397 showed incorrect typing of aggregate nodes
@@ -1824,34 +1824,34 @@ public class GroupByTest extends BaseJDBCTestCase {
                 new String[][] {{"aaa","500.00"}});
     }
 
-	public void testDerbyOrderByOnAggregate() throws SQLException
-	{
-		Statement s = createStatement();
+    public void testDerbyOrderByOnAggregate() throws SQLException
+    {
+        Statement s = createStatement();
 
-		ResultSet rs = s.executeQuery(
-			"select b, count(*) from yy where a=5 or a=2 " +
-			"group by b order by count(*) desc");
+        ResultSet rs = s.executeQuery(
+            "select b, count(*) from yy where a=5 or a=2 " +
+            "group by b order by count(*) desc");
 
-		JDBC.assertFullResultSet(
-				rs,
-				new Object[][]{
-						{new Double(3), new Integer(4)},
-						{new Double(4), new Integer(2)},
-						{new Double(7), new Integer(1)}},
-				false);
+        JDBC.assertFullResultSet(
+                rs,
+                new Object[][]{
+                        {new Double(3), new Integer(4)},
+                        {new Double(4), new Integer(2)},
+                        {new Double(7), new Integer(1)}},
+                false);
 
-		rs = s.executeQuery(
-			"select b, count(*) from yy where a=5 or a=2 " +
-			"group by b order by count(*) asc");
+        rs = s.executeQuery(
+            "select b, count(*) from yy where a=5 or a=2 " +
+            "group by b order by count(*) asc");
 
-		JDBC.assertFullResultSet(
-				rs,
-				new Object[][]{
-						{new Double(7), new Integer(1)},
-						{new Double(4), new Integer(2)},
-						{new Double(3), new Integer(4)}},
-				false);
-	}
+        JDBC.assertFullResultSet(
+                rs,
+                new Object[][]{
+                        {new Double(7), new Integer(1)},
+                        {new Double(4), new Integer(2)},
+                        {new Double(3), new Integer(4)}},
+                false);
+    }
     
     
     /**
@@ -2446,44 +2446,44 @@ public class GroupByTest extends BaseJDBCTestCase {
 
         JDBC.assertFullResultSet(
                 s.executeQuery("SELECT d3904_T1.D1 " +
-					"FROM d3904_T1 LEFT JOIN d3904_T2 " +
-				    "ON d3904_T1.D1 = d3904_T2.D2 " +
-					"WHERE d3904_T2.D2 IS NULL"), 
+                    "FROM d3904_T1 LEFT JOIN d3904_T2 " +
+                    "ON d3904_T1.D1 = d3904_T2.D2 " +
+                    "WHERE d3904_T2.D2 IS NULL"), 
             new String[][] {  {"2008-10-02"} } );
         JDBC.assertFullResultSet(
                 s.executeQuery("SELECT MAX( d3904_T1.D1 ) as D " +
-					"FROM d3904_T1 WHERE d3904_T1.D1 NOT IN " +
-					"( SELECT d3904_T2.D2 FROM d3904_T2 )"), 
+                    "FROM d3904_T1 WHERE d3904_T1.D1 NOT IN " +
+                    "( SELECT d3904_T2.D2 FROM d3904_T2 )"), 
             new String[][] {  {"2008-10-02"} } );
-		//
-		// In DERBY-3904, this next query fails with a null pointer
-		// exception because GroupByNode doesn't realize that there
-		// is a join involved here
-		//
+        //
+        // In DERBY-3904, this next query fails with a null pointer
+        // exception because GroupByNode doesn't realize that there
+        // is a join involved here
+        //
         JDBC.assertFullResultSet(
                 s.executeQuery("SELECT MAX( d3904_T1.D1 ) AS D " +
-					"FROM d3904_T1 LEFT JOIN d3904_T2 " +
-					"ON d3904_T1.D1 = d3904_T2.D2 " +
-					"WHERE d3904_T2.D2 IS NULL"),
+                    "FROM d3904_T1 LEFT JOIN d3904_T2 " +
+                    "ON d3904_T1.D1 = d3904_T2.D2 " +
+                    "WHERE d3904_T2.D2 IS NULL"),
             new String[][] {  {"2008-10-02"} } );
 
-		// Verify that the min/max optimization still works for the
-		// simple query SELECT MAX(D1) FROM T1:
-		s.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
+        // Verify that the min/max optimization still works for the
+        // simple query SELECT MAX(D1) FROM T1:
+        s.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
         JDBC.assertFullResultSet(
                 s.executeQuery("SELECT MAX(D1) FROM D3904_T1"),
             new String[][] {  {"2008-10-02"} } );
-		RuntimeStatisticsParser rtsp =
-			SQLUtilities.getRuntimeStatisticsParser(s);
-		assertTrue(rtsp.usedLastKeyIndexScan());
-		assertFalse(rtsp.usedIndexRowToBaseRow());
+        RuntimeStatisticsParser rtsp =
+            SQLUtilities.getRuntimeStatisticsParser(s);
+        assertTrue(rtsp.usedLastKeyIndexScan());
+        assertFalse(rtsp.usedIndexRowToBaseRow());
 
-		// A form of the Beetle 4423 query:
+        // A form of the Beetle 4423 query:
         JDBC.assertFullResultSet(
                 s.executeQuery("SELECT MAX(D1) " +
-					"FROM d3904_T1, D3904_T2 WHERE d3904_T1.D1='2008-10-02'"),
+                    "FROM d3904_T1, D3904_T2 WHERE d3904_T1.D1='2008-10-02'"),
             new String[][] {  {"2008-10-02"} } );
-	}
+    }
 
 
     /**
@@ -2629,23 +2629,23 @@ public class GroupByTest extends BaseJDBCTestCase {
      * @throws SQLException
      */
     public void testDerby5584()
-	throws SQLException
+    throws SQLException
     {
         setAutoCommit(false);
         Statement s = createStatement();
         ResultSet rs;
 
         s.executeUpdate(
-		"CREATE TABLE TEST_5 (" +
-		"       profile_id INTEGER NOT NULL," +
-		"       group_ref INTEGER NOT NULL," +
-		"       matched_count INTEGER NOT NULL )"); 
+        "CREATE TABLE TEST_5 (" +
+        "       profile_id INTEGER NOT NULL," +
+        "       group_ref INTEGER NOT NULL," +
+        "       matched_count INTEGER NOT NULL )"); 
 
         s.executeUpdate(
-		"CREATE TABLE TEST_6 ( " +
-		"       profile_id INTEGER NOT NULL, " +
-		"       group_ref INTEGER NOT NULL, " +
-		"       matched_count INTEGER NOT NULL )"); 
+        "CREATE TABLE TEST_6 ( " +
+        "       profile_id INTEGER NOT NULL, " +
+        "       group_ref INTEGER NOT NULL, " +
+        "       matched_count INTEGER NOT NULL )"); 
 
         s.executeUpdate( "insert into test_5 values (1, 10000, 1)" ); 
         s.executeUpdate( "insert into test_5 values (2, 10000, 2)" ); 
@@ -2654,228 +2654,228 @@ public class GroupByTest extends BaseJDBCTestCase {
         s.executeUpdate( "insert into test_6 values (2, 10000, 2)" );
 
         rs = s.executeQuery( "SELECT ps1.group_ref," +
-		"COUNT(DISTINCT ps1.matched_count) AS matched_count" +
-		" FROM test_5 ps1 " +
-		" GROUP BY ps1.group_ref, ps1.profile_id" );
+        "COUNT(DISTINCT ps1.matched_count) AS matched_count" +
+        " FROM test_5 ps1 " +
+        " GROUP BY ps1.group_ref, ps1.profile_id" );
         JDBC.assertFullResultSet(rs, new String[][] {
                 {"10000", "1"},
                 {"10000", "1"}
-	});
+    });
 
         rs = s.executeQuery( "SELECT ps1.group_ref," +
-		"COUNT(ps1.matched_count) AS matched_count" +
-		" FROM test_5 ps1 " +
-		" GROUP BY ps1.group_ref, ps1.profile_id" );
+        "COUNT(ps1.matched_count) AS matched_count" +
+        " FROM test_5 ps1 " +
+        " GROUP BY ps1.group_ref, ps1.profile_id" );
         JDBC.assertFullResultSet(rs, new String[][] {
                 {"10000", "1"},
                 {"10000", "1"}
-	});
+    });
 
-	String cartProdWithDISTINCTsubqueries = " SELECT *" +
-		" FROM " +
-		" (SELECT ps1.group_ref, ps1.profile_id, " +
-		"         COUNT(DISTINCT ps1.matched_count) AS matched_count " +
-		"  FROM test_5 ps1" +
-		"  GROUP BY ps1.group_ref, ps1.profile_id " +
-		" ) a, " +
-		" (SELECT ps2.group_ref, ps2.profile_id, " +
-		"         COUNT( DISTINCT ps2.matched_count) AS matched_count" +
-		"  FROM test_6 ps2" +
-		"  GROUP BY ps2.group_ref, ps2.profile_id " +
-		") b ";
+    String cartProdWithDISTINCTsubqueries = " SELECT *" +
+        " FROM " +
+        " (SELECT ps1.group_ref, ps1.profile_id, " +
+        "         COUNT(DISTINCT ps1.matched_count) AS matched_count " +
+        "  FROM test_5 ps1" +
+        "  GROUP BY ps1.group_ref, ps1.profile_id " +
+        " ) a, " +
+        " (SELECT ps2.group_ref, ps2.profile_id, " +
+        "         COUNT( DISTINCT ps2.matched_count) AS matched_count" +
+        "  FROM test_6 ps2" +
+        "  GROUP BY ps2.group_ref, ps2.profile_id " +
+        ") b ";
 
-	String cartProdWithSubqueries = " SELECT * " +
-		" FROM " +
-		" (SELECT ps1.group_ref, ps1.profile_id, " +
-		"         COUNT(ps1.matched_count) AS matched_count " +
-		"  FROM test_5 ps1 " +
-		"  GROUP BY ps1.group_ref, ps1.profile_id " +
-		") a, " +
-		" (SELECT ps2.group_ref, ps2.profile_id, " +
-		"         COUNT( ps2.matched_count) AS matched_count " +
-		"  FROM test_6 ps2 " +
-		"  GROUP BY ps2.group_ref, ps2.profile_id " +
-		") b ";
+    String cartProdWithSubqueries = " SELECT * " +
+        " FROM " +
+        " (SELECT ps1.group_ref, ps1.profile_id, " +
+        "         COUNT(ps1.matched_count) AS matched_count " +
+        "  FROM test_5 ps1 " +
+        "  GROUP BY ps1.group_ref, ps1.profile_id " +
+        ") a, " +
+        " (SELECT ps2.group_ref, ps2.profile_id, " +
+        "         COUNT( ps2.matched_count) AS matched_count " +
+        "  FROM test_6 ps2 " +
+        "  GROUP BY ps2.group_ref, ps2.profile_id " +
+        ") b ";
 
-	String cartProdWithOrderBySubqueries = "SELECT * " +
-		" FROM " +
-		" (SELECT ps1.group_ref, ps1.profile_id " +
-		"  FROM test_5 ps1 ORDER BY profile_id fetch first 3 rows only) a, " +
-		" (SELECT ps2.group_ref, ps2.profile_id " +
-		"  FROM test_6 ps2 ORDER BY PROFILE_ID fetch first 2 rows only) b "; 
+    String cartProdWithOrderBySubqueries = "SELECT * " +
+        " FROM " +
+        " (SELECT ps1.group_ref, ps1.profile_id " +
+        "  FROM test_5 ps1 ORDER BY profile_id fetch first 3 rows only) a, " +
+        " (SELECT ps2.group_ref, ps2.profile_id " +
+        "  FROM test_6 ps2 ORDER BY PROFILE_ID fetch first 2 rows only) b "; 
 
 
-	rs = s.executeQuery( cartProdWithDISTINCTsubqueries );
+    rs = s.executeQuery( cartProdWithDISTINCTsubqueries );
         JDBC.assertFullResultSet(rs, new String[][] {
-		{"10000", "1", "1", "10000", "1", "1"},
-		{"10000", "1", "1", "10000", "2", "1"},
-		{"10000", "2", "1", "10000", "1", "1"},
-		{"10000", "2", "1", "10000", "2", "1"}
-	});
+        {"10000", "1", "1", "10000", "1", "1"},
+        {"10000", "1", "1", "10000", "2", "1"},
+        {"10000", "2", "1", "10000", "1", "1"},
+        {"10000", "2", "1", "10000", "2", "1"}
+    });
 
-	rs = s.executeQuery( cartProdWithSubqueries );
+    rs = s.executeQuery( cartProdWithSubqueries );
         JDBC.assertFullResultSet(rs, new String[][] {
-		{"10000", "1", "1", "10000", "1", "1"},
-		{"10000", "1", "1", "10000", "2", "1"},
-		{"10000", "2", "1", "10000", "1", "1"},
-		{"10000", "2", "1", "10000", "2", "1"}
-	});
+        {"10000", "1", "1", "10000", "1", "1"},
+        {"10000", "1", "1", "10000", "2", "1"},
+        {"10000", "2", "1", "10000", "1", "1"},
+        {"10000", "2", "1", "10000", "2", "1"}
+    });
 
         s.executeUpdate( "insert into test_5 values (3, 10000, 3)" ); 
 
-	rs = s.executeQuery( cartProdWithDISTINCTsubqueries );
+    rs = s.executeQuery( cartProdWithDISTINCTsubqueries );
         JDBC.assertFullResultSet(rs, new String[][] {
-		{"10000", "1", "1", "10000", "1", "1"},
-		{"10000", "1", "1", "10000", "2", "1"},
-		{"10000", "2", "1", "10000", "1", "1"},
-		{"10000", "2", "1", "10000", "2", "1"},
-		{"10000", "3", "1", "10000", "1", "1"},
-		{"10000", "3", "1", "10000", "2", "1"}
-	});
+        {"10000", "1", "1", "10000", "1", "1"},
+        {"10000", "1", "1", "10000", "2", "1"},
+        {"10000", "2", "1", "10000", "1", "1"},
+        {"10000", "2", "1", "10000", "2", "1"},
+        {"10000", "3", "1", "10000", "1", "1"},
+        {"10000", "3", "1", "10000", "2", "1"}
+    });
 
-	rs = s.executeQuery( cartProdWithSubqueries );
+    rs = s.executeQuery( cartProdWithSubqueries );
         JDBC.assertFullResultSet(rs, new String[][] {
-		{"10000", "1", "1", "10000", "1", "1"},
-		{"10000", "1", "1", "10000", "2", "1"},
-		{"10000", "2", "1", "10000", "1", "1"},
-		{"10000", "2", "1", "10000", "2", "1"},
-		{"10000", "3", "1", "10000", "1", "1"},
-		{"10000", "3", "1", "10000", "2", "1"}
-	});
+        {"10000", "1", "1", "10000", "1", "1"},
+        {"10000", "1", "1", "10000", "2", "1"},
+        {"10000", "2", "1", "10000", "1", "1"},
+        {"10000", "2", "1", "10000", "2", "1"},
+        {"10000", "3", "1", "10000", "1", "1"},
+        {"10000", "3", "1", "10000", "2", "1"}
+    });
 
         s.executeUpdate( "insert into test_5 values (4, 10000, 4) "); 
         s.executeUpdate( "insert into test_6 values (3, 10000, 3) "); 
 
-	// NOTE: At this point,
-	//   test_5 contains:		test_6 contains:
-	//	1, 10000, 1			1, 10000, 1
-	//	2, 10000, 2			2, 10000, 2
-	//	3, 10000, 3			3, 10000, 3
-	//	4, 10000, 4
+    // NOTE: At this point,
+    //   test_5 contains:        test_6 contains:
+    //    1, 10000, 1            1, 10000, 1
+    //    2, 10000, 2            2, 10000, 2
+    //    3, 10000, 3            3, 10000, 3
+    //    4, 10000, 4
 
-	rs = s.executeQuery( cartProdWithDISTINCTsubqueries );
+    rs = s.executeQuery( cartProdWithDISTINCTsubqueries );
         JDBC.assertFullResultSet(rs, new String[][] {
-		{"10000", "1", "1", "10000", "1", "1"},
-		{"10000", "1", "1", "10000", "2", "1"},
-		{"10000", "1", "1", "10000", "3", "1"},
-		{"10000", "2", "1", "10000", "1", "1"},
-		{"10000", "2", "1", "10000", "2", "1"},
-		{"10000", "2", "1", "10000", "3", "1"},
-		{"10000", "3", "1", "10000", "1", "1"},
-		{"10000", "3", "1", "10000", "2", "1"},
-		{"10000", "3", "1", "10000", "3", "1"},
-		{"10000", "4", "1", "10000", "1", "1"},
-		{"10000", "4", "1", "10000", "2", "1"},
-		{"10000", "4", "1", "10000", "3", "1"}
-	});
+        {"10000", "1", "1", "10000", "1", "1"},
+        {"10000", "1", "1", "10000", "2", "1"},
+        {"10000", "1", "1", "10000", "3", "1"},
+        {"10000", "2", "1", "10000", "1", "1"},
+        {"10000", "2", "1", "10000", "2", "1"},
+        {"10000", "2", "1", "10000", "3", "1"},
+        {"10000", "3", "1", "10000", "1", "1"},
+        {"10000", "3", "1", "10000", "2", "1"},
+        {"10000", "3", "1", "10000", "3", "1"},
+        {"10000", "4", "1", "10000", "1", "1"},
+        {"10000", "4", "1", "10000", "2", "1"},
+        {"10000", "4", "1", "10000", "3", "1"}
+    });
 
-	rs = s.executeQuery( cartProdWithSubqueries );
+    rs = s.executeQuery( cartProdWithSubqueries );
         JDBC.assertFullResultSet(rs, new String[][] {
-		{"10000", "1", "1", "10000", "1", "1"},
-		{"10000", "1", "1", "10000", "2", "1"},
-		{"10000", "1", "1", "10000", "3", "1"},
-		{"10000", "2", "1", "10000", "1", "1"},
-		{"10000", "2", "1", "10000", "2", "1"},
-		{"10000", "2", "1", "10000", "3", "1"},
-		{"10000", "3", "1", "10000", "1", "1"},
-		{"10000", "3", "1", "10000", "2", "1"},
-		{"10000", "3", "1", "10000", "3", "1"},
-		{"10000", "4", "1", "10000", "1", "1"},
-		{"10000", "4", "1", "10000", "2", "1"},
-		{"10000", "4", "1", "10000", "3", "1"}
-	});
+        {"10000", "1", "1", "10000", "1", "1"},
+        {"10000", "1", "1", "10000", "2", "1"},
+        {"10000", "1", "1", "10000", "3", "1"},
+        {"10000", "2", "1", "10000", "1", "1"},
+        {"10000", "2", "1", "10000", "2", "1"},
+        {"10000", "2", "1", "10000", "3", "1"},
+        {"10000", "3", "1", "10000", "1", "1"},
+        {"10000", "3", "1", "10000", "2", "1"},
+        {"10000", "3", "1", "10000", "3", "1"},
+        {"10000", "4", "1", "10000", "1", "1"},
+        {"10000", "4", "1", "10000", "2", "1"},
+        {"10000", "4", "1", "10000", "3", "1"}
+    });
 
         s.executeUpdate( "insert into test_6 values (2, 10000, 1) "); 
 
-	rs = s.executeQuery( cartProdWithDISTINCTsubqueries );
+    rs = s.executeQuery( cartProdWithDISTINCTsubqueries );
         JDBC.assertFullResultSet(rs, new String[][] {
-		{"10000", "1", "1", "10000", "1", "1"},
-		{"10000", "1", "1", "10000", "2", "2"},
-		{"10000", "1", "1", "10000", "3", "1"},
-		{"10000", "2", "1", "10000", "1", "1"},
-		{"10000", "2", "1", "10000", "2", "2"},
-		{"10000", "2", "1", "10000", "3", "1"},
-		{"10000", "3", "1", "10000", "1", "1"},
-		{"10000", "3", "1", "10000", "2", "2"},
-		{"10000", "3", "1", "10000", "3", "1"},
-		{"10000", "4", "1", "10000", "1", "1"},
-		{"10000", "4", "1", "10000", "2", "2"},
-		{"10000", "4", "1", "10000", "3", "1"}
-	});
+        {"10000", "1", "1", "10000", "1", "1"},
+        {"10000", "1", "1", "10000", "2", "2"},
+        {"10000", "1", "1", "10000", "3", "1"},
+        {"10000", "2", "1", "10000", "1", "1"},
+        {"10000", "2", "1", "10000", "2", "2"},
+        {"10000", "2", "1", "10000", "3", "1"},
+        {"10000", "3", "1", "10000", "1", "1"},
+        {"10000", "3", "1", "10000", "2", "2"},
+        {"10000", "3", "1", "10000", "3", "1"},
+        {"10000", "4", "1", "10000", "1", "1"},
+        {"10000", "4", "1", "10000", "2", "2"},
+        {"10000", "4", "1", "10000", "3", "1"}
+    });
 
-	rs = s.executeQuery( cartProdWithSubqueries );
+    rs = s.executeQuery( cartProdWithSubqueries );
         JDBC.assertFullResultSet(rs, new String[][] {
-		{"10000", "1", "1", "10000", "1", "1"},
-		{"10000", "1", "1", "10000", "2", "2"},
-		{"10000", "1", "1", "10000", "3", "1"},
-		{"10000", "2", "1", "10000", "1", "1"},
-		{"10000", "2", "1", "10000", "2", "2"},
-		{"10000", "2", "1", "10000", "3", "1"},
-		{"10000", "3", "1", "10000", "1", "1"},
-		{"10000", "3", "1", "10000", "2", "2"},
-		{"10000", "3", "1", "10000", "3", "1"},
-		{"10000", "4", "1", "10000", "1", "1"},
-		{"10000", "4", "1", "10000", "2", "2"},
-		{"10000", "4", "1", "10000", "3", "1"}
-	});
+        {"10000", "1", "1", "10000", "1", "1"},
+        {"10000", "1", "1", "10000", "2", "2"},
+        {"10000", "1", "1", "10000", "3", "1"},
+        {"10000", "2", "1", "10000", "1", "1"},
+        {"10000", "2", "1", "10000", "2", "2"},
+        {"10000", "2", "1", "10000", "3", "1"},
+        {"10000", "3", "1", "10000", "1", "1"},
+        {"10000", "3", "1", "10000", "2", "2"},
+        {"10000", "3", "1", "10000", "3", "1"},
+        {"10000", "4", "1", "10000", "1", "1"},
+        {"10000", "4", "1", "10000", "2", "2"},
+        {"10000", "4", "1", "10000", "3", "1"}
+    });
 
-	// Now introduce some duplicate values so that the DISTINCT
-	// aggregates have some work to do
+    // Now introduce some duplicate values so that the DISTINCT
+    // aggregates have some work to do
 
 
         s.executeUpdate( "insert into test_6 values (1, 10000, 1) "); 
         s.executeUpdate( "insert into test_6 values (2, 10000, 2) "); 
 
-	// NOTE: At this point,
-	//   test_5 contains:		test_6 contains:
-	//	1, 10000, 1			1, 10000, 1 (2 vals, 1 distinct)
-	//	2, 10000, 2			1, 10000, 1 
-	//	3, 10000, 3			2, 10000, 1 (3 vals, 2 distinct)
-	//	4, 10000, 4			2, 10000, 2
-	//	 				2, 10000, 2
-	//	 				3, 10000, 2 (1 val, 1 distinct)
+    // NOTE: At this point,
+    //   test_5 contains:        test_6 contains:
+    //    1, 10000, 1            1, 10000, 1 (2 vals, 1 distinct)
+    //    2, 10000, 2            1, 10000, 1 
+    //    3, 10000, 3            2, 10000, 1 (3 vals, 2 distinct)
+    //    4, 10000, 4            2, 10000, 2
+    //                     2, 10000, 2
+    //                     3, 10000, 2 (1 val, 1 distinct)
 
-	rs = s.executeQuery( cartProdWithDISTINCTsubqueries );
+    rs = s.executeQuery( cartProdWithDISTINCTsubqueries );
         JDBC.assertFullResultSet(rs, new String[][] {
-		{"10000", "1", "1", "10000", "1", "1"},
-		{"10000", "1", "1", "10000", "2", "2"},
-		{"10000", "1", "1", "10000", "3", "1"},
-		{"10000", "2", "1", "10000", "1", "1"},
-		{"10000", "2", "1", "10000", "2", "2"},
-		{"10000", "2", "1", "10000", "3", "1"},
-		{"10000", "3", "1", "10000", "1", "1"},
-		{"10000", "3", "1", "10000", "2", "2"},
-		{"10000", "3", "1", "10000", "3", "1"},
-		{"10000", "4", "1", "10000", "1", "1"},
-		{"10000", "4", "1", "10000", "2", "2"},
-		{"10000", "4", "1", "10000", "3", "1"}
-	});
+        {"10000", "1", "1", "10000", "1", "1"},
+        {"10000", "1", "1", "10000", "2", "2"},
+        {"10000", "1", "1", "10000", "3", "1"},
+        {"10000", "2", "1", "10000", "1", "1"},
+        {"10000", "2", "1", "10000", "2", "2"},
+        {"10000", "2", "1", "10000", "3", "1"},
+        {"10000", "3", "1", "10000", "1", "1"},
+        {"10000", "3", "1", "10000", "2", "2"},
+        {"10000", "3", "1", "10000", "3", "1"},
+        {"10000", "4", "1", "10000", "1", "1"},
+        {"10000", "4", "1", "10000", "2", "2"},
+        {"10000", "4", "1", "10000", "3", "1"}
+    });
 
-	rs = s.executeQuery( cartProdWithSubqueries );
+    rs = s.executeQuery( cartProdWithSubqueries );
         JDBC.assertFullResultSet(rs, new String[][] {
-		{"10000", "1", "1", "10000", "1", "2"},
-		{"10000", "1", "1", "10000", "2", "3"},
-		{"10000", "1", "1", "10000", "3", "1"},
-		{"10000", "2", "1", "10000", "1", "2"},
-		{"10000", "2", "1", "10000", "2", "3"},
-		{"10000", "2", "1", "10000", "3", "1"},
-		{"10000", "3", "1", "10000", "1", "2"},
-		{"10000", "3", "1", "10000", "2", "3"},
-		{"10000", "3", "1", "10000", "3", "1"},
-		{"10000", "4", "1", "10000", "1", "2"},
-		{"10000", "4", "1", "10000", "2", "3"},
-		{"10000", "4", "1", "10000", "3", "1"}
-	});
+        {"10000", "1", "1", "10000", "1", "2"},
+        {"10000", "1", "1", "10000", "2", "3"},
+        {"10000", "1", "1", "10000", "3", "1"},
+        {"10000", "2", "1", "10000", "1", "2"},
+        {"10000", "2", "1", "10000", "2", "3"},
+        {"10000", "2", "1", "10000", "3", "1"},
+        {"10000", "3", "1", "10000", "1", "2"},
+        {"10000", "3", "1", "10000", "2", "3"},
+        {"10000", "3", "1", "10000", "3", "1"},
+        {"10000", "4", "1", "10000", "1", "2"},
+        {"10000", "4", "1", "10000", "2", "3"},
+        {"10000", "4", "1", "10000", "3", "1"}
+    });
 
-	rs = s.executeQuery( cartProdWithOrderBySubqueries );
+    rs = s.executeQuery( cartProdWithOrderBySubqueries );
         JDBC.assertFullResultSet(rs, new String[][] {
-		{"10000", "1", "10000", "1"},
-		{"10000", "1", "10000", "1"},
-		{"10000", "2", "10000", "1"},
-		{"10000", "2", "10000", "1"},
-		{"10000", "3", "10000", "1"},
-		{"10000", "3", "10000", "1"}
-	});
+        {"10000", "1", "10000", "1"},
+        {"10000", "1", "10000", "1"},
+        {"10000", "2", "10000", "1"},
+        {"10000", "2", "10000", "1"},
+        {"10000", "3", "10000", "1"},
+        {"10000", "3", "10000", "1"}
+    });
 
             rollback();
     }

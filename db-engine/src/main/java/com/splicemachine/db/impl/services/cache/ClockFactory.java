@@ -44,36 +44,36 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 public class ClockFactory implements CacheFactory {
 
-	/**
-		Trace flag to display cache statistics
-	*/
-	public static final String CacheTrace = SanityManager.DEBUG ? "CacheTrace" : null;
+    /**
+        Trace flag to display cache statistics
+    */
+    public static final String CacheTrace = SanityManager.DEBUG ? "CacheTrace" : null;
 
-	public ClockFactory() {
-	}
+    public ClockFactory() {
+    }
 
 
 
-	/*
-	** Methods of CacheFactory
-	*/
+    /*
+    ** Methods of CacheFactory
+    */
 
-	public CacheManager newCacheManager(CacheableFactory holderFactory, String name, int initialSize, int maximumSize)
-	{
+    public CacheManager newCacheManager(CacheableFactory holderFactory, String name, int initialSize, int maximumSize)
+    {
 
-		if (initialSize <= 0)
-			initialSize = 1;
+        if (initialSize <= 0)
+            initialSize = 1;
 
-		return new Clock(holderFactory, name, initialSize, maximumSize, false);
-	}
-	
-	public CacheManager newSizedCacheManager(CacheableFactory holderFactory, String name,
-										int initialSize, long maximumSize)
-	{
+        return new Clock(holderFactory, name, initialSize, maximumSize, false);
+    }
+    
+    public CacheManager newSizedCacheManager(CacheableFactory holderFactory, String name,
+                                        int initialSize, long maximumSize)
+    {
 
-		if (initialSize <= 0)
-			initialSize = 1;
+        if (initialSize <= 0)
+            initialSize = 1;
 
-		return new Clock(holderFactory, name, initialSize, maximumSize, true);
-	}
+        return new Clock(holderFactory, name, initialSize, maximumSize, true);
+    }
 }

@@ -36,25 +36,25 @@ package com.splicemachine.db.impl.services.locks;
 
 public class Constants {
 
-	/**
-		Trace flag to display lock requests, grants and unlocks.
-	*/
-	public static final String LOCK_TRACE = "LockTrace";
+    /**
+        Trace flag to display lock requests, grants and unlocks.
+    */
+    public static final String LOCK_TRACE = "LockTrace";
 
-	/**
-		Trace flag to display stack trace of lock calls.
-	*/
-	public static final String LOCK_STACK_TRACE = "LockStackTrace";
+    /**
+        Trace flag to display stack trace of lock calls.
+    */
+    public static final String LOCK_STACK_TRACE = "LockStackTrace";
 
-	/**
-		Trace flag to add thread information to trace info of LockTrace, 
+    /**
+        Trace flag to add thread information to trace info of LockTrace, 
         requires that LockTrace be set to true.
-	*/
-	public static final String LOCK_TRACE_ADD_THREAD_INFO = "LockTraceAddThreadInfo";
+    */
+    public static final String LOCK_TRACE_ADD_THREAD_INFO = "LockTraceAddThreadInfo";
 
 
-	static final byte WAITING_LOCK_IN_WAIT = 0;
-	static final byte WAITING_LOCK_GRANT = 1;
-	static final byte WAITING_LOCK_DEADLOCK = 2;
+    static final byte WAITING_LOCK_IN_WAIT = 0;
+    static final byte WAITING_LOCK_GRANT = 1;
+    static final byte WAITING_LOCK_DEADLOCK = 2;
     static final byte WAITING_LOCK_INTERRUPTED = 3;
 }

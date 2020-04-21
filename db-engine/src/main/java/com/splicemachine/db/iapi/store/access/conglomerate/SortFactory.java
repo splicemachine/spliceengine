@@ -42,11 +42,11 @@ import com.splicemachine.db.iapi.store.access.SortCostController;
 
 public interface SortFactory extends MethodFactory
 {
-	/**
-	Used to identify this interface when finding it with the Monitor.
-	**/
-	String MODULE =
-	  "com.splicemachine.db.iapi.store.access.conglomerate.SortFactory";
+    /**
+    Used to identify this interface when finding it with the Monitor.
+    **/
+    String MODULE =
+      "com.splicemachine.db.iapi.store.access.conglomerate.SortFactory";
 
     /**
      * Return an open SortCostController.
@@ -55,12 +55,12 @@ public interface SortFactory extends MethodFactory
      * the estimated costs of SortController() operations.
      * <p>
      *
-	 * @return The open StoreCostController.
+     * @return The open StoreCostController.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      *
      * @see  com.splicemachine.db.iapi.store.access.StoreCostController
      **/
     SortCostController openSortCostController()
-		throws StandardException;
+        throws StandardException;
 }

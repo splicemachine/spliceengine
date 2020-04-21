@@ -44,28 +44,28 @@ import java.sql.Types;
 
 public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
 {
-    public static final String		TABLENAME_STRING = "SYSSNAPSHOTS";
+    public static final String        TABLENAME_STRING = "SYSSNAPSHOTS";
 
-    protected static final int		COLUMN_COUNT = 6;
+    protected static final int        COLUMN_COUNT = 6;
 
     /* Column #s for systablesnapshots (1 based) */
-    protected static final int		SNAPSHOTNAME = 1;
-    protected static final int		SCHEMANAME = 2;
-    protected static final int		OBJECTNAME = 3;
-    protected static final int		CONGLOMERATENUMBER = 4;
-    protected static final int		CREATIONTIME =5;
-    protected static final int		LASTRESTORETIME = 6;
+    protected static final int        SNAPSHOTNAME = 1;
+    protected static final int        SCHEMANAME = 2;
+    protected static final int        OBJECTNAME = 3;
+    protected static final int        CONGLOMERATENUMBER = 4;
+    protected static final int        CREATIONTIME =5;
+    protected static final int        LASTRESTORETIME = 6;
 
-    private	static	final	String[]	uuids =
+    private    static    final    String[]    uuids =
             {
-                     "80010018-00d0-fd77-3ed8-000a0a0b190e"	// catalog UUID
-                    ,"80010028-00d0-fd77-3ed8-000a0a0b190e"	// heap UUID
-                    ,"8001001a-00d0-fd77-3ed8-000a0a0b190e"	// SYSTABLESNAPSHOTS_INDEX1
+                     "80010018-00d0-fd77-3ed8-000a0a0b190e"    // catalog UUID
+                    ,"80010028-00d0-fd77-3ed8-000a0a0b190e"    // heap UUID
+                    ,"8001001a-00d0-fd77-3ed8-000a0a0b190e"    // SYSTABLESNAPSHOTS_INDEX1
             };
 
     protected static final int SYSSNAPSHOTS_INDEX1_ID = 0;
 
-    private	static	final	boolean[]	uniqueness = {
+    private    static    final    boolean[]    uniqueness = {
             true
     };
 
@@ -76,7 +76,7 @@ public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
 
     /////////////////////////////////////////////////////////////////////////////
     //
-    //	CONSTRUCTORS
+    //    CONSTRUCTORS
     //
     /////////////////////////////////////////////////////////////////////////////
 
@@ -88,14 +88,14 @@ public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
 
     /////////////////////////////////////////////////////////////////////////////
     //
-    //	METHODS
+    //    METHODS
     //
     /////////////////////////////////////////////////////////////////////////////
 
     /**
      * Make a SYSTABLESNAPSHOTS row
      *
-     * @return	Row suitable for inserting into SYSTABLES.
+     * @return    Row suitable for inserting into SYSTABLES.
      *
      * @exception StandardException thrown on failure
      */

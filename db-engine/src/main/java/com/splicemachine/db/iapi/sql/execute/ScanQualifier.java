@@ -43,10 +43,10 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 public interface ScanQualifier extends Qualifier 
 {
 
-	/**
-	 * Set the info in a ScanQualifier
-	 */
-	void setQualifier(
+    /**
+     * Set the info in a ScanQualifier
+     */
+    void setQualifier(
     int                 columnId, 
     DataValueDescriptor orderable, 
     int                 operator,

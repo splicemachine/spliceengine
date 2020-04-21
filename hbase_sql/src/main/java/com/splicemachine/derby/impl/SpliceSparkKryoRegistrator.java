@@ -144,7 +144,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
 
     @Override
     public void registerClasses(Kryo instance) {
-//    	instance.setReferences(false);
+//        instance.setReferences(false);
         instance.setRegistrationRequired(false); //TODO set to true
 
         instance.register(ValueRow.class, new SparkValueRowSerializer<ValueRow>(){

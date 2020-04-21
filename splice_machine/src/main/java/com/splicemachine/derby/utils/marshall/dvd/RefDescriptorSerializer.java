@@ -26,65 +26,65 @@ import com.splicemachine.db.iapi.types.RefDataValue;
 import com.splicemachine.db.iapi.types.RowLocation;
 
 public class RefDescriptorSerializer implements DescriptorSerializer {
-	
-	// Similar to UnsortedBinaryDescriptorSerializer except our byte array
-	// is within the RowLocation within the DVD, instead of directly
-	// contained by the DVD.
+    
+    // Similar to UnsortedBinaryDescriptorSerializer except our byte array
+    // is within the RowLocation within the DVD, instead of directly
+    // contained by the DVD.
 
-	private static final DescriptorSerializer INSTANCE = new RefDescriptorSerializer();
-	
-	public static final Factory INSTANCE_FACTORY = new Factory() {
-		@Override
-		public DescriptorSerializer newInstance() {
-			return INSTANCE;
-		}
+    private static final DescriptorSerializer INSTANCE = new RefDescriptorSerializer();
+    
+    public static final Factory INSTANCE_FACTORY = new Factory() {
+        @Override
+        public DescriptorSerializer newInstance() {
+            return INSTANCE;
+        }
 
-		@Override
-		public boolean applies(DataValueDescriptor dvd) {
-			return dvd != null && applies(dvd.getTypeFormatId());
-		}
+        @Override
+        public boolean applies(DataValueDescriptor dvd) {
+            return dvd != null && applies(dvd.getTypeFormatId());
+        }
 
-		@Override
-		public boolean applies(int typeFormatId) {
-			return typeFormatId == StoredFormatIds.SQL_REF_ID;
-		}
+        @Override
+        public boolean applies(int typeFormatId) {
+            return typeFormatId == StoredFormatIds.SQL_REF_ID;
+        }
 
-		@Override public boolean isScalar() { return false; }
-		@Override public boolean isFloat() { return false; }
-		@Override public boolean isDouble() { return false; }
-	};
+        @Override public boolean isScalar() { return false; }
+        @Override public boolean isFloat() { return false; }
+        @Override public boolean isDouble() { return false; }
+    };
 
-	private RefDescriptorSerializer() { }
+    private RefDescriptorSerializer() { }
 
-	@Override
-	public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
-		fieldEncoder.encodeNextUnsorted(((RowLocation)dvd.getObject()).getBytes());
-	}
+    @Override
+    public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
+        fieldEncoder.encodeNextUnsorted(((RowLocation)dvd.getObject()).getBytes());
+    }
 
-	@Override
-	public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
-		return Encoding.encodeBytesUnsorted(((RowLocation)dvd.getObject()).getBytes());
-	}
+    @Override
+    public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
+        return Encoding.encodeBytesUnsorted(((RowLocation)dvd.getObject()).getBytes());
+    }
 
-	@Override
-	public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
-		byte[] bytes = fieldDecoder.decodeNextBytesUnsorted();
-		((RefDataValue)destDvd).setValue(new HBaseRowLocation(bytes));
-	}
+    @Override
+    public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
+        byte[] bytes = fieldDecoder.decodeNextBytesUnsorted();
+        ((RefDataValue)destDvd).setValue(new HBaseRowLocation(bytes));
+    }
 
-	@Override
-	public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
+    @Override
+    public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
                 byte [] bytes = Encoding.decodeBytesUnsortd(data,offset,length);
                 if (dvd.getObject() != null)
-		    ((RowLocation)dvd.getObject()).setValue(bytes);
+            ((RowLocation)dvd.getObject()).setValue(bytes);
                 else
                     ((RefDataValue)dvd).setValue(new HBaseRowLocation(bytes));
 
-	}
+    }
 
-	@Override public boolean isScalarType() { return false; }
-	@Override public boolean isFloatType() { return false; }
-	@Override public boolean isDoubleType() { return false; }
+    @Override public boolean isScalarType() { return false; }
+    @Override public boolean isFloatType() { return false; }
+    @Override public boolean isDoubleType() { return false; }
 
-	@Override public void close() { }
+    @Override public void close() { }
 }

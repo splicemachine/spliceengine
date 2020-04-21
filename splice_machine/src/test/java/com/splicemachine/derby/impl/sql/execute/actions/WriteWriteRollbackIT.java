@@ -47,23 +47,23 @@ public class WriteWriteRollbackIT extends SpliceUnitTest {
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcher1)
             .around(new SpliceDataWatcher(){
-			@Override
-			protected void starting(Description description) {
-				try {
-					PreparedStatement s = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?, ?)", CLASS_NAME, TABLE_NAME_1));
-					s.setInt(1, 1);
-					s.setInt(2, 10);
-					s.execute();
-					
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-				finally {
-					spliceClassWatcher.closeAll();
-				}
-			}
+            @Override
+            protected void starting(Description description) {
+                try {
+                    PreparedStatement s = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?, ?)", CLASS_NAME, TABLE_NAME_1));
+                    s.setInt(1, 1);
+                    s.setInt(2, 10);
+                    s.execute();
+                    
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                finally {
+                    spliceClassWatcher.closeAll();
+                }
+            }
 
-		});
+        });
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -73,29 +73,29 @@ public class WriteWriteRollbackIT extends SpliceUnitTest {
     @Test
     public void testUpdateWriteWriteRollbackConcurrent() throws Exception {
 
-    	Connection c1 = methodWatcher.createConnection();
-    	c1.setAutoCommit(false);
-    	PreparedStatement ps1 = c1.prepareStatement(String.format("update %s.%s set col2 = ? where col1 = ?", CLASS_NAME, TABLE_NAME_1));
-    	ps1.setInt(1, 100);
-    	ps1.setInt(2, 1);
-    	ps1.execute();
+        Connection c1 = methodWatcher.createConnection();
+        c1.setAutoCommit(false);
+        PreparedStatement ps1 = c1.prepareStatement(String.format("update %s.%s set col2 = ? where col1 = ?", CLASS_NAME, TABLE_NAME_1));
+        ps1.setInt(1, 100);
+        ps1.setInt(2, 1);
+        ps1.execute();
 
 
-    	Connection c2 = methodWatcher.createConnection();
-    	c2.setAutoCommit(false);
-    	try { // catch problem with rollback
-    		try { // catch write-write conflict
-    			PreparedStatement ps2 = c2.prepareStatement(String.format("update %s.%s set col2 = ? where col1 = ?", CLASS_NAME, TABLE_NAME_1));
-    			ps2.setInt(1, 1000);
-    			ps2.setInt(2, 1);
-    			ps2.execute();   				
-    			Assert.fail("Didn't raise write-conflict exception");
-    		} catch (Exception e) {
-    			c2.rollback();
-    		}
-    	} catch (Exception e) {
-    		Assert.fail("Unexpected exception " + e);
-    	}
+        Connection c2 = methodWatcher.createConnection();
+        c2.setAutoCommit(false);
+        try { // catch problem with rollback
+            try { // catch write-write conflict
+                PreparedStatement ps2 = c2.prepareStatement(String.format("update %s.%s set col2 = ? where col1 = ?", CLASS_NAME, TABLE_NAME_1));
+                ps2.setInt(1, 1000);
+                ps2.setInt(2, 1);
+                ps2.execute();                   
+                Assert.fail("Didn't raise write-conflict exception");
+            } catch (Exception e) {
+                c2.rollback();
+            }
+        } catch (Exception e) {
+            Assert.fail("Unexpected exception " + e);
+        }
     }
     
 

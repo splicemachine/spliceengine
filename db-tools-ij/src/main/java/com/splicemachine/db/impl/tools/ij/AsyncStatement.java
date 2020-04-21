@@ -37,33 +37,33 @@ import java.sql.SQLException;
 //import java.io.PrintStream;
 
 class AsyncStatement extends Thread {
-	Connection conn;
-	String stmt;
-	ijResult result;
+    Connection conn;
+    String stmt;
+    ijResult result;
 
-	AsyncStatement(Connection theConn, String theStmt) {
-		conn = theConn;
-		stmt = theStmt;
-	}
+    AsyncStatement(Connection theConn, String theStmt) {
+        conn = theConn;
+        stmt = theStmt;
+    }
 
-	public void run() {
-		Statement aStatement = null;
-		try {
-			aStatement = conn.createStatement();
-			aStatement.execute(stmt);
-			result = new ijStatementResult(aStatement,true);
-			// caller must release its resources
-		} catch (SQLException e) {
-			result = new ijExceptionResult(e);
-			if (aStatement!=null) 
-				try {
-					aStatement.close();
-				} catch (SQLException e2) {
-					// not a lot we can do here...
-				}
-		}
-		aStatement = null;
-	}
+    public void run() {
+        Statement aStatement = null;
+        try {
+            aStatement = conn.createStatement();
+            aStatement.execute(stmt);
+            result = new ijStatementResult(aStatement,true);
+            // caller must release its resources
+        } catch (SQLException e) {
+            result = new ijExceptionResult(e);
+            if (aStatement!=null) 
+                try {
+                    aStatement.close();
+                } catch (SQLException e2) {
+                    // not a lot we can do here...
+                }
+        }
+        aStatement = null;
+    }
 
-	ijResult getResult() { return result; }
+    ijResult getResult() { return result; }
 }

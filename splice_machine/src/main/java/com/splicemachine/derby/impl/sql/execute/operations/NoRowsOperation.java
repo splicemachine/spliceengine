@@ -29,77 +29,77 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.spark_project.guava.base.Strings;
 
 public abstract class NoRowsOperation extends SpliceBaseOperation {
-	private static Logger LOG = Logger.getLogger(NoRowsOperation.class);
+    private static Logger LOG = Logger.getLogger(NoRowsOperation.class);
 
-	public NoRowsOperation() {
-	}
+    public NoRowsOperation() {
+    }
 
-	public NoRowsOperation(Activation activation)  throws StandardException {
-		super(activation,-1,0d,0d);
-		this.activation = activation;
+    public NoRowsOperation(Activation activation)  throws StandardException {
+        super(activation,-1,0d,0d);
+        this.activation = activation;
         init();
     }
-	
-	@Override
-	public void init(SpliceOperationContext context) throws StandardException, IOException {
-		super.init(context);
-	}
-	
-	@Override
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		super.readExternal(in);
-	}
+    
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
+        super.init(context);
+    }
+    
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+    }
 
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		super.writeExternal(out);
-	}
-	
-	@Override
-	public SpliceOperation getLeftOperation() {
-		return (SpliceOperation)null;
-	}
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+    }
+    
+    @Override
+    public SpliceOperation getLeftOperation() {
+        return (SpliceOperation)null;
+    }
 
-	@Override
-	public List<SpliceOperation> getSubOperations() {
-		return new ArrayList<SpliceOperation>(0);
-	}
-	
-	public final Activation getActivation() {
-		SpliceLogUtils.trace(LOG, "getActivation");
-		return activation;
-	}
+    @Override
+    public List<SpliceOperation> getSubOperations() {
+        return new ArrayList<SpliceOperation>(0);
+    }
+    
+    public final Activation getActivation() {
+        SpliceLogUtils.trace(LOG, "getActivation");
+        return activation;
+    }
 
-	protected void setup() throws StandardException {
-		isOpen = true;
-		StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
-		if (sc == null) {
-        	SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
-        	return;
+    protected void setup() throws StandardException {
+        isOpen = true;
+        StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
+        if (sc == null) {
+            SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
+            return;
         }
-	}
-	
-	public boolean isClosed() {
-		return !isOpen;
-	}
-	
-	@Override
-	public long getTimeSpent(int type)
-	{
-		return 0;
-	}
-	
-	@Override
-	public void close() throws StandardException {
-		SpliceLogUtils.trace(LOG, "close in NoRows");
-		if (!isOpen)
-			return;
-		try {
-			super.close();
-		} catch (Exception e) {
-			SpliceLogUtils.error(LOG, e);
-		}
-	}
+    }
+    
+    public boolean isClosed() {
+        return !isOpen;
+    }
+    
+    @Override
+    public long getTimeSpent(int type)
+    {
+        return 0;
+    }
+    
+    @Override
+    public void close() throws StandardException {
+        SpliceLogUtils.trace(LOG, "close in NoRows");
+        if (!isOpen)
+            return;
+        try {
+            super.close();
+        } catch (Exception e) {
+            SpliceLogUtils.error(LOG, e);
+        }
+    }
 
     @Override
     public String prettyPrint(int indentLevel) {
@@ -110,14 +110,14 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
                 .toString();
     }
 
-	@Override
-	public void openCore() throws StandardException {
-		super.openCore();
+    @Override
+    public void openCore() throws StandardException {
+        super.openCore();
 
         /*
         We have to compute modifiedRowCount and badRecords here because if there's an Exception it has to
         propagate from here, otherwise Derby code down the line won't clean up things properly, see SPLICE-1470
          */
-		computeModifiedRows();
-	}
+        computeModifiedRows();
+    }
 }

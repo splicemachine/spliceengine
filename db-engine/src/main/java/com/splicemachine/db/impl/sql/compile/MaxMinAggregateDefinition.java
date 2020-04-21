@@ -43,79 +43,79 @@ import com.splicemachine.db.iapi.types.TypeId;
  *
  */
 public class MaxMinAggregateDefinition 
-		implements AggregateDefinition
+        implements AggregateDefinition
 {
-	private boolean isMax;
+    private boolean isMax;
     private boolean isWindowFunction;
 
-	/**
-	 * Niladic constructor.  Does nothing.  For ease
-	 * Of use, only.
-	 */
-	public MaxMinAggregateDefinition() { super(); }
+    /**
+     * Niladic constructor.  Does nothing.  For ease
+     * Of use, only.
+     */
+    public MaxMinAggregateDefinition() { super(); }
 
-	/**
-	 * Determines the result datatype.  Accept NumberDataValues
-	 * only.  
-	 * <P>
-	 * <I>Note</I>: In the future you should be able to do
-	 * a sum user data types.  One option would be to run
-	 * sum on anything that implements divide().  
-	 *
-	 * @param inputType	the input type, either a user type or a java.lang object
-	 *
-	 * @return the output Class (null if cannot operate on
-	 *	value expression of this type.
-	 */
-	public final DataTypeDescriptor	getAggregator(DataTypeDescriptor inputType, 
-				StringBuffer aggregatorClass) 
-	{
-		LanguageConnectionContext lcc = (LanguageConnectionContext)
-			ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+    /**
+     * Determines the result datatype.  Accept NumberDataValues
+     * only.  
+     * <P>
+     * <I>Note</I>: In the future you should be able to do
+     * a sum user data types.  One option would be to run
+     * sum on anything that implements divide().  
+     *
+     * @param inputType    the input type, either a user type or a java.lang object
+     *
+     * @return the output Class (null if cannot operate on
+     *    value expression of this type.
+     */
+    public final DataTypeDescriptor    getAggregator(DataTypeDescriptor inputType, 
+                StringBuffer aggregatorClass) 
+    {
+        LanguageConnectionContext lcc = (LanguageConnectionContext)
+            ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
 
-			/*
-			** MIN and MAX may return null
-			*/
-		DataTypeDescriptor dts = inputType.getNullabilityType(true);
-		TypeId compType = dts.getTypeId();
+            /*
+            ** MIN and MAX may return null
+            */
+        DataTypeDescriptor dts = inputType.getNullabilityType(true);
+        TypeId compType = dts.getTypeId();
 
-		/*
-		** If the class implements NumberDataValue, then we
-		** are in business.  Return type is same as input
-		** type.
-		*/
-		if (compType.orderable(
-						lcc.getLanguageConnectionFactory().getClassFactory()))
-		{
+        /*
+        ** If the class implements NumberDataValue, then we
+        ** are in business.  Return type is same as input
+        ** type.
+        */
+        if (compType.orderable(
+                        lcc.getLanguageConnectionFactory().getClassFactory()))
+        {
             if (isWindowFunction) {
                 aggregatorClass.append(ClassName.WindowMaxMinAggregator);
             }
             else {
                 aggregatorClass.append(ClassName.MaxMinAggregator);
             }
-			
-			return dts;
-		}
-		return null;
-	}
+            
+            return dts;
+        }
+        return null;
+    }
 
-	/**
-	 * This is set by the parser.
-	 */
-	public final void setMaxOrMin(boolean isMax)
-	{
-		this.isMax = isMax;
-	}
+    /**
+     * This is set by the parser.
+     */
+    public final void setMaxOrMin(boolean isMax)
+    {
+        this.isMax = isMax;
+    }
 
-	/**
-	 * Return if the aggregator class is for min/max.
-	 *
-	 * @return boolean true/false
-	 */
-	public final boolean isMax()
-	{
-		return(isMax);
-	}
+    /**
+     * Return if the aggregator class is for min/max.
+     *
+     * @return boolean true/false
+     */
+    public final boolean isMax()
+    {
+        return(isMax);
+    }
 
     public final boolean isWindowFunction() {
         return this.isWindowFunction;

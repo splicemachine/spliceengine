@@ -47,35 +47,35 @@ public class RevokeNode extends DDLStatementNode
     private PrivilegeNode privileges;
     private List grantees;
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
             StringBuilder sb = new StringBuilder();
             for (Object grantee : grantees) {
                 if (sb.length() > 0)
                     sb.append(",");
                 sb.append(grantee.toString());
             }
-			return super.toString() +
+            return super.toString() +
                    privileges.toString() +
                    "TO: \n" + sb.toString() + "\n";
-		}
-		else
-		{
-			return "";
-		}
+        }
+        else
+        {
+            return "";
+        }
     } // end of toString
 
-	public String statementToString()
-	{
+    public String statementToString()
+    {
         return "REVOKE";
     }
 
@@ -97,21 +97,21 @@ public class RevokeNode extends DDLStatementNode
      * Bind this RevokeNode. Resolve all table, column, and routine references.
      *
      *
-     * @exception StandardException	Standard error policy.
+     * @exception StandardException    Standard error policy.
      */
-	public void bindStatement() throws StandardException
-	{
+    public void bindStatement() throws StandardException
+    {
         privileges = (PrivilegeNode) privileges.bind( new HashMap(), grantees, false);
     } // end of bind
 
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException	Standard error policy.
-	 */
-	public ConstantAction makeConstantAction() throws StandardException
-	{
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException    Standard error policy.
+     */
+    public ConstantAction makeConstantAction() throws StandardException
+    {
         return getGenericConstantActionFactory().getRevokeConstantAction( privileges.makePrivilegeInfo(),
                                                                           grantees);
     }

@@ -42,38 +42,38 @@ import java.util.List;
  */
 class RoutineDesignator
 {
-	boolean isSpecific;
-	TableName name; // TableName is a misnomer it is really just a schema qualified name
-	boolean isFunction; // else a procedure
-	/**
-	 * A list of DataTypeDescriptors
-	 * if null then the signature is not specified and this designator is ambiguous if there is
-	 * more than one function (procedure) with this name.
-	 */
-	List paramTypeList;
-	AliasDescriptor aliasDescriptor;
+    boolean isSpecific;
+    TableName name; // TableName is a misnomer it is really just a schema qualified name
+    boolean isFunction; // else a procedure
+    /**
+     * A list of DataTypeDescriptors
+     * if null then the signature is not specified and this designator is ambiguous if there is
+     * more than one function (procedure) with this name.
+     */
+    List paramTypeList;
+    AliasDescriptor aliasDescriptor;
 
-	RoutineDesignator( boolean isSpecific,
-							  TableName name,
-							  boolean isFunction,
-							  List paramTypeList)
-	{
-		this.isSpecific = isSpecific;
-		this.name = name;
-		this.isFunction = isFunction;
-		this.paramTypeList = paramTypeList;
-	}
+    RoutineDesignator( boolean isSpecific,
+                              TableName name,
+                              boolean isFunction,
+                              List paramTypeList)
+    {
+        this.isSpecific = isSpecific;
+        this.name = name;
+        this.isFunction = isFunction;
+        this.paramTypeList = paramTypeList;
+    }
 
-	void setAliasDescriptor( AliasDescriptor aliasDescriptor)
-	{
-		this.aliasDescriptor = aliasDescriptor;
-	}
-	
-	/**
-	 * @return PrivilegeInfo for this node
-	 */
-	PrivilegeInfo makePrivilegeInfo()
-	{
-		return new RoutinePrivilegeInfo( aliasDescriptor);
-	}
+    void setAliasDescriptor( AliasDescriptor aliasDescriptor)
+    {
+        this.aliasDescriptor = aliasDescriptor;
+    }
+    
+    /**
+     * @return PrivilegeInfo for this node
+     */
+    PrivilegeInfo makePrivilegeInfo()
+    {
+        return new RoutinePrivilegeInfo( aliasDescriptor);
+    }
 }

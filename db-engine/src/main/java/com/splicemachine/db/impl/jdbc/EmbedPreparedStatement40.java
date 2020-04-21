@@ -52,7 +52,7 @@ public class EmbedPreparedStatement40 extends  EmbedPreparedStatement30 {
     public void setRowId(int parameterIndex, RowId x) throws SQLException{
         checkStatus();
         try {
-			/* JDBC is one-based, DBMS is zero-based */
+            /* JDBC is one-based, DBMS is zero-based */
             getParms().getParameterForSet(parameterIndex - 1).setValue(x);
 
         } catch (Throwable t) {
@@ -105,9 +105,9 @@ public class EmbedPreparedStatement40 extends  EmbedPreparedStatement30 {
     public ParameterMetaData getParameterMetaData()
         throws SQLException
     {
-	  checkStatus();
-	  return new EmbedParameterMetaData40(
-				getParms(), preparedStatement.getParameterTypes());
+      checkStatus();
+      return new EmbedParameterMetaData40(
+                getParms(), preparedStatement.getParameterTypes());
     }
     
     /**

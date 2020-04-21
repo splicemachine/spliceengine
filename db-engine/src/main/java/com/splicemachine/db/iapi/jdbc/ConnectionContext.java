@@ -43,29 +43,29 @@ import java.sql.SQLException;
  */
 public interface ConnectionContext 
 {
-	String CONTEXT_ID = "JDBC_ConnectionContext";
+    String CONTEXT_ID = "JDBC_ConnectionContext";
 
-	/**
-		Get a new connection object equivalent to the call
-		<PRE>
-		DriverManager.getConnection("jdbc:default:connection");
-		</PRE>
+    /**
+        Get a new connection object equivalent to the call
+        <PRE>
+        DriverManager.getConnection("jdbc:default:connection");
+        </PRE>
 
-		@exception SQLException Parent connection has been closed.
-	*/
-	Connection getNestedConnection(boolean internal) throws SQLException;
+        @exception SQLException Parent connection has been closed.
+    */
+    Connection getNestedConnection(boolean internal) throws SQLException;
 
-	/**
-	 * Get a jdbc ResultSet based on the execution ResultSet.
-	 *
-	 * @param executionResultSet	a result set as gotten from execution
-	 *	
-	 * @exception java.sql.SQLException	on error
-	 */
-	java.sql.ResultSet getResultSet
-	(
-			ResultSet executionResultSet
-	) throws java.sql.SQLException;
+    /**
+     * Get a jdbc ResultSet based on the execution ResultSet.
+     *
+     * @param executionResultSet    a result set as gotten from execution
+     *    
+     * @exception java.sql.SQLException    on error
+     */
+    java.sql.ResultSet getResultSet
+    (
+            ResultSet executionResultSet
+    ) throws java.sql.SQLException;
     
     /**
      * Process the resultSet as a dynamic result for closure.
@@ -88,5 +88,5 @@ public interface ConnectionContext
      * @return True if this ResultSet was created by this connection
      * and the result set is open. False otherwise.
      */
-	boolean processInaccessibleDynamicResult(java.sql.ResultSet resultSet);
+    boolean processInaccessibleDynamicResult(java.sql.ResultSet resultSet);
 }

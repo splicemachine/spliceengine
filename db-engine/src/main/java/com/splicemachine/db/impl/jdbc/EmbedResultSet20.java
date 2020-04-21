@@ -82,80 +82,80 @@ public class EmbedResultSet20
         }
 
 
-		/*
-		** Methods using java.math.BigDecimal, not supported in JSR169
-		*/
-		/**
-		 * Get the value of a column in the current row as a java.lang.BigDecimal object.
-		 *
-		 * @param columnIndex the first column is 1, the second is 2, ...
-		 * @param scale the number of digits to the right of the decimal
-		 * @return the column value; if the value is SQL NULL, the result is null
-		 * @exception SQLException thrown on failure.
+        /*
+        ** Methods using java.math.BigDecimal, not supported in JSR169
+        */
+        /**
+         * Get the value of a column in the current row as a java.lang.BigDecimal object.
+         *
+         * @param columnIndex the first column is 1, the second is 2, ...
+         * @param scale the number of digits to the right of the decimal
+         * @return the column value; if the value is SQL NULL, the result is null
+         * @exception SQLException thrown on failure.
          * @deprecated
-		 */
-		public final BigDecimal getBigDecimal(int columnIndex, int scale)
-			throws SQLException {
+         */
+        public final BigDecimal getBigDecimal(int columnIndex, int scale)
+            throws SQLException {
 
-			BigDecimal ret = getBigDecimal(columnIndex);
-			if (ret != null) {
-				return ret.setScale(scale, BigDecimal.ROUND_HALF_DOWN);
-			}
-			return null;
-		}
+            BigDecimal ret = getBigDecimal(columnIndex);
+            if (ret != null) {
+                return ret.setScale(scale, BigDecimal.ROUND_HALF_DOWN);
+            }
+            return null;
+        }
 
-		public final BigDecimal getBigDecimal(int columnIndex)
-			throws SQLException {
-			checkIfClosed("getBigDecimal");
-			try {
+        public final BigDecimal getBigDecimal(int columnIndex)
+            throws SQLException {
+            checkIfClosed("getBigDecimal");
+            try {
 
-				DataValueDescriptor dvd = getColumn(columnIndex);
+                DataValueDescriptor dvd = getColumn(columnIndex);
 
-				if (wasNull = dvd.isNull())
-					return null;
-				
-				return com.splicemachine.db.iapi.types.SQLDecimal.getBigDecimal(dvd);
+                if (wasNull = dvd.isNull())
+                    return null;
+                
+                return com.splicemachine.db.iapi.types.SQLDecimal.getBigDecimal(dvd);
 
-			} catch (StandardException t) {
-				throw noStateChangeException(t);
-			}
-		}
+            } catch (StandardException t) {
+                throw noStateChangeException(t);
+            }
+        }
 
-		/**
-		 * Get the value of a column in the current row as a java.lang.BigDecimal object.
-		 *
-		 * @param columnName is the SQL name of the column
-		 * @param scale the number of digits to the right of the decimal
-		 * @return the column value; if the value is SQL NULL, the result is null
-		 * @exception SQLException thrown on failure.
+        /**
+         * Get the value of a column in the current row as a java.lang.BigDecimal object.
+         *
+         * @param columnName is the SQL name of the column
+         * @param scale the number of digits to the right of the decimal
+         * @return the column value; if the value is SQL NULL, the result is null
+         * @exception SQLException thrown on failure.
          * @deprecated
-		 */
-		public final BigDecimal getBigDecimal(String columnName, int scale)
-			throws SQLException {
-			checkIfClosed("getBigDecimal");
-			return (getBigDecimal(findColumnName(columnName), scale));
-		}
+         */
+        public final BigDecimal getBigDecimal(String columnName, int scale)
+            throws SQLException {
+            checkIfClosed("getBigDecimal");
+            return (getBigDecimal(findColumnName(columnName), scale));
+        }
 
 
     /**
      * JDBC 2.0
      *
-		Deprecated in JDBC 2.0, not supported by JCC.
-	 * @exception SQLException thrown on failure.
+        Deprecated in JDBC 2.0, not supported by JCC.
+     * @exception SQLException thrown on failure.
      * @deprecated
      */
     public final java.io.InputStream getUnicodeStream(int columnIndex) throws SQLException {
-		throw Util.notImplemented("getUnicodeStream");
-	}
+        throw Util.notImplemented("getUnicodeStream");
+    }
     /**
-		Deprecated in JDBC 2.0, not supported by JCC.
-	 * @exception SQLException thrown on failure.
+        Deprecated in JDBC 2.0, not supported by JCC.
+     * @exception SQLException thrown on failure.
      * @deprecated
      */
     public final java.io.InputStream getUnicodeStream(String columnName) throws SQLException {
-		throw Util.notImplemented("getUnicodeStream");
-	}	
-	
+        throw Util.notImplemented("getUnicodeStream");
+    }    
+    
     /**
      * JDBC 2.0
      *
@@ -178,36 +178,36 @@ public class EmbedResultSet20
         }
     }
 
-	/**
-	 * JDBC 2.0
-	 * 
-	 * Update a column with an Object value.
-	 * 
-	 * The updateXXX() methods are used to update column values in the current
-	 * row, or the insert row. The updateXXX() methods do not update the
-	 * underlying database, instead the updateRow() or insertRow() methods are
-	 * called to update the database.
-	 * 
-	 * @param columnIndex
-	 *            the first column is 1, the second is 2, ...
-	 * @param x
-	 *            the new column value
-	 * @exception SQLException
-	 *                if a database-access error occurs
-	 */
-	public void updateObject(int columnIndex, Object x) throws SQLException {
-		//If the Object x is the right datatype, this method will eventually call getDVDforColumnToBeUpdated which will check for
-		//the read only resultset. But for other datatypes of x, we want to catch if this updateObject is being
-		//issued against a read only resultset. And that is the reason for call to checksBeforeUpdateOrDelete here.
-		checksBeforeUpdateOrDelete("updateObject", columnIndex);
-		int colType = getColumnType(columnIndex);
+    /**
+     * JDBC 2.0
+     * 
+     * Update a column with an Object value.
+     * 
+     * The updateXXX() methods are used to update column values in the current
+     * row, or the insert row. The updateXXX() methods do not update the
+     * underlying database, instead the updateRow() or insertRow() methods are
+     * called to update the database.
+     * 
+     * @param columnIndex
+     *            the first column is 1, the second is 2, ...
+     * @param x
+     *            the new column value
+     * @exception SQLException
+     *                if a database-access error occurs
+     */
+    public void updateObject(int columnIndex, Object x) throws SQLException {
+        //If the Object x is the right datatype, this method will eventually call getDVDforColumnToBeUpdated which will check for
+        //the read only resultset. But for other datatypes of x, we want to catch if this updateObject is being
+        //issued against a read only resultset. And that is the reason for call to checksBeforeUpdateOrDelete here.
+        checksBeforeUpdateOrDelete("updateObject", columnIndex);
+        int colType = getColumnType(columnIndex);
 
-		if (x instanceof BigDecimal) {
-			updateBigDecimal(columnIndex, (BigDecimal) x);
-			return;
-		}
-		super.updateObject(columnIndex, x);
-	}
+        if (x instanceof BigDecimal) {
+            updateBigDecimal(columnIndex, (BigDecimal) x);
+            return;
+        }
+        super.updateObject(columnIndex, x);
+    }
 
     /**
      * JDBC 2.0

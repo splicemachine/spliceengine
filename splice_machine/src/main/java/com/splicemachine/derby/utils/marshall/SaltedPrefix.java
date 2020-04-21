@@ -27,22 +27,22 @@ import java.io.IOException;
  * Date: 11/15/13
  */
 public class SaltedPrefix implements HashPrefix {
-		private UUIDGenerator generator;
+        private UUIDGenerator generator;
 
-		public SaltedPrefix(UUIDGenerator generator) {
-				this.generator = generator;
-		}
+        public SaltedPrefix(UUIDGenerator generator) {
+                this.generator = generator;
+        }
 
-		@Override public int getPrefixLength() { return generator.encodedLength(); }
+        @Override public int getPrefixLength() { return generator.encodedLength(); }
 
-		@Override
-		public void encode(byte[] bytes, int offset, byte[] hashBytes) {
-				//encode the UUID directly into the bytes
-				generator.next(bytes,offset);
-		}
+        @Override
+        public void encode(byte[] bytes, int offset, byte[] hashBytes) {
+                //encode the UUID directly into the bytes
+                generator.next(bytes,offset);
+        }
 
-		@Override
-		public void close() throws IOException {
+        @Override
+        public void close() throws IOException {
 
-		}
+        }
 }

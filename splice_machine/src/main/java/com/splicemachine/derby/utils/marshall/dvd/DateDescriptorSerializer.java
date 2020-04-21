@@ -31,32 +31,32 @@ import java.sql.Date;
  * Date: 4/2/14
  */
 public class DateDescriptorSerializer extends AbstractTimeDescriptorSerializer {
-		public static final Factory INSTANCE_FACTORY = new Factory() {
-				@Override public DescriptorSerializer newInstance() { return new DateDescriptorSerializer(); }
+        public static final Factory INSTANCE_FACTORY = new Factory() {
+                @Override public DescriptorSerializer newInstance() { return new DateDescriptorSerializer(); }
 
-				@Override public boolean applies(int typeFormatId) { return typeFormatId == StoredFormatIds.SQL_DATE_ID; }
+                @Override public boolean applies(int typeFormatId) { return typeFormatId == StoredFormatIds.SQL_DATE_ID; }
 
-		};
+        };
 
-		protected DateDescriptorSerializer() { }
+        protected DateDescriptorSerializer() { }
 
-		@Override
-		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
-				fieldEncoder.encodeNext(dvd.getDate(getCalendar()).getTime(),desc);
-		}
+        @Override
+        public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
+                fieldEncoder.encodeNext(dvd.getDate(getCalendar()).getTime(),desc);
+        }
 
-		@Override
-		public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
-				return Encoding.encode(dvd.getDate(getCalendar()).getTime(), desc);
-		}
+        @Override
+        public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
+                return Encoding.encode(dvd.getDate(getCalendar()).getTime(), desc);
+        }
 
-		@Override
-		public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
-				destDvd.setValue(new Date(fieldDecoder.decodeNextLong(desc)));
-		}
+        @Override
+        public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
+                destDvd.setValue(new Date(fieldDecoder.decodeNextLong(desc)));
+        }
 
-		@Override
-		public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
-				dvd.setValue(new Date(Encoding.decodeLong(data,offset,desc)));
-		}
+        @Override
+        public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
+                dvd.setValue(new Date(Encoding.decodeLong(data,offset,desc)));
+        }
 }

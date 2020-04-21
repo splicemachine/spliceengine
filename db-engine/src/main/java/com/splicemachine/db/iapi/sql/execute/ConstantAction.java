@@ -36,12 +36,12 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 
 /**
- *	This interface describes actions that are ALWAYS performed for a
- *	Statement at Execution time. For instance, it is used for DDL
- *	statements to describe what they should stuff into the catalogs.
- *	<p>
- *	An object satisfying this interface is put into the PreparedStatement
- *	and run at Execution time. Thus ConstantActions may be shared
+ *    This interface describes actions that are ALWAYS performed for a
+ *    Statement at Execution time. For instance, it is used for DDL
+ *    statements to describe what they should stuff into the catalogs.
+ *    <p>
+ *    An object satisfying this interface is put into the PreparedStatement
+ *    and run at Execution time. Thus ConstantActions may be shared
  *  across threads and must not store connection/thread specific
  *  information in any instance field.
  *
@@ -49,13 +49,13 @@ import com.splicemachine.db.iapi.sql.Activation;
 
 public interface ConstantAction
 {
-	/**
-	 *	Run the ConstantAction.
-	 *
-	 * @param	activation	The execution environment for this constant action.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	void	executeConstantAction(Activation activation)
-						throws StandardException;
+    /**
+     *    Run the ConstantAction.
+     *
+     * @param    activation    The execution environment for this constant action.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    void    executeConstantAction(Activation activation)
+                        throws StandardException;
 }

@@ -35,17 +35,17 @@ import java.sql.*;
 import java.net.URL;
 
 /**
-	JDBC 3 implementation of PreparedStatement.
+    JDBC 3 implementation of PreparedStatement.
 */
 public class BrokeredPreparedStatement30 extends BrokeredPreparedStatement {
 
-	private final Object generatedKeys;
-	public BrokeredPreparedStatement30(BrokeredStatementControl control, String sql, Object generatedKeys) throws SQLException {
-		super(control,sql);
-		this.generatedKeys = generatedKeys;
-	}
+    private final Object generatedKeys;
+    public BrokeredPreparedStatement30(BrokeredStatementControl control, String sql, Object generatedKeys) throws SQLException {
+        super(control,sql);
+        this.generatedKeys = generatedKeys;
+    }
 
-	public final void setURL(int i, URL x)
+    public final void setURL(int i, URL x)
         throws SQLException
     {
         getPreparedStatement().setURL( i, x);
@@ -55,29 +55,29 @@ public class BrokeredPreparedStatement30 extends BrokeredPreparedStatement {
     {
         return getPreparedStatement().getParameterMetaData();
     }
-	/**
-		Create a duplicate PreparedStatement to this, including state, from the passed in Connection.
-	*/
-	public PreparedStatement createDuplicateStatement(Connection conn, PreparedStatement oldStatement) throws SQLException {
+    /**
+        Create a duplicate PreparedStatement to this, including state, from the passed in Connection.
+    */
+    public PreparedStatement createDuplicateStatement(Connection conn, PreparedStatement oldStatement) throws SQLException {
 
-		PreparedStatement newStatement;
+        PreparedStatement newStatement;
 
-		if (generatedKeys == null)
-			newStatement = conn.prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability);
-		else {
-			// The prepareStatement() calls that take a generated key value do not take resultSet* type
-			// parameters, but since they don't return ResultSets that is OK. There are only for INSERT statements.
-			if (generatedKeys instanceof Integer)
-				newStatement = conn.prepareStatement(sql, (Integer) generatedKeys);
-			else if (generatedKeys instanceof int[])
-				newStatement = conn.prepareStatement(sql, (int[]) generatedKeys);
-			else
-				newStatement = conn.prepareStatement(sql, (String[]) generatedKeys);
-		}
+        if (generatedKeys == null)
+            newStatement = conn.prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+        else {
+            // The prepareStatement() calls that take a generated key value do not take resultSet* type
+            // parameters, but since they don't return ResultSets that is OK. There are only for INSERT statements.
+            if (generatedKeys instanceof Integer)
+                newStatement = conn.prepareStatement(sql, (Integer) generatedKeys);
+            else if (generatedKeys instanceof int[])
+                newStatement = conn.prepareStatement(sql, (int[]) generatedKeys);
+            else
+                newStatement = conn.prepareStatement(sql, (String[]) generatedKeys);
+        }
 
 
-		setStatementState(oldStatement, newStatement);
+        setStatementState(oldStatement, newStatement);
 
-		return newStatement;
-	}
+        return newStatement;
+    }
 }

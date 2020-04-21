@@ -57,84 +57,84 @@ import java.util.ArrayList;
 
 public final class InListOperatorNode extends BinaryListOperatorNode
 {
-	private boolean isOrdered;
-	private boolean sortDescending;
+    private boolean isOrdered;
+    private boolean sortDescending;
 
-	/**
-	 * Initializer for a InListOperatorNode
-	 *
-	 * @param leftOperand		The left operand of the node
-	 * @param rightOperandList	The right operand list of the node
-	 */
+    /**
+     * Initializer for a InListOperatorNode
+     *
+     * @param leftOperand        The left operand of the node
+     * @param rightOperandList    The right operand list of the node
+     */
 
-	public void init(Object leftOperand, Object rightOperandList) throws StandardException
-	{
-		init(leftOperand, rightOperandList, "IN", "in");
-	}
+    public void init(Object leftOperand, Object rightOperandList) throws StandardException
+    {
+        init(leftOperand, rightOperandList, "IN", "in");
+    }
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			return "isOrdered: " + isOrdered + "\n" +
-				super.toString();
-		}
-		else
-		{
-			return "";
-		}
-	}
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            return "isOrdered: " + isOrdered + "\n" +
+                super.toString();
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	/**
-	 * Create a shallow copy of this InListOperatorNode whose operands are
-	 * the same as this node's operands.  Copy over all other necessary
-	 * state, as well.
-	 */
-	protected InListOperatorNode shallowCopy() throws StandardException
-	{
-		InListOperatorNode ilon =
-			 (InListOperatorNode)getNodeFactory().getNode(
-				C_NodeTypes.IN_LIST_OPERATOR_NODE,
-				leftOperandList,
-				rightOperandList,
-				getContextManager());
+    /**
+     * Create a shallow copy of this InListOperatorNode whose operands are
+     * the same as this node's operands.  Copy over all other necessary
+     * state, as well.
+     */
+    protected InListOperatorNode shallowCopy() throws StandardException
+    {
+        InListOperatorNode ilon =
+             (InListOperatorNode)getNodeFactory().getNode(
+                C_NodeTypes.IN_LIST_OPERATOR_NODE,
+                leftOperandList,
+                rightOperandList,
+                getContextManager());
 
-		ilon.copyFields(this);
-		ilon.markAsOrdered(isOrdered);
+        ilon.copyFields(this);
+        ilon.markAsOrdered(isOrdered);
 
-		if (sortDescending)
-			ilon.markSortDescending();
+        if (sortDescending)
+            ilon.markSortDescending();
 
-		return ilon;
-	}
+        return ilon;
+    }
 
-	/**
-	 * Preprocess an expression tree.  We do a number of transformations
-	 * here (including subqueries, IN lists, LIKE and BETWEEN) plus
-	 * subquery flattening.
-	 * NOTE: This is done before the outer ResultSetNode is preprocessed.
-	 *
-	 * @param	numTables			Number of tables in the DML Statement
-	 * @param	outerFromList		FromList from outer query block
-	 * @param	outerSubqueryList	SubqueryList from outer query block
-	 * @param	outerPredicateList	PredicateList from outer query block
-	 *
-	 * @return		The modified expression
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public ValueNode preprocess(int numTables,
-								FromList outerFromList,
-								SubqueryList outerSubqueryList,
-								PredicateList outerPredicateList) 
-					throws StandardException {
+    /**
+     * Preprocess an expression tree.  We do a number of transformations
+     * here (including subqueries, IN lists, LIKE and BETWEEN) plus
+     * subquery flattening.
+     * NOTE: This is done before the outer ResultSetNode is preprocessed.
+     *
+     * @param    numTables            Number of tables in the DML Statement
+     * @param    outerFromList        FromList from outer query block
+     * @param    outerSubqueryList    SubqueryList from outer query block
+     * @param    outerPredicateList    PredicateList from outer query block
+     *
+     * @return        The modified expression
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public ValueNode preprocess(int numTables,
+                                FromList outerFromList,
+                                SubqueryList outerSubqueryList,
+                                PredicateList outerPredicateList) 
+                    throws StandardException {
         super.preprocess(numTables,
             outerFromList, outerSubqueryList,
             outerPredicateList);
@@ -143,106 +143,106 @@ public final class InListOperatorNode extends BinaryListOperatorNode
     }
     
     public ValueNode convertToAndedEqualityProbePredicate()
-					throws StandardException
+                    throws StandardException
     {
-		/* Check for the degenerate case of a single element in the IN list.
-		 * If found, then convert to "=".
-		 */
-		if (rightOperandList.size() == 1 && singleLeftOperand)
-		{
-			ValueNode value = (ValueNode)rightOperandList.elementAt(0);
+        /* Check for the degenerate case of a single element in the IN list.
+         * If found, then convert to "=".
+         */
+        if (rightOperandList.size() == 1 && singleLeftOperand)
+        {
+            ValueNode value = (ValueNode)rightOperandList.elementAt(0);
             if ((value instanceof CharConstantNode) && (getLeftOperand() instanceof ColumnReference)) {
-				DataTypeDescriptor targetType = getLeftOperand().getTypeServices();
-				if (targetType.getTypeName().equals(TypeId.CHAR_NAME)) {
-					int maxSize = getLeftOperand().getTypeServices().getMaximumWidth();
-					ValueNodeList.rightPadCharConstantNode((CharConstantNode) value, maxSize);
-				}
-			}
-			BinaryComparisonOperatorNode equal =
-				(BinaryComparisonOperatorNode) getNodeFactory().getNode(
-						C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-						getLeftOperand(),
-						value,
-						getContextManager());
-			/* Set type info for the operator node */
-			equal.bindComparisonOperator();
-			equal.setOuterJoinLevel(getOuterJoinLevel());
-			return equal;
-		}
-		else if (allLeftOperandsColumnReferences() &&
-			     rightOperandList.containsOnlyConstantAndParamNodes())
-		{
-			/* At this point we have an IN-list made up of constant and/or
-			 * parameter values.  Ex.:
-			 *
-			 *  select id, name from emp where id in (34, 28, ?)
-			 *
-			 * Since the optimizer does not recognize InListOperatorNodes
-			 * as potential start/stop keys for indexes, it (the optimizer)
-			 * may estimate that the cost of using any of the indexes would
-			 * be too high.  So we could--and probably would--end up doing
-			 * a table scan on the underlying base table. But if the number
-			 * of rows in the base table is significantly greater than the
-			 * number of values in the IN-list, scanning the base table can
-			 * be overkill and can lead to poor performance.  And further,
-			 * choosing to use an index but then scanning the entire index
-			 * can be slow, too. DERBY-47.
-			 *
-			 * What we do, then, is create an "IN-list probe predicate",
-			 * which is an internally generated equality predicate with a
-			 * parameter value on the right.  So for the query shown above
-			 * the probe predicate would be "id = ?".  We then replace
-			 * this InListOperatorNode with the probe predicate during
-			 * optimization.  The optimizer in turn recognizes the probe
-			 * predicate, which is disguised to look like a typical binary
-			 * equality, as a potential start/stop key for any indexes.
-			 * This start/stop key potential then factors into the estimated
-			 * cost of probing the indexes, which leads to a more reasonable
-			 * estimate and thus makes it more likely that the optimizer
-			 * will choose to use an index vs a table scan.  That done, we
-			 * then use the probe predicate to perform multiple execution-
-			 * time "probes" on the index--instead of doing a range index
-			 * scan--which eliminates unnecessary scanning. For more see
-			 * execute/MultiProbeTableScanResultSet.java.
-			 *
-			 * With this approach we know that regardless of how large the
-			 * base table is, we'll only have to probe the index a max of
-			 * N times, where "N" is the size of the IN-list. If N is
-			 * significantly less than the number of rows in the table, or
-			 * is significantly less than the number of rows between the
-			 * min value and the max value in the IN-list, this selective
-			 * probing can save us a lot of time.
-			 *
-			 * Note: We will do fewer than N probes if there are duplicates
-			 * in the list.
-			 *
-			 * Note also that, depending on the relative size of the IN-list
-			 * verses the number of rows in the table, it may actually be
-			 * better to just do a table scan--especially if there are fewer
-			 * rows in the table than there are in the IN-list.  So even though
-			 * we create a "probe predicate" and pass it to the optimizer, it
-			 * (the optimizer) may still choose to do a table scan.  If that
-			 * happens then we'll "revert" the probe predicate back to its
-			 * original form (i.e. to this InListOperatorNode) during code
-			 * generation, and then we'll use it as a regular IN-list
-			 * restriction when it comes time to execute.
-			 */
+                DataTypeDescriptor targetType = getLeftOperand().getTypeServices();
+                if (targetType.getTypeName().equals(TypeId.CHAR_NAME)) {
+                    int maxSize = getLeftOperand().getTypeServices().getMaximumWidth();
+                    ValueNodeList.rightPadCharConstantNode((CharConstantNode) value, maxSize);
+                }
+            }
+            BinaryComparisonOperatorNode equal =
+                (BinaryComparisonOperatorNode) getNodeFactory().getNode(
+                        C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
+                        getLeftOperand(),
+                        value,
+                        getContextManager());
+            /* Set type info for the operator node */
+            equal.bindComparisonOperator();
+            equal.setOuterJoinLevel(getOuterJoinLevel());
+            return equal;
+        }
+        else if (allLeftOperandsColumnReferences() &&
+                 rightOperandList.containsOnlyConstantAndParamNodes())
+        {
+            /* At this point we have an IN-list made up of constant and/or
+             * parameter values.  Ex.:
+             *
+             *  select id, name from emp where id in (34, 28, ?)
+             *
+             * Since the optimizer does not recognize InListOperatorNodes
+             * as potential start/stop keys for indexes, it (the optimizer)
+             * may estimate that the cost of using any of the indexes would
+             * be too high.  So we could--and probably would--end up doing
+             * a table scan on the underlying base table. But if the number
+             * of rows in the base table is significantly greater than the
+             * number of values in the IN-list, scanning the base table can
+             * be overkill and can lead to poor performance.  And further,
+             * choosing to use an index but then scanning the entire index
+             * can be slow, too. DERBY-47.
+             *
+             * What we do, then, is create an "IN-list probe predicate",
+             * which is an internally generated equality predicate with a
+             * parameter value on the right.  So for the query shown above
+             * the probe predicate would be "id = ?".  We then replace
+             * this InListOperatorNode with the probe predicate during
+             * optimization.  The optimizer in turn recognizes the probe
+             * predicate, which is disguised to look like a typical binary
+             * equality, as a potential start/stop key for any indexes.
+             * This start/stop key potential then factors into the estimated
+             * cost of probing the indexes, which leads to a more reasonable
+             * estimate and thus makes it more likely that the optimizer
+             * will choose to use an index vs a table scan.  That done, we
+             * then use the probe predicate to perform multiple execution-
+             * time "probes" on the index--instead of doing a range index
+             * scan--which eliminates unnecessary scanning. For more see
+             * execute/MultiProbeTableScanResultSet.java.
+             *
+             * With this approach we know that regardless of how large the
+             * base table is, we'll only have to probe the index a max of
+             * N times, where "N" is the size of the IN-list. If N is
+             * significantly less than the number of rows in the table, or
+             * is significantly less than the number of rows between the
+             * min value and the max value in the IN-list, this selective
+             * probing can save us a lot of time.
+             *
+             * Note: We will do fewer than N probes if there are duplicates
+             * in the list.
+             *
+             * Note also that, depending on the relative size of the IN-list
+             * verses the number of rows in the table, it may actually be
+             * better to just do a table scan--especially if there are fewer
+             * rows in the table than there are in the IN-list.  So even though
+             * we create a "probe predicate" and pass it to the optimizer, it
+             * (the optimizer) may still choose to do a table scan.  If that
+             * happens then we'll "revert" the probe predicate back to its
+             * original form (i.e. to this InListOperatorNode) during code
+             * generation, and then we'll use it as a regular IN-list
+             * restriction when it comes time to execute.
+             */
 
-			boolean allConstants = rightOperandList.containsAllConstantNodes();
+            boolean allConstants = rightOperandList.containsAllConstantNodes();
 
-			/* If we have all constants then sort them now.  This allows us to
-			 * skip the sort at execution time (we have to sort them so that
-			 * we can eliminate duplicate IN-list values).  If we have one
-			 * or more parameter nodes then we do *not* sort the values here
-			 * because we do not (and cannot) know what values the parameter(s)
-			 * will have.  In that case we'll sort the values at execution
-			 * time. 
-			 */
-			// Disable sorting of multicolumn IN lists here for now.
-			// These will typically long lists, and using bubble sort
-			// is not good.  The probe values will end up getting
-			// sorted, and duplicates removed, at execution time.
-			if (allConstants && leftOperandList.size() == 1) {
+            /* If we have all constants then sort them now.  This allows us to
+             * skip the sort at execution time (we have to sort them so that
+             * we can eliminate duplicate IN-list values).  If we have one
+             * or more parameter nodes then we do *not* sort the values here
+             * because we do not (and cannot) know what values the parameter(s)
+             * will have.  In that case we'll sort the values at execution
+             * time. 
+             */
+            // Disable sorting of multicolumn IN lists here for now.
+            // These will typically long lists, and using bubble sort
+            // is not good.  The probe values will end up getting
+            // sorted, and duplicates removed, at execution time.
+            if (allConstants && leftOperandList.size() == 1) {
                 /* When sorting or choosing min/max in the list, if types
                  * are not an exact match then we have to use the *dominant*
                  * type across all values, where "all values" includes the
@@ -302,24 +302,24 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                     judgeODV = ldt;
                 }
 
-				rightOperandList.sortInAscendingOrder(judgeODV);
-				isOrdered = true;
+                rightOperandList.sortInAscendingOrder(judgeODV);
+                isOrdered = true;
 
-				if (rightOperandList.size() == 1 && singleLeftOperand)
-				{
-					ValueNode value = (ValueNode)rightOperandList.elementAt(0);
-					BinaryComparisonOperatorNode equal =
-						(BinaryComparisonOperatorNode)getNodeFactory().getNode(
-							C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-							getLeftOperand(),
-							value,
-							getContextManager());
-					/* Set type info for the operator node */
-					equal.bindComparisonOperator();
-					equal.setOuterJoinLevel(getOuterJoinLevel());
-					return equal;
-				}
-			}
+                if (rightOperandList.size() == 1 && singleLeftOperand)
+                {
+                    ValueNode value = (ValueNode)rightOperandList.elementAt(0);
+                    BinaryComparisonOperatorNode equal =
+                        (BinaryComparisonOperatorNode)getNodeFactory().getNode(
+                            C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
+                            getLeftOperand(),
+                            value,
+                            getContextManager());
+                    /* Set type info for the operator node */
+                    equal.bindComparisonOperator();
+                    equal.setOuterJoinLevel(getOuterJoinLevel());
+                    return equal;
+                }
+            }
             
             BinaryComparisonOperatorNode equal = null;
             ValueNode andNode = null;
@@ -422,201 +422,201 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 }
             }
             return (andNode == null) ? equal : andNode;
-		}
-		else
-		{
-			return this;
-		}
-	}
+        }
+        else
+        {
+            return this;
+        }
+    }
 
-	/**
-	 * Eliminate NotNodes in the current query block.  We traverse the tree, 
-	 * inverting ANDs and ORs and eliminating NOTs as we go.  We stop at 
-	 * ComparisonOperators and boolean expressions.  We invert 
-	 * ComparisonOperators and replace boolean expressions with 
-	 * boolean expression = false.
-	 * NOTE: Since we do not recurse under ComparisonOperators, there
-	 * still could be NotNodes left in the tree.
-	 *
-	 * @param	underNotNode		Whether or not we are under a NotNode.
-	 *							
-	 *
-	 * @return		The modified expression
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	ValueNode eliminateNots(boolean underNotNode) 
-					throws StandardException
-	{
-		AndNode						 newAnd = null;
-		BinaryComparisonOperatorNode leftBCO;
-		BinaryComparisonOperatorNode rightBCO;
-		int							 listSize = rightOperandList.size();
-		ValueNode					 leftSide;
+    /**
+     * Eliminate NotNodes in the current query block.  We traverse the tree, 
+     * inverting ANDs and ORs and eliminating NOTs as we go.  We stop at 
+     * ComparisonOperators and boolean expressions.  We invert 
+     * ComparisonOperators and replace boolean expressions with 
+     * boolean expression = false.
+     * NOTE: Since we do not recurse under ComparisonOperators, there
+     * still could be NotNodes left in the tree.
+     *
+     * @param    underNotNode        Whether or not we are under a NotNode.
+     *                            
+     *
+     * @return        The modified expression
+     *
+     * @exception StandardException        Thrown on error
+     */
+    ValueNode eliminateNots(boolean underNotNode) 
+                    throws StandardException
+    {
+        AndNode                         newAnd = null;
+        BinaryComparisonOperatorNode leftBCO;
+        BinaryComparisonOperatorNode rightBCO;
+        int                             listSize = rightOperandList.size();
+        ValueNode                     leftSide;
 
-		if (SanityManager.DEBUG)
-		SanityManager.ASSERT(listSize > 0,
-			"rightOperandList.size() is expected to be > 0");
+        if (SanityManager.DEBUG)
+        SanityManager.ASSERT(listSize > 0,
+            "rightOperandList.size() is expected to be > 0");
 
-		if (! underNotNode)
-		{
-			return this;
-		}
-		
-		if (!singleLeftOperand)
+        if (! underNotNode)
+        {
+            return this;
+        }
+        
+        if (!singleLeftOperand)
             throw StandardException.newException(SQLState.LANG_UNKNOWN);
 
-		/* we want to convert the IN List into = OR = ... as
-		 * described below.  
-		 */
+        /* we want to convert the IN List into = OR = ... as
+         * described below.  
+         */
 
-		/* Convert:
-		 *		leftO IN rightOList.elementAt(0) , rightOList.elementAt(1) ...
-		 * to:
-		 *		leftO <> rightOList.elementAt(0) AND leftO <> rightOList.elementAt(1) ...
-		 * NOTE - We do the conversion here since the single table clauses
-		 * can be pushed down and the optimizer may eventually have a filter factor
-		 * for <>.
-		 */
+        /* Convert:
+         *        leftO IN rightOList.elementAt(0) , rightOList.elementAt(1) ...
+         * to:
+         *        leftO <> rightOList.elementAt(0) AND leftO <> rightOList.elementAt(1) ...
+         * NOTE - We do the conversion here since the single table clauses
+         * can be pushed down and the optimizer may eventually have a filter factor
+         * for <>.
+         */
 
-		/* leftO <> rightOList.at(0) */
-		/* If leftOperand is a ColumnReference, it may be remapped during optimization, and that
-		 * requires each <> node to have a separate object.
-		 */
-		ValueNode leftClone = (getLeftOperand() instanceof ColumnReference) ? getLeftOperand().getClone() : getLeftOperand();
-		leftBCO = (BinaryComparisonOperatorNode) 
-					getNodeFactory().getNode(
-						C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE,
-						leftClone,
-						(ValueNode) rightOperandList.elementAt(0),
-						getContextManager());
-		/* Set type info for the operator node */
-		leftBCO.bindComparisonOperator();
+        /* leftO <> rightOList.at(0) */
+        /* If leftOperand is a ColumnReference, it may be remapped during optimization, and that
+         * requires each <> node to have a separate object.
+         */
+        ValueNode leftClone = (getLeftOperand() instanceof ColumnReference) ? getLeftOperand().getClone() : getLeftOperand();
+        leftBCO = (BinaryComparisonOperatorNode) 
+                    getNodeFactory().getNode(
+                        C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE,
+                        leftClone,
+                        (ValueNode) rightOperandList.elementAt(0),
+                        getContextManager());
+        /* Set type info for the operator node */
+        leftBCO.bindComparisonOperator();
 
-		leftSide = leftBCO;
+        leftSide = leftBCO;
 
-		for (int elemsDone = 1; elemsDone < listSize; elemsDone++)
-		{
+        for (int elemsDone = 1; elemsDone < listSize; elemsDone++)
+        {
 
-			/* leftO <> rightOList.elementAt(elemsDone) */
-			leftClone = (getLeftOperand() instanceof ColumnReference) ? getLeftOperand().getClone() : getLeftOperand();
-			rightBCO = (BinaryComparisonOperatorNode) 
-						getNodeFactory().getNode(
-							C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE,
-							leftClone,
-							(ValueNode) rightOperandList.elementAt(elemsDone),
-							getContextManager());
-			/* Set type info for the operator node */
-			rightBCO.bindComparisonOperator();
+            /* leftO <> rightOList.elementAt(elemsDone) */
+            leftClone = (getLeftOperand() instanceof ColumnReference) ? getLeftOperand().getClone() : getLeftOperand();
+            rightBCO = (BinaryComparisonOperatorNode) 
+                        getNodeFactory().getNode(
+                            C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE,
+                            leftClone,
+                            (ValueNode) rightOperandList.elementAt(elemsDone),
+                            getContextManager());
+            /* Set type info for the operator node */
+            rightBCO.bindComparisonOperator();
 
-			/* Create the AND */
-			newAnd = (AndNode) getNodeFactory().getNode(
-												C_NodeTypes.AND_NODE,
-												leftSide,
-												rightBCO,
-												getContextManager());
-			newAnd.postBindFixup();
+            /* Create the AND */
+            newAnd = (AndNode) getNodeFactory().getNode(
+                                                C_NodeTypes.AND_NODE,
+                                                leftSide,
+                                                rightBCO,
+                                                getContextManager());
+            newAnd.postBindFixup();
 
-			leftSide = newAnd;
-		}
+            leftSide = newAnd;
+        }
 
-		return leftSide;
-	}
+        return leftSide;
+    }
 
-	/**
-	 * See if this IN list operator is referencing the same table.
-	 *
-	 * @param cr	The column reference.
-	 *
-	 * @return	true if in list references the same table as in cr.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public boolean selfReference(ColumnReference cr)
-		throws StandardException
-	{
-		int size = rightOperandList.size();
-		for (int i = 0; i < size; i++)
-		{
-			ValueNode vn = (ValueNode) rightOperandList.elementAt(i);
-			if (vn.getTablesReferenced().get(cr.getTableNumber()))
-				return true;
-		}
-		return false;
-	}
+    /**
+     * See if this IN list operator is referencing the same table.
+     *
+     * @param cr    The column reference.
+     *
+     * @return    true if in list references the same table as in cr.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public boolean selfReference(ColumnReference cr)
+        throws StandardException
+    {
+        int size = rightOperandList.size();
+        for (int i = 0; i < size; i++)
+        {
+            ValueNode vn = (ValueNode) rightOperandList.elementAt(i);
+            if (vn.getTablesReferenced().get(cr.getTableNumber()))
+                return true;
+        }
+        return false;
+    }
 
-	/**
-	 * The selectivity for an "IN" predicate is generally very small.
-	 * This is an estimate applicable when in list are not all constants.
-	 */
-	public double selectivity(Optimizable optTable)
-	{
-		return 0.3d;
-	}
+    /**
+     * The selectivity for an "IN" predicate is generally very small.
+     * This is an estimate applicable when in list are not all constants.
+     */
+    public double selectivity(Optimizable optTable)
+    {
+        return 0.3d;
+    }
  
-	/**
-	 * Do code generation for this IN list operator.
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class we're generating
-	 * @param mb The MethodBuilder the expression will go into
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Do code generation for this IN list operator.
+     *
+     * @param acb    The ExpressionClassBuilder for the class we're generating
+     * @param mb The MethodBuilder the expression will go into
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public void generateExpression(ExpressionClassBuilder acb,
-											MethodBuilder mb)
-									throws StandardException
-	{
-		int			listSize = rightOperandList.size();
-		String		resultTypeName;
-		String		receiverType = ClassName.DataValueDescriptor;
-	
-		String		leftInterfaceType = ClassName.DataValueDescriptor;
-		String		rightInterfaceType = ClassName.DataValueDescriptor + "[]";
+    public void generateExpression(ExpressionClassBuilder acb,
+                                            MethodBuilder mb)
+                                    throws StandardException
+    {
+        int            listSize = rightOperandList.size();
+        String        resultTypeName;
+        String        receiverType = ClassName.DataValueDescriptor;
+    
+        String        leftInterfaceType = ClassName.DataValueDescriptor;
+        String        rightInterfaceType = ClassName.DataValueDescriptor + "[]";
 
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(listSize > 0,
-				"listSize is expected to be > 0");
-		}
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(listSize > 0,
+                "listSize is expected to be > 0");
+        }
 
-		/*
-		** There are 2 parts to the code generation for an IN list -
-		** the code in the constructor and the code for the expression evaluation.
-		** The code that gets generated for the constructor is:
-		**		DataValueDescriptor[] field = new DataValueDescriptor[size];
-		**	For each element in the IN list that is a constant, we also generate:
-		**		field[i] = rightOperandList[i];
-		**	
-		** If the IN list is composed entirely of constants, then we generate the
-		** the following:
-		**		leftOperand.in(rightOperandList, leftOperand, isNullable(), ordered, result);
-		**
-		** Otherwise, we create a new method.  This method contains the 
-		** assignment of the non-constant elements into the array and the call to the in()
-		** method, which is in the new method's return statement.  We then return a call
-		** to the new method.
-		*/
+        /*
+        ** There are 2 parts to the code generation for an IN list -
+        ** the code in the constructor and the code for the expression evaluation.
+        ** The code that gets generated for the constructor is:
+        **        DataValueDescriptor[] field = new DataValueDescriptor[size];
+        **    For each element in the IN list that is a constant, we also generate:
+        **        field[i] = rightOperandList[i];
+        **    
+        ** If the IN list is composed entirely of constants, then we generate the
+        ** the following:
+        **        leftOperand.in(rightOperandList, leftOperand, isNullable(), ordered, result);
+        **
+        ** Otherwise, we create a new method.  This method contains the 
+        ** assignment of the non-constant elements into the array and the call to the in()
+        ** method, which is in the new method's return statement.  We then return a call
+        ** to the new method.
+        */
 
-		/* Figure out the result type name */
-		resultTypeName = getTypeCompiler().interfaceName();
+        /* Figure out the result type name */
+        resultTypeName = getTypeCompiler().interfaceName();
 
-		// Generate the code to build the array
-		LocalField arrayField = generateListAsArray(acb, mb);
+        // Generate the code to build the array
+        LocalField arrayField = generateListAsArray(acb, mb);
 
-		/*
-		** Call the method for this operator.
-		*/
-		/*
-		** Generate (field = <left expression>).  This assignment is
-		** used as the receiver of the method call for this operator,
-		** and the field is used as the left operand:
-		**
-		**	(field = <left expression>).method(field, <right expression>...)
-		*/
+        /*
+        ** Call the method for this operator.
+        */
+        /*
+        ** Generate (field = <left expression>).  This assignment is
+        ** used as the receiver of the method call for this operator,
+        ** and the field is used as the left operand:
+        **
+        **    (field = <left expression>).method(field, <right expression>...)
+        */
 
-		//LocalField receiverField =
-		//	acb.newFieldDeclaration(Modifier.PRIVATE, receiverType);
+        //LocalField receiverField =
+        //    acb.newFieldDeclaration(Modifier.PRIVATE, receiverType);
 
         if (leftOperandList.size() == 1) {
             getLeftOperand().generateExpression(acb, mb);
@@ -649,115 +649,115 @@ public final class InListOperatorNode extends BinaryListOperatorNode
             mb.upCast(ClassName.DataValueDescriptor);
             
         }
-		mb.dup();
-		//mb.putField(receiverField); // instance for method call
-		/*mb.getField(receiverField);*/ mb.upCast(leftInterfaceType); // first arg
-		mb.getField(arrayField); // second arg
-		mb.push(isOrdered); // third arg
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, receiverType, methodName, resultTypeName, 3);
-	}
+        mb.dup();
+        //mb.putField(receiverField); // instance for method call
+        /*mb.getField(receiverField);*/ mb.upCast(leftInterfaceType); // first arg
+        mb.getField(arrayField); // second arg
+        mb.push(isOrdered); // third arg
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, receiverType, methodName, resultTypeName, 3);
+    }
 
-	// It is expected that a DVD to move into the array has been pushed to the stack
-	// before this method is called.
-	public static void setDVDItemInArray(MethodBuilder mb, LocalField arrayField, int index,
-								     int constIdx, int numValsInSet) throws StandardException {
-		if (mb != null) {
-			if (numValsInSet > 1) {
-				// Push the ListDataType instance in prep for calling setFrom.
-				mb.getField(arrayField);
-				mb.getArrayElement(index);
-				mb.cast(ClassName.ListDataType);
+    // It is expected that a DVD to move into the array has been pushed to the stack
+    // before this method is called.
+    public static void setDVDItemInArray(MethodBuilder mb, LocalField arrayField, int index,
+                                     int constIdx, int numValsInSet) throws StandardException {
+        if (mb != null) {
+            if (numValsInSet > 1) {
+                // Push the ListDataType instance in prep for calling setFrom.
+                mb.getField(arrayField);
+                mb.getArrayElement(index);
+                mb.cast(ClassName.ListDataType);
 
-				mb.swap();
-				mb.push(constIdx);
+                mb.swap();
+                mb.push(constIdx);
 
-				mb.callMethod(VMOpcode.INVOKEVIRTUAL,
-						(String) null,
-						"setFrom",
-						"void", 2);
-			} else {
-				// Push the DVD array field in preparation of calling setArrayElement.
-				mb.getField(arrayField);
-				mb.swap();
-				mb.setArrayElement(index);
-			}
-		}
-	}
-	
-	protected void buildDVDInArray(MethodBuilder mb, LocalField arrayField, int index,
-								   LocalField rowArray, int numValsInSet) throws StandardException {
-		if (mb != null) {
-			if (numValsInSet > 1) {
-				// Push the ListDataType instance in prep for calling setFrom.
-				mb.getField(arrayField);
-				mb.getArrayElement(index);
-				mb.cast(ClassName.ListDataType);
-				
-				// Push the row as argument to setFrom.
-				mb.getField(rowArray);
-				mb.getArrayElement(index);
-				mb.upCast(ClassName.ExecRow);
-				
-				mb.callMethod(VMOpcode.INVOKEVIRTUAL,
-					(String) null,
-					"setFrom",
-					"void", 1);
-			} else {
-				// Push the DVD array field in preparation of calling setArrayElement.
-				mb.getField(arrayField);
-				
-				// Push the ExecRow in preparation of calling getColumn.
-				mb.getField(rowArray);
-				mb.getArrayElement(index);
-				mb.cast(ClassName.ValueRow);
-				mb.push(1);
-				mb.callMethod(VMOpcode.INVOKEVIRTUAL,
-					(String) null,
-					"getColumn",
-					ClassName.DataValueDescriptor, 1);
-				mb.setArrayElement(index);
-			}
-		}
-	}
-	
+                mb.callMethod(VMOpcode.INVOKEVIRTUAL,
+                        (String) null,
+                        "setFrom",
+                        "void", 2);
+            } else {
+                // Push the DVD array field in preparation of calling setArrayElement.
+                mb.getField(arrayField);
+                mb.swap();
+                mb.setArrayElement(index);
+            }
+        }
+    }
+    
+    protected void buildDVDInArray(MethodBuilder mb, LocalField arrayField, int index,
+                                   LocalField rowArray, int numValsInSet) throws StandardException {
+        if (mb != null) {
+            if (numValsInSet > 1) {
+                // Push the ListDataType instance in prep for calling setFrom.
+                mb.getField(arrayField);
+                mb.getArrayElement(index);
+                mb.cast(ClassName.ListDataType);
+                
+                // Push the row as argument to setFrom.
+                mb.getField(rowArray);
+                mb.getArrayElement(index);
+                mb.upCast(ClassName.ExecRow);
+                
+                mb.callMethod(VMOpcode.INVOKEVIRTUAL,
+                    (String) null,
+                    "setFrom",
+                    "void", 1);
+            } else {
+                // Push the DVD array field in preparation of calling setArrayElement.
+                mb.getField(arrayField);
+                
+                // Push the ExecRow in preparation of calling getColumn.
+                mb.getField(rowArray);
+                mb.getArrayElement(index);
+                mb.cast(ClassName.ValueRow);
+                mb.push(1);
+                mb.callMethod(VMOpcode.INVOKEVIRTUAL,
+                    (String) null,
+                    "getColumn",
+                    ClassName.DataValueDescriptor, 1);
+                mb.setArrayElement(index);
+            }
+        }
+    }
+    
     /**
-	 * Generate the code to create an array of DataValueDescriptors that
-	 * will hold the IN-list values at execution time.  The array gets
-	 * created in the constructor.  All constant elements in the array
-	 * are initialized in the constructor.  All non-constant elements,
-	 * if any, are initialized each time the IN list is evaluated.
-	 *
-	 * @param acb The ExpressionClassBuilder for the class we're generating
-	 * @param mb The MethodBuilder the expression will go into
-	 */
-	protected LocalField generateListAsArray(ExpressionClassBuilder acb,
-		MethodBuilder mb) throws StandardException
-	{
-		int listSize = rightOperandList.size();
-		LocalField arrayField = acb.newFieldDeclaration(
-			Modifier.PRIVATE, ClassName.DataValueDescriptor + "[]");
+     * Generate the code to create an array of DataValueDescriptors that
+     * will hold the IN-list values at execution time.  The array gets
+     * created in the constructor.  All constant elements in the array
+     * are initialized in the constructor.  All non-constant elements,
+     * if any, are initialized each time the IN list is evaluated.
+     *
+     * @param acb The ExpressionClassBuilder for the class we're generating
+     * @param mb The MethodBuilder the expression will go into
+     */
+    protected LocalField generateListAsArray(ExpressionClassBuilder acb,
+        MethodBuilder mb) throws StandardException
+    {
+        int listSize = rightOperandList.size();
+        LocalField arrayField = acb.newFieldDeclaration(
+            Modifier.PRIVATE, ClassName.DataValueDescriptor + "[]");
 
-		/* Assign the initializer to the DataValueDescriptor[] field */
-		MethodBuilder cb = acb.getConstructor();
-		cb.pushNewArray(ClassName.DataValueDescriptor, listSize);
-		cb.setField(arrayField);
+        /* Assign the initializer to the DataValueDescriptor[] field */
+        MethodBuilder cb = acb.getConstructor();
+        cb.pushNewArray(ClassName.DataValueDescriptor, listSize);
+        cb.setField(arrayField);
 
         // Count the number of "constants" in each group.
         ValueNode constants = (ValueNode)rightOperandList.elementAt(0);
         int numValsInSet = constants instanceof ListValueNode ?
             ((ListValueNode) constants).numValues() : 1;
         
-		/* Set the array elements that are constant */
+        /* Set the array elements that are constant */
         MethodBuilder nonConstantMethod = null;
-		MethodBuilder currentConstMethod = cb;
+        MethodBuilder currentConstMethod = cb;
 
-		for (int index = 0; index < listSize; index++)
-		{
+        for (int index = 0; index < listSize; index++)
+        {
             ValueNode topLevelLiteral = (ValueNode) rightOperandList.elementAt(index);
             ValueNode dataLiteral;
             MethodBuilder setArrayMethod = null;
-			int numConstants = 0;
-			int numNonConstants = 0;
+            int numConstants = 0;
+            int numNonConstants = 0;
 
             for (int constIdx = 0; constIdx < numValsInSet; constIdx++) {
 
@@ -778,7 +778,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                      *See Beetle 5135 or 4293 for further details on this type of problem.
                      */
                     if (constIdx == 0 &&
-						currentConstMethod.statementNumHitLimit(numConstants)) {
+                        currentConstMethod.statementNumHitLimit(numConstants)) {
                         MethodBuilder genConstantMethod = acb.newGeneratedFun("void", Modifier.PRIVATE);
                         currentConstMethod.pushThis();
                         currentConstMethod.callMethod(VMOpcode.INVOKEVIRTUAL,
@@ -794,7 +794,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                     }
                     setArrayMethod = currentConstMethod;
                 } else {
-					numNonConstants++;
+                    numNonConstants++;
                     if (nonConstantMethod == null)
                         nonConstantMethod = acb.newGeneratedFun("void", Modifier.PROTECTED);
                     setArrayMethod = nonConstantMethod;
@@ -802,68 +802,68 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 }
                 if (constIdx == 0) {
                     if (numValsInSet > 1) {
-						// Push the DVD array reference on the stack
-						cb.getField(arrayField);
-	
-						// Build a new ListDataType, and place on the stack.
-						PredicateList.generateListDataOnStack(acb, numValsInSet);
-						cb.upCast(ClassName.DataValueDescriptor);
-	
-						// Store the list data in the DVD array.
-						cb.setArrayElement(index);
-					}
+                        // Push the DVD array reference on the stack
+                        cb.getField(arrayField);
+    
+                        // Build a new ListDataType, and place on the stack.
+                        PredicateList.generateListDataOnStack(acb, numValsInSet);
+                        cb.upCast(ClassName.DataValueDescriptor);
+    
+                        // Store the list data in the DVD array.
+                        cb.setArrayElement(index);
+                    }
                 }
 
-				// Build the DVD to add to the DVD array, pushing it to the stack
-				// cast as a DataValueDescriptor.
-				dataLiteral.generateExpression(acb, setArrayMethod);
-				setArrayMethod.upCast(ClassName.DataValueDescriptor);
+                // Build the DVD to add to the DVD array, pushing it to the stack
+                // cast as a DataValueDescriptor.
+                dataLiteral.generateExpression(acb, setArrayMethod);
+                setArrayMethod.upCast(ClassName.DataValueDescriptor);
 
-				// Move the built DVD into the DVD array, using the proper
-				// constant or non-constant method.
-				setDVDItemInArray(setArrayMethod, arrayField, index, constIdx, numValsInSet);
+                // Move the built DVD into the DVD array, using the proper
+                // constant or non-constant method.
+                setDVDItemInArray(setArrayMethod, arrayField, index, constIdx, numValsInSet);
             }
-		}
+        }
 
-		//if a generated function was created to reduce the size of the methods close the functions.
-		if(currentConstMethod != cb){
-			currentConstMethod.methodReturn();
-			currentConstMethod.complete();
-		}
+        //if a generated function was created to reduce the size of the methods close the functions.
+        if(currentConstMethod != cb){
+            currentConstMethod.methodReturn();
+            currentConstMethod.complete();
+        }
 
-		if (nonConstantMethod != null) {
-			nonConstantMethod.methodReturn();
-			nonConstantMethod.complete();
-			mb.pushThis();
-			mb.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null, nonConstantMethod.getName(), "void", 0);
-		}
+        if (nonConstantMethod != null) {
+            nonConstantMethod.methodReturn();
+            nonConstantMethod.complete();
+            mb.pushThis();
+            mb.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null, nonConstantMethod.getName(), "void", 0);
+        }
 
-		return arrayField;
-	}
+        return arrayField;
+    }
 
 
-	/**
-	 * Generate start/stop key for this IN list operator.  Bug 3858.
-	 *
-	 * @param isAsc		is the index ascending on the column in question
-	 * @param isStartKey	are we generating start key or not
-	 * @param acb	The ExpressionClassBuilder for the class we're generating
-	 * @param mb The MethodBuilder the expression will go into
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void generateStartStopKey(boolean isAsc, boolean isStartKey,
-									 ExpressionClassBuilder acb,
-									 MethodBuilder mb)
-											   throws StandardException
-	{
-		/* left side of the "in" operator is our "judge" when we try to get
-		 * the min/max value of the operands on the right side.  Judge's type
-		 * is important for us, and is input parameter to min/maxValue.
-		 */
-		// TODO-msirek: Handle multiple start/stop keys for multicolumn in list.
-		if (leftOperandList.size() > 1)
-			SanityManager.THROWASSERT("Not expecting multiple start/stop keys on multicolumn in list.");
+    /**
+     * Generate start/stop key for this IN list operator.  Bug 3858.
+     *
+     * @param isAsc        is the index ascending on the column in question
+     * @param isStartKey    are we generating start key or not
+     * @param acb    The ExpressionClassBuilder for the class we're generating
+     * @param mb The MethodBuilder the expression will go into
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void generateStartStopKey(boolean isAsc, boolean isStartKey,
+                                     ExpressionClassBuilder acb,
+                                     MethodBuilder mb)
+                                               throws StandardException
+    {
+        /* left side of the "in" operator is our "judge" when we try to get
+         * the min/max value of the operands on the right side.  Judge's type
+         * is important for us, and is input parameter to min/maxValue.
+         */
+        // TODO-msirek: Handle multiple start/stop keys for multicolumn in list.
+        if (leftOperandList.size() > 1)
+            SanityManager.THROWASSERT("Not expecting multiple start/stop keys on multicolumn in list.");
         for (int listIdx = 0; listIdx < leftOperandList.size(); listIdx++) {
             ValueNode leftOperand = (ValueNode) leftOperandList.elementAt(listIdx);
             int leftTypeFormatId = leftOperand.getTypeId().getTypeFormatId();
@@ -926,55 +926,55 @@ public final class InListOperatorNode extends BinaryListOperatorNode
         
             }
         }
-	}
-	
-	/**
-	 * Indicate that the IN-list values for this node are ordered (i.e. they
-	 * are all constants and they have been sorted).
-	 */
-	protected void markAsOrdered(boolean ordered)
-	{
-		isOrdered = ordered;
-	}
+    }
+    
+    /**
+     * Indicate that the IN-list values for this node are ordered (i.e. they
+     * are all constants and they have been sorted).
+     */
+    protected void markAsOrdered(boolean ordered)
+    {
+        isOrdered = ordered;
+    }
 
-	/**
-	 * Indicate that the IN-list values for this node must be sorted
-	 * in DESCENDING order.  This only applies to in-list "multi-probing",
-	 * where the rows are processed in the order of the IN list elements
-	 * themselves.  In that case, any requirement to sort the rows in
-	 * descending order means that the values in the IN list have to
-	 * be sorted in descending order, as well.
-	 */
-	protected void markSortDescending()
-	{
-		sortDescending = true;
-	}
+    /**
+     * Indicate that the IN-list values for this node must be sorted
+     * in DESCENDING order.  This only applies to in-list "multi-probing",
+     * where the rows are processed in the order of the IN list elements
+     * themselves.  In that case, any requirement to sort the rows in
+     * descending order means that the values in the IN list have to
+     * be sorted in descending order, as well.
+     */
+    protected void markSortDescending()
+    {
+        sortDescending = true;
+    }
 
-	/**
-	 * Return whether or not the IN-list values for this node are ordered.
-	 * This is used for determining whether or not we need to do an execution-
-	 * time sort.
-	 */
-	protected boolean isOrdered()
-	{
-		return isOrdered;
-	} 
+    /**
+     * Return whether or not the IN-list values for this node are ordered.
+     * This is used for determining whether or not we need to do an execution-
+     * time sort.
+     */
+    protected boolean isOrdered()
+    {
+        return isOrdered;
+    } 
 
-	/**
-	 * Return whether or not the IN-list values for this node must be
-	 * sorted in DESCENDING order.
-	 */
-	protected boolean sortDescending()
-	{
-		return sortDescending;
-	}
-	
-	@Override
-	public int hashCode(){
-		int result=(isOrdered?1:0);
-		result=31*result+(sortDescending?1:0);
-		result = 31*result + leftOperandList.hashCode();
-		result = 31*result + rightOperandList.hashCode();
-		return result;
-	}
+    /**
+     * Return whether or not the IN-list values for this node must be
+     * sorted in DESCENDING order.
+     */
+    protected boolean sortDescending()
+    {
+        return sortDescending;
+    }
+    
+    @Override
+    public int hashCode(){
+        int result=(isOrdered?1:0);
+        result=31*result+(sortDescending?1:0);
+        result = 31*result + leftOperandList.hashCode();
+        result = 31*result + rightOperandList.hashCode();
+        return result;
+    }
 }

@@ -38,103 +38,103 @@ package com.splicemachine.dbTesting.functionTests.tests.junitTests.compatibility
 
 import com.splicemachine.db.drda.NetworkServerControl;
 
-public	class	Pinger
+public    class    Pinger
 {
-	/////////////////////////////////////////////////////////////
-	//
-	//	CONSTANTS
-	//
-	/////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////
+    //
+    //    CONSTANTS
+    //
+    /////////////////////////////////////////////////////////////
 
-	public	static	final			long	SLEEP_TIME_MILLIS = 5000L;
+    public    static    final            long    SLEEP_TIME_MILLIS = 5000L;
 
-	public	static	final			int		SUCCESS_EXIT = 0;
-	public	static	final			int		FAILURE_EXIT = 1;
-	
-	/////////////////////////////////////////////////////////////
-	//
-	//	STATE
-	//
-	/////////////////////////////////////////////////////////////
-	
-	/////////////////////////////////////////////////////////////
-	//
-	//	CONSTRUCTOR
-	//
-	/////////////////////////////////////////////////////////////
-	
-	public	Pinger() {}
+    public    static    final            int        SUCCESS_EXIT = 0;
+    public    static    final            int        FAILURE_EXIT = 1;
+    
+    /////////////////////////////////////////////////////////////
+    //
+    //    STATE
+    //
+    /////////////////////////////////////////////////////////////
+    
+    /////////////////////////////////////////////////////////////
+    //
+    //    CONSTRUCTOR
+    //
+    /////////////////////////////////////////////////////////////
+    
+    public    Pinger() {}
 
-	/////////////////////////////////////////////////////////////
-	//
-	//	ENTRY POINT
-	//
-	/////////////////////////////////////////////////////////////
-	
-	public	static	void	main( String[] args )
-		throws Exception
-	{
-		Pinger	me = new Pinger();
-		
-		me.ping( 5 );
-	}	
+    /////////////////////////////////////////////////////////////
+    //
+    //    ENTRY POINT
+    //
+    /////////////////////////////////////////////////////////////
+    
+    public    static    void    main( String[] args )
+        throws Exception
+    {
+        Pinger    me = new Pinger();
+        
+        me.ping( 5 );
+    }    
 
-	/////////////////////////////////////////////////////////////
-	//
-	//	MINIONS
-	//
-	/////////////////////////////////////////////////////////////
-	
-	private	void	println( String text )
-	{
-		System.err.println( text );
-		System.err.flush();
-	}
+    /////////////////////////////////////////////////////////////
+    //
+    //    MINIONS
+    //
+    /////////////////////////////////////////////////////////////
+    
+    private    void    println( String text )
+    {
+        System.err.println( text );
+        System.err.flush();
+    }
 
-	private	void	exit( int exitStatus )
-	{
-		Runtime.getRuntime().exit( exitStatus );
-	}
+    private    void    exit( int exitStatus )
+    {
+        Runtime.getRuntime().exit( exitStatus );
+    }
 
-	/////////////////////
-	//
-	//	SERVER MANAGEMENT
-	//
-	/////////////////////
+    /////////////////////
+    //
+    //    SERVER MANAGEMENT
+    //
+    /////////////////////
 
-	/**
-	 * <p>
-	 * Checks to see that the server is up. If the server doesn't
-	 * come up in a reasonable amount of time, brings down the VM.
-	 * </p>
-	 */
-	public	void	ping( int iterations )
-		throws Exception
-	{
-		ping( new NetworkServerControl(), iterations );
-	}
+    /**
+     * <p>
+     * Checks to see that the server is up. If the server doesn't
+     * come up in a reasonable amount of time, brings down the VM.
+     * </p>
+     */
+    public    void    ping( int iterations )
+        throws Exception
+    {
+        ping( new NetworkServerControl(), iterations );
+    }
 
 
-	private	void	ping( NetworkServerControl controller, int iterations )
-		throws Exception
-	{
-		Exception	finalException = null;
-		
-		for ( int i = 0; i < iterations; i++ )
-		{
-			try {
-				controller.ping();
+    private    void    ping( NetworkServerControl controller, int iterations )
+        throws Exception
+    {
+        Exception    finalException = null;
+        
+        for ( int i = 0; i < iterations; i++ )
+        {
+            try {
+                controller.ping();
 
-				return;
-			}
-			catch (Exception e) { finalException = e; }
-			
-			Thread.sleep( SLEEP_TIME_MILLIS );
-		}
+                return;
+            }
+            catch (Exception e) { finalException = e; }
+            
+            Thread.sleep( SLEEP_TIME_MILLIS );
+        }
 
-		println( "Server did not come up: " + finalException.getMessage() );
-		exit( FAILURE_EXIT );
-	}
+        println( "Server did not come up: " + finalException.getMessage() );
+        exit( FAILURE_EXIT );
+    }
 
 
 }

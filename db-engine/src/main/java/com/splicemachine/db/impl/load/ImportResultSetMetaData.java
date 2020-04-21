@@ -61,15 +61,15 @@ class ImportResultSetMetaData extends VTIMetaDataTemplate {
     this.udtClasses = udtClasses;
   }
 
-	public int getColumnCount() {
+    public int getColumnCount() {
     return numberOfColumns;
   }
 
-	public String getColumnName(int column) {
+    public String getColumnName(int column) {
         return columnNames[column-1];
   }
 
-	public int getColumnType(int column) {
+    public int getColumnType(int column) {
 
         /* By default all the data in the import file is assumed
          * to be in varchar format. Appropriate casting is applied 
@@ -129,20 +129,20 @@ class ImportResultSetMetaData extends VTIMetaDataTemplate {
         return colType;
     }
 
-	public int isNullable(int column) {
+    public int isNullable(int column) {
     return columnNullableUnknown;
   }
-	public int getColumnDisplaySize(int column) {
+    public int getColumnDisplaySize(int column) {
     if (columnWidths == null)
        return Limits.DB2_VARCHAR_MAXWIDTH;
     else
        return columnWidths[column-1];
   }
 
-	public  String getColumnTypeName(int column) throws SQLException
+    public  String getColumnTypeName(int column) throws SQLException
     {
-		return columnTypeNames[ column - 1 ];
-	}
+        return columnTypeNames[ column - 1 ];
+    }
 
     /**
      * Get the class bound to a UDT column.

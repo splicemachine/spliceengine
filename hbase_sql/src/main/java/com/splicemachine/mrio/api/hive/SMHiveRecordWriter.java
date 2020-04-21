@@ -48,15 +48,15 @@ import org.apache.log4j.Logger;
 public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, ExecRowWritable> {
 
     protected static Logger LOG = Logger.getLogger(RecordWriter.class);
-	protected Configuration conf;
+    protected Configuration conf;
     protected TxnView parentTxn;
     protected SMSQLUtil util;
     protected Activation activation;
     protected TxnView childTxn;
     protected Connection conn;
 
-	public SMHiveRecordWriter (Configuration conf) throws IOException {
-		this.conf = conf;
+    public SMHiveRecordWriter (Configuration conf) throws IOException {
+        this.conf = conf;
         String principal = conf.get("hive.server2.authentication.kerberos.principal");
         String keytab = conf.get("hive.server2.authentication.kerberos.keytab");
         if (principal != null && keytab != null) {
@@ -71,11 +71,11 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
         else {
             init();
         }
-	}
-	
-	@Override
-	public void write(RowLocationWritable key, ExecRowWritable value)
-			throws IOException {
+    }
+    
+    @Override
+    public void write(RowLocationWritable key, ExecRowWritable value)
+            throws IOException {
         InsertOperation insertOperation = null;
         try {
             DataSet<ExecRow> dataSet = getDataSet(value);
@@ -90,8 +90,8 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
         }
     }
 
-	@Override
-	public void close(Reporter reporter) throws IOException {
+    @Override
+    public void close(Reporter reporter) throws IOException {
         try {
             util.commitChildTransaction(conn, childTxn.getBeginTimestamp());
             util.commit(conn);
@@ -108,7 +108,7 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
                 throw new IOException(e);
             }
         }
-	}
+    }
 
     private SpliceOperation getVTIOperation(SpliceOperation op) {
 

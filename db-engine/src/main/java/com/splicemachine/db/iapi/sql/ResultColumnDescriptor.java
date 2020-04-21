@@ -41,96 +41,96 @@ import org.apache.spark.sql.types.StructField;
 
 public interface ResultColumnDescriptor
 {
-	/**
-	 * Returns a DataTypeDescriptor for the column. This DataTypeDescriptor
-	 * will not represent an actual value, it will only represent the type
-	 * that all values in the column will have.
-	 *
-	 * @return	A DataTypeDescriptor describing the type of the column.
-	 */
-	DataTypeDescriptor	getType();
+    /**
+     * Returns a DataTypeDescriptor for the column. This DataTypeDescriptor
+     * will not represent an actual value, it will only represent the type
+     * that all values in the column will have.
+     *
+     * @return    A DataTypeDescriptor describing the type of the column.
+     */
+    DataTypeDescriptor    getType();
 
-	/**
-	 * Returns a Spark Type for the column. This StructField
-	 * will not represent an actual value, it will only represent the type
-	 * that all values in the column will have.
-	 *
-	 * @return	A StructField describing the type of the column.
-	 */
-	StructField getStructField();
+    /**
+     * Returns a Spark Type for the column. This StructField
+     * will not represent an actual value, it will only represent the type
+     * that all values in the column will have.
+     *
+     * @return    A StructField describing the type of the column.
+     */
+    StructField getStructField();
 
-	/**
-	 * Returns the name of the Column.
-	 *
-	 * @return	A String containing the name of the column.
-	 */
-	String	getName();
+    /**
+     * Returns the name of the Column.
+     *
+     * @return    A String containing the name of the column.
+     */
+    String    getName();
 
-	/**
-	 * Get the name of the schema for the Column's base table, if any.
-	 * Following example queries will all return SPLICE (assuming user is in schema SPLICE)
-	 * select t.a from t
-	 * select b.a from t as b
-	 * select app.t.a from t
-	 *
-	 * @return	The name of the schema of the Column's base table. If the column
-	 *		is not in a schema (i.e. is a derived column), it returns NULL.
-	 */
-	String	getSourceSchemaName();
+    /**
+     * Get the name of the schema for the Column's base table, if any.
+     * Following example queries will all return SPLICE (assuming user is in schema SPLICE)
+     * select t.a from t
+     * select b.a from t as b
+     * select app.t.a from t
+     *
+     * @return    The name of the schema of the Column's base table. If the column
+     *        is not in a schema (i.e. is a derived column), it returns NULL.
+     */
+    String    getSourceSchemaName();
 
-	/**
-	 * Get the name of the underlying(base) table this column comes from, if any.
-	 * Following example queries will all return T
-	 * select a from t
-	 * select b.a from t as b
-	 * select t.a from t
-	 *
-	 * @return	A String containing the name of the base table of the Column
-	 *		is in. If the column is not in a table (i.e. is a
-	 * 		derived column), it returns NULL.
-	 * @return	The name of the Column's base table. If the column
-	 *		is not in a schema (i.e. is a derived column), it returns NULL.
-	 */
-	String	getSourceTableName();
+    /**
+     * Get the name of the underlying(base) table this column comes from, if any.
+     * Following example queries will all return T
+     * select a from t
+     * select b.a from t as b
+     * select t.a from t
+     *
+     * @return    A String containing the name of the base table of the Column
+     *        is in. If the column is not in a table (i.e. is a
+     *         derived column), it returns NULL.
+     * @return    The name of the Column's base table. If the column
+     *        is not in a schema (i.e. is a derived column), it returns NULL.
+     */
+    String    getSourceTableName();
 
-	/**
-	 * Return true if the column is wirtable by a positioned update.
-	 *
-	 * @return TRUE, if the column is a base column of a table and is 
-	 * writable by a positioned update.
-	 */
-	boolean updatableByCursor();
+    /**
+     * Return true if the column is wirtable by a positioned update.
+     *
+     * @return TRUE, if the column is a base column of a table and is 
+     * writable by a positioned update.
+     */
+    boolean updatableByCursor();
 
-	/**
-	 * Get the position of the Column.
-	 * NOTE - position is 1-based.
-	 *
-	 * @return	An int containing the position of the Column
-	 *		within the table.
-	 */
-	int	getColumnPosition();
+    /**
+     * Get the position of the Column.
+     * NOTE - position is 1-based.
+     *
+     * @return    An int containing the position of the Column
+     *        within the table.
+     */
+    int    getColumnPosition();
 
-	/**
-	 * Tell us if the column is an autoincrement column or not.
-	 * 
-	 * @return TRUE, if the column is a base column of a table and is an
-	 * autoincrement column.
-	 */
-	boolean isAutoincrement();
+    /**
+     * Tell us if the column is an autoincrement column or not.
+     * 
+     * @return TRUE, if the column is a base column of a table and is an
+     * autoincrement column.
+     */
+    boolean isAutoincrement();
 
-	/**
-	 * Return true if this result column represents a generated column.
-	 */
-	boolean hasGenerationClause();
+    /**
+     * Return true if this result column represents a generated column.
+     */
+    boolean hasGenerationClause();
     
-	/*
-	 * NOTE: These interfaces are intended to support JDBC. There are some
-	 * JDBC methods on java.sql.ResultSetMetaData that have no equivalent
-	 * here, mainly because they are of questionable use to us.  They are:
-	 * getCatalogName() (will we support catalogs?), getColumnLabel(),
-	 * isCaseSensitive(), isCurrency(),
-	 * isDefinitelyWritable(), isReadOnly(), isSearchable(), isSigned(),
-	 * isWritable()). The JDBC driver implements these itself, using
-	 * the data type information and knowing data type characteristics.
-	 */
+    /*
+     * NOTE: These interfaces are intended to support JDBC. There are some
+     * JDBC methods on java.sql.ResultSetMetaData that have no equivalent
+     * here, mainly because they are of questionable use to us.  They are:
+     * getCatalogName() (will we support catalogs?), getColumnLabel(),
+     * isCaseSensitive(), isCurrency(),
+     * isDefinitelyWritable(), isReadOnly(), isSearchable(), isSigned(),
+     * isWritable()). The JDBC driver implements these itself, using
+     * the data type information and knowing data type characteristics.
+     */
 }

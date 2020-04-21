@@ -49,44 +49,44 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Properties;
 
 /**
-	Implementation of the monitor that uses the class loader
-	that the its was loaded in for all class loading.
+    Implementation of the monitor that uses the class loader
+    that the its was loaded in for all class loading.
 
 */
 
 public final class FileMonitor extends BaseMonitor
 {
 
-	/* Fields */
-	private File home;
+    /* Fields */
+    private File home;
 
-	private ProductVersionHolder engineVersion;
+    private ProductVersionHolder engineVersion;
 
-	public FileMonitor() {
-		initialize(true);
-		applicationProperties = readApplicationProperties();
-	}
+    public FileMonitor() {
+        initialize(true);
+        applicationProperties = readApplicationProperties();
+    }
 
-	public FileMonitor(java.util.Properties properties, java.io.PrintStream log) {
-		runWithState(properties, log);
-	}
+    public FileMonitor(java.util.Properties properties, java.io.PrintStream log) {
+        runWithState(properties, log);
+    }
 
 
 
-	private InputStream PBapplicationPropertiesStream()
-	  throws IOException {
+    private InputStream PBapplicationPropertiesStream()
+      throws IOException {
 
-		File sr = FileUtil.newFile(home, Property.PROPERTIES_FILE);
+        File sr = FileUtil.newFile(home, Property.PROPERTIES_FILE);
 
-		if (!sr.exists())
-			return null;
+        if (!sr.exists())
+            return null;
 
-		return new FileInputStream(sr);
-	}
+        return new FileInputStream(sr);
+    }
 
-	public Object getEnvironment() {
-		return home;
-	}
+    public Object getEnvironment() {
+        return home;
+    }
 
     /**
      * Create a ThreadGroup and set the daemon property to make sure
@@ -106,50 +106,50 @@ public final class FileMonitor extends BaseMonitor
         }
     }
 
-	/**
-		SECURITY WARNING.
+    /**
+        SECURITY WARNING.
 
-		This method is run in a privileged block in a Java 2 environment.
+        This method is run in a privileged block in a Java 2 environment.
 
-		Set the system home directory.  Returns false if it couldn't for
-		some reason.
+        Set the system home directory.  Returns false if it couldn't for
+        some reason.
 
-	**/
-	private boolean PBinitialize(boolean lite)
-	{
-		if (!lite) {
+    **/
+    private boolean PBinitialize(boolean lite)
+    {
+        if (!lite) {
             daemonGroup = createDaemonGroup();
-		}
+        }
 
-		InputStream versionStream = getClass().getResourceAsStream(ProductGenusNames.DBMS_INFO);
+        InputStream versionStream = getClass().getResourceAsStream(ProductGenusNames.DBMS_INFO);
 
-		engineVersion = ProductVersionHolder.getProductVersionHolderFromMyEnv(versionStream);
+        engineVersion = ProductVersionHolder.getProductVersionHolderFromMyEnv(versionStream);
 
-		String systemHome;
-		// create the system home directory if it doesn't exist
-		try {
-			// SECURITY PERMISSION - OP2
-			systemHome = System.getProperty(Property.SYSTEM_HOME_PROPERTY);
-		} catch (SecurityException se) {
-			// system home will be the current directory
-			systemHome = null;
-		}
+        String systemHome;
+        // create the system home directory if it doesn't exist
+        try {
+            // SECURITY PERMISSION - OP2
+            systemHome = System.getProperty(Property.SYSTEM_HOME_PROPERTY);
+        } catch (SecurityException se) {
+            // system home will be the current directory
+            systemHome = null;
+        }
 
-		if (systemHome != null) {
-			home = new File(systemHome);
+        if (systemHome != null) {
+            home = new File(systemHome);
 
-			// SECURITY PERMISSION - OP2a
-			if (home.exists()) {
-				if (!home.isDirectory()) {
-					report(Property.SYSTEM_HOME_PROPERTY + "=" + systemHome
-						+ " does not represent a directory");
-					return false;
-				}
-			} else if (!lite) {
+            // SECURITY PERMISSION - OP2a
+            if (home.exists()) {
+                if (!home.isDirectory()) {
+                    report(Property.SYSTEM_HOME_PROPERTY + "=" + systemHome
+                        + " does not represent a directory");
+                    return false;
+                }
+            } else if (!lite) {
 
                 boolean created = false;
-				try {
-					// SECURITY PERMISSION - OP2b
+                try {
+                    // SECURITY PERMISSION - OP2b
                     // Attempt to create just the folder initially
                     // which does not require read permission on
                     // the parent folder. This is to allow a policy
@@ -164,57 +164,57 @@ public final class FileMonitor extends BaseMonitor
                     // but avoids requiring read permission on the parent
                     // directory if it exists.
                     created = home.mkdir() || home.mkdirs();
-				} catch (SecurityException se) {
-					return false;
-				}
+                } catch (SecurityException se) {
+                    return false;
+                }
 
                 if (created) {
                     FileUtil.limitAccessToOwner(home);
                 }
-			}
-		}
+            }
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	/**
-		SECURITY WARNING.
+    /**
+        SECURITY WARNING.
 
-		This method is run in a privileged block in a Java 2 environment.
+        This method is run in a privileged block in a Java 2 environment.
 
-		Return a property from the JVM's system set.
-		In a Java2 environment this will be executed as a privileged block
-		if and only if the property starts with 'db.'.
-		If a SecurityException occurs, null is returned.
-	*/
-	private String PBgetJVMProperty(String key) {
+        Return a property from the JVM's system set.
+        In a Java2 environment this will be executed as a privileged block
+        if and only if the property starts with 'db.'.
+        If a SecurityException occurs, null is returned.
+    */
+    private String PBgetJVMProperty(String key) {
 
-		try {
-			// SECURITY PERMISSION - OP1
-			return System.getProperty(key);
-		} catch (SecurityException se) {
-			return null;
-		}
-	}
+        try {
+            // SECURITY PERMISSION - OP1
+            return System.getProperty(key);
+        } catch (SecurityException se) {
+            return null;
+        }
+    }
 
-	/*
-	** Priv block code, moved out of the old Java2 version.
-	*/
+    /*
+    ** Priv block code, moved out of the old Java2 version.
+    */
 
-	/**
-		Initialize the system in a privileged block.
-	**/
-	final boolean initialize(final boolean lite)
-	{
+    /**
+        Initialize the system in a privileged block.
+    **/
+    final boolean initialize(final boolean lite)
+    {
         // SECURITY PERMISSION - OP2, OP2a, OP2b
         return (Boolean) AccessController.doPrivileged(new PrivilegedAction() {
             public Object run() {
                 return PBinitialize(lite);
             }
         });
-	}
+    }
 
-	final Properties getDefaultModuleProperties() {
+    final Properties getDefaultModuleProperties() {
         // SECURITY PERMISSION - IP1
         return (Properties) AccessController.doPrivileged(
                 new PrivilegedAction() {
@@ -224,9 +224,9 @@ public final class FileMonitor extends BaseMonitor
         });
     }
 
-	public final String getJVMProperty(final String key) {
-		if (!key.startsWith("derby."))
-			return PBgetJVMProperty(key);
+    public final String getJVMProperty(final String key) {
+        if (!key.startsWith("derby."))
+            return PBgetJVMProperty(key);
 
         // SECURITY PERMISSION - OP1
         return (String) AccessController.doPrivileged(new PrivilegedAction() {
@@ -234,9 +234,9 @@ public final class FileMonitor extends BaseMonitor
                 return PBgetJVMProperty(key);
             }
         });
-	}
+    }
 
-	public synchronized final Thread getDaemonThread(
+    public synchronized final Thread getDaemonThread(
             final Runnable task,
             final String name,
             final boolean setMinPriority) {
@@ -262,33 +262,33 @@ public final class FileMonitor extends BaseMonitor
         });
     }
 
-	public final void setThreadPriority(final int priority) {
+    public final void setThreadPriority(final int priority) {
         AccessController.doPrivileged(new PrivilegedAction() {
             public Object run() {
                 FileMonitor.super.setThreadPriority(priority);
                 return null;
             }
         });
-	}
+    }
 
-	final InputStream applicationPropertiesStream()
-	  throws IOException {
-		try {
-			// SECURITY PERMISSION - OP3
-			return (InputStream) AccessController.doPrivileged(
+    final InputStream applicationPropertiesStream()
+      throws IOException {
+        try {
+            // SECURITY PERMISSION - OP3
+            return (InputStream) AccessController.doPrivileged(
                     new PrivilegedExceptionAction() {
                 public Object run() throws IOException {
                     return PBapplicationPropertiesStream();
                 }
             });
-		}
+        }
         catch (java.security.PrivilegedActionException pae)
         {
-			throw (IOException) pae.getException();
-		}
-	}
+            throw (IOException) pae.getException();
+        }
+    }
 
-	public final ProductVersionHolder getEngineVersion() {
-		return engineVersion;
-	}
+    public final ProductVersionHolder getEngineVersion() {
+        return engineVersion;
+    }
 }

@@ -23,7 +23,7 @@ package com.splicemachine.metrics.util;
  */
 public interface LongLongFolder {
 
-		long fold(long previous, long next);
+        long fold(long previous, long next);
 
-		long foldAll(long initialValue,long...array);
+        long foldAll(long initialValue,long...array);
 }

@@ -457,29 +457,29 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      * @throws SQLException if called after the triggering event has completed
      */
     public ResultSet getNewRowSet() throws SQLException
-	{
-		if (triggeringResultSet == null)
-		{
+    {
+        if (triggeringResultSet == null)
+        {
                     return null;
-		}
-		try
-		{
-			/* We should really shallow clone the result set, because it could be used
-			 * at multiple places independently in trigger action.  This is a bug found
-			 * during the fix of beetle 4373.
-			 */
-			CursorResultSet ars = triggeringResultSet;
-			if (ars instanceof TemporaryRowHolderResultSet)
-				ars = (CursorResultSet) ((TemporaryRowHolderResultSet) ars).clone();
-			ars.open();
-			java.sql.ResultSet rs = cc.getResultSet(ars);
-			resultSetVector.addElement(rs);
-			return rs;
-		} catch (StandardException se)
-		{
-			throw PublicAPI.wrapStandardException(se);
-		}
-	}
+        }
+        try
+        {
+            /* We should really shallow clone the result set, because it could be used
+             * at multiple places independently in trigger action.  This is a bug found
+             * during the fix of beetle 4373.
+             */
+            CursorResultSet ars = triggeringResultSet;
+            if (ars instanceof TemporaryRowHolderResultSet)
+                ars = (CursorResultSet) ((TemporaryRowHolderResultSet) ars).clone();
+            ars.open();
+            java.sql.ResultSet rs = cc.getResultSet(ars);
+            resultSetVector.addElement(rs);
+            return rs;
+        } catch (StandardException se)
+        {
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
 
     /**
      * Like getBeforeResultSet(), but returns a result set positioned on the first row of the before result set.

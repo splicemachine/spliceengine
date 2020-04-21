@@ -108,20 +108,20 @@ String fileName, String characterDelimiter, String columnDelimiter, int numberOf
 /**
  */
 public class VTIOperation extends SpliceBaseOperation {
-	/* Run time statistics variables */
-	public String javaClassName;
+    /* Run time statistics variables */
+    public String javaClassName;
     private SpliceMethod<ExecRow> row;
     private String rowMethodName;
     private SpliceMethod<DatasetProvider> constructor;
     private String constructorMethodName;
-	public DatasetProvider userVTI;
-	private ExecRow allocatedRow;
-	private FormatableBitSet referencedColumns;
-	private boolean isTarget;
-	private FormatableHashtable compileTimeConstants;
-	private int ctcNumber;
-	private boolean[] runtimeNullableColumn;
-	private boolean isDerbyStyleTableFunction;
+    public DatasetProvider userVTI;
+    private ExecRow allocatedRow;
+    private FormatableBitSet referencedColumns;
+    private boolean isTarget;
+    private FormatableHashtable compileTimeConstants;
+    private int ctcNumber;
+    private boolean[] runtimeNullableColumn;
+    private boolean isDerbyStyleTableFunction;
     private  TypeDescriptor returnType;
     private DataTypeDescriptor[]    resultColumnTypes;
     private Restriction vtiRestriction;
@@ -130,18 +130,18 @@ public class VTIOperation extends SpliceBaseOperation {
     private boolean convertTimestamps;
 
 
-	/**
-		Specified isolation level of SELECT (scan). If not set or
-		not application, it will be set to ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL
-	*/
-	private int scanIsolationLevel = ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL;
+    /**
+        Specified isolation level of SELECT (scan). If not set or
+        not application, it will be set to ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL
+    */
+    private int scanIsolationLevel = ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL;
 
     protected static final String NAME = VTIOperation.class.getSimpleName().replaceAll("Operation","");
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+            return NAME;
+    }
 
 
     public VTIOperation() {
@@ -152,32 +152,32 @@ public class VTIOperation extends SpliceBaseOperation {
     // class interface
     //
    public VTIOperation(Activation activation, GeneratedMethod row, int resultSetNumber,
-				 GeneratedMethod constructor,
-				 String javaClassName,
-				 String pushedQualifiers,
-				 int erdNumber,
-				 int ctcNumber,
-				 boolean isTarget,
-				 int scanIsolationLevel,
-			     double optimizerEstimatedRowCount,
-				 double optimizerEstimatedCost,
-				 boolean isDerbyStyleTableFunction,
+                 GeneratedMethod constructor,
+                 String javaClassName,
+                 String pushedQualifiers,
+                 int erdNumber,
+                 int ctcNumber,
+                 boolean isTarget,
+                 int scanIsolationLevel,
+                 double optimizerEstimatedRowCount,
+                 double optimizerEstimatedCost,
+                 boolean isDerbyStyleTableFunction,
                  int returnTypeNumber,
                  int vtiProjectionNumber,
                  int vtiRestrictionNumber,
                  int resultDescriptionNumber
                  ) 
-		throws StandardException
-	{
-		super(activation, resultSetNumber, 
-			  optimizerEstimatedRowCount, optimizerEstimatedCost);
+        throws StandardException
+    {
+        super(activation, resultSetNumber, 
+              optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.rowMethodName = row.getMethodName();
-		this.constructorMethodName = constructor.getMethodName();
-		this.javaClassName = javaClassName;
-		this.isTarget = isTarget;
-	//	this.pushedQualifiers = pushedQualifiers;
-		this.scanIsolationLevel = scanIsolationLevel;
-		this.isDerbyStyleTableFunction = isDerbyStyleTableFunction;
+        this.constructorMethodName = constructor.getMethodName();
+        this.javaClassName = javaClassName;
+        this.isTarget = isTarget;
+    //    this.pushedQualifiers = pushedQualifiers;
+        this.scanIsolationLevel = scanIsolationLevel;
+        this.isDerbyStyleTableFunction = isDerbyStyleTableFunction;
 
         this.returnType = returnTypeNumber == -1 ? null :
             (TypeDescriptor)
@@ -187,17 +187,17 @@ public class VTIOperation extends SpliceBaseOperation {
             (Restriction)
             activation.getPreparedStatement().getSavedObject(vtiRestrictionNumber);
 
-		if (erdNumber != -1)
-		{
-			this.referencedColumns = (FormatableBitSet)(activation.getPreparedStatement().
-								getSavedObject(erdNumber));
-		}
+        if (erdNumber != -1)
+        {
+            this.referencedColumns = (FormatableBitSet)(activation.getPreparedStatement().
+                                getSavedObject(erdNumber));
+        }
 
-		this.ctcNumber = ctcNumber;
-		compileTimeConstants = (FormatableHashtable) (activation.getPreparedStatement().
-								getSavedObject(ctcNumber));
+        this.ctcNumber = ctcNumber;
+        compileTimeConstants = (FormatableHashtable) (activation.getPreparedStatement().
+                                getSavedObject(ctcNumber));
 
-		this.resultDescriptionItemNumber = resultDescriptionNumber;
+        this.resultDescriptionItemNumber = resultDescriptionNumber;
 
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         String convertTimestampsString = null;
@@ -206,7 +206,7 @@ public class VTIOperation extends SpliceBaseOperation {
             PropertyUtil.getCachedDatabaseProperty(lcc, Property.CONVERT_OUT_OF_RANGE_TIMESTAMPS);
         }
         // if database property is not set, treat it as false
-		this.convertTimestamps = convertTimestampsString != null && Boolean.valueOf(convertTimestampsString);
+        this.convertTimestamps = convertTimestampsString != null && Boolean.valueOf(convertTimestampsString);
 
         init();
     }
@@ -262,17 +262,17 @@ public class VTIOperation extends SpliceBaseOperation {
 
 
     /**
-	 * Cache the ExecRow for this result set.
-	 *
-	 * @return The cached ExecRow for this ResultSet
-	 *
-	 * @exception StandardException thrown on failure.
-	 */
-	private ExecRow getAllocatedRow() throws StandardException {
-		if (allocatedRow == null)
+     * Cache the ExecRow for this result set.
+     *
+     * @return The cached ExecRow for this ResultSet
+     *
+     * @exception StandardException thrown on failure.
+     */
+    private ExecRow getAllocatedRow() throws StandardException {
+        if (allocatedRow == null)
             allocatedRow = (ExecRow) row.invoke();
-		return allocatedRow;
-	}
+        return allocatedRow;
+    }
 
     /**
      * Cache the ExecRow for this result set.
@@ -287,8 +287,8 @@ public class VTIOperation extends SpliceBaseOperation {
 
 
     public final int getScanIsolationLevel() {
-		return scanIsolationLevel;
-	}
+        return scanIsolationLevel;
+    }
 
     @Override
     public int[] getRootAccessedCols(long tableNumber) {

@@ -586,7 +586,7 @@ public class SqlXmlUtil
         // if this object is in an SPS, we need to recompile the query
         if (recompileQuery)
         {
-        	compileXQExpr(queryExpr, opName);
+            compileXQExpr(queryExpr, opName);
         }
 
         // Make sure we have a compiled query.

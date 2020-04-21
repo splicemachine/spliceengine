@@ -36,32 +36,32 @@ import java.util.Arrays;
 **/
 
 public class OpenSpliceConglomerate  {
-	protected SpliceConglomerate conglomerate;
-	protected TransactionManager transactionManager;
-	protected Transaction transaction;
-	protected StaticCompiledOpenConglomInfo staticCompiledOpenConglomInfo;
-	protected DynamicCompiledOpenConglomInfo dynamicCompiledOpenConglomInfo;
-	protected boolean hold;	
-	protected DataValueDescriptor[] rowTemplate = null;
-	
-	public OpenSpliceConglomerate(TransactionManager transactionManager,
+    protected SpliceConglomerate conglomerate;
+    protected TransactionManager transactionManager;
+    protected Transaction transaction;
+    protected StaticCompiledOpenConglomInfo staticCompiledOpenConglomInfo;
+    protected DynamicCompiledOpenConglomInfo dynamicCompiledOpenConglomInfo;
+    protected boolean hold;    
+    protected DataValueDescriptor[] rowTemplate = null;
+    
+    public OpenSpliceConglomerate(TransactionManager transactionManager,
                                   Transaction transaction,
                                   boolean hold,
                                   StaticCompiledOpenConglomInfo staticCompiledOpenConglomInfo,
                                   DynamicCompiledOpenConglomInfo dynamicCompiledOpenConglomInfo,
                                   SpliceConglomerate conglomerate) {
-		this.transactionManager = transactionManager;
-		this.transaction = transaction;
-		try {
-			((BaseSpliceTransaction)transaction).setActiveState(false, false, null);
-		} catch (Exception e) {
+        this.transactionManager = transactionManager;
+        this.transaction = transaction;
+        try {
+            ((BaseSpliceTransaction)transaction).setActiveState(false, false, null);
+        } catch (Exception e) {
         throw new RuntimeException(e);
-		}
-		this.hold = hold;
-		this.staticCompiledOpenConglomInfo = staticCompiledOpenConglomInfo;
-		this.dynamicCompiledOpenConglomInfo = dynamicCompiledOpenConglomInfo;
-		this.conglomerate = conglomerate;
-	}
+        }
+        this.hold = hold;
+        this.staticCompiledOpenConglomInfo = staticCompiledOpenConglomInfo;
+        this.dynamicCompiledOpenConglomInfo = dynamicCompiledOpenConglomInfo;
+        this.conglomerate = conglomerate;
+    }
     
     public int[] getFormatIds() {
         return conglomerate.getFormat_ids();
@@ -77,11 +77,11 @@ public class OpenSpliceConglomerate  {
     }
 
     public boolean[] getAscDescInfo() {
-    	return conglomerate.getAscDescInfo();
+        return conglomerate.getAscDescInfo();
     }
     
     public long getContainerID() {
-    	return conglomerate.getContainerid();
+        return conglomerate.getContainerid();
     }
     
     
@@ -89,56 +89,56 @@ public class OpenSpliceConglomerate  {
      * Return an "empty" row location object of the correct type.
      * <p>
      *
-	 * @return The empty Rowlocation.
+     * @return The empty Rowlocation.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
-	public RowLocation newRowLocationTemplate() throws StandardException {
-		return new HBaseRowLocation();
-	}
-	public Conglomerate getConglomerate() {
-		return this.conglomerate;
-	}
-	public TransactionManager getTransactionManager() {
-		return transactionManager;
-	}
+    public RowLocation newRowLocationTemplate() throws StandardException {
+        return new HBaseRowLocation();
+    }
+    public Conglomerate getConglomerate() {
+        return this.conglomerate;
+    }
+    public TransactionManager getTransactionManager() {
+        return transactionManager;
+    }
 
-	public Transaction getTransaction() {
-		return transaction;
-	}
+    public Transaction getTransaction() {
+        return transaction;
+    }
 
-	public StaticCompiledOpenConglomInfo getStaticCompiledOpenConglomInfo() {
-		return staticCompiledOpenConglomInfo;
-	}
+    public StaticCompiledOpenConglomInfo getStaticCompiledOpenConglomInfo() {
+        return staticCompiledOpenConglomInfo;
+    }
 
-	public DynamicCompiledOpenConglomInfo getDynamicCompiledOpenConglomInfo() {
-		return dynamicCompiledOpenConglomInfo;
-	}
+    public DynamicCompiledOpenConglomInfo getDynamicCompiledOpenConglomInfo() {
+        return dynamicCompiledOpenConglomInfo;
+    }
 
-	public boolean isHold() {
-		return hold;
-	}
+    public boolean isHold() {
+        return hold;
+    }
 
-	public DataValueDescriptor[] cloneRowTemplate() throws StandardException {
-		if (rowTemplate == null)
-			rowTemplate = RowUtil.newTemplate(getTransaction().getDataValueFactory(), null, getFormatIds(), getCollationIds());
-		return(RowUtil.newRowFromTemplate(rowTemplate));
-	}
-	
-	public long getIndexConglomerate() {
-		return ((IndexConglomerate)this.conglomerate).baseConglomerateId;
-	}
+    public DataValueDescriptor[] cloneRowTemplate() throws StandardException {
+        if (rowTemplate == null)
+            rowTemplate = RowUtil.newTemplate(getTransaction().getDataValueFactory(), null, getFormatIds(), getCollationIds());
+        return(RowUtil.newRowFromTemplate(rowTemplate));
+    }
+    
+    public long getIndexConglomerate() {
+        return ((IndexConglomerate)this.conglomerate).baseConglomerateId;
+    }
 
-	@Override
-	public String toString() {
-		try {
-			return String.format("OpenSpliceConglomerate {conglomerate=%s, rowTemplate=%s}",conglomerate,Arrays.toString(cloneRowTemplate()));
-		} catch (StandardException e) {
-			e.printStackTrace();
-			return String.format("OpenSpliceConglomerate {conglomerate=%s}",conglomerate);
-		}
-	}
-	
-	
-	
+    @Override
+    public String toString() {
+        try {
+            return String.format("OpenSpliceConglomerate {conglomerate=%s, rowTemplate=%s}",conglomerate,Arrays.toString(cloneRowTemplate()));
+        } catch (StandardException e) {
+            e.printStackTrace();
+            return String.format("OpenSpliceConglomerate {conglomerate=%s}",conglomerate);
+        }
+    }
+    
+    
+    
 }

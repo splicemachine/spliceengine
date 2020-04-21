@@ -57,7 +57,7 @@ import java.util.List;
 
 public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
 {
-	static final String TABLENAME_STRING = "SYSROUTINEPERMS";
+    static final String TABLENAME_STRING = "SYSROUTINEPERMS";
 
     // Column numbers for the SYSROUTINEPERMS table. 1 based
     public static final int ROUTINEPERMSID_COL_NUM = 1;
@@ -71,35 +71,35 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
     public static final int ROUTINEPERMSID_INDEX_NUM = 1;
     public static final int ALIASID_INDEX_NUM = 2;
 
-	private static final int[][] indexColumnPositions = 
-	{ 
-		{ GRANTEE_COL_NUM, ALIASID_COL_NUM, GRANTOR_COL_NUM},
-		{ ROUTINEPERMSID_COL_NUM },
-		{ ALIASID_COL_NUM }
-	};
+    private static final int[][] indexColumnPositions = 
+    { 
+        { GRANTEE_COL_NUM, ALIASID_COL_NUM, GRANTOR_COL_NUM},
+        { ROUTINEPERMSID_COL_NUM },
+        { ALIASID_COL_NUM }
+    };
 
     public static final int GRANTEE_COL_NUM_IN_GRANTEE_ALIAS_GRANTOR_INDEX = 1;
 
     private static final boolean[] indexUniqueness = { true, true, false };
 
-    private	static final String[] uuids =
+    private    static final String[] uuids =
     {
         "2057c01b-0103-0e39-b8e7-00000010f010" // catalog UUID
-		,"185e801c-0103-0e39-b8e7-00000010f010"	// heap UUID
-		,"c065801d-0103-0e39-b8e7-00000010f010"	// index1
-		,"40f70088-010c-4c2f-c8de-0000000f43a0" // index2
-		,"08264012-010c-bc85-060d-000000109ab8" // index3
+        ,"185e801c-0103-0e39-b8e7-00000010f010"    // heap UUID
+        ,"c065801d-0103-0e39-b8e7-00000010f010"    // index1
+        ,"40f70088-010c-4c2f-c8de-0000000f43a0" // index2
+        ,"08264012-010c-bc85-060d-000000109ab8" // index3
     };
 
     public SYSROUTINEPERMSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
-	{
-		super(uuidf,ef,dvf);
-		initInfo( COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, indexUniqueness, uuids);
-	}
+    {
+        super(uuidf,ef,dvf);
+        initInfo( COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, indexUniqueness, uuids);
+    }
 
-	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException
-	{
-		UUID oid;
+    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException
+    {
+        UUID oid;
         String routinePermID = null;
         DataValueDescriptor grantee = null;
         DataValueDescriptor grantor = null;
@@ -116,8 +116,8 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
             oid = rpd.getUUID();
             if ( oid == null )
             {
-				oid = getUUIDFactory().createUUID();
-				rpd.setUUID(oid);
+                oid = getUUIDFactory().createUUID();
+                rpd.setUUID(oid);
             }
             routinePermID = oid.toString();
             grantee = getAuthorizationID( rpd.getGrantee());
@@ -125,8 +125,8 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
             if( rpd.getRoutineUUID() != null)
                 routineID = rpd.getRoutineUUID().toString();
         }
-		ExecRow row = getExecutionFactory().getValueRow( COLUMN_COUNT);
-		row.setColumn( ROUTINEPERMSID_COL_NUM, new SQLChar(routinePermID));
+        ExecRow row = getExecutionFactory().getValueRow( COLUMN_COUNT);
+        row.setColumn( ROUTINEPERMSID_COL_NUM, new SQLChar(routinePermID));
         row.setColumn( GRANTEE_COL_NUM, grantee);
         row.setColumn( GRANTOR_COL_NUM, grantor);
         row.setColumn( ALIASID_COL_NUM, new SQLChar(routineID));
@@ -134,11 +134,11 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
         return row;
     } // end of makeRow
             
-	/** builds a tuple descriptor from a row */
-	public TupleDescriptor buildDescriptor(ExecRow row,
+    /** builds a tuple descriptor from a row */
+    public TupleDescriptor buildDescriptor(ExecRow row,
                                            TupleDescriptor parentTuple,
-                                           DataDictionary	dataDictionary)
-		throws StandardException
+                                           DataDictionary    dataDictionary)
+        throws StandardException
     {
         if( SanityManager.DEBUG)
             SanityManager.ASSERT( row.nColumns() == COLUMN_COUNT,
@@ -150,16 +150,16 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
         UUID aliasUUID = getUUIDFactory().recreateUUID(aliasUUIDString);
 
         RoutinePermsDescriptor routinePermsDesc =
-	        new RoutinePermsDescriptor( dataDictionary,
+            new RoutinePermsDescriptor( dataDictionary,
                     getAuthorizationID( row, GRANTEE_COL_NUM),
                     getAuthorizationID( row, GRANTOR_COL_NUM),
                     aliasUUID);
         routinePermsDesc.setUUID(routinePermsUUID);
-			return routinePermsDesc;
+            return routinePermsDesc;
     } // end of buildDescriptor
 
-	/** builds a column list for the catalog */
-	public SystemColumn[] buildColumnList()
+    /** builds a column list for the catalog */
+    public SystemColumn[] buildColumnList()
         throws StandardException
     {
          return new SystemColumn[] {
@@ -171,12 +171,12 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
          };
     }
 
-	/**
-	 * builds an index key row given for a given index number.
-	 */
-  	public ExecIndexRow buildIndexKeyRow( int indexNumber,
+    /**
+     * builds an index key row given for a given index number.
+     */
+      public ExecIndexRow buildIndexKeyRow( int indexNumber,
                                           PermissionsDescriptor perm) 
-  		throws StandardException
+          throws StandardException
     {
         ExecIndexRow row = null;
         
@@ -257,9 +257,9 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
         return -1; // There is only one kind of routine privilege so delete the whole row.
     } // end of removePermissions
     
-	/** 
-	 * @see PermissionsCatalogRowFactory#setUUIDOfThePassedDescriptor
-	 */
+    /** 
+     * @see PermissionsCatalogRowFactory#setUUIDOfThePassedDescriptor
+     */
     public void setUUIDOfThePassedDescriptor(ExecRow row, PermissionsDescriptor perm)
     throws StandardException
     {

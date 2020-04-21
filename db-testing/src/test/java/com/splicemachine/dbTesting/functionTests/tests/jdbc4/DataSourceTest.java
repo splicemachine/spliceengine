@@ -155,10 +155,10 @@ public class DataSourceTest extends BaseJDBCTestCase {
         //mode we are running in.
         if (usingEmbedded())
         {
-        	getTestConfiguration().shutdownDatabase();
+            getTestConfiguration().shutdownDatabase();
         } else
         {
-        	getTestConfiguration().stopNetworkServer();
+            getTestConfiguration().stopNetworkServer();
         }
         //Now try to use various apis on the JDBC Connection object created 
         //before shutdown and they all should generate connection error event.
@@ -189,7 +189,7 @@ public class DataSourceTest extends BaseJDBCTestCase {
             //shutdown will generate a communication error and that's why we
             //are checking for SQL State 08006 rather than No current connection
             //SQL State 08003. In embedded mode, we will get SQL State 08003
-        	//meaning No current connection
+            //meaning No current connection
             if (usingEmbedded())
                 assertSQLState("08003", e);
             else
@@ -197,7 +197,7 @@ public class DataSourceTest extends BaseJDBCTestCase {
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
-        aes12.resetState();        	
+        aes12.resetState();            
         try {
             conn.createClob();
         } catch (SQLException e) {
@@ -205,7 +205,7 @@ public class DataSourceTest extends BaseJDBCTestCase {
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
-        aes12.resetState();        	
+        aes12.resetState();            
         try {
             conn.getClientInfo();
         } catch (SQLException e) {
@@ -213,7 +213,7 @@ public class DataSourceTest extends BaseJDBCTestCase {
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
-        aes12.resetState();        	
+        aes12.resetState();            
         try {
             conn.getClientInfo("junk");
         } catch (SQLException e) {
@@ -221,7 +221,7 @@ public class DataSourceTest extends BaseJDBCTestCase {
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
-        aes12.resetState();        	
+        aes12.resetState();            
         try {
             conn.setClientInfo(null);
         } catch (SQLException e) {
@@ -229,7 +229,7 @@ public class DataSourceTest extends BaseJDBCTestCase {
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
-        aes12.resetState();        	
+        aes12.resetState();            
         try {
             conn.setClientInfo("junk1", "junk2");
         } catch (SQLException e) {
@@ -237,7 +237,7 @@ public class DataSourceTest extends BaseJDBCTestCase {
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
-        aes12.resetState();        	
+        aes12.resetState();            
         try {
             conn.isWrapperFor(this.getClass());
         } catch (SQLException e) {
@@ -245,54 +245,54 @@ public class DataSourceTest extends BaseJDBCTestCase {
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         if (usingEmbedded())
-        	assertTrue(aes12.didConnectionErrorEventHappen());
+            assertTrue(aes12.didConnectionErrorEventHappen());
         else
-        	//We do not make any call on underneath JDBC Connection
-        	//object for isWrapperFor and hence never get Connection
-        	//Error event
-        	assertFalse(aes12.didConnectionErrorEventHappen());
-        aes12.resetState();        	
+            //We do not make any call on underneath JDBC Connection
+            //object for isWrapperFor and hence never get Connection
+            //Error event
+            assertFalse(aes12.didConnectionErrorEventHappen());
+        aes12.resetState();            
         try {
             conn.unwrap(this.getClass());
         } catch (SQLException e) {
             if (usingEmbedded())
                 assertSQLState("08003", e);
             else
-            	//We do not make any call on underneath JDBC Connection
-            	//object for unwrap and hence never get Connection
-            	//closed exception. Instead we got exception because
-            	//client driver code is trying to unwrap this.getClass
-            	//and it can't do that
+                //We do not make any call on underneath JDBC Connection
+                //object for unwrap and hence never get Connection
+                //closed exception. Instead we got exception because
+                //client driver code is trying to unwrap this.getClass
+                //and it can't do that
                 assertSQLState("XJ128", e);
         }
-    	assertFalse(aes12.didConnectionClosedEventHappen());
+        assertFalse(aes12.didConnectionClosedEventHappen());
         if (usingEmbedded())
-        	assertTrue(aes12.didConnectionErrorEventHappen());
+            assertTrue(aes12.didConnectionErrorEventHappen());
         else
-        	//We do not make any call on underneath JDBC Connection
-        	//object for isWrapperFor and hence never get Connection
-        	//Error event
-        	assertFalse(aes12.didConnectionErrorEventHappen());
-        aes12.resetState();        	
+            //We do not make any call on underneath JDBC Connection
+            //object for isWrapperFor and hence never get Connection
+            //Error event
+            assertFalse(aes12.didConnectionErrorEventHappen());
+        aes12.resetState();            
         try {
             conn.isValid(5);
         } catch (SQLException e) {
             assertSQLState("08003", e);
         }
         if (usingEmbedded())
-        	assertTrue(aes12.didConnectionClosedEventHappen());
+            assertTrue(aes12.didConnectionClosedEventHappen());
         else
-        	assertFalse(aes12.didConnectionClosedEventHappen());
-    	//As per the JDBC definition, an exception and hence an event is raised
-    	//for isValid only if the param value is illegal
-    	assertFalse(aes12.didConnectionErrorEventHappen());
-        aes12.resetState();        	
+            assertFalse(aes12.didConnectionClosedEventHappen());
+        //As per the JDBC definition, an exception and hence an event is raised
+        //for isValid only if the param value is illegal
+        assertFalse(aes12.didConnectionErrorEventHappen());
+        aes12.resetState();            
         if (usingEmbedded())
         {
             Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
         }else
         {
-        	getTestConfiguration().startNetworkServer();
+            getTestConfiguration().startNetworkServer();
         }
 
         // Get a new connection to the database

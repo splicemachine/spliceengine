@@ -47,66 +47,66 @@ public class RoutinePermsDescriptor extends PermissionsDescriptor
     private UUID routineUUID;
     private String routineName;
     private boolean hasExecutePermission;
-	
-	public RoutinePermsDescriptor( DataDictionary dd,
+    
+    public RoutinePermsDescriptor( DataDictionary dd,
                                    String grantee,
                                    String grantor,
                                    UUID routineUUID,
                                    boolean hasExecutePermission) throws StandardException
-	{
+    {
         super (dd, grantee, grantor);
         this.routineUUID = routineUUID;
         this.hasExecutePermission = hasExecutePermission;
         //routineUUID can be null only if the constructor with routineePermsUUID
         //has been invoked.
         if (routineUUID != null) {
-        	AliasDescriptor ad = dd.getAliasDescriptor(routineUUID);
-        	if (ad != null)
-        		routineName = ad.getObjectName();
-		}
-	}
-	
-	public RoutinePermsDescriptor( DataDictionary dd,
+            AliasDescriptor ad = dd.getAliasDescriptor(routineUUID);
+            if (ad != null)
+                routineName = ad.getObjectName();
+        }
+    }
+    
+    public RoutinePermsDescriptor( DataDictionary dd,
                                    String grantee,
                                    String grantor,
                                    UUID routineUUID) throws StandardException
-	{
+    {
         this( dd, grantee, grantor, routineUUID, true);
-	}
+    }
 
     /**
      * This constructor just sets up the key fields of a RoutinePermsDescriptor.
      */
-	public RoutinePermsDescriptor( DataDictionary dd,
+    public RoutinePermsDescriptor( DataDictionary dd,
                                    String grantee,
                                    String grantor) throws StandardException
     {
         this( dd, grantee, grantor, (UUID) null);
     }
-	   
+       
     public RoutinePermsDescriptor( DataDictionary dd, UUID routineePermsUUID) 
     throws StandardException
-	{
+    {
         this( dd, null, null, null, true);
         this.oid = routineePermsUUID;
-	}
+    }
     
     public int getCatalogNumber()
     {
         return DataDictionary.SYSROUTINEPERMS_CATALOG_NUM;
     }
-	
-	/*----- getter functions for rowfactory ------*/
+    
+    /*----- getter functions for rowfactory ------*/
     public UUID getRoutineUUID() { return routineUUID;}
     public boolean getHasExecutePermission() { return hasExecutePermission;}
 
-	public String toString()
-	{
-		return "routinePerms: grantee=" + getGrantee() + 
+    public String toString()
+    {
+        return "routinePerms: grantee=" + getGrantee() + 
         ",routinePermsUUID=" + getUUID() +
           ",grantor=" + getGrantor() +
           ",routineUUID=" + getRoutineUUID();
-	}		
+    }        
 
     /**
      * @return true iff the key part of this permissions descriptor equals the key part of another permissions
@@ -128,54 +128,54 @@ public class RoutinePermsDescriptor extends PermissionsDescriptor
     {
         return super.keyHashCode() + routineUUID.hashCode();
     }
-	
-	/**
-	 * @see PermissionsDescriptor#checkOwner
-	 */
-	public boolean checkOwner(String authorizationId) throws StandardException
-	{
-		UUID sd = getDataDictionary().getAliasDescriptor(routineUUID).getSchemaUUID();
-		return getDataDictionary().getSchemaDescriptor(sd, null).getAuthorizationId().equals(authorizationId);
-	}
+    
+    /**
+     * @see PermissionsDescriptor#checkOwner
+     */
+    public boolean checkOwner(String authorizationId) throws StandardException
+    {
+        UUID sd = getDataDictionary().getAliasDescriptor(routineUUID).getSchemaUUID();
+        return getDataDictionary().getSchemaDescriptor(sd, null).getAuthorizationId().equals(authorizationId);
+    }
 
-	//////////////////////////////////////////////
-	//
-	// PROVIDER INTERFACE
-	//
-	//////////////////////////////////////////////
+    //////////////////////////////////////////////
+    //
+    // PROVIDER INTERFACE
+    //
+    //////////////////////////////////////////////
 
-	/**
-	 * Return the name of this Provider.  (Useful for errors.)
-	 *
-	 * @return String	The name of this provider.
-	 */
-	public String getObjectName()
-	{
-		return "Routine Privilege on " + routineName; 
-	}
+    /**
+     * Return the name of this Provider.  (Useful for errors.)
+     *
+     * @return String    The name of this provider.
+     */
+    public String getObjectName()
+    {
+        return "Routine Privilege on " + routineName; 
+    }
 
-	/**
-	 * Get the provider's type.
-	 *
-	 * @return char		The provider's type.
-	 */
-	public String getClassType()
-	{
-		return Dependable.ROUTINE_PERMISSION;
-	}
+    /**
+     * Get the provider's type.
+     *
+     * @return char        The provider's type.
+     */
+    public String getClassType()
+    {
+        return Dependable.ROUTINE_PERMISSION;
+    }
 
-	/**		
-		@return the stored form of this provider
+    /**        
+        @return the stored form of this provider
 
-			@see Dependable#getDependableFinder
-	 */
-	public DependableFinder getDependableFinder() 
-	{
+            @see Dependable#getDependableFinder
+     */
+    public DependableFinder getDependableFinder() 
+    {
         return getDependableFinder(
                 StoredFormatIds.ROUTINE_PERMISSION_FINDER_V01_ID);
-	}
+    }
 
-	public String getRoutineName() {
-		return routineName;
-	}
+    public String getRoutineName() {
+        return routineName;
+    }
 }

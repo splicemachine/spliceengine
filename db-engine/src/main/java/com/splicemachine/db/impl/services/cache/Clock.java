@@ -55,69 +55,69 @@ import java.util.Collection;
 
 
 /**
-	A cache manager that uses a HashMap and an ArrayList. The ArrayList holds
-	CachedItem objects, each with a holder object. The HashMap is keyed
-	by the identity of the holder object (Cacheable.getIdentity()) and
-	the data portion is a pointer to the CachedItem. CachedItems that have
-	holder objects with no identity do not have entries in the hash map.
-	<P>
-	CachedItems can in various state.
-	<UL>
-	<LI>isValid - the entry has a valid identity
-	<LI>inCreate - the entry is being created or being faulted in from persistent store
-	<LI>inClean - the entry is being written out to persistent store
-	<LI>isKept - the entry is currently being looked at/updated, do not remove or
-				clean it.
-	</OL>
+    A cache manager that uses a HashMap and an ArrayList. The ArrayList holds
+    CachedItem objects, each with a holder object. The HashMap is keyed
+    by the identity of the holder object (Cacheable.getIdentity()) and
+    the data portion is a pointer to the CachedItem. CachedItems that have
+    holder objects with no identity do not have entries in the hash map.
+    <P>
+    CachedItems can in various state.
+    <UL>
+    <LI>isValid - the entry has a valid identity
+    <LI>inCreate - the entry is being created or being faulted in from persistent store
+    <LI>inClean - the entry is being written out to persistent store
+    <LI>isKept - the entry is currently being looked at/updated, do not remove or
+                clean it.
+    </OL>
 
-	<P>Multithreading considerations:<BR>
-	A clock cache manager must be MT-safe.
-	All member variables are accessed single threaded (synchronized on this) or
-	set once or readonly. Assumptions: holders size() and addElement must be
-	synchronized.
-	<BR>
-	CachedItem is never passed out of the clock cache manager, only the
-	Cacheable object is.  The cachedItem is responsible for the setting and
-	clearing of its own member fields (RESOLVE: now they are done in cache
-	manager, need to be moved to the cachedItem).  The cache manager will
-	following the following rules while accessing a cacheditem:
-	<UL>
-	<LI>invalid item is never returned from the cache
-	<LI>setValidState and isValid() is only called single threaded through the cache manager.
-	<LI>keep() and isKept() is only called single threaded through the cache
-	manager once the item has been added to the holders array
-	<LI>item that isKept() won't be cleaned or removed or invalidated from the cache.
-	<LI>item that is inClean() or inCreate(), the cache manager
-	will wait on the cachedItem to finish cleaning or creating before it
-	returns the cached item outside of the cache.
-	</UL>
-	<BR>
-	The cacheable must be cleaned thru the cache if it is managed by a cache.
-	On CacheItem, a inClean state is maintain to stablelize the content of the
-	cacheable while it is being cleaned.  Only unkept items are cleaned.  If an
-	item is found to be inClean, it will wait until it exits the inClean state.
-	If a cached item calls it own clean method without notifying the cache, it
-	has to stablize its content for the duration of the clean.
-	<BR>
-	It is assumed that the cacheable object maintain its own MT-safeness.<BR>
+    <P>Multithreading considerations:<BR>
+    A clock cache manager must be MT-safe.
+    All member variables are accessed single threaded (synchronized on this) or
+    set once or readonly. Assumptions: holders size() and addElement must be
+    synchronized.
+    <BR>
+    CachedItem is never passed out of the clock cache manager, only the
+    Cacheable object is.  The cachedItem is responsible for the setting and
+    clearing of its own member fields (RESOLVE: now they are done in cache
+    manager, need to be moved to the cachedItem).  The cache manager will
+    following the following rules while accessing a cacheditem:
+    <UL>
+    <LI>invalid item is never returned from the cache
+    <LI>setValidState and isValid() is only called single threaded through the cache manager.
+    <LI>keep() and isKept() is only called single threaded through the cache
+    manager once the item has been added to the holders array
+    <LI>item that isKept() won't be cleaned or removed or invalidated from the cache.
+    <LI>item that is inClean() or inCreate(), the cache manager
+    will wait on the cachedItem to finish cleaning or creating before it
+    returns the cached item outside of the cache.
+    </UL>
+    <BR>
+    The cacheable must be cleaned thru the cache if it is managed by a cache.
+    On CacheItem, a inClean state is maintain to stablelize the content of the
+    cacheable while it is being cleaned.  Only unkept items are cleaned.  If an
+    item is found to be inClean, it will wait until it exits the inClean state.
+    If a cached item calls it own clean method without notifying the cache, it
+    has to stablize its content for the duration of the clean.
+    <BR>
+    It is assumed that the cacheable object maintain its own MT-safeness.<BR>
 
-	@see CachedItem
-	@see Cacheable
+    @see CachedItem
+    @see Cacheable
 
 */
 
 final class Clock implements CacheManager, Serviceable {
 
-	/*
-	** Fields
-	*/
-	private final CacheStat stat;
-	private final HashMap cache_;
-	private DaemonService		cleaner;	// the background worker thread who is going to
-									// do pre-flush for this cache. 
-	private final ArrayList		holders;
+    /*
+    ** Fields
+    */
+    private final CacheStat stat;
+    private final HashMap cache_;
+    private DaemonService        cleaner;    // the background worker thread who is going to
+                                    // do pre-flush for this cache. 
+    private final ArrayList        holders;
     private int validItemCount = 0;
-	private long			maximumSize;
+    private long            maximumSize;
     private boolean useByteCount; // regulate the total byte count or the entry count
     private long currentByteCount = 0;
     /* currentByteCount should be the sum of entry.getSize() for all entries in the cache.
@@ -129,247 +129,247 @@ final class Clock implements CacheManager, Serviceable {
         + ClassSize.getRefSize() // one ref per item in the holder ArrayList
         + ClassSize.estimateHashEntrySize();
 
-	private final CacheableFactory holderFactory;
+    private final CacheableFactory holderFactory;
 
-	private boolean		active;		// true if active for find/create
-	private String		name;		// name of the cache, mainly for debugging purposes.
-	private int			clockHand;             // the sweep of the clock hand
+    private boolean        active;        // true if active for find/create
+    private String        name;        // name of the cache, mainly for debugging purposes.
+    private int            clockHand;             // the sweep of the clock hand
 
-	
-	private	int			myClientNumber;	// use this number to talk to cleaner service
-	private boolean	wokenToClean;	// true if the client was woken to clean, false if to shrink
-	private boolean   cleanerRunning;
-	private boolean	  needService;
+    
+    private    int            myClientNumber;    // use this number to talk to cleaner service
+    private boolean    wokenToClean;    // true if the client was woken to clean, false if to shrink
+    private boolean   cleanerRunning;
+    private boolean      needService;
 
-	/**
-		Construct a new clock cache manager.
+    /**
+        Construct a new clock cache manager.
 
-		<P>MT - not needed for constructor.
+        <P>MT - not needed for constructor.
 
-		@param holderFactory the cacheable object class
-		@param name the name of the cache
-		@param initialSize the initial number of cachable object this cache
-		holds.
-		@param maximumSize the maximum size of the cache.  The cache may grow
-		from initialSize to maximumSize if the cache policy notices that there
-		is not enough free buffers availiable.  Once the cache hits maximumSize
-		it will not grow.  If the cache is full, an exception will be thrown
+        @param holderFactory the cacheable object class
+        @param name the name of the cache
+        @param initialSize the initial number of cachable object this cache
+        holds.
+        @param maximumSize the maximum size of the cache.  The cache may grow
+        from initialSize to maximumSize if the cache policy notices that there
+        is not enough free buffers availiable.  Once the cache hits maximumSize
+        it will not grow.  If the cache is full, an exception will be thrown
 
-	*/
-	Clock(CacheableFactory holderFactory, String name,
-		  int initialSize, long maximumSize, boolean useByteCount) {
-		cache_ = new HashMap(initialSize, (float) 0.95);
-		this.maximumSize = maximumSize;
-		this.holderFactory = holderFactory;
-		this.useByteCount = useByteCount;
+    */
+    Clock(CacheableFactory holderFactory, String name,
+          int initialSize, long maximumSize, boolean useByteCount) {
+        cache_ = new HashMap(initialSize, (float) 0.95);
+        this.maximumSize = maximumSize;
+        this.holderFactory = holderFactory;
+        this.useByteCount = useByteCount;
 
-		if (SanityManager.DEBUG) {
-		  if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) {
-			SanityManager.DEBUG(ClockFactory.CacheTrace, "initializing " + name + " cache to size " + initialSize);
-		  }
-		}
+        if (SanityManager.DEBUG) {
+          if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) {
+            SanityManager.DEBUG(ClockFactory.CacheTrace, "initializing " + name + " cache to size " + initialSize);
+          }
+        }
 
-		//int delta = initialSize / 2;
-		//if (delta < 5)
-		//	delta = 5;
+        //int delta = initialSize / 2;
+        //if (delta < 5)
+        //    delta = 5;
 
-		holders = new ArrayList(initialSize);
-		this.name = name;
-		active = true;
+        holders = new ArrayList(initialSize);
+        this.name = name;
+        active = true;
 
-		this.stat = new CacheStat();
-		stat.initialSize = initialSize;
-		stat.maxSize = maximumSize;
+        this.stat = new CacheStat();
+        stat.initialSize = initialSize;
+        stat.maxSize = maximumSize;
     }
 
-	/**
-		Find the object or materialize one in the cache.  If it has not been
-		created in the persistent store yet, return null.
+    /**
+        Find the object or materialize one in the cache.  If it has not been
+        created in the persistent store yet, return null.
 
-		<P>MT - must be MT-safe.  The cache is single threaded through finding
-		the item in cache and finding a free item if it is not in cache, thus
-		preventing another thread from creating the same item while is is being
-		faulted in.  (RESOLVE - this is really low performance if the cache
-		cleaner cannot keep a steady supply of free items and we have to do an
-		I/O while blocking the cache).   If it needs to be faulted in, the
-		inCreate bit is set.  The item is kept before it exits the sync block. 
-		<BR>
-		If the item is in cache but in the middle of being faulted in or
-		cleaned, it needs to wait until this is done being before returning.
-		<BR>
-		The keep status prevents other threads from removing this item.  
-		The inCreate status prevents other threads from looking at or writing
-		out this item while it is being faulted in.
-		(RESOLVE: need to handle the case where the object is marked for
-		removal and being waited on)
+        <P>MT - must be MT-safe.  The cache is single threaded through finding
+        the item in cache and finding a free item if it is not in cache, thus
+        preventing another thread from creating the same item while is is being
+        faulted in.  (RESOLVE - this is really low performance if the cache
+        cleaner cannot keep a steady supply of free items and we have to do an
+        I/O while blocking the cache).   If it needs to be faulted in, the
+        inCreate bit is set.  The item is kept before it exits the sync block. 
+        <BR>
+        If the item is in cache but in the middle of being faulted in or
+        cleaned, it needs to wait until this is done being before returning.
+        <BR>
+        The keep status prevents other threads from removing this item.  
+        The inCreate status prevents other threads from looking at or writing
+        out this item while it is being faulted in.
+        (RESOLVE: need to handle the case where the object is marked for
+        removal and being waited on)
 
-		@param key the key to the object
-		@return a cacheable object that is kept in the cache.
-		@exception StandardException Standard Derby error policy
-	*/
-	public Cacheable find(Object key) throws StandardException {
-		CachedItem item;
-		boolean		add;
+        @param key the key to the object
+        @return a cacheable object that is kept in the cache.
+        @exception StandardException Standard Derby error policy
+    */
+    public Cacheable find(Object key) throws StandardException {
+        CachedItem item;
+        boolean        add;
 
-		/*
-		** We will only loop if someone else tried to add the
-		** same key as we did and they failed.  In this case
-		** we start all over.  An example of this would be an
-		** attempt to cache an object that failed due to a 
-		** transient error (e.g. deadlock), which should not
-		** prevent another thread from trying to add the 
-		** key to the cache (e.g. it might be the one holding
-		** the lock that caused the other thread to deadlock).
-		*/
-		while (true)
-		{
-			add = false;
+        /*
+        ** We will only loop if someone else tried to add the
+        ** same key as we did and they failed.  In this case
+        ** we start all over.  An example of this would be an
+        ** attempt to cache an object that failed due to a 
+        ** transient error (e.g. deadlock), which should not
+        ** prevent another thread from trying to add the 
+        ** key to the cache (e.g. it might be the one holding
+        ** the lock that caused the other thread to deadlock).
+        */
+        while (true)
+        {
+            add = false;
 
-			synchronized (this) {
-	
-				if (!active)
-					return null;
-	
-				item = (CachedItem) cache_.get(key);
-	
-				if (item != null) {
-					item.keepAfterSearch();
-					
-					stat.findHit++;
+            synchronized (this) {
+    
+                if (!active)
+                    return null;
+    
+                item = (CachedItem) cache_.get(key);
+    
+                if (item != null) {
+                    item.keepAfterSearch();
+                    
+                    stat.findHit++;
 
-					if (SanityManager.DEBUG) {
-					  if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) 
-					  {
-						SanityManager.DEBUG(ClockFactory.CacheTrace, name + ": Found key " +
-											key + " already in cache, item " + item);
-					  }
-					}
-				}
-			} // synchronized(this)
-	
-			// no entry was found, need to add one
-			if (item == null) {
-	
-				// get a free item
-				item = findFreeItem();
+                    if (SanityManager.DEBUG) {
+                      if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) 
+                      {
+                        SanityManager.DEBUG(ClockFactory.CacheTrace, name + ": Found key " +
+                                            key + " already in cache, item " + item);
+                      }
+                    }
+                }
+            } // synchronized(this)
+    
+            // no entry was found, need to add one
+            if (item == null) {
+    
+                // get a free item
+                item = findFreeItem();
 
-				stat.findMiss++;
-	
-				if (SanityManager.DEBUG) {
-				  if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) 
-				  {
-					SanityManager.DEBUG(ClockFactory.CacheTrace, name + ": Find key " +
-										key + " Not in cache, get free item " + item);
-				  }
-				}
-	
-	
-				if (SanityManager.DEBUG)
-					SanityManager.ASSERT(item != null, "found null item");
-	
-				synchronized (this) {
-					CachedItem inCacheItem = (CachedItem) cache_.get(key);
-	
-					if (inCacheItem != null) {
-						// some-one beat us to adding an item into the cache,
-						// just use that one
-						item.unkeepForCreate();
-	
-						item = inCacheItem;
-						item.keepAfterSearch();
-					} else {
-						// yes, we really are the ones to add it
-						cache_.put(key, item);
-						add = true;
-						if (SanityManager.DEBUG) {
+                stat.findMiss++;
+    
+                if (SanityManager.DEBUG) {
+                  if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) 
+                  {
+                    SanityManager.DEBUG(ClockFactory.CacheTrace, name + ": Find key " +
+                                        key + " Not in cache, get free item " + item);
+                  }
+                }
+    
+    
+                if (SanityManager.DEBUG)
+                    SanityManager.ASSERT(item != null, "found null item");
+    
+                synchronized (this) {
+                    CachedItem inCacheItem = (CachedItem) cache_.get(key);
+    
+                    if (inCacheItem != null) {
+                        // some-one beat us to adding an item into the cache,
+                        // just use that one
+                        item.unkeepForCreate();
+    
+                        item = inCacheItem;
+                        item.keepAfterSearch();
+                    } else {
+                        // yes, we really are the ones to add it
+                        cache_.put(key, item);
+                        add = true;
+                        if (SanityManager.DEBUG) {
 
-							if (SanityManager.DEBUG_ON("memoryLeakTrace")) {
+                            if (SanityManager.DEBUG_ON("memoryLeakTrace")) {
 
-								if (cache_.size() > ((11 * maximumSize) / 10))
-									System.out.println
-										("memoryLeakTrace:Cache:" + name +
-										 " " + cache_.size());
-							}
-						}
-					}
-				} // synchronized(this)
-			} // if (item == null)
-			
-			if (add) {
-	
-				if (SanityManager.DEBUG) {
-				  if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace))
-				  {
-					SanityManager.DEBUG(ClockFactory.CacheTrace, name + " Added " + 
-										key + " to cache, item " + item);
-				  }
-				}
-	
-				stat.findFault++;
+                                if (cache_.size() > ((11 * maximumSize) / 10))
+                                    System.out.println
+                                        ("memoryLeakTrace:Cache:" + name +
+                                         " " + cache_.size());
+                            }
+                        }
+                    }
+                } // synchronized(this)
+            } // if (item == null)
+            
+            if (add) {
+    
+                if (SanityManager.DEBUG) {
+                  if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace))
+                  {
+                    SanityManager.DEBUG(ClockFactory.CacheTrace, name + " Added " + 
+                                        key + " to cache, item " + item);
+                  }
+                }
+    
+                stat.findFault++;
 
-				return addEntry(item, key, false, (Object) null);
-			}
-				
-			Cacheable entry = item.use();
-			if (entry == null) {
-				// item was not added by the other user successfully ...
-				synchronized (this) {
-					item.unkeep();
-				}
+                return addEntry(item, key, false, (Object) null);
+            }
+                
+            Cacheable entry = item.use();
+            if (entry == null) {
+                // item was not added by the other user successfully ...
+                synchronized (this) {
+                    item.unkeep();
+                }
 
-				// try to hash the key again (see
-				// comment at head of loop)
-				continue;
-			}
-	
-			return entry;
-		}
-	}
-
-
-	/**
-		Find an object in the cache.  Do not fault in or create the object if
-		is is not found in the cache.
-
-		<P>MT - must be MT-safe.  The cache is single threaded through finding
-		the item in cache.  If it needs to wait for it to be faulted in or
-		cleaned it is synchronized/waited on the cached item itself.
-
-		@param key the key to the object
-		@return a cacheable object that is kept in the cache.
-	*/
-
-	public Cacheable findCached(Object key) throws StandardException {
+                // try to hash the key again (see
+                // comment at head of loop)
+                continue;
+            }
+    
+            return entry;
+        }
+    }
 
 
-		CachedItem item;
+    /**
+        Find an object in the cache.  Do not fault in or create the object if
+        is is not found in the cache.
 
-		synchronized (this) {
+        <P>MT - must be MT-safe.  The cache is single threaded through finding
+        the item in cache.  If it needs to wait for it to be faulted in or
+        cleaned it is synchronized/waited on the cached item itself.
 
-			if (!active)
-				return null;
-		
-			item = (CachedItem) cache_.get(key);
+        @param key the key to the object
+        @return a cacheable object that is kept in the cache.
+    */
 
-			if (item == null) {
-				stat.findCachedMiss++;
-				return null;
-			} else
-				stat.findCachedHit++;
-			
-			item.keepAfterSearch();
-		} // synchronized(this)
+    public Cacheable findCached(Object key) throws StandardException {
 
-		Cacheable entry = item.use();
-		if (entry == null) {
-			// item was not added by the other user successfully ...
-			synchronized (this) {
-				item.unkeep();
-			}
-		}
 
-		return entry;
-	}
+        CachedItem item;
+
+        synchronized (this) {
+
+            if (!active)
+                return null;
+        
+            item = (CachedItem) cache_.get(key);
+
+            if (item == null) {
+                stat.findCachedMiss++;
+                return null;
+            } else
+                stat.findCachedHit++;
+            
+            item.keepAfterSearch();
+        } // synchronized(this)
+
+        Cacheable entry = item.use();
+        if (entry == null) {
+            // item was not added by the other user successfully ...
+            synchronized (this) {
+                item.unkeep();
+            }
+        }
+
+        return entry;
+    }
 
 
     /**
@@ -380,7 +380,7 @@ final class Clock implements CacheManager, Serviceable {
      */
     public void setUsed( Object[] keys)
     {
-		CachedItem item;
+        CachedItem item;
 
         for( int i = 0; i < keys.length;)
         {
@@ -406,525 +406,525 @@ final class Clock implements CacheManager, Serviceable {
         }
     } // end of setUsed
 
-	/**
-		Create a new object with the said key.
+    /**
+        Create a new object with the said key.
 
-		<P>MT - must be MT-safe.  Single thread thru verifying no such item
-		exist in cache and finding a free item, keep the item and set inCreate
-		state.  The actual creating of the  object is done outside
-		the sync block and is protected by the isKept and inCreate bits.
+        <P>MT - must be MT-safe.  Single thread thru verifying no such item
+        exist in cache and finding a free item, keep the item and set inCreate
+        state.  The actual creating of the  object is done outside
+        the sync block and is protected by the isKept and inCreate bits.
 
-		@param key the key to the object
-		@return a cacheable object that is kept in the cache.  
+        @param key the key to the object
+        @return a cacheable object that is kept in the cache.  
 
-		@exception StandardException Standard Derby error policy
-	*/
-	public Cacheable create(Object key, Object createParameter) throws StandardException {
+        @exception StandardException Standard Derby error policy
+    */
+    public Cacheable create(Object key, Object createParameter) throws StandardException {
 
-		// assume the item is not already in the cache
-		CachedItem item = findFreeItem();
+        // assume the item is not already in the cache
+        CachedItem item = findFreeItem();
 
-		stat.create++;
+        stat.create++;
 
-		synchronized (this) {
+        synchronized (this) {
 
-			if (!active)
-				return null;
+            if (!active)
+                return null;
 
-			if (cache_.get(key) != null) {
+            if (cache_.get(key) != null) {
 
-				item.unkeepForCreate();
+                item.unkeepForCreate();
 
-				throw StandardException.newException(SQLState.OBJECT_EXISTS_IN_CACHE, this.name, key);
-			}
+                throw StandardException.newException(SQLState.OBJECT_EXISTS_IN_CACHE, this.name, key);
+            }
 
-			cache_.put(key, item);
+            cache_.put(key, item);
 
-			if (SanityManager.DEBUG) {
+            if (SanityManager.DEBUG) {
 
-				if (SanityManager.DEBUG_ON("memoryLeakTrace")) {
+                if (SanityManager.DEBUG_ON("memoryLeakTrace")) {
 
-					if (cache_.size() > ((11 * maximumSize) / 10))
-						System.out.println
-							("memoryLeakTrace:Cache:" + name + " " +
-							 cache_.size());
-				}
-			}
-		} // synchronized(this)
+                    if (cache_.size() > ((11 * maximumSize) / 10))
+                        System.out.println
+                            ("memoryLeakTrace:Cache:" + name + " " +
+                             cache_.size());
+                }
+            }
+        } // synchronized(this)
 
-		Cacheable entry = addEntry(item, key, true, createParameter);
-	
-		if (SanityManager.DEBUG) {
-			if (entry != null)
-				SanityManager.ASSERT(item.getEntry() == entry);
-		}
+        Cacheable entry = addEntry(item, key, true, createParameter);
+    
+        if (SanityManager.DEBUG) {
+            if (entry != null)
+                SanityManager.ASSERT(item.getEntry() == entry);
+        }
 
-		return entry;
-	}
-
-
-	/**
-		The caller is no longer looking at or updating the entry.  Since there
-		could be more than one piece of code looking at this entry, release
-		does not mean nobody is looking at or updating the entry, just one
-		less.  If the cacheable is marked for remove (someone is waiting to
-		remove the persistent object once nobody is looking at it), then notify
-		the waiter if this is the last one looking at it.
-		<BR>
-		Unless there is a good reason to do otherwise, release should be used
-		to release a cachable and not directly call cachedItem unkeep, since
-		unkeep does not handle the case of remove.
+        return entry;
+    }
 
 
-		<P>MT - must be MT-safe. Getting and deleting item from the hash map
-		is in the same synchronized block.  If the cacheable object is waiting
-		to be removed, that is synchronized thru the cachedItem itself
-		(RESOLVE: need to move this sync block to cachedItem instead)
+    /**
+        The caller is no longer looking at or updating the entry.  Since there
+        could be more than one piece of code looking at this entry, release
+        does not mean nobody is looking at or updating the entry, just one
+        less.  If the cacheable is marked for remove (someone is waiting to
+        remove the persistent object once nobody is looking at it), then notify
+        the waiter if this is the last one looking at it.
+        <BR>
+        Unless there is a good reason to do otherwise, release should be used
+        to release a cachable and not directly call cachedItem unkeep, since
+        unkeep does not handle the case of remove.
 
-		@param entry the cached entry
 
-	 */
-	public void release(Cacheable entry)  {
-		boolean removeItem;
-		CachedItem item;
-		long toShrink = 0;
+        <P>MT - must be MT-safe. Getting and deleting item from the hash map
+        is in the same synchronized block.  If the cacheable object is waiting
+        to be removed, that is synchronized thru the cachedItem itself
+        (RESOLVE: need to move this sync block to cachedItem instead)
 
-		synchronized (this) {
+        @param entry the cached entry
 
-			item = (CachedItem) cache_.get(entry.getIdentity());
+     */
+    public void release(Cacheable entry)  {
+        boolean removeItem;
+        CachedItem item;
+        long toShrink = 0;
 
-			if (SanityManager.DEBUG) {
-				SanityManager.ASSERT(item != null, "item null");
-				SanityManager.ASSERT(item.getEntry() == entry, "entry not equals keyed entry");
-				SanityManager.ASSERT(item.isKept(), "item is not kept in release(Cachable)");
-			}
+        synchronized (this) {
 
-			removeItem = item.unkeep();
+            item = (CachedItem) cache_.get(entry.getIdentity());
 
-			if (removeItem) {
-				
-				cache_.remove(entry.getIdentity());
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(item != null, "item null");
+                SanityManager.ASSERT(item.getEntry() == entry, "entry not equals keyed entry");
+                SanityManager.ASSERT(item.isKept(), "item is not kept in release(Cachable)");
+            }
 
-				// we keep the item here to stop another thread trying to evict it
-				// while we are destroying it.
-				item.keepForClean();
-			}
+            removeItem = item.unkeep();
 
-			if (cleaner == null) {
-				// try to shrink the cache on a release
-				toShrink = shrinkSize(getCurrentSizeNoSync());
-			}
-		} // synchronized(this)
+            if (removeItem) {
+                
+                cache_.remove(entry.getIdentity());
 
-		if (removeItem) {
+                // we keep the item here to stop another thread trying to evict it
+                // while we are destroying it.
+                item.keepForClean();
+            }
 
-			item.notifyRemover();
-		}
+            if (cleaner == null) {
+                // try to shrink the cache on a release
+                toShrink = shrinkSize(getCurrentSizeNoSync());
+            }
+        } // synchronized(this)
 
-		if (toShrink > 0)
-			performWork(true /* shrink only */);
-	}
+        if (removeItem) {
 
-	private void release(CachedItem item) {
+            item.notifyRemover();
+        }
 
-		boolean removeItem;
+        if (toShrink > 0)
+            performWork(true /* shrink only */);
+    }
 
-		synchronized (this) {
+    private void release(CachedItem item) {
 
-			if (SanityManager.DEBUG) {
-				SanityManager.ASSERT(item.isKept(), "item is not kept in released(CachedItem)");
-			}
+        boolean removeItem;
 
-			removeItem = item.unkeep();
+        synchronized (this) {
 
-			if (removeItem) {
-				
-				cache_.remove(item.getEntry().getIdentity());
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(item.isKept(), "item is not kept in released(CachedItem)");
+            }
 
-				// we keep the item here to stop another thread trying to evict it
-				// while we are destroying it.
-				item.keepForClean();
-			}
-		} // synchronized(this)
+            removeItem = item.unkeep();
 
-		if (removeItem) {
+            if (removeItem) {
+                
+                cache_.remove(item.getEntry().getIdentity());
 
-			item.notifyRemover();
-		}
-	}
+                // we keep the item here to stop another thread trying to evict it
+                // while we are destroying it.
+                item.keepForClean();
+            }
+        } // synchronized(this)
 
-	/**
-		Remove an object from the cache. The item will be placed into the NoIdentity
-		state through clean() (if required) and clearIdentity(). The removal of the
-		object will be delayed until it is not kept by anyone.
+        if (removeItem) {
 
-		After this call the caller must throw away the reference to item.
+            item.notifyRemover();
+        }
+    }
 
-		<P>MT - must be MT-safe.  Single thread thru finding and setting the
-		remove state of the item, the actual removal of the cacheable is
-		synchronized on the cachedItem itself.
+    /**
+        Remove an object from the cache. The item will be placed into the NoIdentity
+        state through clean() (if required) and clearIdentity(). The removal of the
+        object will be delayed until it is not kept by anyone.
 
-		@exception StandardException Standard Derby error policy.
-	*/
-	public void remove(Cacheable entry) throws StandardException {
+        After this call the caller must throw away the reference to item.
 
-		boolean removeNow;
-		CachedItem item;
+        <P>MT - must be MT-safe.  Single thread thru finding and setting the
+        remove state of the item, the actual removal of the cacheable is
+        synchronized on the cachedItem itself.
+
+        @exception StandardException Standard Derby error policy.
+    */
+    public void remove(Cacheable entry) throws StandardException {
+
+        boolean removeNow;
+        CachedItem item;
         long origItemSize = 0;
 
-		stat.remove++;
+        stat.remove++;
 
-		synchronized (this) {
+        synchronized (this) {
 
-			
+            
 
-			item = (CachedItem) cache_.get(entry.getIdentity());
+            item = (CachedItem) cache_.get(entry.getIdentity());
 
-			if (SanityManager.DEBUG) {
-				SanityManager.ASSERT(item != null);
-				SanityManager.ASSERT(item.getEntry() == entry);
-				SanityManager.ASSERT(item.isKept());
-			}
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(item != null);
+                SanityManager.ASSERT(item.getEntry() == entry);
+                SanityManager.ASSERT(item.isKept());
+            }
             if( useByteCount)
                 origItemSize = getItemSize( item);
 
-			item.setRemoveState();
-			removeNow = item.unkeep();	
+            item.setRemoveState();
+            removeNow = item.unkeep();    
 
-			if (removeNow) {
-				cache_.remove(entry.getIdentity());
-				item.keepForClean();
-			}
-		} // synchronized(this)
+            if (removeNow) {
+                cache_.remove(entry.getIdentity());
+                item.keepForClean();
+            }
+        } // synchronized(this)
 
-		try {
-			// if removeNow is false then this thread may sleep
-			item.remove(removeNow);
+        try {
+            // if removeNow is false then this thread may sleep
+            item.remove(removeNow);
 
-		} finally {
+        } finally {
 
-			synchronized (this)
-			{
-				// in the case where this thread didn't call keepForClean() the thread
-				// that woke us would have called keepForClean.
-				item.unkeep();
-				item.setValidState(false);
+            synchronized (this)
+            {
+                // in the case where this thread didn't call keepForClean() the thread
+                // that woke us would have called keepForClean.
+                item.unkeep();
+                item.setValidState(false);
                 validItemCount--;
-				item.getEntry().clearIdentity();
+                item.getEntry().clearIdentity();
                 if( useByteCount)
                     currentByteCount += getItemSize( item) - origItemSize;
-			} // synchronized(this)
-		}
+            } // synchronized(this)
+        }
 
-	}
+    }
 
-	/**
-		Clean all objects in the cache.
-	*/
-	public void cleanAll() throws StandardException {
-		stat.cleanAll++;
-		cleanCache((Matchable) null);
-	}
+    /**
+        Clean all objects in the cache.
+    */
+    public void cleanAll() throws StandardException {
+        stat.cleanAll++;
+        cleanCache((Matchable) null);
+    }
 
-	/**
-		Clean all objects that match a partial key.
-	*/
-	public void clean(Matchable partialKey) throws StandardException {
+    /**
+        Clean all objects that match a partial key.
+    */
+    public void clean(Matchable partialKey) throws StandardException {
 
-		cleanCache(partialKey);
-	}
+        cleanCache(partialKey);
+    }
 
-	/**
-		Age as many objects as possible out of the cache.
+    /**
+        Age as many objects as possible out of the cache.
 
-  		<BR>MT - thread safe
+          <BR>MT - thread safe
 
-		@see CacheManager#ageOut
-	*/
-	public void ageOut() {
+        @see CacheManager#ageOut
+    */
+    public void ageOut() {
 
-		stat.ageOut++;
-		synchronized (this) {
+        stat.ageOut++;
+        synchronized (this) {
 
-			int size = holders.size();
-			long toShrink = shrinkSize(getCurrentSizeNoSync());
-			boolean shrunk = false;
+            int size = holders.size();
+            long toShrink = shrinkSize(getCurrentSizeNoSync());
+            boolean shrunk = false;
 
-			for (int position = 0; position < size; position++) {
-				CachedItem item = (CachedItem) holders.get(position);
+            for (int position = 0; position < size; position++) {
+                CachedItem item = (CachedItem) holders.get(position);
 
-				if (item.isKept())
-					continue;
-				if (!item.isValid())
-					continue;
+                if (item.isKept())
+                    continue;
+                if (!item.isValid())
+                    continue;
 
-				if (item.getEntry().isDirty()) {
-					continue;
-				}
+                if (item.getEntry().isDirty()) {
+                    continue;
+                }
 
-				long itemSize = removeIdentity(item);
+                long itemSize = removeIdentity(item);
 
-				if (toShrink > 0) {
+                if (toShrink > 0) {
 
-					if (SanityManager.DEBUG) {
-						if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) {
-						SanityManager.DEBUG(ClockFactory.CacheTrace, name + 
-											" shrinking item " + item + " at position " + position);
-						}
-					}
-					
-					toShrink -= itemSize;
-					shrunk = true;
-				}
+                    if (SanityManager.DEBUG) {
+                        if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) {
+                        SanityManager.DEBUG(ClockFactory.CacheTrace, name + 
+                                            " shrinking item " + item + " at position " + position);
+                        }
+                    }
+                    
+                    toShrink -= itemSize;
+                    shrunk = true;
+                }
 
-			} // end of for loop
+            } // end of for loop
 
-			if (shrunk)
-				trimToSize();
+            if (shrunk)
+                trimToSize();
 
-		} // synchronized(this)
-	} // end of ageOut
+        } // synchronized(this)
+    } // end of ageOut
 
-	/**
-		MT - synchronization provided by caller
+    /**
+        MT - synchronization provided by caller
 
-		@exception StandardException Standard Derby error policy.
-	*/
-	public void shutdown() throws StandardException {
+        @exception StandardException Standard Derby error policy.
+    */
+    public void shutdown() throws StandardException {
 
-		if (cleaner != null) {
-			cleaner.unsubscribe(myClientNumber);
-			cleaner = null;
-		}
+        if (cleaner != null) {
+            cleaner.unsubscribe(myClientNumber);
+            cleaner = null;
+        }
 
-		synchronized (this) {
-			active = false;
-		}
+        synchronized (this) {
+            active = false;
+        }
 
-		ageOut();
-		cleanAll();
-		ageOut();
-	}
+        ageOut();
+        cleanAll();
+        ageOut();
+    }
 
-	/**
-		MT - synchronization provided by caller
+    /**
+        MT - synchronization provided by caller
 
-		can use this Daemomn service if needed
-	*/
-	public void useDaemonService(DaemonService daemon)
-	{
-		// if we were using another cleaner, unsubscribe first
-		if (cleaner != null)
-			cleaner.unsubscribe(myClientNumber);
+        can use this Daemomn service if needed
+    */
+    public void useDaemonService(DaemonService daemon)
+    {
+        // if we were using another cleaner, unsubscribe first
+        if (cleaner != null)
+            cleaner.unsubscribe(myClientNumber);
 
-		cleaner = daemon;
-		myClientNumber = cleaner.subscribe(this, true /* onDemandOnly */);
-	}
-	/**
-		Discard all objects that match the partial key.
+        cleaner = daemon;
+        myClientNumber = cleaner.subscribe(this, true /* onDemandOnly */);
+    }
+    /**
+        Discard all objects that match the partial key.
 
-		<BR>MT - thread safe
-	*/
-	public boolean discard(Matchable partialKey) {
+        <BR>MT - thread safe
+    */
+    public boolean discard(Matchable partialKey) {
 
-		// we miss something because it was kept
-		boolean noMisses = true;
+        // we miss something because it was kept
+        boolean noMisses = true;
 
-		synchronized (this) {
+        synchronized (this) {
 
-			int size = holders.size();
-			long toShrink = shrinkSize(getCurrentSizeNoSync());
-			boolean shrunk = false;
+            int size = holders.size();
+            long toShrink = shrinkSize(getCurrentSizeNoSync());
+            boolean shrunk = false;
 
-			for (int position = 0; position < size; position++) {
-				CachedItem item = (CachedItem) holders.get(position);
+            for (int position = 0; position < size; position++) {
+                CachedItem item = (CachedItem) holders.get(position);
 
-				if (!item.isValid())
-					continue;
+                if (!item.isValid())
+                    continue;
 
-				Object key = item.getEntry().getIdentity();
+                Object key = item.getEntry().getIdentity();
 
-				if (partialKey != null && !partialKey.match(key))
-					continue;
+                if (partialKey != null && !partialKey.match(key))
+                    continue;
 
-				if (item.isKept())
-				{
-					noMisses = false;
-					continue;
-				}
+                if (item.isKept())
+                {
+                    noMisses = false;
+                    continue;
+                }
 
-				long itemSize = removeIdentity(item);
+                long itemSize = removeIdentity(item);
 
-				if (toShrink > 0) {
+                if (toShrink > 0) {
 
-					if (SanityManager.DEBUG) {
-						if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) {
-						SanityManager.DEBUG(ClockFactory.CacheTrace, name + 
-											" shrinking item " + item + " at position " + position);
-						}
-					}
+                    if (SanityManager.DEBUG) {
+                        if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) {
+                        SanityManager.DEBUG(ClockFactory.CacheTrace, name + 
+                                            " shrinking item " + item + " at position " + position);
+                        }
+                    }
 
-					// and we shrunk one item
-					toShrink -= itemSize;
-					shrunk = true;
-				}
-			} // for (int position = 0;...
+                    // and we shrunk one item
+                    toShrink -= itemSize;
+                    shrunk = true;
+                }
+            } // for (int position = 0;...
 
-			if (shrunk)
-				trimToSize();
-		} // synchronized(this)
+            if (shrunk)
+                trimToSize();
+        } // synchronized(this)
 
-		return noMisses;
-	}
+        return noMisses;
+    }
 
-	/**
-		Add a new CachedItem and a holder object to the cache. The holder object
-		is returned kept.
+    /**
+        Add a new CachedItem and a holder object to the cache. The holder object
+        is returned kept.
 
-		<P>MT - need to be MT-safe.  The insertion of the key into the hash
-		table is synchronized on this.
+        <P>MT - need to be MT-safe.  The insertion of the key into the hash
+        table is synchronized on this.
 
-	*/
-	private Cacheable addEntry(CachedItem item, Object key, boolean forCreate, Object createParameter)
-		throws StandardException {
+    */
+    private Cacheable addEntry(CachedItem item, Object key, boolean forCreate, Object createParameter)
+        throws StandardException {
 
-		Cacheable entry = null;
+        Cacheable entry = null;
         long origEntrySize = 0;
         if( useByteCount)
             origEntrySize = getItemSize( item);
 
-		try
-		{
-			if (SanityManager.DEBUG) {
-			  if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace))
-			  {
-				SanityManager.DEBUG(ClockFactory.CacheTrace, name + 
-									" item " + item + " take on identity " + key);
-			  }
-			}
-			
-			// tell the object it needs to create itself
-			entry = item.takeOnIdentity(this, holderFactory, key, forCreate, createParameter);
-		}
-		finally
-		{
-			boolean	notifyWaiters;
-			synchronized (this) {
+        try
+        {
+            if (SanityManager.DEBUG) {
+              if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace))
+              {
+                SanityManager.DEBUG(ClockFactory.CacheTrace, name + 
+                                    " item " + item + " take on identity " + key);
+              }
+            }
+            
+            // tell the object it needs to create itself
+            entry = item.takeOnIdentity(this, holderFactory, key, forCreate, createParameter);
+        }
+        finally
+        {
+            boolean    notifyWaiters;
+            synchronized (this) {
 
-				Object removed = cache_.remove(key);
-				if (SanityManager.DEBUG) {
-					SanityManager.ASSERT(removed == item);
-				}
+                Object removed = cache_.remove(key);
+                if (SanityManager.DEBUG) {
+                    SanityManager.ASSERT(removed == item);
+                }
 
-				if (entry != null) {
-					// put the actual key into the hash table, not the one that was passed in
-					// for the find or create. This is because the caller may re-use the key
-					// for another cache operation, which would corrupt our hashtable
-					cache_.put(entry.getIdentity(), item);
+                if (entry != null) {
+                    // put the actual key into the hash table, not the one that was passed in
+                    // for the find or create. This is because the caller may re-use the key
+                    // for another cache operation, which would corrupt our hashtable
+                    cache_.put(entry.getIdentity(), item);
                     if( useByteCount)
                         currentByteCount += ((SizedCacheable) entry).getSize() - origEntrySize;
-					item.setValidState(true);
+                    item.setValidState(true);
                     validItemCount++;
-					notifyWaiters = true;
-				} else {
-					item.unkeep();
-					notifyWaiters = item.isKept();
-				}
-			} // synchronized(this)
+                    notifyWaiters = true;
+                } else {
+                    item.unkeep();
+                    notifyWaiters = item.isKept();
+                }
+            } // synchronized(this)
 
-			// whatever the outcome, we have to notify waiters ...
-			if (notifyWaiters)
-				item.settingIdentityComplete();
-		}
+            // whatever the outcome, we have to notify waiters ...
+            if (notifyWaiters)
+                item.settingIdentityComplete();
+        }
 
-		return entry;
-	}
+        return entry;
+    }
 
    
-	private CachedItem findFreeItem() throws StandardException {
+    private CachedItem findFreeItem() throws StandardException {
 
-		// Need to avoid thrashing the cache when we start out
-		// so if the cache is smaller than its maximum size
-		// then that's a good indication we should grow.
+        // Need to avoid thrashing the cache when we start out
+        // so if the cache is smaller than its maximum size
+        // then that's a good indication we should grow.
 
-		long currentSize = getCurrentSize();
-
-
-		if (currentSize >= maximumSize) {
-			// look at 20%
-			CachedItem item = rotateClock(0.2f);
-			if (item != null)
-				return item;
-		}
-
-		// However, if the cache contains a large number of invalid
-		// items then we should see if we can avoid growing.
-		// This avoids simple use of Derby looking like
-		// a memory leak, as the page cache fills the holders array
-		// with page objects including the 4k (or 32k) pages.
-		// size() is the number of valid entries in the hash table
+        long currentSize = getCurrentSize();
 
 
-		// no need to sync on getting the sizes since if they are
-		// wrong we will discover it in the loop.
-		if (validItemCount < holders.size()) {
+        if (currentSize >= maximumSize) {
+            // look at 20%
+            CachedItem item = rotateClock(0.2f);
+            if (item != null)
+                return item;
+        }
 
-			synchronized (this) {
-
-				// 1) find out how many invalid items there are in the
-				//    cache
-				// 2) search for a free invalid item
-				// 3) stop searching when there are no more invalid
-				//    items to find
-
-				int invalidItems = holders.size() - validItemCount;
-
-				// Invalid items might occur in the cache when
-				//   a) a new item is created in growCache(), but it
-				//      is not in use yet, or
-				//   b) an item is deleted (usually when a table is
-				//      dropped)
-
-				// It is critical to break out of the loop as soon as
-				// possible since we are blocking others trying to
-				// access the page cache. New items are added to the
-				// end of the page cache, so the search for invalid
-				// items should start from the end.
-
-				for (int i = holders.size() - 1; (invalidItems > 0) && (i >= 0) ; i--) {
-					CachedItem item = (CachedItem) holders.get(i);
-
-					if (item.isKept()) {
-						if (!item.isValid()) invalidItems--;
-						continue;
-					}
-
-					// found a free item, just use it
-					if (!item.isValid()) {
-						item.keepForCreate();
-						return item;
-					}
-				}
-			} // synchronized(this)
-		}
+        // However, if the cache contains a large number of invalid
+        // items then we should see if we can avoid growing.
+        // This avoids simple use of Derby looking like
+        // a memory leak, as the page cache fills the holders array
+        // with page objects including the 4k (or 32k) pages.
+        // size() is the number of valid entries in the hash table
 
 
-		return growCache();
-	}
+        // no need to sync on getting the sizes since if they are
+        // wrong we will discover it in the loop.
+        if (validItemCount < holders.size()) {
 
-	/**
-		Go through the list of holder objects and find a free one.
-		<P>MT - must be MT-safe.  The moving of the clockHand and finding of an
-		eviction candidate is synchronized.  The cleaning of the cachable is
-		handled by the cacheable itself.
-	*/
-	private CachedItem rotateClock(float percentOfClock) throws StandardException
-	{
-		// statistics -- only used in debug
-		int evictions = 0;
-		int cleaned = 0;
-		int resetUsed = 0;
-		int iskept = 0;
+            synchronized (this) {
+
+                // 1) find out how many invalid items there are in the
+                //    cache
+                // 2) search for a free invalid item
+                // 3) stop searching when there are no more invalid
+                //    items to find
+
+                int invalidItems = holders.size() - validItemCount;
+
+                // Invalid items might occur in the cache when
+                //   a) a new item is created in growCache(), but it
+                //      is not in use yet, or
+                //   b) an item is deleted (usually when a table is
+                //      dropped)
+
+                // It is critical to break out of the loop as soon as
+                // possible since we are blocking others trying to
+                // access the page cache. New items are added to the
+                // end of the page cache, so the search for invalid
+                // items should start from the end.
+
+                for (int i = holders.size() - 1; (invalidItems > 0) && (i >= 0) ; i--) {
+                    CachedItem item = (CachedItem) holders.get(i);
+
+                    if (item.isKept()) {
+                        if (!item.isValid()) invalidItems--;
+                        continue;
+                    }
+
+                    // found a free item, just use it
+                    if (!item.isValid()) {
+                        item.keepForCreate();
+                        return item;
+                    }
+                }
+            } // synchronized(this)
+        }
+
+
+        return growCache();
+    }
+
+    /**
+        Go through the list of holder objects and find a free one.
+        <P>MT - must be MT-safe.  The moving of the clockHand and finding of an
+        eviction candidate is synchronized.  The cleaning of the cachable is
+        handled by the cacheable itself.
+    */
+    private CachedItem rotateClock(float percentOfClock) throws StandardException
+    {
+        // statistics -- only used in debug
+        int evictions = 0;
+        int cleaned = 0;
+        int resetUsed = 0;
+        int iskept = 0;
 
         // When we are managing the entry count (useByteCount == false) this method just
         // has to find or manufacture an available item (a cache slot). When we are managing
@@ -932,157 +932,157 @@ final class Clock implements CacheManager, Serviceable {
         // available item.
         CachedItem availableItem = null;
 
-		boolean kickCleaner = false;
+        boolean kickCleaner = false;
 
-		try {
-
-
-			// this can be approximate
-			int itemCount = holders.size();
-			int itemsToCheck;
-			if (itemCount < 20)
-				itemsToCheck = 2 * itemCount;
-			else
-				itemsToCheck = (int) (((float) itemCount) * percentOfClock);
+        try {
 
 
-			// if we can grow then shrinking is OK too, if we can't grow
-			// then shrinking the cache won't help us find an item.
-			long toShrink = shrinkSize(getCurrentSize());
+            // this can be approximate
+            int itemCount = holders.size();
+            int itemsToCheck;
+            if (itemCount < 20)
+                itemsToCheck = 2 * itemCount;
+            else
+                itemsToCheck = (int) (((float) itemCount) * percentOfClock);
+
+
+            // if we can grow then shrinking is OK too, if we can't grow
+            // then shrinking the cache won't help us find an item.
+            long toShrink = shrinkSize(getCurrentSize());
 
 restartClock:
-			for (; itemsToCheck > 0;) {
+            for (; itemsToCheck > 0;) {
 
-				CachedItem item = null;
+                CachedItem item = null;
 
-				synchronized (this) {
+                synchronized (this) {
 
-					if (SanityManager.DEBUG) {
-					  if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace))
-					  {
-						SanityManager.DEBUG(ClockFactory.CacheTrace, name + " rotateClock starting " +
-											clockHand + " itemsToCheck " + itemsToCheck);
-					  }
-					}
+                    if (SanityManager.DEBUG) {
+                      if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace))
+                      {
+                        SanityManager.DEBUG(ClockFactory.CacheTrace, name + " rotateClock starting " +
+                                            clockHand + " itemsToCheck " + itemsToCheck);
+                      }
+                    }
 
-					// size of holders cannot change while in the synchronized block.
-					int size = holders.size();
-					for (; itemsToCheck > 0; item = null, itemsToCheck--, incrClockHand())
-					{
-						//
-						// This uses a very simple clock algorithm.
-						//
-						// The cache consist of a circular list of cachedItems.  Each cached item
-						// has a 'recentlyUsed' bit which is set every time that item is kept.
-						// Each clock cache manager keeps a global variable clockHand which
-						// refers to the item that is most recently replaced.
-						//
-						// to find a free item, the clock Hand moves to the next cached Item.
-						// If it is kept, or in the middle of being created, the clock hand
-						// moves on.  
-						// If it is recentlyUsed, clear the recently used bit and moves on. 
-						// If it is not recentlyUsed, clean the item and use
-						//
-						// If all the cached item is kept, then create a new entry.
-						// So it is possible, although very unlikely,  that, in time, the cache
-						// will grow beyond the maximum size.
+                    // size of holders cannot change while in the synchronized block.
+                    int size = holders.size();
+                    for (; itemsToCheck > 0; item = null, itemsToCheck--, incrClockHand())
+                    {
+                        //
+                        // This uses a very simple clock algorithm.
+                        //
+                        // The cache consist of a circular list of cachedItems.  Each cached item
+                        // has a 'recentlyUsed' bit which is set every time that item is kept.
+                        // Each clock cache manager keeps a global variable clockHand which
+                        // refers to the item that is most recently replaced.
+                        //
+                        // to find a free item, the clock Hand moves to the next cached Item.
+                        // If it is kept, or in the middle of being created, the clock hand
+                        // moves on.  
+                        // If it is recentlyUsed, clear the recently used bit and moves on. 
+                        // If it is not recentlyUsed, clean the item and use
+                        //
+                        // If all the cached item is kept, then create a new entry.
+                        // So it is possible, although very unlikely,  that, in time, the cache
+                        // will grow beyond the maximum size.
 
-						
+                        
 
-						if (clockHand >= size) {
-							if (size == 0)
-								break;
-							clockHand = 0;
-						}
+                        if (clockHand >= size) {
+                            if (size == 0)
+                                break;
+                            clockHand = 0;
+                        }
 
-						item = (CachedItem) holders.get(clockHand);
+                        item = (CachedItem) holders.get(clockHand);
 
-						if (item.isKept())
-						{
-							if (SanityManager.DEBUG) // stats only in debug mode
-								iskept++;
-							continue;
-						}
+                        if (item.isKept())
+                        {
+                            if (SanityManager.DEBUG) // stats only in debug mode
+                                iskept++;
+                            continue;
+                        }
 
-						if (!item.isValid()) // found a free item, just use it
-						{
+                        if (!item.isValid()) // found a free item, just use it
+                        {
                             if( null != availableItem)
                                 // We have found an available item, now we are looking for bytes
                                 continue;
-							if (SanityManager.DEBUG) {
-							  if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace))
-							  {
-								SanityManager.DEBUG(ClockFactory.CacheTrace,
-													name + " found free item at " + clockHand + " item " + item);
-							  }
-							}
+                            if (SanityManager.DEBUG) {
+                              if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace))
+                              {
+                                SanityManager.DEBUG(ClockFactory.CacheTrace,
+                                                    name + " found free item at " + clockHand + " item " + item);
+                              }
+                            }
 
-							item.keepForCreate();
-							if (useByteCount &&
-									getCurrentSizeNoSync() > maximumSize)
+                            item.keepForCreate();
+                            if (useByteCount &&
+                                    getCurrentSizeNoSync() > maximumSize)
                             {
                                 availableItem = item;
                                 // now look for bytes.
                                 continue;
                             }
-							// since we are using this item, move the clock past it.
-							incrClockHand();
+                            // since we are using this item, move the clock past it.
+                            incrClockHand();
 
-							return item;
-						}
+                            return item;
+                        }
 
-						if (item.recentlyUsed())
-						{
+                        if (item.recentlyUsed())
+                        {
 
-							if (SanityManager.DEBUG) // stats only in debug mode
-								resetUsed++;
-							item.setUsed(false);
-							continue;
-						}
+                            if (SanityManager.DEBUG) // stats only in debug mode
+                                resetUsed++;
+                            item.setUsed(false);
+                            continue;
+                        }
 
 
-						if (toShrink > 0) {
-							if (!cleanerRunning) {
+                        if (toShrink > 0) {
+                            if (!cleanerRunning) {
 
-								// try an get the cleaner to shrink the cache
-								kickCleaner = true;
-								cleanerRunning = true;
-								needService = true;
-							}
-						}
+                                // try an get the cleaner to shrink the cache
+                                kickCleaner = true;
+                                cleanerRunning = true;
+                                needService = true;
+                            }
+                        }
 
-						// we are seeing valid, not recently used buffers. Evict this.
-						if (SanityManager.DEBUG) {
-							evictions++;
+                        // we are seeing valid, not recently used buffers. Evict this.
+                        if (SanityManager.DEBUG) {
+                            evictions++;
 
-							if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace))
-							{
-								SanityManager.DEBUG(ClockFactory.CacheTrace,
-													name + " evicting item at " +
-													clockHand + " item " + item);
-							}
-						}
+                            if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace))
+                            {
+                                SanityManager.DEBUG(ClockFactory.CacheTrace,
+                                                    name + " evicting item at " +
+                                                    clockHand + " item " + item);
+                            }
+                        }
 
-						if (!item.getEntry().isDirty()) {
+                        if (!item.getEntry().isDirty()) {
 
-							if (SanityManager.DEBUG) {
-							  if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) 
-							  {
-								SanityManager.DEBUG(ClockFactory.CacheTrace,
-													name + " Evicting Item " +
-													item + ", not dirty");
-							  }
-							}
+                            if (SanityManager.DEBUG) {
+                              if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) 
+                              {
+                                SanityManager.DEBUG(ClockFactory.CacheTrace,
+                                                    name + " Evicting Item " +
+                                                    item + ", not dirty");
+                              }
+                            }
 
-							// a valid, unkept, clean item, clear its identity
-							// and use it.
+                            // a valid, unkept, clean item, clear its identity
+                            // and use it.
                             long itemSize = removeIdentity(item);
 
                             if( useByteCount)
                             {
                                 toShrink -= itemSize;
                                 if (getCurrentSizeNoSync() > maximumSize &&
-										0 < toShrink)
+                                        0 < toShrink)
                                 {
                                     if( null == availableItem)
                                     {
@@ -1092,139 +1092,139 @@ restartClock:
                                     continue;
                                 }
                             }
-							// since we are using it move the clock past it
-							incrClockHand();
+                            // since we are using it move the clock past it
+                            incrClockHand();
 
                             if( null != availableItem)
                                 return availableItem;
 
-							// item is kept but not valid when returned
-							item.keepForCreate();
-							return item;
-						}
-						// item is valid, unkept, and dirty. clean it.
-						if ((cleaner != null) && !cleanerRunning) {
-							kickCleaner = true;
-							wokenToClean = true;
-							cleanerRunning = true; // at least it soon will be
-						}
-						item.keepForClean();
+                            // item is kept but not valid when returned
+                            item.keepForCreate();
+                            return item;
+                        }
+                        // item is valid, unkept, and dirty. clean it.
+                        if ((cleaner != null) && !cleanerRunning) {
+                            kickCleaner = true;
+                            wokenToClean = true;
+                            cleanerRunning = true; // at least it soon will be
+                        }
+                        item.keepForClean();
 
-						// leave the clock hand where it is so that we will pick it
-						// up if no-one else uses the cache. Other hunters will
-						// skip over it as it is kept, and thus move the clock
-						// hand past it.
-						break;
-					}
-					if (item == null) {
-						return availableItem;
-					}
+                        // leave the clock hand where it is so that we will pick it
+                        // up if no-one else uses the cache. Other hunters will
+                        // skip over it as it is kept, and thus move the clock
+                        // hand past it.
+                        break;
+                    }
+                    if (item == null) {
+                        return availableItem;
+                    }
 
-				} // synchronized(this)
+                } // synchronized(this)
 
-				// clean the entry outside of a sync block				    
-				try 
-				{
-					if ( SanityManager.DEBUG) {
-						if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) {
-						SanityManager.DEBUG(ClockFactory.CacheTrace,name + " cleaning item " + item);
-						}
-					}
+                // clean the entry outside of a sync block                    
+                try 
+                {
+                    if ( SanityManager.DEBUG) {
+                        if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) {
+                        SanityManager.DEBUG(ClockFactory.CacheTrace,name + " cleaning item " + item);
+                        }
+                    }
 
-					item.clean(false);
+                    item.clean(false);
 
-					if (SanityManager.DEBUG) // stats only in debug mode
-					{
-						cleaned++;
-					}
-				}
-				finally {
-					release(item);
-					item = null;
-				}
+                    if (SanityManager.DEBUG) // stats only in debug mode
+                    {
+                        cleaned++;
+                    }
+                }
+                finally {
+                    release(item);
+                    item = null;
+                }
 
-				// at this point the item we cleaned could be in any state
-				// so we can't just re-use it. Continue searching
+                // at this point the item we cleaned could be in any state
+                // so we can't just re-use it. Continue searching
             }
-			return availableItem;
-		} finally {
+            return availableItem;
+        } finally {
 
 
-			if (SanityManager.DEBUG)
-			{
-				// report statistics
-				if (
-					SanityManager.DEBUG_ON(ClockFactory.CacheTrace))
-					SanityManager.DEBUG(ClockFactory.CacheTrace, name + " evictions " + evictions +
-										", cleaned " + cleaned + 
-										", resetUsed " + resetUsed +
-										", isKept " + iskept +
-										", size " + holders.size());
-			}
+            if (SanityManager.DEBUG)
+            {
+                // report statistics
+                if (
+                    SanityManager.DEBUG_ON(ClockFactory.CacheTrace))
+                    SanityManager.DEBUG(ClockFactory.CacheTrace, name + " evictions " + evictions +
+                                        ", cleaned " + cleaned + 
+                                        ", resetUsed " + resetUsed +
+                                        ", isKept " + iskept +
+                                        ", size " + holders.size());
+            }
 
-			if (kickCleaner && (cleaner != null))
-			{
-				if (SanityManager.DEBUG) {
-					if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace)) {
-					SanityManager.DEBUG(DaemonService.DaemonTrace, name + " client # " + myClientNumber + " calling cleaner ");
-					}
-				}
+            if (kickCleaner && (cleaner != null))
+            {
+                if (SanityManager.DEBUG) {
+                    if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace)) {
+                    SanityManager.DEBUG(DaemonService.DaemonTrace, name + " client # " + myClientNumber + " calling cleaner ");
+                    }
+                }
 
-				cleaner.serviceNow(myClientNumber);
+                cleaner.serviceNow(myClientNumber);
 
-				if (SanityManager.DEBUG) {
-				  if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace)) {
-					SanityManager.DEBUG(DaemonService.DaemonTrace, name + Thread.currentThread().getName() + " cleaner called");
-				  }
-				}
-			}
-		}
+                if (SanityManager.DEBUG) {
+                  if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace)) {
+                    SanityManager.DEBUG(DaemonService.DaemonTrace, name + Thread.currentThread().getName() + " cleaner called");
+                  }
+                }
+            }
+        }
     } // end of rotateClock
 
-	/**
-		Synchronously increment clock hand position
-	*/
-	private int incrClockHand()
-	{
-		if (++clockHand >= holders.size())
-			clockHand = 0;
-		return clockHand;
-	}
+    /**
+        Synchronously increment clock hand position
+    */
+    private int incrClockHand()
+    {
+        if (++clockHand >= holders.size())
+            clockHand = 0;
+        return clockHand;
+    }
 
-	/*
-	 * Serviceable methods
-	 */
+    /*
+     * Serviceable methods
+     */
 
-	public int performWork(ContextManager contextMgr /* ignored */) {
+    public int performWork(ContextManager contextMgr /* ignored */) {
 
-		int ret = performWork(false);
-		synchronized (this) {
-			cleanerRunning = false;
-		}
-		return ret;
-	}
+        int ret = performWork(false);
+        synchronized (this) {
+            cleanerRunning = false;
+        }
+        return ret;
+    }
 
-	
-	/**
-		<P>MT - read only. 
-	*/
-	public boolean serviceASAP()
-	{
-		return needService;
-	}	
-
-
-	// @return true, if this work needs to be done on a user thread immediately
-	public boolean serviceImmediately()
-	{
-		return false;
-	}	
+    
+    /**
+        <P>MT - read only. 
+    */
+    public boolean serviceASAP()
+    {
+        return needService;
+    }    
 
 
-	public synchronized int getNumberInUse() {
+    // @return true, if this work needs to be done on a user thread immediately
+    public boolean serviceImmediately()
+    {
+        return false;
+    }    
 
-			int size = holders.size();
-			int inUse = 0;
+
+    public synchronized int getNumberInUse() {
+
+            int size = holders.size();
+            int inUse = 0;
 
         for (Object holder : holders) {
 
@@ -1235,336 +1235,336 @@ restartClock:
             }
 
         }
-			return inUse;
-	}
+            return inUse;
+    }
 /*
-	private int getNumberKept() {
+    private int getNumberKept() {
 
-		synchronized (this) {
+        synchronized (this) {
 
-			int size = holders.size();
-			int inUse = 0;
+            int size = holders.size();
+            int inUse = 0;
 
-			for (int position = 0; position < size; position++) {
+            for (int position = 0; position < size; position++) {
 
-				CachedItem item = (CachedItem) holders.get(position);
+                CachedItem item = (CachedItem) holders.get(position);
 
-				if (item.isValid() && item.isKept()) {
-					inUse++;
-				}
+                if (item.isValid() && item.isKept()) {
+                    inUse++;
+                }
 
-			}
-			return inUse;
-		}
-	}
+            }
+            return inUse;
+        }
+    }
 */
 
-	/**
-		Grow the cache and return a unused, kept item.
+    /**
+        Grow the cache and return a unused, kept item.
 
-		@exception StandardException Thrown if the cache cannot be grown.
-	*/
+        @exception StandardException Thrown if the cache cannot be grown.
+    */
 
-	private CachedItem growCache()  {
+    private CachedItem growCache()  {
 
-		CachedItem item = new CachedItem();
+        CachedItem item = new CachedItem();
         item.keepForCreate();
 
-		// if we run out of memory below here we don't
-		// know what state the holders could be in
-		// so don't trap it
-		synchronized (this) {
-			holders.add(item);
+        // if we run out of memory below here we don't
+        // know what state the holders could be in
+        // so don't trap it
+        synchronized (this) {
+            holders.add(item);
             // Do not adjust currentByteCount until we put the entry into the CachedItem.
-		}
+        }
 
-		return item;
-	}
+        return item;
+    }
 
 
-	/**
-		Clear an item's identity. Item must be 
-		unkept and valid. This is called for
-		dirty items from the discard code.
+    /**
+        Clear an item's identity. Item must be 
+        unkept and valid. This is called for
+        dirty items from the discard code.
 
-		Caller must hold the cache synchronization.
+        Caller must hold the cache synchronization.
 
         @return the amount by which this shrinks the cache.
-	*/
-	private long removeIdentity(CachedItem item) {
+    */
+    private long removeIdentity(CachedItem item) {
 
         long shrink = 1;
         
-		if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(!item.isKept(), "item is kept");
-			SanityManager.ASSERT(item.isValid(), "item is not valid");
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(!item.isKept(), "item is kept");
+            SanityManager.ASSERT(item.isValid(), "item is not valid");
 
-		}
+        }
 
         if( useByteCount)
             shrink = ((SizedCacheable) item.getEntry()).getSize();
-		cache_.remove(item.getEntry().getIdentity());
-		item.setValidState(false);
+        cache_.remove(item.getEntry().getIdentity());
+        item.setValidState(false);
         validItemCount--;
-		item.getEntry().clearIdentity();
+        item.getEntry().clearIdentity();
         if( useByteCount)
         {
             shrink -= ((SizedCacheable) item.getEntry()).getSize();
             currentByteCount -= shrink;
         }
         return shrink;
-	}
+    }
 
-	/**
-		Write out all dirty buffers.
+    /**
+        Write out all dirty buffers.
 
-		<P>MT - must be MT safe.
-		Single thread on the part that finds the next dirty buffer to write
-		out, the synchronization of cleaning of the individual cachable is
-		provided by the cacheable itself.
-	 */
-	private void cleanCache(Matchable partialKey) throws StandardException {
-	
-		int position;
+        <P>MT - must be MT safe.
+        Single thread on the part that finds the next dirty buffer to write
+        out, the synchronization of cleaning of the individual cachable is
+        provided by the cacheable itself.
+     */
+    private void cleanCache(Matchable partialKey) throws StandardException {
+    
+        int position;
 
-		synchronized(this)
-		{
-			// this is at many dirty buffers as the cleaner is ever going to
-			// see 
-			position = holders.size() - 1;
-		}
+        synchronized(this)
+        {
+            // this is at many dirty buffers as the cleaner is ever going to
+            // see 
+            position = holders.size() - 1;
+        }
 
 
 outerscan:
-		for (;;) {
+        for (;;) {
 
-			CachedItem item = null;
+            CachedItem item = null;
 
-			synchronized (this) {
+            synchronized (this) {
 
-				// the cache may have shrunk by quite a bit since we last came
-				// in here
-				int size = holders.size();
-				if (position >= size)
-					position = size - 1;
+                // the cache may have shrunk by quite a bit since we last came
+                // in here
+                int size = holders.size();
+                if (position >= size)
+                    position = size - 1;
 
 innerscan:
-				// go from position (the last cached item in the holder array
-				// to 0 (the first).  Otherwise, if we go from 0 to
-				// position, some other thread may come in and shrink items
-				// which are between 0 and position.  Since a shrink moves all
-				// items up, we may skip some items without cleaning.
-				for ( ;  position >= 0; position--, item = null) {
+                // go from position (the last cached item in the holder array
+                // to 0 (the first).  Otherwise, if we go from 0 to
+                // position, some other thread may come in and shrink items
+                // which are between 0 and position.  Since a shrink moves all
+                // items up, we may skip some items without cleaning.
+                for ( ;  position >= 0; position--, item = null) {
 
-					item = (CachedItem) holders.get(position);
+                    item = (CachedItem) holders.get(position);
 
-					if (!item.isValid())
-						continue;
+                    if (!item.isValid())
+                        continue;
 
-					if (!item.getEntry().isDirty())
-						continue;
+                    if (!item.getEntry().isDirty())
+                        continue;
 
-					if (partialKey != null) {
+                    if (partialKey != null) {
 
-						Object key = item.getEntry().getIdentity();
+                        Object key = item.getEntry().getIdentity();
 
-						if (!partialKey.match(key))
-							continue;
-					}
+                        if (!partialKey.match(key))
+                            continue;
+                    }
 
-					item.keepForClean();
-					break;
-				}
-			} // synchronized(this)
+                    item.keepForClean();
+                    break;
+                }
+            } // synchronized(this)
 
-			if (position < 0)
-			{
-				return;
-			}
+            if (position < 0)
+            {
+                return;
+            }
 
-			try {
+            try {
 
-				item.clean(false);
-			} finally {
-				release(item);
-			}
-			position--;
-			
-		} // for (;;)
-	}
+                item.clean(false);
+            } finally {
+                release(item);
+            }
+            position--;
+            
+        } // for (;;)
+    }
 
 
-	private long shrinkSize(long currentSize) {
+    private long shrinkSize(long currentSize) {
 
-		long maxSize = getMaximumSize();
+        long maxSize = getMaximumSize();
 
-		long toShrink = currentSize - maxSize;
-		if (toShrink <= 0)
-			return 0;
+        long toShrink = currentSize - maxSize;
+        if (toShrink <= 0)
+            return 0;
 
-		// only shrink 10% of the maximum size
-		long shrinkLimit = maxSize / 10;
-		if (shrinkLimit == 0)
-			shrinkLimit = 2;
+        // only shrink 10% of the maximum size
+        long shrinkLimit = maxSize / 10;
+        if (shrinkLimit == 0)
+            shrinkLimit = 2;
 
-		if (toShrink < shrinkLimit)
-			return toShrink;
-		else
-			return shrinkLimit;
-	}
+        if (toShrink < shrinkLimit)
+            return toShrink;
+        else
+            return shrinkLimit;
+    }
 
-	/**
-		The background cleaner tries to make sure that there are serveral
-		cleaned or invalied buffers ahead of the clock hand so that when they
-		are evicted, they don't need to be cleaned.
+    /**
+        The background cleaner tries to make sure that there are serveral
+        cleaned or invalied buffers ahead of the clock hand so that when they
+        are evicted, they don't need to be cleaned.
 
-		The way this routine work is as follows, starting at the current clock
-		hand position, go forward around the cache buffers, moving the same
-		route that the clock hand moves.  It keep tracks of the number of
-		invalid or not recently used buffers it sees along the way.  If it sees
-		a not recently used buffer, it will clean it.  After it has seen N
-		invalid or not recently used buffers, or it has gone around and visited
-		all buffers in the cache, it finished.
+        The way this routine work is as follows, starting at the current clock
+        hand position, go forward around the cache buffers, moving the same
+        route that the clock hand moves.  It keep tracks of the number of
+        invalid or not recently used buffers it sees along the way.  If it sees
+        a not recently used buffer, it will clean it.  After it has seen N
+        invalid or not recently used buffers, or it has gone around and visited
+        all buffers in the cache, it finished.
 
-		It does not clean recently used buffers.
+        It does not clean recently used buffers.
 
-		<P>MT - must be MT-safe.  It takes a snapshot of the current clock hand
-		position (a synchronous call).  Getting and looking at the next
-		serveral cached item is synchronized on this (RESOLVE: probably doesn't
-		need to be).  Cleaning of the cacheable is handle by the cacheable itself.
+        <P>MT - must be MT-safe.  It takes a snapshot of the current clock hand
+        position (a synchronous call).  Getting and looking at the next
+        serveral cached item is synchronized on this (RESOLVE: probably doesn't
+        need to be).  Cleaning of the cacheable is handle by the cacheable itself.
 
-	*/
-	private int performWork(boolean shrinkOnly)
-	{
-		long target;
-		long toShrink;
+    */
+    private int performWork(boolean shrinkOnly)
+    {
+        long target;
+        long toShrink;
         int maxLooks;
 
-		synchronized(this)
-		{
-			if (!active) {
-				needService = false;
-				return Serviceable.DONE;
-			}
-			else {
-				long currentSize = getCurrentSizeNoSync();
-				target = currentSize / 20;  // attempt to get 5% of the cache clean
-				toShrink = wokenToClean ? 0 : shrinkSize(currentSize);
-			}
+        synchronized(this)
+        {
+            if (!active) {
+                needService = false;
+                return Serviceable.DONE;
+            }
+            else {
+                long currentSize = getCurrentSizeNoSync();
+                target = currentSize / 20;  // attempt to get 5% of the cache clean
+                toShrink = wokenToClean ? 0 : shrinkSize(currentSize);
+            }
 
-			if (target == 0) {
-				wokenToClean = false;
-				needService = false;
-				return Serviceable.DONE;
-			}
+            if (target == 0) {
+                wokenToClean = false;
+                needService = false;
+                return Serviceable.DONE;
+            }
 
-			if (!wokenToClean && (toShrink <= 0)) {
-				needService = false;
-				return Serviceable.DONE;
-			}
+            if (!wokenToClean && (toShrink <= 0)) {
+                needService = false;
+                return Serviceable.DONE;
+            }
 
             maxLooks = useByteCount ? (holders.size()/10) : (int) (target * 2);
-		} // synchronized(this)
+        } // synchronized(this)
 
-		// try to clean the next N (target) cached item, 
-		long clean = 0;
-		int cleaned = 0; // only used in debug
-		CachedItem item = null;
+        // try to clean the next N (target) cached item, 
+        long clean = 0;
+        int cleaned = 0; // only used in debug
+        CachedItem item = null;
         int currentPosition = 0;
 
-		String ThreadName = null;
+        String ThreadName = null;
 
-		if (SanityManager.DEBUG) {
-		  if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace))
-		  {
-			ThreadName = Thread.currentThread().getName();
-			SanityManager.DEBUG(DaemonService.DaemonTrace, ThreadName + " Cleaning " + name + " clientNumber " + myClientNumber);
-		  }
-		}
+        if (SanityManager.DEBUG) {
+          if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace))
+          {
+            ThreadName = Thread.currentThread().getName();
+            SanityManager.DEBUG(DaemonService.DaemonTrace, ThreadName + " Cleaning " + name + " clientNumber " + myClientNumber);
+          }
+        }
 
 
-		synchronized(this)
-		{
-			int itemCount = holders.size();
-			currentPosition = clockHand;
-					
-			// see if the cache needs to shrink
-			boolean shrunk = false;
-			long currentSize = getCurrentSizeNoSync();
+        synchronized(this)
+        {
+            int itemCount = holders.size();
+            currentPosition = clockHand;
+                    
+            // see if the cache needs to shrink
+            boolean shrunk = false;
+            long currentSize = getCurrentSizeNoSync();
 
-			for (; shrinkOnly ? (currentSize > maximumSize && toShrink > 0) : (clean < target); item = null)
-			{				
-				if (++currentPosition >= itemCount) {
-					if (itemCount == 0)
-						break;
+            for (; shrinkOnly ? (currentSize > maximumSize && toShrink > 0) : (clean < target); item = null)
+            {                
+                if (++currentPosition >= itemCount) {
+                    if (itemCount == 0)
+                        break;
 
-					currentPosition = 0;
+                    currentPosition = 0;
 
-				}
+                }
 
-				if (maxLooks-- <= 0)
-				{
-					if (SanityManager.DEBUG) {
-						if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace)) {
-						SanityManager.DEBUG(DaemonService.DaemonTrace, ThreadName + " done one round of " + name);
-						}
-					}
+                if (maxLooks-- <= 0)
+                {
+                    if (SanityManager.DEBUG) {
+                        if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace)) {
+                        SanityManager.DEBUG(DaemonService.DaemonTrace, ThreadName + " done one round of " + name);
+                        }
+                    }
 
-					break;			// done one round
-				}
+                    break;            // done one round
+                }
 
-				item = (CachedItem) holders.get(currentPosition);
+                item = (CachedItem) holders.get(currentPosition);
 
-				if (item.isKept())
-					continue;
+                if (item.isKept())
+                    continue;
 
-				if (!item.isValid())
-				{
-					if (toShrink > 0) {
+                if (!item.isValid())
+                {
+                    if (toShrink > 0) {
 
-						if (SanityManager.DEBUG) {
-							if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) {
-						SanityManager.DEBUG(ClockFactory.CacheTrace, name + 
-											" shrinking item " + item + " at position " + currentPosition);
-							}
-						}
+                        if (SanityManager.DEBUG) {
+                            if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) {
+                        SanityManager.DEBUG(ClockFactory.CacheTrace, name + 
+                                            " shrinking item " + item + " at position " + currentPosition);
+                            }
+                        }
 
                         toShrink -= currentSize;
-						holders.remove(currentPosition);
+                        holders.remove(currentPosition);
                         if( useByteCount)
                             currentByteCount -= getItemSize( item);
                         currentSize = getCurrentSizeNoSync();
                         toShrink += currentSize;
                         itemCount--;
 
-						// account for the fact all the items have shifted down
-						currentPosition--;
+                        // account for the fact all the items have shifted down
+                        currentPosition--;
 
-						shrunk = true;
-					}		
-					continue;
-				}
+                        shrunk = true;
+                    }        
+                    continue;
+                }
 
-				if (item.recentlyUsed())
-					continue;
+                if (item.recentlyUsed())
+                    continue;
 
-				// found a valid, not kept, and not recently used item
-				// this item will be cleaned
+                // found a valid, not kept, and not recently used item
+                // this item will be cleaned
                 int itemSize = getItemSize( item);
-				clean += itemSize;
-				if (!item.getEntry().isDirty()) {
+                clean += itemSize;
+                if (!item.getEntry().isDirty()) {
 
-					if (toShrink > 0) {
-						if (SanityManager.DEBUG) {
-							if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) {
-							SanityManager.DEBUG(ClockFactory.CacheTrace, name + 
-											" shrinking item " + item + " at position " + currentPosition);
-							}
-						}
+                    if (toShrink > 0) {
+                        if (SanityManager.DEBUG) {
+                            if (SanityManager.DEBUG_ON(ClockFactory.CacheTrace)) {
+                            SanityManager.DEBUG(ClockFactory.CacheTrace, name + 
+                                            " shrinking item " + item + " at position " + currentPosition);
+                            }
+                        }
 
                         toShrink -= currentSize;
-						removeIdentity(item);
-						holders.remove(currentPosition);
+                        removeIdentity(item);
+                        holders.remove(currentPosition);
                         if( useByteCount)
                             currentByteCount -= getItemSize( item);
                         currentSize = getCurrentSizeNoSync();
@@ -1572,61 +1572,61 @@ innerscan:
                         itemCount--;
                         shrunk = true;
 
-						// account for the fact all the items have shifted down
-						currentPosition--;
-					}		
-					continue;
-				}
+                        // account for the fact all the items have shifted down
+                        currentPosition--;
+                    }        
+                    continue;
+                }
 
-				if (shrinkOnly)
-					continue;
+                if (shrinkOnly)
+                    continue;
 
-				// found one that needs cleaning, keep it to clean
-				item.keepForClean();
-				break;
-			} // end of for loop
+                // found one that needs cleaning, keep it to clean
+                item.keepForClean();
+                break;
+            } // end of for loop
 
-			if (shrunk)
-				trimToSize();
+            if (shrunk)
+                trimToSize();
 
-			if (item == null) {
-				wokenToClean = false;
-				needService = false;
-				return Serviceable.DONE;
-			}
-		} // synchronized(this)
+            if (item == null) {
+                wokenToClean = false;
+                needService = false;
+                return Serviceable.DONE;
+            }
+        } // synchronized(this)
 
-		try
-		{
-			if (SanityManager.DEBUG) {
-				if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace)) {
-				SanityManager.DEBUG(DaemonService.DaemonTrace, ThreadName + " cleaning entry  in " + name);
-				}
-			}
+        try
+        {
+            if (SanityManager.DEBUG) {
+                if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace)) {
+                SanityManager.DEBUG(DaemonService.DaemonTrace, ThreadName + " cleaning entry  in " + name);
+                }
+            }
 
-			item.clean(false);
-			if (SanityManager.DEBUG) // only need stats for debug
-				   cleaned++;
-				
-		} catch (StandardException se) {
-			// RESOLVE - should probably throw the error into the log.
-		}
-		finally
-		{
-			release(item);
-			item = null;
-		}
+            item.clean(false);
+            if (SanityManager.DEBUG) // only need stats for debug
+                   cleaned++;
+                
+        } catch (StandardException se) {
+            // RESOLVE - should probably throw the error into the log.
+        }
+        finally
+        {
+            release(item);
+            item = null;
+        }
 
-		if (SanityManager.DEBUG) {
-			if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace)) {
-			SanityManager.DEBUG(DaemonService.DaemonTrace, ThreadName + " Found " + clean + " clean items, cleaned " +
-								cleaned + " items in " + name );
-			}
-		}
+        if (SanityManager.DEBUG) {
+            if (SanityManager.DEBUG_ON(DaemonService.DaemonTrace)) {
+            SanityManager.DEBUG(DaemonService.DaemonTrace, ThreadName + " Found " + clean + " clean items, cleaned " +
+                                cleaned + " items in " + name );
+            }
+        }
 
-		needService = true;
-		return Serviceable.REQUEUE; // return is actually ignored.
-	} // end of performWork
+        needService = true;
+        return Serviceable.REQUEUE; // return is actually ignored.
+    } // end of performWork
 
     private int getItemSize( CachedItem item)
     {
@@ -1638,27 +1638,27 @@ innerscan:
         return entry.getSize();
     } // end of getItemSize
     
-	/**
-		Return statistics about cache that may be implemented.
-	**/
-	public synchronized long[] getCacheStats()
+    /**
+        Return statistics about cache that may be implemented.
+    **/
+    public synchronized long[] getCacheStats()
     {
-		stat.currentSize = getCurrentSizeNoSync();
-		return stat.getStats();
+        stat.currentSize = getCurrentSizeNoSync();
+        return stat.getStats();
     }
 
-	/**
-		Reset the statistics to 0.
-	**/
-	public void resetCacheStats()
+    /**
+        Reset the statistics to 0.
+    **/
+    public void resetCacheStats()
     {
-		stat.reset();
-	}
+        stat.reset();
+    }
 
      /**
      * @return the current maximum size of the cache.
      */
-	public synchronized long getMaximumSize()
+    public synchronized long getMaximumSize()
     {
         return maximumSize;
     }
@@ -1671,7 +1671,7 @@ innerscan:
      *
      * @exception StandardException Standard Derby error policy
      */
-	public void resize( long newSize) throws StandardException
+    public void resize( long newSize) throws StandardException
     {
         boolean shrink;
 
@@ -1796,93 +1796,93 @@ innerscan:
             return;
         trimRequests = 0;
         
-		// move invalid items to the end.
-		int endPosition = size - 1;
+        // move invalid items to the end.
+        int endPosition = size - 1;
 
-		int invalidCount = 0;
+        int invalidCount = 0;
         for (int i = 0; i <= endPosition; i++)
         {
             CachedItem item = (CachedItem) holders.get(i);
 
-			if (item.isKept())
-				continue;
+            if (item.isKept())
+                continue;
 
             if (item.isValid())
-				continue;
+                continue;
 
-			invalidCount++;
+            invalidCount++;
 
-			// swap with an item later in the list
-			// try to keep free items at the end of the holders array.
-			for (; endPosition > i; endPosition--) {
-				CachedItem last = (CachedItem) holders.get(endPosition);
-				if (last.isValid()) {
-					holders.set(i, last);
-					holders.set(endPosition, item);
-					endPosition--;
-					break;
-				}
-			}
-		}
-		// small cache - don't shrink.
-		if (size < 32)
-			return;
-		
-		// now decide if we need to shrink the holder array or not.
-		int validItems = size - invalidCount;
+            // swap with an item later in the list
+            // try to keep free items at the end of the holders array.
+            for (; endPosition > i; endPosition--) {
+                CachedItem last = (CachedItem) holders.get(endPosition);
+                if (last.isValid()) {
+                    holders.set(i, last);
+                    holders.set(endPosition, item);
+                    endPosition--;
+                    break;
+                }
+            }
+        }
+        // small cache - don't shrink.
+        if (size < 32)
+            return;
+        
+        // now decide if we need to shrink the holder array or not.
+        int validItems = size - invalidCount;
 
-		// over 75% entries used, don't shrink.
-		if (validItems > ((3 * size) / 4))
-			return;
+        // over 75% entries used, don't shrink.
+        if (validItems > ((3 * size) / 4))
+            return;
 
-		// keep 10% new items.
-		int newSize = validItems + (validItems / 10);
+        // keep 10% new items.
+        int newSize = validItems + (validItems / 10);
 
-		if (newSize >= size)
-			return;
+        if (newSize >= size)
+            return;
 
-		// remove items, starting at the end,  where
-		// hopefully most of the free items are.
-		for (int r = size - 1; r > newSize; r--) {
-			CachedItem remove = (CachedItem) holders.get(r);
-			if (remove.isKept() || remove.isValid()) {
-				continue;
-			}
+        // remove items, starting at the end,  where
+        // hopefully most of the free items are.
+        for (int r = size - 1; r > newSize; r--) {
+            CachedItem remove = (CachedItem) holders.get(r);
+            if (remove.isKept() || remove.isValid()) {
+                continue;
+            }
 
-			if (useByteCount) {
-				currentByteCount -= getItemSize(remove);
-			}
+            if (useByteCount) {
+                currentByteCount -= getItemSize(remove);
+            }
 
-			holders.remove(r);
-		}
+            holders.remove(r);
+        }
 
-		holders.trimToSize();
-		// move the clock hand to the start of the invalid items.
-		clockHand = validItems + 1;
+        holders.trimToSize();
+        // move the clock hand to the start of the invalid items.
+        clockHand = validItems + 1;
 
     } // end of trimToSize
 
-	/**
-	 * Tell if a key exists in the cache.
-	 * @param k the key to test for
-	 * @return true if k is a key in the cache
-	 */
-	public synchronized boolean containsKey(Object k) {
-		return cache_.containsKey(k);
-	}
+    /**
+     * Tell if a key exists in the cache.
+     * @param k the key to test for
+     * @return true if k is a key in the cache
+     */
+    public synchronized boolean containsKey(Object k) {
+        return cache_.containsKey(k);
+    }
 
-	/**
-	 * Return a Collection of the Cacheables currently in the
-	 * cache. The Collection is a snapshot (copy) so external
-	 * synchronization isn't required. Part of the CacheManager
-	 * interface.
-	 * @return a Collection of the cache elements.
-	 */
-	public synchronized Collection values() {
-		ArrayList al = new ArrayList();
+    /**
+     * Return a Collection of the Cacheables currently in the
+     * cache. The Collection is a snapshot (copy) so external
+     * synchronization isn't required. Part of the CacheManager
+     * interface.
+     * @return a Collection of the cache elements.
+     */
+    public synchronized Collection values() {
+        ArrayList al = new ArrayList();
         for (Object o : cache_.values()) {
             al.add(((CachedItem) o).getEntry());
         }
-		return al;
-	}
+        return al;
+    }
 }

@@ -99,20 +99,20 @@ public class SequenceDescriptor extends TupleDescriptor
     }
 
    /**
-	 * @see UniqueTupleDescriptor#getUUID
-	 */
-	public UUID	getUUID()
-	{
-		return sequenceUUID;
-	}
+     * @see UniqueTupleDescriptor#getUUID
+     */
+    public UUID    getUUID()
+    {
+        return sequenceUUID;
+    }
 
    /**
-	 * @see PrivilegedSQLObject#getObjectTypeName
-	 */
-	public String getObjectTypeName()
-	{
-		return PermDescriptor.SEQUENCE_TYPE;
-	}
+     * @see PrivilegedSQLObject#getObjectTypeName
+     */
+    public String getObjectTypeName()
+    {
+        return PermDescriptor.SEQUENCE_TYPE;
+    }
 
     public String toString() {
         if (SanityManager.DEBUG) {
@@ -132,62 +132,62 @@ public class SequenceDescriptor extends TupleDescriptor
     }
 
     /**
-	 * Check that all of the dependent's dependencies are valid.
-	 *
-	 * @return true if the dependent is currently valid
-	 */
-	public synchronized boolean isValid()
-	{
-		return true;
-	}
+     * Check that all of the dependent's dependencies are valid.
+     *
+     * @return true if the dependent is currently valid
+     */
+    public synchronized boolean isValid()
+    {
+        return true;
+    }
 
     /**
-	 * Prepare to mark the dependent as invalid (due to at least one of
-	 * its dependencies being invalid).
-	 *
-	 * @param action	The action causing the invalidation
-	 * @param p			the provider
-	 * @param lcc		the language connection context
-	 *
-	 * @exception StandardException thrown if unable to make it invalid
-	 */
-	public void prepareToInvalidate
-	(
-		Provider 					p,
-		int							action,
-		LanguageConnectionContext	lcc
-	) throws StandardException
-	{
-		switch (action)
-		{   			
-			default:
-				break;
-		}
-	}
+     * Prepare to mark the dependent as invalid (due to at least one of
+     * its dependencies being invalid).
+     *
+     * @param action    The action causing the invalidation
+     * @param p            the provider
+     * @param lcc        the language connection context
+     *
+     * @exception StandardException thrown if unable to make it invalid
+     */
+    public void prepareToInvalidate
+    (
+        Provider                     p,
+        int                            action,
+        LanguageConnectionContext    lcc
+    ) throws StandardException
+    {
+        switch (action)
+        {               
+            default:
+                break;
+        }
+    }
     /**
-	 * Mark the dependent as invalid (due to at least one of
-	 * its dependencies being invalid).
-	 *
-	 * @param 	lcc the language connection context
-	 * @param	action	The action causing the invalidation
-	 *
-	 * @exception StandardException thrown if called in sanity mode
-	 */
-	public void makeInvalid(int action, LanguageConnectionContext lcc) throws StandardException
-	{
-		switch (action)
-		{
-			// invalidate this sequence descriptor
-			case DependencyManager.USER_RECOMPILE_REQUEST:
-				DependencyManager dm = getDataDictionary().getDependencyManager();
-				dm.invalidateFor(this, DependencyManager.PREPARED_STATEMENT_RELEASE, lcc);
-				break;
+     * Mark the dependent as invalid (due to at least one of
+     * its dependencies being invalid).
+     *
+     * @param     lcc the language connection context
+     * @param    action    The action causing the invalidation
+     *
+     * @exception StandardException thrown if called in sanity mode
+     */
+    public void makeInvalid(int action, LanguageConnectionContext lcc) throws StandardException
+    {
+        switch (action)
+        {
+            // invalidate this sequence descriptor
+            case DependencyManager.USER_RECOMPILE_REQUEST:
+                DependencyManager dm = getDataDictionary().getDependencyManager();
+                dm.invalidateFor(this, DependencyManager.PREPARED_STATEMENT_RELEASE, lcc);
+                break;
 
-			default:
-				break;
-		}
+            default:
+                break;
+        }
 
-	}
+    }
 
     public String getName() {
         return sequenceName;

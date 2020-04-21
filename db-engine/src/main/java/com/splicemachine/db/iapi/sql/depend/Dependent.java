@@ -31,53 +31,53 @@
 
 package com.splicemachine.db.iapi.sql.depend;
 
-import	com.splicemachine.db.catalog.Dependable;
+import    com.splicemachine.db.catalog.Dependable;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 
 /**
-	A dependent has the ability to know whether or not it
-	is valid and to mark itself as valid or invalid.
-	Marking itself as invalid usually means it cannot be used
-	in the system until it is revalidated, but this is in no
-	way enforced by this interface.
+    A dependent has the ability to know whether or not it
+    is valid and to mark itself as valid or invalid.
+    Marking itself as invalid usually means it cannot be used
+    in the system until it is revalidated, but this is in no
+    way enforced by this interface.
  */
 public interface Dependent  extends Dependable
 {
 
-	/**
-		Check that all of the dependent's dependencies are valid.
+    /**
+        Check that all of the dependent's dependencies are valid.
 
-		@return true if the dependent is currently valid
-	 */
-	boolean isValid();
+        @return true if the dependent is currently valid
+     */
+    boolean isValid();
 
-	/**
-		Prepare to mark the dependent as invalid (due to at least one of
-		its dependencies being invalid).
+    /**
+        Prepare to mark the dependent as invalid (due to at least one of
+        its dependencies being invalid).
 
-		@param action	The action causing the invalidation
-		@param p		the provider
-		@param lcc		The LanguageConnectionContext
+        @param action    The action causing the invalidation
+        @param p        the provider
+        @param lcc        The LanguageConnectionContext
 
-		@exception StandardException thrown if unable to make it invalid
-	 */
-	void prepareToInvalidate(Provider p, int action, 
-							 LanguageConnectionContext lcc) 
-		throws StandardException;
+        @exception StandardException thrown if unable to make it invalid
+     */
+    void prepareToInvalidate(Provider p, int action, 
+                             LanguageConnectionContext lcc) 
+        throws StandardException;
 
-	/**
-		Mark the dependent as invalid (due to at least one of
-		its dependencies being invalid).
+    /**
+        Mark the dependent as invalid (due to at least one of
+        its dependencies being invalid).
 
-		@param	action	The action causing the invalidation
-		@param lcc		The LanguageConnectionContext
+        @param    action    The action causing the invalidation
+        @param lcc        The LanguageConnectionContext
 
-		@exception StandardException thrown if unable to make it invalid
-	 */
-	void makeInvalid(int action,
-					 LanguageConnectionContext lcc) 
-			throws StandardException;
+        @exception StandardException thrown if unable to make it invalid
+     */
+    void makeInvalid(int action,
+                     LanguageConnectionContext lcc) 
+            throws StandardException;
 }

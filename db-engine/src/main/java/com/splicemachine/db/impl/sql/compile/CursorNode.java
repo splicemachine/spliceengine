@@ -125,10 +125,10 @@ public class CursorNode extends DMLStatementNode{
         this.updateMode=(Integer)updateMode;
         this.updatableColumns=(Vector)updatableColumns;
 
-		/*
+        /*
         ** This is a sanity check and not an error since the parser
-		** controls setting updatableColumns and updateMode.
-		*/
+        ** controls setting updatableColumns and updateMode.
+        */
         if(SanityManager.DEBUG)
             SanityManager.ASSERT(this.updatableColumns==null ||
                             this.updatableColumns.isEmpty() || this.updateMode==UPDATE,
@@ -211,7 +211,7 @@ public class CursorNode extends DMLStatementNode{
                     getNodeFactory().doJoinOrderOptimization(),
                     getContextManager());
 
-			/* Check for ? parameters directly under the ResultColums */
+            /* Check for ? parameters directly under the ResultColums */
             resultSet.rejectParameters();
 
             // Bind and Optimize Real Time Views (OK, That is a made up name).
@@ -231,7 +231,7 @@ public class CursorNode extends DMLStatementNode{
             // define how we bind these out, so we don't allow it.
             resultSet.rejectXMLValues();
 
-			/* Verify that all underlying ResultSets reclaimed their FromList */
+            /* Verify that all underlying ResultSets reclaimed their FromList */
             if(SanityManager.DEBUG){
                 SanityManager.ASSERT(fromList.isEmpty(),
                         "fromList.size() is expected to be 0, not "
@@ -381,25 +381,25 @@ public class CursorNode extends DMLStatementNode{
 
         super.optimizeStatement();
 
-		/* we need to generate a new ResultSetNode to enable the scrolling
-		 * on top of the tree before modifying the access paths.
-		 */
+        /* we need to generate a new ResultSetNode to enable the scrolling
+         * on top of the tree before modifying the access paths.
+         */
         ResultSetNode siChild = resultSet;
 
-		/* We get a shallow copy of the ResultColumnList and its
-		 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
-		 */
+        /* We get a shallow copy of the ResultColumnList and its
+         * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+         */
         ResultColumnList siRCList = resultSet.getResultColumns();
         ResultColumnList childRCList = siRCList.copyListAndObjects();
         resultSet.setResultColumns(childRCList);
 
-		/* Replace ResultColumn.expression with new VirtualColumnNodes
-		 * in the ScrollInsensitiveResultSetNode's ResultColumnList.  (VirtualColumnNodes include
-		 * pointers to source ResultSetNode, this, and source ResultColumn.)
-		 */
+        /* Replace ResultColumn.expression with new VirtualColumnNodes
+         * in the ScrollInsensitiveResultSetNode's ResultColumnList.  (VirtualColumnNodes include
+         * pointers to source ResultSetNode, this, and source ResultColumn.)
+         */
         siRCList.genVirtualColumnNodes(resultSet, childRCList);
 
-		/* Finally, we create the new ScrollInsensitiveResultSetNode */
+        /* Finally, we create the new ScrollInsensitiveResultSetNode */
         resultSet = (ResultSetNode) getNodeFactory().getNode(
                         C_NodeTypes.SCROLL_INSENSITIVE_RESULT_SET_NODE,
                         resultSet,
@@ -442,13 +442,13 @@ public class CursorNode extends DMLStatementNode{
         // this will generate an expression that will be a ResultSet
         resultSet.generate(acb,mb);
 
-		/*
-		** Generate the position code if this cursor is updatable.  This
-		** involves generating methods to get the cursor result set, and
-		** the target result set (which is for the base row).  Also,
-		** generate code to store the cursor result set in a generated
-		** field.
-		*/
+        /*
+        ** Generate the position code if this cursor is updatable.  This
+        ** involves generating methods to get the cursor result set, and
+        ** the target result set (which is for the base row).  Also,
+        ** generate code to store the cursor result set in a generated
+        ** field.
+        */
         if(needTarget){
             // PUSHCOMPILE - could be put into a single method
             acb.rememberCursor(mb);
@@ -477,8 +477,8 @@ public class CursorNode extends DMLStatementNode{
     /**
      * Returns whether or not this Statement requires a set/clear savepoint
      * around its execution.  The following statement "types" do not require them:
-     * Cursor	- unnecessary and won't work in a read only environment
-     * Xact	- savepoint will get blown away underneath us during commit/rollback
+     * Cursor    - unnecessary and won't work in a read only environment
+     * Xact    - savepoint will get blown away underneath us during commit/rollback
      *
      * @return boolean    Whether or not this Statement requires a set/clear savepoint
      */
@@ -671,15 +671,15 @@ public class CursorNode extends DMLStatementNode{
 
         updateTable=resultSet.getCursorTargetTable();
 
-		/* Tell the table that it is the cursor target */
+        /* Tell the table that it is the cursor target */
         if(updateTable.markAsCursorTargetTable()){
-			/* Cursor is updatable - remember to generate the position code */
+            /* Cursor is updatable - remember to generate the position code */
             needTarget=true;
 
-			/* We must generate the target column list at bind time
-			 * because the optimizer may transform the FromBaseTable from
-			 * a table scan into an index scan.
-			 */
+            /* We must generate the target column list at bind time
+             * because the optimizer may transform the FromBaseTable from
+             * a table scan into an index scan.
+             */
             genTargetResultColList();
         }
         return UPDATE;
@@ -709,14 +709,14 @@ public class CursorNode extends DMLStatementNode{
     private ResultColumnDescriptor[] genTargetResultColList() throws StandardException{
         ResultColumnList newList;
 
-		/*
-		   updateTable holds the FromTable that is the target.
-		   copy its ResultColumnList, making BaseColumn references
-		   for use in the CurrentOfNode, which behaves as if it had
-		   base columns for the statement it is in.
+        /*
+           updateTable holds the FromTable that is the target.
+           copy its ResultColumnList, making BaseColumn references
+           for use in the CurrentOfNode, which behaves as if it had
+           base columns for the statement it is in.
 
-			updateTable is null if the cursor is not updatable.
-		 */
+            updateTable is null if the cursor is not updatable.
+         */
         if(updateTable==null) return null;
 
         if(targetColumnDescriptors!=null) return targetColumnDescriptors;
@@ -746,7 +746,7 @@ public class CursorNode extends DMLStatementNode{
                     newNode,
                     getContextManager());
 
-			/* Build the ResultColumnList to return */
+            /* Build the ResultColumnList to return */
             newList.addResultColumn(newCol);
         }
 

@@ -37,58 +37,58 @@ import java.sql.SQLException;
 
 public class DefaultLocale { 
 
-	static String savedLocale;
+    static String savedLocale;
 
-	static {
-		savedLocale=java.util.Locale.getDefault().toString();
-		setDefaultLocale("rr", "TT");
-	}
+    static {
+        savedLocale=java.util.Locale.getDefault().toString();
+        setDefaultLocale("rr", "TT");
+    }
 
 
-	// used in messageLocale test
-	public static void checkDefaultLocale() throws SQLException
-	{
-		String defLocale = java.util.Locale.getDefault().toString();
-		//System.out.println(defLocale);
-		if (!defLocale.equals("rr_TT"))
-			throw new SQLException("wrong_locale");
-	}
+    // used in messageLocale test
+    public static void checkDefaultLocale() throws SQLException
+    {
+        String defLocale = java.util.Locale.getDefault().toString();
+        //System.out.println(defLocale);
+        if (!defLocale.equals("rr_TT"))
+            throw new SQLException("wrong_locale");
+    }
 
-	// used in urlLocale test
-	public static void checkRDefaultLocale() throws SQLException
-	{
-		String dbLocale = com.splicemachine.db.iapi.db.Factory.getDatabaseOfConnection().getLocale().toString();
-		//System.out.println(savedLocale);
-		//System.out.println(dbLocale);
-		if (!savedLocale.equals(dbLocale))
-			throw new SQLException("wrong_locale");
-	}
+    // used in urlLocale test
+    public static void checkRDefaultLocale() throws SQLException
+    {
+        String dbLocale = com.splicemachine.db.iapi.db.Factory.getDatabaseOfConnection().getLocale().toString();
+        //System.out.println(savedLocale);
+        //System.out.println(dbLocale);
+        if (!savedLocale.equals(dbLocale))
+            throw new SQLException("wrong_locale");
+    }
 
-	// used in urlLocale test and messageLocale test
-	public static void checkDatabaseLocale(String Locale) throws SQLException
-	{
-		String dbLocale = com.splicemachine.db.iapi.db.Factory.getDatabaseOfConnection().getLocale().toString();
-		//System.out.println(dbLocale + "-");
-		//System.out.println(Locale + "-");
-		if (!dbLocale.toUpperCase().equals(Locale.toUpperCase().trim()))
-			throw new SQLException("wrong locale");
-	}
+    // used in urlLocale test and messageLocale test
+    public static void checkDatabaseLocale(String Locale) throws SQLException
+    {
+        String dbLocale = com.splicemachine.db.iapi.db.Factory.getDatabaseOfConnection().getLocale().toString();
+        //System.out.println(dbLocale + "-");
+        //System.out.println(Locale + "-");
+        if (!dbLocale.toUpperCase().equals(Locale.toUpperCase().trim()))
+            throw new SQLException("wrong locale");
+    }
 
-	// used in messageLocale test
-	public static void setDefaultLocale(final String Locale, final String Code)
-	{
-		// needs to run in a privileged block as it will be
-		// called through a SQL statement and thus a generated
-		// class. The generated class on the stack has no permissions
-		// granted to it. Needs write permission on user.language
-		AccessController.doPrivileged(new PrivilegedAction() {
+    // used in messageLocale test
+    public static void setDefaultLocale(final String Locale, final String Code)
+    {
+        // needs to run in a privileged block as it will be
+        // called through a SQL statement and thus a generated
+        // class. The generated class on the stack has no permissions
+        // granted to it. Needs write permission on user.language
+        AccessController.doPrivileged(new PrivilegedAction() {
             public Object run() {
-            	java.util.Locale.setDefault(new java.util.Locale(Locale.trim(),Code.trim()));
+                java.util.Locale.setDefault(new java.util.Locale(Locale.trim(),Code.trim()));
                 return null; // nothing to return
             }
-        });		
-		
-	}
+        });        
+        
+    }
 
 
 

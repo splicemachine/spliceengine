@@ -41,52 +41,52 @@ import java.util.Set;
  */
 public class NullableColumnIT extends SpliceUnitTest { 
     private static final Logger LOG = Logger.getLogger(NullableColumnIT.class);
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	public static final String CLASS_NAME = NullableColumnIT.class.getSimpleName().toUpperCase();
-	public static final String TABLE_NAME_1 = "A";
-	public static final String TABLE_NAME_2 = "B";
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    public static final String CLASS_NAME = NullableColumnIT.class.getSimpleName().toUpperCase();
+    public static final String TABLE_NAME_1 = "A";
+    public static final String TABLE_NAME_2 = "B";
     private static final int size = 10;
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
-	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(name varchar(40),value int)");
-	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(name varchar(40),value int)");
-	
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher1)
-		.around(spliceTableWatcher2)
-		.around(new SpliceDataWatcher(){
-			@Override
-			protected void starting(Description description) {
-				try {
-					 PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s (name, value) values (?,?)",CLASS_NAME,TABLE_NAME_1));
-				        PreparedStatement ps2 = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s (name, value) values (?,?)",CLASS_NAME,TABLE_NAME_2));
-				        for(int i=0;i<size;i++){
-				            ps.setString(1,"sfines");
-				            if(i%2==0)
-				                ps.setNull(2, Types.INTEGER);
-				            else
-				                ps.setInt(2,i);
-				            ps.executeUpdate();
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);    
+    protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(name varchar(40),value int)");
+    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(name varchar(40),value int)");
+    
+    @ClassRule 
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+        .around(spliceSchemaWatcher)
+        .around(spliceTableWatcher1)
+        .around(spliceTableWatcher2)
+        .around(new SpliceDataWatcher(){
+            @Override
+            protected void starting(Description description) {
+                try {
+                     PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s (name, value) values (?,?)",CLASS_NAME,TABLE_NAME_1));
+                        PreparedStatement ps2 = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s (name, value) values (?,?)",CLASS_NAME,TABLE_NAME_2));
+                        for(int i=0;i<size;i++){
+                            ps.setString(1,"sfines");
+                            if(i%2==0)
+                                ps.setNull(2, Types.INTEGER);
+                            else
+                                ps.setInt(2,i);
+                            ps.executeUpdate();
 
-				            if(i%3==0)
-				                ps2.setNull(1,Types.VARCHAR);
-				            else
-				                ps2.setString(1,"jzhang");
-				            ps2.setInt(2,i);
-				            ps2.executeUpdate();
-				        }
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-				finally {
-					spliceClassWatcher.closeAll();
-				}
-			}
-			
-		});
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+                            if(i%3==0)
+                                ps2.setNull(1,Types.VARCHAR);
+                            else
+                                ps2.setString(1,"jzhang");
+                            ps2.setInt(2,i);
+                            ps2.executeUpdate();
+                        }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                finally {
+                    spliceClassWatcher.closeAll();
+                }
+            }
+            
+        });
+    
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
     public void testScanNullableColumns() throws Exception{

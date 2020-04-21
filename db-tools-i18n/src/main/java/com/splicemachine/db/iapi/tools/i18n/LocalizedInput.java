@@ -37,23 +37,23 @@ import java.io.UnsupportedEncodingException;
 import java.io.IOException;
 
 public class LocalizedInput extends BufferedReader{
-	private InputStream in;
-	public LocalizedInput(InputStream i){
-		super(new InputStreamReader(i));
-		this.in = i;
-	}
+    private InputStream in;
+    public LocalizedInput(InputStream i){
+        super(new InputStreamReader(i));
+        this.in = i;
+    }
 
-	LocalizedInput(InputStream i, String encode) throws UnsupportedEncodingException{
-		super(new InputStreamReader(i,encode));
-		this.in = i;
-	}
-	public boolean isStandardInput(){
-		return (in == System.in);
-	}
-	public void close() throws IOException {
-		if (!isStandardInput()) {
-			super.close();
-		}
-	}
+    LocalizedInput(InputStream i, String encode) throws UnsupportedEncodingException{
+        super(new InputStreamReader(i,encode));
+        this.in = i;
+    }
+    public boolean isStandardInput(){
+        return (in == System.in);
+    }
+    public void close() throws IOException {
+        if (!isStandardInput()) {
+            super.close();
+        }
+    }
 
 }

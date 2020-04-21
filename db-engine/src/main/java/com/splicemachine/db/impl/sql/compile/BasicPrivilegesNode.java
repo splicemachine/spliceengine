@@ -56,163 +56,163 @@ import static com.splicemachine.db.impl.sql.execute.BasicPrivilegeInfo.SELECT_AC
  */
 public class BasicPrivilegesNode extends QueryTreeNode
 {
-	private boolean[] actionAllowed = new boolean[ TablePrivilegeInfo.ACTION_COUNT];
-	private ResultColumnList[] columnLists = new ResultColumnList[ TablePrivilegeInfo.ACTION_COUNT];
-	private FormatableBitSet[] columnBitSets = new FormatableBitSet[ TablePrivilegeInfo.ACTION_COUNT];
-	private TableDescriptor td;  
-	private SchemaDescriptor sd;
-	private List descriptorList;
-	private boolean isAll = false;
-	
-	/**
-	 * Add all actions
-	 */
-	public void addAll()
-	{
-		for( int i = 0; i < TablePrivilegeInfo.ACTION_COUNT; i++)
-		{
-			actionAllowed[i] = true;
-			columnLists[i] = null;
-		}
-		isAll = true;
-	} // end of addAll
+    private boolean[] actionAllowed = new boolean[ TablePrivilegeInfo.ACTION_COUNT];
+    private ResultColumnList[] columnLists = new ResultColumnList[ TablePrivilegeInfo.ACTION_COUNT];
+    private FormatableBitSet[] columnBitSets = new FormatableBitSet[ TablePrivilegeInfo.ACTION_COUNT];
+    private TableDescriptor td;  
+    private SchemaDescriptor sd;
+    private List descriptorList;
+    private boolean isAll = false;
+    
+    /**
+     * Add all actions
+     */
+    public void addAll()
+    {
+        for( int i = 0; i < TablePrivilegeInfo.ACTION_COUNT; i++)
+        {
+            actionAllowed[i] = true;
+            columnLists[i] = null;
+        }
+        isAll = true;
+    } // end of addAll
 
-	/**
-	 * Add one action to the privileges for this table
-	 *
-	 * @param action The action type
-	 * @param privilegeColumnList The set of privilege columns. Null for all columns
-	 *
-	 * @exception StandardException standard error policy.
-	 */
-	public void addAction( int action, ResultColumnList privilegeColumnList)
-	{
-		actionAllowed[ action] = true;
-		if( privilegeColumnList == null)
-			columnLists[ action] = null;
-		else if( columnLists[ action] == null)
-			columnLists[ action] = privilegeColumnList;
-		else
-			columnLists[ action].appendResultColumns( privilegeColumnList, false);
-	} // end of addAction
+    /**
+     * Add one action to the privileges for this table
+     *
+     * @param action The action type
+     * @param privilegeColumnList The set of privilege columns. Null for all columns
+     *
+     * @exception StandardException standard error policy.
+     */
+    public void addAction( int action, ResultColumnList privilegeColumnList)
+    {
+        actionAllowed[ action] = true;
+        if( privilegeColumnList == null)
+            columnLists[ action] = null;
+        else if( columnLists[ action] == null)
+            columnLists[ action] = privilegeColumnList;
+        else
+            columnLists[ action].appendResultColumns( privilegeColumnList, false);
+    } // end of addAction
 
-	public void removeAction(int action) {
-		actionAllowed[action] = false;
-		if (columnLists[action] != null)
-			columnLists[action] = null;
-		return;
-	}
-	/**
-	 * Bind.
-	 *
-	 * @param td The table descriptor
-	 * @param isGrant grant if true; revoke if false
-	 */
-	public void bind( TableDescriptor td, boolean isGrant) throws StandardException
-	{
-		this.td = td;
-			
-		for( int action = 0; action < TablePrivilegeInfo.ACTION_COUNT; action++)
-		{
-			if( columnLists[ action] != null) {
-				if (columnLists[action].size() == 1) {
-					ResultColumn rc = columnLists[action].elementAt(0);
-					if (rc instanceof AllResultColumn) {
-						columnLists[action].remove(0);
+    public void removeAction(int action) {
+        actionAllowed[action] = false;
+        if (columnLists[action] != null)
+            columnLists[action] = null;
+        return;
+    }
+    /**
+     * Bind.
+     *
+     * @param td The table descriptor
+     * @param isGrant grant if true; revoke if false
+     */
+    public void bind( TableDescriptor td, boolean isGrant) throws StandardException
+    {
+        this.td = td;
+            
+        for( int action = 0; action < TablePrivilegeInfo.ACTION_COUNT; action++)
+        {
+            if( columnLists[ action] != null) {
+                if (columnLists[action].size() == 1) {
+                    ResultColumn rc = columnLists[action].elementAt(0);
+                    if (rc instanceof AllResultColumn) {
+                        columnLists[action].remove(0);
 
-						//expand asterisk to all columns of the table
-						ColumnDescriptorList cdl = td.getColumnDescriptorList();
-						for (ColumnDescriptor cd: cdl) {
-							ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
-									C_NodeTypes.RESULT_COLUMN,
-									cd.getColumnName(),
-									null,
-									getContextManager());
-							columnLists[action].addResultColumn(newRC);
-						}
-					}
-				}
+                        //expand asterisk to all columns of the table
+                        ColumnDescriptorList cdl = td.getColumnDescriptorList();
+                        for (ColumnDescriptor cd: cdl) {
+                            ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
+                                    C_NodeTypes.RESULT_COLUMN,
+                                    cd.getColumnName(),
+                                    null,
+                                    getContextManager());
+                            columnLists[action].addResultColumn(newRC);
+                        }
+                    }
+                }
 
-				columnBitSets[action] = columnLists[action].bindResultColumnsByName(td, (DMLStatementNode) null);
-			}
+                columnBitSets[action] = columnLists[action].bindResultColumnsByName(td, (DMLStatementNode) null);
+            }
 
-			// Prevent granting non-SELECT privileges to views
-			if (td.getTableType() == TableDescriptor.VIEW_TYPE && action != SELECT_ACTION)
-				if (actionAllowed[action])
-					throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED,
-									td.getQualifiedName());
-		}
-		
-		if (isGrant && td.getTableType() == TableDescriptor.VIEW_TYPE)
-		{
-			bindPrivilegesForView(td);
-		}
-	}
+            // Prevent granting non-SELECT privileges to views
+            if (td.getTableType() == TableDescriptor.VIEW_TYPE && action != SELECT_ACTION)
+                if (actionAllowed[action])
+                    throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED,
+                                    td.getQualifiedName());
+        }
+        
+        if (isGrant && td.getTableType() == TableDescriptor.VIEW_TYPE)
+        {
+            bindPrivilegesForView(td);
+        }
+    }
 
-	/**
-	 * Bind for schemas
-	 * @param sd
-	 * @param isGrant
-	 * @throws StandardException
-	 */
+    /**
+     * Bind for schemas
+     * @param sd
+     * @param isGrant
+     * @throws StandardException
+     */
 
-	public void bind(SchemaDescriptor sd, boolean isGrant) throws StandardException
-	{
-		this.sd = sd;
+    public void bind(SchemaDescriptor sd, boolean isGrant) throws StandardException
+    {
+        this.sd = sd;
 
-		for( int action = 0; action < TablePrivilegeInfo.ACTION_COUNT; action++)
-		{
-			if( columnLists[ action] != null)
-				columnBitSets[action] = columnLists[ action].bindResultColumnsByName( td, (DMLStatementNode) null);
+        for( int action = 0; action < TablePrivilegeInfo.ACTION_COUNT; action++)
+        {
+            if( columnLists[ action] != null)
+                columnBitSets[action] = columnLists[ action].bindResultColumnsByName( td, (DMLStatementNode) null);
 
-		}
+        }
 
 
-	}
-	
-	/**
-	 * @return PrivilegeInfo for this node with a schema info
-	 */
-	public PrivilegeInfo makeSchemaPrivilegeInfo()
-	{
-		return new SchemaPrivilegeInfo(  sd, actionAllowed, columnBitSets,
-				descriptorList);
-	}
-	/**
-	 * @return PrivilegeInfo for this node with a table Info
-	 */
+    }
+    
+    /**
+     * @return PrivilegeInfo for this node with a schema info
+     */
+    public PrivilegeInfo makeSchemaPrivilegeInfo()
+    {
+        return new SchemaPrivilegeInfo(  sd, actionAllowed, columnBitSets,
+                descriptorList);
+    }
+    /**
+     * @return PrivilegeInfo for this node with a table Info
+     */
 
-	public PrivilegeInfo makePrivilegeInfo()
-	{
-		return new TablePrivilegeInfo(td, actionAllowed, columnBitSets,
-				descriptorList);
-	}
-	
-	/**
-	 *  Retrieve all the underlying stored dependencies such as table(s), 
-	 *  view(s) and routine(s) descriptors which the view depends on.
-	 *  This information is then passed to the runtime to determine if
-	 *  the privilege is grantable to the grantees by this grantor at
-	 *  execution time.
-	 *  
-	 *  Go through the providers regardless who the grantor is since 
-	 *  the statement cache may be in effect.
-	 *  
-	 * @param td the TableDescriptor to check
-	 *
-	 * @exception StandardException standard error policy.
-	 */
-	private void bindPrivilegesForView ( TableDescriptor td) 
-		throws StandardException
-	{
-		LanguageConnectionContext lcc = getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
-		ViewDescriptor vd = dd.getViewDescriptor(td);
-		DependencyManager dm = dd.getDependencyManager();
-		ProviderInfo[] pis = dm.getPersistentProviderInfos(vd);
-		this.descriptorList = new ArrayList();
-					
-		int siz = pis.length;
+    public PrivilegeInfo makePrivilegeInfo()
+    {
+        return new TablePrivilegeInfo(td, actionAllowed, columnBitSets,
+                descriptorList);
+    }
+    
+    /**
+     *  Retrieve all the underlying stored dependencies such as table(s), 
+     *  view(s) and routine(s) descriptors which the view depends on.
+     *  This information is then passed to the runtime to determine if
+     *  the privilege is grantable to the grantees by this grantor at
+     *  execution time.
+     *  
+     *  Go through the providers regardless who the grantor is since 
+     *  the statement cache may be in effect.
+     *  
+     * @param td the TableDescriptor to check
+     *
+     * @exception StandardException standard error policy.
+     */
+    private void bindPrivilegesForView ( TableDescriptor td) 
+        throws StandardException
+    {
+        LanguageConnectionContext lcc = getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        ViewDescriptor vd = dd.getViewDescriptor(td);
+        DependencyManager dm = dd.getDependencyManager();
+        ProviderInfo[] pis = dm.getPersistentProviderInfos(vd);
+        this.descriptorList = new ArrayList();
+                    
+        int siz = pis.length;
         for (ProviderInfo pi : pis) {
             Provider provider = (Provider) pi.getDependableFinder().getDependable(dd, pi.getObjectId());
 
@@ -222,22 +222,22 @@ public class BasicPrivilegesNode extends QueryTreeNode
                 descriptorList.add(provider);
             }
         }
-	}
+    }
 
-	public boolean modifyActionAllowed() {
-		return actionAllowed[MODIFY_ACTION];
-	}
+    public boolean modifyActionAllowed() {
+        return actionAllowed[MODIFY_ACTION];
+    }
 
-	public boolean accessActionAllowed() {
-		return actionAllowed[ACCESS_ACTION];
-	}
+    public boolean accessActionAllowed() {
+        return actionAllowed[ACCESS_ACTION];
+    }
 
-	public boolean selectActionAllowed() {
-		return actionAllowed[SELECT_ACTION];
-	}
+    public boolean selectActionAllowed() {
+        return actionAllowed[SELECT_ACTION];
+    }
 
-	public boolean getIsAll() {
-		return isAll;
-	}
+    public boolean getIsAll() {
+        return isAll;
+    }
 }
-	
+    

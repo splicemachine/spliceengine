@@ -188,7 +188,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         leftOperandList.bindExpression(fromList,subqueryList,aggregateVector);
         rightOperandList.bindExpression(fromList,subqueryList,aggregateVector);
 
-		/* Is there a ? parameter on the left? */
+        /* Is there a ? parameter on the left? */
         /* Can't specify multicolumn IN list in SQL currently, so only the
            single-column case is handled for now.
          */
@@ -223,12 +223,12 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         else
             THROWASSERT("Multicolumn IN list in SQL statement not currently supported.");
 
-		/* Generate bound conversion trees for those elements in the rightOperandList
-		 * that are not built-in types.
-		 */
+        /* Generate bound conversion trees for those elements in the rightOperandList
+         * that are not built-in types.
+         */
         rightOperandList.genSQLJavaSQLTrees();
 
-		/* Test type compatability and set type info for this node */
+        /* Test type compatability and set type info for this node */
         bindComparisonOperator();
 
         return this;
@@ -244,19 +244,19 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     public void bindComparisonOperator() throws StandardException{
         boolean nullableResult;
 
-		/* Can the types be compared to each other? */
+        /* Can the types be compared to each other? */
         /* Multicolumn IN list cannot currently be constructed before bind time. */
         if (singleLeftOperand)
             rightOperandList.comparable(getLeftOperand());
 
-		/*
-		** Set the result type of this comparison operator based on the
-		** operands.  The result type is always SQLBoolean - the only question
-		** is whether it is nullable or not.  If either the leftOperand or
-		** any of the elements in the rightOperandList is
-		** nullable, the result of the comparison must be nullable, too, so
-		** we can represent the unknown truth value.
-		*/
+        /*
+        ** Set the result type of this comparison operator based on the
+        ** operands.  The result type is always SQLBoolean - the only question
+        ** is whether it is nullable or not.  If either the leftOperand or
+        ** any of the elements in the rightOperandList is
+        ** nullable, the result of the comparison must be nullable, too, so
+        ** we can represent the unknown truth value.
+        */
         nullableResult= leftOperandList.isNullable() ||
                         rightOperandList.isNullable();
         setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID,nullableResult));
@@ -386,12 +386,12 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     /**
      * Return the variant type for the underlying expression.
      * The variant type can be:
-     * VARIANT				- variant within a scan
+     * VARIANT                - variant within a scan
      * (method calls and non-static field access)
-     * SCAN_INVARIANT		- invariant within a scan
+     * SCAN_INVARIANT        - invariant within a scan
      * (column references from outer tables)
-     * QUERY_INVARIANT		- invariant within the life of a query
-     * CONSTANT			- immutable
+     * QUERY_INVARIANT        - invariant within the life of a query
+     * CONSTANT            - immutable
      *
      * @throws StandardException thrown on error
      * @return The variant type for the underlying expression.

@@ -42,12 +42,12 @@ public class SpliceTransactionView extends BaseSpliceTransaction<TransactionView
     private static Logger LOG = Logger.getLogger(SpliceTransaction.class);
 
     public SpliceTransactionView(CompatibilitySpace compatibilitySpace,
-    						 SpliceTransactionFactory spliceTransactionFactory,
-    						 DataValueFactory dataValueFactory,
+                             SpliceTransactionFactory spliceTransactionFactory,
+                             DataValueFactory dataValueFactory,
                              String transName, TxnView txn) {
         SpliceLogUtils.trace(LOG, "Instantiating Splice transaction");
         this.compatibilitySpace = compatibilitySpace;
-		this.spliceTransactionFactory = spliceTransactionFactory;
+        this.spliceTransactionFactory = spliceTransactionFactory;
         this.dataValueFactory = dataValueFactory;
         this.transaction = new TransactionViewImpl(transName, txn);
     }

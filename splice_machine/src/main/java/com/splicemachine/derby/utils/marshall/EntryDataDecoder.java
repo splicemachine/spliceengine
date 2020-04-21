@@ -34,86 +34,86 @@ import java.io.IOException;
  *         Date: 11/15/13
  */
 public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
-		private EntryDecoder entryDecoder;
-		private FormatableBitSet scanColumnList;
+        private EntryDecoder entryDecoder;
+        private FormatableBitSet scanColumnList;
 
-		public EntryDataDecoder(int[] keyColumns,
-								boolean[] keySortOrder,
-								DescriptorSerializer[] serializers) {
-			this(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance(), null, serializers);
-		}
+        public EntryDataDecoder(int[] keyColumns,
+                                boolean[] keySortOrder,
+                                DescriptorSerializer[] serializers) {
+            this(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance(), null, serializers);
+        }
 
-		public EntryDataDecoder(int[] keyColumns,
-								boolean[] keySortOrder,
-								FormatableBitSet scanColumnList,
-								DescriptorSerializer[] serializers) {
-			this(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance(), scanColumnList, serializers);
-		}
+        public EntryDataDecoder(int[] keyColumns,
+                                boolean[] keySortOrder,
+                                FormatableBitSet scanColumnList,
+                                DescriptorSerializer[] serializers) {
+            this(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance(), scanColumnList, serializers);
+        }
 
-		protected EntryDataDecoder(int[] keyColumns,
+        protected EntryDataDecoder(int[] keyColumns,
                                    boolean[] keySortOrder,
                                    KryoPool kryoPool,
                                    FormatableBitSet scanColumnList,
                                    DescriptorSerializer[] serializers) {
-				super(keyColumns, keySortOrder,true,kryoPool, serializers);
-				this.scanColumnList = scanColumnList;
-		}
+                super(keyColumns, keySortOrder,true,kryoPool, serializers);
+                this.scanColumnList = scanColumnList;
+        }
 
-		@Override
-		public void set(byte[] bytes, int hashOffset, int length) {
-				if(entryDecoder==null)
-						entryDecoder =new EntryDecoder();
+        @Override
+        public void set(byte[] bytes, int hashOffset, int length) {
+                if(entryDecoder==null)
+                        entryDecoder =new EntryDecoder();
 
-				entryDecoder.set(bytes,hashOffset,length);
-		}
+                entryDecoder.set(bytes,hashOffset,length);
+        }
 
-		@Override
-		public void close() throws IOException {
-				super.close();
-				if(entryDecoder!=null)
-						entryDecoder.close();
-		}
+        @Override
+        public void close() throws IOException {
+                super.close();
+                if(entryDecoder!=null)
+                        entryDecoder.close();
+        }
 
-		@Override
-		public void decode(ExecRow destination) throws StandardException {
-				BitIndex index = entryDecoder.getCurrentIndex();
-				MultiFieldDecoder decoder;
-				try {
-						decoder = entryDecoder.getEntryDecoder();
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-				DataValueDescriptor[] fields = destination.getRowArray();
-				if(keyColumns!=null){
-						for(int i=index.nextSetBit(0);i>=0 && i<keyColumns.length;i=index.nextSetBit(i+1)){
-								int pos = keyColumns[i];
-								if(pos<0) continue;
-								DataValueDescriptor dvd = fields[pos];
-								if(dvd==null ||
+        @Override
+        public void decode(ExecRow destination) throws StandardException {
+                BitIndex index = entryDecoder.getCurrentIndex();
+                MultiFieldDecoder decoder;
+                try {
+                        decoder = entryDecoder.getEntryDecoder();
+                } catch (IOException e) {
+                        throw Exceptions.parseException(e);
+                }
+                DataValueDescriptor[] fields = destination.getRowArray();
+                if(keyColumns!=null){
+                        for(int i=index.nextSetBit(0);i>=0 && i<keyColumns.length;i=index.nextSetBit(i+1)){
+                                int pos = keyColumns[i];
+                                if(pos<0) continue;
+                                DataValueDescriptor dvd = fields[pos];
+                                if(dvd==null ||
                                    scanColumnList != null && (i < scanColumnList.getLength() && !scanColumnList.get(i) || i >= scanColumnList.getLength())) {
-										entryDecoder.seekForward(decoder, i);
-										continue;
-								}
-								DescriptorSerializer serializer = serializers[pos];
-								boolean sortOrder = keySortOrder != null && !keySortOrder[i];
-								serializer.decode(decoder,dvd,sortOrder);
-						}
-				}else{
-						for(int i=index.nextSetBit(0);i>=0 && i<fields.length;i=index.nextSetBit(i+1)){
-								DataValueDescriptor dvd = fields[i];
-								if(dvd==null ||
+                                        entryDecoder.seekForward(decoder, i);
+                                        continue;
+                                }
+                                DescriptorSerializer serializer = serializers[pos];
+                                boolean sortOrder = keySortOrder != null && !keySortOrder[i];
+                                serializer.decode(decoder,dvd,sortOrder);
+                        }
+                }else{
+                        for(int i=index.nextSetBit(0);i>=0 && i<fields.length;i=index.nextSetBit(i+1)){
+                                DataValueDescriptor dvd = fields[i];
+                                if(dvd==null ||
                                    scanColumnList != null && (i < scanColumnList.getLength() && !scanColumnList.get(i) || i >= scanColumnList.getLength())) {
-										entryDecoder.seekForward(decoder,i);
-										continue;
-								}
-								boolean sortOrder = keySortOrder != null && !keySortOrder[i];
-								DescriptorSerializer serializer = serializers[i];
-								serializer.decode(decoder,dvd,sortOrder);
-						}
-				}
-		}
+                                        entryDecoder.seekForward(decoder,i);
+                                        continue;
+                                }
+                                boolean sortOrder = keySortOrder != null && !keySortOrder[i];
+                                DescriptorSerializer serializer = serializers[i];
+                                serializer.decode(decoder,dvd,sortOrder);
+                        }
+                }
+        }
 
-		public EntryDecoder getFieldDecoder(){
-			return entryDecoder;
-		}
+        public EntryDecoder getFieldDecoder(){
+            return entryDecoder;
+        }
 }

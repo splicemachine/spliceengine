@@ -60,17 +60,17 @@ import com.splicemachine.dbTesting.junit.TestConfiguration;
  * 
  * Top level testcases grp.
  * <ol>
- * <li>Case 1.x	different feedback modes (valid - CBC,ECB,OFB,unsupported - ABC)
+ * <li>Case 1.x    different feedback modes (valid - CBC,ECB,OFB,unsupported - ABC)
             2 cases for each - creating db and recovery mode
- * <li>Case 2.x	padding ( unsupported padding )
- * <li>Case 3.x	key lengths with bootpassword
+ * <li>Case 2.x    padding ( unsupported padding )
+ * <li>Case 3.x    key lengths with bootpassword
        case of 128 bits, 192 bits and 256 bits and unsupported 512 bits
        mismatch keylengths (case of one keylength during creation and another 
        during connecting)
- * <li>Case 4.x	case of changing boot password 
+ * <li>Case 4.x    case of changing boot password 
  *     ( covered by old harness test - store/encryptDatabase.sql)
  *     Also see store/access.sql for other cases run with AES encryption
- * <li>Case 5.x	give external encryptionKey instead of bootpassword
+ * <li>Case 5.x    give external encryptionKey instead of bootpassword
  *     Not converted from original old harness test (aes.sql), for also 
  *     covered in junit test EncryptionKeyAESTest.
  * <p>

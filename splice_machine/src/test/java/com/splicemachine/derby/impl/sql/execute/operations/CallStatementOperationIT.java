@@ -40,17 +40,17 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 public class CallStatementOperationIT extends SpliceUnitTest {
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	public static final String CLASS_NAME = CallStatementOperationIT.class.getSimpleName().toUpperCase();
-	private static Logger LOG = Logger.getLogger(CallStatementOperationIT.class);
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1",CLASS_NAME,"(a int)");
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    public static final String CLASS_NAME = CallStatementOperationIT.class.getSimpleName().toUpperCase();
+    private static Logger LOG = Logger.getLogger(CallStatementOperationIT.class);
+    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1",CLASS_NAME,"(a int)");
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);    
 
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).
-	around(spliceSchemaWatcher).around(spliceTableWatcher);
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+    @ClassRule 
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).
+    around(spliceSchemaWatcher).around(spliceTableWatcher);
+    
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
     public void testCallSqlColumns() throws Exception{
@@ -74,16 +74,16 @@ public class CallStatementOperationIT extends SpliceUnitTest {
 
     @Test
     public void testCallIndexInfo() throws Exception {
-        	DatabaseMetaData dmd = methodWatcher.getOrCreateConnection().getMetaData();
-        	ResultSet rs = dmd.getIndexInfo(null,"SYS","SYSSCHEMAS",false,true);
+            DatabaseMetaData dmd = methodWatcher.getOrCreateConnection().getMetaData();
+            ResultSet rs = dmd.getIndexInfo(null,"SYS","SYSSCHEMAS",false,true);
             while(rs.next()){ // TODO No Test
             }
             DbUtils.closeQuietly(rs);
     }
 
-	@Test
-	public void testCallSqlProcedures() throws Exception {
-        	DatabaseMetaData dmd = methodWatcher.getOrCreateConnection().getMetaData();
+    @Test
+    public void testCallSqlProcedures() throws Exception {
+            DatabaseMetaData dmd = methodWatcher.getOrCreateConnection().getMetaData();
             ResultSet rs = dmd.getProcedures(null, null, null);
             while(rs.next()){ // TODO No Test
             }
@@ -92,26 +92,26 @@ public class CallStatementOperationIT extends SpliceUnitTest {
 
     @Test
     public void testConnectionMetadata() throws Exception{
-        	DatabaseMetaData dmd = methodWatcher.getOrCreateConnection().getMetaData();
-        	ResultSet rs = dmd.getColumns(null,null,"CATEGORY",null);
+            DatabaseMetaData dmd = methodWatcher.getOrCreateConnection().getMetaData();
+            ResultSet rs = dmd.getColumns(null,null,"CATEGORY",null);
             while(rs.next()){ // TODO No Test
             }
             DbUtils.closeQuietly(rs);
     }
 
     @Test
-	public void testCallSysSchemas() throws Exception {
-    		methodWatcher.getOrCreateConnection().setAutoCommit(true);
-			CallableStatement cs = methodWatcher.prepareCall("CALL SYSIBM.METADATA()");			
-			ResultSet rs = cs.executeQuery();			
-			int count = 0;
-			while (rs.next()) {
-				Assert.assertTrue(rs.getBoolean(1));
-				count++;
-			}
-			Assert.assertEquals(1, count);
+    public void testCallSysSchemas() throws Exception {
+            methodWatcher.getOrCreateConnection().setAutoCommit(true);
+            CallableStatement cs = methodWatcher.prepareCall("CALL SYSIBM.METADATA()");            
+            ResultSet rs = cs.executeQuery();            
+            int count = 0;
+            while (rs.next()) {
+                Assert.assertTrue(rs.getBoolean(1));
+                count++;
+            }
+            Assert.assertEquals(1, count);
             DbUtils.closeQuietly(rs);
-	}
+    }
 
     @Test
     public void testCallGetTypeInfo() throws Exception{
@@ -149,7 +149,7 @@ public class CallStatementOperationIT extends SpliceUnitTest {
     }
 
 
-	
+    
     @Test
     @Category(SlowTest.class)
     public void testCallSQLTABLESInAppSchema() throws Exception{
@@ -190,23 +190,23 @@ public class CallStatementOperationIT extends SpliceUnitTest {
                     "CAST ('' AS VARCHAR(128)) AS TABLE_CAT, " +
                     "SCHEMANAME AS TABLE_SCHEM,  " +
                     "TABLENAME AS TABLE_NAME, " +
-            		"(CAST (RTRIM(TABLE_TYPE) AS VARCHAR(12))) AS TABLE_TYPE, " +
+                    "(CAST (RTRIM(TABLE_TYPE) AS VARCHAR(12))) AS TABLE_TYPE, " +
                     "CAST ('' AS VARCHAR(128)) AS REMARKS, " +
-            		"CAST (NULL AS VARCHAR(128)) AS TYPE_CAT, " +
+                    "CAST (NULL AS VARCHAR(128)) AS TYPE_CAT, " +
                     "CAST (NULL AS VARCHAR(128)) AS TYPE_SCHEM, " +
                     "CAST (NULL AS VARCHAR(128)) AS TYPE_NAME, " +
-            		"CAST (NULL AS VARCHAR(128)) AS SELF_REFERENCING_COL_NAME, " +
+                    "CAST (NULL AS VARCHAR(128)) AS SELF_REFERENCING_COL_NAME, " +
                     "CAST (NULL AS VARCHAR(128)) AS REF_GENERATION " +
-            		"FROM SYS.SYSTABLES, " +
+                    "FROM SYS.SYSTABLES, " +
                     "SYS.SYSSCHEMAS, " +
                     "(VALUES ('T','TABLE'), ('S','SYSTEM TABLE'), ('V', 'VIEW'), ('A', 'SYNONYM')) T(TTABBREV,TABLE_TYPE) " +
-            		"WHERE " +
-                    "(TTABBREV=TABLETYPE 	" +
+                    "WHERE " +
+                    "(TTABBREV=TABLETYPE     " +
                     "AND (SYS.SYSTABLES.SCHEMAID = SYS.SYSSCHEMAS.SCHEMAID) " +
                     "AND (SYS.SYSSCHEMAS.SCHEMANAME LIKE '%') " +
-            		"AND (TABLENAME LIKE '%')) " +
+                    "AND (TABLENAME LIKE '%')) " +
 //                    "AND TABLETYPE IN ('TABLE', 'SYSTEM TABLE', 'VIEW', 'SYNONYM')) " +
-            		"ORDER BY " +
+                    "ORDER BY " +
                     "TABLE_TYPE, " +
                     "TABLE_SCHEM, " +
                     "TABLE_NAME");

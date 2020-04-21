@@ -176,7 +176,7 @@ public class SpliceObserverInstructions implements Externalizable{
             boolean statementAtomic=context.isAtomic();
             boolean statementReadOnly=context.isForReadOnly();
             String stmtText=context.getStatementText();
-//						boolean stmtRollBackParentContext = true; //todo -sf- this is wrong, but okay for now
+//                        boolean stmtRollBackParentContext = true; //todo -sf- this is wrong, but okay for now
             long stmtTimeout=0; //timeouts handled by RPC --probably wrong, but also okay for now
 
             ParameterValueSet pvs=holder.getActivation().getParameterValueSet().getClone();

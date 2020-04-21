@@ -39,39 +39,39 @@ import java.io.ObjectOutput;
 
 public class PC_XenaVersion implements Formatable
 {
-	private static final int XENA_MAJOR_VERSION = 1;
-	private static final int XENA_MINOR_VERSION_0 = 0;
+    private static final int XENA_MAJOR_VERSION = 1;
+    private static final int XENA_MINOR_VERSION_0 = 0;
 
-	//
-	//Persistent state. The default value defined here is 
-	//over-ridden by readExternal when reading serialized
-	//versions.
-	private int minorVersion = XENA_MINOR_VERSION_0;
-	
+    //
+    //Persistent state. The default value defined here is 
+    //over-ridden by readExternal when reading serialized
+    //versions.
+    private int minorVersion = XENA_MINOR_VERSION_0;
+    
 
-	private boolean isUpgradeNeeded(PC_XenaVersion fromVersion)
-	{
-		return
-			fromVersion == null ||
-			getMajorVersionNumber() != fromVersion.getMajorVersionNumber();
-	}
+    private boolean isUpgradeNeeded(PC_XenaVersion fromVersion)
+    {
+        return
+            fromVersion == null ||
+            getMajorVersionNumber() != fromVersion.getMajorVersionNumber();
+    }
 
-	public int getMajorVersionNumber() {return XENA_MAJOR_VERSION;}
-	public int getMinorVersionNumber() {return minorVersion;}
-	
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		out.writeInt(getMajorVersionNumber());
-		out.writeInt(getMinorVersionNumber());
-	}
+    public int getMajorVersionNumber() {return XENA_MAJOR_VERSION;}
+    public int getMinorVersionNumber() {return minorVersion;}
+    
+    public void writeExternal(ObjectOutput out) throws IOException
+    {
+        out.writeInt(getMajorVersionNumber());
+        out.writeInt(getMinorVersionNumber());
+    }
 
-	public void readExternal(ObjectInput in) throws IOException
-	{
-		int majorVersion = in.readInt();
-		minorVersion = in.readInt();
-	}
+    public void readExternal(ObjectInput in) throws IOException
+    {
+        int majorVersion = in.readInt();
+        minorVersion = in.readInt();
+    }
 
-	public int getTypeFormatId() {return StoredFormatIds.PC_XENA_VERSION_ID;}
+    public int getTypeFormatId() {return StoredFormatIds.PC_XENA_VERSION_ID;}
 
-	public String toString() {return getMajorVersionNumber()+"."+getMinorVersionNumber();}
+    public String toString() {return getMajorVersionNumber()+"."+getMinorVersionNumber();}
 }

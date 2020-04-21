@@ -31,14 +31,14 @@
 
 package com.splicemachine.db.iapi.sql.depend;
 
-import	com.splicemachine.db.catalog.Dependable;
+import    com.splicemachine.db.catalog.Dependable;
 
 /**
-	A provider is an object that others can build dependencies
-	on.  Providers can themselves also be dependents and thus
-	be invalid/revalidated in turn. Revalidating a provider may,
-	as a side-effect, re-validate its dependents -- it is up to
-	the implementation to determine the appropriate action.
+    A provider is an object that others can build dependencies
+    on.  Providers can themselves also be dependents and thus
+    be invalid/revalidated in turn. Revalidating a provider may,
+    as a side-effect, re-validate its dependents -- it is up to
+    the implementation to determine the appropriate action.
  */
 public interface Provider extends Dependable
 {

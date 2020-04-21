@@ -32,22 +32,22 @@
 package com.splicemachine.db.iapi.services.cache;
 
 /**
-	A factory for handing out caches.
+    A factory for handing out caches.
 */
 public interface CacheFactory {
-	
-	/**
-		Create a cache that uses the class represented by holderClass as
-		the holder class. This holderClass must implement Cacheable.
+    
+    /**
+        Create a cache that uses the class represented by holderClass as
+        the holder class. This holderClass must implement Cacheable.
 
-		@param holderFactory The factory for the objects that are to be cached.
-		@param name			The name of the cache
-		@param initialSize	The number of initial holder objects that will be created
-		@param maximumSize  The maximum number of objects the cache will hold
+        @param holderFactory The factory for the objects that are to be cached.
+        @param name            The name of the cache
+        @param initialSize    The number of initial holder objects that will be created
+        @param maximumSize  The maximum number of objects the cache will hold
  
-	*/
+    */
 
-	CacheManager newCacheManager(CacheableFactory holderFactory, String name,
-								 int initialSize, int maximumSize);
+    CacheManager newCacheManager(CacheableFactory holderFactory, String name,
+                                 int initialSize, int maximumSize);
 }
 

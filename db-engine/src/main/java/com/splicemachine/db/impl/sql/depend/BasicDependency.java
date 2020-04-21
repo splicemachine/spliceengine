@@ -40,54 +40,54 @@ import com.splicemachine.db.catalog.UUID;
 import java.lang.ref.WeakReference;
 
 /**
-	A dependency represents a reliance of the dependent on
-	the provider for some information the dependent contains
-	or uses.  In Language, the usual case is a prepared statement
-	using information about a schema object in its executable form.
-	It needs to be notified if the schema object changes, so that
-	it can recompile against the new information.
+    A dependency represents a reliance of the dependent on
+    the provider for some information the dependent contains
+    or uses.  In Language, the usual case is a prepared statement
+    using information about a schema object in its executable form.
+    It needs to be notified if the schema object changes, so that
+    it can recompile against the new information.
  */
 class BasicDependency implements Dependency {
 
-	//
-	// Dependency interface
-	//
+    //
+    // Dependency interface
+    //
 
-	/**
-		return the provider's key for this dependency.
-		@return the provider' key for this dependency
-	 */
-	public UUID getProviderKey() {
-		return provider.getObjectID();
-	}
+    /**
+        return the provider's key for this dependency.
+        @return the provider' key for this dependency
+     */
+    public UUID getProviderKey() {
+        return provider.getObjectID();
+    }
 
-	/**
-		return the provider for this dependency.
-		@return the provider for this dependency
-	 */
-	public Provider getProvider() {
-		return provider;
-	}
+    /**
+        return the provider for this dependency.
+        @return the provider for this dependency
+     */
+    public Provider getProvider() {
+        return provider;
+    }
 
-	/**
-		return the dependent for this dependency.
-		@return the dependent for this dependency
-	 */
-	public Dependent getDependent() {
-		return dependent.get();
-	}
+    /**
+        return the dependent for this dependency.
+        @return the dependent for this dependency
+     */
+    public Dependent getDependent() {
+        return dependent.get();
+    }
 
-	//
-	// class interface
-	//
-	BasicDependency(Dependent d, Provider p) {
-		dependent = new WeakReference<>(d);
-		provider = p;
-	}
+    //
+    // class interface
+    //
+    BasicDependency(Dependent d, Provider p) {
+        dependent = new WeakReference<>(d);
+        provider = p;
+    }
 
-	//
-	// class implementation
-	//
-	private final Provider	provider;
-	private final WeakReference<Dependent>	dependent;
+    //
+    // class implementation
+    //
+    private final Provider    provider;
+    private final WeakReference<Dependent>    dependent;
 }

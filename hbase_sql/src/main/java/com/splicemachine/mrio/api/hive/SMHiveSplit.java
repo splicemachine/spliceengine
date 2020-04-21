@@ -24,55 +24,55 @@ import org.apache.hadoop.mapred.InputSplit;
 import com.splicemachine.mrio.api.core.SMSplit;
 
 public class SMHiveSplit extends FileSplit implements InputSplit {
-	  protected SMSplit split;
+      protected SMSplit split;
 
-	  public SMHiveSplit() throws IOException{
-	    super((Path) null, 0, 0, (String[]) null);
-	    split = new SMSplit();
-	  }
+      public SMHiveSplit() throws IOException{
+        super((Path) null, 0, 0, (String[]) null);
+        split = new SMSplit();
+      }
 
-	  public SMHiveSplit(SMSplit split) {
-	    super((Path) null, 0, 0, (String[]) null);
-	    this.split = split;
-	  }
+      public SMHiveSplit(SMSplit split) {
+        super((Path) null, 0, 0, (String[]) null);
+        this.split = split;
+      }
 
 
-	  public SMHiveSplit(SMSplit split, Path dummyPath) {
+      public SMHiveSplit(SMSplit split, Path dummyPath) {
         super(dummyPath, 0, 0, (String[]) null);
-	    this.split = split;
-	  }
+        this.split = split;
+      }
 
-	  public TableSplit getSplit() {
-	    return this.split.getSplit();
-	  }
+      public TableSplit getSplit() {
+        return this.split.getSplit();
+      }
 
-	  public SMSplit getSMSplit() {
-		    return this.split;
-	 }
+      public SMSplit getSMSplit() {
+            return this.split;
+     }
 
-	  @Override
-	  public void readFields(DataInput in) throws IOException {
-	    split.readFields(in);
-	  }
+      @Override
+      public void readFields(DataInput in) throws IOException {
+        split.readFields(in);
+      }
 
-	  @Override
-	  public String toString() {
-	    return "TableSplit " + split;
-	  }
+      @Override
+      public String toString() {
+        return "TableSplit " + split;
+      }
 
-	  @Override
-	  public void write(DataOutput out) throws IOException {
-	    split.write(out);
-	  }
+      @Override
+      public void write(DataOutput out) throws IOException {
+        split.write(out);
+      }
 
-	  @Override
-	  public long getLength() {
-	    return split.getLength();
-	  }
+      @Override
+      public long getLength() {
+        return split.getLength();
+      }
 
-	  @Override
-	  public String[] getLocations() throws IOException {
-		  return split.getLocations();
-	  }
-	}
+      @Override
+      public String[] getLocations() throws IOException {
+          return split.getLocations();
+      }
+    }
 

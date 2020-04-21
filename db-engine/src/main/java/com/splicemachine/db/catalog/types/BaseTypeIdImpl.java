@@ -189,10 +189,10 @@ public class BaseTypeIdImpl implements Formatable
         {
           case StoredFormatIds.BIT_TYPE_ID_IMPL:
           case StoredFormatIds.VARBIT_TYPE_ID_IMPL:
-			  int rparen = retval.indexOf(')');
-			  String lead = retval.substring(0, rparen);
-			  retval = lead + td.getMaximumWidth() + retval.substring(rparen);
-			  break;
+              int rparen = retval.indexOf(')');
+              String lead = retval.substring(0, rparen);
+              retval = lead + td.getMaximumWidth() + retval.substring(rparen);
+              break;
 
           case StoredFormatIds.CHAR_TYPE_ID_IMPL:
           case StoredFormatIds.VARCHAR_TYPE_ID_IMPL:
@@ -309,8 +309,8 @@ public class BaseTypeIdImpl implements Formatable
     public void readExternal( ObjectInput in )
              throws IOException, ClassNotFoundException
     {
-    	JDBCTypeId = in.readInt();
-    	formatId = in.readInt();
+        JDBCTypeId = in.readInt();
+        formatId = in.readInt();
         unqualifiedName = in.readUTF();
 
         //
@@ -336,8 +336,8 @@ public class BaseTypeIdImpl implements Formatable
     public void writeExternal( ObjectOutput out )
              throws IOException
     {
-    	out.writeInt(JDBCTypeId);
-    	out.writeInt(formatId);
+        out.writeInt(JDBCTypeId);
+        out.writeInt(formatId);
         if ( schemaName == null ) { out.writeUTF( unqualifiedName ); }
         else
         {

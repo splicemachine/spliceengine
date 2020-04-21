@@ -38,18 +38,18 @@ import java.sql.SQLException;
 
 /////////////////////////////////////////////////////////////////////
 //
-//	Tests the new jdbc 20 method on jdbc 20 getCurrentConnection()
-//	connection to make sure that this indeed is a 20 connection and
+//    Tests the new jdbc 20 method on jdbc 20 getCurrentConnection()
+//    connection to make sure that this indeed is a 20 connection and
 //  not jdbc 1x connection. This test is used by getCurConnJdbc20.sql
 //  from functionTests/conn directory.
 //
 /////////////////////////////////////////////////////////////////////
 public class Jdbc20Test { 
 
-	public static void newToJdbc20Method() throws SQLException {
-		Connection conn = java.sql.DriverManager.getConnection("jdbc:default:connection");
-    	//trying a jdbc20 createStatement. This will only work under jdbc20
-    	Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-									 ResultSet.CONCUR_READ_ONLY);
+    public static void newToJdbc20Method() throws SQLException {
+        Connection conn = java.sql.DriverManager.getConnection("jdbc:default:connection");
+        //trying a jdbc20 createStatement. This will only work under jdbc20
+        Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                     ResultSet.CONCUR_READ_ONLY);
     }
 }

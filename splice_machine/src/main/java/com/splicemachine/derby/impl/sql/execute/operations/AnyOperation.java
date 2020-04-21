@@ -42,29 +42,29 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
  *
  */
 public class AnyOperation extends SpliceBaseOperation {
-	private static Logger LOG = Logger.getLogger(AnyOperation.class);
+    private static Logger LOG = Logger.getLogger(AnyOperation.class);
     protected static final String NAME = AnyOperation.class.getSimpleName().replaceAll("Operation","");
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+            return NAME;
+    }
     
-	/* Used to cache row with nulls for case when subquery result set
-	 * is empty.
-	 */
-	private ExecRow rowWithNulls;
+    /* Used to cache row with nulls for case when subquery result set
+     * is empty.
+     */
+    private ExecRow rowWithNulls;
 
-	/* Used to cache the StatementContext */
-	private StatementContext statementContext;
+    /* Used to cache the StatementContext */
+    private StatementContext statementContext;
 
     // set in constructor and not altered during
     // life of object.
     public SpliceOperation source;
-	private SpliceMethod<ExecRow> emptyRowFun;
+    private SpliceMethod<ExecRow> emptyRowFun;
     private String emptyRowFunName;
 
-	public int subqueryNumber;
-	public int pointOfAttachment;
+    public int subqueryNumber;
+    public int pointOfAttachment;
 
     //
     // class interface
@@ -73,18 +73,18 @@ public class AnyOperation extends SpliceBaseOperation {
 
     public AnyOperation() { }
 
-		public AnyOperation(SpliceOperation s, Activation a, GeneratedMethod emptyRowFun,
-												int resultSetNumber, int subqueryNumber,
-												int pointOfAttachment,
-												double optimizerEstimatedRowCount,
-												double optimizerEstimatedCost) throws StandardException {
-				super(a, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
-				source = s;
-				this.subqueryNumber = subqueryNumber;
-				this.pointOfAttachment = pointOfAttachment;
-				this.emptyRowFunName = emptyRowFun.getMethodName();
+        public AnyOperation(SpliceOperation s, Activation a, GeneratedMethod emptyRowFun,
+                                                int resultSetNumber, int subqueryNumber,
+                                                int pointOfAttachment,
+                                                double optimizerEstimatedRowCount,
+                                                double optimizerEstimatedCost) throws StandardException {
+                super(a, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
+                source = s;
+                this.subqueryNumber = subqueryNumber;
+                this.pointOfAttachment = pointOfAttachment;
+                this.emptyRowFunName = emptyRowFun.getMethodName();
                 init();
-		}
+        }
 
     @Override
     public SpliceOperation getLeftOperation() {

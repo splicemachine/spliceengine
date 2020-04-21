@@ -274,7 +274,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     //    @Test(timeout=10000))
     @Test
     public void testCanAddDuplicateAndDelete() throws Exception{
-    	new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
+        new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
         String name = "uniqueTestTableYifu";
         addDuplicateAndDeleteTest(name);
     }
@@ -346,51 +346,51 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
 
     @Test
     public void testSelectAfterUpdateWithIndexAfterInsert() throws Exception {
-    	// Regression coverage for DB-3680
+        // Regression coverage for DB-3680
 
-    	String table = "updatewithindex1";
-    	String index = "updatewithindex1_idx";
-    	methodWatcher.executeUpdate(format("create table %s (col1 int, col2 int, col3 int)", table));
-    	methodWatcher.executeUpdate(format("insert into %s values (1,1,1)", table));
-    	methodWatcher.executeUpdate(format("create index %s on %s (col2)", index, table));
-    	methodWatcher.executeUpdate(format("update %s set col3 = 4", table));
+        String table = "updatewithindex1";
+        String index = "updatewithindex1_idx";
+        methodWatcher.executeUpdate(format("create table %s (col1 int, col2 int, col3 int)", table));
+        methodWatcher.executeUpdate(format("insert into %s values (1,1,1)", table));
+        methodWatcher.executeUpdate(format("create index %s on %s (col2)", index, table));
+        methodWatcher.executeUpdate(format("update %s set col3 = 4", table));
 
-    	String expected =
-    		"COL1 |COL2 |COL3 |\n" +
-    		"------------------\n" +
-    		"  1  |  1  |  4  |";
-    	
-    	// Query without the index
-    	ResultSet rs = methodWatcher.executeQuery(format("select * from %s --splice-properties index=%s", table, "null"));
+        String expected =
+            "COL1 |COL2 |COL3 |\n" +
+            "------------------\n" +
+            "  1  |  1  |  4  |";
+        
+        // Query without the index
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s --splice-properties index=%s", table, "null"));
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         
         // Query with index hint - results should be the same
-    	rs = methodWatcher.executeQuery(format("select * from %s --splice-properties index=%s", table, index));
+        rs = methodWatcher.executeQuery(format("select * from %s --splice-properties index=%s", table, index));
         assertEquals("Select returns different results with index than without", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
     public void testSelectAfterUpdateWithIndexBeforeInsert() throws Exception {
-    	// Regression coverage for DB-3680
+        // Regression coverage for DB-3680
 
-    	String table = "updatewithindex2";
-    	String index = "updatewithindex2_idx";
-    	methodWatcher.executeUpdate(format("create table %s (col1 int, col2 int, col3 int)", table));
-    	methodWatcher.executeUpdate(format("create index %s on %s (col2)", index, table));
-    	methodWatcher.executeUpdate(format("insert into %s values (1,1,1)", table));
-    	methodWatcher.executeUpdate(format("update %s set col3 = 4", table));
+        String table = "updatewithindex2";
+        String index = "updatewithindex2_idx";
+        methodWatcher.executeUpdate(format("create table %s (col1 int, col2 int, col3 int)", table));
+        methodWatcher.executeUpdate(format("create index %s on %s (col2)", index, table));
+        methodWatcher.executeUpdate(format("insert into %s values (1,1,1)", table));
+        methodWatcher.executeUpdate(format("update %s set col3 = 4", table));
 
-    	String expected =
-    		"COL1 |COL2 |COL3 |\n" +
-    		"------------------\n" +
-    		"  1  |  1  |  4  |";
-    	
-    	// Query without the index
-    	ResultSet rs = methodWatcher.executeQuery(format("select * from %s --splice-properties index=%s", table, "null"));
+        String expected =
+            "COL1 |COL2 |COL3 |\n" +
+            "------------------\n" +
+            "  1  |  1  |  4  |";
+        
+        // Query without the index
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s --splice-properties index=%s", table, "null"));
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         
         // Query with index hint - results should be the same
-    	rs = methodWatcher.executeQuery(format("select * from %s --splice-properties index=%s", table, index));
+        rs = methodWatcher.executeQuery(format("select * from %s --splice-properties index=%s", table, index));
         assertEquals("Select returns different results with index than without", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 

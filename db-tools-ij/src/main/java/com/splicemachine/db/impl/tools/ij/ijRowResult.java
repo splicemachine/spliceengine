@@ -44,18 +44,18 @@ import java.sql.SQLWarning;
  */
 public class ijRowResult extends ijResultImpl {
 
-	ResultSet rowResult;
-	boolean hadRow;
+    ResultSet rowResult;
+    boolean hadRow;
 
-	public ijRowResult(ResultSet r, boolean hadRow) {
-		rowResult = r;
-		this.hadRow = hadRow;
-	}
+    public ijRowResult(ResultSet r, boolean hadRow) {
+        rowResult = r;
+        this.hadRow = hadRow;
+    }
 
-	public boolean isNextRowOfResultSet() { return true; }
+    public boolean isNextRowOfResultSet() { return true; }
 
-	public ResultSet getNextRowOfResultSet() { return hadRow?rowResult:null; }
+    public ResultSet getNextRowOfResultSet() { return hadRow?rowResult:null; }
 
-	public SQLWarning getSQLWarnings() throws SQLException { return rowResult.getWarnings(); }
-	public void clearSQLWarnings() throws SQLException { rowResult.clearWarnings(); }
+    public SQLWarning getSQLWarnings() throws SQLException { return rowResult.getWarnings(); }
+    public void clearSQLWarnings() throws SQLException { rowResult.clearWarnings(); }
 }

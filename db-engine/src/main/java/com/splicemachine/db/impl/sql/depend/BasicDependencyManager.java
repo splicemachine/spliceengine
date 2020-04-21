@@ -106,29 +106,29 @@ public class BasicDependencyManager implements DependencyManager {
     private final Map<UUID, List<Dependency>> providers = new HashMap<>();
 
 
-	//
-	// DependencyManager interface
-	//
+    //
+    // DependencyManager interface
+    //
 
-	/**
-		adds a dependency from the dependent on the provider.
-		This will be considered to be the default type of
-		dependency, when dependency types show up.
-		<p>
-		Implementations of addDependency should be fast --
-		performing alot of extra actions to add a dependency would
-		be a detriment.
+    /**
+        adds a dependency from the dependent on the provider.
+        This will be considered to be the default type of
+        dependency, when dependency types show up.
+        <p>
+        Implementations of addDependency should be fast --
+        performing alot of extra actions to add a dependency would
+        be a detriment.
 
-		@param d the dependent
-		@param p the provider
+        @param d the dependent
+        @param p the provider
 
-		@exception StandardException thrown if something goes wrong
-	 */
-	public void addDependency(Dependent d, Provider p, ContextManager cm) throws StandardException {
+        @exception StandardException thrown if something goes wrong
+     */
+    public void addDependency(Dependent d, Provider p, ContextManager cm) throws StandardException {
         if (dd.canUseDependencyManager()) {
-			addDependency(d, p, cm, null);
-		}
-	}
+            addDependency(d, p, cm, null);
+        }
+    }
 
     /**
      * Adds the dependency to the data dictionary or the in-memory dependency
@@ -182,7 +182,7 @@ public class BasicDependencyManager implements DependencyManager {
         }
 
         // Dependency should have been added to both or neither.
-		// No Longer the case due to with clauses
+        // No Longer the case due to with clauses
 /*        if (SanityManager.DEBUG) {
             if (addedToDeps != addedToProvs) {
                 SanityManager.THROWASSERT(
@@ -233,87 +233,87 @@ public class BasicDependencyManager implements DependencyManager {
                          tcToUse, false);
     }
 
-	/**
-		drops a single dependency
+    /**
+        drops a single dependency
 
-		@param d the dependent
-		@param p the provider
+        @param d the dependent
+        @param p the provider
 
-		@exception StandardException thrown if something goes wrong
-	 */
-	private	void dropDependency(LanguageConnectionContext lcc, Dependent d, Provider p) throws StandardException
-	{
-		if (SanityManager.DEBUG) {
-			// right now, this routine isn't called for in-memory dependencies
-			if (! d.isPersistent() || ! p.isPersistent())
-			{
-				SanityManager.NOTREACHED();
-			}
-		}
+        @exception StandardException thrown if something goes wrong
+     */
+    private    void dropDependency(LanguageConnectionContext lcc, Dependent d, Provider p) throws StandardException
+    {
+        if (SanityManager.DEBUG) {
+            // right now, this routine isn't called for in-memory dependencies
+            if (! d.isPersistent() || ! p.isPersistent())
+            {
+                SanityManager.NOTREACHED();
+            }
+        }
 
-		DependencyDescriptor dependencyDescriptor = new DependencyDescriptor(d, p);
+        DependencyDescriptor dependencyDescriptor = new DependencyDescriptor(d, p);
 
-		dd.dropStoredDependency( dependencyDescriptor,
-								 lcc.getTransactionExecute() );
-	}
+        dd.dropStoredDependency( dependencyDescriptor,
+                                 lcc.getTransactionExecute() );
+    }
 
 
-	/**
-		mark all dependencies on the named provider as invalid.
-		When invalidation types show up, this will use the default
-		invalidation type. The dependencies will still exist once
-		they are marked invalid; clearDependencies should be used
-		to remove dependencies that a dependent has or provider gives.
-		<p>
-		Implementations of this can take a little time, but are not
-		really expected to recompile things against any changes
-		made to the provider that caused the invalidation. The
-		dependency system makes no guarantees about the state of
-		the provider -- implementations can call this before or
-		after actually changing the provider to its new state.
-		<p>
-		Implementations should throw StandardException
-		if the invalidation should be disallowed.
+    /**
+        mark all dependencies on the named provider as invalid.
+        When invalidation types show up, this will use the default
+        invalidation type. The dependencies will still exist once
+        they are marked invalid; clearDependencies should be used
+        to remove dependencies that a dependent has or provider gives.
+        <p>
+        Implementations of this can take a little time, but are not
+        really expected to recompile things against any changes
+        made to the provider that caused the invalidation. The
+        dependency system makes no guarantees about the state of
+        the provider -- implementations can call this before or
+        after actually changing the provider to its new state.
+        <p>
+        Implementations should throw StandardException
+        if the invalidation should be disallowed.
 
-		@param p the provider
-		@param action	The action causing the invalidate
+        @param p the provider
+        @param action    The action causing the invalidate
 
-		@exception StandardException thrown if unable to make it invalid
-	 */
-	public void invalidateFor(Provider p, int action, LanguageConnectionContext lcc) throws StandardException {
-		/*
-		** Non-persistent dependencies are stored in memory, and need to
-		** use "synchronized" to ensure their lists don't change while
-		** the invalidation is taking place.  Persistent dependencies are
-		** stored in the data dictionary, and we should *not* do anything
-		** transactional (like reading from a system table) from within
-		** a synchronized method, as it could cause deadlock.
-		**
-		** Presumably, the transactional locking in the data dictionary
-		** is enough to protect us, so that we don't have to put any
-		** synchronization in the DependencyManager.
-		*/
-		if (p.isPersistent())
-			coreInvalidateFor(p, action, lcc);
-		else {
-			synchronized (this) {
-				coreInvalidateFor(p, action, lcc);
-			}
-		}
+        @exception StandardException thrown if unable to make it invalid
+     */
+    public void invalidateFor(Provider p, int action, LanguageConnectionContext lcc) throws StandardException {
+        /*
+        ** Non-persistent dependencies are stored in memory, and need to
+        ** use "synchronized" to ensure their lists don't change while
+        ** the invalidation is taking place.  Persistent dependencies are
+        ** stored in the data dictionary, and we should *not* do anything
+        ** transactional (like reading from a system table) from within
+        ** a synchronized method, as it could cause deadlock.
+        **
+        ** Presumably, the transactional locking in the data dictionary
+        ** is enough to protect us, so that we don't have to put any
+        ** synchronization in the DependencyManager.
+        */
+        if (p.isPersistent())
+            coreInvalidateFor(p, action, lcc);
+        else {
+            synchronized (this) {
+                coreInvalidateFor(p, action, lcc);
+            }
+        }
 
         if (p instanceof TableDescriptor) {
             flushCachesBasedOnTableDescriptor(((TableDescriptor)p), dd);
         }
-	}
+    }
 
-	@Override
-	public Collection<Dependency> find(UUID dependencyUUID) throws StandardException{
-		synchronized(this){
+    @Override
+    public Collection<Dependency> find(UUID dependencyUUID) throws StandardException{
+        synchronized(this){
             return dependents.get(dependencyUUID);
         }
-	}
+    }
 
-	/**
+    /**
      * A version of invalidateFor that does not provide synchronization among
      * invalidators.
      *
@@ -323,74 +323,74 @@ public class BasicDependencyManager implements DependencyManager {
      *
      * @throws StandardException if something goes wrong
      */
-	private void coreInvalidateFor(Provider p, int action, LanguageConnectionContext lcc) throws StandardException {
-		List<Dependency> list = getDependents(p);
+    private void coreInvalidateFor(Provider p, int action, LanguageConnectionContext lcc) throws StandardException {
+        List<Dependency> list = getDependents(p);
 
         if (list.isEmpty()) {
-			return;
-		}
+            return;
+        }
 
 
-		// affectedCols is passed in from table descriptor provider to indicate
-		// which columns it cares; subsetCols is affectedCols' intersection
-		// with column bit map found in the provider of SYSDEPENDS line to
-		// find out which columns really matter.  If SYSDEPENDS line's
-		// dependent is view (or maybe others), provider is table, yet it
-		// doesn't have column bit map because the view was created in a
-		// previous version of server which doesn't support column dependency,
-		// and we really want it to have (such as in drop column), in any case
-		// if we passed in table descriptor to this function with a bit map,
-		// we really need this, we generate the bitmaps on the fly and update
-		// SYSDEPENDS
+        // affectedCols is passed in from table descriptor provider to indicate
+        // which columns it cares; subsetCols is affectedCols' intersection
+        // with column bit map found in the provider of SYSDEPENDS line to
+        // find out which columns really matter.  If SYSDEPENDS line's
+        // dependent is view (or maybe others), provider is table, yet it
+        // doesn't have column bit map because the view was created in a
+        // previous version of server which doesn't support column dependency,
+        // and we really want it to have (such as in drop column), in any case
+        // if we passed in table descriptor to this function with a bit map,
+        // we really need this, we generate the bitmaps on the fly and update
+        // SYSDEPENDS
 
-		FormatableBitSet affectedCols = null, subsetCols = null;
-		if (p instanceof TableDescriptor)
-		{
-			affectedCols = ((TableDescriptor) p).getReferencedColumnMap();
-			if (affectedCols != null)
-				subsetCols = new FormatableBitSet(affectedCols.getLength());
-		}
+        FormatableBitSet affectedCols = null, subsetCols = null;
+        if (p instanceof TableDescriptor)
+        {
+            affectedCols = ((TableDescriptor) p).getReferencedColumnMap();
+            if (affectedCols != null)
+                subsetCols = new FormatableBitSet(affectedCols.getLength());
+        }
 
-		{
-			StandardException noInvalidate = null;
-			// We cannot use an iterator here as the invalidations can remove
-			// entries from this list.
-			for (int ei = list.size() - 1; ei >= 0; ei--)
-			{
-				if (ei >= list.size())
-					continue;
-				Dependency dependency = list.get(ei);
-				Dependent dep = dependency.getDependent();
-				if (dep == null) {
-					continue;
-				}
+        {
+            StandardException noInvalidate = null;
+            // We cannot use an iterator here as the invalidations can remove
+            // entries from this list.
+            for (int ei = list.size() - 1; ei >= 0; ei--)
+            {
+                if (ei >= list.size())
+                    continue;
+                Dependency dependency = list.get(ei);
+                Dependent dep = dependency.getDependent();
+                if (dep == null) {
+                    continue;
+                }
 
-				if (affectedCols != null)
-				{
-					TableDescriptor td = (TableDescriptor) dependency.getProvider();
-					FormatableBitSet providingCols = td.getReferencedColumnMap();
-					if (providingCols == null)
-					{
-						if (dep instanceof ViewDescriptor)
-						{
-							ViewDescriptor vd = (ViewDescriptor) dep;
-							SchemaDescriptor compSchema;
-							compSchema = dd.getSchemaDescriptor(vd.getCompSchemaId(), null);
-							CompilerContext newCC = lcc.pushCompilerContext(compSchema);
-							Parser	pa = newCC.getParser();
+                if (affectedCols != null)
+                {
+                    TableDescriptor td = (TableDescriptor) dependency.getProvider();
+                    FormatableBitSet providingCols = td.getReferencedColumnMap();
+                    if (providingCols == null)
+                    {
+                        if (dep instanceof ViewDescriptor)
+                        {
+                            ViewDescriptor vd = (ViewDescriptor) dep;
+                            SchemaDescriptor compSchema;
+                            compSchema = dd.getSchemaDescriptor(vd.getCompSchemaId(), null);
+                            CompilerContext newCC = lcc.pushCompilerContext(compSchema);
+                            Parser    pa = newCC.getParser();
 
-							// Since this is always nested inside another SQL
-							// statement, so topLevel flag should be false
-							CreateViewNode cvn = (CreateViewNode)pa.parseStatement(
-												vd.getViewText());
+                            // Since this is always nested inside another SQL
+                            // statement, so topLevel flag should be false
+                            CreateViewNode cvn = (CreateViewNode)pa.parseStatement(
+                                                vd.getViewText());
 
-							// need a current dependent for bind
-							newCC.setCurrentDependent(dep);
-							cvn.bindStatement();
-							ProviderInfo[] providerInfos = cvn.getProviderInfo();
-							lcc.popCompilerContext(newCC);
+                            // need a current dependent for bind
+                            newCC.setCurrentDependent(dep);
+                            cvn.bindStatement();
+                            ProviderInfo[] providerInfos = cvn.getProviderInfo();
+                            lcc.popCompilerContext(newCC);
 
-							boolean		interferent = false;
+                            boolean        interferent = false;
                             for (ProviderInfo providerInfo : providerInfos) {
                                 Provider provider;
                                 provider = (Provider) providerInfo.
@@ -420,55 +420,55 @@ public class BasicDependencyManager implements DependencyManager {
                                     }
                                 }    // if provider instanceof TableDescriptor
                             }    // for providerInfos
-							if (! interferent)
-								continue;
-						}	// if dep instanceof ViewDescriptor
-						else
-							((TableDescriptor) p).setReferencedColumnMap(null);
-					}	// if providingCols == null
-					else
-					{
-						System.arraycopy(affectedCols.getByteArray(), 0, subsetCols.getByteArray(), 0, affectedCols.getLengthInBytes());
-						subsetCols.and(providingCols);
-						if (subsetCols.anySetBit() == -1)
-							continue;
-						((TableDescriptor) p).setReferencedColumnMap(subsetCols);
-					}
-				}
+                            if (! interferent)
+                                continue;
+                        }    // if dep instanceof ViewDescriptor
+                        else
+                            ((TableDescriptor) p).setReferencedColumnMap(null);
+                    }    // if providingCols == null
+                    else
+                    {
+                        System.arraycopy(affectedCols.getByteArray(), 0, subsetCols.getByteArray(), 0, affectedCols.getLengthInBytes());
+                        subsetCols.and(providingCols);
+                        if (subsetCols.anySetBit() == -1)
+                            continue;
+                        ((TableDescriptor) p).setReferencedColumnMap(subsetCols);
+                    }
+                }
 
-				// generate a list of invalidations that fail.
-				try {
-					dep.prepareToInvalidate(p, action, lcc);
-				} catch (StandardException sqle) {
+                // generate a list of invalidations that fail.
+                try {
+                    dep.prepareToInvalidate(p, action, lcc);
+                } catch (StandardException sqle) {
 
-					if (noInvalidate == null) {
-						noInvalidate = sqle;
-					} else {
-						try {
-							sqle.initCause(noInvalidate);
-							noInvalidate = sqle;
-						} catch (IllegalStateException ise) {
-							// We weren't able to chain the exceptions. That's
-							// OK, since we always have the first exception we
-							// caught. Just skip the current exception.
-						}
-					}
-				}
-				if (noInvalidate == null) {
+                    if (noInvalidate == null) {
+                        noInvalidate = sqle;
+                    } else {
+                        try {
+                            sqle.initCause(noInvalidate);
+                            noInvalidate = sqle;
+                        } catch (IllegalStateException ise) {
+                            // We weren't able to chain the exceptions. That's
+                            // OK, since we always have the first exception we
+                            // caught. Just skip the current exception.
+                        }
+                    }
+                }
+                if (noInvalidate == null) {
 
-					if (affectedCols != null)
-						((TableDescriptor) p).setReferencedColumnMap(affectedCols);
+                    if (affectedCols != null)
+                        ((TableDescriptor) p).setReferencedColumnMap(affectedCols);
 
-					// REVISIT: future impl will want to mark the individual
-					// dependency as invalid as well as the dependent...
-					dep.makeInvalid(action, lcc);
-				}
-			}
+                    // REVISIT: future impl will want to mark the individual
+                    // dependency as invalid as well as the dependent...
+                    dep.makeInvalid(action, lcc);
+                }
+            }
 
-			if (noInvalidate != null)
-				throw noInvalidate;
-		}
-	}
+            if (noInvalidate != null)
+                throw noInvalidate;
+        }
+    }
 
     private static void flushCachesBasedOnTableDescriptor(TableDescriptor td,DataDictionary dd) throws StandardException {
         // cache flushing for table dependencies happen in each dependent type's impl via dep.makeInvalid(action, lcc)
@@ -487,36 +487,36 @@ public class BasicDependencyManager implements DependencyManager {
 
     }
 
-	/**
-		Erases all of the dependencies the dependent has, be they
-		valid or invalid, of any dependency type.  This action is
-		usually performed as the first step in revalidating a
-		dependent; it first erases all the old dependencies, then
-		revalidates itself generating a list of new dependencies,
-		and then marks itself valid if all its new dependencies are
-		valid.
-		<p>
-		There might be a future want to clear all dependencies for
-		a particular provider, e.g. when destroying the provider.
-		However, at present, they are assumed to stick around and
-		it is the responsibility of the dependent to erase them when
-		revalidating against the new version of the provider.
-		<p>
-		clearDependencies will delete dependencies if they are
-		stored; the delete is finalized at the next commit.
+    /**
+        Erases all of the dependencies the dependent has, be they
+        valid or invalid, of any dependency type.  This action is
+        usually performed as the first step in revalidating a
+        dependent; it first erases all the old dependencies, then
+        revalidates itself generating a list of new dependencies,
+        and then marks itself valid if all its new dependencies are
+        valid.
+        <p>
+        There might be a future want to clear all dependencies for
+        a particular provider, e.g. when destroying the provider.
+        However, at present, they are assumed to stick around and
+        it is the responsibility of the dependent to erase them when
+        revalidating against the new version of the provider.
+        <p>
+        clearDependencies will delete dependencies if they are
+        stored; the delete is finalized at the next commit.
 
-		@param d the dependent
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public void clearDependencies(LanguageConnectionContext lcc, Dependent d) throws StandardException {
-		clearDependencies(lcc, d, null);
-	}
+        @param d the dependent
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public void clearDependencies(LanguageConnectionContext lcc, Dependent d) throws StandardException {
+        clearDependencies(lcc, d, null);
+    }
 
-	/**
-	 */
-	public void clearDependencies(LanguageConnectionContext lcc,
-									Dependent d, TransactionController tc) throws StandardException {
+    /**
+     */
+    public void clearDependencies(LanguageConnectionContext lcc,
+                                    Dependent d, TransactionController tc) throws StandardException {
 //        dd.startWriting(lcc);
         UUID id = d.getObjectID();
         // Remove all the stored dependencies.
@@ -540,12 +540,12 @@ public class BasicDependencyManager implements DependencyManager {
         }
     }
 
-	/**
-	 * Clear the specified in memory dependency.
-	 * This is useful for clean-up when an exception occurs.
-	 * (We clear all in-memory dependencies added in the current
-	 * StatementContext.)
-	 */
+    /**
+     * Clear the specified in memory dependency.
+     * This is useful for clean-up when an exception occurs.
+     * (We clear all in-memory dependencies added in the current
+     * StatementContext.)
+     */
     public synchronized void clearInMemoryDependency(Dependency dy) {
         if (dy.getDependent() == null) {
             // nothing to clear
@@ -618,16 +618,16 @@ public class BasicDependencyManager implements DependencyManager {
             providers.remove(provId);
     }
 
-	/**
-	 * @see DependencyManager#getPersistentProviderInfos
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * @see DependencyManager#getPersistentProviderInfos
+     *
+     * @exception StandardException        Thrown on error
+     */
     public ProviderInfo[] getPersistentProviderInfos(Dependent dependent) throws StandardException {
-		List<Provider> list = getProviders(dependent);
+        List<Provider> list = getProviders(dependent);
         if (list.isEmpty()) {
-			return new ProviderInfo[0];
-		}
+            return new ProviderInfo[0];
+        }
 
         Iterator<Provider> provIter = list.iterator();
         List<BasicProviderInfo> pih = new ArrayList<>();
@@ -637,258 +637,258 @@ public class BasicDependencyManager implements DependencyManager {
             if (p.isPersistent()) {
                 pih.add(new BasicProviderInfo(p.getObjectID(), p.getDependableFinder(), p.getObjectName()));
             }
-		}
+        }
 
-		return pih.toArray(new ProviderInfo[pih.size()]);
-	}
+        return pih.toArray(new ProviderInfo[pih.size()]);
+    }
 
     /**
-	 * @see DependencyManager#getPersistentProviderInfos
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public ProviderInfo[] getPersistentProviderInfos(ProviderList pl) throws StandardException {
-		Enumeration<Provider> e = pl.elements();
-		int	numProviders = 0;
+     * @see DependencyManager#getPersistentProviderInfos
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public ProviderInfo[] getPersistentProviderInfos(ProviderList pl) throws StandardException {
+        Enumeration<Provider> e = pl.elements();
+        int    numProviders = 0;
 
-		/*
-		** We make 2 passes - the first to count the number of persistent
- 		** providers and the second to populate the array of ProviderInfos.
-		*/
-		while (e != null && e.hasMoreElements()) {
-			Provider prov = e.nextElement();
-			if (prov.isPersistent()) {
-				numProviders++;
-			}
-		}
+        /*
+        ** We make 2 passes - the first to count the number of persistent
+         ** providers and the second to populate the array of ProviderInfos.
+        */
+        while (e != null && e.hasMoreElements()) {
+            Provider prov = e.nextElement();
+            if (prov.isPersistent()) {
+                numProviders++;
+            }
+        }
 
-		e = pl.elements();
+        e = pl.elements();
         ProviderInfo[] retval = new ProviderInfo[numProviders];
-		int piCtr = 0;
-		while (e != null && e.hasMoreElements()) {
-			Provider prov = e.nextElement();
+        int piCtr = 0;
+        while (e != null && e.hasMoreElements()) {
+            Provider prov = e.nextElement();
 
-			if (prov.isPersistent()) {
-				retval[piCtr++] = new BasicProviderInfo(
-									prov.getObjectID(),
-									prov.getDependableFinder(),
-									prov.getObjectName());
-			}
-		}
+            if (prov.isPersistent()) {
+                retval[piCtr++] = new BasicProviderInfo(
+                                    prov.getObjectID(),
+                                    prov.getDependableFinder(),
+                                    prov.getObjectName());
+            }
+        }
 
-		return retval;
-	}
+        return retval;
+    }
 
-	/**
-	 * @see DependencyManager#clearColumnInfoInProviders
-	 *
-	 * @param pl		provider list
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void clearColumnInfoInProviders(ProviderList pl) throws StandardException {
-		Enumeration<Provider> e = pl.elements();
-		while (e.hasMoreElements()) {
-			Provider pro = e.nextElement();
-			if (pro instanceof TableDescriptor)
-				((TableDescriptor) pro).setReferencedColumnMap(null);
-		}
-	}
+    /**
+     * @see DependencyManager#clearColumnInfoInProviders
+     *
+     * @param pl        provider list
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void clearColumnInfoInProviders(ProviderList pl) throws StandardException {
+        Enumeration<Provider> e = pl.elements();
+        while (e.hasMoreElements()) {
+            Provider pro = e.nextElement();
+            if (pro instanceof TableDescriptor)
+                ((TableDescriptor) pro).setReferencedColumnMap(null);
+        }
+    }
 
-	/**
- 	 * Copy dependencies from one dependent to another.
-	 *
-	 * @param copy_From the dependent to copy from
-	 * @param copyTo the dependent to copy to
-	 * @param persistentOnly only copy persistent dependencies
-	 * @param cm		Current ContextManager
-	 *
-	 * @exception StandardException		Thrown on error.
-	 */
-	public void copyDependencies(Dependent	copy_From,
-								Dependent	copyTo,
-								boolean		persistentOnly,
-								ContextManager cm) throws StandardException
-	{
-		copyDependencies(copy_From, copyTo, persistentOnly, cm, null);
-	}
+    /**
+      * Copy dependencies from one dependent to another.
+     *
+     * @param copy_From the dependent to copy from
+     * @param copyTo the dependent to copy to
+     * @param persistentOnly only copy persistent dependencies
+     * @param cm        Current ContextManager
+     *
+     * @exception StandardException        Thrown on error.
+     */
+    public void copyDependencies(Dependent    copy_From,
+                                Dependent    copyTo,
+                                boolean        persistentOnly,
+                                ContextManager cm) throws StandardException
+    {
+        copyDependencies(copy_From, copyTo, persistentOnly, cm, null);
+    }
 
-	/**
-	 * @inheritDoc
-	 */
+    /**
+     * @inheritDoc
+     */
     public void copyDependencies(
-									Dependent	copy_From,
-									Dependent	copyTo,
-									boolean		persistentOnly,
-									ContextManager cm,
-									TransactionController tc) throws StandardException {
+                                    Dependent    copy_From,
+                                    Dependent    copyTo,
+                                    boolean        persistentOnly,
+                                    ContextManager cm,
+                                    TransactionController tc) throws StandardException {
 
-		List<Provider> list = getProviders(copy_From);
+        List<Provider> list = getProviders(copy_From);
         for (Provider provider : list) {
             if (!persistentOnly || provider.isPersistent()) {
                 this.addDependency(copyTo, provider, cm, tc);
             }
         }
-	}
+    }
 
 
-	/**
-	 * Returns a string representation of the SQL action, hence no
-	 * need to internationalize, which is causing the invokation
-	 * of the Dependency Manager.
-	 *
-	 * @param action		The action
-	 *
-	 * @return String	The String representation
-	 */
-	public String getActionString(int action)
-	{
-		switch (action)
-		{
-			case ALTER_TABLE:
-				return "ALTER TABLE";
+    /**
+     * Returns a string representation of the SQL action, hence no
+     * need to internationalize, which is causing the invokation
+     * of the Dependency Manager.
+     *
+     * @param action        The action
+     *
+     * @return String    The String representation
+     */
+    public String getActionString(int action)
+    {
+        switch (action)
+        {
+            case ALTER_TABLE:
+                return "ALTER TABLE";
 
-			case RENAME: //for rename table and column
-				return "RENAME";
+            case RENAME: //for rename table and column
+                return "RENAME";
 
-			case RENAME_INDEX:
-				return "RENAME INDEX";
+            case RENAME_INDEX:
+                return "RENAME INDEX";
 
-			case COMPILE_FAILED:
-				return "COMPILE FAILED";
+            case COMPILE_FAILED:
+                return "COMPILE FAILED";
 
-			case DROP_TABLE:
-				return "DROP TABLE";
+            case DROP_TABLE:
+                return "DROP TABLE";
 
-			case DROP_INDEX:
-				return "DROP INDEX";
+            case DROP_INDEX:
+                return "DROP INDEX";
 
-			case DROP_VIEW:
-				return "DROP VIEW";
+            case DROP_VIEW:
+                return "DROP VIEW";
 
-			case CREATE_INDEX:
-				return "CREATE INDEX";
+            case CREATE_INDEX:
+                return "CREATE INDEX";
 
-			case ROLLBACK:
-				return "ROLLBACK";
+            case ROLLBACK:
+                return "ROLLBACK";
 
-			case CHANGED_CURSOR:
-				return "CHANGED CURSOR";
+            case CHANGED_CURSOR:
+                return "CHANGED CURSOR";
 
-			case CREATE_CONSTRAINT:
-				return "CREATE CONSTRAINT";
+            case CREATE_CONSTRAINT:
+                return "CREATE CONSTRAINT";
 
-			case DROP_CONSTRAINT:
-				return "DROP CONSTRAINT";
+            case DROP_CONSTRAINT:
+                return "DROP CONSTRAINT";
 
-			case DROP_METHOD_ALIAS:
-				return "DROP ROUTINE";
+            case DROP_METHOD_ALIAS:
+                return "DROP ROUTINE";
 
-			case PREPARED_STATEMENT_RELEASE:
-				return "PREPARED STATEMENT RELEASE";
+            case PREPARED_STATEMENT_RELEASE:
+                return "PREPARED STATEMENT RELEASE";
 
-			case DROP_SPS:
-				return "DROP STORED PREPARED STATEMENT";
+            case DROP_SPS:
+                return "DROP STORED PREPARED STATEMENT";
 
-			case USER_RECOMPILE_REQUEST:
-				return "USER REQUESTED INVALIDATION";
+            case USER_RECOMPILE_REQUEST:
+                return "USER REQUESTED INVALIDATION";
 
-			case BULK_INSERT:
-				return "BULK INSERT";
+            case BULK_INSERT:
+                return "BULK INSERT";
 
-		    case CREATE_VIEW:
-				return "CREATE_VIEW";
+            case CREATE_VIEW:
+                return "CREATE_VIEW";
 
-			case DROP_JAR:
-				return "DROP_JAR";
+            case DROP_JAR:
+                return "DROP_JAR";
 
-			case REPLACE_JAR:
-				return "REPLACE_JAR";
+            case REPLACE_JAR:
+                return "REPLACE_JAR";
 
-			case SET_CONSTRAINTS_ENABLE:
-				return "SET_CONSTRAINTS_ENABLE";
+            case SET_CONSTRAINTS_ENABLE:
+                return "SET_CONSTRAINTS_ENABLE";
 
-			case SET_CONSTRAINTS_DISABLE:
-				return "SET_CONSTRAINTS_DISABLE";
+            case SET_CONSTRAINTS_DISABLE:
+                return "SET_CONSTRAINTS_DISABLE";
 
-			case INTERNAL_RECOMPILE_REQUEST:
-				return "INTERNAL RECOMPILE REQUEST";
+            case INTERNAL_RECOMPILE_REQUEST:
+                return "INTERNAL RECOMPILE REQUEST";
 
-			case CREATE_TRIGGER:
-				return "CREATE TRIGGER";
+            case CREATE_TRIGGER:
+                return "CREATE TRIGGER";
 
-			case DROP_TRIGGER:
-				return "DROP TRIGGER";
+            case DROP_TRIGGER:
+                return "DROP TRIGGER";
 
-			case SET_TRIGGERS_ENABLE:
-				return "SET TRIGGERS ENABLED";
+            case SET_TRIGGERS_ENABLE:
+                return "SET TRIGGERS ENABLED";
 
-			case SET_TRIGGERS_DISABLE:
-				return "SET TRIGGERS DISABLED";
+            case SET_TRIGGERS_DISABLE:
+                return "SET TRIGGERS DISABLED";
 
-			case MODIFY_COLUMN_DEFAULT:
-				return "MODIFY COLUMN DEFAULT";
+            case MODIFY_COLUMN_DEFAULT:
+                return "MODIFY COLUMN DEFAULT";
 
-			case COMPRESS_TABLE:
-				return "COMPRESS TABLE";
+            case COMPRESS_TABLE:
+                return "COMPRESS TABLE";
 
-			case DROP_COLUMN:
-				return "DROP COLUMN";
+            case DROP_COLUMN:
+                return "DROP COLUMN";
 
-			case DROP_COLUMN_RESTRICT:
-				return "DROP COLUMN RESTRICT";
+            case DROP_COLUMN_RESTRICT:
+                return "DROP COLUMN RESTRICT";
 
-		    case DROP_STATISTICS:
-				return "DROP STATISTICS";
+            case DROP_STATISTICS:
+                return "DROP STATISTICS";
 
-			case UPDATE_STATISTICS:
-				return "UPDATE STATISTICS";
+            case UPDATE_STATISTICS:
+                return "UPDATE STATISTICS";
 
-		    case TRUNCATE_TABLE:
-			    return "TRUNCATE TABLE";
+            case TRUNCATE_TABLE:
+                return "TRUNCATE TABLE";
 
-		    case DROP_SYNONYM:
-			    return "DROP SYNONYM";
+            case DROP_SYNONYM:
+                return "DROP SYNONYM";
 
-		    case REVOKE_PRIVILEGE:
-			    return "REVOKE PRIVILEGE";
+            case REVOKE_PRIVILEGE:
+                return "REVOKE PRIVILEGE";
 
-		    case REVOKE_PRIVILEGE_RESTRICT:
-			    return "REVOKE PRIVILEGE RESTRICT";
+            case REVOKE_PRIVILEGE_RESTRICT:
+                return "REVOKE PRIVILEGE RESTRICT";
 
-		    case REVOKE_ROLE:
-				return "REVOKE ROLE";
+            case REVOKE_ROLE:
+                return "REVOKE ROLE";
 
-		    case RECHECK_PRIVILEGES:
-				return "RECHECK PRIVILEGES";
+            case RECHECK_PRIVILEGES:
+                return "RECHECK PRIVILEGES";
 
             case DROP_SEQUENCE:
-				return "DROP SEQUENCE";
+                return "DROP SEQUENCE";
 
             case DROP_UDT:
-				return "DROP TYPE";
+                return "DROP TYPE";
             case DROP_AGGREGATE:
-       			return "DROP DERBY AGGREGATE";
+                   return "DROP DERBY AGGREGATE";
             default:
-				if (SanityManager.DEBUG)
-				{
-					SanityManager.THROWASSERT("getActionString() passed an invalid value (" + action + ")");
-				}
-				// NOTE: This is not internationalized because we should never
-				// reach here.
-				return "UNKNOWN";
-		}
-	}
+                if (SanityManager.DEBUG)
+                {
+                    SanityManager.THROWASSERT("getActionString() passed an invalid value (" + action + ")");
+                }
+                // NOTE: This is not internationalized because we should never
+                // reach here.
+                return "UNKNOWN";
+        }
+    }
 
-	/**
-	 * Count the number of active dependencies, both stored and in memory,
-	 * in the system.
-	 *
-	 * @return int		The number of active dependencies in the system.
+    /**
+     * Count the number of active dependencies, both stored and in memory,
+     * in the system.
+     *
+     * @return int        The number of active dependencies in the system.
 
-		@exception StandardException thrown if something goes wrong
-	 */
-	public int countDependencies() throws StandardException {
+        @exception StandardException thrown if something goes wrong
+     */
+    public int countDependencies() throws StandardException {
         // Add the stored dependencies.
         int numDependencies = dd.getAllDependencyDescriptorsList().size();
         synchronized(this) {
@@ -905,97 +905,97 @@ public class BasicDependencyManager implements DependencyManager {
             }
         }
         return numDependencies;
-	}
+    }
 
-	//
-	// class interface
-	//
-	public BasicDependencyManager(DataDictionary dd) {
+    //
+    // class interface
+    //
+    public BasicDependencyManager(DataDictionary dd) {
         this.dd = dd;
-	}
+    }
 
-	//
-	// class implementation
-	//
+    //
+    // class implementation
+    //
 
-	/**
-	 * Add a new dependency to the specified table if it does not
-	 * already exist in that table.
-	 *
-	 * @return boolean		Whether or not the dependency get added.
-	 */
+    /**
+     * Add a new dependency to the specified table if it does not
+     * already exist in that table.
+     *
+     * @return boolean        Whether or not the dependency get added.
+     */
     private boolean addDependencyToTable(Map<UUID, List<Dependency>> table, UUID key, Dependency dy) {
 
-		List<Dependency> deps = table.get(key);
-		if (deps == null) {
-			deps = new ArrayList<>();
-			deps.add(dy);
-			table.put(key, deps);
-		}
-		else {
-			/* Make sure that we're not adding a duplicate dependency */
-			UUID provKey = dy.getProvider().getObjectID();
-			UUID depKey = dy.getDependent().getObjectID();
+        List<Dependency> deps = table.get(key);
+        if (deps == null) {
+            deps = new ArrayList<>();
+            deps.add(dy);
+            table.put(key, deps);
+        }
+        else {
+            /* Make sure that we're not adding a duplicate dependency */
+            UUID provKey = dy.getProvider().getObjectID();
+            UUID depKey = dy.getDependent().getObjectID();
 
-			Iterator<Dependency> it = deps.iterator();
-			while (it.hasNext()) {
-				Dependency curDY = it.next();
-				Dependent curDependent = curDY.getDependent();
-				if (curDependent == null) {
-					it.remove();
-				} else if (curDY.getProvider().getObjectID() == null || (curDY.getProvider().getObjectID().equals(provKey) && curDependent.getObjectID().equals(depKey))) {
-					// Check for dupes and dynamic with clauses
-					return false;
-				}
-			}
+            Iterator<Dependency> it = deps.iterator();
+            while (it.hasNext()) {
+                Dependency curDY = it.next();
+                Dependent curDependent = curDY.getDependent();
+                if (curDependent == null) {
+                    it.remove();
+                } else if (curDY.getProvider().getObjectID() == null || (curDY.getProvider().getObjectID().equals(provKey) && curDependent.getObjectID().equals(depKey))) {
+                    // Check for dupes and dynamic with clauses
+                    return false;
+                }
+            }
 
-			deps.add(dy);
-		}
+            deps.add(dy);
+        }
 
-		if (SanityManager.DEBUG) {
+        if (SanityManager.DEBUG) {
 
-			if (SanityManager.DEBUG_ON("memoryLeakTrace")) {
+            if (SanityManager.DEBUG_ON("memoryLeakTrace")) {
 
-				if (table.size() > 100)
-					System.out.println("memoryLeakTrace:BasicDependencyManager:table " + table.size());
-				if (deps.size() > 50)
-					System.out.println("memoryLeakTrace:BasicDependencyManager:deps " + deps.size());
-			}
-		}
+                if (table.size() > 100)
+                    System.out.println("memoryLeakTrace:BasicDependencyManager:table " + table.size());
+                if (deps.size() > 50)
+                    System.out.println("memoryLeakTrace:BasicDependencyManager:deps " + deps.size());
+            }
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	/**
-	 * removes a dependency for a given provider. assumes
-	 * that the dependent removal is being dealt with elsewhere.
-	 * Won't assume that the dependent only appears once in the list.
-	 */
+    /**
+     * removes a dependency for a given provider. assumes
+     * that the dependent removal is being dealt with elsewhere.
+     * Won't assume that the dependent only appears once in the list.
+     */
     //@GuardedBy("this")
     private void clearProviderDependency(UUID p, Dependency d) {
-		List<Dependency> deps = providers.get(p);
+        List<Dependency> deps = providers.get(p);
 
-		if (deps == null)
-			return;
+        if (deps == null)
+            return;
 
-		deps.remove(d);
+        deps.remove(d);
 
-		if (deps.isEmpty())
-			providers.remove(p);
-	}
+        if (deps.isEmpty())
+            providers.remove(p);
+    }
 
-	/**
-	 * Replace the DependencyDescriptors in an List with Dependencys.
-	 *
-	 * @param storedList	The List of DependencyDescriptors representing
-	 *						stored dependencies.
-	 * @param providerForList The provider if this list is being created
-	 *                        for a list of dependents. Null otherwise.
-	 *
-	 * @return List		The converted List
-	 *
-	 * @exception StandardException thrown if something goes wrong
-	 */
+    /**
+     * Replace the DependencyDescriptors in an List with Dependencys.
+     *
+     * @param storedList    The List of DependencyDescriptors representing
+     *                        stored dependencies.
+     * @param providerForList The provider if this list is being created
+     *                        for a list of dependents. Null otherwise.
+     *
+     * @return List        The converted List
+     *
+     * @exception StandardException thrown if something goes wrong
+     */
     private List<Dependency> getDependencyDescriptorList(List<DependencyDescriptor> storedList,
                                                          Provider providerForList) throws StandardException {
         List<Dependency> returnList = new ArrayList<>();
@@ -1003,10 +1003,10 @@ public class BasicDependencyManager implements DependencyManager {
             return returnList;
         }
 
-	   /* For each DependencyDescriptor, we need to instantiate
+       /* For each DependencyDescriptor, we need to instantiate
         * object descriptors of the appropriate type for both
-		* the dependent and provider, create a Dependency with
-		* that Dependent and Provider. */
+        * the dependent and provider, create a Dependency with
+        * that Dependent and Provider. */
         for (DependencyDescriptor aStoredList : storedList) {
             Provider tempP;
             DependableFinder finder = aStoredList.getDependentFinder();
@@ -1030,20 +1030,20 @@ public class BasicDependencyManager implements DependencyManager {
         return returnList;
     }
 
-	/**
-	 * Returns the LanguageConnectionContext to use.
-	 *
-	 * @param cm	Current ContextManager
-	 *
-	 * @return LanguageConnectionContext	The LanguageConnectionContext to use.
-	 */
-	protected LanguageConnectionContext getLanguageConnectionContext(ContextManager cm)
-	{
-		// find the language context.
-		return (LanguageConnectionContext) cm.getContext(LanguageConnectionContext.CONTEXT_ID);
-	}
+    /**
+     * Returns the LanguageConnectionContext to use.
+     *
+     * @param cm    Current ContextManager
+     *
+     * @return LanguageConnectionContext    The LanguageConnectionContext to use.
+     */
+    protected LanguageConnectionContext getLanguageConnectionContext(ContextManager cm)
+    {
+        // find the language context.
+        return (LanguageConnectionContext) cm.getContext(LanguageConnectionContext.CONTEXT_ID);
+    }
 
-	/**
+    /**
      * Returns a list of all providers that this dependent has (even invalid
      * ones). Includes all dependency types.
      *
@@ -1070,9 +1070,9 @@ public class BasicDependencyManager implements DependencyManager {
             for (Dependency aStoredList : storedList) {
                 provs.add(aStoredList.getProvider());
             }
-		}
+        }
         return provs;
-	}
+    }
 
     /**
      * Returns an enumeration of all dependencies that this
@@ -1082,8 +1082,8 @@ public class BasicDependencyManager implements DependencyManager {
      * @param p the provider
      * @return A list of dependents (possibly empty).
      * @throws StandardException if something goes wrong
-	 */
-	private List<Dependency> getDependents (Provider p) throws StandardException {
+     */
+    private List<Dependency> getDependents (Provider p) throws StandardException {
         List<Dependency> deps = new ArrayList<>();
         synchronized (this) {
             List<Dependency> memDeps = providers.get(p.getObjectID());
@@ -1100,5 +1100,5 @@ public class BasicDependencyManager implements DependencyManager {
             deps.addAll(storedList);
         }
         return deps;
-	}
+    }
 }

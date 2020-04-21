@@ -34,66 +34,66 @@ package com.splicemachine.db.iapi.jdbc;
 import java.sql.*;
 
 /**
-	Provides control over a BrokeredStatement, BrokeredPreparedStatement or BrokeredCallableStatement
+    Provides control over a BrokeredStatement, BrokeredPreparedStatement or BrokeredCallableStatement
 */
 public interface BrokeredStatementControl
 {
-	/**
-		Can cursors be held across commits.
+    /**
+        Can cursors be held across commits.
         Returns the holdability that should be
         used which may be different from the passed
         in holdabilty.
-	*/
-	int checkHoldCursors(int holdability) throws SQLException;
+    */
+    int checkHoldCursors(int holdability) throws SQLException;
 
-	/**
-	 * Close the real JDBC Statement when this is controlling a Statement.
-	 * @throws SQLException
-	 */
-	void closeRealStatement() throws SQLException;
-	
-	/**
-	 * Close the real JDBC CallableStatement when this is controlling a
-	 * CallableStatement. 
-	 * @throws SQLException
-	 */
-	void closeRealCallableStatement() throws SQLException;
-	
-	/**
-	 * Close the real JDBC CallableStatement when this is controlling a
-	 * PreparedStatement. 
-	 * @throws SQLException
-	 */
-	void closeRealPreparedStatement() throws SQLException;
-	
-	/**
-		Return the real JDBC statement for the brokered statement
-		when this is controlling a Statement.
-	*/
-	Statement	getRealStatement() throws SQLException;
+    /**
+     * Close the real JDBC Statement when this is controlling a Statement.
+     * @throws SQLException
+     */
+    void closeRealStatement() throws SQLException;
+    
+    /**
+     * Close the real JDBC CallableStatement when this is controlling a
+     * CallableStatement. 
+     * @throws SQLException
+     */
+    void closeRealCallableStatement() throws SQLException;
+    
+    /**
+     * Close the real JDBC CallableStatement when this is controlling a
+     * PreparedStatement. 
+     * @throws SQLException
+     */
+    void closeRealPreparedStatement() throws SQLException;
+    
+    /**
+        Return the real JDBC statement for the brokered statement
+        when this is controlling a Statement.
+    */
+    Statement    getRealStatement() throws SQLException;
 
-	/**
-		Return the real JDBC PreparedStatement for the brokered statement
-		when this is controlling a PreparedStatement.
-	*/
-	PreparedStatement	getRealPreparedStatement() throws SQLException;
+    /**
+        Return the real JDBC PreparedStatement for the brokered statement
+        when this is controlling a PreparedStatement.
+    */
+    PreparedStatement    getRealPreparedStatement() throws SQLException;
 
 
-	/**
-		Return the real JDBC CallableStatement for the brokered statement
-		when this is controlling a CallableStatement.
-	*/
-	CallableStatement	getRealCallableStatement() throws SQLException;
+    /**
+        Return the real JDBC CallableStatement for the brokered statement
+        when this is controlling a CallableStatement.
+    */
+    CallableStatement    getRealCallableStatement() throws SQLException;
 
-	/**
-		Optionally wrap a returned ResultSet in another ResultSet.
+    /**
+        Optionally wrap a returned ResultSet in another ResultSet.
         @param s Statement that created the ResultSet.
-	*/
-	ResultSet	wrapResultSet(Statement s, ResultSet rs);
+    */
+    ResultSet    wrapResultSet(Statement s, ResultSet rs);
 
     /**
      * Return the exception factory for the underlying connection.
      * @return an exception factory instance
      */
-	ExceptionFactory getExceptionFactory();
+    ExceptionFactory getExceptionFactory();
 }

@@ -62,33 +62,33 @@ final class EmbedSavepoint30 extends ConnectionChild
     private final String savepointName;
     private final int savepointID;
 
-	//////////////////////////////////////////////////////////////
-	//
-	// CONSTRUCTORS
-	//
-	//////////////////////////////////////////////////////////////
-	/*
-		Constructor assumes caller will setup context stack
-		and restore it.
-	    @exception SQLException on error
-	 */
+    //////////////////////////////////////////////////////////////
+    //
+    // CONSTRUCTORS
+    //
+    //////////////////////////////////////////////////////////////
+    /*
+        Constructor assumes caller will setup context stack
+        and restore it.
+        @exception SQLException on error
+     */
     EmbedSavepoint30(EmbedConnection conn, String name)
     throws StandardException {
-   		super(conn);
-   		if (name == null) //this is an unnamed savepoint
-   		{
-				//Generating a unique internal name for unnamed savepoints
-				savepointName = "i." + conn.getLanguageConnection().getUniqueSavepointName();
-				savepointID = conn.getLanguageConnection().getUniqueSavepointID();
-   		} else
-   		{
-				savepointName = "e." + name;
-				savepointID = -1;
-   		}
-   		conn.getLanguageConnection().languageSetSavePoint(savepointName, this);
+           super(conn);
+           if (name == null) //this is an unnamed savepoint
+           {
+                //Generating a unique internal name for unnamed savepoints
+                savepointName = "i." + conn.getLanguageConnection().getUniqueSavepointName();
+                savepointID = conn.getLanguageConnection().getUniqueSavepointID();
+           } else
+           {
+                savepointName = "e." + name;
+                savepointID = -1;
+           }
+           conn.getLanguageConnection().languageSetSavePoint(savepointName, this);
     }
 
-	/**
+    /**
     *
     * Retrieves the generated ID for the savepoint that this Savepoint object
     * represents.
@@ -97,12 +97,12 @@ final class EmbedSavepoint30 extends ConnectionChild
     * @exception SQLException if this is a named savepoint
     */
     public int getSavepointId() throws SQLException {
-   		if (savepointID == -1)
-			throw newSQLException(SQLState.NO_ID_FOR_NAMED_SAVEPOINT);
-   		return savepointID;
+           if (savepointID == -1)
+            throw newSQLException(SQLState.NO_ID_FOR_NAMED_SAVEPOINT);
+           return savepointID;
     }
 
-	/**
+    /**
     *
     * Retrieves the name of the savepoint that this Savepoint object
     * represents.
@@ -111,21 +111,21 @@ final class EmbedSavepoint30 extends ConnectionChild
     * @exception SQLException if this is an un-named savepoint
     */
     public String getSavepointName() throws SQLException {
-   		if (savepointID != -1)
-			throw newSQLException(SQLState.NO_NAME_FOR_UNNAMED_SAVEPOINT);
-   		return savepointName.substring(2);
+           if (savepointID != -1)
+            throw newSQLException(SQLState.NO_NAME_FOR_UNNAMED_SAVEPOINT);
+           return savepointName.substring(2);
     }
 
     // Derby internally keeps name for both named and unnamed savepoints
     String getInternalName() {
-   		return savepointName;
+           return savepointName;
     }
 
 
     //bug 4468 - verify that savepoint rollback/release is for a savepoint from
     //the current connection
     boolean sameConnection(EmbedConnection con) {
-   		return (getEmbedConnection().getLanguageConnection() == con.getLanguageConnection());
+           return (getEmbedConnection().getLanguageConnection() == con.getLanguageConnection());
     }
 }
 
