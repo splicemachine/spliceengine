@@ -200,10 +200,11 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         boolean isSpark = optimizer.isForSpark();
         AccessPath currentAccessPath = innerTable.getCurrentAccessPath();
         boolean isHinted = currentAccessPath.isHintedJoinStrategy();
+        boolean isOneRow = ((FromTable)innerTable).isOneRowResultSet();
 
-        // Only use cross join when it is inner join
+        // Only use cross join when it is inner join, and not a semi-join
         // Only use cross join when it is on Spark
-        return !outerCost.isOuterJoin() && isSpark && (innerTable instanceof FromBaseTable || isHinted);
+        return !outerCost.isOuterJoin() && isSpark && (innerTable instanceof FromBaseTable || isHinted) && !isOneRow;
     }
 
     @Override
