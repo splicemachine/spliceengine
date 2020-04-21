@@ -1775,6 +1775,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
                     .map(QueryTreeNode::getHashableJoinColumnReference)
                     .filter(Objects::nonNull)
                     .flatMap(List<ColumnReference>::stream)
+                    .distinct()
                     .collect(Collectors.toList());
         }
         return null;

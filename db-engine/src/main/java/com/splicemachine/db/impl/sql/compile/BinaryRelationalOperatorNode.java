@@ -896,15 +896,15 @@ public class BinaryRelationalOperatorNode
             return false;
         }
 
-            /*
-            ** The left operand is a column reference.
-            ** Is it the correct column?
-            */
-            if(valNodeReferencesOptTable(lcr.get(0),ft,forPush,walkSubtree)){
-                otherSide=rightOperand;
-                found=true;
-                walkSubtree=false;
-            }
+        /*
+        ** The left operand is a column reference.
+        ** Is it the correct column?
+        */
+        if(valNodeReferencesOptTable(lcr.get(0),ft,forPush,walkSubtree)){
+            otherSide=rightOperand;
+            found=true;
+            walkSubtree=false;
+        }
 
         if(!found){
             /*

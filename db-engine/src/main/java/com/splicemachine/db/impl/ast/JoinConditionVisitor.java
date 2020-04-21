@@ -53,6 +53,7 @@ import org.spark_project.guava.primitives.Ints;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
@@ -259,7 +260,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     }
 
     private List<? extends Predicate> pullPredsFromIndex(IndexToBaseRowNode rsn,
-                                                                                     org.spark_project.guava.base.Predicate<Predicate> shouldPull) throws StandardException {
+        org.spark_project.guava.base.Predicate<Predicate> shouldPull) throws StandardException {
         List<Predicate> pulled = new LinkedList<>();
         if (rsn.restrictionList != null) {
             for (int i = rsn.restrictionList.size() - 1; i >= 0; i--) {
@@ -580,7 +581,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             List<ColumnReference> lcr = RSUtils.collectNodes(leftOperand, ColumnReference.class);
             List<ColumnReference> rcr = RSUtils.collectNodes(rightOperand, ColumnReference.class);
 
-            for (ColumnReference cr : lcr) {
+            for (ColumnReference cr : lcr.stream().distinct().collect(Collectors.toList())) {
                 if (isLeftRef.apply(cr.getSourceResultColumn()!=null?cr.getSourceResultColumn():cr.getOrigSourceResultColumn())) {
                     leftIndices.add(translateToIndexOnList(cr, leftRCL, leftOperand, node.getLeftResultSet(), brop, node));
                 } else {
@@ -588,7 +589,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                 }
             }
 
-            for (ColumnReference cr : rcr) {
+            for (ColumnReference cr : rcr.stream().distinct().collect(Collectors.toList())) {
                 if (isLeftRef.apply(cr.getSourceResultColumn()!=null?cr.getSourceResultColumn():cr.getOrigSourceResultColumn())) {
                     leftIndices.add(translateToIndexOnList(cr, leftRCL, rightOperand, node.getLeftResultSet(), brop, node));
                 } else {
