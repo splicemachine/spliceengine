@@ -40,7 +40,7 @@ public class OlapServerProviderImpl implements OlapServerProvider {
             if (config.getOlapServerExternal()) {
                 byte[] bytes = null;
                 int tries = 0;
-                Exception catched = null;
+                OlapServerNotReadyException osnr = null;
                 String root = HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH;
                 while (tries < maxRetries) {
                     tries++;
@@ -54,8 +54,8 @@ public class OlapServerProviderImpl implements OlapServerProvider {
                         bytes = ZkUtils.getData(root + "/" + node.toZNode());
                         break;
                     } catch (IOException e) {
-                        catched = e;
                         if (e instanceof OlapServerNotReadyException) {
+                            osnr = (OlapServerNotReadyException) e;
                             // sleep & retry
                             try {
                                 long pause = PipelineUtils.getPauseTime(tries, 10);
@@ -70,29 +70,22 @@ public class OlapServerProviderImpl implements OlapServerProvider {
                     }
                 }
                 if (bytes == null) {
-                    if (catched instanceof OlapServerNotReadyException) {
-                        // we'll try to get diagnostics from ZooKeeper
-                        OlapServerNotReadyException osnr = (OlapServerNotReadyException) catched;
-                        String path = HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_DIAGNOSTICS_PATH + "/";
-                        String sparkDiagnostics = getDiagnostics(path + "spark-" + queue);
-                        String deploymentDiagnostics = getDiagnostics(path + queue);
-                        String diagnostics = "";
-                        if (sparkDiagnostics != null) {
-                            diagnostics = "Spark diagnostics: " + sparkDiagnostics + "\n";
-                        }
-                        if (deploymentDiagnostics != null) {
-                            diagnostics += "Deployment diagnostics:" + deploymentDiagnostics;
-                        }
-                        if (diagnostics.isEmpty()) {
-                            diagnostics = "No diagnostics available, contact your system administrator";
-                        }
-                        osnr.setDiagnostics(diagnostics);
-                        throw osnr;
+                    assert osnr != null;
+                    String path = HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_DIAGNOSTICS_PATH + "/";
+                    String sparkDiagnostics = getDiagnostics(path + "spark-" + queue);
+                    String deploymentDiagnostics = getDiagnostics(path + queue);
+                    String diagnostics = "";
+                    if (sparkDiagnostics != null) {
+                        diagnostics = "Spark diagnostics: " + sparkDiagnostics + "\n";
                     }
-                    if (catched instanceof IOException)
-                        throw (IOException) catched;
-                    else
-                        throw new IOException(catched);
+                    if (deploymentDiagnostics != null) {
+                        diagnostics += "Deployment diagnostics:" + deploymentDiagnostics;
+                    }
+                    if (diagnostics.isEmpty()) {
+                        diagnostics = "No diagnostics available, contact your system administrator";
+                    }
+                    osnr.setDiagnostics(diagnostics);
+                    throw osnr;
                 }
                 String hostAndPort = Bytes.toString(bytes);
                 return HostAndPort.fromString(hostAndPort);

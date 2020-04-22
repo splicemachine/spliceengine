@@ -368,7 +368,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         }
     }
 
-    private class SubmitCommand implements GenericFutureListener<Future<Channel>>{
+    private static class SubmitCommand implements GenericFutureListener<Future<Channel>>{
         private OlapFuture olapFuture;
 
         SubmitCommand(OlapFuture olapFuture){
@@ -403,7 +403,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         }
     }
 
-    private class StatusListener implements GenericFutureListener<Future<Channel>>{
+    private static class StatusListener implements GenericFutureListener<Future<Channel>>{
         private final OlapFuture olapFuture;
 
         StatusListener(OlapFuture olapFuture){
