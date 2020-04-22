@@ -1143,7 +1143,7 @@ public class JoinNode extends TableOperatorNode{
      *
      * Similar to existing buildRCL method, except buildRCL is private
      * and we need to be able to invoke this externally, in particular
-     * from the splice visitor framework (e.g. RowLocationColumnVisitor).
+     * from the splice visitor framework.
      * Also, buildRCL assumes the RCL has not been build yet, by returning
      * immediately if resultColumns != null, whereas here in rebuildRCL
      * we assume Derby has built it already and we need to force a rebuild.
@@ -2215,7 +2215,7 @@ public class JoinNode extends TableOperatorNode{
         for (int i=0; i< rightHashKeys.length; i++) {
             rightHashKeysToBaseTableMap[i] = -1;
             ResultColumn rs = rightResultSet.getResultColumns().elementAt(rightHashKeys[i]);
-            while ((rs != null) && (rs instanceof ResultColumn)) {
+            while (rs != null) {
                 // we have arrived at a FromBaseTable node, and the hash field maps to a single base table field
                 if (rs.getExpression() instanceof BaseColumnNode) {
                     rightHashKeysToBaseTableMap[i] = colToBaseTableMap[rs.getVirtualColumnId() - 1];

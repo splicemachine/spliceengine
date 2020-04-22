@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>3.0.0.1951-SNAPSHOT</version>
+    <version>3.0.0.1956-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -73,6 +73,7 @@
         </excluded.categories>
         <failTasksRandomly>true</failTasksRandomly>
         <jacoco_out/>
+        <skipUT>false</skipUT>
         <!-- run chaos monkey -->
         <log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
         <olap.log4j.config.uri>file:${basedir}/src/main/resources/olap-log4j.properties</olap.log4j.config.uri>
@@ -226,6 +227,11 @@
                 <artifactId>annotations</artifactId>
                 <version>3.0.1</version>
                 <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs</artifactId>
+                <version>4.0.0</version>
             </dependency>
             <dependency>
                 <groupId>com.google.code.gson</groupId>
@@ -559,6 +565,9 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.21.0</version>
+                    <configuration>
+                        <skip>${skipUT}</skip>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <!-- TODO: will need to use splice open source github repo -->
@@ -588,9 +597,9 @@
                     </configuration>
                 </plugin>
                 <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>findbugs-maven-plugin</artifactId>
-                    <version>3.0.3</version>
+                    <groupId>com.github.spotbugs</groupId>
+                    <artifactId>spotbugs-maven-plugin</artifactId>
+                    <version>3.1.12.2</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -1097,57 +1106,6 @@
                             </execution>
                         </executions>
                     </plugin>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>findbugs-maven-plugin</artifactId>
-                        <configuration>
-                            <excludeFilterFile>${basedir}/../findbugs-exclude.xml</excludeFilterFile>
-                            <!-- defaults for findbugs:findbugs
-                            <classFilesDirectory>${project.build.outputDirectory}</classFilesDirectory>
-                            <findbugsXmlOutputDirectory>${project.build.directory}</findbugsXmlOutputDirectory>
-                            <outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
-                            <testClassFilesDirectory>${project.build.testOutputDirectory}</testClassFilesDirectory>
-                            <xmlOutput>false</xmlOutput>
-                            <xmlOutputDirectory>${project.build.directory}</xmlOutputDirectory>
-                            <debug>false</debug>
-                            <effort>Default</effort>
-                            <excludeBugsFile></excludeBugsFile>
-                            <failOnError>true</failOnError>
-                            <findbugsXmlOutput>true</findbugsXmlOutput>
-                            <fork>true</fork>
-                            <includeFilterFile></includeFilterFile>
-                            <includeTests>false</includeTests>
-                            <jvmArgs></jvmArgs>
-                            <maxHeap>512</maxHeap>
-                            <maxRank></maxRank>
-                            <nested>false</nested>
-                            <omitVisitors></omitVisitors>
-                            <onlyAnalyze></onlyAnalyze>
-                            <outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
-                            <pluginList></pluginList>
-                            <plugins></plugins>
-                            <relaxed>false</relaxed>
-                            <skip>false</skip>
-                            <skipEmptyReport>false</skipEmptyReport>
-                            <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
-                            <threshold>Default</threshold>
-                            <timeout>600000</timeout>
-                            <trace>false</trace>
-                            <visitors></visitors>
-                            <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
-                            <xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
-                            -->
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>findbugs</id>
-                                <phase>compile</phase>
-                                <goals>
-                                    <goal>findbugs</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
                 </plugins>
             </build>
         </profile>
@@ -1271,10 +1229,6 @@
                 <artifactId>maven-surefire-report-plugin</artifactId>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <reportSets>
@@ -1284,6 +1238,11 @@
                         </reports>
                     </reportSet>
                 </reportSets>
+            </plugin>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>3.1.12.2</version>
             </plugin>
         </plugins>
     </reporting>

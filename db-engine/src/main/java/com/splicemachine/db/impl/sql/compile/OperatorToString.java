@@ -520,8 +520,12 @@ public class OperatorToString {
                         bao.getTypeId().getTypeFormatId() &&
                         rightOperand.getTypeId().getTypeFormatId() !=
                         bao.getTypeId().getTypeFormatId()) {
-                        doCast = true;
-                        targetType = bao.getTypeServices().toSparkString();
+                        // if date difference or date subtraction operation, the input parameter and result types are meant to be different */
+                        if (!(bao.getOperatorString() == "-" &&
+                                leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID)) {
+                            doCast = true;
+                            targetType = bao.getTypeServices().toSparkString();
+                        }
                     }
                     if (doCast) {
                         if (leftOperand.getTypeServices().getTypeId().typePrecedence() >
@@ -658,7 +662,7 @@ public class OperatorToString {
                     vars.relationalOpDepth.increment();
                     if (top.getOperator().equals("LOCATE") ||
                         top.getOperator().equals("replace") ||
-                        top.getOperator().equals("substring") ) {
+                        (top.getOperator().equals("substring") && top.getRightOperand() != null)) {
 
                         if (vars.sparkVersion.lessThan(spark_2_3_0) && top.getOperator().equals("replace"))
                             throwNotImplementedError();
@@ -668,8 +672,15 @@ public class OperatorToString {
                                 opToString2(top.getLeftOperand(), vars), opToString2(top.getRightOperand(), vars));
                         vars.relationalOpDepth.decrement();
                         return retval;
-                    }
-                    else if (top.getOperator().equals("trim")) {
+                    } else if (top.getOperator().equals("substring")) {
+                        assert top.getRightOperand() == null;
+                        vars.relationalOpDepth.decrement();
+                        String retval = format("%s(%s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
+                                opToString2(top.getLeftOperand(), vars));
+                        vars.relationalOpDepth.decrement();
+                        return retval;
+
+                    } else if (top.getOperator().equals("trim")) {
                         // Trim is supported starting at Spark 2.3.
                         if (vars.sparkVersion.lessThan(spark_2_3_0))
                             throwNotImplementedError();

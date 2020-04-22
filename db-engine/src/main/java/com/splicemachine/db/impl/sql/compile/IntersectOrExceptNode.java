@@ -239,13 +239,13 @@ public class IntersectOrExceptNode extends SetOperatorNode
                             optimizer,
                             leftResultSet,
                             (PredicateList) null,
-                            outerCost);
+                            null);
 
         rightResultSet = optimizeSource(
                             optimizer,
                             rightResultSet,
                             (PredicateList) null,
-                            outerCost);
+                            null);
 
         CostEstimate costEstimate = getCostEstimate(optimizer);
         CostEstimate leftCostEstimate = leftResultSet.getCostEstimate();
@@ -415,8 +415,17 @@ public class IntersectOrExceptNode extends SetOperatorNode
     public CostEstimate getFinalCostEstimate(boolean useSelf)
         throws StandardException
     {
+        if (useSelf && trulyTheBestAccessPath != null) {
+            return getTrulyTheBestAccessPath().getCostEstimate();
+        }
+
         if (finalCostEstimate != null)
             return finalCostEstimate;
+
+        if (trulyTheBestAccessPath != null && getTrulyTheBestAccessPath().getCostEstimate().getBase() != null) {
+            finalCostEstimate = getTrulyTheBestAccessPath().getCostEstimate().getBase();
+            return finalCostEstimate;
+        }
 
         CostEstimate leftCE = leftResultSet.getFinalCostEstimate(true);
         CostEstimate rightCE = rightResultSet.getFinalCostEstimate(true);
