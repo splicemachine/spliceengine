@@ -99,6 +99,16 @@ public class JoinOperationIT extends SpliceUnitTest {
                 .withCreate("create table b1 (i int)")
                 .withInsert("insert into b1 values(?)")
                 .withRows(rows(row(3), row(4), row(1), row(2))).create();
+
+        new TableCreator(connection)
+                .withCreate("CREATE TABLE SUB1(i varchar(100), j varchar(100))")
+                .create();
+        new TableCreator(connection)
+                .withCreate("CREATE TABLE SUB2(i varchar(100), j varchar(100))")
+                .create();
+        new TableCreator(connection)
+                .withCreate("CREATE TABLE SUB3(i varchar(100), j varchar(100))")
+                .create();
     }
 
     @Test
@@ -216,4 +226,20 @@ public class JoinOperationIT extends SpliceUnitTest {
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
 
     }
+
+    @Test
+    public void testJoinSubstringBinary() throws Exception {
+        String sql = String.format("SELECT DISTINCT\n" +
+                "SUB1.i\n" +
+                "FROM SUB1 --splice-properties useSpark=%s, joinStrategy=%s\n" +
+                "INNER JOIN SUB2\n" +
+                "ON SUB2.i = SUBSTR(SUB1.i, 6)\n" +
+                "LEFT JOIN SUB3\n" +
+                "ON SUB3.i = SUBSTR(SUB3.i, 6)", this.useSparkString, this.joinStrategy);
+
+        String expected = "";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
 }

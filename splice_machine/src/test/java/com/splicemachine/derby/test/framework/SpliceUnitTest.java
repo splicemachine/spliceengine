@@ -16,6 +16,7 @@ package com.splicemachine.derby.test.framework;
 
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
+import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.runner.Description;
 import org.spark_project.guava.base.Joiner;
@@ -176,6 +177,23 @@ public class SpliceUnitTest {
 		return getBaseDirectory()+"/user/hive/warehouse";
 	}
 
+
+    // e.g. GITROOT/platform_it/target/external when running cdh6.3.0
+    public static String getExternalResourceDirectory() {
+        return getHBaseDirectory()+"/target/external/";
+    }
+
+    /// copy subfolder of resource directory (i.e. GITROOT/splice_machine/src/test/test-data/)
+    /// to temporary directory @sa getExternalResourceDirectory
+    /// @return destination directory as string
+    public static String getExternalResourceDirectoryAsCopy( String subfolder ) throws Exception
+    {
+        File src = new File(SpliceUnitTest.getResourceDirectory() + subfolder);
+        File dest = new File( getExternalResourceDirectory() + subfolder );
+        FileUtils.copyDirectory( src, dest );
+        return dest.toString();
+    }
+
     public static class MyWatcher extends SpliceTableWatcher {
 
         public MyWatcher(String tableName, String schemaName, String createString) {
@@ -290,9 +308,28 @@ public class SpliceUnitTest {
 
 
     protected void queryDoesNotContainString(String query, String notContains,SpliceWatcher methodWatcher) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery(query);
-        while (resultSet.next())
-            Assert.assertFalse("failed query: " + query + " -> " + resultSet.getString(1), resultSet.getString(1).contains(notContains));
+        queryDoesNotContainString(query,new String[] {notContains}, methodWatcher, false);
+    }
+
+    protected void queryDoesNotContainString(String query, String[] notContains,SpliceWatcher methodWatcher, boolean caseInsensitive) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(query);
+            String matchString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            if (caseInsensitive)
+                matchString = matchString.toUpperCase();
+
+            for (String str: notContains) {
+                if (caseInsensitive)
+                    str = str.toUpperCase();
+                if (matchString.contains(str))
+                    fail("ResultSet should not contain string: " + str);
+            }
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
     }
 
     public static void rowsContainsQuery(String query, Contains mustContain, SpliceWatcher methodWatcher) throws Exception {
@@ -641,6 +678,19 @@ public class SpliceUnitTest {
                 }
             }
             assertTrue("Couldn't delete "+file,file.delete());
+        }
+    }
+
+    /// delete the directory if exists, then recreate it empty
+    public static void clearDirectory(String dirname )
+    {
+        try {
+            File file = new File(getExternalResourceDirectory());
+            if (file.exists())
+                FileUtils.deleteDirectory(file);
+            file.mkdir();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -17,9 +17,11 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.log4j.Logger;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
@@ -34,6 +36,7 @@ import java.util.Collection;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
+@Category(HBaseTest.class)
 @RunWith(Parameterized.class)
 public class SparkExplainIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(SparkExplainIT.class);
@@ -533,30 +536,29 @@ public class SparkExplainIT extends SpliceUnitTest {
         testQueryContains(sqlText, expected, methodWatcher, true);
     }
 
-    @Test @Ignore("DB-9272")
+    @Test
     public void testMixtureOfOuterJoins() throws Exception {
         String sqlText = format("sparkexplain select * from t1 left join t2 --splice-properties useSpark=%s\n" +
                 "full join t3 " +
                 "on a2=a3 on a1=a3", useSpark);
-        String expected = "fullouter";
-        testQueryContains(sqlText, expected, methodWatcher, true);
-        expected = "leftouter";
-        testQueryContains(sqlText, expected, methodWatcher, true);
+        testQueryContains(sqlText, "rightouter", methodWatcher, true);
+        testQueryContains(sqlText, "leftouter", methodWatcher, true);
+
 
         sqlText = format("sparkexplain select * from t1 left join t2 --splice-properties useSpark=%s\n" +
                 "full join t3 " +
                 "on a2=a3 on a1=a2", useSpark);
 
-        expected = "fullouter";
-        testQueryContains(sqlText, expected, methodWatcher, true);
-        expected = "leftouter";
-        testQueryContains(sqlText, expected, methodWatcher, true);
+        testQueryContains(sqlText, "leftouter", methodWatcher, true);
+        queryDoesNotContainString(sqlText, new String[]{"rightouter", "fullouter"}, methodWatcher, true);
     }
 
-    @Test @Ignore("DB-9272")
+    @Test
     public void testCorrelatedSubqueryWithFullJoinInWhereClause() throws Exception {
         String sqlText = format("sparkexplain select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s\n on a1=a2 where a1 in (select a3 from t3 where b2=b3)", useSpark);
-        testQueryContains(sqlText, Arrays.asList("outer", "LeftSemi"), methodWatcher, true);
+        /* full join is converted to inner join due to the two predicates a1=a3 and b2=b3 */
+        testQueryContains(sqlText, "Inner", methodWatcher, true);
+        testQueryContains(sqlText, "LeftSemi", methodWatcher, true);
     }
 
     @Test

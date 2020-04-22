@@ -24,6 +24,7 @@ import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.hbase.AdapterPipelineEnvironment;
 import com.splicemachine.pipeline.PipelineEnvironment;
+import com.splicemachine.si.data.hbase.ZkUpgrade;
 import com.splicemachine.si.data.hbase.coprocessor.AdapterSIEnvironment;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -154,6 +155,7 @@ public class SpliceSpark {
                 EngineDriver engineDriver = EngineDriver.driver();
                 assert engineDriver!=null: "Not booted yet!";
                 LOG.info("SpliceMachine booted");
+                env.txnStore().setOldTransactions(ZkUpgrade.getOldTransactions(config));
 
                 // Create a static statement context to enable nested connections
                 EmbedConnection internalConnection = (EmbedConnection)engineDriver.getInternalConnection();

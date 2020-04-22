@@ -71,14 +71,14 @@ echo "Starting ZooKeeperServerMain, log file is ${ZOOLOG}"
 mvn -B exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceZoo >> ${ZOOLOG} 2>&1 &
 
 #######################################################################################################
-# Wait for up to 65 seconds for zoo to start, checking nc periodically to see if we are connected
+# Wait for up to 130 seconds for zoo to start, checking nc periodically to see if we are connected
 # This makes use of ZooKeeper's 'Four-Letter Words' commands to determine the liveness of ZooKeeper
 # In particular, it uses netcat (nc) to pipe the command 'ruok' to zookeeper on it's connection port.
 # If ZooKeeper responds with 'imok', then the server is up. If it returns empty, then zookeeper
 # hasn't started yet. If the count goes to 0, and we never got 'imok', then we want to blow up because
 # ZooKeeper didn't start up properly
 #######################################################################################################
-COUNT=65
+COUNT=130
 ZOO_UP=""
 until [ ${COUNT} -eq 0 ] || [ "${ZOO_UP}" == "imok" ]; do
     sleep 1
