@@ -24,6 +24,7 @@ import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
@@ -98,6 +99,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
     }
 
     @Override
+    @SuppressFBWarnings(value="DM_EXIT", justification = "Forcing process exit")
     public void takeLeadership(CuratorFramework curatorFramework) throws Exception {
         LOG.info("Taken leadership, starting OlapServer-"+queueName);
 

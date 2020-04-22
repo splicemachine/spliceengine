@@ -1,5 +1,7 @@
 package com.splicemachine.olap;
 
+import java.util.Objects;
+
 public class OlapServerZNode implements Comparable<OlapServerZNode> {
     private String queueName;
     private int sequence;
@@ -34,5 +36,19 @@ public class OlapServerZNode implements Comparable<OlapServerZNode> {
         } else {
             return queueName.compareTo(o.queueName);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        OlapServerZNode that = (OlapServerZNode) o;
+        return sequence == that.sequence &&
+                Objects.equals(queueName, that.queueName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(queueName, sequence);
     }
 }

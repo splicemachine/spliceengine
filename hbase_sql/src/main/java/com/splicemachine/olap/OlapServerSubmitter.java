@@ -114,6 +114,7 @@ public class OlapServerSubmitter implements Runnable {
         this.queueName = queueName;
     }
 
+    @Override
     public void run() {
 
         try {
@@ -234,6 +235,7 @@ public class OlapServerSubmitter implements Runnable {
             LOG.error("Maximum number of attempts reached, stopping OlapServer startup");
         } catch (Exception e) {
             LOG.error("unexpected exception", e);
+            throw new RuntimeException(e);
         } finally {
             stopLatch.countDown();
         }
