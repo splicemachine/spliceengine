@@ -1,10 +1,10 @@
 package com.splicemachine.spark2.splicemachine
 
-import java.sql.{Connection,SQLException,ResultSet,Timestamp,Date}
+import java.sql.{Connection, Date, ResultSet, SQLException, Timestamp}
 
 import org.apache.commons.lang3.StringUtils
-import org.apache.spark.sql.execution.datasources.jdbc.{JdbcUtils, JDBCOptions, JDBCRDD}
-import org.apache.spark.sql.jdbc.{JdbcType, JdbcDialect, JdbcDialects}
+import org.apache.spark.sql.execution.datasources.jdbc.{JDBCRDD, JDBCOptions, JdbcUtils}
+import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
 
@@ -74,23 +74,48 @@ object SpliceJDBCUtil {
     * @throws SQLException if the table contains an unsupported type.
     */
 
-  def retrievePrimaryKeys(options: JDBCOptions): Array[String] = {
-    val url = options.url
+  def retrievePrimaryKeys(options: JDBCOptions): Array[String] =
+    retrieveMetaData(
+      options,
+      (conn,schema,tablename) => conn.getMetaData.getPrimaryKeys(null, schema, tablename),
+      (conn,tablename) => conn.getMetaData.getPrimaryKeys(null, null, tablename),
+      rs => Seq(rs.getString("COLUMN_NAME"))
+    ).map(_(0))
+
+  def retrieveColumnInfo(options: JDBCOptions): Array[Seq[String]] =
+    retrieveMetaData(
+      options,
+      (conn,schema,tablename) => conn.getMetaData.getColumns(null, schema.toUpperCase, tablename.toUpperCase, null),
+      (conn,tablename) => conn.getMetaData.getColumns(null, null, tablename.toUpperCase, null),
+      rs => Seq(
+        rs.getString("COLUMN_NAME"),
+        rs.getString("TYPE_NAME"),
+        rs.getString("COLUMN_SIZE")
+      )
+    )
+
+  private def retrieveMetaData(
+    options: JDBCOptions,
+    getWithSchemaTablename: (Connection,String,String) => ResultSet,
+    getWithTablename: (Connection,String) => ResultSet,
+    getData: ResultSet => Seq[String]
+  ): Array[Seq[String]] = {
     val table = options.table
-    val dialect = JdbcDialects.get(url)
     val conn: Connection = JdbcUtils.createConnectionFactory(options)()
     try {
-      val meta = table.split("\\.")
       val rs: ResultSet =
-        if (table.contains("."))
-          conn.getMetaData.getPrimaryKeys(null, meta(0), meta(1))
-        else
-          conn.getMetaData.getPrimaryKeys(null, null, table)
-      var keys = ArrayBuffer[String]()
+        if (table.contains(".")) {
+          val meta = table.split("\\.")
+          getWithSchemaTablename(conn, meta(0), meta(1))
+        }
+        else {
+          getWithTablename(conn, table)
+        }
+      val buffer = ArrayBuffer[Seq[String]]()
       while (rs.next()) {
-        keys+=rs.getString(4)
+        buffer += getData(rs)
       }
-      keys.toArray
+      buffer.toArray
     } finally {
       conn.close()
     }

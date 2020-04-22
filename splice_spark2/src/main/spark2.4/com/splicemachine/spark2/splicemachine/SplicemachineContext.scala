@@ -585,32 +585,49 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         JDBCOptions.JDBC_URL -> url,
         JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
     )
-
+  
+  /** Schema string built from JDBC metadata. */
+  def schemaString(schemaTableName: String): String =
+    SpliceJDBCUtil.retrieveColumnInfo(
+      new JdbcOptionsInWrite(Map(
+        JDBCOptions.JDBC_URL -> url,
+        JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
+    ).map(i => {
+      val colName = i(0)
+      val sqlType = i(1)
+      val size = if(sqlType.equals("VARCHAR")) { s"(${i(2)})" } else {""}
+      s"$colName $sqlType$size"
+    }).mkString(", ")
+  
   /**
    * Modify records identified by their primary keys.
    *
-   * @param rdd rows to delete
+   * @param rdd rows to modify
    * @param schema
-   * @param schemaTableName table to delete from
+   * @param schemaTableName table to modify
    * @param keys the column names of the primary keys of schemaTableName
    * @param sqlStart beginning of the sql statement
    */
-  private[this] def modifyOnKeys(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String,
-    keys: Array[String], sqlStart: String
+  private[this] def modifyOnKeys(
+    rdd: JavaRDD[Row],
+    schema: StructType,
+    schemaTableName: String,
+    keys: Array[String],
+    sqlStart: String
   ): Unit = {
     val topicName = getRandomName()
-//    println( s"SMC.modifyOnKeys topic $topicName" )
+    //println( s"SMC.modifyOnKeys topic $topicName" )
     sendData(topicName, rdd, schema)
 
     val sqlText = sqlStart +
       " from new com.splicemachine.derby.vti.KafkaVTI('"+topicName+"') " +
-      "as SDVTI (" + schemaString(schema) + ") where "
+      "as SDVTI (" + schemaString(schemaTableName) + ") where "
     val dialect = JdbcDialects.get(url)
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
 
-//    println( s"SMC.modifyOnKeys sql $combinedText" )
+    //println( s"SMC.modifyOnKeys sql $combinedText" )
     executeUpdate(combinedText)
   }
 
