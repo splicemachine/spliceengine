@@ -125,7 +125,6 @@ public class SpliceDatabase extends BasicDatabase{
         List<Class<? extends ISpliceVisitor>> afterOptVisitors=new ArrayList<>();
         afterOptVisitors.add(UnsupportedFormsDetector.class);
         afterOptVisitors.add(AssignRSNVisitor.class);
-        afterOptVisitors.add(RowLocationColumnVisitor.class);
         afterOptVisitors.add(FixSubqueryColRefs.class);
         afterOptVisitors.add(JoinConditionVisitor.class);
         afterOptVisitors.add(LimitOffsetVisitor.class);
