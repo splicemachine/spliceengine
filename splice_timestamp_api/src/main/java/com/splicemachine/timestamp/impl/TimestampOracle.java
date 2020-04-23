@@ -106,8 +106,12 @@ public class TimestampOracle implements TimestampOracleStatistics{
         synchronized(this)  {
             if (_maxReservedTimestamp > priorMaxReservedTimestamp) return; // some other thread got there first
             long nextMax = _maxReservedTimestamp + blockSize;
-            timestampBlockManager.reserveNextBlock(nextMax);
-            _maxReservedTimestamp = nextMax;
+            long actualNextMax = timestampBlockManager.reserveNextBlock(nextMax);
+            _maxReservedTimestamp = Math.max(nextMax, actualNextMax);
+            if (actualNextMax > nextMax) {
+            	// bump up current timestamp
+				_timestampCounter.set(_maxReservedTimestamp);
+			}
             _numBlocksReserved.incrementAndGet(); // JMX metric
             SpliceLogUtils.debug(LOG, "Next timestamp block reserved with max = %s", _maxReservedTimestamp);
         }

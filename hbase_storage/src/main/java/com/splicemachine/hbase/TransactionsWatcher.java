@@ -42,7 +42,7 @@ public class TransactionsWatcher {
             MoreExecutors.namedSingleThreadScheduledExecutor("hbase-transactions-watcher-%d");
 
     private static final Runnable updater = () -> {
-        long fetchTimestamp = SIDriver.driver().getTimestampSource().nextTimestamp();
+        long fetchTimestamp = SIDriver.driver().getTimestampSource().currentTimestamp();
         long oldestActiveTransaction = fetchOldestActiveTransaction();
         if (oldestActiveTransaction == Long.MAX_VALUE) {
             lowWatermarkTransaction.set(fetchTimestamp);
