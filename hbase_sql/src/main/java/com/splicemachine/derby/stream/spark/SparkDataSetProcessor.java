@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.spark;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -97,8 +98,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     // The depth of the current operation being processed via getDataSet
     // in the operation tree.
     private int opDepth = 0;
+    private boolean accumulators;
 
     public SparkDataSetProcessor() {
+        accumulators = EngineDriver.driver().getConfiguration().getSparkAccumulatorsEnabled();
     }
 
     @Override
@@ -162,7 +165,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
         setupBroadcastedActivation(spliceOperation.getActivation(), spliceOperation);
-        OperationContext<Op> operationContext = new SparkOperationContext<>(spliceOperation, broadcastedActivation);
+        OperationContext<Op> operationContext =
+                accumulators
+                        ? new SparkOperationContext<>(spliceOperation, broadcastedActivation)
+                        : new SparkLeanOperationContext<>(spliceOperation, broadcastedActivation);
         spliceOperation.setOperationContext(operationContext);
         if (permissive) {
             operationContext.setPermissive(statusDirectory, importFileName, failBadRecordCount);
@@ -174,9 +180,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
         if (activation !=null) {
-            return new SparkOperationContext<>(activation, broadcastedActivation);
+            return accumulators
+                    ? new SparkOperationContext<>(activation, broadcastedActivation)
+                    : new SparkLeanOperationContext<>(activation, broadcastedActivation);
         } else {
-            return new SparkOperationContext<>(activation, null);
+            return accumulators
+                    ? new SparkOperationContext<>(activation, null)
+                    : new SparkLeanOperationContext<>(activation, null);
         }
     }
 

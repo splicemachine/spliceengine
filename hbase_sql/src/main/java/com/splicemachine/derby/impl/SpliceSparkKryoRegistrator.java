@@ -168,6 +168,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(RowMultiSetImpl.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(RoutineAliasInfo.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SparkOperationContext.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SparkLeanOperationContext.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(IndexConglomerate.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(HBaseConglomerate.class,EXTERNALIZABLE_SERIALIZER);
