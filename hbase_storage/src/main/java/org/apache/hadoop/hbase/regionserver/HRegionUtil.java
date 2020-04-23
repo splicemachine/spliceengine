@@ -66,9 +66,9 @@ public class HRegionUtil extends BaseHRegionUtil{
 
     public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end,
                                                 int requestedSplits, long bytesPerSplit) throws IOException {
-            assert Bytes.startComparator.compare(start, end) <= 0 || start.length == 0 || end.length == 0;
+        assert Bytes.startComparator.compare(start, end) <= 0 || start.length == 0 || end.length == 0;
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "getCutpoints");
+            SpliceLogUtils.trace(LOG, "getCutpoints store: %s requestedSplits: %d bytesPerSplit: %d", store.getStorefiles(), requestedSplits, bytesPerSplit);
         Collection<StoreFile> storeFiles;
         storeFiles = store.getStorefiles();
         HFile.Reader fileReader = null;
@@ -147,7 +147,6 @@ public class HRegionUtil extends BaseHRegionUtil{
         cutPoints.add(0, store.getRegionInfo().getStartKey());
         // add region end key at end
         cutPoints.add(store.getRegionInfo().getEndKey());
-
         if (LOG.isDebugEnabled()) {
             HRegionInfo regionInfo = store.getRegionInfo();
             String startKey = "\"" + CellUtils.toHex(regionInfo.getStartKey()) + "\"";
@@ -164,14 +163,20 @@ public class HRegionUtil extends BaseHRegionUtil{
         HFileBlockIndex.BlockIndexReader indexReader = fileReader.getDataBlockIndexReader();
         int size = indexReader.getRootBlockCount();
         int levels = fileReader.getTrailer().getNumDataIndexLevels();
+        if(LOG.isDebugEnabled())
+            LOG.debug("addStoreFileCutpoints storeFileInBytes " + storeFileInBytes + " carry "+ carry +
+                    " splitBlockSize " + splitBlockSize + " size " + size + " levels " + levels);
         if (levels == 1) {
             int incrementalSize = (int) (size > 0 ? storeFileInBytes / (float) size : storeFileInBytes);
-            int sizeCounter = 0;
+            int sizeCounter = carry;
             for (int i = 0; i < size; ++i) {
                 if (sizeCounter >= splitBlockSize) {
-                    sizeCounter = carry;
+                    sizeCounter -= splitBlockSize;
                     KeyValue tentative = KeyValue.createKeyValueFromKey(indexReader.getRootBlockKey(i));
                     if (CellUtils.isKeyValueInRange(tentative, range)) {
+                        if (LOG.isTraceEnabled()) {
+                            LOG.trace("Adding cutpoint " + CellUtils.toHex(CellUtil.cloneRow(tentative)));
+                        }
                         cutpoints.add(CellUtil.cloneRow(tentative));
                     }
                 }
