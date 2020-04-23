@@ -44,23 +44,14 @@ import java.util.List;
  * Operation Context for recording Operation activities and state.
  *
  */
-public class SparkOperationContext<Op extends SpliceOperation> implements OperationContext<Op>{
+public class SparkOperationContext<Op extends SpliceOperation> extends SparkLeanOperationContext<Op>{
     protected static Logger LOG=Logger.getLogger(SparkOperationContext.class);
-    private static final String LINE_SEP = System.lineSeparator();
-    private static final String BAD_FILENAME = "unspecified_";
-    private BroadcastedActivation broadcastedActivation;
-    private Accumulable<BadRecordsRecorder,String> badRecordsAccumulator;
 
-    public SpliceTransactionResourceImpl impl;
-    public Activation activation;
-    public SpliceOperationContext context;
-    public Op op;
     public LongAccumulator rowsRead;
     public LongAccumulator rowsJoinedLeft;
     public LongAccumulator rowsJoinedRight;
     public LongAccumulator rowsProduced;
     public LongAccumulator rowsFiltered;
-    public LongAccumulator rowsWritten;
     public LongAccumulator retryAttempts;
     public LongAccumulator regionTooBusyExceptions;
 
@@ -75,25 +66,16 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     public LongAccumulator catchThrownRows;
     public LongAccumulator catchRetriedRows;
 
-    public boolean permissive;
-    public long badRecordsSeen;
-    public long badRecordThreshold;
-    public boolean failed;
-    private String importFileName;
-
     public SparkOperationContext(){
 
     }
 
     @SuppressWarnings("unchecked")
     protected SparkOperationContext(Op spliceOperation,BroadcastedActivation broadcastedActivation){
-        this.broadcastedActivation = broadcastedActivation;
-        this.op=spliceOperation;
-        this.activation=op.getActivation();
+        super(spliceOperation, broadcastedActivation);
         String baseName="("+op.resultSetNumber()+") "+op.getName();
         this.rowsRead=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows read");
         this.rowsFiltered=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows filtered");
-        this.rowsWritten=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows written");
         this.rowsJoinedLeft=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows joined left");
         this.rowsJoinedRight=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows joined right");
         this.rowsProduced=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows produced");
@@ -102,12 +84,9 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     @SuppressWarnings("unchecked")
     protected SparkOperationContext(Activation activation, BroadcastedActivation broadcastedActivation){
-        this.op=null;
-        this.activation=activation;
-        this.broadcastedActivation = broadcastedActivation;
+        super(activation, broadcastedActivation);
         this.rowsRead=SpliceSpark.getContext().sc().longAccumulator("rows read");
         this.rowsFiltered=SpliceSpark.getContext().sc().longAccumulator("rows filtered");
-        this.rowsWritten=SpliceSpark.getContext().sc().longAccumulator("rows written");
         this.rowsJoinedLeft=SpliceSpark.getContext().sc().longAccumulator("rows joined left");
         this.rowsJoinedRight=SpliceSpark.getContext().sc().longAccumulator("rows joined right");
         this.rowsProduced=SpliceSpark.getContext().sc().longAccumulator("rows produced");
@@ -134,29 +113,14 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
-        if (SpliceClient.isClient()) {
-            out.writeBoolean(true);
-            out.writeUTF(SpliceClient.connectionString);
-        } else {
-            out.writeBoolean(false);
-        }
-        out.writeLong(badRecordsSeen);
-        out.writeLong(badRecordThreshold);
-        out.writeBoolean(permissive);
-        out.writeBoolean(op!=null);
-        if(op!=null){
-            out.writeObject(broadcastedActivation);
-            out.writeInt(op.resultSetNumber());
-        }
+        super.writeExternal(out);
         out.writeObject(rowsRead);
         out.writeObject(rowsFiltered);
-        out.writeObject(rowsWritten);
         out.writeObject(retryAttempts);
         out.writeObject(regionTooBusyExceptions);
         out.writeObject(rowsJoinedLeft);
         out.writeObject(rowsJoinedRight);
         out.writeObject(rowsProduced);
-        out.writeObject(badRecordsAccumulator);
         out.writeObject(thrownErrorsRows);
         out.writeObject(retriedRows);
         out.writeObject(partialRows);
@@ -167,41 +131,19 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         out.writeObject(ignoredRows);
         out.writeObject(catchThrownRows);
         out.writeObject(catchRetriedRows);
-        out.writeObject(importFileName);
     }
 
     @Override
     public void readExternal(ObjectInput in)
             throws IOException, ClassNotFoundException{
-        if (in.readBoolean()) {
-            SpliceClient.connectionString = in.readUTF();
-            SpliceClient.setClient(HConfiguration.getConfiguration().getAuthenticationTokenEnabled(), SpliceClient.Mode.EXECUTOR);
-        }
-        badRecordsSeen = in.readLong();
-        badRecordThreshold = in.readLong();
-        permissive=in.readBoolean();
-        SpliceSpark.setupSpliceStaticComponents();
-        boolean isOp=in.readBoolean();
-        if(isOp){
-            broadcastedActivation = (BroadcastedActivation)in.readObject();
-            ActivationHolder ah = broadcastedActivation.getActivationHolder();
-            op=(Op)ah.getOperationsMap().get(in.readInt());
-            activation = ah.getActivation();
-            TaskContext taskContext = TaskContext.get();
-            if (taskContext != null) {
-                taskContext.addTaskCompletionListener((TaskCompletionListener)(ctx) -> ah.close());
-            }
-        }
+        super.readExternal(in);
         rowsRead=(LongAccumulator)in.readObject();
         rowsFiltered=(LongAccumulator)in.readObject();
-        rowsWritten=(LongAccumulator)in.readObject();
         retryAttempts =(LongAccumulator)in.readObject();
         regionTooBusyExceptions =(LongAccumulator)in.readObject();
         rowsJoinedLeft=(LongAccumulator)in.readObject();
         rowsJoinedRight=(LongAccumulator)in.readObject();
         rowsProduced=(LongAccumulator)in.readObject();
-        badRecordsAccumulator = (Accumulable<BadRecordsRecorder,String>) in.readObject();
-
         thrownErrorsRows=(LongAccumulator)in.readObject();
         retriedRows=(LongAccumulator)in.readObject();
         partialRows=(LongAccumulator)in.readObject();
@@ -212,58 +154,24 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         ignoredRows=(LongAccumulator)in.readObject();
         catchThrownRows=(LongAccumulator)in.readObject();
         catchRetriedRows=(LongAccumulator)in.readObject();
-        importFileName= (String) in.readObject();
     }
 
     @Override
     public void prepare(){
-//        impl.prepareContextManager();
-//        impl.marshallTransaction(txn);
     }
 
     @Override
     public void reset(){
-//        impl.resetContextManager();
-        if (this.permissive) {
-            BadRecordsRecorder oldRecorder = this.badRecordsAccumulator.value();
-            BadRecordsRecorder badRecordsRecorder = new BadRecordsRecorder(
-                    oldRecorder.getStatusDirectory(),
-                    importFileName,
-                    badRecordThreshold);
-            this.badRecordsAccumulator = SpliceSpark.getContext().accumulable(badRecordsRecorder,
-                    badRecordsRecorder.getUniqueName(),
-                    new BadRecordsAccumulator());
-        }
-        badRecordsSeen = 0;
         String baseName="";
         if (op != null) {
             baseName = "(" + op.resultSetNumber() + ") " + op.getName() + " ";
         }
         this.rowsRead = SpliceSpark.getContext().sc().longAccumulator(baseName + "rows read");
         this.rowsFiltered = SpliceSpark.getContext().sc().longAccumulator(baseName + "rows filtered");
-        this.rowsWritten = SpliceSpark.getContext().sc().longAccumulator(baseName + "rows written");
         this.rowsJoinedLeft = SpliceSpark.getContext().sc().longAccumulator(baseName + "rows joined left");
         this.rowsJoinedRight = SpliceSpark.getContext().sc().longAccumulator(baseName + "rows joined right");
         this.rowsProduced = SpliceSpark.getContext().sc().longAccumulator(baseName + "rows produced");
         initWritePipeline();
-
-        List<SpliceOperation> operations=getOperation().getSubOperations();
-        if(operations!=null){
-            for(SpliceOperation operation : operations){
-                if(operation.getOperationContext()!=null)
-                    operation.getOperationContext().reset();
-            }
-        }
-    }
-
-    @Override
-    public Op getOperation(){
-        return op;
-    }
-
-    @Override
-    public Activation getActivation(){
-        return activation;
     }
 
     @Override
@@ -284,16 +192,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     @Override
     public void recordFilter(long w){
         rowsFiltered.add(w);
-    }
-
-    @Override
-    public void recordWrite(){
-        rowsWritten.add(1l);
-    }
-
-    @Override
-    public void recordPipelineWrites(long w) {
-        rowsWritten.add(w);
     }
 
     @Override
@@ -391,128 +289,12 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     }
 
     @Override
-    public long getRecordsWritten(){
-        return rowsWritten.value();
-    }
-
-    @Override
     public long getRetryAttempts(){
         return retryAttempts.value();
     }
 
     public long getRegionTooBusyExceptions(){
         return regionTooBusyExceptions.value();
-    }
-
-
-    @Override
-    public void pushScope(String displayName){
-        SpliceSpark.pushScope(displayName);
-    }
-
-    @Override
-    public void pushScope(){
-            SpliceSpark.pushScope(op !=null?getOperation().getScopeName():"");
-    }
-
-    @Override
-    public void pushScopeForOp(Scope step){
-        SpliceSpark.pushScope(op !=null?getOperation().getScopeName():""+": "+step.displayName());
-    }
-
-    @Override
-    public void pushScopeForOp(String step){
-            SpliceSpark.pushScope(op !=null?getOperation().getScopeName():"" + (step != null ? ": " + step : ""));
-    }
-
-    @Override
-    public void popScope(){
-        SpliceSpark.popScope();
-    }
-
-    @Override
-    public TxnView getTxn(){
-        return broadcastedActivation.getActivationHolder().getTxn();
-    }
-
-    @Override
-    public void recordBadRecord(String badRecord, Exception e) {
-        if (! failed) {
-            ++badRecordsSeen;
-            String errorState = "";
-            if (e != null) {
-                if (e instanceof SQLException) {
-                    errorState = ((SQLException)e).getSQLState();
-                } else if (e instanceof StandardException) {
-                    errorState = ((StandardException)e).getSQLState();
-                }
-            }
-            badRecordsAccumulator.add(errorState + " " + badRecord+LINE_SEP);
-            if (badRecordThreshold >= 0 && badRecordsSeen > badRecordThreshold) {
-                // If tolerance threshold is < 0, we're accepting all bad records
-                // We can't dereference the accumulator's value (BadRecordRecorder) here on server side
-                // to check failure, so we have to track it manually
-                failed = true;
-            }
-        }
-    }
-
-    @Override
-    public long getBadRecords() {
-        // can only be called after we're back on the client side since we need to reference accumulator value
-        long nBadRecords = (getBadRecordsRecorder() != null ? getBadRecordsRecorder().getNumberOfBadRecords() : 0);
-        List<SpliceOperation> operations=getOperation().getSubOperations();
-        if(operations!=null){
-            for(SpliceOperation operation : operations){
-                if(operation.getOperationContext()!=null)
-                    nBadRecords += operation.getOperationContext().getBadRecords();
-            }
-        }
-        return nBadRecords;
-    }
-
-    @Override
-    public String getStatusDirectory() {
-        // can only be called after we're back on the client side since we need to reference accumulator value
-        return (getBadRecordsRecorder() != null ? getBadRecordsRecorder().getStatusDirectory() : "");
-    }
-
-    @Override
-    public BadRecordsRecorder getBadRecordsRecorder() {
-        // can only be called after we're back on the client side since we need to reference accumulator value
-        if (this.badRecordsAccumulator != null) {
-            return this.badRecordsAccumulator.value();
-        }
-        return null;
-    }
-
-    @Override
-    public boolean isPermissive(){
-        return permissive;
-    }
-
-    @Override
-    public boolean isFailed(){
-        return failed;
-    }
-
-    @Override
-    public void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold){
-        this.permissive=true;
-        this.badRecordThreshold = badRecordThreshold;
-        if(importFileName == null)importFileName=BAD_FILENAME + System.currentTimeMillis();
-        this.importFileName = importFileName;
-        BadRecordsRecorder badRecordsRecorder = new BadRecordsRecorder(statusDirectory,
-                                                                       importFileName,
-                                                                       badRecordThreshold);
-        this.badRecordsAccumulator=SpliceSpark.getContext().accumulable(badRecordsRecorder,
-                                                                        badRecordsRecorder.getUniqueName(),
-                                                                        new BadRecordsAccumulator());
-    }
-
-    @Override
-    public ActivationHolder getActivationHolder() {
-        return broadcastedActivation!= null ? broadcastedActivation.getActivationHolder() : null;
     }
 
     @Override

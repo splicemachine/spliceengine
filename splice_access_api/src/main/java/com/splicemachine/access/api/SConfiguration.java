@@ -394,4 +394,5 @@ public interface SConfiguration {
 
     String getRangerUserSyncCaseConversion();
 
+    boolean getSparkAccumulatorsEnabled();
 }

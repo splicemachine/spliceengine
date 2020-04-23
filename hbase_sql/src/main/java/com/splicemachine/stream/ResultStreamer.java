@@ -94,7 +94,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                 boolean prepared = false;
                 ActivationHolder ah = null;
                 if (context != null) {
-                    ah = ((SparkOperationContext) context).getActivationHolder();
+                    ah = context.getActivationHolder();
                     ah.reinitialize(null, false);
                     prepared = true;
                 }
