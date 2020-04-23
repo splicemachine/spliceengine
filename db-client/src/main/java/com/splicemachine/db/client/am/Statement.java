@@ -2394,7 +2394,8 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
         {
             sqlMode_ = isQuery__;
         } else if (firstToken.equalsIgnoreCase("call") ||
-                firstToken.equalsIgnoreCase("analyze")) // captures CALL...and ?=CALL...
+                firstToken.equalsIgnoreCase("analyze") ||
+                firstToken.equalsIgnoreCase("analyse")) // captures CALL...and ?=CALL...
         {
             sqlMode_ = isCall__;
         } else {
