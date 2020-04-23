@@ -98,7 +98,7 @@ public class HRegionUtil extends BaseHRegionUtil{
                     totalStoreFileInBytes += file.getFileInfo().getFileStatus().getLen();
                 }
             }
-            numSplits = totalStoreFileInBytes / bytesPerSplit;
+            numSplits = (totalStoreFileInBytes + store.getMemStoreSize()) / bytesPerSplit;
             if (numSplits <= 1)
                 numSplits = 1;
             long bytesPerSplitEvenDistribution = totalStoreFileInBytes / numSplits;
