@@ -43,11 +43,17 @@ public class ZkTimestampBlockManager implements TimestampBlockManager{
         this.blockNode = blockNode;
     }
 
-
-    public void reserveNextBlock(long nextMax) throws TimestampIOException{
-        byte[] data = Bytes.toBytes(nextMax);
+    @Override
+    public long reserveNextBlock(long nextMax) throws TimestampIOException{
         try {
-            rzk.setData(blockNode, data, -1 /* version */); // durably reserve the next block
+            byte[] bs = rzk.getData(blockNode, false, null);
+            long ts = Bytes.toLong(bs);
+            // Never decrease timestamp value
+            if (nextMax > ts) {
+                byte[] data = Bytes.toBytes(nextMax);
+                rzk.setData(blockNode, data, -1 /* version */); // durably reserve the next block
+            }
+            return Math.max(nextMax, ts);
         } catch (KeeperException | InterruptedException e) {
             throw new TimestampIOException(e);
         }
