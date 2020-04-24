@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1956-SNAPSHOT</version>
+        <version>3.1.0.1957-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -950,6 +950,7 @@
                                 <classpath/>
                                 <argument>${jacocoAgent}</argument>
                                 <argument>-Xdebug</argument>
+                                <argument>-Dhadoop.metrics.init.mode=STANDBY</argument>
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
@@ -965,7 +966,7 @@
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
-                                <argument>-Xmx2g</argument>
+                                <argument>-Xmx3g</argument>
                                 <argument>-Xms64m</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
@@ -1112,6 +1113,7 @@
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>${jacocoAgent}</argument>
+                                <argument>-Dhadoop.metrics.init.mode=STANDBY</argument>
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
                                 <argument>-XX:MaxHeapFreeRatio=30</argument>
                                 <argument>-Djava.awt.headless=true</argument>
@@ -1121,7 +1123,7 @@
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
-                                <argument>-Xmx2g</argument>
+                                <argument>-Xmx3g</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
                                 <argument>-enableassertions</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
