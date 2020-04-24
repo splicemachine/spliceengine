@@ -4,6 +4,7 @@ import org.apache.commons.io.FileUtils;
 import org.junit.After;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -35,7 +36,14 @@ public class SpliceUnitTestWithTempDirectory extends SpliceUnitTest
     {
         if( tempDir == null)
             tempDir = Files.createTempDirectory( "SpliceUnitTest_temp_" );
-        return tempDir.toString();
+        // add '/' to avoid leaking directories if someone misses the '/'
+        return tempDir.toString() + "/";
+    }
+
+    /// creates a temporary file in the temporary directory, so will be deleted after test
+    public File createTempOutputFile( String prefix, String suffix ) throws Exception
+    {
+        return File.createTempFile(prefix, suffix, new File(getTempOutputDirectory()) );
     }
 
     /// copy subfolder of resource directory (i.e. GITROOT/splice_machine/src/test/test-data/)
