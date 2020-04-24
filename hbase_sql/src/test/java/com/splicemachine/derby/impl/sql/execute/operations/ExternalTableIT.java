@@ -452,7 +452,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testLocationCannotBeAFileAvro() throws  Exception{
-        File temp = File.createTempFile("temp-file-avro", ".tmp");
+        File temp = createTempOutputFile("temp-file-avro", ".tmp");
         try {
             methodWatcher.executeUpdate(String.format("create external table table_to_existing_file_avro_temp (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
                     " STORED AS AVRO LOCATION '%s'", temp.getAbsolutePath()));
@@ -464,7 +464,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testLocationCannotBeAFile() throws  Exception{
-        File temp = File.createTempFile("temp-file", ".tmp");
+        File temp = createTempOutputFile("temp-file", ".tmp");
 
         try {
             methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
