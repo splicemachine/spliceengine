@@ -434,14 +434,15 @@ public class SparkLeanOperationContext<Op extends SpliceOperation> implements Op
         ByteString bs = ZeroCopyLiteralByteString.wrap(baos.toByteArray());
 
         // Deserialize activation to clone it
-        InputStream is = bs.newInput();
-        ObjectInputStream ois = new ObjectInputStream(is);
-        SparkLeanOperationContext operationContext = (SparkLeanOperationContext) ois.readObject();
-        BroadcastedActivation  broadcastedActivation = operationContext.broadcastedActivation;
-        BroadcastedActivation.ActivationHolderAndBytes activationHolderAndBytes = broadcastedActivation.readActivationHolder();
-        broadcastedActivation.setActivationHolder(activationHolderAndBytes.getActivationHolder());
-        operationContext.op = broadcastedActivation.getActivationHolder().getOperationsMap().get(op.resultSetNumber());
-        operationContext.activation = operationContext.broadcastedActivation.getActivationHolder().getActivation();
-        return operationContext;
+        try (InputStream is = bs.newInput();
+             ObjectInputStream ois = new ObjectInputStream(is)) {
+            SparkLeanOperationContext operationContext = (SparkLeanOperationContext) ois.readObject();
+            BroadcastedActivation broadcastedActivation = operationContext.broadcastedActivation;
+            BroadcastedActivation.ActivationHolderAndBytes activationHolderAndBytes = broadcastedActivation.readActivationHolder();
+            broadcastedActivation.setActivationHolder(activationHolderAndBytes.getActivationHolder());
+            operationContext.op = broadcastedActivation.getActivationHolder().getOperationsMap().get(op.resultSetNumber());
+            operationContext.activation = operationContext.broadcastedActivation.getActivationHolder().getActivation();
+            return operationContext;
+        }
     }
 }

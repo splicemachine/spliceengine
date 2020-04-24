@@ -43,6 +43,7 @@ import java.util.concurrent.*;
  * Created by dgomezferro on 5/25/16.
  */
 public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements Function2<Integer, Iterator<T>, Iterator<String>>, Serializable, Externalizable {
+    private static final long serialVersionUID = -6509694203842227972L;
     private static final Logger LOG = Logger.getLogger(ResultStreamer.class);
 
     private OperationContext<?> context;
@@ -55,9 +56,9 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private volatile long offset = 0;
     private volatile long limit = Long.MAX_VALUE;
     private Integer partition;
-    private Iterator<T> locatedRowIterator;
+    private transient  Iterator<T> locatedRowIterator;
     private volatile Future<Long> future;
-    private NioEventLoopGroup workerGroup;
+    private transient NioEventLoopGroup workerGroup;
     private transient CountDownLatch active;
     private int batches;
     private volatile TaskContext taskContext;
