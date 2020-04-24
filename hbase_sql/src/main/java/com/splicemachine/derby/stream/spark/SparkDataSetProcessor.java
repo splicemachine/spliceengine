@@ -77,6 +77,7 @@ import java.util.*;
  *
  */
 public class SparkDataSetProcessor implements DistributedDataSetProcessor, Serializable {
+    private static final long serialVersionUID = 9152794997108375878L;
     private long failBadRecordCount = -1;
     private boolean permissive;
     private String statusDirectory;
@@ -179,15 +180,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
-        if (activation !=null) {
-            return accumulators
-                    ? new SparkOperationContext<>(activation, broadcastedActivation)
-                    : new SparkLeanOperationContext<>(activation, broadcastedActivation);
-        } else {
-            return accumulators
-                    ? new SparkOperationContext<>(activation, null)
-                    : new SparkLeanOperationContext<>(activation, null);
-        }
+        BroadcastedActivation ba = activation != null ? broadcastedActivation : null;
+        return accumulators
+                ? new SparkOperationContext<>(activation, ba)
+                : new SparkLeanOperationContext<>(activation, ba);
     }
 
     @Override
@@ -483,7 +479,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                 .orc(location);
                     } else if (storedAs.toLowerCase().equals("t")) {
                         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                        schema = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location).schema();
+                        dataset = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location);
                     }
                     dataset.printSchema();
                     schema = dataset.schema();
@@ -829,6 +825,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     case DataType.ORDER_OP_EQUALS:
                         orCol = q.negateCompareResult() ? orCol.notEqual(value) : orCol.equalTo(value);
                         break;
+                    default:
+                        throw new UnsupportedOperationException("Unknown operator: " + q.getOperator());
                 }
                 if (orCols == null)
                     orCols = orCol;
