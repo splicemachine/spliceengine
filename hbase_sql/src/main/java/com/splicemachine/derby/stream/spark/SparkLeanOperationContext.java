@@ -47,7 +47,7 @@ import java.util.List;
 
 /**
  *
- * Operation Context for recording Operation activities and state.
+ * Operation Context for Spark that avoids memory intensive accumulators.
  *
  */
 public class SparkLeanOperationContext<Op extends SpliceOperation> implements OperationContext<Op>{
@@ -78,6 +78,7 @@ public class SparkLeanOperationContext<Op extends SpliceOperation> implements Op
         this.op=spliceOperation;
         this.activation=op.getActivation();
         String baseName="("+op.resultSetNumber()+") "+op.getName();
+        // We use this accumulator to report written rows back to the user, we always need it
         this.rowsWritten=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows written");
     }
 
@@ -86,8 +87,7 @@ public class SparkLeanOperationContext<Op extends SpliceOperation> implements Op
         this.op=null;
         this.activation=activation;
         this.broadcastedActivation = broadcastedActivation;
-        String baseName="("+op.resultSetNumber()+") "+op.getName();
-        this.rowsWritten=SpliceSpark.getContext().sc().longAccumulator(baseName+" rows written");
+        this.rowsWritten=SpliceSpark.getContext().sc().longAccumulator("rows written");
     }
 
 
