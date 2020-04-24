@@ -480,6 +480,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     } else if (storedAs.toLowerCase().equals("t")) {
                         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
                         dataset = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location);
+                    } else {
+                        throw new UnsupportedOperationException("Unsupported storedAs " + storedAs);
                     }
                     dataset.printSchema();
                     schema = dataset.schema();
@@ -791,6 +793,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     else
                         col=q.negateCompareResult()?col.notEqual(value):col.equalTo(value);
                     break;
+                default:
+                    throw new UnsupportedOperationException("Unknown operator: " + q.getOperator());
             }
             if (andCols ==null)
                 andCols = col;
