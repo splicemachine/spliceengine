@@ -31,7 +31,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_INTERFACE", justification = "Intentional")
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_INTERFACE", justification = "DB-9450")
 public class Statement implements java.sql.Statement, StatementCallbackInterface{
 
     // JDBC 3 constant indicating that the current ResultSet object
@@ -799,7 +799,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
         }
     }
 
-    @SuppressFBWarnings(value = "SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE",justification = "Intentional")
+    @SuppressFBWarnings(value = "SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE",justification = "DB-9451")
     public void cancel() throws SQLException {
         try
         {
@@ -1589,7 +1589,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
         materialStatement_.readExecuteCall_();
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "DB-9452")
     public void completeExecuteCall(Sqlca sqlca, Cursor singletonParams, ResultSet[] resultSets) {
         completeExecuteCall(sqlca, singletonParams);
         resultSetList_ = resultSets;
@@ -2002,7 +2002,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
         finally { closingResultSets_ = false; }
     }
 
-    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "DB-9453")
     private void flowExecute(int executeType, String sql) throws SqlException {
         checkForClosedStatement(); // Per jdbc spec (see java.sql.Statement.close() javadoc)       
         clearWarningsX(); // Per jdbc spec 0.7, and getWarnings() javadoc
