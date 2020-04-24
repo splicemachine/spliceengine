@@ -159,7 +159,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             activation.addWarning(StandardException.newWarning(SQLState.LANG_MODIFIED_ROW_COUNT_TOO_LARGE, modifiedRowCount));
             return new long[]{ -1 };
         }
-        return this.modifiedRowCount;
+        return Arrays.copyOf(this.modifiedRowCount, this.modifiedRowCount.length);
     }
 
     @Override
