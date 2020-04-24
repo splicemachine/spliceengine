@@ -31,10 +31,7 @@
 
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.commons.io.FileUtils;
@@ -47,13 +44,11 @@ import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.splicemachine.derby.impl.sql.catalog.ViewsInSysIbmIT.getExternalResourceDirectory;
-
 
 /**
  * Created by changli on 1/10/2019.
  */
-public class ShowCreateTableIT extends SpliceUnitTest
+public class ShowCreateTableIT extends SpliceUnitTestWithTempDirectory
 {
     private static final String SCHEMA = ShowCreateTableIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
@@ -100,17 +95,6 @@ public class ShowCreateTableIT extends SpliceUnitTest
         new TableCreator(conn)
                 .withCreate("CREATE TABLE T12 (A12 INT, B2 INT, A2 INT,CONSTRAINT T12_FK_1 FOREIGN KEY (A2, B2) REFERENCES T2 ON UPDATE NO ACTION ON DELETE NO ACTION)")
                 .create();
-    }
-    @BeforeClass
-    public static void cleanoutDirectory() {
-        try {
-            File file = new File(getExternalResourceDirectory());
-            if (file.exists())
-                FileUtils.deleteDirectory(new File(getExternalResourceDirectory()));
-            file.mkdir();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @AfterClass
@@ -406,7 +390,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "ROW FORMAT DELIMITED \n" +
                 "FIELDS TERMINATED BY ','\n" +
                 "STORED AS TEXTFILE\n" +
-                "location '%s'", getExternalResourceDirectory() + "testCsvFile");
+                "location '%s'", getTempOutputDirectory() + "testCsvFile");
         methodWatcher.executeUpdate(textDLL);
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','TESTCSVFILE')");
         rs.next();
@@ -416,7 +400,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 ") \n" +
                 "ROW FORMAT DELIMITED FIELDS TERMINATED BY ','\n" +
                 "STORED AS TEXTFILE\n" +
-                "LOCATION '"+getExternalResourceDirectory()+"testCsvFile';", rs.getString(1));
+                "LOCATION '"+ getTempOutputDirectory()+"testCsvFile';", rs.getString(1));
     }
 
     @Category(HBaseTest.class)
@@ -424,7 +408,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
     public void testExternalTableParquetWithoutCompression() throws Exception {
         //Parquet Without compression
         String parquetDDL = String.format("create external table SHOWCREATETABLEIT.testParquet (col1 int, col2 varchar(24))" +
-                "partitioned by (col1) STORED AS parquet LOCATION '%s'", getExternalResourceDirectory() + "testParquet");
+                "partitioned by (col1) STORED AS parquet LOCATION '%s'", getTempOutputDirectory() + "testParquet");
 
         methodWatcher.executeUpdate(parquetDDL);
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','TESTPARQUET')");
@@ -435,7 +419,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 ") \n" +
                 "PARTITIONED BY (COL1)\n" +
                 "STORED AS PARQUET\n" +
-                "LOCATION '"+getExternalResourceDirectory()+"testParquet';", rs.getString(1));
+                "LOCATION '"+ getTempOutputDirectory()+"testParquet';", rs.getString(1));
     }
 
     @Category(HBaseTest.class)
@@ -443,7 +427,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
     public void testExternalTableOrcSnappy() throws Exception {
         //Orc With compression
         String orcDDL = String.format("create external table SHOWCREATETABLEIT.testOrcSnappy (col1 int, col2 varchar(24))" +
-                "compressed with snappy partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"testOrcSnappy");
+                "compressed with snappy partitioned by (col2) STORED AS ORC LOCATION '%s'", getTempOutputDirectory()+"testOrcSnappy");
         methodWatcher.executeUpdate(orcDDL);
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','TESTORCSNAPPY')");
         rs.next();
@@ -454,7 +438,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "COMPRESSED WITH snappy\n" +
                 "PARTITIONED BY (COL2)\n" +
                 "STORED AS ORC\n" +
-                "LOCATION '"+getExternalResourceDirectory()+"testOrcSnappy';", rs.getString(1));
+                "LOCATION '"+ getTempOutputDirectory()+"testOrcSnappy';", rs.getString(1));
     }
 
     @Test

@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceUnitTestWithTempDirectory;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
@@ -34,7 +35,7 @@ import java.sql.ResultSet;
 /**
  * Created by yxia on 12/17/19.
  */
-public class ViewsInSysIbmIT extends SpliceUnitTest {
+public class ViewsInSysIbmIT extends SpliceUnitTestWithTempDirectory {
     private static Logger LOG = Logger.getLogger(ViewsInSysIbmIT.class);
     public static final String CLASS_NAME = ViewsInSysIbmIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
@@ -80,21 +81,9 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
         conn.commit();
     }
 
-    public static void cleanoutDirectory() {
-        try {
-            File file = new File(getExternalResourceDirectory());
-            if (file.exists())
-                FileUtils.deleteDirectory(new File(getExternalResourceDirectory()));
-            file.mkdir();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     @BeforeClass
     public static void createDataSet() throws Exception {
-        cleanoutDirectory();
-        createData(spliceClassWatcher.getOrCreateConnection());
+        createData( spliceClassWatcher.getOrCreateConnection());
     }
 
     @Test
@@ -210,7 +199,7 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
     @Test
     @Category(HBaseTest.class)
     public void testExternalTable() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"orc_partition_second";
+        String tablePath = getTempOutputDirectory() + "orc_partition_second";
         methodWatcher.execute(String.format("create external table %s.orc_part_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col2,col3) STORED AS ORC LOCATION '%s'", CLASS_NAME, tablePath));
 
@@ -237,10 +226,5 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
         rs.close();
 
         methodWatcher.executeUpdate(format("drop table %s.orc_part_2nd", CLASS_NAME));
-    }
-
-
-    public static String getExternalResourceDirectory() {
-        return SpliceUnitTest.getHBaseDirectory()+"/target/external2/";
     }
 }

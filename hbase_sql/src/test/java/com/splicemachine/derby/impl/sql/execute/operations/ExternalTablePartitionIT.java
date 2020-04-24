@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceUnitTestWithTempDirectory;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
@@ -32,7 +33,7 @@ import static org.junit.Assert.assertTrue;
  * Created by tgildersleeve on 6/30/17.
  * SPLICE-1621
  */
-public class ExternalTablePartitionIT {
+public class ExternalTablePartitionIT extends SpliceUnitTestWithTempDirectory {
 
     private static final String SCHEMA_NAME = ExternalTablePartitionIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -45,16 +46,9 @@ public class ExternalTablePartitionIT {
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher);
 
-    // this will cleanup all files created in the dir getExternalResourceDirectory()
-    // (if you insert into external tables, you create files)
-    @BeforeClass
-    public static void cleanoutDirectory() {
-        SpliceUnitTest.clearDirectory( getExternalResourceDirectory() );
-    }
-
     @Test
     public void testParquetPartitionFirst() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/parquet_partition_first";
+        String tablePath = getTempOutputDirectory()+"/parquet_partition_first";
         methodWatcher.executeUpdate(String.format("create external table parquet_part_1st (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col1) STORED AS PARQUET LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into parquet_part_1st values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -105,7 +99,7 @@ public class ExternalTablePartitionIT {
     }
 
     public void testSparkGeneratesFewFiles(String format) throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/"+format+"_number_files";
+        String tablePath = getTempOutputDirectory()+"/"+format+"_number_files";
         methodWatcher.executeUpdate(String.format("create table %s_number_files_orig (col1 int, col2 int, col3 varchar(10))",format));
         methodWatcher.executeUpdate(String.format("create external table %s_number_files (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col1) STORED AS %1$s LOCATION '%s'",format,tablePath));
@@ -137,7 +131,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testAvroPartitionFirst() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/avro_partition_first";
+        String tablePath = getTempOutputDirectory()+"/avro_partition_first";
         methodWatcher.executeUpdate(String.format("create external table avro_part_1st (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col1) STORED AS AVRO LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into avro_part_1st values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -175,7 +169,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testOrcPartitionFirst() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/orc_partition_first";
+        String tablePath = getTempOutputDirectory()+"/orc_partition_first";
         methodWatcher.executeUpdate(String.format("create external table orc_part_1st (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col1) STORED AS ORC LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into orc_part_1st values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -236,7 +230,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testTextfilePartitionFirst() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/textfile_partition_first";
+        String tablePath = getTempOutputDirectory()+"/textfile_partition_first";
         methodWatcher.executeUpdate(String.format("create external table textfile_part_1st (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col1) STORED AS TEXTFILE LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into textfile_part_1st values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -274,7 +268,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testParquetPartitionFirstSecond() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/parquet_partition_first_second";
+        String tablePath = getTempOutputDirectory()+"/parquet_partition_first_second";
         methodWatcher.executeUpdate(String.format("create external table parquet_part_1st_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col1,col2) STORED AS PARQUET LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into parquet_part_1st_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -312,7 +306,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testAvroPartitionFirstSecond() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/avro_partition_first_second";
+        String tablePath = getTempOutputDirectory()+"/avro_partition_first_second";
         methodWatcher.executeUpdate(String.format("create external table avro_part_1st_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col1,col2) STORED AS AVRO LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into avro_part_1st_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -350,7 +344,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testOrcPartitionFirstSecond() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/orc_partition_first_second";
+        String tablePath = getTempOutputDirectory()+"/orc_partition_first_second";
         methodWatcher.executeUpdate(String.format("create external table orc_part_1st_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col1,col2) STORED AS ORC LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into orc_part_1st_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -404,7 +398,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testTextfilePartitionFirstSecond() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/textfile_partition_first_second";
+        String tablePath = getTempOutputDirectory()+"/textfile_partition_first_second";
         methodWatcher.executeUpdate(String.format("create external table textfile_part_1st_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col1,col2) STORED AS TEXTFILE LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into textfile_part_1st_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -442,7 +436,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testParquetPartitionSecond() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/parquet_partition_second";
+        String tablePath = getTempOutputDirectory()+"/parquet_partition_second";
         methodWatcher.executeUpdate(String.format("create external table parquet_part_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col2) STORED AS PARQUET LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into parquet_part_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -480,7 +474,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testAvroPartitionSecond() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/avro_partition_second";
+        String tablePath = getTempOutputDirectory()+"/avro_partition_second";
         methodWatcher.executeUpdate(String.format("create external table avro_part_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col2) STORED AS AVRO LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into avro_part_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -519,7 +513,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testOrcPartitionSecond() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/orc_partition_second";
+        String tablePath = getTempOutputDirectory()+"/orc_partition_second";
         methodWatcher.executeUpdate(String.format("create external table orc_part_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col2) STORED AS ORC LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into orc_part_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -572,7 +566,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testTextfilePartitionSecond() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/textfile_partition_second_";
+        String tablePath = getTempOutputDirectory()+"/textfile_partition_second_";
         methodWatcher.executeUpdate(String.format("create external table textfile_part_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col2) STORED AS TEXTFILE LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into textfile_part_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -610,7 +604,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testParquetPartitionLast() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/parquet_partition_last";
+        String tablePath = getTempOutputDirectory()+"/parquet_partition_last";
         methodWatcher.executeUpdate(String.format("create external table parquet_part_last (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col3) STORED AS PARQUET LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into parquet_part_last values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -649,7 +643,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testAvroPartitionLast() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/avro_partition_last";
+        String tablePath = getTempOutputDirectory()+"/avro_partition_last";
         methodWatcher.executeUpdate(String.format("create external table avro_part_last (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col3) STORED AS AVRO LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into avro_part_last values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -687,7 +681,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testOrcPartitionLast() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/orc_partition_last";
+        String tablePath = getTempOutputDirectory()+"/orc_partition_last";
         methodWatcher.executeUpdate(String.format("create external table orc_part_last (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col3) STORED AS ORC LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into orc_part_last values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -739,7 +733,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testTextfilePartitionLast() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/textfile_partition_last";
+        String tablePath = getTempOutputDirectory()+"/textfile_partition_last";
         methodWatcher.executeUpdate(String.format("create external table textfile_part_last (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col3) STORED AS TEXTFILE LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into textfile_part_last values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -777,7 +771,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testParquetPartitionThirdSecond() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/parquet_partition_third_second";
+        String tablePath = getTempOutputDirectory()+"/parquet_partition_third_second";
         methodWatcher.executeUpdate(String.format("create external table parquet_part_3rd_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col3,col2) STORED AS PARQUET LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into parquet_part_3rd_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -815,7 +809,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testAvroPartitionThirdSecond() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/avro_partition_third_second";
+        String tablePath = getTempOutputDirectory()+"/avro_partition_third_second";
         methodWatcher.executeUpdate(String.format("create external table avro_part_3rd_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col3,col2) STORED AS AVRO LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into avro_part_3rd_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -853,7 +847,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testOrcPartitionThirdSecond() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/orc_partition_third_second";
+        String tablePath = getTempOutputDirectory()+"/orc_partition_third_second";
         methodWatcher.executeUpdate(String.format("create external table orc_part_3rd_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col3,col2) STORED AS ORC LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into orc_part_3rd_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -905,7 +899,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testTextfilePartitionThirdSecond() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/textfile_partition_third_second";
+        String tablePath = getTempOutputDirectory()+"/textfile_partition_third_second";
         methodWatcher.executeUpdate(String.format("create external table textfile_part_3rd_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col3,col2) STORED AS TEXTFILE LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into textfile_part_3rd_2nd values (1,2,'AAA'),(3,4,'BBB'),(5,6,'CCC')");
@@ -943,7 +937,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testOrcAggressive() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/orc_aggressive";
+        String tablePath = getTempOutputDirectory()+"/orc_aggressive";
         methodWatcher.executeUpdate(String.format("create external table orc_aggressive (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char) " +
                 "partitioned by (col4, col6, col2) STORED AS ORC LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into orc_aggressive values " +
@@ -964,7 +958,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testParquetAggressive() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/parquet_aggressive";
+        String tablePath = getTempOutputDirectory()+"/parquet_aggressive";
         methodWatcher.executeUpdate(String.format("create external table parquet_aggressive (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char) " +
                 "partitioned by (col4, col6, col2) STORED AS PARQUET LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into parquet_aggressive values " +
@@ -985,7 +979,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testAvroAggressive() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/avro_aggressive";
+        String tablePath = getTempOutputDirectory()+"/avro_aggressive";
         methodWatcher.executeUpdate(String.format("create external table avro_aggressive (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char) " +
                 "partitioned by (col4, col6, col2) STORED AS AVRO LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into avro_aggressive values " +
@@ -1006,7 +1000,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testTextfileAggressive() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/textfile_aggressive";
+        String tablePath = getTempOutputDirectory()+"/textfile_aggressive";
         methodWatcher.executeUpdate(String.format("create external table textfile_aggressive (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char) " +
                 "partitioned by (col4, col6, col2) STORED AS TEXTFILE LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into textfile_aggressive values " +
@@ -1028,9 +1022,9 @@ public class ExternalTablePartitionIT {
     @Test
     public void testParquetAggressive2() throws Exception{
         String format = "parquet";
-        String tablePath0 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_0",format);
-        String tablePath1 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_1",format);
-        String tablePath2 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_2",format);
+        String tablePath0 = String.format(getTempOutputDirectory()+"/%s_aggressive_2_0",format);
+        String tablePath1 = String.format(getTempOutputDirectory()+"/%s_aggressive_2_1",format);
+        String tablePath2 = String.format(getTempOutputDirectory()+"/%s_aggressive_2_2",format);
 
         methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_0 (col1 varchar(10), col2 double, col3 int, col4 varchar(10), col5 int) " +
                 "partitioned by (col1, col2, col4, col5) stored as %s location '%s'",format,format,tablePath0));
@@ -1067,9 +1061,9 @@ public class ExternalTablePartitionIT {
     @Test
     public void testAvroAggressive2() throws Exception{
         String format = "avro";
-        String tablePath0 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_0",format);
-        String tablePath1 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_1",format);
-        String tablePath2 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_2",format);
+        String tablePath0 = String.format(getTempOutputDirectory()+"/%s_aggressive_2_0",format);
+        String tablePath1 = String.format(getTempOutputDirectory()+"/%s_aggressive_2_1",format);
+        String tablePath2 = String.format(getTempOutputDirectory()+"/%s_aggressive_2_2",format);
 
         methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_0 (col1 varchar(10), col2 double, col3 int, col4 varchar(10), col5 int) " +
                 "partitioned by (col1, col2, col4, col5) stored as %s location '%s'",format,format,tablePath0));
@@ -1106,9 +1100,9 @@ public class ExternalTablePartitionIT {
     @Test
     public void testOrcAggressive2() throws Exception{
         String format = "orc";
-        String tablePath0 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_0",format);
-        String tablePath1 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_1",format);
-        String tablePath2 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_2",format);
+        String tablePath0 = String.format(getTempOutputDirectory()+"/%s_aggressive_2_0",format);
+        String tablePath1 = String.format(getTempOutputDirectory()+"/%s_aggressive_2_1",format);
+        String tablePath2 = String.format(getTempOutputDirectory()+"/%s_aggressive_2_2",format);
 
         methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_0 (col1 varchar(10), col2 double, col3 int, col4 varchar(10), col5 int) " +
                 "partitioned by (col1, col2, col4, col5) stored as %s location '%s'",format,format,tablePath0));
@@ -1145,9 +1139,9 @@ public class ExternalTablePartitionIT {
     @Test
     public void testTextfileAggressive2() throws Exception{
         String format = "textfile";
-        String tablePath0 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_0",format);
-        String tablePath1 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_1",format);
-        String tablePath2 = String.format(getExternalResourceDirectory()+"/%s_aggressive_2_2",format);
+        String tablePath0 = String.format(getTempOutputDirectory()+"/%s_aggressive_2_0",format);
+        String tablePath1 = String.format(getTempOutputDirectory()+"/%s_aggressive_2_1",format);
+        String tablePath2 = String.format(getTempOutputDirectory()+"/%s_aggressive_2_2",format);
 
         methodWatcher.executeUpdate(String.format("create external table %s_aggressive_2_0 (col1 varchar(10), col2 double, col3 int, col4 varchar(10), col5 int) " +
                 "partitioned by (col1, col2, col4, col5) stored as %s location '%s'",format,format,tablePath0));
@@ -1186,7 +1180,7 @@ public class ExternalTablePartitionIT {
     @Test
     public void testParquetPartitionExisting() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table parquet_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
-                "partitioned by (col4, col2) STORED AS PARQUET LOCATION '%s'", SpliceUnitTest.getResourceDirectory()+"parquet_partition_existing"));
+                "partitioned by (col4, col2) STORED AS PARQUET LOCATION '%s'", getResourceDirectory() + "parquet_partition_existing"));
         ResultSet rs = methodWatcher.executeQuery("select * from parquet_partition_existing order by 1");
         assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                 "-------------------------------------\n" +
@@ -1203,7 +1197,7 @@ public class ExternalTablePartitionIT {
         methodWatcher.execute("drop table parquet_partition_existing");
 
         methodWatcher.executeUpdate(String.format("create external table parquet_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
-                "partitioned by (col4, col2) STORED AS PARQUET LOCATION '%s' merge schema", SpliceUnitTest.getResourceDirectory()+"parquet_partition_existing"));
+                "partitioned by (col4, col2) STORED AS PARQUET LOCATION '%s' merge schema", getResourceDirectory() +"parquet_partition_existing"));
         rs = methodWatcher.executeQuery("select * from parquet_partition_existing order by 1");
         assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                 "-------------------------------------\n" +
@@ -1222,7 +1216,7 @@ public class ExternalTablePartitionIT {
     @Test
     public void testAvroPartitionExisting() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table avro_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
-                "partitioned by (col4, col2) STORED AS AVRO LOCATION '%s'", SpliceUnitTest.getResourceDirectory()+"avro_partition_existing"));
+                "partitioned by (col4, col2) STORED AS AVRO LOCATION '%s'", getResourceDirectory() +"avro_partition_existing"));
         ResultSet rs = methodWatcher.executeQuery("select * from avro_partition_existing order by 1");
         assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                 "-------------------------------------\n" +
@@ -1238,7 +1232,7 @@ public class ExternalTablePartitionIT {
 
         methodWatcher.execute("drop table avro_partition_existing");
         methodWatcher.executeUpdate(String.format("create external table avro_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
-                "partitioned by (col4, col2) STORED AS AVRO LOCATION '%s' merge schema", SpliceUnitTest.getResourceDirectory()+"avro_partition_existing"));
+                "partitioned by (col4, col2) STORED AS AVRO LOCATION '%s' merge schema", getResourceDirectory() +"avro_partition_existing"));
         rs = methodWatcher.executeQuery("select * from avro_partition_existing order by 1");
         assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                 "-------------------------------------\n" +
@@ -1257,7 +1251,7 @@ public class ExternalTablePartitionIT {
     @Test
     public void testOrcPartitionExisting() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table orc_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
-                "partitioned by (col4, col2) STORED AS ORC LOCATION '%s'", SpliceUnitTest.getResourceDirectory()+"orc_partition_existing"));
+                "partitioned by (col4, col2) STORED AS ORC LOCATION '%s'", getResourceDirectory() +"orc_partition_existing"));
         ResultSet rs = methodWatcher.executeQuery("select * from orc_partition_existing order by 1");
         assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                 "-------------------------------------\n" +
@@ -1273,7 +1267,7 @@ public class ExternalTablePartitionIT {
 
         methodWatcher.execute("drop table orc_partition_existing");
         methodWatcher.executeUpdate(String.format("create external table orc_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
-                "partitioned by (col4, col2) STORED AS ORC LOCATION '%s' merge schema", SpliceUnitTest.getResourceDirectory()+"orc_partition_existing"));
+                "partitioned by (col4, col2) STORED AS ORC LOCATION '%s' merge schema", getResourceDirectory() +"orc_partition_existing"));
         rs = methodWatcher.executeQuery("select * from orc_partition_existing order by 1");
         assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                 "-------------------------------------\n" +
@@ -1307,34 +1301,9 @@ public class ExternalTablePartitionIT {
                 " 3.3 | CCC |  c  |", TestUtils.FormattedResult.ResultFactory.toString(rs2));
     }
 
-
-    // e.g. GITROOT/platform_it/target/external when running cdh6.3.0
-    public static String getExternalResourceDirectory() {
-        return SpliceUnitTest.getExternalResourceDirectory();
-    }
-
-    private int getNumberOfFiles(String dirPath) {
-        int count = 0;
-        File f = new File(dirPath);
-        File[] files = f.listFiles();
-
-        if (files == null)
-            return 0;
-
-        for (int i = 0; i < files.length; i++) {
-            count++;
-            File file = files[i];
-
-            if (file.isDirectory()) {
-                count += getNumberOfFiles(file.getAbsolutePath());
-            }
-        }
-        return count;
-    }
-
     @Test
     public void testInsertionToHiveParquetData() throws Exception {
-        String tmp = SpliceUnitTest.getExternalResourceDirectoryAsCopy( "pt_parquet" );
+        String tmp = getTempCopyOfResourceDirectory( "pt_parquet" );
         methodWatcher.executeUpdate(
                 String.format("create external table pt_parquet(col1 varchar(10), col2 int, col3 char(2)) " +
                         "partitioned by (col3) stored as parquet location '%s'", tmp));
@@ -1351,7 +1320,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testInsertionToHiveAvroData() throws Exception {
-        String tmp = SpliceUnitTest.getExternalResourceDirectoryAsCopy( "pt_avro" );
+        String tmp = getTempCopyOfResourceDirectory( "pt_avro" );
         methodWatcher.executeUpdate( String.format(
                 "create external table pt_avro(col1 varchar(10), col2 int, col3 char(2)) " +
                         "partitioned by (col3) stored as avro location '%s'", tmp) );
