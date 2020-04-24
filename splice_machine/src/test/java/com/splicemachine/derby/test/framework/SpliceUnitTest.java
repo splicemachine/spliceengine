@@ -17,7 +17,9 @@ package com.splicemachine.derby.test.framework;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.runner.Description;
 import org.spark_project.guava.base.Joiner;
 
@@ -176,23 +178,6 @@ public class SpliceUnitTest {
     public static String getHiveWarehouseDirectory() {
 		return getBaseDirectory()+"/user/hive/warehouse";
 	}
-
-
-    // e.g. GITROOT/platform_it/target/external when running cdh6.3.0
-    public static String getExternalResourceDirectory() {
-        return getHBaseDirectory()+"/target/external/";
-    }
-
-    /// copy subfolder of resource directory (i.e. GITROOT/splice_machine/src/test/test-data/)
-    /// to temporary directory @sa getExternalResourceDirectory
-    /// @return destination directory as string
-    public static String getExternalResourceDirectoryAsCopy( String subfolder ) throws Exception
-    {
-        File src = new File(SpliceUnitTest.getResourceDirectory() + subfolder);
-        File dest = new File( getExternalResourceDirectory() + subfolder );
-        FileUtils.copyDirectory( src, dest );
-        return dest.toString();
-    }
 
     public static class MyWatcher extends SpliceTableWatcher {
 
@@ -659,19 +644,6 @@ public class SpliceUnitTest {
                 }
             }
             assertTrue("Couldn't delete "+file,file.delete());
-        }
-    }
-
-    /// delete the directory if exists, then recreate it empty
-    public static void clearDirectory(String dirname )
-    {
-        try {
-            File file = new File(getExternalResourceDirectory());
-            if (file.exists())
-                FileUtils.deleteDirectory(file);
-            file.mkdir();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 
