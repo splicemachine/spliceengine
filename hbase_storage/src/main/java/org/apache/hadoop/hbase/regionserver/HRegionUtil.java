@@ -98,9 +98,13 @@ public class HRegionUtil extends BaseHRegionUtil{
                     totalStoreFileInBytes += file.getFileInfo().getFileStatus().getLen();
                 }
             }
+            // We use the MemStore size to estimate the right number of splits because we take it into account when
+            // computing bytesPerSplit in AbstractSMInputFormat, even though we don't scan the memstore for split points
+            // We hope the data in the MemStore follows a similar distribution to that in the HFiles
             numSplits = (totalStoreFileInBytes + store.getMemStoreSize()) / bytesPerSplit;
             if (numSplits <= 1)
                 numSplits = 1;
+            // Here we don't take into account the MemStore size because we are only scanning the HFiles
             long bytesPerSplitEvenDistribution = totalStoreFileInBytes / numSplits;
             if (bytesPerSplitEvenDistribution > Integer.MAX_VALUE) {
                 splitBlockSize = Integer.MAX_VALUE;
