@@ -29,6 +29,7 @@ import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stream.accumulator.BadRecordsAccumulator;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;
 import org.apache.spark.TaskContext;
@@ -116,6 +117,7 @@ public class SparkLeanOperationContext<Op extends SpliceOperation> implements Op
     }
 
     @Override
+    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intended")
     public void readExternal(ObjectInput in)
             throws IOException, ClassNotFoundException{
         if (in.readBoolean()) {
