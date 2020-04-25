@@ -42,6 +42,10 @@ public class TransactionsWatcher {
             MoreExecutors.namedSingleThreadScheduledExecutor("hbase-transactions-watcher-%d");
 
     private static final Runnable updater = () -> {
+
+        boolean isRestoreMode = SIDriver.driver().lifecycleManager().isRestoreMode();
+        if (isRestoreMode) return;
+
         long fetchTimestamp = SIDriver.driver().getTimestampSource().nextTimestamp();
         long oldestActiveTransaction = fetchOldestActiveTransaction();
         if (oldestActiveTransaction == Long.MAX_VALUE) {
