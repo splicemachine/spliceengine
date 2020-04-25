@@ -34,11 +34,9 @@ package com.splicemachine.derby.utils;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.commons.io.FileUtils;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 
-import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.regex.Matcher;
@@ -48,7 +46,7 @@ import java.util.regex.Pattern;
 /**
  * Created by changli on 1/10/2019.
  */
-public class ShowCreateTableIT extends SpliceUnitTestWithTempDirectory
+public class ShowCreateTableIT extends SpliceUnitTest
 {
     private static final String SCHEMA = ShowCreateTableIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
@@ -390,7 +388,7 @@ public class ShowCreateTableIT extends SpliceUnitTestWithTempDirectory
                 "ROW FORMAT DELIMITED \n" +
                 "FIELDS TERMINATED BY ','\n" +
                 "STORED AS TEXTFILE\n" +
-                "location '%s'", getTempOutputDirectory() + "testCsvFile");
+                "location '%s'", getExternalResourceDirectory() + "testCsvFile");
         methodWatcher.executeUpdate(textDLL);
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','TESTCSVFILE')");
         rs.next();
@@ -400,7 +398,7 @@ public class ShowCreateTableIT extends SpliceUnitTestWithTempDirectory
                 ") \n" +
                 "ROW FORMAT DELIMITED FIELDS TERMINATED BY ','\n" +
                 "STORED AS TEXTFILE\n" +
-                "LOCATION '"+ getTempOutputDirectory()+"testCsvFile';", rs.getString(1));
+                "LOCATION '"+getExternalResourceDirectory()+"testCsvFile';", rs.getString(1));
     }
 
     @Category(HBaseTest.class)
@@ -408,7 +406,7 @@ public class ShowCreateTableIT extends SpliceUnitTestWithTempDirectory
     public void testExternalTableParquetWithoutCompression() throws Exception {
         //Parquet Without compression
         String parquetDDL = String.format("create external table SHOWCREATETABLEIT.testParquet (col1 int, col2 varchar(24))" +
-                "partitioned by (col1) STORED AS parquet LOCATION '%s'", getTempOutputDirectory() + "testParquet");
+                "partitioned by (col1) STORED AS parquet LOCATION '%s'", getExternalResourceDirectory() + "testParquet");
 
         methodWatcher.executeUpdate(parquetDDL);
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','TESTPARQUET')");
@@ -419,7 +417,7 @@ public class ShowCreateTableIT extends SpliceUnitTestWithTempDirectory
                 ") \n" +
                 "PARTITIONED BY (COL1)\n" +
                 "STORED AS PARQUET\n" +
-                "LOCATION '"+ getTempOutputDirectory()+"testParquet';", rs.getString(1));
+                "LOCATION '"+getExternalResourceDirectory()+"testParquet';", rs.getString(1));
     }
 
     @Category(HBaseTest.class)
@@ -427,7 +425,7 @@ public class ShowCreateTableIT extends SpliceUnitTestWithTempDirectory
     public void testExternalTableOrcSnappy() throws Exception {
         //Orc With compression
         String orcDDL = String.format("create external table SHOWCREATETABLEIT.testOrcSnappy (col1 int, col2 varchar(24))" +
-                "compressed with snappy partitioned by (col2) STORED AS ORC LOCATION '%s'", getTempOutputDirectory()+"testOrcSnappy");
+                "compressed with snappy partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"testOrcSnappy");
         methodWatcher.executeUpdate(orcDDL);
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','TESTORCSNAPPY')");
         rs.next();
@@ -438,7 +436,7 @@ public class ShowCreateTableIT extends SpliceUnitTestWithTempDirectory
                 "COMPRESSED WITH snappy\n" +
                 "PARTITIONED BY (COL2)\n" +
                 "STORED AS ORC\n" +
-                "LOCATION '"+ getTempOutputDirectory()+"testOrcSnappy';", rs.getString(1));
+                "LOCATION '"+getExternalResourceDirectory()+"testOrcSnappy';", rs.getString(1));
     }
 
     @Test
