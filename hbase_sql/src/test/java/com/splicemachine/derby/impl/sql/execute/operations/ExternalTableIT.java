@@ -38,7 +38,7 @@ import static org.junit.Assert.fail;
  * IT's for external table functionality
  *
  */
-public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
+public class ExternalTableIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = ExternalTableIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -54,7 +54,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testInvalidSyntaxParquet() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/foobar/foobar";
+            String tablePath = getExternalResourceDirectory()+"/foobar/foobar";
             // Row Format not supported for Parquet
             methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int) partitioned by (col1) " +
                     "row format delimited fields terminated by ',' escaped by '\\' " +
@@ -68,7 +68,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testInvalidSyntaxAvro() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/foobar/foobar";
+            String tablePath = getExternalResourceDirectory()+"/foobar/foobar";
             // Row Format not supported for Avro
             methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int) partitioned by (col1) " +
                     "row format delimited fields terminated by ',' escaped by '\\' " +
@@ -82,7 +82,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testInvalidSyntaxORC() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/foobar/foobar";
+            String tablePath = getExternalResourceDirectory()+"/foobar/foobar";
             // Row Format not supported for Parquet
             methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int) partitioned by (col1) " +
                     "row format delimited fields terminated by ',' escaped by '\\' " +
@@ -97,7 +97,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testStoredAsRequired() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/foobar/foobar";
+            String tablePath = getExternalResourceDirectory()+"/foobar/foobar";
             // Location Required For Parquet
             methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int) LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
@@ -129,7 +129,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCannotUsePartitionUndefined() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_MOLITOR";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
             methodWatcher.executeUpdate(String.format("create external  table table_without_defined_partition (col1 int, col2 varchar(24))" +
                     " PARTITIONED BY (col3) STORED AS PARQUET LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
@@ -141,7 +141,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCannotUsePartitionUndefinedAvro() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_AVRO";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
             methodWatcher.executeUpdate(String.format("create external  table table_without_defined_partition (col1 int, col2 varchar(24))" +
                     " PARTITIONED BY (col3) STORED AS AVRO LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
@@ -153,7 +153,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testNoPrimaryKeysOnExternalTables() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_MOLITOR";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
             methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int, primary key (col1)) STORED AS PARQUET LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
@@ -164,7 +164,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testNoPrimaryKeysOnExternalTablesAvro() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_AVRO";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
             methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int, primary key (col1)) STORED AS AVRO LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
@@ -175,7 +175,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testNoCheckConstraintsOnExternalTables() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_MOLITOR";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
             methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int, SALARY DECIMAL(9,2) CONSTRAINT SAL_CK CHECK (SALARY >= 10000)) STORED AS PARQUET LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
@@ -186,7 +186,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testNoCheckConstraintsOnExternalTablesAvro() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_AVRO";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
             methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int, SALARY DECIMAL(9,2) CONSTRAINT SAL_CK CHECK (SALARY >= 10000)) STORED AS AVRO LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
@@ -197,7 +197,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testNoReferenceConstraintsOnExternalTables() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_MOLITOR";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
             methodWatcher.executeUpdate("create table Cities (col1 int, col2 int, primary key (col1))");
             methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int, CITY_ID INT CONSTRAINT city_foreign_key\n" +
                     " REFERENCES Cities) STORED AS PARQUET LOCATION '%s'",tablePath));
@@ -210,7 +210,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testNoReferenceConstraintsOnExternalTablesAvro() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_AVRO_TEST";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO_TEST";
             methodWatcher.executeUpdate("create table Cities_avro (col1 int, col2 int, primary key (col1))");
             methodWatcher.executeUpdate(String.format("create external table foo_avro (col1 int, col2 int, CITY_ID INT CONSTRAINT city_foreign_key\n" +
                     " REFERENCES Cities_avro) STORED AS AVRO LOCATION '%s'",tablePath));
@@ -223,7 +223,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testNoUniqueConstraintsOnExternalTables() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_MOLITOR";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
             methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int unique)" +
                     " STORED AS PARQUET LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
@@ -235,7 +235,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testNoUniqueConstraintsOnExternalTablesAvro() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_AVRO";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
             methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int unique)" +
                     " STORED AS AVRO LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
@@ -247,7 +247,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testNoGenerationClausesOnExternalTables() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_MOLITOR";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
             methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 varchar(24), col3 GENERATED ALWAYS AS ( UPPER(col2) ))" +
                     " STORED AS PARQUET LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
@@ -259,7 +259,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testNoGenerationClausesOnExternalTablesAvro() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_AVRO";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
             methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 varchar(24), col3 GENERATED ALWAYS AS ( UPPER(col2) ))" +
                     " STORED AS AVRO LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
@@ -271,7 +271,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testMissingExternal() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_MOLITOR";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
             methodWatcher.executeUpdate(String.format("create table foo (col1 int, col2 varchar(24))" +
                     " STORED AS PARQUET LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
@@ -283,7 +283,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testMissingExternalAvro() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_AVRO";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
             methodWatcher.executeUpdate(String.format("create table foo (col1 int, col2 varchar(24))" +
                     " STORED AS AVRO LOCATION '%s'",tablePath));
             Assert.fail("Exception not thrown");
@@ -296,7 +296,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCannotUpdateExternalTable() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_MOLITOR";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
             methodWatcher.executeUpdate(String.format("create external table update_foo (col1 int, col2 varchar(24))" +
                     " STORED AS PARQUET LOCATION '%s'",tablePath));
             methodWatcher.executeUpdate("update update_foo set col1 = 4");
@@ -309,7 +309,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCannotUpdateExternalTableAvro() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_AVRO";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
             methodWatcher.executeUpdate(String.format("create external table update_foo_avro (col1 int, col2 varchar(24))" +
                     " STORED AS AVRO LOCATION '%s'",tablePath));
             methodWatcher.executeUpdate("update update_foo_avro set col1 = 4");
@@ -322,7 +322,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCannotDeleteExternalTable() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_MOLITOR";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
             methodWatcher.executeUpdate(String.format("create external table delete_foo (col1 int, col2 varchar(24))" +
                     " STORED AS PARQUET LOCATION '%s'",tablePath));
             methodWatcher.executeUpdate("delete from delete_foo where col1 = 4");
@@ -335,7 +335,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCannotDeleteExternalTableAvro() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_AVRO";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
             methodWatcher.executeUpdate(String.format("create external table delete_foo_avro (col1 int, col2 varchar(24))" +
                     " STORED AS AVRO LOCATION '%s'",tablePath));
             methodWatcher.executeUpdate("delete from delete_foo_avro where col1 = 4");
@@ -434,7 +434,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testEmptyDirectory() throws  Exception{
-        String tablePath = getTempOutputDirectory() + "empty_directory";
+        String tablePath = getExternalResourceDirectory()+"empty_directory";
         new File(tablePath).mkdir();
 
         methodWatcher.executeUpdate(String.format("create external table empty_directory (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
@@ -443,7 +443,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testEmptyDirectoryAvro() throws  Exception{
-        String tablePath = getTempOutputDirectory() + "empty_directory_avro";
+        String tablePath = getExternalResourceDirectory()+"empty_directory_avro";
         new File(tablePath).mkdir();
 
         methodWatcher.executeUpdate(String.format("create external table empty_directory_avro (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
@@ -477,7 +477,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void refreshRequireExternalTable() throws  Exception{
-        String tablePath = getTempOutputDirectory() + "external_table_refresh";
+        String tablePath = getExternalResourceDirectory()+"external_table_refresh";
 
         methodWatcher.executeUpdate(String.format("create external table external_table_refresh (col1 int, col2 varchar(24))" +
                 " STORED AS PARQUET LOCATION '%s'",tablePath));
@@ -491,7 +491,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void refreshRequireExternalTableAvro() throws  Exception{
-        String tablePath = getTempOutputDirectory() + "external_table_refresh_avro";
+        String tablePath = getExternalResourceDirectory()+"external_table_refresh_avro";
 
         methodWatcher.executeUpdate(String.format("create external table external_table_refresh_avro (col1 int, col2 varchar(24))" +
                 " STORED AS AVRO LOCATION '%s'",tablePath));
@@ -537,7 +537,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testWriteReadNullValues() throws Exception {
 
-        String tablePath = getTempOutputDirectory() + "null_test_location";
+        String tablePath = getExternalResourceDirectory()+"null_test_location";
         methodWatcher.executeUpdate(String.format("create external table null_test (col1 int, col2 varchar(24))" +
                 " STORED AS PARQUET LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into null_test values (1,null)," +
@@ -562,7 +562,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testWriteReadNullValuesAvro() throws Exception {
 
-        String tablePath = getTempOutputDirectory() + "null_test_location_avro";
+        String tablePath = getExternalResourceDirectory()+"null_test_location_avro";
         methodWatcher.executeUpdate(String.format("create external table null_test_avro (col1 int, col2 varchar(24))" +
                 " STORED AS AVRO LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into null_test_avro values (1,null)," +
@@ -587,7 +587,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testWriteReadFromSimpleParquetExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "simple_parquet";
+        String tablePath = getExternalResourceDirectory()+"simple_parquet";
         methodWatcher.executeUpdate(String.format("create external table simple_parquet (col1 int, col2 varchar(24))" +
                 " STORED AS PARQUET LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_parquet values (1,'XXXX')," +
@@ -614,7 +614,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testCreateExternalTableWithEmptyORCDataFile() throws Exception {
-        String tablePath = getTempOutputDirectory() + "EXT_ORC";
+        String tablePath = getExternalResourceDirectory()+"EXT_ORC";
         methodWatcher.executeUpdate(String.format("create external table EXT_ORC (col1 int, col2 varchar(24))" +
                 " STORED AS ORC LOCATION '%s'",tablePath));
 
@@ -628,7 +628,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testReadFromEmptyParquetExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "empty_parquet";
+        String tablePath = getExternalResourceDirectory()+"empty_parquet";
         methodWatcher.executeUpdate(String.format("create external table empty_parquet (col1 int, col2 varchar(24)) PARTITIONED BY (col2)" +
                 " STORED AS PARQUET LOCATION '%s'",tablePath));
 
@@ -639,7 +639,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testReadFromPartitionedEmptyAvroExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "empty_avro";
+        String tablePath = getExternalResourceDirectory()+"empty_avro";
         methodWatcher.executeUpdate(String.format("create external table empty_avro (col1 int, col2 varchar(24)) PARTITIONED BY (col1)" +
                 " STORED AS AVRO LOCATION '%s'",tablePath));
 
@@ -649,7 +649,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testWriteReadFromSimpleAvroExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "simple_avro";
+        String tablePath = getExternalResourceDirectory()+"simple_avro";
         methodWatcher.executeUpdate(String.format("create external table simple_avro (col1 int, col2 varchar(24))" +
                 " STORED AS AVRO LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_avro values (1,'XXXX')," +
@@ -677,7 +677,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testWriteReadFromSimpleCsvExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "dt_txt";
+        String tablePath = getExternalResourceDirectory()+"dt_txt";
         methodWatcher.executeUpdate(String.format("create external table dt_txt(a date) stored as textfile location '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into dt_txt values ('2017-01-25')"));
         Assert.assertEquals("insertCount is wrong",1,insertCount);
@@ -693,7 +693,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testReadSmallIntFromCsv() throws Exception {
 
-        String tablePath = getTempOutputDirectory() + "small_int_txt";
+        String tablePath = getExternalResourceDirectory()+"small_int_txt";
         methodWatcher.executeUpdate(String.format("create external table small_int_txt(a smallint) stored as textfile location '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into small_int_txt values (12)"));
         Assert.assertEquals("insertCount is wrong",1,insertCount);
@@ -706,7 +706,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testWriteReadWithPartitionedByFloatTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "simple_parquet_with_partition";
+        String tablePath = getExternalResourceDirectory()+"simple_parquet_with_partition";
         methodWatcher.executeUpdate(String.format("create external table simple_parquet_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
                 "partitioned  by (col3) STORED AS PARQUET LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_parquet_with_partition values (1,'XXXX',3.4567)," +
@@ -723,7 +723,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testWriteReadWithPartitionedByFloatTableAvro() throws Exception {
-        String tablePath = getTempOutputDirectory() + "simple_avro_with_partition";
+        String tablePath = getExternalResourceDirectory()+"simple_avro_with_partition";
         methodWatcher.executeUpdate(String.format("create external table simple_avro_with_partition (col1 int, col2 varchar(24), col3 float(10) )" +
                 "partitioned  by (col3) STORED AS AVRO LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_avro_with_partition values (1,'XXXX',3.4567)," +
@@ -746,12 +746,12 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Ignore("SPLICE-1514")
     public void testLocalBroadcastColumnar() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table left_side_bcast (col1 int, col2 int)" +
-                " STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "left_side_bcast"));
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"left_side_bcast"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into left_side_bcast values (1,5)," +
                 "(2,2)," +
                 "(3,3)"));
         methodWatcher.executeUpdate(String.format("create external table right_side_bcast (col1 int, col2 int)" +
-                " STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "right_side_bcast"));
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"right_side_bcast"));
         int insertCount2 = methodWatcher.executeUpdate(String.format("insert into right_side_bcast values (1,1)," +
                 "(2,2)," +
                 "(3,3)"));
@@ -772,12 +772,12 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Ignore("SPLICE-1514")
     public void testLocalBroadcastColumnarAvro() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table left_side_bcast (col1 int, col2 int)" +
-                " STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "left_side_bcast"));
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"left_side_bcast"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into left_side_bcast values (1,5)," +
                 "(2,2)," +
                 "(3,3)"));
         methodWatcher.executeUpdate(String.format("create external table right_side_bcast (col1 int, col2 int)" +
-                " STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "right_side_bcast"));
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"right_side_bcast"));
         int insertCount2 = methodWatcher.executeUpdate(String.format("insert into right_side_bcast values (1,1)," +
                 "(2,2)," +
                 "(3,3)"));
@@ -796,9 +796,9 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testWriteReadFromPartitionedParquetExternalTable() throws Exception {
-        String tablePath =  getTempOutputDirectory() + "partitioned_parquet";
+        String tablePath =  getExternalResourceDirectory()+"partitioned_parquet";
                 methodWatcher.executeUpdate(String.format("create external table partitioned_parquet (col1 int, col2 varchar(24))" +
-                "partitioned by (col2) STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "partitioned_parquet"));
+                "partitioned by (col2) STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"partitioned_parquet"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into partitioned_parquet values (1,'XXXX')," +
                 "(2,'YYYY')," +
                 "(3,'ZZZZ')"));
@@ -816,9 +816,9 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testWriteReadFromPartitionedAvroExternalTable() throws Exception {
-        String tablePath =  getTempOutputDirectory() + "partitioned_avro";
+        String tablePath =  getExternalResourceDirectory()+"partitioned_avro";
         methodWatcher.executeUpdate(String.format("create external table partitioned_avro (col1 int, col2 varchar(24))" +
-                "partitioned by (col2) STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "partitioned_avro"));
+                "partitioned by (col2) STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"partitioned_avro"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into partitioned_avro values (1,'XXXX')," +
                 "(2,'YYYY')," +
                 "(3,'ZZZZ')"));
@@ -837,7 +837,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testWriteReadFromSimpleORCExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table simple_orc (col1 int, col2 varchar(24), col3 NUMERIC)" +
-                " STORED AS ORC LOCATION '%s'", getTempOutputDirectory() + "simple_orc"));
+                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_orc"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_orc values (1,'XXXX',13691)," +
                 "(2,'YYYY',2345)," +
                 "(3,'ZZZZ',12345)"));
@@ -853,7 +853,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testWriteReadFromPartitionedORCExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table partitioned_orc (col1 int, col2 varchar(24))" +
-                "partitioned by (col2) STORED AS ORC LOCATION '%s'", getTempOutputDirectory() + "partitioned_orc"));
+                "partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"partitioned_orc"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into partitioned_orc values (1,'XXXX')," +
                 "(2,'YYYY')," +
                 "(3,'ZZZZ')"));
@@ -915,7 +915,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test @Ignore
     public void testWriteReadFromCompressedParquetExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table compressed_parquet_test (col1 int, col2 varchar(24))" +
-                " COMPRESSED WITH SNAPPY STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "compressed_parquet_test"));
+                " COMPRESSED WITH SNAPPY STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"compressed_parquet_test"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_parquet_test values (1,'XXXX')," +
                 "(2,'YYYY')," +
                 "(3,'ZZZZ')"));
@@ -930,7 +930,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testWriteReadFromCompressedAvroExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table compressed_avro_test (col1 varchar(24))" +
-                " COMPRESSED WITH SNAPPY STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "compressed_avro_test"));
+                " COMPRESSED WITH SNAPPY STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"compressed_avro_test"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_avro_test values ('XXXX')," +
                 "('YYYY')"));
         Assert.assertEquals("insertCount is wrong",2,insertCount);
@@ -1073,7 +1073,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testWriteReadFromSimpleTextExternalTable() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table simple_text (col1 int, col2 varchar(24), col3 boolean)" +
-                " STORED AS TEXTFILE LOCATION '%s'", getTempOutputDirectory() + "simple_text"));
+                " STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"simple_text"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_text values (1,'XXXX',true)," +
                 "(2,'YYYY',false)," +
                 "(3,'ZZZZ', true)"));
@@ -1091,7 +1091,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
         try{
 
                 methodWatcher.executeUpdate(String.format("create external table compressed_ignored_text (col1 int, col2 varchar(24))" +
-                        "COMPRESSED WITH SNAPPY STORED AS TEXTFILE LOCATION '%s'", getTempOutputDirectory() + "compressed_ignored_text"));
+                        "COMPRESSED WITH SNAPPY STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"compressed_ignored_text"));
 
                 Assert.fail("Exception not thrown");
             } catch (SQLException e) {
@@ -1103,7 +1103,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     public void testExternalTableDescriptorCompression() throws Exception {
         //with no compression token
         methodWatcher.executeUpdate(String.format("create external table simple_table_none_orc (col1 int, col2 varchar(24))" +
-                "partitioned by (col1) STORED AS ORC LOCATION '%s'", getTempOutputDirectory() + "simple_table_none_orc"));
+                "partitioned by (col1) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_table_none_orc"));
         ResultSet rs = methodWatcher.executeQuery("select COMPRESSION from SYS.SYSTABLES where tablename='SIMPLE_TABLE_NONE_ORC'");
         Assert.assertEquals("COMPRESSION |\n" +
                 "--------------\n" +
@@ -1112,7 +1112,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
         //with compression snappy
         methodWatcher.executeUpdate(String.format("create external table simple_table_snappy_orc (col1 int, col2 varchar(24))" +
-                "compressed with snappy partitioned by (col2) STORED AS ORC LOCATION '%s'", getTempOutputDirectory() + "simple_table_snappy_orc"));
+                "compressed with snappy partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_table_snappy_orc"));
         rs = methodWatcher.executeQuery("select COMPRESSION from SYS.SYSTABLES where tablename='SIMPLE_TABLE_SNAPPY_ORC'");
         Assert.assertEquals("COMPRESSION |\n" +
                 "--------------\n" +
@@ -1120,7 +1120,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
         //with compression zlib
         methodWatcher.executeUpdate(String.format("create external table simple_table_ZLIB_orc (col1 int, col2 varchar(24))" +
-                "compressed with zlib partitioned by (col2) STORED AS ORC LOCATION '%s'", getTempOutputDirectory() + "simple_table_ZLIB_orc"));
+                "compressed with zlib partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_table_ZLIB_orc"));
         rs = methodWatcher.executeQuery("select COMPRESSION from SYS.SYSTABLES where tablename='SIMPLE_TABLE_ZLIB_ORC'");
         Assert.assertEquals("COMPRESSION |\n" +
                 "--------------\n" +
@@ -1130,9 +1130,9 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void validateReadParquetFromEmptyDirectory() throws Exception {
-        String path = getTempOutputDirectory() + "parquet_empty";
+        String path = getExternalResourceDirectory()+"parquet_empty";
         methodWatcher.executeUpdate(String.format("create external table parquet_empty (col1 int, col2 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "parquet_empty"));
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"parquet_empty"));
         ResultSet rs = methodWatcher.executeQuery("select * from parquet_empty");
         Assert.assertTrue(new File(path).exists());
         Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -1140,9 +1140,9 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void validateReadAvroFromEmptyDirectory() throws Exception {
-        String path = getTempOutputDirectory() + "avro_empty";
+        String path = getExternalResourceDirectory()+"avro_empty";
         methodWatcher.executeUpdate(String.format("create external table avro_empty (col1 int, col2 varchar(24))" +
-                " STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "avro_empty"));
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"avro_empty"));
         ResultSet rs = methodWatcher.executeQuery("select * from avro_empty");
         Assert.assertTrue(new File(path).exists());
         Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -1150,9 +1150,9 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testPinExternalOrcTable() throws Exception {
-        String path = getTempOutputDirectory() + "orc_pin";
+        String path = getExternalResourceDirectory()+"orc_pin";
         methodWatcher.executeUpdate(String.format("create external table orc_pin (col1 int, col2 varchar(24))" +
-                " STORED AS ORC LOCATION '%s'", getTempOutputDirectory() + "orc_pin"));
+                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"orc_pin"));
         methodWatcher.executeUpdate("insert into orc_pin values (1,'test')");
 
         methodWatcher.executeUpdate("pin table orc_pin");
@@ -1166,9 +1166,9 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testPinExternalParquetTable() throws Exception {
-        String path = getTempOutputDirectory() + "parquet_pin";
+        String path = getExternalResourceDirectory()+"parquet_pin";
         methodWatcher.executeUpdate(String.format("create external table parquet_pin (col1 int, col2 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "parquet_pin"));
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"parquet_pin"));
         methodWatcher.executeUpdate("insert into parquet_pin values (1,'test')");
 
         methodWatcher.executeUpdate("pin table parquet_pin");
@@ -1180,9 +1180,9 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testPinExternalAvroTable() throws Exception {
-        String path = getTempOutputDirectory() + "avro_pin";
+        String path = getExternalResourceDirectory()+"avro_pin";
         methodWatcher.executeUpdate(String.format("create external table avro_pin (col1 int, col2 varchar(24))" +
-                " STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "avro_pin"));
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"avro_pin"));
         methodWatcher.executeUpdate("insert into avro_pin values (1,'test')");
 
         methodWatcher.executeUpdate("pin table avro_pin");
@@ -1194,9 +1194,9 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testPinExternalTextTable() throws Exception {
-        String path = getTempOutputDirectory() + "parquet_pin";
+        String path = getExternalResourceDirectory()+"parquet_pin";
         methodWatcher.executeUpdate(String.format("create external table textfile_pin (col1 int, col2 varchar(24))" +
-                " STORED AS TEXTFILE LOCATION '%s'", getTempOutputDirectory() + "textfile_pin"));
+                " STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"textfile_pin"));
         methodWatcher.executeUpdate("insert into textfile_pin values (1,'test')");
 
         methodWatcher.executeUpdate("pin table textfile_pin");
@@ -1208,7 +1208,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void validateReadORCFromEmptyDirectory() throws Exception {
-        String path = getTempOutputDirectory() + "orc_empty";
+        String path = getExternalResourceDirectory()+"orc_empty";
         methodWatcher.executeUpdate(String.format("create external table orc_empty (col1 int, col2 varchar(24))" +
                 " STORED AS ORC LOCATION '%s'", path));
         Assert.assertTrue(new File(path).exists());
@@ -1222,7 +1222,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     public void testReadTimeFromFile() throws Exception {
 
         methodWatcher.executeUpdate(String.format("create external table timestamp_parquet (a time)" +
-                " STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "timestamp_parquet"));
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"timestamp_parquet"));
         methodWatcher.executeUpdate("insert into timestamp_parquet values ('22:22:22')");
         ResultSet rs = methodWatcher.executeQuery("select * from timestamp_parquet");
         Assert.assertEquals("A    |\n" +
@@ -1236,7 +1236,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     public void testReadClobFromFile() throws Exception {
 
         methodWatcher.executeUpdate(String.format("create external table clob_parquet (largecol clob(65535))" +
-                " STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "clob_parquet"));
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"clob_parquet"));
         methodWatcher.executeUpdate("insert into clob_parquet values ('asdfasfd234234')");
         ResultSet rs = methodWatcher.executeQuery("select * from clob_parquet");
         Assert.assertEquals("LARGECOL    |\n" +
@@ -1249,7 +1249,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     public void testReadClobFromFileAvro() throws Exception {
 
         methodWatcher.executeUpdate(String.format("create external table clob_avro (largecol clob(65535))" +
-                " STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "clob_avro"));
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"clob_avro"));
         methodWatcher.executeUpdate("insert into clob_avro values ('asdfasfd234234')");
         ResultSet rs = methodWatcher.executeQuery("select * from clob_avro");
         Assert.assertEquals("LARGECOL    |\n" +
@@ -1262,7 +1262,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     public void testReadSmallIntFromFile() throws Exception {
 
         methodWatcher.executeUpdate(String.format("create external table short_parquet (col1 smallint)" +
-                " STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "short_parquet"));
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"short_parquet"));
         methodWatcher.executeUpdate("insert into short_parquet values (12)");
         ResultSet rs = methodWatcher.executeQuery("select * from short_parquet");
         Assert.assertEquals("COL1 |\n" +
@@ -1272,7 +1272,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testDateOrcReader() throws Exception {
-        String tablePath = getTempOutputDirectory() + "/DateOrc";
+        String tablePath = getExternalResourceDirectory()+"/DateOrc";
         methodWatcher.executeUpdate(String.format("create external table t_date (c1 date) " +
                 "STORED AS ORC LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into t_date values('2017-7-27'), ('1970-01-01')");
@@ -1321,7 +1321,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testPartitionByDateOrcTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "/PartitionByDateOrc";
+        String tablePath = getExternalResourceDirectory()+"/PartitionByDateOrc";
         methodWatcher.executeUpdate(String.format("create external table t_partition_by_date (a1 date, b1 int, c1 varchar(10))" +
                 "partitioned by (a1)" +
                 "STORED AS ORC LOCATION '%s'",tablePath));
@@ -1379,7 +1379,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testPartitionByCharOrcTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "/PartitionByCharOrc";
+        String tablePath = getExternalResourceDirectory()+"/PartitionByCharOrc";
         methodWatcher.executeUpdate(String.format("create external table t_partition_by_char (a1 CHAR(10), b1 int, c1 varchar(10))" +
                 "partitioned by (a1)" +
                 "STORED AS ORC LOCATION '%s'",tablePath));
@@ -1398,7 +1398,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testPartitionByNumericOrcTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "/PartitionByNumericOrc";
+        String tablePath = getExternalResourceDirectory()+"/PartitionByNumericOrc";
         methodWatcher.executeUpdate(String.format("create external table t_partition_by_numeric (a1 NUMERIC, b1 int, c1 varchar(10))" +
                 "partitioned by (a1)" +
                 "STORED AS ORC LOCATION '%s'",tablePath));
@@ -1417,7 +1417,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testPartitionByBoolOrcTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "/PartitionByBoolOrc";
+        String tablePath = getExternalResourceDirectory()+"/PartitionByBoolOrc";
         methodWatcher.executeUpdate(String.format("create external table t_partition_by_bool (a1 Boolean, b1 int, c1 varchar(10))" +
                 "partitioned by (a1)" +
                 "STORED AS ORC LOCATION '%s'",tablePath));
@@ -1436,7 +1436,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testPartitionByDoubleOrcTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "/PartitionByDoubleOrc";
+        String tablePath = getExternalResourceDirectory()+"/PartitionByDoubleOrc";
         methodWatcher.executeUpdate(String.format("create external table t_partition_by_double (a1 double, b1 int, c1 varchar(10))" +
                 "partitioned by (a1)" +
                 "STORED AS ORC LOCATION '%s'",tablePath));
@@ -1457,7 +1457,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     public void testReadIntFromFileAvro() throws Exception {
 
         methodWatcher.executeUpdate(String.format("create external table short_avro (col1 int)" +
-                " STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "short_avro"));
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"short_avro"));
         methodWatcher.executeUpdate("insert into short_avro values (12)");
         ResultSet rs = methodWatcher.executeQuery("select * from short_avro");
         Assert.assertEquals("COL1 |\n" +
@@ -1469,7 +1469,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCannotAlterExternalTable() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_MOLITOR";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
             methodWatcher.executeUpdate(String.format("create external table alter_foo (col1 int, col2 varchar(24))" +
                     " STORED AS PARQUET LOCATION '%s'",tablePath));
             methodWatcher.executeUpdate("alter table alter_foo add column col3 int");
@@ -1481,7 +1481,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCannotAlterExternalTableAvro() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_AVRO";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
             methodWatcher.executeUpdate(String.format("create external table alter_foo_avro (col1 int, col2 varchar(24))" +
                     " STORED AS AVRO LOCATION '%s'",tablePath));
             methodWatcher.executeUpdate("alter table alter_foo_avro add column col3 int");
@@ -1494,7 +1494,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCannotAddIndexToExternalTable() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_MOLITOR";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
             methodWatcher.executeUpdate(String.format("create external table add_index_foo (col1 int, col2 varchar(24))" +
                     " STORED AS PARQUET LOCATION '%s'",tablePath));
             methodWatcher.executeUpdate("create index add_index_foo_ix on add_index_foo (col2)");
@@ -1507,7 +1507,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCannotAddIndexToExternalTableAvro() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_AVRO";
+            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
             methodWatcher.executeUpdate(String.format("create external table add_index_foo_avro (col1 int, col2 varchar(24))" +
                     " STORED AS AVRO LOCATION '%s'",tablePath));
             methodWatcher.executeUpdate("create index add_index_foo_ix on add_index_foo_avro (col2)");
@@ -1519,7 +1519,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testCannotAddTriggerToExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_MOLITOR";
+        String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
         methodWatcher.executeUpdate(String.format("create external table add_trigger_foo (col1 int, col2 varchar(24))" +
                 " STORED AS PARQUET LOCATION '%s'",tablePath));
 
@@ -1529,7 +1529,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testCannotAddTriggerToExternalTableAvro() throws Exception {
-        String tablePath = getTempOutputDirectory() + "/HUMPTY_DUMPTY_AVRO";
+        String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
         methodWatcher.executeUpdate(String.format("create external table add_trigger_foo_avro (col1 int, col2 varchar(24))" +
                 " STORED AS AVRO LOCATION '%s'",tablePath));
 
@@ -1562,12 +1562,12 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     public void testWriteToWrongPartitionedParquetExternalTable() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("create external table w_partitioned_parquet (col1 int, col2 varchar(24))" +
-                    "partitioned by (col1) STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "w_partitioned_parquet"));
+                    "partitioned by (col1) STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory() + "w_partitioned_parquet"));
             methodWatcher.executeUpdate(String.format("insert into w_partitioned_parquet values (1,'XXXX')," +
                     "(2,'YYYY')," +
                     "(3,'ZZZZ')"));
             methodWatcher.executeUpdate(String.format("create external table w_partitioned_parquet_2 (col1 int, col2 varchar(24))" +
-                    "partitioned by (col2) STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "w_partitioned_parquet"));
+                    "partitioned by (col2) STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory() + "w_partitioned_parquet"));
             methodWatcher.executeUpdate(String.format("insert into w_partitioned_parquet_2 values (1,'XXXX')," +
                     "(2,'YYYY')," +
                     "(3,'ZZZZ')"));
@@ -1581,12 +1581,12 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     public void testWriteToWrongPartitionedAvroExternalTable() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("create external table w_partitioned_avro (col1 int, col2 varchar(24))" +
-                    "partitioned by (col1) STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "w_partitioned_avro"));
+                    "partitioned by (col1) STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory() + "w_partitioned_avro"));
             methodWatcher.executeUpdate(String.format("insert into w_partitioned_avro values (1,'XXXX')," +
                     "(2,'YYYY')," +
                     "(3,'ZZZZ')"));
             methodWatcher.executeUpdate(String.format("create external table w_partitioned_avro_2 (col1 int, col2 varchar(24))" +
-                    "partitioned by (col2) STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "w_partitioned_avro"));
+                    "partitioned by (col2) STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory() + "w_partitioned_avro"));
             methodWatcher.executeUpdate(String.format("insert into w_partitioned_avro_2 values (1,'XXXX')," +
                     "(2,'YYYY')," +
                     "(3,'ZZZZ')"));
@@ -1601,9 +1601,9 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
 
         methodWatcher.executeUpdate(String.format("create external table PARQUET_NO_PERMISSION (col1 int, col2 varchar(24), col3 boolean)" +
-                " STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "PARQUET_NO_PERMISSION"));
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"PARQUET_NO_PERMISSION"));
 
-        File file = new File(String.valueOf(getTempOutputDirectory() + "PARQUET_NO_PERMISSION"));
+        File file = new File(String.valueOf(getExternalResourceDirectory()+"PARQUET_NO_PERMISSION"));
 
         try{
 
@@ -1628,9 +1628,9 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
 
         methodWatcher.executeUpdate(String.format("create external table AVRO_NO_PERMISSION (col1 int, col2 varchar(24), col3 boolean)" +
-                " STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "AVRO_NO_PERMISSION"));
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"AVRO_NO_PERMISSION"));
 
-        File file = new File(String.valueOf(getTempOutputDirectory() + "AVRO_NO_PERMISSION"));
+        File file = new File(String.valueOf(getExternalResourceDirectory()+"AVRO_NO_PERMISSION"));
 
         try{
 
@@ -1656,9 +1656,9 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
 
         methodWatcher.executeUpdate(String.format("create external table PARQUET_NO_PERMISSION_READ (col1 int, col2 varchar(24), col3 boolean)" +
-                " STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "PARQUET_NO_PERMISSION_READ"));
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"PARQUET_NO_PERMISSION_READ"));
 
-        File file = new File(String.valueOf(getTempOutputDirectory() + "PARQUET_NO_PERMISSION_READ"));
+        File file = new File(String.valueOf(getExternalResourceDirectory()+"PARQUET_NO_PERMISSION_READ"));
 
         try{
 
@@ -1683,9 +1683,9 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
 
         methodWatcher.executeUpdate(String.format("create external table AVRO_NO_PERMISSION_READ (col1 int, col2 varchar(24), col3 boolean)" +
-                " STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "AVRO_NO_PERMISSION_READ"));
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"AVRO_NO_PERMISSION_READ"));
 
-        File file = new File(String.valueOf(getTempOutputDirectory() + "AVRO_NO_PERMISSION_READ"));
+        File file = new File(String.valueOf(getExternalResourceDirectory()+"AVRO_NO_PERMISSION_READ"));
 
         try{
 
@@ -1708,7 +1708,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCollectStats() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table t1_orc (col1 int, col2 char(24))" +
-                " STORED AS ORC LOCATION '%s'", getTempOutputDirectory() + "t1_orc_test"));
+                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"t1_orc_test"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into t1_orc values (1,'XXXX')," +
                 "(2,'YYYY')," +
                 "(3,'ZZZZ')"));
@@ -1772,7 +1772,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
      public void testCollectStatsText() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table t1_csv (col1 int, col2 char(24))" +
-                " STORED AS TEXTFILE LOCATION '%s'", getTempOutputDirectory() + "t1_csv_test"));
+                " STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"t1_csv_test"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into t1_csv values (1,'XXXX')," +
                 "(2,'YYYY')," +
                 "(3,'ZZZZ')"));
@@ -1800,7 +1800,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCollectStatsParquet() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table t1_parq (col1 int, col2 char(24))" +
-                " STORED AS PARQUET LOCATION '%s'", getTempOutputDirectory() + "t1_parq_test"));
+                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"t1_parq_test"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into t1_parq values (1,'XXXX')," +
                 "(2,'YYYY')," +
                 "(3,'ZZZZ')"));
@@ -1828,7 +1828,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCollectStatsAvro() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table t1_avro (col1 int, col2 char(24))" +
-                " STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "t1_avro_test"));
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"t1_avro_test"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into t1_avro values (1,'XXXX')," +
                 "(2,'YYYY')," +
                 "(3,'ZZZZ')"));
@@ -1864,7 +1864,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testWriteReadArraysParquet() throws Exception {
 
-        String tablePath = getTempOutputDirectory() + "parquet_array";
+        String tablePath = getExternalResourceDirectory()+"parquet_array";
         methodWatcher.executeUpdate(String.format("create external table parquet_array (col1 int array, col2 varchar(24))" +
                 " STORED AS PARQUET LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into parquet_array values ([1,1,1],'XXXX')," +
@@ -1891,7 +1891,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testWriteReadArraysAvro() throws Exception {
 
-        String tablePath = getTempOutputDirectory() + "avro_array";
+        String tablePath = getExternalResourceDirectory()+"avro_array";
         methodWatcher.executeUpdate(String.format("create external table avro_array (col1 int array, col2 varchar(24))" +
                 " STORED AS AVRO LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into avro_array values ([1,1,1],'XXXX')," +
@@ -1918,7 +1918,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testWriteReadArraysWithStatsParquet() throws Exception {
 
-        String tablePath = getTempOutputDirectory() + "parquet_array_stats";
+        String tablePath = getExternalResourceDirectory()+"parquet_array_stats";
         methodWatcher.executeUpdate(String.format("create external table parquet_array_stats (col1 int array, col2 varchar(24))" +
                 " STORED AS PARQUET LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into parquet_array_stats values ([1,1,1],'XXXX')," +
@@ -1947,7 +1947,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testWriteReadArraysWithStatsAvro() throws Exception {
 
-        String tablePath = getTempOutputDirectory() + "avro_array_stats";
+        String tablePath = getExternalResourceDirectory()+"avro_array_stats";
         methodWatcher.executeUpdate(String.format("create external table avro_array_stats (col1 int array, col2 varchar(24))" +
                 " STORED AS AVRO LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into avro_array_stats values ([1,1,1],'XXXX')," +
@@ -1977,7 +1977,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testWriteReadArraysORC() throws Exception {
 
-        String tablePath = getTempOutputDirectory() + "orc_array";
+        String tablePath = getExternalResourceDirectory()+"orc_array";
         methodWatcher.executeUpdate(String.format("create external table orc_array (col1 int array, col2 varchar(24))" +
                 " STORED AS ORC LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into orc_array values ([1,1,1],'XXXX')," +
@@ -2011,7 +2011,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
                 "ROW FORMAT DELIMITED \n" +
                 "FIELDS TERMINATED BY ','\n" +
                 "STORED AS TEXTFILE\n" +
-                "location '%s'", getTempOutputDirectory() + "testUsingExsitingCsvFile"));
+                "location '%s'", getExternalResourceDirectory() + "testUsingExsitingCsvFile"));
 
         // insert into the table
         methodWatcher.execute("insert into EXT_TEXT values (1, 'text1'), (2, 'text2'), (3, 'text3'), (4, 'text4')");
@@ -2025,7 +2025,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
                 "ROW FORMAT DELIMITED \n" +
                 "FIELDS TERMINATED BY ','\n" +
                 "STORED AS TEXTFILE\n" +
-                "location '%s'", getTempOutputDirectory() + "testUsingExsitingCsvFile"));
+                "location '%s'", getExternalResourceDirectory() + "testUsingExsitingCsvFile"));
 
         rs = methodWatcher.executeQuery("select * from ext_text2 order by 1");
         String after = TestUtils.FormattedResult.ResultFactory.toString(rs);
@@ -2037,7 +2037,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testBuildInFunctionText()  throws Exception {
         //
-        String tablePath = getTempOutputDirectory()+ "EXT_FUNCTION_TEXT";
+        String tablePath = getExternalResourceDirectory()+ "EXT_FUNCTION_TEXT";
         methodWatcher.executeUpdate(String.format("CREATE EXTERNAL TABLE EXT_FUNCTION_TEXT (id INT, c_vchar varchar(30), c_date DATE,  c_num NUMERIC, c_bool BOOLEAN) \n" +
                 "ROW FORMAT DELIMITED \n" +
                 "FIELDS TERMINATED BY ','\n" +
@@ -2066,7 +2066,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testTinyIntOrcReader() throws Exception {
-        String tablePath = getTempOutputDirectory() + "/tinyIntOrc";
+        String tablePath = getExternalResourceDirectory()+"/tinyIntOrc";
         methodWatcher.executeUpdate(String.format("create external table t (c1 tinyint, c2 int array) " +
                 "STORED AS ORC LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into t values(1, [1,1,1])");
@@ -2078,7 +2078,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testSmallIntOrcReader() throws Exception {
-        String tablePath = getTempOutputDirectory() + "/ShortIntOrc";
+        String tablePath = getExternalResourceDirectory()+"/ShortIntOrc";
         methodWatcher.executeUpdate(String.format("create external table t_small (c1 smallint, c2 int array) " +
                 "STORED AS ORC LOCATION '%s'",tablePath));
         methodWatcher.executeUpdate("insert into t_small values(1, [1,1,1])");
@@ -2090,7 +2090,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testPartitionBySmallIntOrcTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "/PartitionBySmallIntOrc";
+        String tablePath = getExternalResourceDirectory()+"/PartitionBySmallIntOrc";
         methodWatcher.executeUpdate(String.format("create external table t_partition_by_smallint (a1 smallint, b1 int, c1 varchar(10))" +
                 "partitioned by (a1)" +
                 "STORED AS ORC LOCATION '%s'",tablePath));
@@ -2144,7 +2144,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testQueryOnOrcTableWithInequalityPredicate() throws Exception {
-        String tablePath = getTempOutputDirectory() + "/OrcInequalityPredicate";
+        String tablePath = getExternalResourceDirectory()+"/OrcInequalityPredicate";
         methodWatcher.executeUpdate(String.format("create external table orc_inequality (c1 smallint, c2 int, c3 char(10)) " +
                 "STORED AS ORC LOCATION '%s'",tablePath));
         methodWatcher.executeQuery(format("call SYSCS_UTIL.IMPORT_DATA ('%s', 'ORC_INEQUALITY', null, '%s', ',', null, null, null, null, 0, null, true, null)",
@@ -2234,7 +2234,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testQueryOnPartitionedOrcTableWithInequalityPredicate() throws Exception {
-        String tablePath = getTempOutputDirectory() + "/PartOrcInequalityPredicate";
+        String tablePath = getExternalResourceDirectory()+"/PartOrcInequalityPredicate";
         methodWatcher.executeUpdate(String.format("create external table part_orc_inequality (c1 smallint, c2 int, c3 char(10)) " +
                 "partitioned by (c1) STORED AS ORC LOCATION '%s'",tablePath));
         methodWatcher.executeQuery(format("call SYSCS_UTIL.IMPORT_DATA ('%s', 'PART_ORC_INEQUALITY', null, '%s', ',', null, null, null, null, 0, null, true, null)",
@@ -2385,7 +2385,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
      */
     @Test
     public void testPartitionPruning() throws Exception {
-        String tablePath =  getTempOutputDirectory() + "partition_prune_orc";
+        String tablePath =  getExternalResourceDirectory()+"partition_prune_orc";
         methodWatcher.executeUpdate(String.format("create external table partition_prune_orc ( user_id BIGINT,\n" +
                 "     server_timestamp BIGINT,\n" +
                 "     clicks INT,\n" +
@@ -2398,7 +2398,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
                 "     page_tags_csv                         VARCHAR(1000),\n" +
                 "     ad_info                               VARCHAR(1000) ARRAY,\n" +
                 "     data_date                             INTEGER)"+
-                "partitioned by (data_date) STORED AS ORC LOCATION '%s'", getTempOutputDirectory() + "partition_prune_orc"));
+                "partitioned by (data_date) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"partition_prune_orc"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into partition_prune_orc values "+
                 "(100,100, 100, 'x','x','x','x','x','x','x',['100','100'], 20160915)," +
                 "(200,200, 200, 'x','x','x','x','x','x','x',['100','100'], 20160916)," +
@@ -2447,7 +2447,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testFaultyCompressionAvro() throws Exception {
         try {
-            String tablePath = getTempOutputDirectory() + "/compression";
+            String tablePath = getExternalResourceDirectory()+"/compression";
             methodWatcher.executeUpdate(String.format("CREATE EXTERNAL TABLE bad_compression_avro (col1 int) " +
                     "COMPRESSED WITH TURD " +
                     "STORED AS AVRO LOCATION '%s'",tablePath));
@@ -2461,7 +2461,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testWriteReadDateAvroExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "simple_avro_date";
+        String tablePath = getExternalResourceDirectory()+"simple_avro_date";
         methodWatcher.executeUpdate(String.format("create external table simple_avro_date (col1 date)" +
                 " STORED AS AVRO LOCATION '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_avro_date values ('2000-01-01')," +
@@ -2500,7 +2500,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testPartitionedAvroDateTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "partitionAvroDate";
+        String tablePath = getExternalResourceDirectory()+"partitionAvroDate";
         methodWatcher.executeUpdate(String.format("create external table partitionAvroDate (col1 date, col2 date) partitioned by (col2) stored as avro " +
                 "location '%s'",tablePath));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into partitionAvroDate values ('1999-01-01','1999-01-01')," +
@@ -2527,7 +2527,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testCollectAvroDateStats() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table avro_date_stats (col1 date)" +
-                " STORED AS AVRO LOCATION '%s'", getTempOutputDirectory() + "avro_date_stats"));
+                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"avro_date_stats"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into avro_date_stats values ('2000-01-01')," +
                 "('2000-02-02')," +
                 "('2000-03-03')," +
@@ -2564,10 +2564,10 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     public void testBroadcastJoinOrcTablesOnSpark() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table l (col1 int)" +
-                " STORED AS ORC LOCATION '%s'", getTempOutputDirectory() + "left"));
+                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"left"));
         int insertCount = methodWatcher.executeUpdate(String.format("insert into l values 1, 2, 3" ));
         methodWatcher.executeUpdate(String.format("create external table r (col1 int)" +
-                " STORED AS ORC LOCATION '%s'", getTempOutputDirectory() + "right"));
+                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"right"));
         int insertCount2 = methodWatcher.executeUpdate(String.format("insert into r values 1,2,3"));
 
         Assert.assertEquals("insertCount is wrong",3,insertCount);
@@ -2647,7 +2647,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testNumericType() throws Exception {
-        String path = getTempOutputDirectory() + "t_num"; // = "empty" table
+        String path = getExternalResourceDirectory() + "t_num"; // = "empty" table
         methodWatcher.execute(String.format("create external table t_num (col1 NUMERIC(23,2), col2 bigint)" +
                 " STORED AS PARQUET LOCATION '%s'", path));
         methodWatcher.execute("insert into t_num values (100.23456, 1)");
@@ -2663,8 +2663,8 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testPureEmptyDirectory() throws  Exception{
-        String tablePath = getTempOutputDirectory() + "pure_empty_directory";
-        File path = new File(tablePath);
+        String tablePath = getExternalResourceDirectory()+"pure_empty_directory";
+        File path =  new File(tablePath);
         path.mkdir();
         methodWatcher.executeUpdate(String.format("create external table pure_empty_directory (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
                     " STORED AS PARQUET LOCATION '%s'",tablePath));
@@ -2679,8 +2679,8 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     @Test
     public void testNotExistDirectory() throws  Exception{
         try {
-            String tablePath = getTempOutputDirectory() + "empty_directory_not_exist";
-            File path = new File(tablePath);
+            String tablePath = getExternalResourceDirectory()+"empty_directory_not_exist";
+            File path =  new File(tablePath);
             path.mkdir();
             methodWatcher.executeUpdate(String.format("create external table empty_directory_not_exist (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
                     " STORED AS PARQUET LOCATION '%s'",tablePath));
@@ -2696,7 +2696,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testParquetColumnName() throws Exception {
-        String tablePath = getTempOutputDirectory() + "parquet_colname";
+        String tablePath = getExternalResourceDirectory()+"parquet_colname";
         methodWatcher.execute(String.format("create external table t_parquet (col1 int, col2 varchar(5))" +
                 " STORED AS PARQUET LOCATION '%s'", tablePath));
         methodWatcher.execute("insert into t_parquet values (1, 'A')");
@@ -2716,7 +2716,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testParquetPartitionColumnName() throws Exception {
-        String tablePath = getTempOutputDirectory() + "parquet_partition_colname";
+        String tablePath = getExternalResourceDirectory()+"parquet_partition_colname";
         methodWatcher.execute(String.format("create external table t_parquet_partition (col1 int, col2 varchar(5)) partitioned by (col2)" +
                 " STORED AS PARQUET LOCATION '%s'", tablePath));
         methodWatcher.execute("insert into t_parquet_partition values (2, 'B')");
@@ -2734,7 +2734,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testOrcColumnName() throws Exception {
-        String tablePath = getTempOutputDirectory() + "orc_colname";
+        String tablePath = getExternalResourceDirectory()+"orc_colname";
         methodWatcher.execute(String.format("create external table t_orc (col1 int, col2 varchar(5))" +
                 " STORED AS ORC LOCATION '%s'", tablePath));
         methodWatcher.execute("insert into t_orc values (3, 'C')");
@@ -2752,7 +2752,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testOrcPartitionColumnName() throws Exception {
-        String tablePath = getTempOutputDirectory() + "orc_partition_colname";
+        String tablePath = getExternalResourceDirectory()+"orc_partition_colname";
         methodWatcher.execute(String.format("create external table t_orc_partition (col1 int, col2 varchar(5)) partitioned by (col2)" +
                 " STORED AS ORC LOCATION '%s'", tablePath));
         methodWatcher.execute("insert into t_orc_partition values (4, 'D')");
@@ -2770,7 +2770,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test @Ignore("Need to import spark-avro.jar in hbase_sql to test in a separate Spark")
     public void testAvroColumnName() throws Exception {
-        String tablePath = getTempOutputDirectory() + "avro_colname";
+        String tablePath = getExternalResourceDirectory() + "avro_colname";
         methodWatcher.executeUpdate(String.format("create external table avro_colname (col1 int, col2 varchar(24))" +
                 " STORED AS AVRO LOCATION '%s'", tablePath));
         methodWatcher.executeUpdate(String.format("insert into avro_colname values (1,'XXXX')," +
@@ -2791,7 +2791,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
     }
     @Test @Ignore("Need to import spark-avro.jar in hbase_sql to test in a separate Spark")
     public void testAvroPartitionColumnName() throws Exception {
-        String tablePath = getTempOutputDirectory() + "avro_partition_colname";
+        String tablePath = getExternalResourceDirectory() + "avro_partition_colname";
         methodWatcher.executeUpdate(String.format("create external table avro_patition_colname (col1 int, col2 varchar(24))" +
                 "partitioned by (col2) STORED AS AVRO LOCATION '%s'", tablePath));
         methodWatcher.executeUpdate(String.format("insert into avro_patition_colname values (1,'XXXX')," +
@@ -2812,7 +2812,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testAnalyzeOrcExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "orc_ext";
+        String tablePath = getExternalResourceDirectory()+"orc_ext";
         methodWatcher.execute(String.format("create external table orc_ext (col1 decimal(5,2), col2 varchar(5))" +
                 " STORED AS ORC LOCATION '%s'", tablePath));
         methodWatcher.execute("insert into orc_ext values (0.11, 'C')");
@@ -2828,7 +2828,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testShowCreateTableTextExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "show_text";
+        String tablePath = getExternalResourceDirectory()+"show_text";
         methodWatcher.execute(String.format("CREATE EXTERNAL TABLE myTextTable\n" +
                 "                    (col1 INT, col2 VARCHAR(24))\n" +
                 "                    PARTITIONED BY (col1)\n" +
@@ -2853,7 +2853,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testShowCreateTableOrcExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "show_orc";
+        String tablePath = getExternalResourceDirectory()+"show_orc";
         methodWatcher.execute(String.format("CREATE EXTERNAL TABLE myOrcTable\n" +
                 "                    (col1 INT, col2 VARCHAR(24))\n" +
                 "                    PARTITIONED BY (col1)\n" +
@@ -2873,7 +2873,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testShowCreateTableParquetExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "show_parquet";
+        String tablePath = getExternalResourceDirectory()+"show_parquet";
         methodWatcher.execute(String.format("CREATE EXTERNAL TABLE myParquetTable\n" +
                 "                    (col1 INT, col2 VARCHAR(24))\n" +
                 "                    PARTITIONED BY (col2)\n" +
@@ -2892,7 +2892,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testShowCreateTableSnappyParquetExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "show_snappyparquet";
+        String tablePath = getExternalResourceDirectory()+"show_snappyparquet";
         methodWatcher.execute(String.format("CREATE EXTERNAL TABLE mySnappyParquetTable\n" +
                 "                    (col1 INT, col2 VARCHAR(24), col3 INT)\n" +
                 "                    COMPRESSED WITH snappy\n" +
@@ -2915,7 +2915,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testShowCreateTableAvroExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "show_avro";
+        String tablePath = getExternalResourceDirectory()+"show_avro";
         methodWatcher.execute(String.format("CREATE EXTERNAL TABLE myAvroTable\n" +
                 "                    (col1 INT, col2 VARCHAR(24))\n" +
                 "                    PARTITIONED BY (col1)\n" +
@@ -2934,7 +2934,7 @@ public class ExternalTableIT extends SpliceUnitTestWithTempDirectory {
 
     @Test
     public void testConcurrentRead() throws Exception {
-        String tablePath = getTempOutputDirectory() + "concurrent_test";
+        String tablePath = getExternalResourceDirectory()+"concurrent_test";
         methodWatcher.execute(String.format("create external table concurrent_test ( a int)" +
                 " stored as parquet location '%s'", tablePath));
         methodWatcher.execute("insert into concurrent_test values 1,2,3,4");

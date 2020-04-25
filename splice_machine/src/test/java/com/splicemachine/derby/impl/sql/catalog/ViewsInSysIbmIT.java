@@ -16,26 +16,23 @@ package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceUnitTestWithTempDirectory;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 
 /**
  * Created by yxia on 12/17/19.
  */
-public class ViewsInSysIbmIT extends SpliceUnitTestWithTempDirectory {
+public class ViewsInSysIbmIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(ViewsInSysIbmIT.class);
     public static final String CLASS_NAME = ViewsInSysIbmIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
@@ -199,7 +196,7 @@ public class ViewsInSysIbmIT extends SpliceUnitTestWithTempDirectory {
     @Test
     @Category(HBaseTest.class)
     public void testExternalTable() throws Exception {
-        String tablePath = getTempOutputDirectory() + "orc_partition_second";
+        String tablePath = getExternalResourceDirectory()+"orc_partition_second";
         methodWatcher.execute(String.format("create external table %s.orc_part_2nd (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (col2,col3) STORED AS ORC LOCATION '%s'", CLASS_NAME, tablePath));
 
