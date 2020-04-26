@@ -152,6 +152,9 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         ap.setCoveringIndexScan(false);
         bestAp.setCoveringIndexScan(false);
         bestSortAp.setCoveringIndexScan(false);
+        ap.setSpecialMaxScan(false);
+        bestAp.setSpecialMaxScan(false);
+        bestSortAp.setSpecialMaxScan(false);
         ap.setLockMode(0);
         bestAp.setLockMode(0);
         bestSortAp.setLockMode(0);

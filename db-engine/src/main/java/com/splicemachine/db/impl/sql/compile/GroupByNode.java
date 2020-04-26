@@ -608,9 +608,12 @@ public class GroupByNode extends SingleChildResultSetNode{
                             ** any predicates at all.
                             */
                             else if(!selectHasPredicates){
-                                fbt.disableBulkFetch();
-                                fbt.doSpecialMaxScan();
-                                singleInputRowOptimization=true;
+                                // we have make the choice during costing whether to pick SpecialMaxScan
+                                if (accessPath.getSpecialMaxScan()) {
+                                    fbt.disableBulkFetch();
+                                    fbt.doSpecialMaxScan();
+                                    singleInputRowOptimization = true;
+                                }
                             }
                         }
                     }else if(an.getOperand() instanceof ConstantNode){
