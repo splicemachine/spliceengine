@@ -525,8 +525,12 @@ public class OperatorToString {
                         bao.getTypeId().getTypeFormatId() &&
                         rightOperand.getTypeId().getTypeFormatId() !=
                         bao.getTypeId().getTypeFormatId()) {
-                        doCast = true;
-                        targetType = bao.getTypeServices().toSparkString();
+                        // if date difference or date subtraction operation, the input parameter and result types are meant to be different */
+                        if (!(bao.getOperatorString() == "-" &&
+                                leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID)) {
+                            doCast = true;
+                            targetType = bao.getTypeServices().toSparkString();
+                        }
                     }
                     if (doCast) {
                         if (leftOperand.getTypeServices().getTypeId().typePrecedence() >
