@@ -989,7 +989,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet) {
+    public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet, Broadcast type) {
         try {
             Dataset<Row> leftDF = dataset;
             Dataset<Row> rightDF;
@@ -1011,7 +1011,19 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     expr = i != 0 ? expr.and(joinEquality) : joinEquality;
                 }
             }
-            Dataset<Row> joinedDF = leftDF.crossJoin(rightDF);
+            Dataset<Row> joinedDF;
+            switch (type) {
+                case LEFT:
+                    joinedDF = broadcast(leftDF).crossJoin(rightDF);
+                    break;
+                case RIGTH:
+                    joinedDF = leftDF.crossJoin(broadcast(rightDF));
+                    break;
+                case NONE:
+                default:
+                    joinedDF = leftDF.crossJoin(rightDF);
+                    break;
+            }
             if (expr != null) {
                 joinedDF = joinedDF.filter(expr);
             }

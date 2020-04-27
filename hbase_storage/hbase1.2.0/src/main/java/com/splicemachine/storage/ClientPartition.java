@@ -14,8 +14,6 @@
 
 package com.splicemachine.storage;
 
-import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.impl.driver.SIDriver;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.HNotServingRegion;
@@ -56,13 +54,13 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     private final Table table;
     private final Connection connection;
     private final Clock clock;
-    private PartitionInfoCache partitionInfoCache;
+    private PartitionInfoCache<TableName> partitionInfoCache;
 
     public ClientPartition(Connection connection,
                            TableName tableName,
                            Table table,
                            Clock clock,
-                           PartitionInfoCache partitionInfoCache){
+                           PartitionInfoCache<TableName> partitionInfoCache){
         assert tableName!=null:"Passed in tableName is null";
         this.tableName=tableName;
         this.table=table;
@@ -155,30 +153,24 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
             List<Partition> partitions;
             if (!refresh) {
                 partitions = partitionInfoCache.getIfPresent(tableName);
-                if (partitions == null) {
-                    partitions = formatPartitions(getAllRegionLocations(false));
-                    assert partitions!=null:"partitions are null";
-                    partitionInfoCache.put(tableName, partitions);
+                if (partitions != null) {
+                    return partitions;
                 }
-                return partitions;
             }
-            partitions = formatPartitions(getAllRegionLocations(true));
-            partitionInfoCache.invalidate(tableName);
-            assert partitions!=null:"partitions are null";
-            partitionInfoCache.put(tableName,partitions);
+            List<HRegionLocation> tableLocations = ((ClusterConnection) connection).locateRegions(tableName, !refresh, false);
+            partitions = new ArrayList<>(tableLocations.size());
+            for (HRegionLocation location : tableLocations){
+                if (location.getServerName() == null) {     // ensure no offline regions
+                    continue;
+                }
+                HRegionInfo regionInfo = location.getRegionInfo();
+                partitions.add(new RangedClientPartition(this, regionInfo, new RLServer(location)));
+            }
+            partitionInfoCache.put(tableName, partitions);
             return partitions;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private List<Partition> formatPartitions(List<HRegionLocation> tableLocations) {
-        List<Partition> partitions=new ArrayList<>(tableLocations.size());
-        for(HRegionLocation location : tableLocations){
-            HRegionInfo regionInfo=location.getRegionInfo();
-            partitions.add(new RangedClientPartition(this,regionInfo,new RLServer(location)));
-        }
-        return partitions;
     }
 
     @Override
