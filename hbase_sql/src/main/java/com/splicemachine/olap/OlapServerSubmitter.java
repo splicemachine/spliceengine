@@ -24,6 +24,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -115,6 +116,7 @@ public class OlapServerSubmitter implements Runnable {
     }
 
     @Override
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "intended")
     public void run() {
 
         try {
