@@ -539,6 +539,7 @@ public class FromSubquery extends FromTable
         // carry-over the fromSSQ and dependencyMap
         if (fromSSQ) {
             ((FromTable) newPRN).setFromSSQ(true);
+            ((FromTable) newPRN).setOuterJoinLevel(getOuterJoinLevel());
             ((FromTable) newPRN).setExistsTable(existsTable, isNotExists, matchRowId);
             ((FromTable) newPRN).setDependencyMap(dependencyMap);
         }
@@ -600,9 +601,26 @@ public class FromSubquery extends FromTable
 
             // selectNode.getResultColumns().setRedundant();
 
-            if (!selectNode.getWherePredicates().isEmpty())
+            PredicateList wherePredicates = selectNode.getWherePredicates();
+            if (fromSSQ) {
+                // some predicates may have been pushed to each individual fromtable in FromList(currently
+                // we only support one fromTable element in FromList to be able to be flattened),
+                // we need to pull them out, so that they can be marked with the right OuterJoinLevel
+                for (int i = 0; i < fromList.size(); i++) {
+                    FromTable ft = (FromTable) (fromList.elementAt(i));
+                    ft.pullOptPredicates(wherePredicates);
+                }
+            }
+            if (!wherePredicates.isEmpty())
             {
-                outerPList.destructiveAppend(selectNode.getWherePredicates());
+                if (fromSSQ) {
+                    // before releasing these predicates to the main SELECT, we need to mark the predicates with the
+                    // right OuterJoinLevel, so that the can be consumed at the right outer join
+                    for(int index=0;index<wherePredicates.size();index++) {
+                        wherePredicates.elementAt(index).setOuterJoinLevel(getOuterJoinLevel());
+                    }
+                }
+                outerPList.destructiveAppend(wherePredicates);
             }
 
             if (!selectNode.getWhereSubquerys().isEmpty())
@@ -615,7 +633,11 @@ public class FromSubquery extends FromTable
                 assert fromList.size() <= 1: "Scalar subquery with more than one tables in fromList cannot be flattened.";
 
                 FromTable ft = (FromTable)(fromList.elementAt(0));
+
+
+
                 ft.setFromSSQ(fromSSQ);
+                ft.setOuterJoinLevel(this.getOuterJoinLevel());
                 ft.setExistsTable(existsTable, isNotExists, matchRowId);
                 ft.setDependencyMap(this.dependencyMap);
             }

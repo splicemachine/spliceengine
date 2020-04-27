@@ -313,7 +313,7 @@ public final class TransactionResourceImpl
 	void clearContextInError()
 	{
 		csf.resetCurrentContextManager(cm);
-		csf.removeContext(cm);
+		csf.removeContextManager(cm);
 		cm = null;
 	}
 
@@ -533,7 +533,7 @@ public final class TransactionResourceImpl
 
         //DERBY-4856 thread dump
         boolean result = cm.cleanupOnError(e, diagActive);
-        csf.removeContext(cm);
+        csf.removeContextManager(cm);
         return result;
 	}
 

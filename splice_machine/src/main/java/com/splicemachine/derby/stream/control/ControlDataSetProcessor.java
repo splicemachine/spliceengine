@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
@@ -32,6 +33,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
@@ -118,7 +120,8 @@ public class ControlDataSetProcessor implements DataSetProcessor{
                             txnSupplier,transactory,txnOperationFactory);
 
                     this.region(localRegion).scanner(p.openScanner(getScan(),metricFactory)); //set the scanner
-                    TableScannerIterator tableScannerIterator=new TableScannerIterator(this,spliceOperation);
+                    SpliceOperation scanOperation = (spliceOperation instanceof ScanOperation) ? spliceOperation : null;
+                    TableScannerIterator tableScannerIterator=new TableScannerIterator(this, scanOperation);
                     if(spliceOperation!=null){
                         spliceOperation.registerCloseable(tableScannerIterator);
                         spliceOperation.registerCloseable(p);
@@ -384,8 +387,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
     
     @Override
-    public TableChecker getTableChecker(String schemaName, String tableName, DataSet table, KeyHashDecoder tableKeyDecoder, ExecRow tableKey) {
-        return new ControlTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey);
+    public TableChecker getTableChecker(String schemaName, String tableName, DataSet table,
+                                        KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix) {
+        return new ControlTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix);
     }
 
     // Operations specific to native spark explains

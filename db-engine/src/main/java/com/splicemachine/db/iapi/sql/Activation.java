@@ -644,4 +644,8 @@ public interface Activation extends Dependent
     void setBatch(Iterator<ParameterValueSet> params, PreparedStatement ps);
 
     DataSetProcessorType datasetProcessorType();
+
+    boolean isSubStatement();
+
+    void setSubStatement(boolean newValue);
 }

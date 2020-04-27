@@ -31,21 +31,17 @@
 
 package com.splicemachine.db.iapi.services.context;
 
-import java.sql.SQLException;
-import java.util.*;
-
+import com.splicemachine.db.iapi.error.*;
 import com.splicemachine.db.iapi.reference.ContextId;
-import com.splicemachine.db.iapi.error.ErrorStringBuilder;
-import com.splicemachine.db.iapi.error.ExceptionSeverity;
-import com.splicemachine.db.iapi.error.ExceptionUtil;
-import com.splicemachine.db.iapi.error.PassThroughException;
-import com.splicemachine.db.iapi.error.ShutdownException;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
+import org.apache.log4j.Logger;
+
+import java.sql.SQLException;
+import java.util.*;
 
 /**
  *
@@ -64,6 +60,8 @@ import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 
 public class ContextManager
 {
+	private static final Logger LOG = Logger.getLogger(ContextManager.class);
+
 	/**
 	 * The CtxStack implement a stack on top of an ArrayList (to avoid
 	 * the inherent overhead associated with java.util.Stack which is
@@ -73,8 +71,6 @@ public class ContextManager
 	private static final class CtxStack {
 		/** Internal list with all the elements of the stack. */
 		private final List<Context> stack_ = new ArrayList<>();
-		/** Read-only view of the internal list. */
-		private final List<Context> view_ = Collections.unmodifiableList(stack_);
 
 		// Keeping a reference to the top element on the stack
 		// optimizes the frequent accesses to this element. The
@@ -82,9 +78,9 @@ public class ContextManager
 		// expensive, but those operations are infrequent.
 		private Context top_ = null;
 
-		void push(Context context) { 
-			stack_.add(context); 
-			top_ = context; 
+		void push(Context context) {
+			stack_.add(context);
+			top_ = context;
 		}
 		void pop() {
             stack_.remove(stack_.size() - 1);
@@ -99,14 +95,19 @@ public class ContextManager
 			if(index>=0)
 				stack_.remove(index);
 		}
-		Context top() { 
-			return top_; 
+		Context top() {
+			return top_;
 		}
 		boolean isEmpty() { return stack_.isEmpty(); }
-		List<Context> getUnmodifiableList() {
-			return view_;
-		}
 	}
+
+	/**
+	 * Parent context manager used in parallel operations
+	 * Each forked task creates its own ContextManager pointing to the parent
+	 * assuming it remains unchanged until all forked tasks are joined.
+	 * Only getContext() delegates to parent.
+	 */
+	private ContextManager parent;
 
 	/**
 	 * HashMap that holds the Context objects. The Contexts are stored
@@ -159,11 +160,17 @@ public class ContextManager
 		checkInterrupt();
 		
 		final CtxStack idStack = ctxTable.get(contextId);
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( idStack == null ||
-								  idStack.isEmpty() ||
+		if (SanityManager.DEBUG) {
+			SanityManager.ASSERT(idStack == null || idStack.isEmpty() ||
 					Objects.equals(idStack.top().getIdName(), contextId));
-		return (idStack==null?null:idStack.top());
+		}
+		if (idStack != null) {
+			return idStack.top();
+		}
+		if (parent != null) {
+			return parent.getContext(contextId);
+		}
+		return null;
 	}
 
 	/**
@@ -194,8 +201,8 @@ public class ContextManager
 	}
 
 	/**
-	 * Removes the specified Context object. If
-	 * the specified Context object does not exist, the call will fail.
+	 * Removes the specified Context object. If the specified Context object does not exist
+	 * (already removed), no action is taken.
 	 * @param theContext the Context object to remove.
 	 */
 	void popContext(Context theContext)
@@ -213,8 +220,10 @@ public class ContextManager
         final String contextId = theContext.getIdName();
 		final CtxStack idStack = ctxTable.get(contextId);
 
-		// now remove it from its id's stack.
-		idStack.remove(theContext);
+		if (idStack != null) {
+			// now remove it from its id's stack.
+			idStack.remove(theContext);
+		}
 	}
     
     /**
@@ -234,14 +243,23 @@ public class ContextManager
 	 * being traversed.
 	 * @param contextId the type of Context stack to return.
 	 * @return an unmodifiable "view" of the ArrayList backing the stack
-	 * @see org.apache.derby.impl.sql.conn.GenericLanguageConnectionContext#resetSavepoints()
 	 * @see com.splicemachine.db.iapi.sql.conn.StatementContext#resetSavePoint()
 	 */
 	public final List<Context> getContextStack(String contextId) {
-		final CtxStack cs = ctxTable.get(contextId);
-		return (cs==null?Collections.EMPTY_LIST:cs.getUnmodifiableList());
+		List<Context> contexts= new ArrayList<>();
+		for (ContextManager cm = this; cm != null; cm = cm.parent) {
+			cm.accumulate(contexts, contextId);
+		}
+		return Collections.unmodifiableList(contexts);
 	}
-    
+
+	void accumulate(List<Context> contexts, String contextId) {
+		CtxStack cs = ctxTable.get(contextId);
+		if (cs != null) {
+			contexts.addAll(cs.stack_);
+		}
+	}
+
     /**
      * clean up error and print it to db.log. Extended diagnosis including
      * thread dump to db.log and javaDump if available, will print if the
@@ -324,24 +342,23 @@ forever: for (;;) {
 				flushErrorString();
 			}
 
-			
+
 			boolean	lastHandler = false;
 
 
 			/*
-				Walk down the stack, calling
-				cleanup on each context. We use
-				the vector interface to do this.
+			 *	Walk down the stack, calling cleanup on each context.
+			 *  Be robust against multiple context popping (see GenericLanguageConnectionContext).
 			 */
-cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
-
+			Context[] contexts = holder.toArray(new Context[holder.size()]);
+			for (int index = contexts.length - 1; index >= 0; --index) {
 				try {
 					if (lastHandler)
 					{
 						break;
 					}
 
-					Context ctx = ((Context) holder.get(index));
+					Context ctx = contexts[index];
 					lastHandler = ctx.isLastHandler(errorSeverity);
 
 					ctx.cleanupOnError(error);
@@ -359,9 +376,9 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
                     }
 				}
 				catch (StandardException se) {
-	
+
 					if (error instanceof StandardException) {
-	
+
 						if (se.getSeverity() > ((StandardException) error).getSeverity()) {
 							// Ok, error handling raised a more severe error,
 							// restart with the more severe error
@@ -556,13 +573,13 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 	/**
 	 * Constructs a new instance. No CtxStacks are inserted into the
 	 * hashMap as they will be allocated on demand.
-	 * @param csf the ContextService owning this ContextManager
+	 * @param parent parent context manager
 	 * @param stream error stream for reporting errors
 	 */
-	ContextManager(ContextService csf, HeaderPrintWriter stream)
+	ContextManager(ContextManager parent, HeaderPrintWriter stream)
 	{
+		this.parent = parent;
 		errorStream = stream;
-		owningCsf = csf;
 		logSeverityLevel = 0;
 		extDiagSeverityLevel = 40000;
 /*		XXX - TODO John Leach: Need to make this configurable.  Quick hack to stop hitting file system.
@@ -573,8 +590,6 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
                 ExceptionSeverity.SESSION_SEVERITY);
                 */
 	}
-
-	final ContextService owningCsf;
 
 	private int		logSeverityLevel;
     // DERBY-4856 track extendedDiagSeverityLevel variable

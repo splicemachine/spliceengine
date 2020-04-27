@@ -46,6 +46,7 @@ public final class ContextService{
     private static final Logger LOG = Logger.getLogger(ContextService.class);
 
     private static volatile ContextService factory;
+    private static volatile boolean stopped;
 
     private HeaderPrintWriter errorStream;
 
@@ -200,7 +201,8 @@ public final class ContextService{
      * So it can be given to us and taken away...
      */
     public static void stop() {
-        factory = null;
+        stopped = true;
+        factory.allContexts.clear();
     }
 
     public static ContextService getFactory() {
@@ -208,6 +210,7 @@ public final class ContextService{
             synchronized(ContextService.class){
                 if (factory == null) {
                     factory = new ContextService();
+                    stopped = false;
                 }
             }
         }
@@ -222,12 +225,12 @@ public final class ContextService{
      */
     public static Context getContext(String contextId) {
 
-        if (factory == null) {
+        if (stopped) {
             // The context service is already stopped.
             return null;
         }
 
-        ContextManager cm = factory.getCurrentContextManager();
+        ContextManager cm = getCurrentContextManager();
         if (cm == null) {
             return null;
         }
@@ -258,9 +261,9 @@ public final class ContextService{
      *
      * @return ContextManager current Context Manager
      */
-    public ContextManager getCurrentContextManager(){
+    public static ContextManager getCurrentContextManager(){
 
-        if (factory == null) {
+        if (stopped) {
             // The context service is already stopped.
             return null;
         }
@@ -279,7 +282,7 @@ public final class ContextService{
      */
     public void resetCurrentContextManager(ContextManager cm){
 
-        if (factory == null) {
+        if (stopped) {
             // The context service is already stopped.
             return;
         }
@@ -312,7 +315,7 @@ public final class ContextService{
      * variable threadContextList to reflect associateCM being
      * the current ContextManager.
      */
-    private void addToThreadList(ContextManager associateCM) {
+    private static void addToThreadList(ContextManager associateCM) {
 
         List<ContextManager> list = threadContextList.get();
         if (list.size() == 1) {
@@ -358,7 +361,7 @@ public final class ContextService{
      */
     public void setCurrentContextManager(ContextManager cm){
 
-        if (factory == null) {
+        if (stopped) {
             // The context service is already stopped.
             return;
         }
@@ -377,21 +380,25 @@ public final class ContextService{
      * in the context manager list using setCurrentContextManager.
      * We don't keep track of it due to this call being made.
      */
-    public ContextManager newContextManager(){
-        ContextManager cm=new ContextManager(this,errorStream);
+    public ContextManager newContextManager() {
+        return newContextManager(null);
+    }
 
-        // push a context that will shut down the system on
-        // a severe error.
-        new SystemContext(cm);
+    public ContextManager newContextManager(ContextManager parent){
+        ContextManager cm = new ContextManager(parent, errorStream);
+
+        if (parent == null) {
+            // push a context that will shut down the system on
+            // a severe error.
+            new SystemContext(cm);
+        }
 
         synchronized(allContexts) {
             allContexts.add(cm);
         }
 
-        if (LOG.isTraceEnabled()) {
-            if (allContexts.size() > 1000) {
-                LOG.trace("memoryLeakTrace:allContexts " + allContexts.size());
-            }
+        if (allContexts.size() > 1000) {
+            LOG.error("memoryLeakTrace:allContexts " + allContexts.size());
         }
 
         return cm;
@@ -422,7 +429,7 @@ public final class ContextService{
      * Remove a ContextManager from the list of all active
      * contexts managers.
      */
-    public void removeContext(ContextManager cm){
+    public void removeContextManager(ContextManager cm){
         synchronized (allContexts) {
             allContexts.remove(cm);
         }
@@ -434,11 +441,14 @@ public final class ContextService{
      * @param contextId ConnectionContext.CONTEXT_ID, AccessFactoryGlobals.RAMXACT_CONTEXT_ID,
      *                  AccessFactoryGlobals.USER_TRANS_NAME, LanguageConnectionContext.CONTEXT_ID, etc
      */
-    public <T extends Context> List<T> getAllContexts(String contextId){
-        List<T> contexts= new ArrayList<>();
+    public List<Context> getAllContexts(String contextId) {
+        List<Context> contexts= new ArrayList<>();
         synchronized (allContexts) {
+            /* Synchronization guards against allContexts updates only.
+             * It does not guard against updates in context managers themselves.
+             */
             for (ContextManager contextManager : allContexts) {
-                contexts.addAll((Collection<? extends T>) contextManager.getContextStack(contextId));
+                contextManager.accumulate(contexts, contextId);
             }
         }
         return contexts;

@@ -23,13 +23,11 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.Date;
+import java.util.concurrent.ThreadLocalRandom;
+
 /**
  * Created by dgomezferro on 12/07/2017.
  */
@@ -39,7 +37,8 @@ public class OperationManagerImpl implements OperationManager {
     private ConcurrentMap<String, RunningOperation> drdaOperations = new ConcurrentHashMap();
 
     public UUID registerOperation(SpliceOperation operation, Thread executingThread, Date submittedTime, DataSetProcessor.Type engine, String rdbIntTkn) {
-        UUID uuid = UUID.randomUUID();
+        Random rnd = ThreadLocalRandom.current();
+        UUID uuid = new UUID(rnd.nextLong(), rnd.nextLong());
         RunningOperation ro = new RunningOperation(operation, executingThread, submittedTime, engine, uuid, rdbIntTkn);
         operations.put(uuid, ro);
         if (rdbIntTkn != null)

@@ -1360,7 +1360,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
         return properties;
     }
 
-    public void setDependencyMapForSSQ(int numTables) {
+    public void moveSSQAndSetDependencyMap(int numTables) {
         // iterate through the list to collect the tablenumber
         JBitSet dependencyMap = new JBitSet(numTables);
         for(int i=0; i<size(); i++) {
@@ -1369,11 +1369,19 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                 dependencyMap.or(fromTable.getReferencedTableMap());
         }
 
-        // set dependencyMap
-        for (int i=0; i<size(); i++) {
-            FromTable fromTable = (FromTable) elementAt(i);
-            if (fromTable.getFromSSQ())
+        ArrayList<FromTable> ssqList = new ArrayList<>();
+        Iterator<QueryTreeNode> itr = iterator();
+        while (itr.hasNext()) {
+            FromTable fromTable = (FromTable)itr.next();
+            if (fromTable.getFromSSQ()) {
                 fromTable.setDependencyMap((JBitSet)dependencyMap.clone());
+                itr.remove();
+                ssqList.add(fromTable);
+            }
+        }
+        if (!ssqList.isEmpty()) {
+            for (FromTable fromTable: ssqList)
+                addElement(fromTable);
         }
     }
 }

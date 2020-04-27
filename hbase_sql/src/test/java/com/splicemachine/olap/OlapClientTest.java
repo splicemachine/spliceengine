@@ -24,10 +24,7 @@ import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -126,7 +123,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test
+    @Test @Ignore("DB-9279")
     public void concurrencyTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
@@ -189,7 +186,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test
+    @Test @Ignore("DB-9279")
     public void overflowTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];
@@ -326,7 +323,7 @@ public class OlapClientTest {
         assertEquals(4, result.order);
     }
 
-    @Test
+    @Test @Ignore("DB-9264")
     public void testOlapClientReconnectionAfterFailure() throws Exception{
        /*
         * Tests what would happen if the server went down after we had successfully submitted, but while

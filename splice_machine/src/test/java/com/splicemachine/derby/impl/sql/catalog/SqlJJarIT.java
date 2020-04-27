@@ -189,6 +189,10 @@ public class SqlJJarIT extends SpliceUnitTest {
 		rc = methodWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
+		// Install another jar file of user-defined stored procedures in the same schema
+		rc = methodWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME+"_NEW"));
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
 		// Add the jar file into the global DB class path.
 		rc = methodWatcher.executeUpdate(String.format(CALL_SET_GLOBAL_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
@@ -247,6 +251,11 @@ public class SqlJJarIT extends SpliceUnitTest {
 		// Remove the jar file from the DB.
 		rc = methodWatcher.executeUpdate(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME));
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Remove the another jar file from the DB.
+		rc = methodWatcher.executeUpdate(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME+"_NEW"));
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
 
 		// Compare that the number of SYSFILES matches the original count.
 		rs = methodWatcher.executeQuery(SELECT_FROM_SYSFILES);

@@ -239,7 +239,7 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
 
     @Test
     public void testOuterJoinWithUnion() throws Exception {
-        String sqlText = "select * from t1 left join (select a2 as X from t2 union all select a3 as X from t3) dt on a1=X and X=3";
+        String sqlText = "select * from t1 left join (select a2 as X from t2 union all select a3 as X from t3) dt --splice-properties joinStrategy=nestedloop \n on a1=X and X=3";
         rowContainsQuery(new int[]{3, 4, 5, 6, 7}, "explain " + sqlText, methodWatcher,
                 new String[]{"LeftOuterJoin"},
                 new String[]{"ProjectRestrict", "preds=[(X[8:1] = 3)]"},

@@ -290,9 +290,28 @@ public class SpliceUnitTest {
 
 
     protected void queryDoesNotContainString(String query, String notContains,SpliceWatcher methodWatcher) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery(query);
-        while (resultSet.next())
-            Assert.assertFalse("failed query: " + query + " -> " + resultSet.getString(1), resultSet.getString(1).contains(notContains));
+        queryDoesNotContainString(query,new String[] {notContains}, methodWatcher, false);
+    }
+
+    protected void queryDoesNotContainString(String query, String[] notContains,SpliceWatcher methodWatcher, boolean caseInsensitive) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(query);
+            String matchString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            if (caseInsensitive)
+                matchString = matchString.toUpperCase();
+
+            for (String str: notContains) {
+                if (caseInsensitive)
+                    str = str.toUpperCase();
+                if (matchString.contains(str))
+                    fail("ResultSet should not contain string: " + str);
+            }
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
     }
 
     public static void rowsContainsQuery(String query, Contains mustContain, SpliceWatcher methodWatcher) throws Exception {
@@ -373,7 +392,7 @@ public class SpliceUnitTest {
                 containedString = containedString.toUpperCase();
             }
             if (!matchString.contains(containedString))
-                fail("ResultSet does not contain string: " + containedString);
+                fail("ResultSet does not contain string: " + containedString + "\nResult set:\n"+matchString);
         }
         finally {
             if (rs != null)
@@ -576,20 +595,22 @@ public class SpliceUnitTest {
         Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(2));
     }
 
-    protected static void validateMergeResults(ResultSet resultSet, int updated,int inserted, int bad) throws SQLException {
+    protected static void validateMergeResults(ResultSet resultSet, int affected, int updated,int inserted, int bad) throws SQLException {
         Assert.assertTrue("No rows returned!",resultSet.next());
-        Assert.assertEquals("Incorrect number of rows reported!",updated,resultSet.getInt(1));
-        Assert.assertEquals("Incorrect number of rows reported!",inserted,resultSet.getInt(2));
-        Assert.assertEquals("Incorrect number of files reported!",1,resultSet.getInt(4));
-        Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(3));
+        Assert.assertEquals("Incorrect number of rows reported!",affected,resultSet.getInt(1));
+        Assert.assertEquals("Incorrect number of rows reported!",updated,resultSet.getInt(2));
+        Assert.assertEquals("Incorrect number of rows reported!",inserted,resultSet.getInt(3));
+        Assert.assertEquals("Incorrect number of files reported!",1,resultSet.getInt(5));
+        Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(4));
     }
 
-    protected static void validateMergeResults(ResultSet resultSet, int updated,int inserted, int bad, int file) throws SQLException {
+    protected static void validateMergeResults(ResultSet resultSet, int affected, int updated,int inserted, int bad, int file) throws SQLException {
         Assert.assertTrue("No rows returned!",resultSet.next());
-        Assert.assertEquals("Incorrect number of rows reported!",updated,resultSet.getInt(1));
-        Assert.assertEquals("Incorrect number of rows reported!",inserted,resultSet.getInt(2));
-        Assert.assertEquals("Incorrect number of files reported!",file,resultSet.getInt(4));
-        Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(3));
+        Assert.assertEquals("Incorrect number of rows reported!",affected,resultSet.getInt(1));
+        Assert.assertEquals("Incorrect number of rows reported!",updated,resultSet.getInt(2));
+        Assert.assertEquals("Incorrect number of rows reported!",inserted,resultSet.getInt(3));
+        Assert.assertEquals("Incorrect number of files reported!",file,resultSet.getInt(5));
+        Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(4));
     }
 
     public static String printMsgSQLState(String testName, SQLException e) {

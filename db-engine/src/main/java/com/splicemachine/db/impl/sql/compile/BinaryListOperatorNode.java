@@ -70,6 +70,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     ValueNodeList rightOperandList;
     
     boolean singleLeftOperand = false;
+    int outerJoinLevel;
 
     /**
      * Initializer for a BinaryListOperatorNode
@@ -441,5 +442,13 @@ public abstract class BinaryListOperatorNode extends ValueNode{
             return false;
 
         return true;
+    }
+
+    public int getOuterJoinLevel() {
+        return outerJoinLevel;
+    }
+
+    public void setOuterJoinLevel(int level) {
+        outerJoinLevel = level;
     }
 }

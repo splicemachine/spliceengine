@@ -586,7 +586,13 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "-5844 |",
             "1 |\n" +
             "----\n" +
-            " 3 |"
+            " 3 |",
+            "1 |\n" +
+            "----\n" +
+            " 1 |",
+            "1  |\n" +
+            "-----\n" +
+            "1.0 |"
         };
 
         String query[] = {
@@ -690,9 +696,11 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "select rand(13.3) from t1 --splice-properties useSpark=%s\n",
             "select (7+DATE('2017-9-22')) from t1 --splice-properties useSpark=%s\n",
             "select c || c || c || c from t1 --splice-properties useSpark=%s\n",
-            "select DATE('2017-01-01') - a from t6 --splice-properties useSpark=%s\n",
-            "select a - DATE('2017-01-01') from t6 --splice-properties useSpark=%s\n",
-            "select a - (b-3) from t6 --splice-properties useSpark=%s\n"
+            "select DATE('2017-01-01') - X.a from t6 as X --splice-properties useSpark=%s\n, t6 as Y where X.a=Y.a",
+            "select X.a - DATE('2017-01-01') from t6 as X --splice-properties useSpark=%s\n, t6 as Y where X.a=Y.a",
+            "select X.a - (X.b-3) from t6 as X --splice-properties useSpark=%s\n, t6 as Y where X.a=Y.a",
+            "select round(avg(1)) from t1 --splice-properties useSpark=%s\n",
+            "select round(avg(1),1) from t1 --splice-properties useSpark=%s\n"
         };
 
         for (int i = 0; i < query.length; i++) {

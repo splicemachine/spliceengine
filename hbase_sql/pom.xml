@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.1951-SNAPSHOT</version>
+        <version>3.0.0.1957-SNAPSHOT</version>
     </parent>
     <properties>
         <argLine>-Xmx4g ${jacocoAgent}</argLine>
@@ -70,7 +70,6 @@
             <artifactId>spark_sql</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}</classifier>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
