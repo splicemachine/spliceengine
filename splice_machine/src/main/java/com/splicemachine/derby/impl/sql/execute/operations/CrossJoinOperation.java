@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -125,6 +127,18 @@ public class CrossJoinOperation extends JoinOperation{
                 (this.leftHashKeys.length == 0 || !containsUnsafeSQLRealComparison());
         if (usesNativeSparkDataSet)
             dsp.finalizeTempOperationStrings();
+
+        SConfiguration configuration = EngineDriver.driver().getConfiguration();
+
+        double leftCount = leftResultSet.getEstimatedRowCount();
+        double rightCount = rightResultSet.getEstimatedRowCount();
+        long threshold = configuration.getBroadcastRegionRowThreshold();
+
+        DataSet.Broadcast type =
+                leftCount <= rightCount && leftCount < threshold ? DataSet.Broadcast.LEFT :
+                rightCount < threshold ? DataSet.Broadcast.RIGTH :
+                DataSet.Broadcast.NONE;
+
         DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
         dsp.finalizeTempOperationStrings();
         DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
@@ -136,7 +150,7 @@ public class CrossJoinOperation extends JoinOperation{
         DataSet<ExecRow> result;
 
         if (usesNativeSparkDataSet) {
-            result = leftDataSet.crossJoin(operationContext, rightDataSet);
+            result = leftDataSet.crossJoin(operationContext, rightDataSet, type);
             if (restriction != null) {
                 result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
             }
