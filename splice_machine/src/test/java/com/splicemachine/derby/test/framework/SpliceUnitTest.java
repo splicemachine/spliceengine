@@ -373,7 +373,7 @@ public class SpliceUnitTest {
                 containedString = containedString.toUpperCase();
             }
             if (!matchString.contains(containedString))
-                fail("ResultSet does not contain string: " + containedString);
+                fail("ResultSet does not contain string: " + containedString + "\nResult set:\n"+matchString);
         }
         finally {
             if (rs != null)

@@ -17,9 +17,12 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.log4j.Logger;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
@@ -28,12 +31,14 @@ import org.spark_project.guava.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.SQLSyntaxErrorException;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
+@Category(HBaseTest.class)
 @RunWith(Parameterized.class)
 public class SparkExplainIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(SparkExplainIT.class);
@@ -62,7 +67,6 @@ public class SparkExplainIT extends SpliceUnitTest {
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     public static void createData(Connection conn, String schemaName) throws Exception {
-
         new TableCreator(conn)
                 .withCreate("create table t1(a1 int not null, b1 int, c1 int, primary key(c1))")
                 .withInsert("insert into t1 values(?,?,?)")
@@ -251,12 +255,23 @@ public class SparkExplainIT extends SpliceUnitTest {
                 " PRIMARY KEY (N_NATIONKEY)\n" +
                 " )")
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("CREATE TABLE BIG (i int)")
+                .create();
+
         conn.commit();
     }
 
     @BeforeClass
     public static void createDataSet() throws Exception {
-        createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
+        TestConnection conn = spliceClassWatcher.getOrCreateConnection();
+        String schema = spliceSchemaWatcher.toString();
+        createData(conn, schema);
+        try (Statement st = conn.createStatement()) {
+            st.execute(String.format("CALL SYSCS_UTIL.FAKE_TABLE_STATISTICS('%s', 'BIG', 100000, 100, 20)", schema));
+        }
+        conn.commit();
     }
 
     @Test
@@ -772,4 +787,30 @@ public class SparkExplainIT extends SpliceUnitTest {
         testQueryContains(sqlText, Arrays.asList("partial_sum", "GroupBy"), methodWatcher, true);
     }
 
+    @Test
+    public void testCrossJoinCartesianProduct() throws Exception {
+        if (useSpark.equalsIgnoreCase("false")) return; // cross join only has Spark implementation
+        String sqlText = "sparkexplain select count(*) from --splice-properties joinOrder=fixed\n" +
+                "        big --splice-properties useSpark=true, joinStrategy=cross\n" +
+                "        inner join big on 1=1";
+        testQueryContains(sqlText, "CartesianProduct", methodWatcher, true);
+    }
+
+    @Test
+    public void testCrossJoinBroadcastRight() throws Exception {
+        if (useSpark.equalsIgnoreCase("false")) return; // cross join only has Spark implementation
+        String sqlText = "sparkexplain select count(*) from --splice-properties joinOrder=fixed\n" +
+                "        t1 --splice-properties useSpark=true, joinStrategy=cross\n" +
+                "        inner join big on 1=1";
+        testQueryContains(sqlText, "BroadcastNestedLoopJoin BuildRight, Cross", methodWatcher, true);
+    }
+
+    @Test
+    public void testCrossJoinBroadcastLeft() throws Exception {
+        if (useSpark.equalsIgnoreCase("false")) return; // cross join only has Spark implementation
+        String sqlText = "sparkexplain select count(*) from --splice-properties joinOrder=fixed\n" +
+                "        big --splice-properties useSpark=true, joinStrategy=cross\n" +
+                "        inner join t1 on 1=1";
+        testQueryContains(sqlText, "BroadcastNestedLoopJoin BuildLeft, Cross", methodWatcher, true);
+    }
 }

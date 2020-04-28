@@ -52,6 +52,8 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.vti.DeferModification;
@@ -225,6 +227,8 @@ public class DeleteNode extends DMLModStatementNode
 
                 /* Set the new result column list in the result set */
                 resultSet.setResultColumns(resultColumnList);
+                /* Bind the expressions before the ResultColumns are bound */
+                super.bindExpressions();
             }
             else
             {
@@ -261,35 +265,63 @@ public class DeleteNode extends DMLModStatementNode
                     readColsBitSet = null;
                 }
 
+                /* Set the new result column list in the result set */
+                resultSet.setResultColumns(resultColumnList);
+                /* Bind the expressions before the ResultColumns are bound */
+                super.bindExpressions();
                 /*
                 ** Construct an empty heap row for use in our constant action.
                 */
                 emptyHeapRow = targetTableDescriptor.getEmptyExecRow();
 
                 /* Generate the RowLocation column */
-                rowLocationNode = (CurrentRowLocationNode) getNodeFactory().getNode(
-                                        C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
-                                        getContextManager());
-                rowLocationColumn =
-                    (ResultColumn) getNodeFactory().getNode(
+                ResultColumn rowIdColumn = targetTable.getRowIdColumn();
+                if (rowIdColumn == null) {
+                    rowLocationNode = (CurrentRowLocationNode) getNodeFactory().getNode(
+                            C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
+                            getContextManager());
+                    rowIdColumn =
+                            (ResultColumn) getNodeFactory().getNode(
                                     C_NodeTypes.RESULT_COLUMN,
                                     COLUMNNAME,
                                     rowLocationNode,
                                     getContextManager());
-                rowLocationColumn.markGenerated();
+
+                    rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
+                                    false		/* Not nullable */
+                            )
+                    );
+                    rowIdColumn.markGenerated();
+                    targetTable.setRowIdColumn(rowIdColumn);
+                } else {
+                    rowIdColumn.setName(COLUMNNAME);
+                }
+
+                ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
+                        C_NodeTypes.COLUMN_REFERENCE,
+                        rowIdColumn.getName(),
+                        null,
+                        getContextManager());
+                columnReference.setSource(rowIdColumn);
+                columnReference.setNestingLevel(targetTable.getLevel());
+                columnReference.setSourceLevel(targetTable.getLevel());
+                rowLocationColumn =
+                        (ResultColumn) getNodeFactory().getNode(
+                                C_NodeTypes.RESULT_COLUMN,
+                                COLUMNNAME,
+                                columnReference,
+                                getContextManager());
+
+                rowLocationColumn.bindResultColumnToExpression();
 
                 /* Append to the ResultColumnList */
                 resultColumnList.addResultColumn(rowLocationColumn);
 
                 /* Force the added columns to take on the table's correlation name, if any */
                 correlateAddedColumns( resultColumnList, targetTable );
-
-                /* Set the new result column list in the result set */
-                resultSet.setResultColumns(resultColumnList);
             }
 
-            /* Bind the expressions before the ResultColumns are bound */
-            super.bindExpressions();
+
 
             /* Bind untyped nulls directly under the result columns */
             resultSet.getResultColumns().
