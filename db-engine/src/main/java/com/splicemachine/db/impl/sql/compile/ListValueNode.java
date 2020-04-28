@@ -103,7 +103,7 @@ public final class ListValueNode extends ValueNode {
         int maxWidth = 0;
         for (int index = 0; index < size; index++) {
             int tempWidth = ((ValueNode) valuesList.elementAt(index)).getTypeServices().getMaximumWidth();
-            if ((tempWidth + maxWidth) > Integer.MAX_VALUE) {
+            if ((long) tempWidth + (long) maxWidth > Integer.MAX_VALUE) {
                 return Integer.MAX_VALUE;
             }
             maxWidth += tempWidth;
@@ -176,15 +176,15 @@ public final class ListValueNode extends ValueNode {
      * @return The value as a string.
      */
     public String toString() {
-        String valueString = new String();
-        valueString.concat("(");
+        StringBuilder s = new StringBuilder();
+        s.append("(");
         for (int i = 0; i < valuesList.size(); i++) {
-            valueString.concat(((ValueNode) valuesList.elementAt(i)).toString());
+            s.append(valuesList.elementAt(i).toString());
             if (i != valuesList.size() - 1)
-                valueString.concat(", ");
+                s.append(", ");
         }
-        valueString.concat(")");
-        return valueString;
+        s.append(")");
+        return s.toString();
     }
     
     public int hashCode() {
@@ -272,8 +272,18 @@ public final class ListValueNode extends ValueNode {
         return this;
     }
     
-    public List getChildren() {
+    public List<? extends QueryTreeNode> getChildren() {
         return Collections.EMPTY_LIST;
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        throw new UnsupportedOperationException("Not Implemented");
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        throw new UnsupportedOperationException("Not Implemented");
     }
 
     @Override
