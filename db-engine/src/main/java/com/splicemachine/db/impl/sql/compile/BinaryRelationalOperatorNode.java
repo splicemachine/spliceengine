@@ -1553,8 +1553,9 @@ public class BinaryRelationalOperatorNode
                         selectivity = (1 - left.nullSelectivity())/innerRowCount;
                         if ((optTable instanceof FromBaseTable) && ((FromBaseTable) optTable).isAntiJoin()) {
                             // following the above assumption, no row will be returned, but to be conservative, we will
-                            // assume 10% selectivity from left rows
-                            selectivity = 0.1 * selectivity;
+                            // assume 10% selectivity from left rows (we assume at least one value from the left table will
+                            // survive the semi-exclusion join)
+                            selectivity = DEFAULT_SINGLE_POINT_SELECTIVITY * selectivity;
                         }
                     }
                 }
