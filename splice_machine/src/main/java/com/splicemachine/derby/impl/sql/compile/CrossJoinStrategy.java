@@ -270,7 +270,9 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         assert outerCost.getRemoteCostPerPartition() != 0d || outerCost.remoteCost() == 0d;
         double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.partitionCount();
         double innerRemoteCost = innerCost.getRemoteCostPerPartition()*innerCost.partitionCount();
-        // the cost is similar to broadcast join except that the joingRowCost is larger as it is lack of equality conditions
+        // the cost is similar to broadcast join except that the joiningRowCost for cross join is larger.
+        // This is because cross join needs to evaluate all combinations of rows from left and right table,
+        // while broadcast join only evaluate the combination of rows from left and right with the same value.
         return outerCost.getLocalCostPerPartition() +
                 (innerLocalCost + innerRemoteCost) +innerCost.getOpenCost()+innerCost.getCloseCost()+.01 +
         joiningRowCost/outerCost.partitionCount();
