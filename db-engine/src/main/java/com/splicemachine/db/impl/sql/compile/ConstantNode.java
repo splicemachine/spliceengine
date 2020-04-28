@@ -292,10 +292,19 @@ public abstract class ConstantNode extends ValueNode
         return false;
     }
 
-    public List getChildren() {
+    public List<? extends QueryTreeNode> getChildren() {
         return Collections.EMPTY_LIST;
     }
 
+    @Override
+    public QueryTreeNode getChild(int index) {
+        throw new UnsupportedOperationException("Not Implemented");
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        throw new UnsupportedOperationException("Not Implemented");
+    }
 
     @Override
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
