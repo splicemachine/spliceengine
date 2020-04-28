@@ -163,32 +163,32 @@ public class BinaryRelationalOperatorNode
     public InListOperatorNode getInListOp() throws StandardException {
         if(inListProbeSource!=null){
             /* Depending on where this probe predicate currently sits
-			 * in the query tree, this.leftOperand *may* have been
-			 * transformed, replaced, or remapped one or more times
-			 * since inListProbeSource was last referenced. Since the
-			 * leftOperand of the IN list should be the same regardless
-			 * of which "version" of the operation we're looking at
-			 * (i.e. the "probe predicate" version (this node) vs the
-			 * original version (inListProbeSource)), we have to make
-			 * sure that all of the changes made to this.leftOperand
-			 * are reflected in inListProbeSource's leftOperand, as
-			 * well.  In doing so we ensure the caller of this method
-			 * will see an up-to-date version of the InListOperatorNode--
-			 * and thus, if the caller references the InListOperatorNode's
-			 * leftOperand, it will see the correct information. One
-			 * notable example of this is at code generation time, where
-			 * if this probe predicate is deemed "not useful", we'll
-			 * generate the underlying InListOperatorNode instead of
-			 * "this".  For that to work correctly, the InListOperatorNode
-			 * must have the correct leftOperand. DERBY-3253.
-			 *
-			 * That said, since this.leftOperand will always be "up-to-
-			 * date" w.r.t. the current query tree (because this probe
-			 * predicate sits in the query tree and so all relevant
-			 * transformations will be applied here), the simplest way
-			 * to ensure the underlying InListOperatorNode also has an
-			 * up-to-date leftOperand is to set it to this.leftOperand.
-			 */
+             * in the query tree, this.leftOperand *may* have been
+             * transformed, replaced, or remapped one or more times
+             * since inListProbeSource was last referenced. Since the
+             * leftOperand of the IN list should be the same regardless
+             * of which "version" of the operation we're looking at
+             * (i.e. the "probe predicate" version (this node) vs the
+             * original version (inListProbeSource)), we have to make
+             * sure that all of the changes made to this.leftOperand
+             * are reflected in inListProbeSource's leftOperand, as
+             * well.  In doing so we ensure the caller of this method
+             * will see an up-to-date version of the InListOperatorNode--
+             * and thus, if the caller references the InListOperatorNode's
+             * leftOperand, it will see the correct information. One
+             * notable example of this is at code generation time, where
+             * if this probe predicate is deemed "not useful", we'll
+             * generate the underlying InListOperatorNode instead of
+             * "this".  For that to work correctly, the InListOperatorNode
+             * must have the correct leftOperand. DERBY-3253.
+             *
+             * That said, since this.leftOperand will always be "up-to-
+             * date" w.r.t. the current query tree (because this probe
+             * predicate sits in the query tree and so all relevant
+             * transformations will be applied here), the simplest way
+             * to ensure the underlying InListOperatorNode also has an
+             * up-to-date leftOperand is to set it to this.leftOperand.
+             */
             // No remapping of multicolumn IN list for now.
             if (inListProbeSource.leftOperandList.size() == 1)
                 inListProbeSource.setLeftOperand(this.leftOperand);
@@ -211,17 +211,17 @@ public class BinaryRelationalOperatorNode
         boolean walkSubtree=true;
         List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
         if(columnReferences != null && columnReferences.size() == 1){
-			/*
-			** The left operand is a column reference.
-			** Is it the correct column?
-			*/
-			ColumnReference cr = columnReferences.get(0);
+            /*
+            ** The left operand is a column reference.
+            ** Is it the correct column?
+            */
+            ColumnReference cr = columnReferences.get(0);
             if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
-				/*
-				** The table is correct, how about the column position?
-				*/
+                /*
+                ** The table is correct, how about the column position?
+                */
                 if(cr.getSource().getColumnPosition()==columnPosition){
-					/* We've found the correct column - return it */
+                    /* We've found the correct column - return it */
                     return cr;
                 }
             }
@@ -231,18 +231,18 @@ public class BinaryRelationalOperatorNode
         if(columnReferences != null && columnReferences.size() == 1){
             ColumnReference cr = columnReferences.get(0);
             if (valNodeReferencesOptTable(cr, ft, false, walkSubtree)) {
-				/*
-				** The table is correct, how about the column position?
-				*/
+                /*
+                ** The table is correct, how about the column position?
+                */
                 if (cr.getSource().getColumnPosition() == columnPosition) {
-					/* We've found the correct column - return it */
+                    /* We've found the correct column - return it */
                     return cr;
                 }
             }
 
         }
 
-		/* Neither side is the column we're looking for */
+        /* Neither side is the column we're looking for */
         return null;
     }
 
@@ -252,30 +252,30 @@ public class BinaryRelationalOperatorNode
 
         boolean walkSubtree=true;
         if(leftOperand instanceof ColumnReference){
-			/*
-			** The left operand is a column reference.
-			** Is it the correct column?
-			*/
+            /*
+            ** The left operand is a column reference.
+            ** Is it the correct column?
+            */
             cr=(ColumnReference)leftOperand;
             if(valNodeReferencesOptTable(cr,(FromTable)optTable,false,walkSubtree)){
-				/*
-				** The table is correct.
-				*/
+                /*
+                ** The table is correct.
+                */
                 return cr;
             }
             walkSubtree=false;
         }
 
         if(rightOperand instanceof ColumnReference){
-			/*
-			** The right operand is a column reference.
-			** Is it the correct column?
-			*/
+            /*
+            ** The right operand is a column reference.
+            ** Is it the correct column?
+            */
             cr=(ColumnReference)rightOperand;
             if(valNodeReferencesOptTable(cr,(FromTable)optTable,false,walkSubtree)){
-				/*
-				** The table is correct
-				*/
+                /*
+                ** The table is correct
+                */
                 return cr;
             }
         }
@@ -297,7 +297,7 @@ public class BinaryRelationalOperatorNode
                 }
             }
         }
-		/* Neither side is the column we're looking for */
+        /* Neither side is the column we're looking for */
         return null;
     }
 
@@ -307,23 +307,23 @@ public class BinaryRelationalOperatorNode
         boolean walkSubtree=true;
 
         if(leftOperand instanceof ColumnReference){
-			/*
-			** The left operand is a column reference.
-			** Is it the correct column?
-			*/
+            /*
+            ** The left operand is a column reference.
+            ** Is it the correct column?
+            */
             cr=(ColumnReference)leftOperand;
             if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
                 return rightOperand;
             }
             if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
-				/*
-				** The table is correct, how about the column position?
-				*/
+                /*
+                ** The table is correct, how about the column position?
+                */
                 if(cr.getSource().getColumnPosition()==columnPosition){
-					/*
-					** We've found the correct column -
-					** return the other side
-					*/
+                    /*
+                    ** We've found the correct column -
+                    ** return the other side
+                    */
                     return rightOperand;
                 }
             }
@@ -331,23 +331,23 @@ public class BinaryRelationalOperatorNode
         }
 
         if(rightOperand instanceof ColumnReference){
-			/*
-			** The right operand is a column reference.
-			** Is it the correct column?
-			*/
+            /*
+            ** The right operand is a column reference.
+            ** Is it the correct column?
+            */
             cr=(ColumnReference)rightOperand;
             if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
                 return leftOperand;
             }
             if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
-				/*
-				** The table is correct, how about the column position?
-				*/
+                /*
+                ** The table is correct, how about the column position?
+                */
                 if(cr.getSource().getColumnPosition()==columnPosition){
-					/*
-					** We've found the correct column -
-					** return the other side
-					*/
+                    /*
+                    ** We've found the correct column -
+                    ** return the other side
+                    */
                     return leftOperand;
                 }
             }
@@ -386,23 +386,23 @@ public class BinaryRelationalOperatorNode
 
             ColumnReference cr;
             if(leftOperand instanceof ColumnReference){
-				/*
-				** The left operand is a column reference.
-				** Is it the correct column?
-				*/
+                /*
+                ** The left operand is a column reference.
+                ** Is it the correct column?
+                */
                 cr=(ColumnReference)leftOperand;
                 cr.accept(btnVis);
                 valNodeBaseTables.and(optBaseTables);
                 if(valNodeBaseTables.getFirstSetBit()!=-1){
-					/*
-					** The table is correct, how about the column position?
-					*/
+                    /*
+                    ** The table is correct, how about the column position?
+                    */
                     if(cr.getSource().getColumnPosition()==
                             colNum){
-						/*
-						** We've found the correct column -
-						** return the appropriate side.
-						*/
+                        /*
+                        ** We've found the correct column -
+                        ** return the appropriate side.
+                        */
                         if(otherSide)
                             return rightOperand;
                         return leftOperand;
@@ -411,24 +411,24 @@ public class BinaryRelationalOperatorNode
             }
 
             if(rightOperand instanceof ColumnReference){
-				/*
-				** The right operand is a column reference.
-				** Is it the correct column?
-				*/
+                /*
+                ** The right operand is a column reference.
+                ** Is it the correct column?
+                */
                 valNodeBaseTables.clearAll();
                 cr=(ColumnReference)rightOperand;
                 cr.accept(btnVis);
                 valNodeBaseTables.and(optBaseTables);
                 if(valNodeBaseTables.getFirstSetBit()!=-1){
-					/*
-					** The table is correct, how about the column position?
-					*/
+                    /*
+                    ** The table is correct, how about the column position?
+                    */
                     if(cr.getSource().getColumnPosition()==
                             colNum){
-						/*
-						** We've found the correct column -
-						** return the appropriate side
-						*/
+                        /*
+                        ** We've found the correct column -
+                        ** return the appropriate side
+                        */
                         if(otherSide)
                             return leftOperand;
                         return rightOperand;
@@ -494,10 +494,10 @@ public class BinaryRelationalOperatorNode
 
         lcr = leftOperand.getHashableJoinColumnReference();
 
-		/*
-		** Figure out which side the given ColumnReference is on,
-		** and look for the same table on the other side.
-		*/
+        /*
+        ** Figure out which side the given ColumnReference is on,
+        ** and look for the same table on the other side.
+        */
         if(lcr != null && lcr.size() == 1 && lcr.get(0) == cr){
             otherSide=rightOperand;
         }else {
@@ -513,9 +513,10 @@ public class BinaryRelationalOperatorNode
             }
         }
 
+        assert otherSide != null;
         tablesReferenced=otherSide.getTablesReferenced();
 
-		/* Return true if the table we're looking for is in the bit map */
+        /* Return true if the table we're looking for is in the bit map */
         return tablesReferenced.get(cr.getTableNumber());
     }
 
@@ -526,10 +527,10 @@ public class BinaryRelationalOperatorNode
 
         BinaryRelationalOperatorNodeUtil.coerceDataTypeIfNecessary(this);
 
-		/*
+        /*
         ** Determine whether this operator is a useful start operator
-		** with knowledge of whether the key column is on the left or right.
-		*/
+        ** with knowledge of whether the key column is on the left or right.
+        */
         int columnSide = columnOnOneSide(optTable);
 
         return columnSide != NEITHER && usefulStartKey(columnSide == LEFT);
@@ -553,11 +554,11 @@ public class BinaryRelationalOperatorNode
     protected boolean keyColumnOnLeft(Optimizable optTable){
         boolean left=false;
 
-		/* Is the key column on the left or the right? */
+        /* Is the key column on the left or the right? */
         List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
         if (columnReferences != null && columnReferences.size() == 1) {
             if (valNodeReferencesOptTable(columnReferences.get(0), (FromTable) optTable, false, true)) {
-				/* The left operand is the key column */
+                /* The left operand is the key column */
                 left = true;
             }
         }
@@ -568,7 +569,7 @@ public class BinaryRelationalOperatorNode
                 columnReferences = rightOperand.getHashableJoinColumnReference();
                 if (columnReferences != null && columnReferences.size() ==1) {
                     if(valNodeReferencesOptTable(columnReferences.get(0),(FromTable)optTable,false,true)){
-				    /* The right operand is the key column */
+                    /* The right operand is the key column */
                         right=true;
                     }
                 }
@@ -599,30 +600,30 @@ public class BinaryRelationalOperatorNode
         boolean left=false;
         boolean walkSubtree=true;
 
-		/* Is a column on the left */
+        /* Is a column on the left */
         if(leftOperand instanceof ColumnReference){
-			/*
-			** The left operand is a column reference.
-			** Is it the correct column?
-			*/
+            /*
+            ** The left operand is a column reference.
+            ** Is it the correct column?
+            */
             cr=(ColumnReference)leftOperand;
             if(valNodeReferencesOptTable(
                     cr,(FromTable)optTable,false,walkSubtree)){
-				/* Key column found on left */
+                /* Key column found on left */
                 return LEFT;
             }
             walkSubtree=false;
         }
 
         if(rightOperand instanceof ColumnReference){
-			/*
-			** The right operand is a column reference.
-			** Is it the correct column?
-			*/
+            /*
+            ** The right operand is a column reference.
+            ** Is it the correct column?
+            */
             cr=(ColumnReference)rightOperand;
             if(valNodeReferencesOptTable(
                     cr,(FromTable)optTable,false,walkSubtree)){
-				/* Key column found on right */
+                /* Key column found on right */
                 return RIGHT;
             }
         }
@@ -635,9 +636,9 @@ public class BinaryRelationalOperatorNode
      */
     public boolean usefulStopKey(Optimizable optTable) {
         /*
-		** Determine whether this operator is a useful start operator
-		** with knowledge of whether the key column is on the left or right.
-		*/
+        ** Determine whether this operator is a useful start operator
+        ** with knowledge of whether the key column is on the left or right.
+        */
         int columnSide = columnOnOneSide(optTable);
 
         return columnSide != NEITHER && usefulStopKey(columnSide == LEFT);
@@ -648,7 +649,7 @@ public class BinaryRelationalOperatorNode
      * with knowledge of whether the key column is on the left or right.
      *
      * @param left    true means the key column is on the left, false means
-     *				it is on the right.
+     *                it is on the right.
      *
      * @return true if this is a useful stop key
      */
@@ -705,15 +706,15 @@ public class BinaryRelationalOperatorNode
 
         assert columnReferences != null && columnReferences.size() == 1: "getAbsoluteColumnPosition: one column reference is expected";
         ColumnReference cr = columnReferences.get(0);
-		/*
-		** Column positions are one-based, store is zero-based.
-		*/
+        /*
+        ** Column positions are one-based, store is zero-based.
+        */
         columnPosition=cr.getSource().getColumnPosition();
 
-		/*
-		** If it's an index, find the base column position in the index
-		** and translate it to an index column position.
-		*/
+        /*
+        ** If it's an index, find the base column position in the index
+        ** and translate it to an index column position.
+        */
         if(bestCD!=null && bestCD.isIndex()){
             columnPosition=bestCD.getIndexDescriptor().
                     getKeyColumnPosition(columnPosition);
@@ -744,10 +745,10 @@ public class BinaryRelationalOperatorNode
 
         assert columnReferences != null && columnReferences.size() == 1: "getAbsoluteStoragePosition: one column reference is expected";
         ColumnReference cr = columnReferences.get(0);
-		/*
-		** If it's an index, find the base column position in the index
-		** and translate it to an index column position.
-		*/
+        /*
+        ** If it's an index, find the base column position in the index
+        ** and translate it to an index column position.
+        */
         if(bestCD!=null && bestCD.isIndex()){
             columnPosition=cr.getSource().getColumnPosition();
             columnPosition=bestCD.getIndexDescriptor().
@@ -772,13 +773,13 @@ public class BinaryRelationalOperatorNode
                                    MethodBuilder mb,
                                    Optimizable optTable)
             throws StandardException{
-		/* Generate a method that returns the expression */
+        /* Generate a method that returns the expression */
         MethodBuilder qualMethod=acb.newUserExprFun();
 
-		/*
-		** Generate the expression that's on the opposite side
-		** of the key column
-		*/
+        /*
+        ** Generate the expression that's on the opposite side
+        ** of the key column
+        */
         if(keyColumnOnLeft(optTable)){
             rightOperand.generateExpression(acb,qualMethod);
         }else{
@@ -788,7 +789,7 @@ public class BinaryRelationalOperatorNode
         qualMethod.methodReturn();
         qualMethod.complete();
 
-		/* push an expression that evaluates to the GeneratedMethod */
+        /* push an expression that evaluates to the GeneratedMethod */
         acb.pushMethodReference(mb, qualMethod);
     }
 
@@ -808,14 +809,14 @@ public class BinaryRelationalOperatorNode
 
     @Override
     public boolean isQualifier(Optimizable optTable,boolean forPush) throws StandardException{
-		/* If this rel op is for an IN-list probe predicate then we never
-		 * treat it as a qualifer.  The reason is that if we treat it as
-		 * a qualifier then we could end up generating it as a qualifier,
-		 * which would lead to the generation of an equality qualifier
-		 * of the form "col = <val>" (where <val> is the first value in
-		 * the IN-list).  That would lead to wrong results (missing rows)
-		 * because that restriction is incorrect.
-		 */
+        /* If this rel op is for an IN-list probe predicate then we never
+         * treat it as a qualifer.  The reason is that if we treat it as
+         * a qualifier then we could end up generating it as a qualifier,
+         * which would lead to the generation of an equality qualifier
+         * of the form "col = <val>" (where <val> is the first value in
+         * the IN-list).  That would lead to wrong results (missing rows)
+         * because that restriction is incorrect.
+         */
         if(isInListProbeNode())
             return false;
 
@@ -828,10 +829,10 @@ public class BinaryRelationalOperatorNode
         ft=(FromTable)optTable;
 
         if(leftOperand instanceof ColumnReference){
-			/*
-			** The left operand is a column reference.
-			** Is it the correct column?
-			*/
+            /*
+            ** The left operand is a column reference.
+            ** Is it the correct column?
+            */
             cr=(ColumnReference)leftOperand;
             if(valNodeReferencesOptTable(cr,ft,forPush,walkSubtree)){
                 otherSide=rightOperand;
@@ -841,10 +842,10 @@ public class BinaryRelationalOperatorNode
         }
 
         if((!found) && (rightOperand instanceof ColumnReference)){
-			/*
-			** The right operand is a column reference.
-			** Is it the correct column?
-			*/
+            /*
+            ** The right operand is a column reference.
+            ** Is it the correct column?
+            */
             cr=(ColumnReference)rightOperand;
             if(valNodeReferencesOptTable(cr,ft,forPush,walkSubtree)){
                 otherSide=leftOperand;
@@ -852,32 +853,32 @@ public class BinaryRelationalOperatorNode
             }
         }
 
-		/* Have we found a ColumnReference on either side? */
+        /* Have we found a ColumnReference on either side? */
         if(!found){
-			/*
-			** Neither side is a ColumnReference to the table we're looking
-			** for, so it can't be a Qualifier
-			*/
+            /*
+            ** Neither side is a ColumnReference to the table we're looking
+            ** for, so it can't be a Qualifier
+            */
             return false;
         }
 
-		/*
-		** One side is a ColumnReference to the correct table.  It is a
-		** Qualifier if the other side does not refer to the table we are
-		** optimizing.
-		*/
+        /*
+        ** One side is a ColumnReference to the correct table.  It is a
+        ** Qualifier if the other side does not refer to the table we are
+        ** optimizing.
+        */
         return !valNodeReferencesOptTable(otherSide,ft,forPush,true);
     }
 
     public boolean isQualifierForHashableJoin(Optimizable optTable,boolean forPush) throws StandardException{
-		/* If this rel op is for an IN-list probe predicate then we never
-		 * treat it as a qualifer.  The reason is that if we treat it as
-		 * a qualifier then we could end up generating it as a qualifier,
-		 * which would lead to the generation of an equality qualifier
-		 * of the form "col = <val>" (where <val> is the first value in
-		 * the IN-list).  That would lead to wrong results (missing rows)
-		 * because that restriction is incorrect.
-		 */
+        /* If this rel op is for an IN-list probe predicate then we never
+         * treat it as a qualifer.  The reason is that if we treat it as
+         * a qualifier then we could end up generating it as a qualifier,
+         * which would lead to the generation of an equality qualifier
+         * of the form "col = <val>" (where <val> is the first value in
+         * the IN-list).  That would lead to wrong results (missing rows)
+         * because that restriction is incorrect.
+         */
         if(isInListProbeNode())
             return false;
 
@@ -890,15 +891,15 @@ public class BinaryRelationalOperatorNode
 
         List<ColumnReference> lcr = leftOperand.getHashableJoinColumnReference();
         List<ColumnReference> rcr = rightOperand.getHashableJoinColumnReference();
-        if (lcr == null || rcr == null || lcr.size() > 1 || rcr.size() > 1) {
+        if (lcr == null || rcr == null || lcr.size() != 1 || rcr.size() != 1) {
             // In order to have a hashable qualifier, we need to have have a column ref on both sides
             return false;
         }
 
-			/*
-			** The left operand is a column reference.
-			** Is it the correct column?
-			*/
+            /*
+            ** The left operand is a column reference.
+            ** Is it the correct column?
+            */
             if(valNodeReferencesOptTable(lcr.get(0),ft,forPush,walkSubtree)){
                 otherSide=rightOperand;
                 found=true;
@@ -906,30 +907,30 @@ public class BinaryRelationalOperatorNode
             }
 
         if(!found){
-			/*
-			** The right operand is a column reference.
-			** Is it the correct column?
-			*/
+            /*
+            ** The right operand is a column reference.
+            ** Is it the correct column?
+            */
             if(valNodeReferencesOptTable(rcr.get(0),ft,forPush,walkSubtree)){
                 otherSide=leftOperand;
                 found=true;
             }
         }
 
-		/* Have we found a ColumnReference on either side? */
+        /* Have we found a ColumnReference on either side? */
         if(!found){
-			/*
-			** Neither side is a ColumnReference to the table we're looking
-			** for, so it can't be a Qualifier
-			*/
+            /*
+            ** Neither side is a ColumnReference to the table we're looking
+            ** for, so it can't be a Qualifier
+            */
             return false;
         }
 
-		/*
-		** One side is a ColumnReference to the correct table.  It is a
-		** Qualifier if the other side does not refer to the table we are
-		** optimizing.
-		*/
+        /*
+        ** One side is a ColumnReference to the correct table.  It is a
+        ** Qualifier if the other side does not refer to the table we are
+        ** optimizing.
+        */
         return !valNodeReferencesOptTable(otherSide,ft,forPush,true);
     }
 
@@ -950,14 +951,14 @@ public class BinaryRelationalOperatorNode
 
 
     public boolean isQualifier(Optimizable optTable,boolean forPush,int leftColumn,int rightColumn) throws StandardException{
-		/* If this rel op is for an IN-list probe predicate then we never
-		 * treat it as a qualifer.  The reason is that if we treat it as
-		 * a qualifier then we could end up generating it as a qualifier,
-		 * which would lead to the generation of an equality qualifier
-		 * of the form "col = <val>" (where <val> is the first value in
-		 * the IN-list).  That would lead to wrong results (missing rows)
-		 * because that restriction is incorrect.
-		 */
+        /* If this rel op is for an IN-list probe predicate then we never
+         * treat it as a qualifer.  The reason is that if we treat it as
+         * a qualifier then we could end up generating it as a qualifier,
+         * which would lead to the generation of an equality qualifier
+         * of the form "col = <val>" (where <val> is the first value in
+         * the IN-list).  That would lead to wrong results (missing rows)
+         * because that restriction is incorrect.
+         */
         if(isInListProbeNode())
             return false;
 
@@ -970,10 +971,10 @@ public class BinaryRelationalOperatorNode
         ft=(FromTable)optTable;
 
         if(leftOperand instanceof ColumnReference){
-			/*
-			** The left operand is a column reference.
-			** Is it the correct column?
-			*/
+            /*
+            ** The left operand is a column reference.
+            ** Is it the correct column?
+            */
             cr=(ColumnReference)leftOperand;
             if(valNodeReferencesOptTable(cr,ft,forPush,walkSubtree)){
                 otherSide=rightOperand;
@@ -983,10 +984,10 @@ public class BinaryRelationalOperatorNode
         }
 
         if((!found) && (rightOperand instanceof ColumnReference)){
-			/*
-			** The right operand is a column reference.
-			** Is it the correct column?
-			*/
+            /*
+            ** The right operand is a column reference.
+            ** Is it the correct column?
+            */
             cr=(ColumnReference)rightOperand;
             if(valNodeReferencesOptTable(cr,ft,forPush,walkSubtree)){
                 otherSide=leftOperand;
@@ -994,29 +995,29 @@ public class BinaryRelationalOperatorNode
             }
         }
 
-		/* Have we found a ColumnReference on either side? */
+        /* Have we found a ColumnReference on either side? */
         if(!found){
-			/*
-			** Neither side is a ColumnReference to the table we're looking
-			** for, so it can't be a Qualifier
-			*/
+            /*
+            ** Neither side is a ColumnReference to the table we're looking
+            ** for, so it can't be a Qualifier
+            */
             return false;
         }
 
-		/*
-		** One side is a ColumnReference to the correct table.  It is a
-		** Qualifier if the other side does not refer to the table we are
-		** optimizing.
-		*/
+        /*
+        ** One side is a ColumnReference to the correct table.  It is a
+        ** Qualifier if the other side does not refer to the table we are
+        ** optimizing.
+        */
         return !valNodeReferencesOptTable(otherSide,ft,forPush,true);
     }
 
     @Override
     public int getOrderableVariantType(Optimizable optTable)
             throws StandardException{
-		/* The Qualifier's orderable is on the opposite side from
-		 * the key column.
-		 */
+        /* The Qualifier's orderable is on the opposite side from
+         * the key column.
+         */
         if(keyColumnOnLeft(optTable)){
             return rightOperand.getOrderableVariantType();
         }else{
@@ -1053,9 +1054,9 @@ public class BinaryRelationalOperatorNode
             throws StandardException{
         ValueNode node;
 
-		/* The value being compared to is on the opposite side from
-		** the key column.
-		*/
+        /* The value being compared to is on the opposite side from
+        ** the key column.
+        */
         node=keyColumnOnLeft(optTable)?rightOperand:leftOperand;
         if (node instanceof CastNode)
             node = ((CastNode) node).castOperand;
@@ -1167,7 +1168,7 @@ public class BinaryRelationalOperatorNode
         if(SanityManager.DEBUG)
             SanityManager.ASSERT(getTypeServices()!=null,
                     "dataTypeServices is expected to be non-null");
-		/* xxxRESOLVE: look into doing this in place instead of allocating a new node */
+        /* xxxRESOLVE: look into doing this in place instead of allocating a new node */
         negation=(BinaryOperatorNode)
                 getNodeFactory().getNode(getNegationNode(),
                         leftOperand,rightOperand,
@@ -1369,6 +1370,9 @@ public class BinaryRelationalOperatorNode
             case RelationalOperator.GREATER_THAN_RELOP:
                 mb.push(keyColumnOnLeft(optTable)?
                         Orderable.ORDER_OP_LESSOREQUALS:Orderable.ORDER_OP_LESSTHAN);
+                break;
+            default:
+                assert false;
 
         }
     }
@@ -1392,6 +1396,8 @@ public class BinaryRelationalOperatorNode
             case RelationalOperator.GREATER_EQUALS_RELOP:
                 mb.push(keyColumnOnLeft(optTable));
                 break;
+            default:
+                assert false;
         }
 
     }
@@ -1475,7 +1481,7 @@ public class BinaryRelationalOperatorNode
             case RelationalOperator.GREATER_EQUALS_RELOP:
                 if(getBetweenSelectivity())
                     return DEFAULT_BETWEEN_SELECTIVITY;
-				/* fallthrough -- only */
+                /* fallthrough -- only */
             case RelationalOperator.GREATER_THAN_RELOP:
                 return DEFAULT_RANGE_SELECTIVITY;
         }
@@ -1641,19 +1647,19 @@ public class BinaryRelationalOperatorNode
 
     @Override
     public boolean isRelationalOperator(){
-		/* If this rel op is for a probe predicate then we do not call
-		 * it a "relational operator"; it's actually a disguised IN-list
-		 * operator.
-		 */
+        /* If this rel op is for a probe predicate then we do not call
+         * it a "relational operator"; it's actually a disguised IN-list
+         * operator.
+         */
         return !isInListProbeNode();
     }
 
     @Override
     public boolean isBinaryEqualsOperatorNode(){
-		/* If this rel op is for a probe predicate then we do not treat
-		 * it as an "equals operator"; it's actually a disguised IN-list
-		 * operator.
-		 */
+        /* If this rel op is for a probe predicate then we do not treat
+         * it as an "equals operator"; it's actually a disguised IN-list
+         * operator.
+         */
         return !isInListProbeNode() && (operatorType==RelationalOperator.EQUALS_RELOP);
     }
 
@@ -1677,9 +1683,9 @@ public class BinaryRelationalOperatorNode
         if (operatorType != EQUALS_RELOP)
             return false;
 
-		/* If this rel op is for a probe predicate then we do not treat
+        /* If this rel op is for a probe predicate then we do not treat
          * it as an equality node; it's actually a disguised IN-list node.
-		 */
+         */
         if (isInListProbeNode())
             return false;
 
@@ -1782,105 +1788,105 @@ public class BinaryRelationalOperatorNode
                         ?(ColumnReference)leftOperand
                         :(ColumnReference)rightOperand;
 
-		/* When we scope a predicate we only scope one side of it--the
-		 * side that is to be evaluated against childRSN.  We figure out
-		 * if "cr" is that side by using table numbers, as seen below.
-		 * This means that for every scoped predicate there will be one
-		 * operand that is scoped and one operand that is not scoped.  
-		 * When we get here for the operand that will not be scoped,
-		 * we'll just return a clone of that operand.  So in the example
-		 * mentioned above, the scoped predicate for the left child of
-		 * X1 would be
-		 *
-		 *   T1.j <scoped> = X2.b <clone> 
-		 *
-		 * That said, the first thing we need to do is see if this
-		 * ColumnReference is supposed to be scoped for childRSN.  We
-		 * do that by figuring out what underlying base table the column
-		 * reference is pointing to and then seeing if that base table
-		 * is included in the list of table numbers from the parentRSN.
-		 */
+        /* When we scope a predicate we only scope one side of it--the
+         * side that is to be evaluated against childRSN.  We figure out
+         * if "cr" is that side by using table numbers, as seen below.
+         * This means that for every scoped predicate there will be one
+         * operand that is scoped and one operand that is not scoped.
+         * When we get here for the operand that will not be scoped,
+         * we'll just return a clone of that operand.  So in the example
+         * mentioned above, the scoped predicate for the left child of
+         * X1 would be
+         *
+         *   T1.j <scoped> = X2.b <clone>
+         *
+         * That said, the first thing we need to do is see if this
+         * ColumnReference is supposed to be scoped for childRSN.  We
+         * do that by figuring out what underlying base table the column
+         * reference is pointing to and then seeing if that base table
+         * is included in the list of table numbers from the parentRSN.
+         */
         JBitSet crTables=new JBitSet(parentRSNsTables.size());
         BaseTableNumbersVisitor btnVis=
                 new BaseTableNumbersVisitor(crTables);
         cr.accept(btnVis);
 
-		/* If the column reference in question is not intended for
-		 * the received result set node, just leave the operand as
-		 * it is (i.e. return a clone).  In the example mentioned at
-		 * the start of this method, this will happen when the operand
-		 * is X2.b and childRSN is either "select i,j from t1" or
-		 * "select i,j from t2", in which case the operand does not
-		 * apply to childRSN.  When we get here and try to map the
-		 * "X1.j" operand, though, the following "contains" check will
-		 * return true and thus we can go ahead and return a scoped
-		 * version of that operand.
-		 */
+        /* If the column reference in question is not intended for
+         * the received result set node, just leave the operand as
+         * it is (i.e. return a clone).  In the example mentioned at
+         * the start of this method, this will happen when the operand
+         * is X2.b and childRSN is either "select i,j from t1" or
+         * "select i,j from t2", in which case the operand does not
+         * apply to childRSN.  When we get here and try to map the
+         * "X1.j" operand, though, the following "contains" check will
+         * return true and thus we can go ahead and return a scoped
+         * version of that operand.
+         */
         if(!parentRSNsTables.contains(crTables))
             return (ColumnReference)cr.getClone();
 
-		/* Find the target ResultColumn in the received result set.  At
-		 * this point we know that we do in fact need to scope the column
-		 * reference for childRSN, so go ahead and do it.  The way in
-		 * which we get the scope target column differs depending on
-		 * if childRSN corresponds to the left or right child of the
-		 * UNION node.  Before explaining that, though, note that it's
-		 * not good enough to just search for the target column by
-		 * name.  The reason is that it's possible the name provided
-		 * for the column reference to be scoped doesn't match the
-		 * name of the actual underlying column.  Ex.
-		 *
-		 *  select * from
-		 *    (select i,j from t1 union select i,j from t2) X1 (x,y),
-		 *    (select a,b from t3 union select a,b from t4) X2
-		 *  where X1.x = X2.b;
-		 *
-		 * If we were scoping "X1.x" and we searched for "x" in the
-		 * childRSN "select i,j from t1" we wouldn't find it.
-		 *
-		 * It is similarly incorrect to search for the target column
-		 * by position (DERBY-1633).  This is a bit more subtle, but
-		 * if the child to which we're scoping is a subquery whose RCL
-		 * does not match the column ordering of the RCL for cr's source
-		 * result set, then searching by column position can yield the
-		 * wrong results, as well.  For a detailed example of how this
-		 * can happen, see the fix description attached to DERBY-1633.
-		 * 
-		 * So how do we find the target column, then? As mentioned
-		 * above, the way in which we get the scope target column
-		 * differs depending on if childRSN corresponds to the left
-		 * or right child of the parent UNION node.  And that said,
-		 * we can tell if we're scoping a left child by looking at
-		 * "whichRC" argument: if it is -1 then we know we're scoping
-		 * to the left child of a Union; otherwise we're scoping to
-		 * the right child.
-		 */
+        /* Find the target ResultColumn in the received result set.  At
+         * this point we know that we do in fact need to scope the column
+         * reference for childRSN, so go ahead and do it.  The way in
+         * which we get the scope target column differs depending on
+         * if childRSN corresponds to the left or right child of the
+         * UNION node.  Before explaining that, though, note that it's
+         * not good enough to just search for the target column by
+         * name.  The reason is that it's possible the name provided
+         * for the column reference to be scoped doesn't match the
+         * name of the actual underlying column.  Ex.
+         *
+         *  select * from
+         *    (select i,j from t1 union select i,j from t2) X1 (x,y),
+         *    (select a,b from t3 union select a,b from t4) X2
+         *  where X1.x = X2.b;
+         *
+         * If we were scoping "X1.x" and we searched for "x" in the
+         * childRSN "select i,j from t1" we wouldn't find it.
+         *
+         * It is similarly incorrect to search for the target column
+         * by position (DERBY-1633).  This is a bit more subtle, but
+         * if the child to which we're scoping is a subquery whose RCL
+         * does not match the column ordering of the RCL for cr's source
+         * result set, then searching by column position can yield the
+         * wrong results, as well.  For a detailed example of how this
+         * can happen, see the fix description attached to DERBY-1633.
+         *
+         * So how do we find the target column, then? As mentioned
+         * above, the way in which we get the scope target column
+         * differs depending on if childRSN corresponds to the left
+         * or right child of the parent UNION node.  And that said,
+         * we can tell if we're scoping a left child by looking at
+         * "whichRC" argument: if it is -1 then we know we're scoping
+         * to the left child of a Union; otherwise we're scoping to
+         * the right child.
+         */
         if(whichRC[0]==-1){
-			/*
-			 * For the left side we start by figuring out what the source
-			 * result set and column position for "cr" are.  Then, since
-			 * a) cr must be pointing to a result column in the parentRSN's
-			 * ResultColumnList,  b) we know that the parent RSN is a
-			 * SetOperatorNode (at least for now, since we only get here
-			 * for Union nodes), and c) SetOpNode's RCLs are built from the
-			 * left child's RCL (see bindResultColumns() in SetOperatorNode),
-			 * we know that if we search the child's RCL for a reference
-			 * whose source result column is the same as cr's source result
-			 * column, we'll find a match.  Once found, the position of the
-			 * matching column w.r.t childRSN's RCL will be stored in the
-			 * whichRC parameter.
-			 */
+            /*
+             * For the left side we start by figuring out what the source
+             * result set and column position for "cr" are.  Then, since
+             * a) cr must be pointing to a result column in the parentRSN's
+             * ResultColumnList,  b) we know that the parent RSN is a
+             * SetOperatorNode (at least for now, since we only get here
+             * for Union nodes), and c) SetOpNode's RCLs are built from the
+             * left child's RCL (see bindResultColumns() in SetOperatorNode),
+             * we know that if we search the child's RCL for a reference
+             * whose source result column is the same as cr's source result
+             * column, we'll find a match.  Once found, the position of the
+             * matching column w.r.t childRSN's RCL will be stored in the
+             * whichRC parameter.
+             */
 
             // Find the source result set and source column position of cr.
             int[] sourceColPos= {-1};
             ResultSetNode sourceRSN=cr.getSourceResultSet(sourceColPos);
 
             if(SanityManager.DEBUG){
-				/* We assumed that if we made it here "cr" was pointing
-				 * to a base table somewhere down the tree.  If that's
-				 * true then sourceRSN won't be null.  Make sure our
-				 * assumption was correct.
-				 */
+                /* We assumed that if we made it here "cr" was pointing
+                 * to a base table somewhere down the tree.  If that's
+                 * true then sourceRSN won't be null.  Make sure our
+                 * assumption was correct.
+                 */
                 SanityManager.ASSERT(sourceRSN!=null,
                         "Failed to find source result set when trying to "+
                                 "scope column reference '"+cr.getTableName()+
@@ -1891,20 +1897,20 @@ public class BinaryRelationalOperatorNode
             rc=childRSN.getResultColumns()
                     .getResultColumn(sourceColPos[0],sourceRSN,whichRC);
         }else{
-			/*
-			 * For the right side the story is slightly different.  If we were
-			 * to search the right child's RCL for a reference whose source
-			 * result column was the same as cr's, we wouldn't find it.  This
-			 * is because cr's source result column comes from the left child's
-			 * RCL and thus the right child doesn't know about it.  That said,
-			 * though, for set operations like UNION, the left and right RCL's
-			 * are correlated by position--i.e. the operation occurs between
-			 * the nth column in the left RCL and the nth column in the right
-			 * RCL.  So given that we will already have found the scope target
-			 * in the left child's RCL at the position in whichRC, we know that
-			 * that scope target for the right child's RCL is simply the
-			 * whichRC'th column in that RCL.
-			 */
+            /*
+             * For the right side the story is slightly different.  If we were
+             * to search the right child's RCL for a reference whose source
+             * result column was the same as cr's, we wouldn't find it.  This
+             * is because cr's source result column comes from the left child's
+             * RCL and thus the right child doesn't know about it.  That said,
+             * though, for set operations like UNION, the left and right RCL's
+             * are correlated by position--i.e. the operation occurs between
+             * the nth column in the left RCL and the nth column in the right
+             * RCL.  So given that we will already have found the scope target
+             * in the left child's RCL at the position in whichRC, we know that
+             * that scope target for the right child's RCL is simply the
+             * whichRC'th column in that RCL.
+             */
             rc=childRSN.getResultColumns().getResultColumn(whichRC[0]);
         }
 
@@ -1917,46 +1923,46 @@ public class BinaryRelationalOperatorNode
                             cr.getColumnName()+"'.");
         }
 
-		/* If the ResultColumn we found has an expression that is a
-		 * ColumnReference, then that column reference has all of the
-		 * info we need.
-		 *
-		 * It is, however, possible that the ResultColumn's expression
-		 * is NOT a ColumnReference.  For example, the expression would
-		 * be a constant expression if childRSN represented something
-		 * like:
-		 *
-		 *   select 1, 1 from t1
-		 *
-		 * In this case the expression does not directly reference a
-		 * column in the underlying result set and is therefore
-		 * "scoped" as far as it can go.  This means that the scoped
-		 * predicate will not necessarily have column references on
-		 * both sides, even though the predicate that we're scoping
-		 * will.  That's not a problem, though, since a predicate with
-		 * a column reference on one side and a non-ColumnReference
-		 * on the other is still valid.
-		 */
+        /* If the ResultColumn we found has an expression that is a
+         * ColumnReference, then that column reference has all of the
+         * info we need.
+         *
+         * It is, however, possible that the ResultColumn's expression
+         * is NOT a ColumnReference.  For example, the expression would
+         * be a constant expression if childRSN represented something
+         * like:
+         *
+         *   select 1, 1 from t1
+         *
+         * In this case the expression does not directly reference a
+         * column in the underlying result set and is therefore
+         * "scoped" as far as it can go.  This means that the scoped
+         * predicate will not necessarily have column references on
+         * both sides, even though the predicate that we're scoping
+         * will.  That's not a problem, though, since a predicate with
+         * a column reference on one side and a non-ColumnReference
+         * on the other is still valid.
+         */
 
         if(rc.getExpression() instanceof ColumnReference){
-			/* We create a clone of the column reference and mark
-			 * the clone as "scoped" so that we can do the right
-			 * thing when it comes time to remap the predicate;
-			 * see Predicate.remapScopedPred() for more.
-			 */
+            /* We create a clone of the column reference and mark
+             * the clone as "scoped" so that we can do the right
+             * thing when it comes time to remap the predicate;
+             * see Predicate.remapScopedPred() for more.
+             */
             ColumnReference cRef=(ColumnReference)
                     ((ColumnReference)rc.getExpression()).getClone();
             cRef.markAsScoped();
             return cRef;
         }
 
-		/* Else just return rc's expression.  This means the scoped
-		 * predicate will have one operand that is _not_ a column
-		 * reference--but that's okay, so long as we account for
-		 * that when pushing/remapping the scoped predicate down
-		 * the query tree (see esp. "isScopedToSourceResultSet()"
-		 * in Predicate.java).
-		 */
+        /* Else just return rc's expression.  This means the scoped
+         * predicate will have one operand that is _not_ a column
+         * reference--but that's okay, so long as we account for
+         * that when pushing/remapping the scoped predicate down
+         * the query tree (see esp. "isScopedToSourceResultSet()"
+         * in Predicate.java).
+         */
         return rc.getExpression();
     }
 
