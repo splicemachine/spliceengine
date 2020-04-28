@@ -102,6 +102,11 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>db-tools-testing</artifactId>
             <version>${project.version}</version>
