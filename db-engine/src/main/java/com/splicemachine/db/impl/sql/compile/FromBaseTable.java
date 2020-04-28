@@ -649,6 +649,9 @@ public class FromBaseTable extends FromTable {
                 }
             }else if(key.equals("joinStrategy")){
                 userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
+                if (userSpecifiedJoinStrategy.equals("CROSS")) {
+                    dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
+                }
             }
             else if (key.equals("useSpark")) {
                 try {
@@ -691,20 +694,21 @@ public class FromBaseTable extends FromTable {
                 try {
                     skipStats = true;
                     defaultRowCount = Long.parseLong(value);
-                    if (defaultRowCount <= 0)
-                        throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
                 } catch (NumberFormatException parseLongE) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
+                }
+                if (defaultRowCount <= 0) {
                     throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
                 }
             } else if (key.equals("defaultSelectivityFactor")) {
                 try {
                     skipStats = true;
                     defaultSelectivityFactor = Double.parseDouble(value);
-                    if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
-                        throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
                 } catch (NumberFormatException parseDoubleE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
                 }
+                if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
+                    throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
             }else {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
@@ -3277,8 +3281,8 @@ public class FromBaseTable extends FromTable {
      * set the Information gathered from the parent table that is
      * required to peform a referential action on dependent table.
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     @Override
-    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="DB-9366")
     public void setRefActionInfo(long fkIndexConglomId,
                                  int[] fkColArray,
                                  String parentResultSetId,

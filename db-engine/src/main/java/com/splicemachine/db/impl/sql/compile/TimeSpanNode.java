@@ -35,7 +35,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -44,6 +46,7 @@ import java.util.List;
  * to be replaced by a function call to ADD_{DAYS,MONTHS,YEARS}
  */
 
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class TimeSpanNode extends ValueNode
 {
     private int unit;
@@ -78,8 +81,20 @@ public class TimeSpanNode extends ValueNode
     }
 
     @Override
-    public List getChildren() {
-        return value.getChildren();
+    public List<? extends QueryTreeNode> getChildren() {
+        return Collections.singletonList(value);
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        assert index == 0;
+        return value;
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        assert index == 0;
+        value = (ValueNode) newValue;
     }
 
     public ValueNode getValue() {
