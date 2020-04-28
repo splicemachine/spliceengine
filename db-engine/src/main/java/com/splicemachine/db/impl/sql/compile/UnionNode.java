@@ -66,11 +66,6 @@ public class UnionNode extends SetOperatorNode{
     boolean isRecursive;
     /* the description of the result columns */
     TableDescriptor viewDescriptor;
-    /* for recursive union all, we want to display the step number from the recursive reference node, so save the step number
-       here for convenience. Note, this step number in explain may not be the same as the resultSetNumber, as some ProjectRestrict
-       node without restriction could be skipped and won't shown up in the explain
-     */
-    int stepNumInExplain;
 
 
     /**
