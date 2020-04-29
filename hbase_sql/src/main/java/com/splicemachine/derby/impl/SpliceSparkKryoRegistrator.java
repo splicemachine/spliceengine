@@ -168,6 +168,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(RowMultiSetImpl.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(RoutineAliasInfo.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SparkOperationContext.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SparkLeanOperationContext.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(IndexConglomerate.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(HBaseConglomerate.class,EXTERNALIZABLE_SERIALIZER);
@@ -262,7 +263,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             protected void readValue(Kryo kryo, Input input, SQLBit dvd) throws StandardException {
                 byte[] data = new byte[input.readInt()];
                 //noinspection ResultOfMethodCallIgnored
-                input.read(data);
+                input.readBytes(data);
                 dvd.setValue(data);
             }
         });
@@ -278,7 +279,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             protected void readValue(Kryo kryo, Input input, SQLVarbit dvd) throws StandardException {
                 byte[] data = new byte[input.readInt()];
                 //noinspection ResultOfMethodCallIgnored
-                input.read(data);
+                input.readBytes(data);
                 dvd.setValue(data);
             }
         });
@@ -294,7 +295,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             protected void readValue(Kryo kryo, Input input, SQLLongVarbit dvd) throws StandardException {
                 byte[] data = new byte[input.readInt()];
                 //noinspection ResultOfMethodCallIgnored
-                input.read(data);
+                input.readBytes(data);
                 dvd.setValue(data);
             }
         });
@@ -520,7 +521,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             protected void readValue(Kryo kryo, Input input, SQLBlob dvd) throws StandardException {
                 byte[] data = new byte[input.readInt()];
                 //noinspection ResultOfMethodCallIgnored
-                input.read(data);
+                input.readBytes(data);
                 dvd.setValue(data);
             }
         });
@@ -673,11 +674,11 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
                 Object[] arguments = e.getArguments();
                 if (arguments != null) {
                     output.writeInt(arguments.length);
+                    for (Object arg : arguments) {
+                        kryo.writeClassAndObject(output, arg);
+                    }
                 } else {
                     output.writeInt(0);
-                }
-                for (Object arg : arguments) {
-                    kryo.writeClassAndObject(output, arg);
                 }
                 output.writeString(e.getMessageId());
             }
