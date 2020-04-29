@@ -1,45 +1,49 @@
 def parcel_url = ""
 def folder_name = ""
+def scmVars = ""
 String[] clusters = ["aks-dev1","aks-dev2","aks-dev3","aks-dev4","aks-dev5","aks-dev6","aks-dev7","aks-dev8"]
-    def vaultSecrets = [
-    [$class: 'VaultSecret', path: "secret/azure/service_principals/8777b2db-3764-422b-a302-7aefb352399f", secretValues: [
-        [$class: 'VaultSecretValue', envVar: 'secret_app_id', vaultKey: 'app_id'],
-        [$class: 'VaultSecretValue', envVar: 'secret_subscription_id', vaultKey: 'subscription_id'],
-        [$class: 'VaultSecretValue', envVar: 'secret_object_id', vaultKey: 'object_id'],
-        [$class: 'VaultSecretValue', envVar: 'secret_secret', vaultKey: 'secret'],
-        [$class: 'VaultSecretValue', envVar: 'secret_tenant', vaultKey: 'tenant']]],
-    [$class: 'VaultSecret', path: "secret/aws/service_accounts/jenkins-build", secretValues: [
-        [$class: 'VaultSecretValue', envVar: 'secret_key_id', vaultKey: 'access_key_id'],
-        [$class: 'VaultSecretValue', envVar: 'secret_key', vaultKey: 'access_key']]],
-    [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
-        [$class: 'VaultSecretValue', envVar: 'jenkins_user', vaultKey: 'user'],
-        [$class: 'VaultSecretValue', envVar: 'jenkins_pass', vaultKey: 'pass']]],
-    [$class: 'VaultSecret', path: "secret/aws/jenkins/slack", secretValues: [
-        [$class: 'VaultSecretValue', envVar: 'bot_token', vaultKey: 'oauth']]],
-    [$class: 'VaultSecret', path: "secret/aws/jenkins/splicemachine", secretValues: [
-        [$class: 'VaultSecretValue', envVar: 'aws_splice_access', vaultKey: 'access'],
-        [$class: 'VaultSecretValue', envVar: 'aws_splice_secret', vaultKey: 'secret']]]
-    ]
+def vaultSecrets = [
+[$class: 'VaultSecret', path: "secret/azure/service_principals/8777b2db-3764-422b-a302-7aefb352399f", secretValues: [
+    [$class: 'VaultSecretValue', envVar: 'secret_app_id', vaultKey: 'app_id'],
+    [$class: 'VaultSecretValue', envVar: 'secret_subscription_id', vaultKey: 'subscription_id'],
+    [$class: 'VaultSecretValue', envVar: 'secret_object_id', vaultKey: 'object_id'],
+    [$class: 'VaultSecretValue', envVar: 'secret_secret', vaultKey: 'secret'],
+    [$class: 'VaultSecretValue', envVar: 'secret_tenant', vaultKey: 'tenant']]],
+[$class: 'VaultSecret', path: "secret/aws/service_accounts/jenkins-build", secretValues: [
+    [$class: 'VaultSecretValue', envVar: 'secret_key_id', vaultKey: 'access_key_id'],
+    [$class: 'VaultSecretValue', envVar: 'secret_key', vaultKey: 'access_key']]],
+[$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
+    [$class: 'VaultSecretValue', envVar: 'jenkins_user', vaultKey: 'user'],
+    [$class: 'VaultSecretValue', envVar: 'jenkins_pass', vaultKey: 'pass']]],
+[$class: 'VaultSecret', path: "secret/aws/jenkins/slack", secretValues: [
+    [$class: 'VaultSecretValue', envVar: 'bot_token', vaultKey: 'oauth']]],
+[$class: 'VaultSecret', path: "secret/aws/jenkins/splicemachine", secretValues: [
+    [$class: 'VaultSecretValue', envVar: 'aws_splice_access', vaultKey: 'access'],
+    [$class: 'VaultSecretValue', envVar: 'aws_splice_secret', vaultKey: 'secret']]]
+]
+
+
 
 node('splice-standalone'){
     def region = "us-east-1"
     stage('Checkout Spliceengine') {
         // Get some code from a GitHub repository
+        scmVars = checkout scm
         checkout([  
             $class: 'GitSCM', 
-            branches: [[name: 'refs/heads/master']], 
-            doGenerateSubmoduleConfigurations: false, 
-            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
-            submoduleCfg: [], 
-            userRemoteConfigs: [[credentialsId: 'cloudspliceci_ssh', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
-        ])
-        checkout([  
-            $class: 'GitSCM', 
-            branches: [[name: 'refs/heads/master']], 
+            branches: [[name: 'refs/heads/'+scmVars.GIT_BRANCH]], 
             doGenerateSubmoduleConfigurations: false, 
             extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
             submoduleCfg: [], 
             userRemoteConfigs: [[credentialsId: 'cloudspliceci_ssh', url: 'https://github.com/splicemachine/spliceengine.git']]
+        ])
+        checkout([  
+            $class: 'GitSCM', 
+            branches: [[name: 'refs/heads/'+scmVars.GIT_BRANCH]], 
+            doGenerateSubmoduleConfigurations: false, 
+            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
+            submoduleCfg: [], 
+            userRemoteConfigs: [[credentialsId: 'cloudspliceci_ssh', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
         ])
     }
     stage('Login') {
@@ -61,10 +65,10 @@ node('splice-standalone'){
     stage("Docker Build Dev"){
         echo "${parcel_url}"
         echo "${folder_name}"
-        build job: './PDImageBuilds/pd-hbase-spark-docker-build/master', parameters: [
+        build job: '../PDImageBuilds/pd-hbase-spark-docker-build/master', parameters: [
                 [$class: 'StringParameterValue', name: 'ParcelLocationAndName', value: parcel_url],
                 [$class: 'StringParameterValue', name: 'ExtractedFolderName', value: folder_name],
-                [$class: 'StringParameterValue', name: 'DockerTag', value: "master"]
+                [$class: 'StringParameterValue', name: 'DockerTag', value: scmVars.GIT_BRANCH]
             ]
     }
     stage('Checkout dbaas-infrastructure') {
@@ -84,6 +88,9 @@ node('splice-standalone'){
             sh "sed -i 's/repository:\\ splicemachine\\/sm_k8_hbase-3.0.0:.*/repository:\\ splicemachine\\/sm_k8_hbase-3.0.0:master/' kubernetes/charts/splice/values.yaml"
         }
     }
+}
+node('splice-standalone'){
+    try{
     stage('Login') {
     wrap([$class: 'VaultBuildWrapper', vaultSecrets: vaultSecrets]) {
         sh "az login --service-principal --username $secret_app_id --password $secret_secret --tenant $secret_tenant"
@@ -111,7 +118,7 @@ node('splice-standalone'){
             [$class: 'StringParameterValue', name: 'meta_max_vmcount', value: "3"],
             [$class: 'StringParameterValue', name: 'meta_vmsize', value: "Standard_D8s_v3"],
             [$class: 'StringParameterValue', name: 'db_max_vmcount', value: "12"],
-            [$class: 'StringParameterValue', name: 'tag_creator', value: "master"]
+            [$class: 'StringParameterValue', name: 'tag_creator', value: scmVars.GIT_BRANCH]
         ]
     }
     stage('Create Splice-DB') {
@@ -151,10 +158,17 @@ node('splice-standalone'){
                     currentStage.result = 'FAILURE'
                 }
                 def log_file = sh (script:"kubectl logs -l job-name=integration-tests --tail=2000 -n default | grep maven.out | cut -c 112-300", returnStdout: true)
+                }
             }
         }
-    }
-    stage('Delete Cluster') {
+    } 
+    catch (any) {
+        // if there was an exception thrown, the build failed
+        currentBuild.result = "FAILED"
+        throw any
+
+    } finally {
+        stage('Delete Cluster') {
             build job: '../Kubernetes/KubernetesDeploy/azure/master', parameters: [
                 [$class: 'StringParameterValue', name: 'action', value: "destroy"],
                 [$class: 'StringParameterValue', name: 'environment', value: target_cluster],
@@ -169,9 +183,11 @@ node('splice-standalone'){
                 [$class: 'StringParameterValue', name: 'meta_max_vmcount', value: "3"],
                 [$class: 'StringParameterValue', name: 'meta_vmsize', value: "Standard_D8s_v3"],
                 [$class: 'StringParameterValue', name: 'db_max_vmcount', value: "12"],
-                [$class: 'StringParameterValue', name: 'tag_creator', value: "master"]
+                [$class: 'StringParameterValue', name: 'tag_creator', value: scmVars.GIT_BRANCH]
             ]
-    }
+            }
+        }
+        notifyBuild(currentBuild.result)
 }
 
 def notifyBuild(String buildStatus = 'STARTED') {
