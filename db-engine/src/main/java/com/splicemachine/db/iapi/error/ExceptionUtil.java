@@ -202,4 +202,14 @@ public class ExceptionUtil
         }
         return out.toString();
     }
+
+    public static RuntimeException throwAsRuntime(Throwable t) {
+        ExceptionUtil.<RuntimeException> doThrow(t);
+        return new RuntimeException();
+    }
+
+    @SuppressWarnings("unchecked")
+    static <T extends Throwable> void doThrow(Throwable t) throws T {
+        throw (T) t;
+    }
 }
