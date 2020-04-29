@@ -233,7 +233,8 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
             while (true) {
                 MemstoreAware latest = memstoreAware.get();
                 RegionServerServices regionServerServices = (RegionServerServices)c.getEnvironment().getOnlineRegions();
-                if (latest.currentScannerCount>0 && ! regionServerServices.isAborted()) {
+                boolean shuttingDown = !regionServerServices.isClusterUp() || regionServerServices.isStopping() || regionServerServices.isAborted();
+                if (latest.currentScannerCount>0 && !shuttingDown) {
                     SpliceLogUtils.warn(LOG, "preClose Delayed waiting for scanners to complete scannersRemaining=%d",latest.currentScannerCount);
                     try {
                         Thread.sleep(1000); // Have Split sleep for a second

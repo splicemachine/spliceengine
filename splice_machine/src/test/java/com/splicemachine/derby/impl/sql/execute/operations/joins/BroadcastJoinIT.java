@@ -741,4 +741,41 @@ public class BroadcastJoinIT extends SpliceUnitTest {
             }
         }
     }
+
+    @Test
+    public void testCaseInJoinPredicate() throws Exception {
+        String[] sqlTexts = {
+                format("select * from tab2 inner join tab3 --splice-properties joinStrategy=broadcast, useSpark=%s\n" +
+                        "on case when tab2.b=3 then 5 else 0 end = tab3.b", useSpark),
+
+                format("select * from tab2 inner join tab3 --splice-properties joinStrategy=broadcast, useSpark=%s\n" +
+                        "on case when tab2.b is null then 5 else 9 end = tab3.b order by 1,2,3,4", useSpark),
+        };
+        String[] expecteds = {
+                "A | B | A | B |\n" +
+                        "----------------\n" +
+                        " 3 | 3 | 5 | 5 |",
+
+                "A | B | A | B |\n" +
+                        "----------------\n" +
+                        " 1 | 1 | 9 | 9 |\n" +
+                        " 2 | 2 | 9 | 9 |\n" +
+                        " 3 | 3 | 9 | 9 |\n" +
+                        " 4 | 4 | 9 | 9 |\n" +
+                        " 5 | 5 | 9 | 9 |\n" +
+                        " 6 | 6 | 9 | 9 |\n" +
+                        " 7 | 7 | 9 | 9 |\n" +
+                        " 8 | 8 | 9 | 9 |\n" +
+                        " 9 | 9 | 9 | 9 |\n" +
+                        "10 |10 | 9 | 9 |"
+        };
+        for (int i = 0; i < sqlTexts.length; ++i) {
+            String sqlText = sqlTexts[i];
+            String expected = expecteds[i];
+            try (ResultSet rs = classWatcher.executeQuery(sqlText)) {
+                String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+                assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n, actual result: " + resultString, expected, resultString);
+            }
+        }
+    }
 }

@@ -31,12 +31,11 @@
 
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -94,8 +93,6 @@ public class ShowCreateTableIT extends SpliceUnitTest
         new TableCreator(conn)
                 .withCreate("CREATE TABLE T12 (A12 INT, B2 INT, A2 INT,CONSTRAINT T12_FK_1 FOREIGN KEY (A2, B2) REFERENCES T2 ON UPDATE NO ACTION ON DELETE NO ACTION)")
                 .create();
-
-
     }
 
     @AfterClass
@@ -382,4 +379,93 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 ") ;", rs.getString(1));
 
     }
+
+    @Category(HBaseTest.class)
+    @Test
+    public void testExternalTablePlainText() throws Exception {
+        //Plain text
+        String textDLL = String.format("CREATE EXTERNAL TABLE SHOWCREATETABLEIT.testCsvFile (id INT, c_text varchar(30)) \n" +
+                "ROW FORMAT DELIMITED \n" +
+                "FIELDS TERMINATED BY ','\n" +
+                "STORED AS TEXTFILE\n" +
+                "location '%s'", getExternalResourceDirectory() + "testCsvFile");
+        methodWatcher.executeUpdate(textDLL);
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','TESTCSVFILE')");
+        rs.next();
+        Assert.assertEquals("CREATE EXTERNAL TABLE \"SHOWCREATETABLEIT\".\"TESTCSVFILE\" (\n" +
+                "\"ID\" INTEGER\n" +
+                ",\"C_TEXT\" VARCHAR(30)\n" +
+                ") \n" +
+                "ROW FORMAT DELIMITED FIELDS TERMINATED BY ','\n" +
+                "STORED AS TEXTFILE\n" +
+                "LOCATION '"+getExternalResourceDirectory()+"testCsvFile';", rs.getString(1));
+    }
+
+    @Category(HBaseTest.class)
+    @Test
+    public void testExternalTableParquetWithoutCompression() throws Exception {
+        //Parquet Without compression
+        String parquetDDL = String.format("create external table SHOWCREATETABLEIT.testParquet (col1 int, col2 varchar(24))" +
+                "partitioned by (col1) STORED AS parquet LOCATION '%s'", getExternalResourceDirectory() + "testParquet");
+
+        methodWatcher.executeUpdate(parquetDDL);
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','TESTPARQUET')");
+        rs.next();
+        Assert.assertEquals("CREATE EXTERNAL TABLE \"SHOWCREATETABLEIT\".\"TESTPARQUET\" (\n" +
+                "\"COL1\" INTEGER\n" +
+                ",\"COL2\" VARCHAR(24)\n" +
+                ") \n" +
+                "PARTITIONED BY (COL1)\n" +
+                "STORED AS PARQUET\n" +
+                "LOCATION '"+getExternalResourceDirectory()+"testParquet';", rs.getString(1));
+    }
+
+    @Category(HBaseTest.class)
+    @Test
+    public void testExternalTableOrcSnappy() throws Exception {
+        //Orc With compression
+        String orcDDL = String.format("create external table SHOWCREATETABLEIT.testOrcSnappy (col1 int, col2 varchar(24))" +
+                "compressed with snappy partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"testOrcSnappy");
+        methodWatcher.executeUpdate(orcDDL);
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','TESTORCSNAPPY')");
+        rs.next();
+        Assert.assertEquals("CREATE EXTERNAL TABLE \"SHOWCREATETABLEIT\".\"TESTORCSNAPPY\" (\n" +
+                "\"COL1\" INTEGER\n" +
+                ",\"COL2\" VARCHAR(24)\n" +
+                ") \n" +
+                "COMPRESSED WITH snappy\n" +
+                "PARTITIONED BY (COL2)\n" +
+                "STORED AS ORC\n" +
+                "LOCATION '"+getExternalResourceDirectory()+"testOrcSnappy';", rs.getString(1));
+    }
+
+    @Test
+    public void testSystemTable() throws Exception {
+        try
+        {
+            methodWatcher.execute("call syscs_util.SHOW_CREATE_TABLE('SYS','SYSTABLES')");
+            Assert.fail("Expected to fail");
+        }
+        catch (SQLException e)
+        {
+            String sqlState = e.getSQLState();
+            Assert.assertEquals("42X62",sqlState);
+        }
+    }
+
+    @Test
+    public void testView() throws Exception {
+        try
+        {
+            methodWatcher.executeUpdate("create view showcreatetableit.v1 as (select a1 from showcreatetableit.t1)");
+            methodWatcher.execute("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','V1')");
+            Assert.fail("Expected to fail");
+        }
+        catch (SQLException e)
+        {
+            String sqlState = e.getSQLState();
+            Assert.assertEquals("42Y62",sqlState);
+        }
+    }
+
 }

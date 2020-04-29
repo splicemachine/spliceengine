@@ -24,11 +24,14 @@ import java.util.Map;
  * @author Scott Fines
  *         Date: 12/17/15
  */
-public class HScan implements DataScan{
+public class HScan implements DataScan {
+    // Sane default to prevent big scans causing memory pressure on the RegionServer
+    private final static int DEFAULT_CACHING = 1000;
     private Scan scan;
 
     public HScan(){
         this.scan = new Scan();
+        this.scan.setCaching(DEFAULT_CACHING);
     }
 
     public HScan(Scan scan){
