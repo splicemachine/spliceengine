@@ -51,14 +51,14 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     private static final Logger LOG = Logger.getLogger(PipingCallBuffer.class);
 
     /**
-     * Map from the region's starting row key to a pair consisting of the region's call buffer and server name.
+     * Map from the region's starting row key to the region's call buffer.
      */
-    private NavigableMap<byte[],Pair<PartitionBuffer,PartitionServer>> startKeyToRegionCBMap;
+    private NavigableMap<byte[], PartitionBuffer> startKeyToRegionCBMap;
 
     /**
      * Map from a server name to the region server's call buffer.
      */
-    private NavigableMap<PartitionServer,ServerCallBuffer> serverNameToRegionServerCBMap;
+    private Map<PartitionServer,ServerCallBuffer> serverNameToRegionServerCBMap;
 
     private final Writer writer;
     private final boolean skipIndexWrites;
@@ -94,7 +94,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
         this.txn = txn;
         this.writeConfiguration = new UpdatingWriteConfiguration(writeConfiguration,this);
         this.startKeyToRegionCBMap = new TreeMap<>(ByteComparisons.comparator());
-        this.serverNameToRegionServerCBMap = new TreeMap<>();
+        this.serverNameToRegionServerCBMap = new HashMap<>();
         this.bufferConfiguration = bufferConfiguration;
         this.preFlushHook = preFlushHook;
         MetricFactory metricFactory = writeConfiguration!=null? writeConfiguration.getMetricFactory(): Metrics.noOpMetricFactory();
@@ -110,10 +110,10 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
         assert element!=null: "Cannot add a non-null element!";
         lastKvPair = element;
         rebuildIfNecessary();
-        Map.Entry<byte[],Pair<PartitionBuffer,PartitionServer>> entry = startKeyToRegionCBMap.floorEntry(element.getRowKey());
+        Map.Entry<byte[], PartitionBuffer> entry = startKeyToRegionCBMap.floorEntry(element.getRowKey());
         if(entry==null) entry = startKeyToRegionCBMap.firstEntry();
         assert entry!=null;
-        PartitionBuffer regionCB = entry.getValue().getFirst();
+        PartitionBuffer regionCB = entry.getValue();
         if (LOG.isTraceEnabled())
         	SpliceLogUtils.trace(LOG, "Adding KVPair object (Splice mutation) %s to the call buffer for the region %s",
         			element, regionCB.partition().getName());
@@ -171,16 +171,17 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
         assert items != null;
 
         // The following block of code flushes the region and region server call buffers.
-        if(startKeyToRegionCBMap!=null) {
-            for (Pair<PartitionBuffer, PartitionServer> buffer : startKeyToRegionCBMap.values())
-                buffer.getFirst().clear();
+        if (startKeyToRegionCBMap != null) {
+            for (PartitionBuffer buffer : startKeyToRegionCBMap.values()) {
+                buffer.clear();
+            }
             for (ServerCallBuffer buffer : serverNameToRegionServerCBMap.values()) {
                 assert buffer.getBulkWrites()==null || (buffer.getBulkWrites().numEntries() == 0);  // This asserts that there are not any outstanding RegionCallBuffers for the region server that need to be flushed still.
                 buffer.close();
             }
         }
-        this.startKeyToRegionCBMap = new TreeMap<>(ByteComparisons.comparator());
-        this.serverNameToRegionServerCBMap = new TreeMap<>();
+        startKeyToRegionCBMap = new TreeMap<>(ByteComparisons.comparator());
+        serverNameToRegionServerCBMap = new HashMap<>();
         currentHeapSize=0;
         currentKVPairSize=0;
 
@@ -196,10 +197,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
 
         for(Partition region: regions){
             PartitionServer server = region.owningServer();
-            byte[] startKey = region.getStartKey();//region.getStartKey();
-            ServerCallBuffer regionServerCB = this.serverNameToRegionServerCBMap.get(server);
-
-            // Do we have this RS call buffer already?
+            ServerCallBuffer regionServerCB = serverNameToRegionServerCBMap.get(server);
             if (regionServerCB == null) {
                 SpliceLogUtils.debug(LOG, "adding ServerCallBuffer for server %s and table %s", server, table.getTableName());
                 regionServerCB = new ServerCallBuffer(Bytes.toBytes(table.getName()),
@@ -213,36 +211,21 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
             }
 
             // Attempt to get the call buffer for the correct region that contains this row key.
-            Map.Entry<byte[], Pair<PartitionBuffer, PartitionServer>> startKeyToRegionCBEntry = this.startKeyToRegionCBMap.floorEntry(startKey);
-            PartitionBuffer regionCB = null;
-            if (startKeyToRegionCBEntry != null)
-                regionCB = startKeyToRegionCBEntry.getValue().getFirst();
-
-            // Check if the region call buffer does not exist or if the row is outside of this region (comes after it).
-            if (startKeyToRegionCBEntry == null || regionCB.keyOutsideBuffer(startKey)) {
-//
-//            	// Debug logging stuff.
-//            	if (LOG.isDebugEnabled()) {
-//                    SpliceLogUtils.debug(LOG, "lower startKey %s", startKeyToRegionCBEntry);
-//                    if (regionCB!=null) {
-//                        PartitionLocation loc=regionCB.getLocation();
-////                        HRegionInfo info = regionCB.getPartitionInfo();
-//                        SpliceLogUtils.debug(LOG, "region %s", info.getRegionNameAsString());
-//                        SpliceLogUtils.debug(LOG, "region startKey %s", new Object[]{info.getStartKey()});
-//                        SpliceLogUtils.debug(LOG, "region endKey %s", new Object[]{info.getEndKey()});
-//                        SpliceLogUtils.debug(LOG, "comparison %d", Bytes.compareTo(startKey, info.getStartKey()));
-//                    }
-//                    SpliceLogUtils.debug(LOG, "startKey %s", new Object[]{startKey});
-//                    SpliceLogUtils.debug(LOG, "key outside buffer, add new region (suspect) %s", region.getRegionNameAsString());
-//                }
-
-            	// Create a new PartitionBuffer, add it to the map, and add it to the ServerCallBuffer.
-                PartitionBuffer newBuffer = new PartitionBuffer(region, preFlushHook, skipIndexWrites,
+            byte[] startKey = region.getStartKey();
+            PartitionBuffer buffer = startKeyToRegionCBMap.get(startKey);
+            if (buffer == null) {
+                buffer = new PartitionBuffer(region, preFlushHook, skipIndexWrites,
                         writeConfiguration.skipConflictDetection(), writeConfiguration.skipWAL(), writeConfiguration.rollForward());
-                startKeyToRegionCBMap.put(startKey, Pair.newPair(newBuffer,server));
-                regionServerCB.add(Pair.newPair(startKey, newBuffer));
-            } else {
-                throw new RuntimeException("Not Functional Path");
+                startKeyToRegionCBMap.put(startKey, buffer);
+                regionServerCB.add(Pair.newPair(startKey, buffer));
+            }
+            else {
+                String oldHostAndPort = buffer.partition().owningServer().getHostAndPort();
+                String newHostAndPort = server.getHostAndPort();
+                if (!oldHostAndPort.equals(newHostAndPort)) {
+                    SpliceLogUtils.warn(LOG, "different locations for the same key: region %s at location %s (ignored), region %s at location %s (used)",
+                            region.getName(), newHostAndPort, buffer.partition().getName(), oldHostAndPort);
+                }
             }
         }
 
@@ -321,9 +304,8 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
             buffer.close();
         }
         // Region
-        for (Pair<PartitionBuffer, PartitionServer> buffer : startKeyToRegionCBMap.values()) {
-            PartitionBuffer regionBuffer = buffer.getFirst();
-            regionBuffer.close();
+        for (PartitionBuffer buffer : startKeyToRegionCBMap.values()) {
+            buffer.close();
         }
 
         serverNameToRegionServerCBMap = null;
@@ -359,8 +341,8 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     public Collection<KVPair> getKVPairs() throws Exception {
         SpliceLogUtils.trace(LOG, "getKVPairs");
         Collection<KVPair> kvPairs = new ArrayList<>();
-        for(Pair<PartitionBuffer,PartitionServer> buffer:startKeyToRegionCBMap.values()) {
-            kvPairs.addAll(buffer.getFirst().getBuffer());
+        for(PartitionBuffer buffer : startKeyToRegionCBMap.values()) {
+            kvPairs.addAll(buffer.getBuffer());
         }
         return kvPairs;
     }

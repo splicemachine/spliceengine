@@ -20,14 +20,12 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 
@@ -80,21 +78,9 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
         conn.commit();
     }
 
-    public static void cleanoutDirectory() {
-        try {
-            File file = new File(getExternalResourceDirectory());
-            if (file.exists())
-                FileUtils.deleteDirectory(new File(getExternalResourceDirectory()));
-            file.mkdir();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     @BeforeClass
     public static void createDataSet() throws Exception {
-        cleanoutDirectory();
-        createData(spliceClassWatcher.getOrCreateConnection());
+        createData( spliceClassWatcher.getOrCreateConnection());
     }
 
     @Test
@@ -237,10 +223,5 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
         rs.close();
 
         methodWatcher.executeUpdate(format("drop table %s.orc_part_2nd", CLASS_NAME));
-    }
-
-
-    public static String getExternalResourceDirectory() {
-        return SpliceUnitTest.getHBaseDirectory()+"/target/external2/";
     }
 }
