@@ -107,31 +107,26 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                 return regionSplits;
             }
             List<Partition> splits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), refresh);
-            boolean getTableSize = this.splits > 0 && table.getName().getNameAsString().startsWith("splice:");
-            if (getTableSize) {
+            try {
                 String tableName = table.getName().getNameAsString().split(":")[1];
                 HBaseRegionLoads loadWatcher = HBaseRegionLoads.INSTANCE;
-                Collection<PartitionLoad> tableLoad;
-                try {
-                    tableLoad = loadWatcher.tableLoad(tableName, false);
-                    for (PartitionLoad partitionLoad: tableLoad) {
-                        tableSize += (partitionLoad.getStorefileSizeMB() + partitionLoad.getMemStoreSizeMB());
-                    }
-                    // Convert MB to bytes.
-                    tableSize *= 1048576;
-                    int splitsPerTableMin = HConfiguration.getConfiguration().getSplitsPerTableMin();
-                    if (tableSize < 0)
-                        tableSize = 0;
-                    else if ((this.splits == splitsPerTableMin) && (tableSize / HConfiguration.getConfiguration().getSplitBlockSize() > splitsPerTableMin)) {
-                        this.splits = 0;
-                        tableSize = 0;
-                    }
+                Collection<PartitionLoad> tableLoad = loadWatcher.tableLoad(tableName, true);
+                for (PartitionLoad partitionLoad: tableLoad) {
+                    tableSize += (partitionLoad.getStorefileSizeMB() + partitionLoad.getMemStoreSizeMB());
                 }
-                catch (Exception e) {
-                    // Don't cause the query to abort if we couldn't get the table size.
-                    // Just log a warning.
-                    LOG.warn(format("Failed to compute size for table: %s", table));
+                // Convert MB to bytes.
+                tableSize *= 1048576;
+                int splitsPerTableMin = HConfiguration.getConfiguration().getSplitsPerTableMin();
+                if (tableSize < 0)
+                    tableSize = 0;
+                if (this.splits == 0) {
+                    this.splits = Math.max((int) (tableSize / HConfiguration.getConfiguration().getSplitBlockSize()), splitsPerTableMin);
                 }
+            }
+            catch (Exception e) {
+                // Don't cause the query to abort if we couldn't get the table size.
+                // Just log a warning.
+                LOG.warn(format("Failed to compute size for table: %s", table));
             }
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "getSplits " + splits);
