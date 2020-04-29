@@ -1279,18 +1279,18 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             }
         }
         if (subqueryNode != null) {
-            subqueryText = subqueryNode.printExplainInformation(",", 0);
+            subqueryText = subqueryNode.printExplainInformation(",");
             subqueryText = subqueryText.substring(subqueryText.indexOf("->") + 2).trim();
             if (subqueryNode.getResultSet() instanceof ProjectRestrictNode) {
                 ProjectRestrictNode prn = (ProjectRestrictNode) subqueryNode.getResultSet();
-                String prnExplainText = prn.printExplainInformation(",", 0);
+                String prnExplainText = prn.printExplainInformation(",");
                 prnExplainText = prnExplainText.substring(prnExplainText.indexOf("->") + 2).trim();
                 subqueryText = subqueryText + "\n" + prnExplainText;
                 while (prn.getChildResult() instanceof ProjectRestrictNode)
                     prn = (ProjectRestrictNode) prn.getChildResult();
                 if (prn.getChildResult() instanceof FromTable) {
                     FromTable table = (FromTable) prn.getChildResult();
-                    String tableExplainText = table.printExplainInformation(",", 0);
+                    String tableExplainText = table.printExplainInformation(",");
                     tableExplainText = tableExplainText.substring(tableExplainText.indexOf("->") + 2).trim();
                     subqueryText = subqueryText + "\n" + tableExplainText;
                 }
@@ -1801,11 +1801,11 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append("ProjectRestrict").append("(")
-                .append("n=").append(order)
+                .append("n=").append(getResultSetNumber())
                 .append(attrDelim);
 
         if (childResult instanceof FromBaseTable || childResult instanceof FromVTI || childResult instanceof IndexToBaseRowNode) {

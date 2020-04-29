@@ -687,14 +687,14 @@ public class FromBaseTable extends FromTable {
                     splits = Integer.parseInt(value);
                     if (splits <= 0)
                         throw StandardException.newException(SQLState.LANG_INVALID_SPLITS, value);
-                } catch (Exception skipStatsE) {
+                } catch (NumberFormatException skipStatsE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SPLITS, value);
                 }
             } else if (key.equals("useDefaultRowCount")) {
                 try {
                     skipStats = true;
                     defaultRowCount = Long.parseLong(value);
-                } catch (Exception parseLongE) {
+                } catch (NumberFormatException parseLongE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
                 }
                 if (defaultRowCount <= 0)
@@ -703,7 +703,7 @@ public class FromBaseTable extends FromTable {
                 try {
                     skipStats = true;
                     defaultSelectivityFactor = Double.parseDouble(value);
-                } catch (Exception parseDoubleE) {
+                } catch (NumberFormatException parseDoubleE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
                 }
                 if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
@@ -3365,12 +3365,12 @@ public class FromBaseTable extends FromTable {
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         String indexName = getIndexName();
         sb.append(spaceToLevel());
         sb.append(getClassName(indexName)).append("(");
-        sb.append("n=").append(order).append(attrDelim);
+        sb.append("n=").append(getResultSetNumber()).append(attrDelim);
         sb.append(getFinalCostEstimate(false).prettyFromBaseTableString(attrDelim));
         if (indexName != null)
             sb.append(attrDelim).append("baseTable=").append(getPrettyTableName());
