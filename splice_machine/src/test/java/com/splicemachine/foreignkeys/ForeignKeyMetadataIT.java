@@ -112,7 +112,6 @@ public class ForeignKeyMetadataIT{
     }
 
 
-    @Ignore("DB-9109")
     @Test
     public void testSimplifiedForeignKeysDoesNotExplode() throws Exception{
         /*

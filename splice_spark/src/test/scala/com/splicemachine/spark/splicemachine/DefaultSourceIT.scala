@@ -113,7 +113,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     assert(newDF.count == 20)
   }
 
-  test("insertion with sampling") {
+  test("insertion with sampling") {  // DB-9395
     val userDir: String = System.getProperty("user.dir")
     val dataDir = userDir+"/src/test/data/lineitem.csv";
     val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
@@ -241,7 +241,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     assert(df.count == 1)
   }
 
-  test("bulkImportHFile") {
+  test("bulkImportHFile") {  // DB-9394
     val bulkImportOptions = scala.collection.mutable.Map(
       "useSpark" -> "true",
       "skipSampling" -> "true"
@@ -263,7 +263,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     assert(newDF.count == 20)
   }
 
-  test("bulkImportHFile using rdd") {
+  test("bulkImportHFile using rdd") {  // DB-9394
     val bulkImportOptions = scala.collection.mutable.Map(
       "useSpark" -> "true",
       "skipSampling" -> "true"
