@@ -141,7 +141,21 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <V> DataSet<V> getEmpty(String name) {
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1), name);
+        return getEmpty(name, null);
+    }
+
+    @Override
+    public <V> DataSet<V> getEmpty(String name, OperationContext context) {
+        if (context == null)
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1), name);
+        try {
+            return new NativeSparkDataSet<>(
+                    SpliceSpark.getSession().createDataFrame(
+                            SpliceSpark.getContext().emptyRDD(),
+                            context.getOperation().getExecRowDefinition().schema()), context);
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -326,14 +340,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
 
                 if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
-                    return getEmpty();
+                    return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
 
-                // Infer schema from external files
-                StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "p");
+                ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
 
                 table = SpliceSpark.getSession()
                         .read()
-                        .schema(dataSchema)
+                        .schema(tableSchema)
                         .parquet(location);
 
                 ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
@@ -351,7 +364,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -404,7 +417,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -495,7 +508,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 }
             }
         }catch (Exception e) {
-            throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+            throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
 
         return schema;
@@ -568,7 +581,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
         catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -638,7 +651,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     .map(new RowToLocatedRowFunction(context,execRow)));
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.PIN_READ_FAILURE,e.getMessage());
+                    SQLState.PIN_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -655,7 +668,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
 
             if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
-                return getEmpty();
+                return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
 
             SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType(baseColumnMap));
             Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
@@ -681,7 +694,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -753,7 +766,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
