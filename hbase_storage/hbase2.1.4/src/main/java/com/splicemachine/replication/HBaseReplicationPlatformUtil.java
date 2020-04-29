@@ -22,10 +22,11 @@ import org.apache.hadoop.hbase.replication.ReplicationPeerConfig;
  */
 public class HBaseReplicationPlatformUtil {
 
-    public static ReplicationPeerConfig createReplicationConfig(String clusterKey,  boolean isSerial) {
+    public static ReplicationPeerConfig createReplicationConfig(String clusterKey) {
         ReplicationPeerConfig config = ReplicationPeerConfig.newBuilder()
                 .setClusterKey(clusterKey)
-                .setSerial(isSerial)
+                .setReplicationEndpointImpl("com.splicemachine.replication.SpliceInterClusterReplicationEndpoint")
+                .setSerial(true)
                 .build();
         return config;
     }

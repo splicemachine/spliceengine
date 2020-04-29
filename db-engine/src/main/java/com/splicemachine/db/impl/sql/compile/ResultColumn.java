@@ -1965,8 +1965,20 @@ public class ResultColumn extends ValueNode
         return (columnDescriptor != null) && columnDescriptor.hasGenerationClause();
     }
 
-    public List getChildren() {
+    public List<? extends QueryTreeNode> getChildren() {
         return Collections.singletonList(expression);
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        assert index == 0;
+        return expression;
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        assert index == 0;
+        expression = (ValueNode) newValue;
     }
 
     /**

@@ -66,9 +66,9 @@ public class HRegionUtil {
 
     public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end,
                                                 int requestedSplits, long bytesPerSplit) throws IOException {
-            assert Bytes.startComparator.compare(start, end) <= 0 || start.length == 0 || end.length == 0;
+        assert Bytes.startComparator.compare(start, end) <= 0 || start.length == 0 || end.length == 0;
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "getCutpoints");
+            SpliceLogUtils.trace(LOG, "getCutpoints store: %s requestedSplits: %d bytesPerSplit: %d", store.getStorefiles(), requestedSplits, bytesPerSplit);
         Collection<? extends StoreFile> storeFiles;
         storeFiles = store.getStorefiles();
         HFile.Reader fileReader = null;
@@ -98,9 +98,13 @@ public class HRegionUtil {
                     totalStoreFileInBytes += ((HStoreFile) file).getFileInfo().getFileStatus().getLen();
                 }
             }
-            numSplits = totalStoreFileInBytes / bytesPerSplit;
+            // We use the MemStore size to estimate the right number of splits because we take it into account when
+            // computing bytesPerSplit in AbstractSMInputFormat, even though we don't scan the memstore for split points
+            // We hope the data in the MemStore follows a similar distribution to that in the HFiles
+            numSplits = (totalStoreFileInBytes + store.getMemStoreSize().getDataSize()) / bytesPerSplit;
             if (numSplits <= 1)
                 numSplits = 1;
+            // Here we don't take into account the MemStore size because we are only scanning the HFiles
             long bytesPerSplitEvenDistribution = totalStoreFileInBytes / numSplits;
             if (bytesPerSplitEvenDistribution > Integer.MAX_VALUE) {
                 splitBlockSize = Integer.MAX_VALUE;
@@ -147,7 +151,6 @@ public class HRegionUtil {
         cutPoints.add(0, store.getRegionInfo().getStartKey());
         // add region end key at end
         cutPoints.add(store.getRegionInfo().getEndKey());
-
         if (LOG.isDebugEnabled()) {
             RegionInfo regionInfo = store.getRegionInfo();
             String startKey = "\"" + CellUtils.toHex(regionInfo.getStartKey()) + "\"";
@@ -159,7 +162,6 @@ public class HRegionUtil {
         }
         return cutPoints;
     }
-
 
     public static BitSet keyExists(boolean hasConstraintChecker, Store store, Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
         BitSet bitSet = new BitSet(dataAndLocks.length);

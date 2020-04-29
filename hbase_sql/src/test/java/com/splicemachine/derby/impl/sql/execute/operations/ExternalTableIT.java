@@ -16,10 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TriggerBuilder;
 import org.apache.commons.io.FileUtils;
@@ -43,7 +40,7 @@ import static org.junit.Assert.fail;
  * IT's for external table functionality
  *
  */
-public class ExternalTableIT extends SpliceUnitTest{
+public class ExternalTableIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = ExternalTableIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -55,13 +52,6 @@ public class ExternalTableIT extends SpliceUnitTest{
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher);
-
-    // this will cleanup all files created in the dir getExternalResourceDirectory()
-    // (if you insert into external tables, you create files)
-    @BeforeClass
-    public static void cleanoutDirectory() {
-        SpliceUnitTest.clearDirectory( getExternalResourceDirectory() );
-    }
 
     @Test
     public void testNativeSparkExtractFunction() throws Exception {
@@ -503,7 +493,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testLocationCannotBeAFileAvro() throws  Exception{
-        File temp = File.createTempFile("temp-file-avro", ".tmp");
+        File temp = createTempOutputFile("temp-file-avro", ".tmp");
         try {
             methodWatcher.executeUpdate(String.format("create external table table_to_existing_file_avro_temp (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
                     " STORED AS AVRO LOCATION '%s'", temp.getAbsolutePath()));
@@ -515,7 +505,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testLocationCannotBeAFile() throws  Exception{
-        File temp = File.createTempFile("temp-file", ".tmp");
+        File temp = createTempOutputFile("temp-file", ".tmp");
 
         try {
             methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
@@ -1609,12 +1599,6 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     }
 
-    public static String getExternalResourceDirectory() {
-        return getHBaseDirectory()+"/target/external/";
-
-    }
-
-
     @Test
     public void testWriteToWrongPartitionedParquetExternalTable() throws Exception {
         try {
@@ -2685,7 +2669,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testReadWriteAvroFromHive() throws Exception {
-        String path = SpliceUnitTest.getExternalResourceDirectoryAsCopy( "t_avro" );
+        String path = getTempCopyOfResourceDirectory( "t_avro" );
         methodWatcher.execute(String.format("create external table t_avro (col1 varchar(30), col2 int)" +
                 " STORED AS AVRO LOCATION '%s'", path ));
 

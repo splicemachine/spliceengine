@@ -22,7 +22,6 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.io.File;
 import java.sql.ResultSet;
 
 import static org.junit.Assert.assertEquals;
@@ -32,7 +31,7 @@ import static org.junit.Assert.assertTrue;
  * Created by tgildersleeve on 6/30/17.
  * SPLICE-1621
  */
-public class ExternalTablePartitionIT {
+public class ExternalTablePartitionIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = ExternalTablePartitionIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -44,13 +43,6 @@ public class ExternalTablePartitionIT {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher);
-
-    // this will cleanup all files created in the dir getExternalResourceDirectory()
-    // (if you insert into external tables, you create files)
-    @BeforeClass
-    public static void cleanoutDirectory() {
-        SpliceUnitTest.clearDirectory( getExternalResourceDirectory() );
-    }
 
     @Test
     public void testParquetPartitionFirst() throws Exception {
@@ -1186,7 +1178,7 @@ public class ExternalTablePartitionIT {
     @Test
     public void testParquetPartitionExisting() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table parquet_partition_existing (\"c0\" int, \"c1\" varchar(10), \"c2\" boolean, \"c3\" int, \"c4\" double, \"c5\" char)" +
-                "partitioned by (\"c3\", \"c1\") STORED AS PARQUET LOCATION '%s'", SpliceUnitTest.getResourceDirectory()+"parquet_partition_existing"));
+                "partitioned by (\"c3\", \"c1\") STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_partition_existing"));
         ResultSet rs = methodWatcher.executeQuery("select * from parquet_partition_existing order by 1");
         assertEquals("c0  |c1  | c2   |c3  |c4  |c5 |\n" +
                 "-------------------------------\n" +
@@ -1203,7 +1195,7 @@ public class ExternalTablePartitionIT {
         methodWatcher.execute("drop table parquet_partition_existing");
 
         methodWatcher.executeUpdate(String.format("create external table parquet_partition_existing (\"c0\" int, \"c1\" varchar(10), \"c2\" boolean, \"c3\" int, \"c4\" double, \"c5\" char)" +
-                "partitioned by (\"c3\", \"c1\") STORED AS PARQUET LOCATION '%s' merge schema", SpliceUnitTest.getResourceDirectory()+"parquet_partition_existing"));
+                "partitioned by (\"c3\", \"c1\") STORED AS PARQUET LOCATION '%s' merge schema", getResourceDirectory()+"parquet_partition_existing"));
         rs = methodWatcher.executeQuery("select * from parquet_partition_existing order by 1");
         assertEquals("c0  |c1  | c2   |c3  |c4  |c5 |\n" +
                 "-------------------------------\n" +
@@ -1222,7 +1214,7 @@ public class ExternalTablePartitionIT {
     @Test
     public void testAvroPartitionExisting() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table avro_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
-                "partitioned by (col4, col2) STORED AS AVRO LOCATION '%s'", SpliceUnitTest.getResourceDirectory()+"avro_partition_existing"));
+                "partitioned by (col4, col2) STORED AS AVRO LOCATION '%s'", getResourceDirectory() +"avro_partition_existing"));
         ResultSet rs = methodWatcher.executeQuery("select * from avro_partition_existing order by 1");
         assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                 "-------------------------------------\n" +
@@ -1238,7 +1230,7 @@ public class ExternalTablePartitionIT {
 
         methodWatcher.execute("drop table avro_partition_existing");
         methodWatcher.executeUpdate(String.format("create external table avro_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
-                "partitioned by (col4, col2) STORED AS AVRO LOCATION '%s' merge schema", SpliceUnitTest.getResourceDirectory()+"avro_partition_existing"));
+                "partitioned by (col4, col2) STORED AS AVRO LOCATION '%s' merge schema", getResourceDirectory() +"avro_partition_existing"));
         rs = methodWatcher.executeQuery("select * from avro_partition_existing order by 1");
         assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                 "-------------------------------------\n" +
@@ -1257,7 +1249,7 @@ public class ExternalTablePartitionIT {
     @Test
     public void testOrcPartitionExisting() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table orc_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
-                "partitioned by (col4, col2) STORED AS ORC LOCATION '%s'", SpliceUnitTest.getResourceDirectory()+"orc_partition_existing"));
+                "partitioned by (col4, col2) STORED AS ORC LOCATION '%s'", getResourceDirectory() +"orc_partition_existing"));
         ResultSet rs = methodWatcher.executeQuery("select * from orc_partition_existing order by 1");
         assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                 "-------------------------------------\n" +
@@ -1273,7 +1265,7 @@ public class ExternalTablePartitionIT {
 
         methodWatcher.execute("drop table orc_partition_existing");
         methodWatcher.executeUpdate(String.format("create external table orc_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
-                "partitioned by (col4, col2) STORED AS ORC LOCATION '%s' merge schema", SpliceUnitTest.getResourceDirectory()+"orc_partition_existing"));
+                "partitioned by (col4, col2) STORED AS ORC LOCATION '%s' merge schema", getResourceDirectory() +"orc_partition_existing"));
         rs = methodWatcher.executeQuery("select * from orc_partition_existing order by 1");
         assertEquals("COL1 |COL2 |COL3  |COL4 |COL5 |COL6 |\n" +
                 "-------------------------------------\n" +
@@ -1307,34 +1299,9 @@ public class ExternalTablePartitionIT {
                 " 3.3 | CCC |  c  |", TestUtils.FormattedResult.ResultFactory.toString(rs2));
     }
 
-
-    // e.g. GITROOT/platform_it/target/external when running cdh6.3.0
-    public static String getExternalResourceDirectory() {
-        return SpliceUnitTest.getExternalResourceDirectory();
-    }
-
-    private int getNumberOfFiles(String dirPath) {
-        int count = 0;
-        File f = new File(dirPath);
-        File[] files = f.listFiles();
-
-        if (files == null)
-            return 0;
-
-        for (int i = 0; i < files.length; i++) {
-            count++;
-            File file = files[i];
-
-            if (file.isDirectory()) {
-                count += getNumberOfFiles(file.getAbsolutePath());
-            }
-        }
-        return count;
-    }
-
     @Test
     public void testInsertionToHiveParquetData() throws Exception {
-        String tmp = SpliceUnitTest.getExternalResourceDirectoryAsCopy( "pt_parquet" );
+        String tmp = getTempCopyOfResourceDirectory( "pt_parquet" );
         methodWatcher.executeUpdate(
                 String.format("create external table pt_parquet(\"name\" varchar(10), \"age\" int, \"state\" char(2)) partitioned by (\"state\") stored as parquet location '%s'",
                         tmp));
@@ -1351,7 +1318,7 @@ public class ExternalTablePartitionIT {
 
     @Test
     public void testInsertionToHiveAvroData() throws Exception {
-        String tmp = SpliceUnitTest.getExternalResourceDirectoryAsCopy( "pt_avro" );
+        String tmp = getTempCopyOfResourceDirectory( "pt_avro" );
         methodWatcher.executeUpdate( String.format(
                 "create external table pt_avro(col1 varchar(10), col2 int, col3 char(2)) " +
                         "partitioned by (col3) stored as avro location '%s'", tmp) );
