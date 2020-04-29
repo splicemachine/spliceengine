@@ -156,6 +156,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapServerMemory;
     private final int olapServerMemoryOverhead;
     private final int olapServerVirtualCores;
+    private final boolean sparkAccumulatorsEnabled;
     private final String olapLog4jConfig;
     private final Map<String, String> olapServerIsolatedRoles;
     private final Map<String, String> olapServerYarnQueues;
@@ -646,6 +647,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getOlapShufflePartitions() {
         return olapShufflePartitions;
     }
+    @Override
+    public boolean getSparkAccumulatorsEnabled() {
+        return sparkAccumulatorsEnabled;
+    }
 
     @Override
     public boolean getOlapCompactionAutomaticallyPurgeDeletedRows() {
@@ -1000,6 +1005,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapServerVirtualCores = builder.olapServerVirtualCores;
         olapClientRetries = builder.olapClientRetries;
         olapShufflePartitions = builder.olapShufflePartitions;
+        sparkAccumulatorsEnabled = builder.sparkAccumulatorsEnabled;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
         compactionReservedSlots = builder.compactionReservedSlots;
