@@ -51,7 +51,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * A ValueNode is an abstract class for all nodes that can represent data
@@ -1038,25 +1037,27 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
             case FULLOUTER:
                 selectivity = 1.0d/innerRowCount;
                 break;
+            case ANTIJOIN: // exclusion join
+                if (outerRowCount >= innerRowCount) {
+                    // output row = left not null row - output row estimated above for inclusion join
+                    selectivity = (1 - .1d) / outerRowCount * (outerRowCount - innerRowCount) / innerRowCount;
+                } else {
+                    // following the above assumption, no row will be returned, but to be conservative, we will
+                    // assume 10% selectivity from left rows
+                    selectivity = (1 - .1d)/innerRowCount;
+                    selectivity = 0.1 * selectivity;
+                }
+                break;
             case INNER:
-			case ANTIJOIN:
                 selectivity = (1.0d-.1d)*(1.0d-.1d)/Math.max(innerRowCount,outerRowCount);
+                // cost inclusion join
                 if ((optTable instanceof FromTable && ((FromTable) optTable).getExistsTable())) {
-					if (outerRowCount >= innerRowCount) {
-						selectivity = (1 - .1d) / outerRowCount;
-						if (selectivityJoinType == SelectivityUtil.SelectivityJoinType.ANTIJOIN) {
-							// output row = left not null row - output row estimated above for inclusion join
-							selectivity = (1 - .1d) / outerRowCount * (outerRowCount - innerRowCount) / innerRowCount;
-						}
-					} else {
-						selectivity = (1 - .1d)/innerRowCount;
-						if (selectivityJoinType == SelectivityUtil.SelectivityJoinType.ANTIJOIN) {
-							// following the above assumption, no row will be returned, but to be conservative, we will
-							// assume 10% selectivity from left rows
-							selectivity = 0.1 * selectivity;
-						}
-					}
-				}
+                    if (outerRowCount >= innerRowCount) {
+                        selectivity = (1 - .1d) / outerRowCount;
+                    } else {
+                        selectivity = (1 - .1d)/innerRowCount;
+                    }
+                }
                 break;
         }
         return selectivity;
