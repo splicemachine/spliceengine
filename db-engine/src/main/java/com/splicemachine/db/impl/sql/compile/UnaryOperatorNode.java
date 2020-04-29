@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeUtilities;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -60,6 +61,7 @@ import java.util.List;
  *
  */
 
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class UnaryOperatorNode extends OperatorNode
 {
     String	operator;
@@ -140,6 +142,7 @@ public class UnaryOperatorNode extends OperatorNode
      *  retrieved.
      */
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "DB-9407")
     public void init(
             Object	operand,
             Object		operatorOrOpType,
@@ -878,17 +881,24 @@ public class UnaryOperatorNode extends OperatorNode
         return false;
     }
 
-    public List getChildren() {
+    public List<? extends QueryTreeNode> getChildren() {
+        if (operand != null) {
+            return Collections.singletonList(operand);
+        } else {
+            return Collections.EMPTY_LIST;
+        }
+    }
 
-        List result = null;
-
-        if(operand != null){
-            result = Collections.singletonList(operand);
-        }else{
-            result = Collections.EMPTY_LIST;
+    @Override
+    public QueryTreeNode getChild(int index) {
+        assert operand != null && index == 0;
+        return operand;
         }
 
-        return result;
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        assert operand != null && index == 0;
+        operand = (ValueNode) newValue;
     }
 
     @Override
@@ -898,19 +908,6 @@ public class UnaryOperatorNode extends OperatorNode
 
     public void setOperand(ValueNode operand) {
         this.operand = operand;
-    }
-
-    @Override
-    public List<ColumnReference> getHashableJoinColumnReference() {
-        return operand.getHashableJoinColumnReference();
-    }
-
-    @Override
-    public void setHashableJoinColumnReference(ColumnReference cr) {
-        if (operand instanceof ColumnReference)
-            operand = cr;
-        else
-            operand.setHashableJoinColumnReference(cr);
     }
 
     @Override
