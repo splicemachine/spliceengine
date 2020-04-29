@@ -52,6 +52,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfoList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.*;
@@ -240,7 +241,7 @@ public class GroupByNode extends SingleChildResultSetNode{
                                    CostEstimate outerCost,
                                    RowOrdering rowOrdering) throws StandardException{
         // RESOLVE: NEED TO FACTOR IN THE COST OF GROUPING (SORTING) HERE
-        CostEstimate childCost=((Optimizable)childResult).optimizeIt(
+        ((Optimizable)childResult).optimizeIt(
                 optimizer,
                 predList,
                 outerCost,
@@ -761,7 +762,7 @@ public class GroupByNode extends SingleChildResultSetNode{
                     C_NodeTypes.VIRTUAL_COLUMN_NODE,
                     this, // source result set.
                     gbRC,
-                    new Integer(groupByRCL.size()), //sometimes the boxing is needed to make it compile
+                    Integer.valueOf(groupByRCL.size()), //sometimes the boxing is needed to make it compile
                     getContextManager());
 
             // we replace each group by expression
@@ -897,7 +898,7 @@ public class GroupByNode extends SingleChildResultSetNode{
                 C_NodeTypes.VIRTUAL_COLUMN_NODE,
                 this,
                 gbRC,
-                new Integer(groupByRCL.size()),
+                groupByRCL.size(),
                 getContextManager());
 
             groupingIdColumns.put(numElements - i - 1, vc);
@@ -947,7 +948,7 @@ public class GroupByNode extends SingleChildResultSetNode{
                 C_NodeTypes.VIRTUAL_COLUMN_NODE,
                 this, // source result set.
                 gbRC,
-                new Integer(groupByRCL.size()), //sometimes the boxing is needed to make it compile
+                groupByRCL.size(), //sometimes the boxing is needed to make it compile
                 getContextManager());
 
         addGroupingIdColumnsForNativeSpark();
@@ -1405,6 +1406,7 @@ public class GroupByNode extends SingleChildResultSetNode{
      * we'll process those expressions in the order: a*(a+b),
      * a+b+c, a+b, then a.
      */
+    @SuppressFBWarnings(value="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE", justification="DB-9367")
     private static final class ExpressionSorter implements Comparator<SubstituteExpressionVisitor>{
         @Override
         public int compare(SubstituteExpressionVisitor o1,SubstituteExpressionVisitor o2){
@@ -1430,11 +1432,11 @@ public class GroupByNode extends SingleChildResultSetNode{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("GroupBy").append("(")
-                .append("n=").append(order);
+                .append("n=").append(getResultSetNumber());
         sb.append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
