@@ -213,12 +213,11 @@ public final class GetCurrentConnectionNode extends JavaValueNode
 
     @Override
     public QueryTreeNode getChild(int index) {
-        assert false;
-        return null;
+        throw new UnsupportedOperationException("Not Implemented");
     }
 
     @Override
     public void setChild(int index, QueryTreeNode newValue) {
-        assert false;
+        throw new UnsupportedOperationException("Not Implemented");
     }
 }
