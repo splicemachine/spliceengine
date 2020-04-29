@@ -334,9 +334,10 @@ public class ScanCostFunction{
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
         double scannedBaseTableRows = Math.round(baseTableSelectivity * totalRowCount);
         double baseCost = openLatency+closeLatency+(scannedBaseTableRows*localLatency*(1+congAverageWidth/100d));
-        // if this is costing control path, and the table actually exceeds the threshold to swtich to Spark
-        // penalize the plan with a fix Spark overhead
 
+        // Spark execution compared to control execution has some overhead. If this is costing control path, and
+        // the table actually exceeds the threshold to trigger the plan swtich from control to Spark, penalize this
+        // plan with a fixed Spark overhead. This would favor the plans that do not switch to Spark.
         scanCost.setSparkOverhead(0.0);
         if (!useSpark) {
             if (scannedBaseTableRows > scc.getSparkRowThreshold()) {
