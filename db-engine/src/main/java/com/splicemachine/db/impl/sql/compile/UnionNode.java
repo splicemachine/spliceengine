@@ -66,11 +66,6 @@ public class UnionNode extends SetOperatorNode{
     boolean isRecursive;
     /* the description of the result columns */
     TableDescriptor viewDescriptor;
-    /* for recursive union all, we want to display the step number from the recursive reference node, so save the step number
-       here for convenience. Note, this step number in explain may not be the same as the resultSetNumber, as some ProjectRestrict
-       node without restriction could be skipped and won't shown up in the explain
-     */
-    int stepNumInExplain;
 
 
     /**
@@ -736,11 +731,11 @@ public class UnionNode extends SetOperatorNode{
         return "UNION";
     }
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append(isRecursive?"RecursiveUnion":"Union").append("(")
-                .append("n=").append(order);
+                .append("n=").append(getResultSetNumber());
         sb.append(attrDelim).append(costEstimate.prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
@@ -753,14 +748,6 @@ public class UnionNode extends SetOperatorNode{
 
     public boolean getIsRecursive() {
         return isRecursive;
-    }
-
-    public void setStepNumInExplain(int stepNum) {
-        stepNumInExplain = stepNum;
-    }
-
-    public int getStepNumInExplain() {
-        return stepNumInExplain;
     }
 
     public void setViewDescreiptor(TableDescriptor viewDescreiptor) {

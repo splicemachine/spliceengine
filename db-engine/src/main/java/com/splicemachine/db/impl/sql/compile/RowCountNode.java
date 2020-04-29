@@ -243,11 +243,11 @@ public final class RowCountNode extends SingleChildResultSetNode{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append("Limit(")
-                .append("n=").append(order)
+                .append("n=").append(getResultSetNumber())
                 .append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
                 if (offset != null && offset instanceof NumericConstantNode) {
                     sb.append(attrDelim).append("offset=").append( ((NumericConstantNode)offset).getValue());
