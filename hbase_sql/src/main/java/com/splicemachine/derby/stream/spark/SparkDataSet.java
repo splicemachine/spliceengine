@@ -748,6 +748,19 @@ public class SparkDataSet<V> implements DataSet<V> {
                                              String location,
                                              String compression,
                                              OperationContext context) throws StandardException {
+        StructType tableSchema = generateTableSchema(context);
+
+        // construct a DF using schema of data
+        Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
+                rdd
+                        .map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context)))
+                        .map(new LocatedRowToRowFunction()),
+                tableSchema);
+
+        return new NativeSparkDataSet<>(insertDF, context).writeParquetFile(dsp, partitionBy, location, compression, context);
+    }
+
+    public static StructType generateTableSchema(OperationContext context) throws StandardException {
         //Generate Table Schema
         String[] colNames;
         DataValueDescriptor[] dvds;
@@ -770,16 +783,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         for (int i=0 ; i<colNames.length ; i++){
             fields[i] = dvds[i].getStructField(colNames[i]);
         }
-        StructType tableSchema = DataTypes.createStructType(fields);
-
-        // construct a DF using schema of data
-        Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
-                rdd
-                        .map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context)))
-                        .map(new LocatedRowToRowFunction()),
-                tableSchema);
-
-        return new NativeSparkDataSet<>(insertDF, context).writeParquetFile(dsp, partitionBy, location, compression, context);
+        return DataTypes.createStructType(fields);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -834,16 +838,9 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
-                                                    OperationContext context) throws StandardException {
-        //Generate Table Schema
-        String[] colNames = ((DMLWriteOperation) context.getOperation()).getColumnNames();
-        DataValueDescriptor[] dvds = context.getOperation().getExecRowDefinition().getRowArray();
-        StructField[] fields = new StructField[colNames.length];
-        for (int i=0 ; i<colNames.length ; i++){
-            fields[i] = dvds[i].getStructField(colNames[i]);
-        }
-        StructType tableSchema = DataTypes.createStructType(fields);
-
+                                                    OperationContext context) throws StandardException
+    {
+        StructType tableSchema = generateTableSchema( context );
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
                 tableSchema);
