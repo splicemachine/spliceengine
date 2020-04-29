@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataTypeUtilities;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -374,7 +375,7 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 				      OLD_MAX_DECIMAL_PRECISION_SCALE;
 				if (precision < maxImplicitCastPrecision)
 				    precision = maxImplicitCastPrecision;
-				maximumWidth = (scale > 0) ? precision + 3 : precision + 1;
+				maximumWidth = DataTypeUtilities.computeMaxWidth(precision, scale);
 
 				/*
 				 ** Be careful not to overflow
