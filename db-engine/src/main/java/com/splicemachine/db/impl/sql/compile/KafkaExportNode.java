@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -34,7 +34,7 @@ import java.util.List;
  * <p/>
  * EXAMPLE:
  * <p/>
- * BINARY_EXPORT('/dir', true, 'parquet') select a, b, sqrt(c) from table1 where a > 100;
+ * EXPORT_KAFKA('topicName') select a, b, sqrt(c) from table1 where a > 100;
  */
 public class KafkaExportNode extends DMLStatementNode {
 

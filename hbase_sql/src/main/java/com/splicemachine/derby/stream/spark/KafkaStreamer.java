@@ -77,7 +77,6 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
     private String bootstrapServers;
     private String topicName;
     private Optional<StructType> schema;
-    private int partition;
     private volatile TaskContext taskContext;
 
     // Serialization
@@ -101,7 +100,6 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
 
     @Override
     public Iterator<String> call(Integer partition, Iterator<T> locatedRowIterator) throws Exception {
-        this.partition = partition;
         taskContext = TaskContext.get();
 
         if (taskContext != null && taskContext.attemptNumber() > 0) {
