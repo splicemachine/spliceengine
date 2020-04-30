@@ -162,6 +162,7 @@ public class SparkOperationContext<Op extends SpliceOperation> extends SparkLean
 
     @Override
     public void reset(){
+        super.reset();
         String baseName="";
         if (op != null) {
             baseName = "(" + op.resultSetNumber() + ") " + op.getName() + " ";
