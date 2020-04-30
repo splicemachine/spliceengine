@@ -25,7 +25,6 @@ import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.compile.SparkExpressionNode;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
@@ -97,9 +96,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     
     public NativeSparkDataSet(Dataset<Row> dataset, OperationContext context) {
         int cols = dataset.columns().length;
-
         String[] colNames = new String[cols];
-//        colNames = dataset.columns();
         for (int i = 0; i<cols; i++) {
             colNames[i] = "c"+i;
         }
@@ -112,7 +109,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         if (assignNewColumnNames) {
             int cols = dataset.columns().length;
             String[] colNames = new String[cols];
-            //        colNames = dataset.columns();
             for (int i = 0; i < cols; i++) {
                 colNames[i] = "c" + i;
             }
@@ -1133,30 +1129,18 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
         StructType tableSchema = DataTypes.createStructType(fields);
 
-        StructType dataSchema = null;
-        try {
-            dataSchema = ExternalTableUtils.getDataSchema(dsp, tableSchema, partitionBy, location, "p");
-        } catch (StandardException e) {
-            if( ! e.getSqlState().equals(SQLState.EXTERNAL_TABLES_READ_FAILURE) ) {
-                throw e;
-            }
-        }
-
-        if (dataSchema == null)
-            dataSchema = tableSchema;
-
         // construct a DF using schema of data
         Dataset<Row> insertDF = SpliceSpark.getSession()
-                .createDataFrame(dataset.rdd(), dataSchema);
+                .createDataFrame(dataset.rdd(), tableSchema);
 
         List<String> partitionByCols = new ArrayList();
         for (int i = 0; i < partitionBy.length; i++) {
-            partitionByCols.add(dataSchema.fields()[partitionBy[i]].name());
+            partitionByCols.add(tableSchema.fields()[partitionBy[i]].name());
         }
         if (partitionBy.length > 0) {
             List<Column> repartitionCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
-                repartitionCols.add(new Column(dataSchema.fields()[partitionBy[i]].name()));
+                repartitionCols.add(new Column(tableSchema.fields()[partitionBy[i]].name()));
             }
             insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
         }
