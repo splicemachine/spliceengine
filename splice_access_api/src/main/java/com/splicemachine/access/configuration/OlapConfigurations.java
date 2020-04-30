@@ -117,10 +117,6 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String SPARK_COMPACTION_BLOCKING = "spark.compaction.blocking";
     public static final boolean DEFAULT_SPARK_COMPACTION_BLOCKING = true;
 
-    // Kafka Bootstrap Servers
-    public static final String KAFKA_BOOTSTRAP_SERVERS = "splice.kafka.bootstrapServers";
-    public static final String DEFAULT_KAFKA_BOOTSTRAP_SERVERS = "localhost:9092";
-
     // Log4j config file for OLAP server
     public static final String OLAP_LOG4J_CONFIG = "splice.olap.log4j.configuration";
     public static final String DEFAULT_OLAP_LOG4J_CONFIG = null;
@@ -195,6 +191,5 @@ public class OlapConfigurations implements ConfigurationDefault {
         builder.olapServerIsolatedCompaction = configurationSource.getBoolean(OLAP_SERVER_ISOLATED_COMPACTION, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION);
         builder.olapServerIsolatedCompactionQueueName = configurationSource.getString(OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME);
         builder.olapCompactionAutomaticallyPurgeDeletedRows = configurationSource.getBoolean(OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS, DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS);
-        builder.kafkaBootstrapServers = configurationSource.getString(KAFKA_BOOTSTRAP_SERVERS, System.getProperty(KAFKA_BOOTSTRAP_SERVERS, DEFAULT_KAFKA_BOOTSTRAP_SERVERS));
     }
 }
