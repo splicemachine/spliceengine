@@ -742,24 +742,6 @@ public class SparkDataSet<V> implements DataSet<V> {
         return new SparkDataSet(rdd.map(new RowToLocatedRowFunction(context)));
     }
 
-    @Override
-    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp,
-                                             int[] partitionBy,
-                                             String location,
-                                             String compression,
-                                             OperationContext context) throws StandardException {
-        StructType tableSchema = generateTableSchema(context);
-
-        // construct a DF using schema of data
-        Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
-                rdd
-                        .map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context)))
-                        .map(new LocatedRowToRowFunction()),
-                tableSchema);
-
-        return new NativeSparkDataSet<>(insertDF, context).writeParquetFile(dsp, partitionBy, location, compression, context);
-    }
-
     public static StructType generateTableSchema(OperationContext context) throws StandardException {
         //Generate Table Schema
         String[] colNames;
@@ -794,15 +776,10 @@ public class SparkDataSet<V> implements DataSet<V> {
                                           OperationContext context) throws StandardException {
 
         StructType dataSchema = null;
-        //Generate Table Schema
-        String[] colNames = ((DMLWriteOperation) context.getOperation()).getColumnNames();
-        DataValueDescriptor[] dvds = context.getOperation().getExecRowDefinition().getRowArray();
-        StructField[] fields = new StructField[colNames.length];
-        for (int i=0 ; i<colNames.length ; i++){
-            fields[i] = dvds[i].getStructField(colNames[i]);
-        }
-        StructType tableSchema = DataTypes.createStructType(fields);
+        StructType tableSchema = generateTableSchema(context);
 
+        // what is this? why is this so different from parquet/orc ?
+        // actually very close to NativeSparkDataSet.writeFile
         dataSchema = ExternalTableUtils.getDataSchema(dsp, tableSchema, partitionBy, location, "a");
 
         if (dataSchema == null)
@@ -835,17 +812,43 @@ public class SparkDataSet<V> implements DataSet<V> {
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }
 
-
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
-                                                    OperationContext context) throws StandardException
+    public NativeSparkDataSet getNativeSparkDataSet( OperationContext context) throws StandardException
     {
         StructType tableSchema = generateTableSchema( context );
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
                 tableSchema);
 
-        return new NativeSparkDataSet<>(insertDF, context).writeORCFile(baseColumnMap, partitionBy, location, compression, context);
+        return new NativeSparkDataSet<>(insertDF, context);
+    }
+
+    static String getParquetCompression(String compression )
+    {
+        // parquet in spark supports: lz4, gzip, lzo, snappy, none, zstd.
+        if( compression.equals("zlib") )
+            compression = "gzip";
+        return compression;
+    }
+
+    @Override
+    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp,
+                                             int[] partitionBy,
+                                             String location,
+                                             String compression,
+                                             OperationContext context) throws StandardException {
+
+        compression = getParquetCompression( compression );
+        return getNativeSparkDataSet( context )
+                .writeParquetFile(dsp, partitionBy, location, compression, context);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
+                                         OperationContext context) throws StandardException
+    {
+        return getNativeSparkDataSet( context )
+                .writeORCFile(baseColumnMap, partitionBy, location, compression, context);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })

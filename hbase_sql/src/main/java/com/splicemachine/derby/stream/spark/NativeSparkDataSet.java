@@ -1101,14 +1101,22 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         return (JavaRDD<V>) dataSet.javaRDD().map(new RowToLocatedRowFunction(context));
     }
 
+    public enum FileType
+    {
+        PARQUET, ORC, AVRO, TEXT
+    }
 
-    @Override
-    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp,
-                                             int[] partitionBy,
-                                             String location,
-                                             String compression,
-                                             OperationContext context) throws StandardException {
+    public DataSet<ExecRow> writeFile( String type, DataSetProcessor dsp,
+                                       int[] partitionBy, String location,
+                                       String compression,
+                                       OperationContext context) throws StandardException
+    {
         StructType tableSchema = SparkDataSet.generateTableSchema(context);
+
+        // todo: dataSchema is different  from getDataFrameWriter
+        StructType dataSchema = ExternalTableUtils.getDataSchema(dsp, tableSchema, partitionBy, location, type);
+        if (dataSchema == null)
+            dataSchema = tableSchema;
 
         // construct a DF using schema of data
         Dataset<Row> insertDF = SpliceSpark.getSession()
@@ -1125,12 +1133,35 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             }
             insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
         }
-        insertDF.write().option(SPARK_COMPRESSION_OPTION,compression)
+
+        if( type.equals("p") )
+        {
+            compression = SparkDataSet.getParquetCompression(compression);
+        }
+
+        DataFrameWriter writer = insertDF.write().option(SPARK_COMPRESSION_OPTION, compression)
                 .partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                .mode(SaveMode.Append).parquet(location);
+                .mode(SaveMode.Append);
+
+        if( type.equals("p") )
+            writer.parquet(location);
+        else if( type.equals("o") )
+            writer.orc(location);
+        else
+            throw new RuntimeException("not supported type");
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
+    }
+
+    @Override
+    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp,
+                                             int[] partitionBy,
+                                             String location,
+                                             String compression,
+                                             OperationContext context) throws StandardException {
+
+        return writeFile( "p", dsp, partitionBy, location, compression, context);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -1185,10 +1216,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                                                 int[] baseColumnMap,
                                                 OperationContext context) {
         Dataset<Row> insertDF = dataset;
-        List<Column> cols = new ArrayList();
-        for (int i = 0; i < baseColumnMap.length; i++) {
-            cols.add(new Column(ValueRow.getNamedColumn(baseColumnMap[i])));
-        }
+
         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
         insertDF.write().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
                 .mode(SaveMode.Append).csv(location);
