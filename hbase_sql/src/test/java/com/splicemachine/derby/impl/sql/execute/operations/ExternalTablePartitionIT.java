@@ -22,6 +22,7 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.io.File;
 import java.sql.ResultSet;
 
 import static org.junit.Assert.assertEquals;
@@ -43,6 +44,26 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher);
+
+    static File tempDir;
+
+    @BeforeClass
+    public static void createTempDirectory() throws Exception
+    {
+        tempDir = createOrWipeTestDirectory( SCHEMA_NAME );
+    }
+
+    @AfterClass
+    public static void deleteTempDirectory() throws Exception
+    {
+        deleteTempDirectory(tempDir);
+    }
+
+    /// this will return the temp directory, that is created on demand once for each test
+    public String getExternalResourceDirectory() throws Exception
+    {
+        return tempDir.toString() + "/";
+    }
 
     @Test
     public void testParquetPartitionFirst() throws Exception {
@@ -1301,7 +1322,7 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
 
     @Test
     public void testInsertionToHiveParquetData() throws Exception {
-        String tmp = getTempCopyOfResourceDirectory( "pt_parquet" );
+        String tmp = getTempCopyOfResourceDirectory(tempDir, "pt_parquet" );
         methodWatcher.executeUpdate(
                 String.format("create external table pt_parquet(\"name\" varchar(10), \"age\" int, \"state\" char(2)) partitioned by (\"state\") stored as parquet location '%s'",
                         tmp));
@@ -1318,7 +1339,7 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
 
     @Test
     public void testInsertionToHiveAvroData() throws Exception {
-        String tmp = getTempCopyOfResourceDirectory( "pt_avro" );
+        String tmp = getTempCopyOfResourceDirectory(tempDir, "pt_avro" );
         methodWatcher.executeUpdate( String.format(
                 "create external table pt_avro(col1 varchar(10), col2 int, col3 char(2)) " +
                         "partitioned by (col3) stored as avro location '%s'", tmp) );

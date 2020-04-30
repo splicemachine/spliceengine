@@ -37,6 +37,7 @@ import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 
+import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.regex.Matcher;
@@ -99,6 +100,26 @@ public class ShowCreateTableIT extends SpliceUnitTest
     public static void cleanup()
     {
         classWatcher.closeAll();
+    }
+
+    static File tempDir;
+
+    @BeforeClass
+    public static void createTempDirectory() throws Exception
+    {
+        tempDir = createOrWipeTestDirectory( SCHEMA );
+    }
+
+    @AfterClass
+    public static void deleteTempDirectory() throws Exception
+    {
+        deleteTempDirectory(tempDir);
+    }
+
+    /// this will return the temp directory, that is created on demand once for each test
+    public String getExternalResourceDirectory() throws Exception
+    {
+        return tempDir.toString() + "/";
     }
 
     @Test
