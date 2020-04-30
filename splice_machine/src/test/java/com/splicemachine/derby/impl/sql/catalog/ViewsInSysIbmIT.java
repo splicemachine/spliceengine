@@ -26,6 +26,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 
@@ -37,6 +38,26 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
     public static final String CLASS_NAME = ViewsInSysIbmIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+
+    static File tempDir;
+
+    @BeforeClass
+    public static void createTempDirectory() throws Exception
+    {
+        tempDir = createOrWipeTestDirectory( CLASS_NAME );
+    }
+
+    @AfterClass
+    public static void deleteTempDirectory() throws Exception
+    {
+        deleteTempDirectory(tempDir);
+    }
+
+    /// this will return the temp directory, that is created on demand once for each test
+    public String getExternalResourceDirectory() throws Exception
+    {
+        return tempDir.toString() + "/";
+    }
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

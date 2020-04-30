@@ -53,6 +53,26 @@ public class ExternalTableIT extends SpliceUnitTest {
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher);
 
+    static File tempDir;
+
+    @BeforeClass
+    public static void createTempDirectory() throws Exception
+    {
+        tempDir = createOrWipeTestDirectory( SCHEMA_NAME );
+    }
+
+    @AfterClass
+    public static void deleteTempDirectory() throws Exception
+    {
+        deleteTempDirectory(tempDir);
+    }
+
+    /// this will return the temp directory, that is created on demand once for each test
+    public String getExternalResourceDirectory() throws Exception
+    {
+        return tempDir.toString() + "/";
+    }
+
     @Test
     public void testNativeSparkExtractFunction() throws Exception {
         try {
@@ -494,7 +514,7 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void testLocationCannotBeAFileAvro() throws  Exception{
-        File temp = createTempOutputFile("temp-file-avro", ".tmp");
+        File temp = File.createTempFile("temp-file-avro", ".tmp", tempDir);
         try {
             methodWatcher.executeUpdate(String.format("create external table table_to_existing_file_avro_temp (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
                     " STORED AS AVRO LOCATION '%s'", temp.getAbsolutePath()));
@@ -506,7 +526,7 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void testLocationCannotBeAFile() throws  Exception{
-        File temp = createTempOutputFile("temp-file", ".tmp");
+        File temp = File.createTempFile("temp-file", ".tmp", tempDir);
 
         try {
             methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
@@ -2670,7 +2690,7 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void testReadWriteAvroFromHive() throws Exception {
-        String path = getTempCopyOfResourceDirectory( "t_avro" );
+        String path = getTempCopyOfResourceDirectory(tempDir, "t_avro" );
         methodWatcher.execute(String.format("create external table t_avro (col1 varchar(30), col2 int)" +
                 " STORED AS AVRO LOCATION '%s'", path ));
 
