@@ -125,16 +125,11 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
                 lr = ((T)new ValueRow((ValueRow)lr, schema));
             }
 
-            ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName,
-                    /*partition.intValue(),*/ count++, lr);
+            ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName, count++, lr);
             producer.send(record);
             LOG.trace("KS.c sent "+partition.intValue()+" "+count+" "+lr);
         }
         LOG.trace("KS.c count "+partition.intValue()+" "+count);
-
-//        ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName,
-//                partition.intValue(), -1, new ValueRow());
-//        producer.send(record); // termination marker
 
         producer.close();
         // TODO Clean up
