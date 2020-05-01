@@ -38,18 +38,18 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.UUID;
 
-class ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Iterator<Integer>, ExecRow> {
+class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Iterator<Integer>, ExecRow> {
     private String topicName;
     private String bootstrapServers;
 
-    public ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction() {
+    public KafkaReadFunction() {
     }
 
-    public ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction(OperationContext context, String topicName) {
+    public KafkaReadFunction(OperationContext context, String topicName) {
         this(context, topicName, SIDriver.driver().getConfiguration().getKafkaBootstrapServers());
     }
 
-    public ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction(OperationContext context, String topicName, String bootstrapServers) {
+    public KafkaReadFunction(OperationContext context, String topicName, String bootstrapServers) {
         super(context);
         this.topicName = topicName;
         this.bootstrapServers = bootstrapServers;
@@ -61,9 +61,9 @@ class ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction extends SpliceFla
 
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
 
-        String group_id = "spark-consumer-dss-ekoiersfmf-"+UUID.randomUUID();
+        String group_id = "spark-consumer-dss-krf";
         props.put(ConsumerConfig.GROUP_ID_CONFIG,group_id);
-        props.put(ConsumerConfig.CLIENT_ID_CONFIG, group_id);
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, group_id+"-"+UUID.randomUUID());
 
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
