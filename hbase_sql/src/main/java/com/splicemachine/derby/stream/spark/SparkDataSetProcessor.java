@@ -1172,6 +1172,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         consumer.close();
 
         SparkDataSet rdd = new SparkDataSet(SpliceSpark.getContext().parallelize(partitions, partitions.size()));
-        return rdd.mapPartitions(new KafkaReadFunction(context, topicName, bootstrapServers));
+        return rdd.flatMap(new KafkaReadFunction(context, topicName, bootstrapServers));
     }
 }
