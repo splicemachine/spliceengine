@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -107,16 +107,6 @@ public class SparkKafkaDataSetWriter<V> implements DataSetWriter{
     @Override
     public byte[] getDestinationTable(){
         throw new UnsupportedOperationException();
-    }
-
-
-    public static class NullFunction<V> implements org.apache.spark.api.java.function.Function<V, Object>{
-        public NullFunction(){ }
-
-        @Override
-        public Object call(V v) throws Exception{
-            return null;
-        }
     }
 
     public static class CountFunction<V> implements org.apache.spark.api.java.function.Function<V, V>{
