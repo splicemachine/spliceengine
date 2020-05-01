@@ -60,11 +60,7 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
-import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -1159,11 +1155,11 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
         Properties props = new Properties();
-        String consumerId = "spark-consumer-dss-sdsp-"+UUID.randomUUID();
+        String consumerGroupId = "spark-consumer-dss-sdsp";
         String bootstrapServers = SIDriver.driver().getConfiguration().getKafkaBootstrapServers();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerId);
-        props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumerId);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumerGroupId+"-"+UUID.randomUUID());
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
 
@@ -1176,6 +1172,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         consumer.close();
 
         SparkDataSet rdd = new SparkDataSet(SpliceSpark.getContext().parallelize(partitions, partitions.size()));
-        return rdd.mapPartitions(new ExportKafkaOperationIteratorExecRowSpliceFlatMapFunction(context, topicName, bootstrapServers));
+        return rdd.mapPartitions(new KafkaReadFunction(context, topicName, bootstrapServers));
     }
 }
