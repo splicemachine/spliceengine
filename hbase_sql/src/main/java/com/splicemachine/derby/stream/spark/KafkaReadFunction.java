@@ -38,7 +38,7 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.UUID;
 
-class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Iterator<Integer>, ExecRow> {
+class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Integer, ExecRow> {
     private String topicName;
     private String bootstrapServers;
 
@@ -56,7 +56,7 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Iter
     }
 
     @Override
-    public Iterator<ExecRow> call(Iterator<Integer> partitions) throws Exception {
+    public Iterator<ExecRow> call(Integer partition) throws Exception {
         Properties props = new Properties();
 
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -70,21 +70,17 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Iter
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
-        int partition = partitions.next();
         consumer.assign(Arrays.asList(new TopicPartition(topicName, partition)));
 
         return new Iterator<ExecRow>() {
-            ConsumerRecords<Integer, Externalizable> records = null;
             Iterator<ConsumerRecord<Integer, Externalizable>> it = null;
-            ConsumerRecord<Integer, Externalizable> next = null;
-            boolean exhausted = false;
 
             @Override
             public boolean hasNext() {
-                if (exhausted) return false;
                 if (it == null) {
+                    ConsumerRecords<Integer, Externalizable> records = null;
                     while (records == null || records.isEmpty()) {
-                        records = consumer.poll(1000);
+                        records = consumer.poll( java.time.Duration.ofMillis(1000) );
                         if (TaskContext.get().isInterrupted()) {
                             consumer.close();
                             throw new TaskKilledException();
