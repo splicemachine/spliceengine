@@ -3471,19 +3471,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         FormatableBitSet columnToReadSet=new FormatableBitSet(SYSSTATEMENTSRowFactory.SYSSTATEMENTS_COLUMN_COUNT);
         FormatableBitSet columnToUpdateSet=new FormatableBitSet(SYSSTATEMENTSRowFactory.SYSSTATEMENTS_COLUMN_COUNT);
-        columnToUpdateSet.set(SYSSTATEMENTSRowFactory.SYSSTATEMENTS_VALID-1);
-        columnToUpdateSet.set(SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE-1);
-
+        for(int i=0;i<SYSSTATEMENTSRowFactory.SYSSTATEMENTS_COLUMN_COUNT;i++){
+            if (i+1==SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE) {
+                columnToUpdateSet.set(i);
+            } else {
+                columnToReadSet.set(i);
+                columnToUpdateSet.set(i);
+            }
+        }
+        /* Set up a couple of row templates for fetching CHARS */
         DataValueDescriptor[] rowTemplate =
                 new DataValueDescriptor[SYSSTATEMENTSRowFactory.SYSSTATEMENTS_COLUMN_COUNT];
 
         DataValueDescriptor[] replaceRow=
                 new DataValueDescriptor[SYSSTATEMENTSRowFactory.SYSSTATEMENTS_COLUMN_COUNT];
-
-        /* Set up a couple of row templates for fetching CHARS */
-
-        replaceRow[SYSSTATEMENTSRowFactory.SYSSTATEMENTS_VALID-1]=new SQLBoolean(false);
-        replaceRow[SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE-1]=new UserType(null);
 
         /* Scan the entire heap */
         ScanController sc=
@@ -3502,6 +3503,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         while(sc.fetchNext(rowTemplate)){
             /* Replace the column in the table */
+            for (int i=0; i<rowTemplate.length; i++) {
+                if (i  == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_VALID-1)
+                    replaceRow[i] = new SQLBoolean(false);
+                else if (i == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE-1)
+                    replaceRow[i] = new UserType(null);
+                else
+                    replaceRow[i] = rowTemplate[i].cloneValue(false);
+            }
             sc.replace(replaceRow,columnToUpdateSet);
         }
 
