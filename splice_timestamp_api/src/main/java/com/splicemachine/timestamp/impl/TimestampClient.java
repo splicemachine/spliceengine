@@ -32,7 +32,9 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.jboss.netty.channel.socket.nio.NioWorkerPool;
 import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
+import org.jboss.netty.util.HashedWheelTimer;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.CountDownLatches;
 import com.splicemachine.timestamp.api.Callback;
@@ -108,7 +110,8 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         ExecutorService workerExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("timestampClient-worker-%d").setDaemon(true).build());
         ExecutorService bossExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("timestampClient-boss-%d").setDaemon(true).build());
 
-        factory = new NioClientSocketChannelFactory(bossExecutor, workerExecutor);
+        HashedWheelTimer hwt = new HashedWheelTimer(new ThreadFactoryBuilder().setNameFormat("timestampClient-hashedWheelTimer-%d").setDaemon(true).build());
+        factory = new NioClientSocketChannelFactory(bossExecutor, 1, new NioWorkerPool(workerExecutor, 4), hwt);
 
         bootstrap = new ClientBootstrap(factory);
 
