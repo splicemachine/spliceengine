@@ -24,12 +24,10 @@ import org.apache.spark.sql.execution.datasources.jdbc._
 import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
-
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.IntegerSerializer
-
 import com.splicemachine.db.iapi.types.SQLInteger
 import com.splicemachine.db.iapi.types.SQLLongint
 import com.splicemachine.db.iapi.types.SQLDouble
@@ -45,8 +43,9 @@ import com.splicemachine.db.iapi.types.SQLDecimal
 import com.splicemachine.db.impl.sql.execute.ValueRow
 import com.splicemachine.derby.stream.spark.ExternalizableSerializer
 import com.splicemachine.primitives.Bytes
-
 import org.apache.log4j.Logger
+import org.apache.spark.TaskContext
+
 import scala.collection.JavaConverters._
 
 private object Holder extends Serializable {
@@ -476,10 +475,19 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   private[this] def sendData(topicName: String, rdd: JavaRDD[Row], schema: StructType): Unit =
-    rdd.rdd.mapPartitions(
-      itrRow => {
-        //println( s"SMC.sendData $topicName" )
-        //println( s"SMC.sendData mapPartitions" )
+    rdd.rdd.mapPartitionsWithIndex(
+      (partition, itrRow) => {
+        val taskContext = TaskContext.get
+
+        var msgIdx = 0
+        if (taskContext != null && taskContext.attemptNumber > 0) {
+          val entriesInKafka = KafkaUtils.messageCount(kafkaServers, topicName, partition)
+          for(i <- (1: Long) to entriesInKafka) {
+            itrRow.next
+          }
+          msgIdx = entriesInKafka.asInstanceOf[Int]
+        }
+
         val props = new Properties
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServers)
         props.put(ProducerConfig.CLIENT_ID_CONFIG, "spark-producer-"+java.util.UUID.randomUUID() )
@@ -488,12 +496,10 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
         val producer = new KafkaProducer[Integer, Externalizable](props)
 
-        var count = 0
-        itrRow.foreach( row => {
-          //println( s"SMC.sendData record $count" )
-          producer.send( new ProducerRecord(topicName, count, externalizable(row, schema)) )
-          count += 1
-        })
+        while( itrRow.hasNext ) {
+          producer.send( new ProducerRecord(topicName, msgIdx, externalizable(itrRow.next, schema)) )
+          msgIdx += 1
+        }
 
         producer.close
 
