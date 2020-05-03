@@ -21,10 +21,10 @@ import java.util.{Properties, UUID}
 
 import com.splicemachine.db.impl.sql.execute.ValueRow
 import com.splicemachine.derby.stream.spark.ExternalizableDeserializer
-import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
+import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
 import org.apache.kafka.common.serialization.IntegerDeserializer
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
@@ -58,24 +58,50 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
     val records = consumer.poll(timeout).asScala  // records: Iterable[ConsumerRecords[Integer, Externalizable]]
     consumer.close
 
-    if (records.isEmpty) { throw new Exception(s"Call timed out after ${timeout/1000.0} seconds.") }
+    if (records.isEmpty) { throw new Exception(s"Kafka poll timed out after ${timeout/1000.0} seconds.") }
     else if(records.size == 1) {
-      val row = records.head.value.asInstanceOf[Row]
+      val (row, schema) = rowFrom(records.head)
       ( spark.sparkContext.parallelize( if(row.size > 0) { Seq(row) } else { Seq[Row]() } ),
-        row.schema
+        schema
       )
     } else {
       val seqBuilder = Seq.newBuilder[Row]
+      var schema = new StructType
       for (record <- records.iterator) {
-//        println(s"${record.value.getClass.getName}")
-//        println(s"offset = ${record.offset}, key = ${record.key}, value = ${record.value}")
-//        println(s"valuerow = ${record.value.asInstanceOf[ValueRow]}, valuerow.key = ${record.value.asInstanceOf[ValueRow].getKey}")
-        seqBuilder += record.value.asInstanceOf[Row]
+        val rs = rowFrom(record)
+        seqBuilder += rs._1
+        schema = rs._2
       }
 
       val rows = seqBuilder.result
       val rdd = spark.sparkContext.parallelize(rows)
-      (rdd, rows(0).schema)
+      (rdd, schema)
     }
+  }
+  
+  // Needed for SSDS
+  def rowFrom(record: ConsumerRecord[Integer, Externalizable]): (Row, StructType) = {
+    val row = record.value.asInstanceOf[Row]
+    val values = for (i <- 0 until row.length) yield { // convert each column of the row
+      if( row.isNullAt(i) ) { null }
+      else {
+        row.schema(i).dataType match {
+          case BinaryType => row.getAs[Array[Byte]](i)
+          case BooleanType => row.getBoolean(i)
+          case ByteType => row.getByte(i)
+          case DateType => row.getDate(i)
+          case t: DecimalType => row.getDecimal(i)
+          case DoubleType => row.getDouble(i)
+          case FloatType => row.getFloat(i)
+          case IntegerType => row.getInt(i)
+          case LongType => row.getLong(i)
+          case ShortType => row.getShort(i)
+          case StringType => row.getString(i)
+          case TimestampType => row.getTimestamp(i)
+          case _ => throw new IllegalArgumentException(s"Can't get data for ${row.schema(i).dataType.simpleString}")
+        }
+      }
+    }
+    (Row.fromSeq(values), row.schema)
   }
 }

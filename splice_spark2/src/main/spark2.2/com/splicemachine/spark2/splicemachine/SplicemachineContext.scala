@@ -46,7 +46,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow
 import com.splicemachine.derby.stream.spark.ExternalizableSerializer
 import com.splicemachine.primitives.Bytes
 
-import org.apache.hadoop.security.UserGroupInformation
 import org.apache.log4j.Logger
 import scala.collection.JavaConverters._
 
@@ -100,7 +99,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     ))
   }
 
-  @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
   JdbcDialects.registerDialect(new SplicemachineDialect2)
 
   /**
@@ -352,7 +350,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     }
 
     val topicName = getRandomName() // Kafka topic
-//    println( s"SMC.sendSql topic $topicName" )
 
     // hbase user has read/write permission on the topic
 

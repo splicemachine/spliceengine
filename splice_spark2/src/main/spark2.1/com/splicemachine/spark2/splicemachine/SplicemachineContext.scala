@@ -50,7 +50,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     this(Map(JDBCOptions.JDBC_URL -> url));
   }
 
-  @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
   JdbcDialects.registerDialect(new SplicemachineDialect)
 
   private[this] def initConnection() = {
