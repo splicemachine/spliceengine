@@ -773,7 +773,9 @@ public class SparkDataSet<V> implements DataSet<V> {
                                           int[] partitionBy,
                                           String location,
                                           String compression,
-                                          OperationContext context) throws StandardException {
+                                          OperationContext context) throws StandardException
+    {
+        compression = SparkDataSet.getAvroCompression(compression);
 
         StructType dataSchema = null;
         StructType tableSchema = generateTableSchema(context);
@@ -828,6 +830,15 @@ public class SparkDataSet<V> implements DataSet<V> {
         // parquet in spark supports: lz4, gzip, lzo, snappy, none, zstd.
         if( compression.equals("zlib") )
             compression = "gzip";
+        return compression;
+    }
+
+    public static String getAvroCompression(String compression) {
+        // avro supports uncompressed, snappy, deflate, bzip2 and xz
+        if (compression.equals("none"))
+            compression = "uncompressed";
+        else if( compression.equals("zlib"))
+            compression = "deflate";
         return compression;
     }
 

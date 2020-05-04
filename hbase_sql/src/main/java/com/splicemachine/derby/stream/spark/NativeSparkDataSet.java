@@ -1169,7 +1169,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                                           int[] partitionBy,
                                           String location,
                                           String compression,
-                                          OperationContext context) throws StandardException {
+                                          OperationContext context) throws StandardException
+    {
+        compression = SparkDataSet.getAvroCompression(compression);
         DataFrameWriter writer = getDataFrameWriter(partitionBy, compression, context);
         writer.mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
         ValueRow valueRow=new ValueRow(1);

@@ -973,35 +973,36 @@ public class ExternalTableIT extends SpliceUnitTest {
                 "  2  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Test @Ignore
-    public void testWriteReadFromCompressedParquetExternalTable() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table compressed_parquet_test (col1 int, col2 varchar(24))" +
-                " COMPRESSED WITH SNAPPY STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"compressed_parquet_test"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_parquet_test values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from compressed_parquet_test");
-        Assert.assertEquals("COL2 |\n" +
-                "------\n" +
-                "AAAA |\n" +
-                "BBBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-    }
 
     @Test
-    public void testWriteReadFromCompressedAvroExternalTable() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table compressed_avro_test (col1 varchar(24))" +
-                " COMPRESSED WITH SNAPPY STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"compressed_avro_test"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_avro_test values ('XXXX')," +
-                "('YYYY')"));
-        Assert.assertEquals("insertCount is wrong",2,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from compressed_avro_test");
-        Assert.assertEquals("COL1 |\n" +
-                "------\n" +
-                "XXXX |\n" +
-                "YYYY |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-    }
+    public void testWriteReadFromExternalTable() throws Exception {
 
+        String[] compressionTypes = { "", // no compression
+                "COMPRESSED WITH SNAPPY",
+                "COMPRESSED WITH ZLIB"};
+        String[] storedAsArray = { "PARQUET", "ORC", "AVRO" };
+        for( String compression : compressionTypes )
+        {
+            for( String storedAs : storedAsArray )
+            {
+                String path = getExternalResourceDirectory()+"compressed_test";
+                String createSql = String.format("create external table compressed_test (col1 int, col2 varchar(24))" +
+                        " " + compression + " STORED AS " + storedAs + " LOCATION '%s'", path);
+                System.out.println( createSql );
+                methodWatcher.executeUpdate( createSql );
+                int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_test values (1,'XXXX')," +
+                        "(2,'YYYY')"));
+                Assert.assertEquals("insertCount is wrong",2, insertCount);
+                ResultSet rs = methodWatcher.executeQuery("select * from compressed_test");
+                Assert.assertEquals("COL1 |COL2 |\n" +
+                                "------------\n" +
+                                "  1  |XXXX |\n" +
+                                "  2  |YYYY |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+                methodWatcher.execute("drop table compressed_test");
+                FileUtils.deleteDirectory( new File(path) );
+            }
+        }
+    }
 
     @Test
     public void testReadFailingNumberAttributeConstraint() throws Exception {
