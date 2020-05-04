@@ -47,6 +47,7 @@ class AccessPathImpl implements AccessPath{
     ConglomerateDescriptor cd=null;
     boolean coveringIndexScan=false;
     boolean nonMatchingIndexScan=false;
+    boolean specialMaxScan = false;
     JoinStrategy joinStrategy=null;
     int lockMode;
     Optimizer optimizer;
@@ -103,6 +104,7 @@ class AccessPathImpl implements AccessPath{
         setConglomerateDescriptor(copyFrom.getConglomerateDescriptor());
         setCostEstimate(copyFrom.getCostEstimate());
         setCoveringIndexScan(copyFrom.getCoveringIndexScan());
+        setSpecialMaxScan(copyFrom.getSpecialMaxScan());
         setNonMatchingIndexScan(copyFrom.getNonMatchingIndexScan());
         setJoinStrategy(copyFrom.getJoinStrategy());
         setHintedJoinStrategy(copyFrom.isHintedJoinStrategy());
@@ -119,6 +121,7 @@ class AccessPathImpl implements AccessPath{
                     ", costEstimate == "+costEstimate+
                     ", coveringIndexScan == "+coveringIndexScan+
                     ", nonMatchingIndexScan == "+nonMatchingIndexScan+
+                    ", specialMaxScan == "+specialMaxScan+
                     ", joinStrategy == "+joinStrategy+
                     ", lockMode == "+lockMode+
                     ", optimizer level == "+optimizer.getLevel()+
@@ -151,5 +154,15 @@ class AccessPathImpl implements AccessPath{
     @Override
     public boolean isJoinPathMemoryUsageUnderLimit(double memoryAlreadyConsumed) {
         return joinStrategy.isMemoryUsageUnderLimit(memoryAlreadyConsumed + costEstimate.getBase().getEstimatedHeapSize());
+    }
+
+    @Override
+    public boolean getSpecialMaxScan() {
+        return specialMaxScan;
+    }
+
+    @Override
+    public void setSpecialMaxScan(boolean value) {
+        specialMaxScan = value;
     }
 }

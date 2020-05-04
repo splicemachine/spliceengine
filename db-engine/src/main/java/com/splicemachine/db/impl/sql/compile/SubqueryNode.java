@@ -2517,7 +2517,6 @@ public class SubqueryNode extends ValueNode{
             default:
                 assert false;
         }
-
         // clean up the state of the tree to reflect a bound expression subquery
         subqueryType=EXPRESSION_SUBQUERY;
         setDataTypeServices(resultSet.getResultColumns());
@@ -2556,12 +2555,12 @@ public class SubqueryNode extends ValueNode{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         // TODO JL Costs?
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("Subquery(")
-                .append("n=").append(order);
+                .append("n=").append(getResultSet().getResultSetNumber());
                 if (resultSet!=null) {
                     sb.append(attrDelim).append(resultSet.getFinalCostEstimate(false).prettyScrollInsensitiveString(attrDelim));
                 }

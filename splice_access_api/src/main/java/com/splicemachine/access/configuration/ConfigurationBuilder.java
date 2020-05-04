@@ -172,7 +172,7 @@ public class ConfigurationBuilder {
     public int rollForwardFirstThreads;
     public int rollForwardSecondThreads;
     public CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
-    public int splitsPerTableMin;
+    public int splitsPerRegionMin;
 
     // PipelineConfiguration
     public int coreWriterThreads;
