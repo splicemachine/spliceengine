@@ -76,9 +76,7 @@ public class ExternalTableIT extends SpliceUnitTest {
     @Test
     public void testNativeSparkExtractFunction() throws Exception {
         try {
-            File tablePath = File.createTempFile("native-spark-table", ".tmp");
-            String path = tablePath.getAbsolutePath();
-            tablePath.delete();
+            String path = getExternalResourceDirectory() + "native-spark-table";
 
             methodWatcher.executeUpdate(String.format("create external table dates_ext (d date) " +
                     "STORED AS PARQUET LOCATION '%s'",path));
@@ -112,6 +110,43 @@ public class ExternalTableIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testNativeSparkNotFunction() throws Exception {
+        try {
+            String path = getExternalResourceDirectory() + "native-spark-model";
+
+            methodWatcher.executeUpdate(String.format("create external table model (upc_number BIGINT, model_score numeric(20, 10)) " +
+                    "STORED AS PARQUET LOCATION '%s'",path));
+
+            String insert = "insert into model values (NULL, 10), (10, 20), (50, 60)";
+
+            methodWatcher.executeUpdate(insert);
+            String query =
+                    "select CASE " +
+                    "WHEN UPC_NUMBER IS NOT NULL THEN" +
+                    "   (CASE" +
+                    "   WHEN (MODEL_SCORE * 2) > 100 THEN 100" +
+                    "   ELSE (MODEL_SCORE * 2)" +
+                    "   END)" +
+                    "ELSE MODEL_SCORE " +
+                    "END AS MODEL_SCORE from model order by 1";
+            try (ResultSet rs = methodWatcher.executeQuery(query)) {
+                String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+                String expected =
+                        "MODEL_SCORE  |\n" +
+                                "----------------\n" +
+                                " 10.0000000000 |\n" +
+                                " 40.0000000000 |\n" +
+                                "100.0000000000 |";
+                assertEquals(expected, actual);
+            }
+
+            // test spark explain
+            testQueryContains("sparkexplain " + query, "Project [CASE WHEN NOT isnull", methodWatcher, true);
+        } finally {
+            methodWatcher.executeUpdate("drop table model");
+        }
+    }
 
     @Test
     public void testInvalidSyntaxParquet() throws Exception {
