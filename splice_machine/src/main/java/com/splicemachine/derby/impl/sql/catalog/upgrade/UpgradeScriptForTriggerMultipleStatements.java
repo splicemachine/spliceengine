@@ -47,7 +47,7 @@ public class UpgradeScriptForTriggerMultipleStatements extends UpgradeScriptBase
             SpliceLogUtils.info(LOG, "Catalog upgraded: updated system table sys.systriggers");
         }
         catch (Exception e) {
-            SpliceLogUtils.info(LOG, "Attempt to upgrade sys.systriggers failed.  Please check if it has already been upgraded and contains the correct number of columns: 18.");
+            SpliceLogUtils.info(LOG, "Attempt to upgrade sys.systriggers failed.  Please check if it has already been upgraded and contains the correct number of columns: 20.");
         }
         finally {
             if (heapCC != null)
