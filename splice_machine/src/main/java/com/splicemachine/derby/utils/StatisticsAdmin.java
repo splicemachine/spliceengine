@@ -615,7 +615,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
         ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId));
         ssb.tableVersion(table.getVersion());
-        ScanSetBuilder scanSetBuilder = createTableScanner(ssb,conn,table,txn);
+        ScanSetBuilder scanSetBuilder = createTableScanner(ssb,conn,table,txn,mergeStats);
         String scope = getScopeName(table);
         // no sample stats support on mem platform
         if (dsp.getType() != DataSetProcessor.Type.SPARK) {
@@ -652,7 +652,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     private static ScanSetBuilder createTableScanner(ScanSetBuilder builder,
                                                      EmbedConnection conn,
                                                      TableDescriptor table,
-                                                     TxnView txn) throws StandardException{
+                                                     TxnView txn, boolean mergeStats) throws StandardException{
 
         List<ColumnDescriptor> colsToCollect = getCollectedColumns(conn, table);
         ExecRow row = new ValueRow(colsToCollect.size());
@@ -717,7 +717,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .tableVersion(table.getVersion())
                 .fieldLengths(fieldLengths)
                 .columnPositionMap(columnPositionMap)
-                .oneSplitPerRegion(true)
+                .oneSplitPerRegion(!mergeStats)
                 .storedAs(table.getStoredAs())
                 .location(table.getLocation())
                 .compression(table.getCompression())
