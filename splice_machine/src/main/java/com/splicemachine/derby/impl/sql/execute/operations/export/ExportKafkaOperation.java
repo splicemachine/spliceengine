@@ -34,18 +34,13 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
 import org.spark_project.guava.base.Strings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Export the results of an arbitrary SELECT query to Kafka.
@@ -173,17 +168,8 @@ public class ExportKafkaOperation extends SpliceBaseOperation {
             SpliceLogUtils.trace(LOG, "getDataSet(): begin");
         DataSet<ExecRow> dataset = source.getDataSet(dsp);
         OperationContext<ExportKafkaOperation> operationContext = dsp.createOperationContext(this);
-
-        Optional<StructType> schema = Optional.empty();
-        try {
-            StructField[] fields = new StructField[sourceColumnDescriptors.length];
-            Arrays.setAll(fields, i -> sourceColumnDescriptors[i].getStructField() );
-            schema = Optional.ofNullable( DataTypes.createStructType(fields) );
-        } catch(Exception e) { /* use empty schema defined above */ }
-
         DataSetWriter writer = dataset.writeToKafka()
                 .topicName(topicName)
-                .schema(schema)
                 .build();
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getDataSet(): writing");
