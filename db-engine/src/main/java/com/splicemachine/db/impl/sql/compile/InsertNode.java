@@ -104,25 +104,24 @@ public final class InsertNode extends DMLModStatementNode {
     public static final String SAMPLE_FRACTION = "sampleFraction";
     public static final String INDEX_NAME = "index";
 
-    public        ResultColumnList    targetColumnList;
-    public         boolean                deferred;
-    public        ValueNode            checkConstraints;
-    public        Properties            targetProperties;
-    public        FKInfo                fkInfo;
-    private     OrderByList         orderByList;
-    private     ValueNode           offset;
-    private     ValueNode           fetchFirst;
-    private     boolean               hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
-    private     String              statusDirectory;
-    private     boolean              skipConflictDetection = false;
-    private     boolean              skipWAL = false;
-    private     int                  badRecordsAllowed = 0;
-    private        String                 bulkImportDirectory;
-    private     boolean             samplingOnly;
-    private     boolean             outputKeysOnly;
-    private     boolean             skipSampling;
-    private     double              sampleFraction;
-    private     String              indexName;
+    public        ResultColumnList targetColumnList;
+    public         boolean         deferred;
+    public        ValueNode        checkConstraints;
+    public        Properties       targetProperties;
+    private     OrderByList        orderByList;
+    private     ValueNode          offset;
+    private     ValueNode          fetchFirst;
+    private     boolean            hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
+    private     String             statusDirectory;
+    private     boolean            skipConflictDetection = false;
+    private     boolean            skipWAL = false;
+    private     int                badRecordsAllowed = 0;
+    private        String          bulkImportDirectory;
+    private     boolean            samplingOnly;
+    private     boolean            outputKeysOnly;
+    private     boolean            skipSampling;
+    private     double             sampleFraction;
+    private     String             indexName;
 
     private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
 
@@ -1119,11 +1118,11 @@ public final class InsertNode extends DMLModStatementNode {
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
             .append("Insert").append("(")
-            .append("n=").append(order).append(attrDelim);
+            .append("n=").append(getResultSetNode().getResultSetNumber()).append(attrDelim);
         if (this.resultSet!=null) {
             sb.append(this.resultSet.getFinalCostEstimate(false).prettyDmlStmtString("insertedRows"));
         }

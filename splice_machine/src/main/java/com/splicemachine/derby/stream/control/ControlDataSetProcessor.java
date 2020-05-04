@@ -145,6 +145,11 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
+    public <V> DataSet<V> getEmpty(String name, OperationContext context){
+        return getEmpty();
+    }
+
+    @Override
     public <V> DataSet<V> singleRowDataSet(V value){
         return new ControlDataSet<>(new SingletonIterator(value));
     }

@@ -2346,6 +2346,7 @@ public class OptimizerImpl implements Optimizer{
                 ap.setConglomerateDescriptor(cd);
                 ap.setCostEstimate(estimatedCost);
                 ap.setCoveringIndexScan(optimizable.isCoveringIndex(cd));
+                ap.setSpecialMaxScan(optimizable.getCurrentAccessPath().getSpecialMaxScan());
 
             /*
             ** It's a non-matching index scan either if there is no
@@ -2389,6 +2390,7 @@ public class OptimizerImpl implements Optimizer{
                             ap.setCostEstimate(estimatedCost);
                             ap.setCoveringIndexScan(
                                     optimizable.isCoveringIndex(cd));
+                            ap.setSpecialMaxScan(optimizable.getCurrentAccessPath().getSpecialMaxScan());
 
                         /*
                         ** It's a non-matching index scan either if there is no

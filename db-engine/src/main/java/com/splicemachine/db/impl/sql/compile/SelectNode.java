@@ -1488,6 +1488,61 @@ public class SelectNode extends ResultSetNode{
         return this;
     }
 
+    /* check if specialMaxScan is possible
+       criteria:
+       1. This is for control path execution
+       2. The select has no constraints, that is originalWhereClause!=null
+       3. The select contains only one base table;
+       4. there is only one min/max aggregate with no group by
+       5. the parameter of the aggregate is a simple column reference, not any complex expression
+    */
+    private boolean setUpSpecialMaxScanIfPossible(boolean forSpark) {
+        if (forSpark)
+            return false;
+
+        if (originalWhereClause != null)
+            return false;
+
+        if (fromList.size() > 1)
+            return false;
+
+        if (!(fromList.elementAt(0) instanceof ProjectRestrictNode) ||
+             !(((ProjectRestrictNode)fromList.elementAt(0)).getChildResult() instanceof FromBaseTable))
+            return false;
+
+        FromBaseTable table = (FromBaseTable)((ProjectRestrictNode)fromList.elementAt(0)).getChildResult();
+
+        if (groupByList != null)
+            return false;
+
+        List<AggregateNode> aggs= new ArrayList<>();
+        if (selectAggregates != null && !selectAggregates.isEmpty())
+            aggs.addAll(selectAggregates);
+        if (havingAggregates != null && !havingAggregates.isEmpty())
+                aggs.addAll(havingAggregates);
+
+        if (aggs.size() != 1)
+            return false;
+
+        AggregateNode an=aggs.get(0);
+        AggregateDefinition ad=an.getAggregateDefinition();
+        if (!(ad instanceof MaxMinAggregateDefinition))
+            return false;
+
+        if (!(an.getOperand() instanceof ColumnReference))
+            return false;
+
+        ColumnReference cr = (ColumnReference)an.getOperand();
+        if (cr.getTableNumber() != table.tableNumber)
+            return false;
+
+        // If all the above criteria meet, then set the Aggregate in the FromBaseTable node.
+        // We need to check if the column reference in the aggregate node is a leading index/PK column during costing,
+        // so that we can determine if specialMaxScan can be used or not
+        table.setAggregateForSpecialMaxScan(an);
+        return true;
+    }
+
     /**
      * Optimize this SelectNode.  This means choosing the best access path
      * for each table, among other things.
@@ -1603,6 +1658,7 @@ public class SelectNode extends ResultSetNode{
             }
         }
 
+        setUpSpecialMaxScanIfPossible(forSpark);
         Optimizer optimizer = getOptimizer(fromList, wherePredicates, dataDictionary, orderByList);
         optimizer.setForSpark(forSpark);
         findBestPlan(optimizer, dataDictionary, outerRows);

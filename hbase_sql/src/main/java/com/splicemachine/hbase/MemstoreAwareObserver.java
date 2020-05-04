@@ -158,7 +158,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
             }
             while (true) {
                 MemstoreAware latest = memstoreAware.get();
-                if (latest.currentScannerCount>0 && !c.getEnvironment().getRegionServerServices().isAborted()) {
+                boolean shuttingDown = c.getEnvironment().getRegionServerServices().isStopping() || c.getEnvironment().getRegionServerServices().isAborted();
+                if (latest.currentScannerCount>0 && !shuttingDown) {
                     SpliceLogUtils.warn(LOG, "preClose Delayed waiting for scanners to complete scannersRemaining=%d",latest.currentScannerCount);
                     try {
                         Thread.sleep(1000); // Have Split sleep for a second
