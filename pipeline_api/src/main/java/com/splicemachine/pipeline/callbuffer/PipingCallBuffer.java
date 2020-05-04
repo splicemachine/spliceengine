@@ -78,6 +78,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     private boolean record = true;
     private final Partition table;
     private KVPair lastKvPair;
+    private boolean autoFlush = true;
 
     public PipingCallBuffer(Partition table,
                             TxnView txn,
@@ -101,6 +102,18 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
         writeStats = new MergingWriteStats(metricFactory);
     }
 
+    public PipingCallBuffer(Partition table,
+                            TxnView txn,
+                            byte[] token,
+                            Writer writer,
+                            PreFlushHook preFlushHook,
+                            WriteConfiguration writeConfiguration,
+                            BufferConfiguration bufferConfiguration,
+                            boolean skipIndexWrites,
+                            boolean autoFlush) {
+        this(table, txn, token, writer, preFlushHook, writeConfiguration, bufferConfiguration, skipIndexWrites);
+        this.autoFlush = autoFlush;
+    }
     /**
      * Add a KVPair object ("Splice mutation") to the call buffer.
      * This method will "pipe" (set) the mutation into the correct region's call buffer for later flushing.
@@ -126,7 +139,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
             totalBytesAdded +=size;
         }
         if(writer!=null && (currentHeapSize>=bufferConfiguration.getMaxHeapSize()
-                || currentKVPairSize >= bufferConfiguration.getMaxEntries())) {
+                || currentKVPairSize >= bufferConfiguration.getMaxEntries()) && autoFlush) {
             flushLargestBuffer();
         }
     }
