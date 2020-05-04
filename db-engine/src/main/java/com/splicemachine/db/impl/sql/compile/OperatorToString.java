@@ -356,6 +356,9 @@ public class OperatorToString {
                     SimpleStringOperatorNode sso = (SimpleStringOperatorNode) operand;
                     return format("%s(%s) ", operatorString, opToString2(sso.getOperand(), vars));
                 }
+                else if (operand instanceof NotNode) {
+                    return format("%s(%s) ", operatorString, opToString2(uop.getOperand(), vars));
+                }
                 else
                     throwNotImplementedError();
             }
