@@ -19,7 +19,6 @@ import java.io.Externalizable
 import java.util
 import java.util.{Properties, UUID}
 
-import com.splicemachine.db.impl.sql.execute.ValueRow
 import com.splicemachine.derby.stream.spark.ExternalizableDeserializer
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
 import org.apache.kafka.common.serialization.IntegerDeserializer
@@ -29,9 +28,7 @@ import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
 
-class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
-  private[this] val destServers = kafkaServers
-  private[this] val timeout = pollTimeout
+class KafkaToDF(kafkaServers: String, pollTimeout: Long, querySchema: StructType) {
 
   def spark(): SparkSession = SparkSession.builder.getOrCreate
 
@@ -45,7 +42,7 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
   def rdd_schema(topicName: String): (RDD[Row], StructType) = {
     val props = new Properties()
     val consumerId = UUID.randomUUID()
-    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, destServers)
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServers)
     props.put(ConsumerConfig.GROUP_ID_CONFIG, "spark-consumer-group-"+consumerId)
     props.put(ConsumerConfig.CLIENT_ID_CONFIG, "spark-consumer-"+consumerId)
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, classOf[IntegerDeserializer].getName)
@@ -55,10 +52,10 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
     val consumer = new KafkaConsumer[Integer, Externalizable](props)
     consumer.subscribe(util.Arrays.asList(topicName))
 
-    val records = consumer.poll( java.time.Duration.ofMillis(timeout) ).asScala  // records: Iterable[ConsumerRecords[Integer, Externalizable]]
+    val records = consumer.poll( java.time.Duration.ofMillis(pollTimeout) ).asScala  // records: Iterable[ConsumerRecords[Integer, Externalizable]]
     consumer.close
 
-    if (records.isEmpty) { throw new Exception(s"Kafka poll timed out after ${timeout/1000.0} seconds.") }
+    if (records.isEmpty) { throw new Exception(s"Kafka poll timed out after ${pollTimeout/1000.0} seconds.") }
     else if(records.size == 1) {
       val (row, schema) = rowFrom(records.head)
       ( spark.sparkContext.parallelize( if(row.size > 0) { Seq(row) } else { Seq[Row]() } ),
@@ -85,7 +82,7 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
     val values = for (i <- 0 until row.length) yield { // convert each column of the row
       if( row.isNullAt(i) ) { null }
       else {
-        row.schema(i).dataType match {
+        querySchema(i).dataType match {
           case BinaryType => row.getAs[Array[Byte]](i)
           case BooleanType => row.getBoolean(i)
           case ByteType => row.getByte(i)
@@ -102,6 +99,6 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long) {
         }
       }
     }
-    (Row.fromSeq(values), row.schema)
+    (Row.fromSeq(values), querySchema)
   }
 }

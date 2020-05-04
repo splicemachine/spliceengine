@@ -56,7 +56,6 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
-import java.util.Optional;
 
 /**
  Basic implementation of ExecRow.
@@ -72,7 +71,6 @@ public class ValueRow implements ExecRow, Externalizable {
 	private int ncols;
 	private int hash = 0; // Cached value of hashCode(). Invalidate on any change to the object.
 	private byte[] key;
-	private Optional<StructType> schema = Optional.empty();
 
 	///////////////////////////////////////////////////////////////////////
 	//
@@ -106,12 +104,6 @@ public class ValueRow implements ExecRow, Externalizable {
 	{
 		column = new DataValueDescriptor[ncols];
 		this.ncols = ncols;
-	}
-
-
-	public ValueRow(ValueRow v, Optional<StructType> schema) {
-		this(v.column);
-		this.schema = schema;
 	}
 
 
@@ -400,7 +392,6 @@ public class ValueRow implements ExecRow, Externalizable {
 				out.writeObject(desc);
 			}
 		}
-		out.writeObject(schema.orElse(new StructType()));
 	}
 
 	@Override
@@ -411,8 +402,6 @@ public class ValueRow implements ExecRow, Externalizable {
 		for (int i = 0; i < ncols; i++) {
 			column[i] = (DataValueDescriptor) in.readObject();
 		}
-		StructType structType = (StructType)in.readObject();
-		schema = structType.length() > 0 ? Optional.of(structType) : Optional.empty();
 	}
 
 	public int hashCode() {
@@ -488,12 +477,10 @@ public class ValueRow implements ExecRow, Externalizable {
 
 	@Override
 	public StructType schema() {
-		return schema.orElseGet( () -> {
-			StructField[] fields = new StructField[ncols];
-			for (int i = 0; i < ncols; i++)
-				fields[i] = column[i].getStructField(getNamedColumn(i));
-			return DataTypes.createStructType(fields);
-		});
+		StructField[] fields = new StructField[ncols];
+		for (int i = 0; i < ncols;i++)
+			fields[i] = column[i].getStructField(getNamedColumn(i));
+		return DataTypes.createStructType(fields);
 	}
 
 	@Override

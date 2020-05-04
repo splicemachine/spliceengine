@@ -46,7 +46,6 @@ import org.apache.log4j.Logger;
 import org.apache.spark.TaskContext;
 import org.apache.spark.TaskKilledException;
 import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.sql.types.StructType;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -56,7 +55,6 @@ import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -76,7 +74,6 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
     private int numPartitions;
     private String bootstrapServers;
     private String topicName;
-    private Optional<StructType> schema;
     private volatile TaskContext taskContext;
 
     // Serialization
@@ -84,14 +81,9 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
     }
 
     public KafkaStreamer(int numPartitions, String topicName) {
-        this(numPartitions, topicName, Optional.empty());
-    }
-
-    public KafkaStreamer(int numPartitions, String topicName, Optional<StructType> schema) {
         this.bootstrapServers = SIDriver.driver().getConfiguration().getKafkaBootstrapServers();
         this.numPartitions = numPartitions;
         this.topicName = topicName;
-        this.schema = schema;
     }
 
     public void noData() throws Exception {
@@ -121,10 +113,6 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
         while (locatedRowIterator.hasNext()) {
             T lr = locatedRowIterator.next();
 
-            if(schema.isPresent() && lr instanceof ValueRow) {
-                lr = ((T)new ValueRow((ValueRow)lr, schema));
-            }
-
             ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName, count++, lr);
             producer.send(record);
             LOG.trace("KS.c sent "+partition.intValue()+" "+count+" "+lr);
@@ -142,7 +130,6 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
                 "numPartitions=" + numPartitions +
                 ", bootstrapServers='" + bootstrapServers + '\'' +
                 ", topicName=" + topicName +
-                ", schema=" + schema.orElse(new StructType()) +
                 '}';
     }
 
@@ -152,7 +139,6 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
         out.writeUTF(bootstrapServers);
         out.writeInt(numPartitions);
         out.writeUTF(topicName);
-        out.writeObject(schema.orElse(new StructType()));
     }
 
     @Override
@@ -160,7 +146,5 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
         bootstrapServers = in.readUTF();
         numPartitions = in.readInt();
         topicName = in.readUTF();
-        StructType structType = (StructType)in.readObject();
-        schema = structType.length() > 0 ? Optional.of(structType) : Optional.empty();
     }
 }

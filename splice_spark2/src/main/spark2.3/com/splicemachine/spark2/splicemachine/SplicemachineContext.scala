@@ -15,7 +15,7 @@ package com.splicemachine.spark2.splicemachine
 
 import java.io.Externalizable
 import java.security.SecureRandom
-import java.sql.Connection
+import java.sql.{Connection, ResultSetMetaData}
 import java.util.Properties
 
 import org.apache.spark.api.java.JavaRDD
@@ -339,7 +339,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param sql SQL query
     * @return Dataset[Row] with the result of the query
     */
-  def df(sql: String): Dataset[Row] = new KafkaToDF( kafkaServers , kafkaPollTimeout ).df( sendSql(sql) )
+  def df(sql: String): Dataset[Row] =
+    new KafkaToDF( kafkaServers , kafkaPollTimeout , getSchemaOfQuery(sql) )
+      .df( sendSql(sql) )
 
   def internalDf(sql: String): Dataset[Row] = df(sql)
 
@@ -376,7 +378,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
                   columnProjection: Seq[String] = Nil): RDD[Row] = {
     val columnList = SpliceJDBCUtil.listColumns(columnProjection.toArray)
     val sqlText = s"SELECT $columnList FROM ${schemaTableName}"
-    new KafkaToDF( kafkaServers , kafkaPollTimeout ).rdd( sendSql(sqlText) )
+    new KafkaToDF( kafkaServers , kafkaPollTimeout, getSchemaOfQuery(sqlText) ).rdd( sendSql(sqlText) )
   }
 
   def getRandomName(): String = {
@@ -782,6 +784,29 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         schema
       } else { schemaJdbc }
     } else { schemaJdbc }
+  }
+  
+  private[this] def getSchemaOfQuery(query: String): StructType = {
+    val stmt = getConnection.prepareStatement(query)
+    val meta = stmt.getMetaData()  // might be jdbc driver dependent
+    val colNames = for (c <- 1 to meta.getColumnCount) yield meta.getColumnLabel(c)
+    val hasDuplicateNames = colNames.size != colNames.distinct.size
+    val fields = for (i <- 1 to meta.getColumnCount) yield {
+      val name = if(hasDuplicateNames) {
+        meta.getSchemaName(i)+"."+meta.getTableName(i)+"."+meta.getColumnLabel(i)
+      } else meta.getColumnLabel(i)
+      val dataType = meta.getColumnType(i)
+      val typeName = meta.getColumnTypeName(i)
+      val precision = meta.getPrecision(i)
+      val scale = meta.getScale(i)
+      val nullable = meta.isNullable(i) == ResultSetMetaData.columnNullable
+      val columnType =
+        dialect.getCatalystType(dataType, typeName, precision, null).getOrElse(
+          SpliceJDBCUtil.getCatalystType(dataType, precision, scale, meta.isSigned(i)) )
+      StructField(name, columnType, nullable)
+    }
+    stmt.close
+    StructType(fields)
   }
 
   private[this]val dialect = new SplicemachineDialect2

@@ -537,7 +537,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         return new KafkaDataSetWriterBuilder() {
             @Override
             public DataSetWriter build() {
-                return new SparkKafkaDataSetWriter<>(rdd, topicName, schema);
+                return new SparkKafkaDataSetWriter<>(rdd, topicName);
             }
         };
     }
