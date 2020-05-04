@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.*;
 
@@ -397,6 +398,9 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             switch(key){
                 case "joinStrategy":
                     userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
+                    if (userSpecifiedJoinStrategy.equals("CROSS")) {
+                        dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
+                    }
                     break;
                 case "useSpark":
                     dataSetProcessorType = dataSetProcessorType.combine(
@@ -704,6 +708,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return false;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     @Override
     public int[] hashKeyColumns(){
         if(SanityManager.DEBUG){
@@ -714,6 +719,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return hashKeyColumns;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     @Override
     public void setHashKeyColumns(int[] columnNumbers){
         hashKeyColumns=columnNumbers;

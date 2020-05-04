@@ -3113,6 +3113,7 @@ TOKEN [IGNORE_CASE] :
 TOKEN [IGNORE_CASE] :
 {    /* Additional JSQL reserved keywords -- non-SQL92 reserved Keywords */
      <ANALYZE: "analyze">
+|    <ANALYSE: "analyse">
 |    <BOOLEAN: "boolean">
 |    <CALL: "call">
 |    <CURDATE: "curdate">
@@ -3718,8 +3719,8 @@ analyzeStatements() throws StandardException :
     StatementNode statementNode;
 }
 {
-    <ANALYZE>
-        (
+    (<ANALYZE> | <ANALYSE>)
+    (
       statementNode = analyzeTableStatement() |
       statementNode = analyzeSchemaStatement()
     )
@@ -17736,10 +17737,11 @@ reservedKeyword() :
 |    tok = <WRITE>
 |    tok = <YEAR>
     /* Additional JSQL reserved keywords -- non-SQL92 reserved Keywords */
-| tok = <ANALYZE>
+|    tok = <ANALYZE>
+|    tok = <ANALYSE>
 |    tok = <BOOLEAN>
 |    tok = <CALL>
-|   tok = <CURRENT_ROLE>
+|    tok = <CURRENT_ROLE>
 |    tok = <EXPLAIN>
 |    tok = <SPARKEXPLAIN>
 |    tok = <SPARKEXPLAIN_LOGICAL>
