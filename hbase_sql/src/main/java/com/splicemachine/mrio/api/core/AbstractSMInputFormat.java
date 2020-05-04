@@ -54,6 +54,7 @@ import static java.lang.String.format;
 public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> implements Configurable {
     protected static final Logger LOG = Logger.getLogger(AbstractSMInputFormat.class);
     private static int MAX_RETRIES = 30;
+    private static int PARTITION_LOAD_REFRESH_THRESHOLD = 8;
     protected Configuration conf;
     protected Table table;
     protected int splits;
@@ -107,25 +108,19 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                 return regionSplits;
             }
             List<Partition> splits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), refresh);
-            boolean getTableSize = this.splits > 0 && table.getName().getNameAsString().startsWith("splice:");
-            if (getTableSize) {
-                String tableName = table.getName().getNameAsString().split(":")[1];
-                HBaseRegionLoads loadWatcher = HBaseRegionLoads.INSTANCE;
-                Collection<PartitionLoad> tableLoad;
+            if (this.splits > 0) { // we only use the total table size if the user explicitly request a number of splits
                 try {
-                    tableLoad = loadWatcher.tableLoad(tableName, false);
-                    for (PartitionLoad partitionLoad: tableLoad) {
+                    String tableName = table.getName().getNameAsString().split(":")[1];
+                    HBaseRegionLoads loadWatcher = HBaseRegionLoads.INSTANCE;
+                    boolean refreshPartitionLoad = splits.size() < PARTITION_LOAD_REFRESH_THRESHOLD;
+                    Collection<PartitionLoad> tableLoad = loadWatcher.tableLoad(tableName, refreshPartitionLoad);
+                    for (PartitionLoad partitionLoad : tableLoad) {
                         tableSize += (partitionLoad.getStorefileSizeMB() + partitionLoad.getMemStoreSizeMB());
                     }
                     // Convert MB to bytes.
                     tableSize *= 1048576;
-                    int splitsPerTableMin = HConfiguration.getConfiguration().getSplitsPerTableMin();
                     if (tableSize < 0)
                         tableSize = 0;
-                    else if ((this.splits == splitsPerTableMin) && (tableSize / HConfiguration.getConfiguration().getSplitBlockSize() > splitsPerTableMin)) {
-                        this.splits = 0;
-                        tableSize = 0;
-                    }
                 }
                 catch (Exception e) {
                     // Don't cause the query to abort if we couldn't get the table size.

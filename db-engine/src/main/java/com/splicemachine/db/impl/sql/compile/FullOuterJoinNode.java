@@ -196,12 +196,12 @@ public class FullOuterJoinNode extends JoinNode {
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         JoinStrategy joinStrategy = RSUtils.ap(this).getJoinStrategy();
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append(joinStrategy.getJoinStrategyType().niceName()).append("FullOuter").append("Join(")
-                .append("n=").append(order)
+                .append("n=").append(getResultSetNumber())
                 .append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         if (joinPredicates !=null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);

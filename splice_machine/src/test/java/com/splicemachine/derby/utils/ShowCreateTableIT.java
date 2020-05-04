@@ -31,13 +31,9 @@
 
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.commons.io.FileUtils;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 
@@ -46,8 +42,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static com.splicemachine.derby.impl.sql.catalog.ViewsInSysIbmIT.getExternalResourceDirectory;
 
 
 /**
@@ -101,22 +95,31 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 .withCreate("CREATE TABLE T12 (A12 INT, B2 INT, A2 INT,CONSTRAINT T12_FK_1 FOREIGN KEY (A2, B2) REFERENCES T2 ON UPDATE NO ACTION ON DELETE NO ACTION)")
                 .create();
     }
-    @BeforeClass
-    public static void cleanoutDirectory() {
-        try {
-            File file = new File(getExternalResourceDirectory());
-            if (file.exists())
-                FileUtils.deleteDirectory(new File(getExternalResourceDirectory()));
-            file.mkdir();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     @AfterClass
     public static void cleanup()
     {
         classWatcher.closeAll();
+    }
+
+    static File tempDir;
+
+    @BeforeClass
+    public static void createTempDirectory() throws Exception
+    {
+        tempDir = createOrWipeTestDirectory( SCHEMA );
+    }
+
+    @AfterClass
+    public static void deleteTempDirectory() throws Exception
+    {
+        deleteTempDirectory(tempDir);
+    }
+
+    /// this will return the temp directory, that is created on demand once for each test
+    public String getExternalResourceDirectory() throws Exception
+    {
+        return tempDir.toString() + "/";
     }
 
     @Test
