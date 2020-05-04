@@ -176,7 +176,9 @@ public class PartitionWriteHandler implements WriteHandler {
         int failed = 0;
         Iterator<MutationStatus> statusIter = status.iterator();
         Iterator<KVPair> mutationIter = toProcess.iterator();
+        int count = 0;
         while(statusIter.hasNext()){
+            count++;
             if(!mutationIter.hasNext())
                 throw new IllegalStateException("MutationStatus result is not the same size as the mutations collection!");
             MutationStatus stat = statusIter.next();
@@ -200,7 +202,7 @@ public class PartitionWriteHandler implements WriteHandler {
             }
         }
 
-        region.updateWriteRequests(toProcess.size() - failed);
+        region.updateWriteRequests(count - failed);
     }
 
 
