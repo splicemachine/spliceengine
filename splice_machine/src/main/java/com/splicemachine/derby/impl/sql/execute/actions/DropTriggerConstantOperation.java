@@ -130,17 +130,17 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
             // Run Remotely
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
-            dm.clearDependencies(lcc, triggerd); // XXX arnaud get some stuff out of the loop
             dm.clearDependencies(lcc, spsd);
-
-            // Drop the trigger
-            dd.dropTriggerDescriptor(triggerd, tc);
 
             // there shouldn't be any dependencies, but in case there are, lets clear them
             dd.dropSPSDescriptor(spsd, tc);
-            // Remove all TECs from trigger stack. They will need to be rebuilt.
-            lcc.popAllTriggerExecutionContexts();
         }
+
+        dm.clearDependencies(lcc, triggerd);
+        // Drop the trigger
+        dd.dropTriggerDescriptor(triggerd, tc);
+        // Remove all TECs from trigger stack. They will need to be rebuilt.
+        lcc.popAllTriggerExecutionContexts();
 
         if (triggerd.getWhenClauseId() != null) {
             SPSDescriptor spsd = dd.getSPSDescriptor(triggerd.getWhenClauseId());
