@@ -1741,7 +1741,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         if (!printHeader)
             return s;
         else {
-            String engine = String.format(",engine=%s (%s))", type.isSpark()?"Spark":"control", type.level());
+            String engine = String.format(",engine=%s (%s))", type.isSpark()?"OLAP":"OLTP", type.level());
             s = s.substring(0, s.length()-1) + engine;
         }
         return s;

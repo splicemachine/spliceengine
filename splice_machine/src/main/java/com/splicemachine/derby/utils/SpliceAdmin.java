@@ -1758,35 +1758,29 @@ public class SpliceAdmin extends BaseAdminProcedures{
         List<Pair<UUID, RunningOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
 
         SConfiguration config=EngineDriver.driver().getConfiguration();
-        String hostname = NetworkUtils.getHostname(config);
-        int port = config.getNetworkBindPort();
-        String timeStampFormat = "yyyy-MM-dd HH:mm:ss";
-        String submittedTime;
-        String engineName;
+        String host_port = NetworkUtils.getHostname(config) + ":" + config.getNetworkBindPort();
+        final String timeStampFormat = "yyyy-MM-dd HH:mm:ss";
 
         List<ExecRow> rows = new ArrayList<>(operations.size());
-        for (Pair<UUID, RunningOperation> pair : operations) {
+        for (Pair<UUID, RunningOperation> pair : operations)
+        {
+            UUID uuid = pair.getFirst();
+            RunningOperation ro = pair.getSecond();
             ExecRow row = new ValueRow(9);
-            Activation activation = pair.getSecond().getOperation().getActivation();
+            Activation activation = ro.getOperation().getActivation();
             assert activation.getPreparedStatement() != null:"Prepared Statement is null";
-            row.setColumn(1, new SQLVarchar(pair.getFirst().toString()));
-            row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation)));
-            row.setColumn(3, new SQLVarchar(hostname + ":" + port));
-            row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber()));
+            row.setColumn(1, new SQLVarchar(uuid.toString())); // UUID
+            row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation))); // USER
+            row.setColumn(3, new SQLVarchar(host_port) ); // HOSTNAME
+            row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber())); // SESSION
             ExecPreparedStatement ps = activation.getPreparedStatement();
-            row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource()));
-            submittedTime = new SimpleDateFormat(timeStampFormat).format(pair.getSecond().getSubmittedTime());
-            row.setColumn(6, new SQLVarchar(submittedTime));
-            String scopeName = pair.getSecond().getOperation().getScopeName();
-            if (scopeName.compareTo("Call Procedure") == 0) {
-                engineName = "SYSTEM";
-            }
-            else {
-                engineName = (pair.getSecond().getEngine() == DataSetProcessor.Type.SPARK) ? "SPARK" : "CONTROL";
-            }
-            row.setColumn(7, new SQLVarchar(getElapsedTimeStr(pair.getSecond().getSubmittedTime(),new Date())));
-            row.setColumn(8, new SQLVarchar(engineName));
-            row.setColumn(9, new SQLVarchar(scopeName));
+            row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource())); // SQL
+            String submittedTime = new SimpleDateFormat(timeStampFormat).format(ro.getSubmittedTime());
+            row.setColumn(6, new SQLVarchar(submittedTime)); // SUBMITTED
+
+            row.setColumn(7, new SQLVarchar(getElapsedTimeStr(ro.getSubmittedTime(),new Date()))); // ELAPSED
+            row.setColumn(8, new SQLVarchar(ro.getEngineName())); // ENGINE
+            row.setColumn(9, new SQLVarchar(ro.getOperation().getScopeName())); // JOBTYPE
             rows.add(row);
         }
 
