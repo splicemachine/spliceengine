@@ -58,4 +58,14 @@ public class RunningOperation{
     public String getRdbIntTkn() {
         return rdbIntTkn;
     }
+
+    public String getEngineName() {
+        String scopeName = getOperation().getScopeName();
+        if (scopeName.compareTo("Call Procedure") == 0) {
+            return "SYSTEM";
+        }
+        else {
+            return (getEngine() == DataSetProcessor.Type.SPARK) ? "OLAP" : "OLTP";
+        }
+    }
 }

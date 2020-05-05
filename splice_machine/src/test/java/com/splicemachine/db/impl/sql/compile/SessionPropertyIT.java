@@ -143,7 +143,7 @@ public class SessionPropertyIT extends SpliceUnitTest {
         rs.close();
 
         sqlText = "explain select * from t1 where a1=1";
-        rowContainsQuery(1, sqlText, "engine=Spark", conn);
+        rowContainsQuery(1, sqlText, "engine=OLAP", conn);
 
         // set property to false
         conn.execute("set session_property useSpark=false");
@@ -156,7 +156,7 @@ public class SessionPropertyIT extends SpliceUnitTest {
         rs.close();
 
         sqlText = "explain select * from t1 where a1=1";
-        rowContainsQuery(1, sqlText, "engine=control", conn);
+        rowContainsQuery(1, sqlText, "engine=OLTP", conn);
 
         //reset property
         conn.execute("set session_property useSpark=null");

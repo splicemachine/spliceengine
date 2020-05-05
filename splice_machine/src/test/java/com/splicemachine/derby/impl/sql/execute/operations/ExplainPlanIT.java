@@ -272,12 +272,12 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         String sql = format("explain select * from %s.%s --SPLICE-PROPERTIES useSpark=false", CLASS_NAME, TABLE_NAME);
         ResultSet rs  = methodWatcher.executeQuery(sql);
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=OLTP"));
 
         sql = format("explain select * from %s.%s", CLASS_NAME, TABLE_NAME);
         rs  = methodWatcher.executeQuery(sql);
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan contains useSpark=true", rs.getString(1).contains("engine=Spark"));
+        Assert.assertTrue("expect explain plan contains useSpark=true", rs.getString(1).contains("engine=OLAP"));
 
     }
 
@@ -289,7 +289,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         Statement s = connection.createStatement();
         ResultSet rs = s.executeQuery("explain select * from A");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=Spark"));
+        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=OLAP"));
 
     }
 
@@ -301,7 +301,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         Statement s = connection.createStatement();
         ResultSet rs = s.executeQuery("explain select * from A");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=OLTP"));
     }
 
     @Test
@@ -312,7 +312,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         Statement s = connection.createStatement();
         ResultSet rs = s.executeQuery("explain select * from A --SPLICE-PROPERTIES useSpark=false");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=OLTP"));
     }
 
     //DB-5743
@@ -344,23 +344,23 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         // PK access path, we should pick control path
         ResultSet rs = methodWatcher.executeQuery("explain select * from t4 where a4=10000");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan to pick control path", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
 
         // full table scan, we should go for spark path as all rows need to be accessed, even though the output row count
         // is small after applying the predicate
         rs = methodWatcher.executeQuery("explain select * from t4 where b4=10000");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan to pick spark path", rs.getString(1).contains("engine=Spark"));
+        Assert.assertTrue("expect explain plan to pick spark path", rs.getString(1).contains("engine=OLAP"));
 
         // test join case, base table scan may not exceeds the rowcount limit of 20000, if the join result rowcount exceeds this
         // limit, we still need to go for Spark path
         rs = methodWatcher.executeQuery("explain select * from t4 as X, t4 as Y where X.a4>30000 and Y.a4 >30000 and X.b4=Y.b4");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan to pick spark path", rs.getString(1).contains("engine=Spark"));
+        Assert.assertTrue("expect explain plan to pick spark path", rs.getString(1).contains("engine=OLAP"));
 
         rs = methodWatcher.executeQuery("explain select * from t4 as X, t4 as Y where X.a4=30000 and Y.a4 =30000 and X.b4=Y.b4");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan to pick control path", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
     }
 
     @Test
@@ -370,7 +370,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         methodWatcher.executeQuery(format("analyze table %s.t4", CLASS_NAME));
 
         double selectivity[] = {1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7};
-        String engine[] = {"Spark", "Spark", "control", "control", "control", "control", "control", "control"};
+        String engine[] = {"OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount[] = {900000, 90000, 9000, 900, 90, 9, 1,1};
 
         /* Q1: test single table case on PK */
@@ -391,7 +391,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         /* test with stats */
         rs = methodWatcher.executeQuery("explain select * from t5 where a5=100001");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
         //skip the next step to get to the TableScan step
         Assert.assertTrue(rs.next());
 
@@ -401,7 +401,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         rs.close();
 
         /* Q2: test the switch from table scan to index scan */
-        String engine2[] = {"Spark", "Spark", "Spark", "control", "control", "control", "control", "control"};
+        String engine2[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount2[] = {1000000, 1000000, 1000000, 27, 1, 1, 1, 1};
         for (int i=0; i < selectivity.length; i++) {
             rs = methodWatcher.executeQuery(format("explain select * from t5 --splice-properties useDefaultRowCount=1000000, defaultSelectivityFactor=%.8f\n where b5=100001 and c5=3", selectivity[i]));
@@ -431,7 +431,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         /* test with stats */
         rs = methodWatcher.executeQuery("explain select * from t5 where b5=100001 and c5=3");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
         //skip the next two steps to get to the IndexScan step
         Assert.assertTrue(rs.next());
         Assert.assertTrue(rs.next());
@@ -442,7 +442,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         rs.close();
 
         /* Q3: test join case */
-        String engine3[] = {"Spark", "Spark", "Spark", "control", "control", "control", "control", "control"};
+        String engine3[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount3[] = {1000000, 1000000, 1000000, 27, 1, 1, 1, 1};
         String join3[] = {"BroadcastJoin", "BroadcastJoin", "BroadcastJoin",
                 "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin"};
@@ -485,7 +485,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         /* test with stats */
         rs = methodWatcher.executeQuery("explain select * from --splice-properties joinOrder=fixed\n t5, t4 where b5=100001 and c5=3 and d5=a4");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
         // skip ScrollInsensitive step
         Assert.assertTrue(rs.next());
 
@@ -510,13 +510,13 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         methodWatcher.executeQuery(format("analyze table %s.t4", CLASS_NAME));
 
         double selectivity[] = {1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7};
-        String engine[] = {"Spark", "Spark", "control", "control", "control", "control", "control", "control"};
+        String engine[] = {"OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount[] = {900000, 90000, 9000, 900, 90, 9, 1,1};
 
-        String engine2[] = {"Spark", "Spark", "Spark", "control", "control", "control", "control", "control"};
+        String engine2[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount2[] = {1000000, 1000000, 1000000, 27, 1, 1, 1, 1};
 
-        String engine3[] = {"Spark", "Spark", "Spark", "control", "control", "control", "control", "control"};
+        String engine3[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount3[] = {1000000, 1000000, 1000000, 27, 1, 1, 1, 1};
         String join3[] = {"BroadcastJoin", "BroadcastJoin", "BroadcastJoin",
                 "BroadcastJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin"};
