@@ -123,7 +123,7 @@ public class LastIndexKeyOperationIT extends SpliceUnitTest {
                 "300 |";
 
         rowContainsQuery(new int[]{1,6}, "explain " + sqlText, methodWatcher,
-                new String[] {"engine=control (default)"},
+                new String[] {"engine=OLTP (default)"},
                 new String[]{"LastKeyTableScan", "scannedRows=1"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -139,7 +139,7 @@ public class LastIndexKeyOperationIT extends SpliceUnitTest {
                 "300 |";
 
         rowContainsQuery(new int[]{1,6}, "explain " + sqlText, methodWatcher,
-                new String[] {"engine=Spark (query hint)"},
+                new String[] {"engine=OLAP (query hint)"},
                 new String[]{"TableScan", "scannedRows=100000"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -155,7 +155,7 @@ public class LastIndexKeyOperationIT extends SpliceUnitTest {
                 "-1 |";
 
         rowContainsQuery(new int[]{1,6}, "explain " + sqlText, methodWatcher,
-                new String[] {"engine=Spark (cost)"},
+                new String[] {"engine=OLAP (cost)"},
                 new String[]{"TableScan", "scannedRows=100000"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -171,7 +171,7 @@ public class LastIndexKeyOperationIT extends SpliceUnitTest {
                 " 3 |";
 
         rowContainsQuery(new int[]{1,6}, "explain " + sqlText, methodWatcher,
-                new String[] {"engine=control (default)"},
+                new String[] {"engine=OLTP (default)"},
                 new String[]{"LastKeyIndexScan", "scannedRows=1"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -187,7 +187,7 @@ public class LastIndexKeyOperationIT extends SpliceUnitTest {
                 " 3 |";
 
         rowContainsQuery(new int[]{1,6}, "explain " + sqlText, methodWatcher,
-                new String[] {"engine=Spark (query hint)"},
+                new String[] {"engine=OLAP (query hint)"},
                 new String[]{"IndexScan[IDX_T1", "scannedRows=100000"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -203,7 +203,7 @@ public class LastIndexKeyOperationIT extends SpliceUnitTest {
                 " 1 |";
 
         rowContainsQuery(new int[]{1,6}, "explain " + sqlText, methodWatcher,
-                new String[] {"engine=Spark (cost)"},
+                new String[] {"engine=OLAP (cost)"},
                 new String[]{"IndexScan[IDX_T1", "scannedRows=100000"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -219,7 +219,7 @@ public class LastIndexKeyOperationIT extends SpliceUnitTest {
                 "10 |";
 
         rowContainsQuery(new int[]{1,6}, "explain " + sqlText, methodWatcher,
-                new String[] {"engine=control (default)"},
+                new String[] {"engine=OLTP (default)"},
                 new String[]{"LastKeyIndexScan[IDX2_T1", "scannedRows=1"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -235,7 +235,7 @@ public class LastIndexKeyOperationIT extends SpliceUnitTest {
                 "30 |";
 
         rowContainsQuery(new int[]{1,6}, "explain " + sqlText, methodWatcher,
-                new String[] {"engine=Spark (cost)"},
+                new String[] {"engine=OLAP (cost)"},
                 new String[]{"IndexScan[IDX2_T1", "scannedRows=100000"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -251,7 +251,7 @@ public class LastIndexKeyOperationIT extends SpliceUnitTest {
                 " 3 |30 |300 |300 |";
 
         rowContainsQuery(new int[]{1,4, 5, 9}, "explain " + sqlText, methodWatcher,
-                new String[] {"engine=control (default)"},
+                new String[] {"engine=OLTP (default)"},
                 new String[] {"NestedLoopJoin"},
                 new String[] {"TableScan[T2"},
                 new String[]{"LastKeyTableScan[T1", "scannedRows=1"});
@@ -271,7 +271,7 @@ public class LastIndexKeyOperationIT extends SpliceUnitTest {
                 " 1 |10 |100 |";
 
         rowContainsQuery(new int[]{1, 4, 5, 9}, "explain " + sqlText, methodWatcher,
-                new String[] {"engine=Spark (cost)"},
+                new String[] {"engine=OLAP (cost)"},
                 new String[] {"TableScan[T2", "scannedRows=100000,outputRows=1"},
                 new String[] {"Subquery"},
                 new String[]{"IndexScan[IDX2_T1", "scannedRows=100000"});
@@ -291,7 +291,7 @@ public class LastIndexKeyOperationIT extends SpliceUnitTest {
                 " 1 |10 |100 |";
 
         rowContainsQuery(new int[]{1, 4, 5, 9}, "explain " + sqlText, methodWatcher,
-                new String[] {"engine=control (default)"},
+                new String[] {"engine=OLTP (default)"},
                 new String[] {"TableScan[T2", "scannedRows=20,outputRows=2"},
                 new String[] {"Subquery"},
                 new String[]{"LastKeyIndexScan[IDX2_T1", "scannedRows=1"});
