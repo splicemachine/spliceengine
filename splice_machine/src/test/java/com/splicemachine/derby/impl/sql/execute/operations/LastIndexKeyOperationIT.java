@@ -40,12 +40,12 @@ public class LastIndexKeyOperationIT extends SpliceUnitTest {
 
     public static final String CLASS_NAME = LastIndexKeyOperationIT.class.getSimpleName().toUpperCase();
 
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
+    protected static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     public static final String TABLE_NAME = "TAB";
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
-    private static String tableDef = "(I INT, D DOUBLE, primary key (i))";
-    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME, tableDef);
+    private static final String tableDef = "(I INT, D DOUBLE, primary key (i))";
+    protected static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME, tableDef);
     static final int MAX=10;
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
