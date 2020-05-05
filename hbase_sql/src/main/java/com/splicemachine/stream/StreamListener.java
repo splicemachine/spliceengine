@@ -82,7 +82,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 
     public Iterator<T> getIterator() {
         // Initialize first partition
-        PartitionState ps = partitionStateMap.putIfAbsent(0, new PartitionState(1, queueSize));
+        PartitionState ps = partitionStateMap.computeIfAbsent(0, k -> new PartitionState(1, queueSize));
         if (failure != null) {
             ps.messages.add(FAILURE);
         }
