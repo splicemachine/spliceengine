@@ -200,7 +200,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     }
 
                     // Set the partitionState so we can block on the queue in case the connection hasn't opened yet
-                    PartitionState ps = partitionStateMap.putIfAbsent(currentQueue, new PartitionState(currentQueue, queueSize));
+                    PartitionState ps = partitionStateMap.computeIfAbsent(currentQueue, k -> new PartitionState(currentQueue, queueSize));
                     if (failure != null) {
                         ps.messages.add(FAILURE);
                     }
