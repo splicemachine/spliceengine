@@ -133,25 +133,33 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     }
   }
 
-  def createTable(tableName: String,
+  /**
+    *
+    * Create Table based on the table name, the schema, primary keys, and createTableOptions.
+    *
+    * @param schemaTableName tablename, or schema.tablename
+    * @param structType Schema of the table
+    * @param keys Names of columns to make up the primary key
+    * @param createTableOptions Not yet implemented
+    */
+  def createTable(schemaTableName: String,
                   structType: StructType,
-                  keys: Seq[String],
-                  createTableOptions: String): Unit = {
+                  keys: Seq[String] = Seq(),
+                  createTableOptions: String = ""): Unit = {
     val spliceOptions = Map(
       JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> tableName)
+      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName)
     val jdbcOptions = new JDBCOptions(spliceOptions)
     val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
     try {
-      val schemaString = JdbcUtils.schemaString(structType, jdbcOptions.url)
-      val keyArray = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
-      val primaryKeyString = new StringBuilder()
-      val dialect = JdbcDialects.get(jdbcOptions.url)
-      keyArray foreach { field =>
-        val name = dialect.quoteIdentifier(field)
-        primaryKeyString.append(s", $name")
+      val actSchemaString = schemaString(structType, jdbcOptions.url)
+
+      val primaryKeyString = if( keys.isEmpty ) {""}
+      else {
+        ", PRIMARY KEY(" + keys.map(dialect.quoteIdentifier(_)).mkString(", ") + ")"
       }
-      val sql = s"CREATE TABLE $tableName ($schemaString) $primaryKeyString"
+
+      val sql = s"CREATE TABLE $schemaTableName ($actSchemaString$primaryKeyString)"
       val statement = conn.createStatement
       statement.executeUpdate(sql)
     } finally {
