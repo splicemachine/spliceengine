@@ -3472,12 +3472,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         FormatableBitSet columnToReadSet=new FormatableBitSet(SYSSTATEMENTSRowFactory.SYSSTATEMENTS_COLUMN_COUNT);
         FormatableBitSet columnToUpdateSet=new FormatableBitSet(SYSSTATEMENTSRowFactory.SYSSTATEMENTS_COLUMN_COUNT);
         for(int i=0;i<SYSSTATEMENTSRowFactory.SYSSTATEMENTS_COLUMN_COUNT;i++){
-            if (i+1==SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE) {
-                columnToUpdateSet.set(i);
-            } else {
+            // we do not want to read the saved serialized plan
+            if (i+1 != SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE) {
                 columnToReadSet.set(i);
-                columnToUpdateSet.set(i);
             }
+            columnToUpdateSet.set(i);
         }
         /* Set up a couple of row templates for fetching CHARS */
         DataValueDescriptor[] rowTemplate =
@@ -3504,9 +3503,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         while(sc.fetchNext(rowTemplate)){
             /* Replace the column in the table */
             for (int i=0; i<rowTemplate.length; i++) {
-                if (i  == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_VALID-1)
+                if (i+1 == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_VALID)
                     replaceRow[i] = new SQLBoolean(false);
-                else if (i == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE-1)
+                else if (i+1 == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE)
                     replaceRow[i] = new UserType(null);
                 else
                     replaceRow[i] = rowTemplate[i].cloneValue(false);
