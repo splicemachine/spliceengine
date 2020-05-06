@@ -699,7 +699,7 @@ public class DataTypeDescriptor implements Formatable{
                  * decimal point and leading '0' if scale > 0.  See also
                  * sqlgrammar.jj(exactNumericType).  Beetle 3875
                  */
-                maximumWidth=(scale>0)?precision+3:precision+1;
+                maximumWidth=DataTypeUtilities.computeMaxWidth(precision, scale);
             }else if(thisType.typePrecedence()!=otherType.typePrecedence()){
                 precision=higherType.getPrecision();
                 scale=higherType.getScale();

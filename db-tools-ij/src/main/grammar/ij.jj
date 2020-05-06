@@ -101,7 +101,7 @@ class ij {
     static final String PASSWORD_PROPERTY = "ij.password";
 	static final String FRAMEWORK_PROPERTY = "framework";
 
-	boolean			elapsedTime = false;
+	boolean			elapsedTime = true;
 
 	Connection theConnection = null;
 	ConnectionEnv currentConnEnv = null;

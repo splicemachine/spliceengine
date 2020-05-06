@@ -97,7 +97,13 @@ public class Exceptions {
     }
 
     public static IOException getIOException(Throwable t){
-        return getIOException(t,PipelineDriver.driver().exceptionFactory());
+        if (PipelineDriver.driver() != null) {
+            return getIOException(t, PipelineDriver.driver().exceptionFactory());
+        } else if (t instanceof IOException) {
+            return (IOException) t;
+        } else {
+            return new IOException(t);
+        }
     }
 
     public static RuntimeException getRuntimeException(Throwable t){

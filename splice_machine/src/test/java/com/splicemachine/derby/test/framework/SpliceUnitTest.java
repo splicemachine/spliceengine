@@ -17,6 +17,7 @@ package com.splicemachine.derby.test.framework;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.runner.Description;
 import org.spark_project.guava.base.Joiner;
@@ -40,6 +41,9 @@ public class SpliceUnitTest {
     private static Pattern overallCostP = Pattern.compile("totalCost=[0-9]+\\.?[0-9]*");
     private static Pattern outputRowsP = Pattern.compile("outputRows=[0-9]+\\.?[0-9]*");
     private static Pattern scannedRowsP = Pattern.compile("scannedRows=[0-9]+\\.?[0-9]*");
+
+    /// set the following boolean to true to prevent deletion of temporary files (e.g. for debugging)
+    static private final boolean debug_no_delete = false;
 
 	public String getSchemaName() {
 		Class<?> enclosingClass = getClass().getEnclosingClass();
@@ -176,23 +180,6 @@ public class SpliceUnitTest {
     public static String getHiveWarehouseDirectory() {
 		return getBaseDirectory()+"/user/hive/warehouse";
 	}
-
-
-    // e.g. GITROOT/platform_it/target/external when running cdh6.3.0
-    public static String getExternalResourceDirectory() {
-        return getHBaseDirectory()+"/target/external/";
-    }
-
-    /// copy subfolder of resource directory (i.e. GITROOT/splice_machine/src/test/test-data/)
-    /// to temporary directory @sa getExternalResourceDirectory
-    /// @return destination directory as string
-    public static String getExternalResourceDirectoryAsCopy( String subfolder ) throws Exception
-    {
-        File src = new File(SpliceUnitTest.getResourceDirectory() + subfolder);
-        File dest = new File( getExternalResourceDirectory() + subfolder );
-        FileUtils.copyDirectory( src, dest );
-        return dest.toString();
-    }
 
     public static class MyWatcher extends SpliceTableWatcher {
 
@@ -410,7 +397,7 @@ public class SpliceUnitTest {
                 containedString = containedString.toUpperCase();
             }
             if (!matchString.contains(containedString))
-                fail("ResultSet does not contain string: " + containedString);
+                fail("ResultSet does not contain string: " + containedString + "\nResult set:\n"+matchString);
         }
         finally {
             if (rs != null)
@@ -681,19 +668,6 @@ public class SpliceUnitTest {
         }
     }
 
-    /// delete the directory if exists, then recreate it empty
-    public static void clearDirectory(String dirname )
-    {
-        try {
-            File file = new File(getExternalResourceDirectory());
-            if (file.exists())
-                FileUtils.deleteDirectory(file);
-            file.mkdir();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public static File createImportFileDirectory(String schemaName) {
         File importFileDirectory = new File(SpliceUnitTest.getBaseDirectory()+"/target/import_data/"+schemaName);
         if (importFileDirectory.exists()) {
@@ -955,5 +929,57 @@ public class SpliceUnitTest {
             SQLException se = (SQLException) e;
             assertTrue("Incorrect error state: " + se.getSQLState() + ", expected: " + errorState,  errorState.startsWith( se.getSQLState()));
         }
+    }
+
+    public static File createOrWipeTestDirectory( String subpath ) throws java.io.IOException
+    {
+        File path = new File(getHBaseDirectory(), "/target/external/" + subpath);
+        path.mkdirs();
+        FileUtils.deleteDirectory(path); // clean directory
+        path.mkdir();
+        return path;
+    }
+
+    public static void deleteTempDirectory(File tempDir) throws Exception
+    {
+        if( tempDir == null )
+            return;
+        else if( debug_no_delete )
+            System.out.println( "Not deleting test temporary directory " + tempDir );
+        else {
+            FileUtils.deleteDirectory(tempDir);
+        }
+    }
+
+    /// copy subfolder of resource directory (i.e. GITROOT/splice_machine/src/test/test-data/)
+    /// to temporary directory @sa getTempOutputDirectory
+    /// @return destination directory as string
+    public String getTempCopyOfResourceDirectory( File tmpDir, String subfolder ) throws Exception
+    {
+        File src = new File( SpliceUnitTest.getResourceDirectory(), subfolder);
+        File dest = new File( tmpDir, subfolder );
+        FileUtils.copyDirectory( src, dest );
+        return dest.toString();
+    }
+
+    /// @return number of files in directory tree
+    // recursively, going down directories, but not counting directories as files
+    public static int getNumberOfFiles(String dirPath)
+    {
+        int count = 0;
+        File f = new File(dirPath);
+        File[] files = f.listFiles();
+
+        if (files == null)
+            return 0;
+
+        for (File file : files)
+        {
+            count++;
+            if (file.isDirectory()) {
+                count += getNumberOfFiles(file.getAbsolutePath());
+            }
+        }
+        return count;
     }
 }

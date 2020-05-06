@@ -68,7 +68,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected boolean isTopResultSet=false;
     protected ExecRow currentRow;
     protected RowLocation currentRowLocation;
-    protected boolean executed=false;
     protected OperationContext operationContext;
     protected volatile boolean isOpen=true;
     protected int resultSetNumber;
@@ -160,7 +159,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             activation.addWarning(StandardException.newWarning(SQLState.LANG_MODIFIED_ROW_COUNT_TOO_LARGE, modifiedRowCount));
             return new long[]{ -1 };
         }
-        return this.modifiedRowCount;
+        return Arrays.copyOf(this.modifiedRowCount, this.modifiedRowCount.length);
     }
 
     @Override
@@ -403,6 +402,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         isKilled = false;
         isTimedout = false;
         modifiedRowCount = new long[] {0};
+        badRecords = 0;
+        returnedRows = false;
+        startTime = System.nanoTime();
         for (SpliceOperation op : getSubOperations()) {
             op.reset();
         }

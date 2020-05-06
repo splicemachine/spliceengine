@@ -163,6 +163,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapServerVirtualCores;
     private final long olapServerKeepAliveTimeout;
     private final String olapServerMode;
+    private final boolean sparkAccumulatorsEnabled;
     private final String olapLog4jConfig;
     private final Map<String, String> olapServerIsolatedRoles;
     private final Map<String, String> olapServerYarnQueues;
@@ -236,7 +237,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int splitBlockSize;
     private final  long regionMaxFileSize;
     private final  long tableSplitSleepInterval;
-    private final  int splitsPerTableMin;
+    private final  int splitsPerRegionMin;
 
     // Gateway to hadoop config
     private final ConfigurationSource configSource;
@@ -683,6 +684,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public String getOlapServerMode() {
         return olapServerMode;
     }
+    @Override
+    public boolean getSparkAccumulatorsEnabled() {
+        return sparkAccumulatorsEnabled;
+    }
 
     @Override
     public boolean getOlapCompactionAutomaticallyPurgeDeletedRows() {
@@ -887,8 +892,8 @@ public final class SConfigurationImpl implements SConfiguration {
         return tableSplitSleepInterval;
     }
     @Override
-    public int getSplitsPerTableMin() {
-        return splitsPerTableMin;
+    public int getSplitsPerRegionMin() {
+        return splitsPerRegionMin;
     }
 
     // ===========
@@ -963,7 +968,7 @@ public final class SConfigurationImpl implements SConfiguration {
         splitBlockSize = builder.splitBlockSize;
         regionMaxFileSize = builder.regionMaxFileSize;
         tableSplitSleepInterval = builder.tableSplitSleepInterval;
-        splitsPerTableMin = builder.splitsPerTableMin;
+        splitsPerRegionMin = builder.splitsPerRegionMin;
         regionServerHandlerCount = builder.regionServerHandlerCount;
         timestampBlockSize = builder.timestampBlockSize;
         regionLoadUpdateInterval = builder.regionLoadUpdateInterval;
@@ -1044,6 +1049,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapServerMode = builder.olapServerMode;
         olapClientRetries = builder.olapClientRetries;
         olapShufflePartitions = builder.olapShufflePartitions;
+        sparkAccumulatorsEnabled = builder.sparkAccumulatorsEnabled;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
         compactionReservedSlots = builder.compactionReservedSlots;

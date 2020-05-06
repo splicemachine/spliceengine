@@ -117,6 +117,10 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String SPARK_COMPACTION_BLOCKING = "spark.compaction.blocking";
     public static final boolean DEFAULT_SPARK_COMPACTION_BLOCKING = true;
 
+    // Whether we record execution stats on Spark accumulators
+    public static final String SPARK_ACCUMULATORS_ENABLED = "spark.accumulators.enabled";
+    public static final boolean DEFAULT_SPARK_ACCUMULATORS_ENABLED = true;
+
     // Log4j config file for OLAP server
     public static final String OLAP_LOG4J_CONFIG = "splice.olap.log4j.configuration";
     public static final String DEFAULT_OLAP_LOG4J_CONFIG = null;
@@ -202,5 +206,6 @@ public class OlapConfigurations implements ConfigurationDefault {
 
         builder.olapServerKeepAliveTimeout = configurationSource.getLong(OLAP_SERVER_KEEPALIVE_TIMEOUT, DEFAULT_OLAP_SERVER_KEEPALIVE_TIMEOUT);
         builder.olapServerMode = configurationSource.getString(OLAP_SERVER_MODE, DEFAULT_OLAP_SERVER_MODE);
+        builder.sparkAccumulatorsEnabled = configurationSource.getBoolean(SPARK_ACCUMULATORS_ENABLED, DEFAULT_SPARK_ACCUMULATORS_ENABLED);
     }
 }

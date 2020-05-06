@@ -14,11 +14,9 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TriggerBuilder;
 import org.apache.commons.io.FileUtils;
@@ -32,6 +30,7 @@ import java.io.File;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -41,7 +40,7 @@ import static org.junit.Assert.fail;
  * IT's for external table functionality
  *
  */
-public class ExternalTableIT extends SpliceUnitTest{
+public class ExternalTableIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = ExternalTableIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -54,11 +53,63 @@ public class ExternalTableIT extends SpliceUnitTest{
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher);
 
-    // this will cleanup all files created in the dir getExternalResourceDirectory()
-    // (if you insert into external tables, you create files)
+    static File tempDir;
+
     @BeforeClass
-    public static void cleanoutDirectory() {
-        SpliceUnitTest.clearDirectory( getExternalResourceDirectory() );
+    public static void createTempDirectory() throws Exception
+    {
+        tempDir = createOrWipeTestDirectory( SCHEMA_NAME );
+    }
+
+    @AfterClass
+    public static void deleteTempDirectory() throws Exception
+    {
+        deleteTempDirectory(tempDir);
+    }
+
+    /// this will return the temp directory, that is created on demand once for each test
+    public String getExternalResourceDirectory() throws Exception
+    {
+        return tempDir.toString() + "/";
+    }
+
+    @Test
+    public void testNativeSparkExtractFunction() throws Exception {
+        try {
+            File tablePath = File.createTempFile("native-spark-table", ".tmp");
+            String path = tablePath.getAbsolutePath();
+            tablePath.delete();
+
+            methodWatcher.executeUpdate(String.format("create external table dates_ext (d date) " +
+                    "STORED AS PARQUET LOCATION '%s'",path));
+            methodWatcher.executeUpdate("create table dates (d date) ");
+
+            String values = "insert into %s values '1/1/2022', '7/7/2022', '1/1/2020', '1/1/1920', '6/6/1920', '1/1/1680', '10/10/1680', null";
+
+            for (String table : ImmutableList.of("dates", "dates_ext")) {
+                methodWatcher.executeUpdate(String.format(values, table));
+                try (ResultSet rs = methodWatcher.executeQuery(
+                        "select d, extract(weekday from d), extract(weekdayname from d) " +
+                                "from " + table + " order by 1")) {
+                    String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+                    String expected =
+                            "D     |  2  |    3     |\n" +
+                            "-----------------------------\n" +
+                            "1680-01-01 |  1  | Monday   |\n" +
+                            "1680-10-10 |  4  |Thursday  |\n" +
+                            "1920-01-01 |  4  |Thursday  |\n" +
+                            "1920-06-06 |  7  | Sunday   |\n" +
+                            "2020-01-01 |  3  |Wednesday |\n" +
+                            "2022-01-01 |  6  |Saturday  |\n" +
+                            "2022-07-07 |  4  |Thursday  |\n" +
+                            "   NULL    |NULL |  NULL    |";
+                    assertEquals("Failed with table=" + table, expected, actual);
+                }
+            }
+        } finally {
+            methodWatcher.executeUpdate("drop table dates");
+            methodWatcher.executeUpdate("drop table dates_ext");
+        }
     }
 
     @Test
@@ -363,8 +414,8 @@ public class ExternalTableIT extends SpliceUnitTest{
         String[] files = newFile.list();
         int count = files.length;
 
-        methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s'",tablePath));
+        methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))" +
+                " PARTITIONED BY (\"partition1\") STORED AS PARQUET  LOCATION '%s'",tablePath));
 
         files = newFile.list();
         int count2 = files.length;
@@ -373,11 +424,11 @@ public class ExternalTableIT extends SpliceUnitTest{
         ResultSet rs = methodWatcher.executeQuery("select * from table_to_existing_file order by 1");
         String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
         String expected =
-                "COL1 |COL2 |COL3 |\n" +
-                        "------------------\n" +
-                        " AAA | AAA | AAA |\n" +
-                        " BBB | BBB | BBB |\n" +
-                        " CCC | CCC | CCC |";
+                "partition1 | column1 | column2 |\n" +
+                        "--------------------------------\n" +
+                        "    AAA    |   AAA   |   AAA   |\n" +
+                        "    BBB    |   BBB   |   BBB   |\n" +
+                        "    CCC    |   CCC   |   CCC   |";
         Assert.assertEquals(actual, expected, actual);
     }
 
@@ -385,17 +436,17 @@ public class ExternalTableIT extends SpliceUnitTest{
     public void createParquetTableMergeSchema() throws  Exception{
         String tablePath = getResourceDirectory()+"parquet_sample_one";
 
-        methodWatcher.executeUpdate(String.format("create external table parquet_table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s' merge schema",tablePath));
+        methodWatcher.executeUpdate(String.format("create external table parquet_table_to_existing_file (\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))" +
+                " PARTITIONED BY (\"partition1\") STORED AS PARQUET  LOCATION '%s'",tablePath));
 
         ResultSet rs = methodWatcher.executeQuery("select * from parquet_table_to_existing_file order by 1");
         String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
         String expected =
-                "COL1 |COL2 |COL3 |\n" +
-                "------------------\n" +
-                " AAA | AAA | AAA |\n" +
-                " BBB | BBB | BBB |\n" +
-                " CCC | CCC | CCC |";
+                "partition1 | column1 | column2 |\n" +
+                        "--------------------------------\n" +
+                        "    AAA    |   AAA   |   AAA   |\n" +
+                        "    BBB    |   BBB   |   BBB   |\n" +
+                        "    CCC    |   CCC   |   CCC   |";
         Assert.assertEquals(actual, expected, actual);
     }
 
@@ -462,7 +513,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testLocationCannotBeAFileAvro() throws  Exception{
-        File temp = File.createTempFile("temp-file-avro", ".tmp");
+        File temp = File.createTempFile("temp-file-avro", ".tmp", tempDir);
         try {
             methodWatcher.executeUpdate(String.format("create external table table_to_existing_file_avro_temp (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
                     " STORED AS AVRO LOCATION '%s'", temp.getAbsolutePath()));
@@ -474,7 +525,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testLocationCannotBeAFile() throws  Exception{
-        File temp = File.createTempFile("temp-file", ".tmp");
+        File temp = File.createTempFile("temp-file", ".tmp", tempDir);
 
         try {
             methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
@@ -882,12 +933,12 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testWriteReadWithPreExistingParquet() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_simple_file_test"));
-        ResultSet rs = methodWatcher.executeQuery("select COL2 from parquet_simple_file_table where col1='AAA'");
-        Assert.assertEquals("COL2 |\n" +
-                "------\n" +
-                " AAA |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table (\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))\n" +
+                "partitioned by (\"partition1\") STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_simple_file_test"));
+        ResultSet rs = methodWatcher.executeQuery("select \"column1\" from parquet_simple_file_table where \"partition1\"='AAA'");
+        Assert.assertEquals("column1 |\n" +
+                "----------\n" +
+                "   AAA   |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
@@ -902,13 +953,13 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testWriteReadWithPreExistingParquetAndOr() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table_and_or (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                "STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_simple_file_test"));
-        ResultSet rs = methodWatcher.executeQuery("select COL2 from parquet_simple_file_table_and_or where col1='BBB' OR ( col1='AAA' AND col2='AAA')");
-        Assert.assertEquals("COL2 |\n" +
-                "------\n" +
-                " AAA |\n" +
-                " BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+        methodWatcher.executeUpdate(String.format("create external table parquet_simple_file_table_and_or (\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))\n" +
+                "partitioned by (\"partition1\") STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_simple_file_test"));
+        ResultSet rs = methodWatcher.executeQuery("select \"column1\" from parquet_simple_file_table_and_or where \"partition1\"='BBB' OR ( \"partition1\"='AAA' AND \"column1\"='AAA')");
+        Assert.assertEquals("column1 |\n" +
+                "----------\n" +
+                "   AAA   |\n" +
+                "   BBB   |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
@@ -1047,12 +1098,12 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testReadPassedConstraint() throws Exception {
-            methodWatcher.executeUpdate(String.format("create external table failing_correct_attribute(col1 varchar(24), col2 varchar(24), col4 varchar(24))" +
-                    "partitioned by (col1) STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
-            ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_correct_attribute where col1='AAA'");
-            Assert.assertEquals("COL2 |\n" +
-                    "------\n" +
-                    " AAA |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            methodWatcher.executeUpdate(String.format("create external table failing_correct_attribute(\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))" +
+                    "partitioned by (\"partition1\") STORED AS PARQUET LOCATION '%s'", getResourceDirectory()+"parquet_sample_one"));
+            ResultSet rs = methodWatcher.executeQuery("select \"column1\" from failing_correct_attribute where \"column1\"='AAA'");
+            Assert.assertEquals("column1 |\n" +
+                    "----------\n" +
+                    "   AAA   |",TestUtils.FormattedResult.ResultFactory.toString(rs));
 
     }
 
@@ -1567,12 +1618,6 @@ public class ExternalTableIT extends SpliceUnitTest{
         }
 
     }
-
-    public static String getExternalResourceDirectory() {
-        return getHBaseDirectory()+"/target/external/";
-
-    }
-
 
     @Test
     public void testWriteToWrongPartitionedParquetExternalTable() throws Exception {
@@ -2644,7 +2689,7 @@ public class ExternalTableIT extends SpliceUnitTest{
 
     @Test
     public void testReadWriteAvroFromHive() throws Exception {
-        String path = SpliceUnitTest.getExternalResourceDirectoryAsCopy( "t_avro" );
+        String path = getTempCopyOfResourceDirectory(tempDir, "t_avro" );
         methodWatcher.execute(String.format("create external table t_avro (col1 varchar(30), col2 int)" +
                 " STORED AS AVRO LOCATION '%s'", path ));
 

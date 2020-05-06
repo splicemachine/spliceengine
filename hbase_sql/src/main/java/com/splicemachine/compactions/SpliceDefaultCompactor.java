@@ -329,7 +329,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                             driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                     PurgeConfig purgeConfig;
-                    if (SpliceCompactionUtils.shouldPurge(store)) {
+                    if (SpliceCompactionUtils.shouldPurge(store) && request.isMajor()) {
                         purgeConfig = PurgeConfig.forcePurgeConfig();
                     } else if (HConfiguration.getConfiguration().getOlapCompactionAutomaticallyPurgeDeletedRows()) {
                         if (request.isMajor())
