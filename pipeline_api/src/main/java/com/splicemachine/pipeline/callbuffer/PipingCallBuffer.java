@@ -30,6 +30,7 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.util.*;
 
@@ -78,7 +79,9 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     private boolean record = true;
     private final Partition table;
     private KVPair lastKvPair;
+    private boolean autoFlush = true;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public PipingCallBuffer(Partition table,
                             TxnView txn,
                             byte[] token,
@@ -101,6 +104,18 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
         writeStats = new MergingWriteStats(metricFactory);
     }
 
+    public PipingCallBuffer(Partition table,
+                            TxnView txn,
+                            byte[] token,
+                            Writer writer,
+                            PreFlushHook preFlushHook,
+                            WriteConfiguration writeConfiguration,
+                            BufferConfiguration bufferConfiguration,
+                            boolean skipIndexWrites,
+                            boolean autoFlush) {
+        this(table, txn, token, writer, preFlushHook, writeConfiguration, bufferConfiguration, skipIndexWrites);
+        this.autoFlush = autoFlush;
+    }
     /**
      * Add a KVPair object ("Splice mutation") to the call buffer.
      * This method will "pipe" (set) the mutation into the correct region's call buffer for later flushing.
@@ -126,7 +141,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
             totalBytesAdded +=size;
         }
         if(writer!=null && (currentHeapSize>=bufferConfiguration.getMaxHeapSize()
-                || currentKVPairSize >= bufferConfiguration.getMaxEntries())) {
+                || currentKVPairSize >= bufferConfiguration.getMaxEntries()) && autoFlush) {
             flushLargestBuffer();
         }
     }
