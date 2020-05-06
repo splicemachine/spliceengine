@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.hbase.util;
+package org.apache.hadoop.hbase.regionserver;
 
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.spark_project.guava.collect.Iterators;
@@ -34,8 +34,8 @@ public abstract class AbstractIteratorRegionScanner extends HRegion.RegionScanne
     private Scan scan;
     private Filter filter;
 
-    public AbstractIteratorRegionScanner(HRegion r, Iterator<Set<Cell>> kvs,Scan scan) {
-        r.super();
+    public AbstractIteratorRegionScanner(HRegion r, Iterator<Set<Cell>> kvs,Scan scan) throws IOException {
+        r.super(scan, null, r);
         this.kvs = Iterators.peekingIterator(kvs);
         this.scan = scan;
         this.filter = scan.getFilter();

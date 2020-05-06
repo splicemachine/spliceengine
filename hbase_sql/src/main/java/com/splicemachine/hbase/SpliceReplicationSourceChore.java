@@ -30,6 +30,7 @@ import org.apache.zookeeper.Watcher;
 import org.spark_project.guava.collect.Lists;
 
 import java.io.EOFException;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -107,7 +108,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
             Collection<PartitionServer> servers = pa.allServers();
 
             // Get LSNs for each region server
-            ConcurrentHashMap<String, Map<String,Long>> snapshot = new ConcurrentHashMap<>();
+            ConcurrentHashMap<String, SortedMap<String,Long>> snapshot = new ConcurrentHashMap<>();
             List<Future<Void>> futures = Lists.newArrayList();
             long timestamp = SIDriver.driver().getTimestampSource().currentTimestamp();
             if (timestamp != preTimestamp) {
@@ -142,7 +143,6 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                 if (peer.isEnabled()) {
                     String clusterKey = peer.getPeerConfig().getClusterKey();
                     Connection connection = getConnection(clusterKey);
-                    removeOldWals(snapshot);
                     sendReplicationProgress(peer.getPeerId(), connection);
                 }
             }
@@ -157,7 +157,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
     private void sendReplicationProgress(String peerId, Connection connection) throws IOException {
 
         try {
-            Map<String, Map<String, Long>> walPositions = getWalPositions(peerId);
+            Map<String, SortedMap<String, Long>> walPositions = getWalPositions(peerId);
             if (LOG.isDebugEnabled()) {
                 List<String> sortedWals = sortWals(walPositions);
                 for (String wal:sortedWals )
@@ -209,7 +209,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
         }
     }
 
-    private Map<String, Long> getReplicationProgress(Map<String, Map<String, Long>> serverWalPositions) throws IOException {
+    private Map<String, Long> getReplicationProgress(Map<String, SortedMap<String, Long>> serverWalPositions) throws IOException {
 
         Configuration conf = HConfiguration.unwrapDelegate();
         FileSystem fs = FSUtils.getWALFileSystem(conf);
@@ -219,8 +219,15 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
             Map<String, Long> walPosition = serverWalPositions.get(server);
             for (String wal : walPosition.keySet()) {
 
-                WALLink walLink = new WALLink(conf, server, wal);
                 long position = walPosition.get(wal);
+                WALLink walLink = null;
+                try {
+                    walLink = new WALLink(conf, server, wal);
+                } catch (FileNotFoundException e) {
+                    SpliceLogUtils.warn(LOG, "WAL %s no longer exists", wal);
+                    replicationProgress.put(wal, position);
+                    continue;
+                }
 
                 try (WAL.Reader reader = WALFactory.createReader(fs, walLink.getAvailablePath(fs), conf)) {
                     // Seek to the position and look ahead
@@ -290,15 +297,15 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
      * @return
      * @throws IOException
      */
-    private Map<String, Map<String, Long>> getWalPositions(String peerId) throws IOException {
+    private Map<String, SortedMap<String, Long>> getWalPositions(String peerId) throws IOException {
         try {
-            Map<String, Map<String, Long>> serverWalPositionsMap = new HashMap<>();
+            Map<String, SortedMap<String, Long>> serverWalPositionsMap = new HashMap<>();
             String rsPath = hbaseRoot + "/" + "replication/rs";
             List<String> regionServers = ZkUtils.getChildren(rsPath, false);
             for (String rs : regionServers) {
                 String peerPath = rsPath + "/" + rs + "/" + peerId;
                 List<String> walNames = ZkUtils.getChildren(peerPath, false);
-                Map<String, Long>  walPositionsMap = new HashMap<>();
+                SortedMap<String, Long>  walPositionsMap = new TreeMap<>();
                 serverWalPositionsMap.put(rs, walPositionsMap);
                 for (String walName : walNames) {
                     byte[] p = ZkUtils.getData(peerPath + "/" + walName);
@@ -319,22 +326,24 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
      * Remove old Wals from each wal group
      * @param serverWalPositionsMap
      */
-    private Set<String> removeOldWals(Map<String, Map<String, Long>> serverWalPositionsMap) {
+    private Set<String> removeOldWals(Map<String, SortedMap<String, Long>> serverWalPositionsMap) {
         Map<String, Long> regionGroupMap = new HashMap<>();
-        Map<String, Long> copy = new HashMap<>();
+        SortedMap<String, Long> copy = new TreeMap<>();
         Set<String> oldWals = new HashSet<>();
-        for (Map<String, Long> walPositions : serverWalPositionsMap.values()) {
+        for (SortedMap<String, Long> walPositions : serverWalPositionsMap.values()) {
+            copy.clear();
             copy.putAll(walPositions);
 
             // If there are more than 1 wal from a region group, ignore old wal
             for (Map.Entry<String, Long> entry : copy.entrySet()) {
+                long position = entry.getValue();
                 String walName = entry.getKey();
                 int index = walName.lastIndexOf(".");
                 String walGroup = walName.substring(0, index);
                 Long logNum = new Long(walName.substring(index + 1));
                 if (regionGroupMap.containsKey(walGroup)) {
                     Long ln = regionGroupMap.get(walGroup);
-                    if (logNum > ln) {
+                    if (logNum > ln && position > 0) {
                         regionGroupMap.put(walGroup, logNum);
                         String key = walGroup + "." + ln;
                         walPositions.remove(key);
@@ -343,7 +352,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                     } else {
                         walPositions.remove(walName);
                         oldWals.add(walName);
-                        SpliceLogUtils.debug(LOG, "Log %s:%d has completed replication, remove it", walName, walPositions.get(walName));
+                        SpliceLogUtils.debug(LOG, "Ignore log %s:%d because it has not bee replicated", walName, walPositions.get(walName));
                     }
                 } else {
                     regionGroupMap.put(walGroup, logNum);
@@ -362,7 +371,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
      */
     private void sendSnapshot(Connection conn,
                               Long timestamp,
-                              ConcurrentHashMap<String, Map<String, Long>> serverSnapshot,
+                              ConcurrentHashMap<String, SortedMap<String, Long>> serverSnapshot,
                               long currentTime) throws Exception{
 
         Table table = null;
@@ -448,7 +457,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
         }
     }
 
-    private List<String> sortWals(Map<String, Map<String, Long>> wals) {
+    private List<String> sortWals(Map<String, SortedMap<String, Long>> wals) {
         List<String> sortedWals = Lists.newArrayList();
         for ( Map<String, Long> w : wals.values()) {
             for (Map.Entry<String, Long> walPosition : w.entrySet()) {

@@ -173,7 +173,7 @@ public class ConfigurationBuilder {
     public int rollForwardFirstThreads;
     public int rollForwardSecondThreads;
     public CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
-    public int splitsPerTableMin;
+    public int splitsPerRegionMin;
 
     // PipelineConfiguration
     public int coreWriterThreads;
@@ -208,6 +208,7 @@ public class ConfigurationBuilder {
     public int regionToLoadPerTask;
     public long controlExecutionRowLimit;
     public int olapShufflePartitions;
+    public boolean sparkAccumulatorsEnabled;
     public String olapLog4jConfig;
     public Map<String,String> olapServerIsolatedRoles;
     public Map<String,String> olapServerYarnQueues;

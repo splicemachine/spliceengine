@@ -116,7 +116,7 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
     }
 
     @Override
-    public void preStopMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
+    public void stop(CoprocessorEnvironment ctx) throws IOException {
         try {
             LOG.warn("Stopping SpliceMasterObserver");
             stopped = true;

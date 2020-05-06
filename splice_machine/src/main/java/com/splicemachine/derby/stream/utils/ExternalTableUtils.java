@@ -95,13 +95,15 @@ public class ExternalTableUtils {
             ColumnDescriptorList cdl = td.getColumnDescriptorList();
             ExecRow execRow = new ValueRow(cdl.size());
             DataValueDescriptor[] dvds = execRow.getRowArray();
+            StructField[] fields = new StructField[dvds.length];
             for (int i = 0; i < cdl.size(); ++i) {
                 ColumnDescriptor columnDescriptor = cdl.get(i);
                 DataTypeDescriptor dtd = columnDescriptor.getType();
                 dvds[i] = dtd.getNull();
+                fields[i] = dvds[i].getStructField(columnDescriptor.getColumnName());
             }
-            StructType schema = execRow.schema();
-            return  schema;
+            StructType schema = DataTypes.createStructType(fields);
+            return schema;
         }
         catch (Exception e) {
             throw StandardException.plainWrapException(e);
@@ -229,6 +231,31 @@ public class ExternalTableUtils {
                 } else {
                     schema[i] = schemaCopy[schemaCopyIndex++];
                 }
+            }
+        }
+    }
+
+    public static void preSortColumns(StructField[] schema, int[] partitionColumnMap) {
+        if (partitionColumnMap.length > 0) {
+            // get the partitioned columns and map them to their correct indexes
+            HashMap<Integer, StructField> partitions = new HashMap<>();
+
+            // sort the partitioned columns back into their correct respective indexes in schema
+            StructField[] schemaCopy = schema.clone();
+            for (int i = 0; i < partitionColumnMap.length; ++i) {
+                partitions.put(partitionColumnMap[i], schemaCopy[partitionColumnMap[i]]);
+            }
+
+            int schemaIndex = 0;
+            for (int i = 0; i < schemaCopy.length; i++) {
+                if (partitions.containsKey(i)) {
+                    continue;
+                } else {
+                    schema[schemaIndex++] = schemaCopy[i];
+                }
+            }
+            for (int i = 0; i < partitionColumnMap.length; ++i) {
+                schema[schemaIndex++] = partitions.get(partitionColumnMap[i]);
             }
         }
     }
