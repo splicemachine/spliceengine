@@ -34,6 +34,7 @@ import org.apache.log4j.Logger;
 import org.spark_project.guava.util.concurrent.ListenableFuture;
 import org.spark_project.guava.util.concurrent.MoreExecutors;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -113,7 +114,12 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
                         streamListener.completed(olapResult);
                     } catch (ExecutionException e) {
                         LOG.warn("Execution failed", e);
-                        streamListener.failed(e.getCause());
+                        Throwable cause = e.getCause();
+                        if (cause instanceof IOException || cause instanceof ConnectException) {
+                            streamListener.failed(StandardException.newException(SQLState.OLAP_SERVER_CONNECTION, cause));
+                        } else {
+                            streamListener.failed(cause);
+                        }
                     } catch (InterruptedException e) {
                         // this shouldn't happen, the olapFuture already completed
                         Thread.currentThread().interrupt();
