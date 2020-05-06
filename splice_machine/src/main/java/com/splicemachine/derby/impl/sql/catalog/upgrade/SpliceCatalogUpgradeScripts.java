@@ -96,7 +96,7 @@ public class SpliceCatalogUpgradeScripts{
         NavigableSet<Splice_DD_Version> keys=scripts.navigableKeySet();
         for(Splice_DD_Version version : keys){
             if(currentVersion!=null){
-                if(ddComparator.compare(version,currentVersion)<0){
+                if(ddComparator.compare(version,currentVersion)<=0){
                     continue;
                 }
             }
