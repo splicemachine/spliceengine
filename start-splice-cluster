@@ -201,16 +201,16 @@ if [[ "${DISTRIBUTED}" == "1" ]]; then
     KDC_LOG="${RUN_DIR}/kdc.log"
     echo "Starting KDC. Log file is ${KDC_LOG}"
     (${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKDC > ${KDC_LOG} 2>&1) &  ## KDC
-    wait_for ${KDC_LOG} "KDC cluster started" 
-    
+    wait_for ${KDC_LOG} "KDC cluster started"
+
     export MAVEN_OPTS="$MAVEN_OPTS -Djava.security.krb5.conf=${RUN_DIR}/target/krb5.conf -Dsun.security.krb5.debug=true"
-    
+
     HDFS_LOG="${RUN_DIR}/hdfs.log"
     echo "Starting HDFS. Log file is ${HDFS_LOG}"
     (${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceHdfs > ${HDFS_LOG} 2>&1) &  ## HDFS
     wait_for ${HDFS_LOG} "HDFS cluster started"
-fi 
-  
+fi
+
 YARN_LOG="${RUN_DIR}/yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"
 (${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
@@ -230,9 +230,7 @@ else
   (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFastSSL ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
 fi
 
-echo -n "  Waiting. "
-while ! echo exit | nc localhost 1527; do echo -n ". " ; sleep 2; done
-echo
+WAIT_LIST="1527"
 
 if [[ ${MEMBERS} -gt 0 ]]; then
   for (( MEMBER=1; MEMBER<${MEMBERS}; MEMBER++ )); do
@@ -240,9 +238,29 @@ if [[ ${MEMBERS} -gt 0 ]]; then
     echo "Starting Region Server ${REGION_SVR_LOG}"
     ## (region server, splice on 1528, 1529, ...)
     (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
-    echo -n "  Waiting. "
-    while ! echo exit | nc localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 2; done
-    echo
+    port=$(( 1527 + ${MEMBER} ))
+    WAIT_LIST="${WAIT_LIST} ${port}"
   done
 fi
+
+echo "  Waiting for ports ${WAIT_LIST} ..."
+var=0
+while [[ ${WAIT_LIST} != "" ]]; do
+  sleep 1
+  NEW_LIST=""
+  for i in ${WAIT_LIST}; do
+    echo exit | nc localhost ${i}
+    RESULT=$?
+    if [ $RESULT -ne 0 ]; then
+      NEW_LIST="${NEW_LIST} $i"
+    else
+      echo -n " - found ${i} - "
+    fi
+  done
+  WAIT_LIST=${NEW_LIST}
+  ((var++))
+  echo -n ". ${var} "
+done
+echo " done!"
+
 popd > /dev/null
