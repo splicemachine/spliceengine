@@ -195,6 +195,7 @@ public class FromBaseTable extends FromTable {
 
     private AggregateNode aggrForSpecialMaxScan;
 
+    private boolean isBulkDelete = false;
     @Override
     public boolean isParallelizable(){
         return false;
@@ -221,6 +222,12 @@ public class FromBaseTable extends FromTable {
      * <li>derivedRCL        The derived column list</li>
      * </ul>
      */
+    @Override
+    public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete){
+        init(tableName, correlationName, rclOrUD, propsOrRcl);
+        this.isBulkDelete = (Boolean) isBulkDelete;
+    }
+
     @Override
     public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl){
         if(rclOrUD instanceof Integer){
@@ -1715,7 +1722,7 @@ public class FromBaseTable extends FromTable {
                 !(trulyTheBestJoinStrategy.ignoreBulkFetch()) &&
                 !bulkFetchTurnedOff &&
                 (bulkFetch==UNSET) &&
-                !forUpdate() &&
+                (!forUpdate() || isBulkDelete)&&
                 !isOneRowResultSet() &&
                 getLevel()==0){
             bulkFetch=getDefaultBulkFetch();
