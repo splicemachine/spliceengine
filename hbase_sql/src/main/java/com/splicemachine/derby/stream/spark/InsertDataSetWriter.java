@@ -115,6 +115,10 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
         if (sampleFraction > 0) {
             sampleAndSplitTable();
         }
+        int maxPartitions = HConfiguration.getConfiguration().getMaxWritePartitions();
+        if (maxPartitions > 0 && rdd.getNumPartitions() > maxPartitions) {
+            rdd = rdd.coalesce(maxPartitions, true);
+        }
         rdd.saveAsNewAPIHadoopDataset(config);
         if(opContext.getOperation()!=null){
             DMLWriteOperation writeOp = (DMLWriteOperation)opContext.getOperation();

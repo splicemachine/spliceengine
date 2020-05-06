@@ -200,6 +200,7 @@ public class ConfigurationBuilder {
     public double bulkImportSampleFraction;
     public int bulkImportTasksPerRegion;
     public int regionToLoadPerTask;
+    public int maxWritePartitions;
     public long controlExecutionRowLimit;
     public int olapShufflePartitions;
     public boolean sparkAccumulatorsEnabled;

@@ -182,6 +182,8 @@ public interface SConfiguration {
 
     int getRegionToLoadPerTask();
 
+    int getMaxWritePartitions();
+
     // SIConfigurations
     int getActiveTransactionMaxCacheSize();
     int getActiveTransactionInitialCacheSize();

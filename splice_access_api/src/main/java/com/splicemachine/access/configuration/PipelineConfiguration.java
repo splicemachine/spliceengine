@@ -164,6 +164,9 @@ public class PipelineConfiguration implements ConfigurationDefault {
     public static final String REGION_TOLOAD_PER_TASK = "splice.region.toLoad.perTask";
     private static final int DEFAULT_REGION_TOLOAD_PER_TASK = 30;
 
+    public static final String MAX_WRITE_PARTITIONS = "splice.max.write.partitions";
+    private static final int DEFAULT_MAX_WRITE_PARTITIONS = -1;
+
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
@@ -193,5 +196,6 @@ public class PipelineConfiguration implements ConfigurationDefault {
         builder.bulkImportSampleFraction = configurationSource.getDouble(BULK_IMPORT_SAMPLE_FRACTION, DEFAULT_BULK_IMPORT_SAMPLE_FRACTION);
         builder.bulkImportTasksPerRegion = configurationSource.getInt(BULK_IMPORT_TASKS_PER_REGION, DEFAULT_BULK_IMPORT_TASKS_PER_REGION);
         builder.regionToLoadPerTask = configurationSource.getInt(REGION_TOLOAD_PER_TASK, DEFAULT_REGION_TOLOAD_PER_TASK);
+        builder.maxWritePartitions =  configurationSource.getInt(MAX_WRITE_PARTITIONS, DEFAULT_MAX_WRITE_PARTITIONS);
     }
 }

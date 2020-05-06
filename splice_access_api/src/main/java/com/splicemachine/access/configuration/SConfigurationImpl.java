@@ -136,6 +136,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final double bulkImportSampleFraction;
     private final int bulkImportTasksPerRegion;
     private final int regionToLoadPerTask;
+    private final int maxWritePartitions;
     private final int rollForwardQueueSize;
     private final int rollForwardFirstWait;
     private final int rollForwardSecondWait;
@@ -518,6 +519,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getRegionToLoadPerTask() {
         return regionToLoadPerTask;
+    }
+
+    @Override
+    public int getMaxWritePartitions() {
+        return maxWritePartitions;
     }
 
     @Override
@@ -1029,6 +1035,7 @@ public final class SConfigurationImpl implements SConfiguration {
         bulkImportSampleFraction = builder.bulkImportSampleFraction;
         bulkImportTasksPerRegion = builder.bulkImportTasksPerRegion;
         regionToLoadPerTask = builder.regionToLoadPerTask;
+        maxWritePartitions = builder.maxWritePartitions;
         ignoreMissingTxns = builder.ignoreMissingTxns;
         maxCheckTableErrors = builder.maxCheckTableErrors;
         rollForwardQueueSize = builder.rollForwardQueueSize;
