@@ -201,6 +201,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             } else {
                 purgeConfig = PurgeConfig.noPurgeConfig();
             }
+            // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
+            // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
             SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
