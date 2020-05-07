@@ -41,7 +41,7 @@ Setup local yum repo on ambari server node ( or a node that all the nodes in the
 3. Put the splicemachine rpm under `/var/www/html/ambari-repo/` ( or the path you choose)
 4. Use `createrepo /var/www/html/ambari-repo/` to create the repo metadata.
 5. Open the url `your_node_url/ambari-repo` to confirm it can be accessed by yum.
-6. Put a file named `splicemachine.repo` under ``/etc/yums.repo.d/` with the content is as below
+6. Put a file named `splicemachine.repo` under `/etc/yum.repos.d/` with the content is as below
 
   ````
   [splicemachine]
