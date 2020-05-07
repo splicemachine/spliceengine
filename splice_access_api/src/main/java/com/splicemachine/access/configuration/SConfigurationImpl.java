@@ -162,6 +162,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapServerMemory;
     private final int olapServerMemoryOverhead;
     private final int olapServerVirtualCores;
+    private final boolean sparkAccumulatorsEnabled;
     private final String olapLog4jConfig;
     private final Map<String, String> olapServerIsolatedRoles;
     private final Map<String, String> olapServerYarnQueues;
@@ -191,7 +192,6 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  boolean debugLogStatementContext;
     private final  boolean ignoreSavePoints;
     private final  boolean upgradeForced;
-    private final  int batchOnceBatchSize;
     private final  int importMaxQuotedColumnLines;
     private final  int indexBatchSize;
     private final  int indexLookupBlocks;
@@ -236,7 +236,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int splitBlockSize;
     private final  long regionMaxFileSize;
     private final  long tableSplitSleepInterval;
-    private final  int splitsPerTableMin;
+    private final  int splitsPerRegionMin;
 
     // Gateway to hadoop config
     private final ConfigurationSource configSource;
@@ -685,6 +685,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getOlapShufflePartitions() {
         return olapShufflePartitions;
     }
+    @Override
+    public boolean getSparkAccumulatorsEnabled() {
+        return sparkAccumulatorsEnabled;
+    }
 
     @Override
     public boolean getOlapCompactionAutomaticallyPurgeDeletedRows() {
@@ -744,10 +748,6 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public boolean upgradeForced() {
         return upgradeForced;
-    }
-    @Override
-    public int getBatchOnceBatchSize() {
-        return batchOnceBatchSize;
     }
     @Override
     public int getImportMaxQuotedColumnLines() {
@@ -893,8 +893,8 @@ public final class SConfigurationImpl implements SConfiguration {
         return tableSplitSleepInterval;
     }
     @Override
-    public int getSplitsPerTableMin() {
-        return splitsPerTableMin;
+    public int getSplitsPerRegionMin() {
+        return splitsPerRegionMin;
     }
 
     // ===========
@@ -969,7 +969,7 @@ public final class SConfigurationImpl implements SConfiguration {
         splitBlockSize = builder.splitBlockSize;
         regionMaxFileSize = builder.regionMaxFileSize;
         tableSplitSleepInterval = builder.tableSplitSleepInterval;
-        splitsPerTableMin = builder.splitsPerTableMin;
+        splitsPerRegionMin = builder.splitsPerRegionMin;
         regionServerHandlerCount = builder.regionServerHandlerCount;
         timestampBlockSize = builder.timestampBlockSize;
         regionLoadUpdateInterval = builder.regionLoadUpdateInterval;
@@ -1034,7 +1034,6 @@ public final class SConfigurationImpl implements SConfiguration {
         startupLockWaitPeriod = builder.startupLockWaitPeriod;
         threadKeepaliveTime = builder.threadKeepaliveTime;
         indexFetchSampleSize = builder.indexFetchSampleSize;
-        batchOnceBatchSize = builder.batchOnceBatchSize;
         sparkIoCompressionCodec = builder.sparkIoCompressionCodec;
         olapClientWaitTime = builder.olapClientWaitTime;
         olapClientTickTime = builder.olapClientTickTime;
@@ -1049,6 +1048,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapServerVirtualCores = builder.olapServerVirtualCores;
         olapClientRetries = builder.olapClientRetries;
         olapShufflePartitions = builder.olapShufflePartitions;
+        sparkAccumulatorsEnabled = builder.sparkAccumulatorsEnabled;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
         sparkSlowResultStreamingBatches = builder.sparkSlowResultStreamingBatches;

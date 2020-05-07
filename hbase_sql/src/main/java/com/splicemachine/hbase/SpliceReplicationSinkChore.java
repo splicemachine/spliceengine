@@ -23,6 +23,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
@@ -42,7 +43,7 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
 
     private static final Logger LOG = Logger.getLogger(SpliceReplicationSinkChore.class);
     Connection connection;
-    private Map<String, Long> replicationProgress = new HashMap<>();
+    private Map<String, Pair<Long,Long>> replicationProgress = new HashMap<>();
     private TableName masterSnapshotTable;
     private TableName replicationProgressTable;
     private RecoverableZooKeeper rzk;
@@ -162,7 +163,7 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
      * @param replicationProgress
      * @throws IOException
      */
-    private void getReplicationProgress(Connection conn, Map<String, Long> replicationProgress) throws IOException {
+    private void getReplicationProgress(Connection conn, Map<String, Pair<Long, Long>> replicationProgress) throws IOException {
         Table progressTable = conn.getTable(replicationProgressTable);
         Get getReplicationProgress = new Get(HBaseConfiguration.REPLICATION_PROGRESS_ROWKEY_BYTES);
         Result r = progressTable.get(getReplicationProgress);
@@ -174,43 +175,20 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
             if(Arrays.equals(colName, HBaseConfiguration.REPLICATION_PROGRESS_TSCOL_BYTES)){
                 long latestTimestamp = Bytes.toLong(CellUtil.cloneValue(cell));
                 //if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.info(LOG, "timestamp = %d", latestTimestamp);
+                    SpliceLogUtils.info(LOG, "timestamp = %d, %s", latestTimestamp, new DateTime(latestTimestamp).toString());
                 //}
             }
             else {
-                String region = Bytes.toString(CellUtil.cloneQualifier(cell));
+                String walName = Bytes.toString(CellUtil.cloneQualifier(cell));
+                int index = walName.lastIndexOf(".");
+                String walGroup = walName.substring(0, index);
+                Long logNum = new Long(walName.substring(index + 1));
                 Long seqNum = Bytes.toLong(CellUtil.cloneValue(cell));
-                replicationProgress.put(region, seqNum);
+                replicationProgress.put(walGroup, new Pair<>(logNum,seqNum));
                 //if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.info(LOG, "replication progress: region=%s, seqNum=%s", region, seqNum);
+                    SpliceLogUtils.info(LOG, "replication progress: walGroup=%s, logNum= %d, seqNum=%d", walGroup, logNum, seqNum);
                 //}
             }
-        }
-    }
-
-    private void getReplicationProgress(Map<String, Long> replicationProgress) throws IOException {
-
-        try {
-            RecoverableZooKeeper rzk = replicationSourceWatcher.getRecoverableZooKeeper();
-            List<String> regionServers = rzk.getChildren(rootDir + "/replication/rs", false);
-            for (String rs: regionServers) {
-                String path = rootDir + "/replication/rs/" + rs + "/" + peerId;
-                if (rzk.exists(path, false) != null) {
-                    List<String> fileNames = rzk.getChildren(path, false);
-                    for (String fileName : fileNames) {
-                        try {
-                            byte[] pos = rzk.getData(path + "/" + fileName, false, null);
-                            long position = ZKUtil.parseWALPositionFrom(pos);
-                            replicationProgress.put(fileName, position);
-                        } catch (KeeperException.NoNodeException ne) {
-                            SpliceLogUtils.info(LOG, "Node %s does not exists because the log has completed " +
-                                    "replication. Ignore...");
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            throw new IOException(e);
         }
     }
 
@@ -276,16 +254,28 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
                     }
                     else {
                         String walName = Bytes.toString(colName);
-                        Long position = Bytes.toLong(CellUtil.cloneValue(cell));
-                        if (replicationProgress.containsKey(walName)) {
-                            long appliedPosition = replicationProgress.get(walName);
+                        int index = walName.lastIndexOf(".");
+                        String walGroup = walName.substring(0, index);
+                        long logNum = new Long(walName.substring(index + 1));
+                        long position = Bytes.toLong(CellUtil.cloneValue(cell));
+                        if (replicationProgress.containsKey(walGroup)) {
+                            Pair<Long, Long> pair = replicationProgress.get(walGroup);
+                            long appliedLogNum = pair.getFirst();
+                            long appliedPosition = pair.getSecond();
                             //if (LOG.isDebugEnabled()) {
                             SpliceLogUtils.info(LOG,
-                                    "WAL=%s, snapshot=%d, progress=%d", walName, position, appliedPosition);
+                                    "WAL=%s, snapshot=%d, logNum=%d, progress=%d", walName, position,
+                                    appliedLogNum, appliedPosition);
                             //}
-                            if (appliedPosition < position) {
-                                // applied seqNum is behind snapshot seqNum,cannot move timestamp forward
+                            if (appliedLogNum < logNum){
+                                // it is still replicating older wals, cannot move timestamp forward
                                 return;
+                            }
+                            else if (logNum == appliedLogNum) {
+                                if (appliedPosition < position) {
+                                    // applied wal position is behind snapshot wal position,cannot move timestamp forward
+                                    return;
+                                }
                             }
                         }
                     }
