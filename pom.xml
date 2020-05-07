@@ -23,7 +23,7 @@
     <repositories>
         <repository>
             <id>splicemachine-public</id>
-            <url>http://repository.splicemachine.com/nexus/content/groups/public</url>
+            <url>https://repository.splicemachine.com/nexus/content/groups/public</url>
         </repository>
         <repository>
             <id>splicemachine</id>
@@ -53,7 +53,7 @@
     <pluginRepositories>
         <pluginRepository>
             <id>splicemachine-public</id>
-            <url>http://repository.splicemachine.com/nexus/content/groups/public</url> 
+            <url>https://repository.splicemachine.com/nexus/content/groups/public</url> 
         </pluginRepository>
         <pluginRepository>
             <id>splicemachine</id>
