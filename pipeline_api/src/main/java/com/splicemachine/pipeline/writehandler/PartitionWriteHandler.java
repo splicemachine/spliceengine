@@ -113,6 +113,9 @@ public class PartitionWriteHandler implements WriteHandler {
                 SpliceLogUtils.trace(LOG, "Flush Writing rows=%d, table=%s", filteredMutations.size(), region.getTableName());
             doWrite(ctx, filteredMutations);
         } catch (IOException wce) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("flush, ", wce);
+            }
             Throwable t = ctx.exceptionFactory().processPipelineException(wce);
             if(t instanceof WriteConflict){
                 WriteResult result=new WriteResult(Code.WRITE_CONFLICT,wce.getMessage());

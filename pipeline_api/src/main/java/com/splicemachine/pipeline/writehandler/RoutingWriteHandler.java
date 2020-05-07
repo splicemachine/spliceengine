@@ -112,6 +112,9 @@ public abstract class RoutingWriteHandler implements WriteHandler {
     }
 
     protected final void fail(KVPair mutation,WriteContext ctx,Exception e){
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("fail, ", e);
+        }
         @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = ctx.exceptionFactory().processPipelineException(e);
         if(t instanceof NotServingPartitionException)
             ctx.failed(mutation,WriteResult.notServingRegion());

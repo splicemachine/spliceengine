@@ -23,6 +23,7 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
@@ -46,6 +47,8 @@ public interface DataSetProcessor {
     <V> DataSet<V> getEmpty();
 
     <V> DataSet<V> getEmpty(String name);
+
+    <V> DataSet<V> getEmpty(String name, OperationContext context);
 
     /**
      * Generates a single row dataset from a value.
@@ -266,7 +269,8 @@ public interface DataSetProcessor {
 
     Boolean isCached(long conglomerateId) throws StandardException;
 
-    TableChecker getTableChecker(String schemaName, String tableName, DataSet tableDataSet, KeyHashDecoder decoder, ExecRow key);
+    TableChecker getTableChecker(String schemaName, String tableName, DataSet tableDataSet, KeyHashDecoder decoder,
+                                 ExecRow key, TxnView txn, boolean fix);
 
     // Operations related to spark explain ->
     boolean isSparkExplain();
