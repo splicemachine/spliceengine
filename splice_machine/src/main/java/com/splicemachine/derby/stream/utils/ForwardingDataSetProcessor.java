@@ -24,6 +24,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.InputStream;
@@ -61,6 +62,11 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     @Override
     public <V> DataSet<V> getEmpty(String name){
         return delegate.getEmpty(name);
+    }
+
+    @Override
+    public <V> DataSet<V> getEmpty(String name, OperationContext context){
+        return delegate.getEmpty(name, context);
     }
 
     @Override
@@ -195,8 +201,8 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
 
     @Override
     public TableChecker getTableChecker(String schemaName, String tableName, DataSet tableDataSet,
-                                        KeyHashDecoder decoder, ExecRow key) {
-        return delegate.getTableChecker(schemaName, tableName, tableDataSet, decoder, key);
+                                        KeyHashDecoder decoder, ExecRow key, TxnView txn,  boolean fix) {
+        return delegate.getTableChecker(schemaName, tableName, tableDataSet, decoder, key, txn, fix);
     }
 
     // Operations specific to native spark explains

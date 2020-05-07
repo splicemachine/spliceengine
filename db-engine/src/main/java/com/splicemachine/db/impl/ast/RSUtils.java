@@ -102,7 +102,7 @@ public class RSUtils {
         public boolean apply(ResultSetNode rsn) {
             return sinkers.contains(rsn.getClass()) &&
                     (!(rsn instanceof JoinNode) || RSUtils.isSinkingJoin(RSUtils.ap((JoinNode) rsn)) ||
-                    RSUtils.leftHasIndexLookup(rsn));
+                            RSUtils.leftHasIndexLookup(rsn));
         }
     };
 

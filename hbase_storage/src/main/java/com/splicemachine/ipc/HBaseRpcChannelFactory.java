@@ -37,6 +37,12 @@ public class HBaseRpcChannelFactory implements RpcChannelFactory {
     }
 
     @Override
+    public CoprocessorRpcChannel newRetryableChannel(TableName tableName,byte[] regionKey) throws IOException{
+        Connection conn=HBaseConnectionFactory.getInstance(config).getConnection();
+        return new RegionCoprocessorRpcChannel((ClusterConnection)conn,tableName,regionKey);
+    }
+
+    @Override
     public void configure(SConfiguration config){
         this.config = config;
     }

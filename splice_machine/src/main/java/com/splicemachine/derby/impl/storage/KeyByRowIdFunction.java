@@ -22,19 +22,19 @@ import scala.Tuple2;
 /**
  * Created by jyuan on 2/6/18.
  */
-public class KeyByRowIdFunction <Op extends SpliceOperation> extends SplicePairFunction<SpliceOperation,ExecRow,String,byte[]> {
+public class KeyByRowIdFunction <Op extends SpliceOperation> extends SplicePairFunction<SpliceOperation,ExecRow,String,ExecRow> {
 
     @Override
     public String genKey(ExecRow row) {
         return Bytes.toHex(row.getKey());
     }
 
-    public byte[] genValue(ExecRow row) {
-        return row.getKey();
+    public ExecRow genValue(ExecRow row) {
+        return row.getClone();
     }
 
     @Override
-    public Tuple2<String, byte[]> call(ExecRow execRow) throws Exception {
-        return new Tuple2(genKey(execRow),genValue(execRow));
+    public Tuple2<String, ExecRow> call(ExecRow execRow) throws Exception {
+        return new Tuple2(genKey(execRow), genValue(execRow));
     }
 }

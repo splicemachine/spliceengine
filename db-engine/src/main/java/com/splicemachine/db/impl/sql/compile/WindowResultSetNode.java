@@ -790,7 +790,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                     tmpRC.markGenerated();
                     tmpRC.bindResultColumnToExpression();
                 }
-                assert tmpRC != null : "Didn't get an RC created for "+exp;
                 // Now add the RC we created to our RCLs (child PR and window)
                 childRCL.addElement(tmpRC);
                 tmpRC.setVirtualColumnId(childRCL.size());
@@ -883,7 +882,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         RowOrdering rowOrdering)
         throws StandardException {
         // RESOLVE: NEED TO FACTOR IN THE COST OF GROUPING (SORTING) HERE
-        CostEstimate childCost = ((Optimizable) childResult).optimizeIt(
+        ((Optimizable) childResult).optimizeIt(
             optimizer,
             predList,
             outerCost,
@@ -1396,7 +1395,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             }
             newExpression = newCR;
         }
-        assert newExpression != null : "Failed to create an expression for "+expressionToReplace.getColumnName();
         parentRC.setExpression(newExpression);
     }
 
@@ -1547,8 +1545,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
-        return spaceToLevel() + "WindowFunction" + "(" + "n=" + order + attrDelim +
+    public String printExplainInformation(String attrDelim) throws StandardException {
+        return spaceToLevel() + "WindowFunction" + "(" + "n=" + getResultSetNumber() + attrDelim +
             getFinalCostEstimate(false).prettyProjectionString(attrDelim) + ")";
     }
 

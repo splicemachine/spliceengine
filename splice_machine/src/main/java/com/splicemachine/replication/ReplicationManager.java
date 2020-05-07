@@ -24,7 +24,7 @@ import java.util.List;
  */
 public interface ReplicationManager {
 
-    void addPeer(short peerId, String peerClusterKey, boolean isSerial) throws StandardException;
+    void addPeer(short peerId, String peerClusterKey) throws StandardException;
     void removePeer(short peerId) throws StandardException;
     void enablePeer(String clusterKey, short peerId, String peerClusterKey) throws StandardException;
     void disablePeer(short peerId) throws StandardException;
@@ -37,4 +37,5 @@ public interface ReplicationManager {
     default String getReplicatedWalPosition(String wal) throws StandardException{ return null;}
     default List<String> getReplicatedWalPositions(short peerId) throws StandardException{return null;}
     default long getReplicationProgress() throws StandardException {return -1;};
+    String dumpUnreplicatedWals() throws StandardException;
 }

@@ -18,15 +18,19 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.hbase.AdapterPipelineEnvironment;
+import com.splicemachine.hbase.*;
 import com.splicemachine.pipeline.PipelineEnvironment;
+import com.splicemachine.si.data.hbase.ZkUpgrade;
 import com.splicemachine.si.data.hbase.coprocessor.AdapterSIEnvironment;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
@@ -44,9 +48,6 @@ import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
 import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
-import com.splicemachine.hbase.HBaseRegionLoads;
-import com.splicemachine.hbase.RegionServerLifecycleObserver;
-import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.ContextFactoryDriverService;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
@@ -143,7 +144,14 @@ public class SpliceSpark {
                 SConfiguration config=driver.getConfiguration();
 
                 LOG.info("Splice Client in SpliceSpark "+SpliceClient.isClient());
-                
+                String replicationPath = ReplicationUtils.getReplicationPath();
+                byte[] status = ZkUtils.getData(replicationPath);
+                if (Bytes.compareTo(status, HBaseConfiguration.REPLICATION_MASTER) == 0) {
+                    driver.lifecycleManager().setReplicationRole("MASTER");
+                }
+                else if (Bytes.compareTo(status, HBaseConfiguration.REPLICATION_SLAVE) == 0) {
+                    driver.lifecycleManager().setReplicationRole("SLAVE");
+                }
                 //boot derby components
                 new EngineLifecycleService(new DistributedDerbyStartup(){
                     @Override public void distributedStart() throws IOException{ }
@@ -154,6 +162,7 @@ public class SpliceSpark {
                 EngineDriver engineDriver = EngineDriver.driver();
                 assert engineDriver!=null: "Not booted yet!";
                 LOG.info("SpliceMachine booted");
+                env.txnStore().setOldTransactions(ZkUpgrade.getOldTransactions(config));
 
                 // Create a static statement context to enable nested connections
                 EmbedConnection internalConnection = (EmbedConnection)engineDriver.getInternalConnection();
@@ -170,7 +179,6 @@ public class SpliceSpark {
                         HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);
                 HBaseRegionLoads.INSTANCE.startWatching();
-
                 spliceStaticComponentsSetup = true;
             }
         } catch (RuntimeException e) {

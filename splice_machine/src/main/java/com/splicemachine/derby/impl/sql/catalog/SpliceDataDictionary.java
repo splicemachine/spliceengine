@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.derby.ddl.DDLDriver;
@@ -1557,5 +1558,18 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
 
         SpliceLogUtils.info(LOG, "System Views for permission tables created in SYSVW!");
+    }
+
+    public void removeUnusedIndexInSysFiles(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor("SYSFILES", sd, tc);
+        ConglomerateDescriptor cd = td.getConglomerateDescriptor(new BasicUUID("80000000-00d3-e222-be7c-000a0a0b1900"));
+
+        if (cd != null) {
+            tc.elevate("dictionary");
+            dropConglomerateDescriptor(cd,tc);
+
+            SpliceLogUtils.info(LOG, "Dropped index %s", "SYSFILES_INDEX3");
+        }
     }
 }
