@@ -177,8 +177,10 @@ public class SITransactor implements Transactor{
                                              ConstraintChecker constraintChecker,
                                              boolean skipConflictDetection,
                                              boolean skipWAL, boolean rollforward) throws IOException{
-        MutationStatus[] finalStatus=new MutationStatus[mutations.size()];
-        Pair<KVPair, Lock>[] lockPairs=new Pair[mutations.size()];
+        int size = mutations.size();
+        MutationStatus[] finalStatus=new MutationStatus[size];
+        Pair<KVPair, Lock>[] lockPairs=new Pair[size];
+
         SimpleTxnFilter constraintState=null;
         TxnSupplier supplier = null;
         if(constraintChecker!=null) {
@@ -194,7 +196,7 @@ public class SITransactor implements Transactor{
                     SIConfigurations.DEFAULT_ACTIVE_TRANSACTION_MAX_CACHE_SIZE;
             supplier = new ActiveTxnCacheSupplier(txnSupplier, initialSize, maxSize);
         }
-        @SuppressWarnings("unchecked") final LongHashSet[] conflictingChildren=new LongHashSet[mutations.size()];
+        @SuppressWarnings("unchecked") final LongHashSet[] conflictingChildren=new LongHashSet[size];
 
 
         ConflictRollForward conflictRollForward = new ConflictRollForward(opFactory, supplier);
