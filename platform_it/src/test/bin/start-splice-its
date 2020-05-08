@@ -91,9 +91,11 @@ if [ ${COUNT} -eq 0 ]; then
     exit 5
 fi
 
+pushd ../standalone/ > /dev/null
 # Start SpliceTestYarnPlatform in background.
 echo "Starting SpliceTestYarnPlatform, log file is ${YARNLOG}"
-mvn -B exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn >> ${YARNLOG} 2>&1 &
+mvn -B exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn >> ${YARNLOG} 2>&1 &
+popd > /dev/null
 
 # Start Kafka in background.
 echo "Starting TestKafkaCluster, log file is ${KAFKALOG}"
