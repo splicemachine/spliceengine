@@ -616,12 +616,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 int idx=0;
                 dvds[idx++].setValue(ps.getHostname());
                 Set<PartitionLoad> partitionLoads=psLoad.getPartitionLoads();
-                long storeFileCount = 0L;
+                long storeFileSize = 0L;
                 for(PartitionLoad pLoad:partitionLoads){
-                    storeFileCount+=pLoad.getStorefileSizeMB();
+                    storeFileSize+=pLoad.getStorefileSize();
                 }
                 dvds[idx++].setValue(partitionLoads.size());
-                dvds[idx++].setValue(storeFileCount);
+                dvds[idx++].setValue(storeFileSize);
                 dvds[idx++].setValue(psLoad.totalWriteRequests());
                 dvds[idx++].setValue(psLoad.totalReadRequests());
                 dvds[idx++].setValue(psLoad.totalRequests());
@@ -638,7 +638,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         int idx=0;
         columnInfo[idx++]=new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
         columnInfo[idx++]=new GenericColumnDescriptor("regionCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-        columnInfo[idx++]=new GenericColumnDescriptor("storeFileCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+        columnInfo[idx++]=new GenericColumnDescriptor("storeFileSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
         columnInfo[idx++]=new GenericColumnDescriptor("writeRequestCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
         columnInfo[idx++]=new GenericColumnDescriptor("readRequestCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
         columnInfo[idx++]=new GenericColumnDescriptor("totalRequestCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
@@ -840,12 +840,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         int storefileSizeMB=0;
                         int memStoreSizeMB=0;
                         int storefileIndexSizeMB=0;
+                        int factor = 1024*1024;
                         if(regionName!=null && !regionName.isEmpty()){
                             PartitionLoad regionLoad=ri.getLoad();//regionLoadMap.get(regionName);
                             if(regionLoad!=null){
-                                storefileSizeMB=regionLoad.getStorefileSizeMB();
-                                memStoreSizeMB=regionLoad.getMemStoreSizeMB();
-                                storefileIndexSizeMB=regionLoad.getStorefileIndexSizeMB();
+                                storefileSizeMB= (int) (regionLoad.getStorefileSize()/factor);
+                                memStoreSizeMB= (int) (regionLoad.getMemStoreSize()/factor);
+                                storefileIndexSizeMB= (int) (regionLoad.getStorefileIndexSize()/factor);
                             }
                         }
                         DataValueDescriptor[] cols=template.getRowArray();
