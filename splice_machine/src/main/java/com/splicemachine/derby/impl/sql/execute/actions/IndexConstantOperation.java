@@ -182,6 +182,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 	}
 
 
+	private static int MB = 1024*1024;
+
     public ScanSetBuilder<ExecRow> getIndexScanBuilder(TableDescriptor td,
                                                        TxnView indexTransaction,
                                                        long demarcationPoint,
@@ -231,7 +233,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         String table = Long.toString(tentativeIndex.getTable().getConglomerate());
         Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(table,false);
         for (PartitionLoad load: partitionLoadCollection) {
-            if (load.getMemStoreSizeMB() > 0 || load.getStorefileSizeMB() > 0)
+            if (load.getMemStoreSize() > 1*MB || load.getStorefileSize() > 1*MB)
                 distributed = true;
         }
         DataSetProcessor dsp;
