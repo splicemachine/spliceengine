@@ -758,10 +758,12 @@
                                     <target>
                                         <replace token="##HBASEVERSION##" value="${envHbase}" dir="mapr/src/main/resources/scripts/splice/">
                                             <include name="hbase-env.sh"/>
+                                            <include name="hbase-env.secure.sh"/>
                                             <include name="mapr-splice-hbase-config.sh"/>
                                         </replace>
                                         <replace token="##SPARKVERSION##" value="${spark.version}" dir="mapr/src/main/resources/scripts/splice/">
                                             <include name="hbase-env.sh"/>
+                                            <include name="hbase-env.secure.sh"/>
                                         </replace>
                                     </target>
                                 </configuration>
