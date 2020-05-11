@@ -60,7 +60,7 @@ public class HServerLoad implements PartitionServerLoad{
         for(Map.Entry<byte[],RegionLoad> regionLoad:regionsLoad.entrySet()){
             String name = Bytes.toString(regionLoad.getKey());
             RegionLoad rl = regionLoad.getValue();
-            PartitionLoad pl = new HPartitionLoad(name,rl.getStorefileSizeMB(),rl.getMemStoreSizeMB(),rl.getStorefileIndexSizeMB());
+            PartitionLoad pl = new HPartitionLoad(name,rl.getStorefileSizeMB()*1024,rl.getMemStoreSizeMB()*1024);
             loads.add(pl);
         }
         return loads;
