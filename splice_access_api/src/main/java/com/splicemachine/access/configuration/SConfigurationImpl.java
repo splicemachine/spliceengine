@@ -129,15 +129,16 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String sparkIoCompressionCodec;
     private final int sparkResultStreamingBatches;
     private final int sparkResultStreamingBatchSize;
-    private final int compactionReservedSlots;
+    private final int sparkSlowResultStreamingBatches;
+    private final int sparkSlowResultStreamingBatchSize;
     private final int olapCompactionMaximumWait;
     private final int olapCompactionMaximumConcurrent;
     private final double olapCompactionResolutionShare;
     private final double flushResolutionShare;
     private final int olapCompactionResolutionBufferSize;
+    private final int localCompactionResolutionBufferSize;
     private final boolean olapCompactionBlocking;
     private final boolean resolutionOnFlushes;
-    private final int reservedSlotsTimeout;
     private final double bulkImportSampleFraction;
     private final int bulkImportTasksPerRegion;
     private final int regionToLoadPerTask;
@@ -557,6 +558,16 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getSparkResultStreamingBatchSize() {
         return sparkResultStreamingBatchSize;
+    }
+    
+    @Override
+    public int getSparkSlowResultStreamingBatches() {
+        return sparkSlowResultStreamingBatches;
+    }
+
+    @Override
+    public int getSparkSlowResultStreamingBatchSize() {
+        return sparkSlowResultStreamingBatchSize;
     }
 
     // SIConfigurations
@@ -1052,12 +1063,14 @@ public final class SConfigurationImpl implements SConfiguration {
         sparkAccumulatorsEnabled = builder.sparkAccumulatorsEnabled;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
-        compactionReservedSlots = builder.compactionReservedSlots;
+        sparkSlowResultStreamingBatches = builder.sparkSlowResultStreamingBatches;
+        sparkSlowResultStreamingBatchSize = builder.sparkSlowResultStreamingBatchSize;
         olapCompactionMaximumWait = builder.olapCompactionMaximumWait;
         olapCompactionMaximumConcurrent = builder.olapCompactionMaximumConcurrent;
         olapCompactionResolutionShare = builder.olapCompactionResolutionShare;
         flushResolutionShare = builder.flushResolutionShare;
         olapCompactionResolutionBufferSize = builder.olapCompactionResolutionBufferSize;
+        localCompactionResolutionBufferSize = builder.localCompactionResolutionBufferSize;
         olapCompactionBlocking = builder.olapCompactionBlocking;
         olapLog4jConfig = builder.olapLog4jConfig;
         olapServerIsolatedRoles = builder.olapServerIsolatedRoles;
@@ -1066,7 +1079,6 @@ public final class SConfigurationImpl implements SConfiguration {
         olapServerIsolatedCompactionQueueName = builder.olapServerIsolatedCompactionQueueName;
         olapCompactionAutomaticallyPurgeDeletedRows = builder.olapCompactionAutomaticallyPurgeDeletedRows;
         resolutionOnFlushes = builder.resolutionOnFlushes;
-        reservedSlotsTimeout = builder.reservedSlotsTimeout;
         storageFactoryHome = builder.storageFactoryHome;
         nestedLoopJoinBatchSize = builder.nestedLoopJoinBatchSize;
         controlExecutionRowLimit = builder.controlExecutionRowLimit;
@@ -1116,11 +1128,6 @@ public final class SConfigurationImpl implements SConfiguration {
     }
 
     @Override
-    public int getCompactionReservedSlots() {
-        return compactionReservedSlots;
-    }
-
-    @Override
     public int getOlapCompactionMaximumWait() {
         return olapCompactionMaximumWait;
     }
@@ -1143,6 +1150,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getOlapCompactionResolutionBufferSize() {
         return olapCompactionResolutionBufferSize;
+    }
+
+    @Override
+    public int getLocalCompactionResolutionBufferSize() {
+        return localCompactionResolutionBufferSize;
     }
 
     @Override
@@ -1178,11 +1190,6 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public boolean getResolutionOnFlushes() {
         return resolutionOnFlushes;
-    }
-
-    @Override
-    public int getReservedSlotsTimeout() {
-        return reservedSlotsTimeout;
     }
 
     @Override
