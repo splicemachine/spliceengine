@@ -256,7 +256,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
                             SpliceMessage.GetCompactedHFilesResponse response = rpcCallback.get();
                             return response.getFilePathList();
                         });
-                assert results.size() == 1;
+                //assert results.size() == 1: results;
                 return Sets.newHashSet(results.get(hri.getRegionName()));
             }
         } catch (Throwable e) {
