@@ -892,6 +892,7 @@
                 <module>platform_it</module>
                 <module>spark_sql</module>
                 <module>splice_spark</module>
+                <module>splice_spark2</module>
                 <module>scala_util</module>
                 <module>assembly</module>
             </modules>
@@ -912,7 +913,6 @@
                 <hadoop.version>3.0.0-cdh6.3.0</hadoop.version>
                 <hbase.version>2.1.0-cdh6.3.0</hbase.version>
                 <hive.version>2.1.1-cdh6.3.0</hive.version>
-                <spark.major.version>spark2.4</spark.major.version>
                 <zookeeper.version>3.4.5-cdh6.3.0</zookeeper.version>
                 <spark.version>2.4.0-cdh6.3.0</spark.version>
                 <spark.major.version>spark2.4</spark.major.version>
@@ -928,6 +928,7 @@
                 <module>platform_it</module>
                 <module>spark_sql</module>
                 <module>splice_spark</module>
+                <module>splice_spark2</module>
                 <module>scala_util</module>
                 <module>assembly</module>
             </modules>
@@ -964,6 +965,7 @@
                 <module>platform_it</module>
                 <module>spark_sql</module>
                 <module>splice_spark</module>
+                <module>splice_spark2</module>
                 <module>scala_util</module>
                 <module>assembly</module>
             </modules>

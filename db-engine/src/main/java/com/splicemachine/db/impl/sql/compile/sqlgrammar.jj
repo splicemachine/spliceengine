@@ -3129,6 +3129,7 @@ TOKEN [IGNORE_CASE] :
 |    <SPARKEXPLAIN_ANALYZED: "sparkexplain_analyzed">
 |    <EXPORT: "export">
 |    <EXPORT_BINARY: "export_binary">
+|	<EXPORT_KAFKA: "export_kafka">
 |    <FIRSTVALUE: "first_value">
 |    <LAG: "lag">
 |    <LASTVALUE: "last_value">
@@ -3701,6 +3702,7 @@ StatementPart(Token[] tokenHolder) throws StandardException :
         statementNode = explainStatement() |
         statementNode = exportStatement() |
         statementNode = binaryExportStatement() |
+        statementNode = kafkaExportStatement() |
         statementNode = pinStatement() |
         statementNode = dropPinStatement() |
         statementNode = signalStatement()
@@ -4110,6 +4112,22 @@ exportStatement() throws StandardException :
     <EXPORT> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
         return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                   statementNode,
+                                   parameterList,
+                                   getContextManager());
+    }
+}
+
+StatementNode
+kafkaExportStatement() throws StandardException :
+{
+    StatementNode   statementNode;
+    Vector parameterList = new Vector();
+}
+{
+    <EXPORT_KAFKA> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
+    {
+        return (KafkaExportNode) nodeFactory.getNode(C_NodeTypes.KAFKA_EXPORT_NODE,
                                    statementNode,
                                    parameterList,
                                    getContextManager());
