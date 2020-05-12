@@ -166,50 +166,46 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         CompactionResult result = null;
         SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
 
-        try {
-            Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest, getCompactionQueue());
-            while (result == null) {
-                try {
-                    result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
-                } catch (InterruptedException e) {
-                    //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
-                    Thread.currentThread().interrupt();
-                    throw new IOException(e);
-                } catch (ExecutionException e) {
-                    if (e.getCause() instanceof RejectedExecutionException) {
-                        LOG.warn("Spark compaction execution rejected, falling back to RegionServer execution", e.getCause());
-                        return super.compact(request, throughputController, user);
-                    }
-                    throw Exceptions.rawIOException(e.getCause());
-                } catch (TimeoutException e) {
-                    // check region write status
-                    if (!store.areWritesEnabled()) {
-                        futureResult.cancel(true);
-                        progress.cancel();
-                        // TODO should we cleanup files written by Spark?
-                        throw new IOException("Region has been closed, compaction aborted");
-                    }
+        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest, getCompactionQueue());
+        while (result == null) {
+            try {
+                result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
+                Thread.currentThread().interrupt();
+                throw new IOException(e);
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof RejectedExecutionException) {
+                    LOG.warn("Spark compaction execution rejected, falling back to RegionServer execution", e.getCause());
+                    return super.compact(request, throughputController, user);
+                }
+                throw Exceptions.rawIOException(e.getCause());
+            } catch (TimeoutException e) {
+                // check region write status
+                if (!store.areWritesEnabled()) {
+                    futureResult.cancel(true);
+                    progress.cancel();
+                    // TODO should we cleanup files written by Spark?
+                    throw new IOException("Region has been closed, compaction aborted");
                 }
             }
-
-            List<String> sPaths = result.getPaths();
-
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
-
-            this.progress.complete();
-
-            scr.preStorefilesRename();
-
-            List<Path> paths = new ArrayList<>();
-            for (String spath : sPaths) {
-                paths.add(new Path(spath));
-            }
-
-            return paths;
-        } finally {
-            scr.afterExecute();
         }
+
+        List<String> sPaths = result.getPaths();
+
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
+
+        this.progress.complete();
+
+        scr.preStorefilesRename();
+
+        List<Path> paths = new ArrayList<>();
+        for (String spath : sPaths) {
+            paths.add(new Path(spath));
+        }
+
+        return paths;
     }
 
     private SparkCompactionFunction getCompactionFunction(boolean isMajor, InetSocketAddress[] favoredNodes) {

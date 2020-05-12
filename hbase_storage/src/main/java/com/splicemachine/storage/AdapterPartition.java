@@ -376,6 +376,14 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
         return delegate.coprocessorExec(serviceClass,call);
     }
 
+    public <T extends Service,V> Map<byte[],V> coprocessorExec(
+            Class<T> serviceClass,
+            byte[] startKey,
+            byte[] endKey,
+            final Batch.Call<T,V> callable) throws Throwable {
+        return delegate.coprocessorExec(serviceClass, startKey, endKey, callable);
+    }
+
     public Table unwrapDelegate(){
         return delegate.unwrapDelegate();
     }

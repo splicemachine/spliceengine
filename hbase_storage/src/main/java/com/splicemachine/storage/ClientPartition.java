@@ -295,6 +295,14 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
         return table.coprocessorService(serviceClass,getStartKey(),getEndKey(),call);
     }
 
+    public <T extends Service,V> Map<byte[],V> coprocessorExec(
+            Class<T> serviceClass,
+            byte[] startKey,
+            byte[] endKey,
+            Batch.Call<T,V> call) throws Throwable{
+        return table.coprocessorService(serviceClass, startKey, endKey, call);
+    }
+
     public Table unwrapDelegate(){
         return table;
     }

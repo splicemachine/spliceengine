@@ -15,12 +15,17 @@
 package com.splicemachine.access.client;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
+import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.SkeletonHBaseClientPartition;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -29,6 +34,8 @@ import org.apache.hadoop.hbase.client.IsolationLevel;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.ipc.CoprocessorRpcUtils;
+import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
@@ -37,6 +44,7 @@ import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.spark_project.guava.base.Throwables;
 
 /**
  * 
@@ -45,49 +53,49 @@ import com.splicemachine.utils.SpliceLogUtils;
 public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     private boolean isClosed = false;
     private static final Logger LOG = Logger.getLogger(SkeletonClientSideRegionScanner.class);
-	private HRegion region;
-	private RegionScanner scanner;
-	private Configuration conf;
-	private FileSystem fs;
-	private Path rootDir;
-	private HTableDescriptor htd;
-	private HRegionInfo hri;
-	private Scan scan;
+    private HRegion region;
+    private RegionScanner scanner;
+    private Configuration conf;
+    private FileSystem fs;
+    private Path rootDir;
+    private HTableDescriptor htd;
+    private HRegionInfo hri;
+    private Scan scan;
     private String hostAndPort;
-	private Cell topCell;
-	private List<KeyValueScanner>	memScannerList = new ArrayList<>(1);
-	private boolean flushed;
-	private long numberOfRows = 0;
+    private Cell topCell;
+    private List<KeyValueScanner>    memScannerList = new ArrayList<>(1);
+    private boolean flushed;
+    private long numberOfRows = 0;
     private FileSystem customFilesystem;
 
-	
-	public SkeletonClientSideRegionScanner(Configuration conf,
+
+    public SkeletonClientSideRegionScanner(Configuration conf,
                                            FileSystem fs,
                                            Path rootDir,
                                            HTableDescriptor htd,
                                            HRegionInfo hri,
                                            Scan scan, String hostAndPort) throws IOException {
-		if (LOG.isDebugEnabled())
-			SpliceLogUtils.debug(LOG, "init for regionInfo=%s, scan=%s", hri,scan);
-		scan.setIsolationLevel(IsolationLevel.READ_UNCOMMITTED);
-		this.conf = conf;
-		this.fs = fs;
-		this.rootDir = rootDir;
-		this.htd = htd;
-		this.hri = new SpliceHRegionInfo(hri);
-		this.scan = scan;
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "init for regionInfo=%s, scan=%s", hri,scan);
+        scan.setIsolationLevel(IsolationLevel.READ_UNCOMMITTED);
+        this.conf = conf;
+        this.fs = fs;
+        this.rootDir = rootDir;
+        this.htd = htd;
+        this.hri = new SpliceHRegionInfo(hri);
+        this.scan = scan;
         this.hostAndPort = hostAndPort;
-	}
+    }
 
     @Override
-	public void close() throws IOException {
+    public void close() throws IOException {
         if (isClosed)
             return;
-		if (LOG.isDebugEnabled())
-			SpliceLogUtils.debug(LOG, "close");
-		if (scanner != null)
-			scanner.close();
-		memScannerList.get(0).close();
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "close");
+        if (scanner != null)
+            scanner.close();
+        memScannerList.get(0).close();
         region.close();
         if (customFilesystem != null)
             customFilesystem.close();
@@ -95,19 +103,19 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     }
 
 
-	public HRegionInfo getRegionInfo() {
-		return (HRegionInfo) scanner.getRegionInfo();
-	}
+    public HRegionInfo getRegionInfo() {
+        return (HRegionInfo) scanner.getRegionInfo();
+    }
 
     @Override
-	public boolean reseek(byte[] row) throws IOException {
-		return scanner.reseek(row);
-	}
+    public boolean reseek(byte[] row) throws IOException {
+        return scanner.reseek(row);
+    }
 
     @Override
-	public long getMvccReadPoint() {
-		return scanner.getMvccReadPoint();
-	}
+    public long getMvccReadPoint() {
+        return scanner.getMvccReadPoint();
+    }
 
     public boolean next(List<Cell> result,int limit) throws IOException{
         return nextRaw(result,limit);
@@ -133,20 +141,20 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     }
 
     @Override
-	public boolean nextRaw(List<Cell> result) throws IOException {
-    	boolean res = nextMerged(result);
+    public boolean nextRaw(List<Cell> result) throws IOException {
+        boolean res = nextMerged(result);
         boolean returnValue = updateTopCell(res,result);
         if (returnValue)
             numberOfRows++;
-		return returnValue;
-	}
+        return returnValue;
+    }
 
 
-	/**
-	 * refresh underlying RegionScanner we call this when new store file gets
-	 * created by MemStore flushes or current scanner fails due to compaction
-	 */
-	public void updateScanner() throws IOException {
+    /**
+     * refresh underlying RegionScanner we call this when new store file gets
+     * created by MemStore flushes or current scanner fails due to compaction
+     */
+    public void updateScanner() throws IOException {
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG,
                         "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",
@@ -170,7 +178,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
                     scanner.close();
             }
             scanner = regionScanner;
-	}
+    }
 
     public HRegion getRegion(){
         return region;
@@ -222,10 +230,46 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         return res;
     }
 
+    @SuppressWarnings("unchecked")
+    private Set<String> getCompactedFilesPathsFromHBaseRegionServer() {
+        try {
+            String regionName = hri.getRegionNameAsString();
+            try (Partition partition = SIDriver.driver().getTableFactory().getTable(htd.getTableName())) {
+                Map<byte[], List<String>> results = ((SkeletonHBaseClientPartition) partition).coprocessorExec(
+                        SpliceMessage.SpliceDerbyCoprocessorService.class,
+                        hri.getStartKey(),
+                        hri.getStartKey(),
+                        instance -> {
+                            ServerRpcController controller = new ServerRpcController();
+                            SpliceMessage.GetCompactedHFilesRequest message = SpliceMessage.GetCompactedHFilesRequest
+                                    .newBuilder()
+                                    .setRegionEncodedName(regionName)
+                                    .build();
+
+                            CoprocessorRpcUtils.BlockingRpcCallback<SpliceMessage.GetCompactedHFilesResponse> rpcCallback = new CoprocessorRpcUtils.BlockingRpcCallback<>();
+                            instance.getCompactedHFiles(controller, message, rpcCallback);
+                            if (controller.failed()) {
+                                Throwable t = Throwables.getRootCause(controller.getFailedOn());
+                                if (t instanceof IOException) throw (IOException) t;
+                                else throw new IOException(t);
+                            }
+                            SpliceMessage.GetCompactedHFilesResponse response = rpcCallback.get();
+                            return response.getFilePathList();
+                        });
+                assert results.size() == 1;
+                return Sets.newHashSet(results.get(hri.getRegionName()));
+            }
+        } catch (Throwable e) {
+            SpliceLogUtils.error(LOG, "Unable to set Compacted Files from HBase region server", e);
+            throw new RuntimeException(e);
+        }
+    }
+
     private HRegion openHRegion() throws IOException {
         Path tableDir = FSUtils.getTableDir(rootDir, hri.getTable());
-        SpliceHRegion spliceHRegion = new SpliceHRegion(tableDir, null, fs, conf, hri, htd, null);
-        return spliceHRegion;
+        Set<String> compactedFilesPaths = getCompactedFilesPathsFromHBaseRegionServer();
+        return new SpliceHRegion(
+                tableDir, null, fs, conf, hri, htd, null, compactedFilesPaths);
     }
 
     private KeyValueScanner getMemStoreScanner() throws IOException {
