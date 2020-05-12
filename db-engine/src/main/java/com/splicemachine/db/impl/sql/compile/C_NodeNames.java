@@ -366,6 +366,8 @@ public interface C_NodeNames
 
     String VALUE_TUPLE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ValueTupleNode";
 
+    String STATEMENT_LIST_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StatementListNode";
+
     // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
     // THEM TO tools/jar/DBMSnodes.properties
 

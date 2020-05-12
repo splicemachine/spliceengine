@@ -179,8 +179,10 @@ public interface SConfiguration {
     String getSparkIoCompressionCodec();
 
     int getSparkResultStreamingBatches();
-
     int getSparkResultStreamingBatchSize();
+
+    int getSparkSlowResultStreamingBatches();
+    int getSparkSlowResultStreamingBatchSize();
 
     double getBulkImportSampleFraction();
 
@@ -237,6 +239,8 @@ public interface SConfiguration {
     String getOlapServerStagingDirectory();
 
     boolean getOlapServerExternal();
+
+    long getOlapServerKeepAliveTimeout();
 
     int getOlapServerThreads();
 
@@ -339,7 +343,7 @@ public interface SConfiguration {
 
     long getTableSplitSleepInterval();
 
-    int getSplitsPerTableMin();
+    int getSplitsPerRegionMin();
 
     /**
      * Dump splice configuration, including hadoop config, to the log.
@@ -352,8 +356,6 @@ public interface SConfiguration {
      */
     Map<String,Object> getConfigMap();
 
-    int getCompactionReservedSlots();
-
     int getOlapCompactionMaximumWait();
 
     int getOlapCompactionMaximumConcurrent();
@@ -364,11 +366,11 @@ public interface SConfiguration {
 
     int getOlapCompactionResolutionBufferSize();
 
+    int getLocalCompactionResolutionBufferSize();
+
     boolean getOlapCompactionBlocking();
 
     boolean getResolutionOnFlushes();
-
-    int getReservedSlotsTimeout();
 
     int getOlapServerTickLimit();
 
@@ -396,4 +398,7 @@ public interface SConfiguration {
 
     String getRangerUserSyncCaseConversion();
 
+    String getOlapServerMode();
+
+    boolean getSparkAccumulatorsEnabled();
 }

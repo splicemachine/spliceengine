@@ -50,6 +50,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.execute.OnceResultSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -83,6 +84,7 @@ import java.util.*;
  * <UL> where x = (SELECT true FROM (SELECT MAX(x) FROM z) WHERE SQLCOL1 = y) </UL>
  */
 
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class SubqueryNode extends ValueNode{
     /* Subquery types.
      * NOTE: FROM_SUBQUERY only exists for a brief second in the parser.  It
@@ -632,11 +634,10 @@ public class SubqueryNode extends ValueNode{
 
             // add limit 1 clause or overwrite the original fetchFirst with limit 1
             if (!(resultSet instanceof RowResultSetNode)) {
-                ValueNode fetchFirst = (NumericConstantNode) getNodeFactory().getNode(
+                this.fetchFirst = (ValueNode) getNodeFactory().getNode(
                         C_NodeTypes.INT_CONSTANT_NODE,
-                        new Integer(1),
+                        1,
                         getContextManager());
-                this.fetchFirst = fetchFirst;
             }
 
             // convert to an expression subquery and generate isNull/isNotNull predicate
@@ -1528,8 +1529,8 @@ public class SubqueryNode extends ValueNode{
 
     @SuppressWarnings("unchecked")
     @Override
-    public List getChildren(){
-        LinkedList list = new LinkedList();
+    public List<? extends QueryTreeNode> getChildren(){
+        ArrayList<QueryTreeNode> list = new ArrayList();
         if(leftOperand!=null)
             list.add(leftOperand);
         if(parentComparisonOperator!=null)
@@ -1537,6 +1538,35 @@ public class SubqueryNode extends ValueNode{
         list.add(offset);
         list.add(fetchFirst);
         return list;
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        return getChildren().get(index);
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        QueryTreeNode child = getChild(index);
+        if (child == leftOperand) {
+            leftOperand = (ValueNode) newValue;
+        } else if (child == parentComparisonOperator) {
+            parentComparisonOperator = (BinaryComparisonOperatorNode) newValue;
+        } else if (child == offset) {
+            offset = (ValueNode) newValue;
+        } else if (child == fetchFirst) {
+            fetchFirst = (ValueNode) newValue;
+        }
+    }
+
+    @Override
+    public List<ColumnReference> getHashableJoinColumnReference() {
+        return null;
+    }
+
+    @Override
+    public void setHashableJoinColumnReference(ColumnReference cr) {
+        // Do nothing
     }
 
     /**
@@ -2202,6 +2232,8 @@ public class SubqueryNode extends ValueNode{
                                 this,
                                 getContextManager());
                 break;
+            default:
+                assert false;
         }
         ucoNode.bindComparisonOperator();
         return ucoNode;
@@ -2482,8 +2514,9 @@ public class SubqueryNode extends ValueNode{
                         this,
                         getContextManager());
                 break;
+            default:
+                assert false;
         }
-
         // clean up the state of the tree to reflect a bound expression subquery
         subqueryType=EXPRESSION_SUBQUERY;
         setDataTypeServices(resultSet.getResultColumns());
@@ -2522,12 +2555,12 @@ public class SubqueryNode extends ValueNode{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         // TODO JL Costs?
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("Subquery(")
-                .append("n=").append(order);
+                .append("n=").append(getResultSet().getResultSetNumber());
                 if (resultSet!=null) {
                     sb.append(attrDelim).append(resultSet.getFinalCostEstimate(false).prettyScrollInsensitiveString(attrDelim));
                 }

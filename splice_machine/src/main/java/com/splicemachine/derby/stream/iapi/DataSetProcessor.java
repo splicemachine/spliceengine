@@ -48,6 +48,8 @@ public interface DataSetProcessor {
 
     <V> DataSet<V> getEmpty(String name);
 
+    <V> DataSet<V> getEmpty(String name, OperationContext context);
+
     /**
      * Generates a single row dataset from a value.
      */

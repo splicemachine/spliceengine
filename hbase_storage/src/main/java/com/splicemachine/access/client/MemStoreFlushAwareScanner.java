@@ -84,26 +84,37 @@ public class MemStoreFlushAwareScanner extends StoreScanner implements RegionSca
 
     @Override
     public KeyValue peek() {
-        if (didWeFlush()) {
-            if (flushAlreadyReturned) {
-                return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.FLUSH,ClientRegionConstants.FLUSH, 0l,ClientRegionConstants.FLUSH);
-            }
-            else {
-                if (LOG.isTraceEnabled())
-                    SpliceLogUtils.trace(LOG, "returning flush");
-                return ClientRegionConstants.MEMSTORE_BEGIN_FLUSH;
-            }
-        }
         if (beginRow) {
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "Peek: memstore begin");
             return ClientRegionConstants.MEMSTORE_BEGIN;
         }
+        if (endRowNeedsToBeReturned) {
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "Peek: end row " + counter);
+            return new KeyValue(Bytes.toBytes(counter), ClientRegionConstants.HOLD, ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP, ClientRegionConstants.HOLD);
+        }
+        if (didWeFlush()) {
+            if (flushAlreadyReturned) {
+                if (LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG, "Peek: flushed " + counter);
+                return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.FLUSH,ClientRegionConstants.FLUSH, 0l,ClientRegionConstants.FLUSH);
+            }
+            else {
+                if (LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG, "Peek: begin flush");
+                return ClientRegionConstants.MEMSTORE_BEGIN_FLUSH;
+            }
+        }
         Cell peek = super.peek();
         if (peek == null || isStopRow(peek)) {
             endRowNeedsToBeReturned = true;
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "Peek: first end row");
             return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.HOLD,ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP,ClientRegionConstants.HOLD);
         }
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "Peek: " + peek);
         return (KeyValue)peek;
     }
 
@@ -136,6 +147,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner implements RegionSca
             return outResult.add(ClientRegionConstants.MEMSTORE_BEGIN);
         }
         if (endRowNeedsToBeReturned) {
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "Next: end row " + counter);
             try {
                 outResult.add(new KeyValue(Bytes.toBytes(counter), ClientRegionConstants.HOLD, ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP, ClientRegionConstants.HOLD));
                 return HBasePlatformUtils.scannerEndReached(scannerContext);
@@ -145,6 +158,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner implements RegionSca
         }
         if (didWeFlush()) {
             if (flushAlreadyReturned) {
+                if (LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG, "Next: flushed " + counter);
                 try {
                     outResult.add(new KeyValue(Bytes.toBytes(counter),
                             ClientRegionConstants.FLUSH, ClientRegionConstants.FLUSH, Long.MAX_VALUE, ClientRegionConstants.FLUSH));
@@ -160,9 +175,14 @@ public class MemStoreFlushAwareScanner extends StoreScanner implements RegionSca
             }
             return HBasePlatformUtils.scannerEndReached(scannerContext);
         }
-        if (directInternalNext(outResult,scannerContext))
+        if (super.next(outResult,scannerContext)) {
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "Next: returning " + outResult.size());
             return true;
+        }
 
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "Next: returning first end row ");
         // We don't have more rows but can't return null here
         endRowNeedsToBeReturned = true;
         if (outResult.isEmpty()) {
@@ -192,11 +212,6 @@ public class MemStoreFlushAwareScanner extends StoreScanner implements RegionSca
     @Override
     public boolean next(List<Cell> outResult) throws IOException {
         return internalNext(outResult,NoLimitScannerContext.getInstance());
-    }
-
-
-    boolean directInternalNext(List<Cell> result, ScannerContext scannerContext) throws IOException {
-        return super.next(result,scannerContext);
     }
 
     @Override
