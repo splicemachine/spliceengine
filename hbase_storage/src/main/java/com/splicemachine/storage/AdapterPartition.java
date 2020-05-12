@@ -22,6 +22,8 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.util.PartitionInRangePredicate;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.sun.xml.bind.api.impl.NameConverter;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -54,6 +56,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -110,14 +113,19 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
         delegate.close();
     }
 
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="useProxy can be reset for all further calls")
+    private void activateProxy(AccessDeniedException ade) {
+        LOG.info("Received ACL violation, activating proxy: " + ade.getMessage());
+        useProxy = true;
+    }
+
     @Override
     protected Result doGet(Get get) throws IOException{
         if (!useProxy) {
             try {
                 return delegate.doGet(get);
             } catch (AccessDeniedException ade) {
-                LOG.info("Received ACL violation, activating proxy: " + ade.getMessage());
-                useProxy = true;
+                activateProxy(ade);
             }
         }
 
@@ -151,8 +159,7 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
             try {
                 return delegate.getScanner(scan);
             } catch (AccessDeniedException ade) {
-                LOG.info("Received ACL violation, activating proxy: " + ade.getMessage());
-                useProxy = true;
+                activateProxy(ade);
             }
         }
 
@@ -246,8 +253,7 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
             try {
                 return delegate.batchGet(attributes, rowKeys);
             } catch (AccessDeniedException ade) {
-                LOG.info("Received ACL violation, activating proxy: " + ade.getMessage());
-                useProxy = true;
+                activateProxy(ade);
             }
         }
 
@@ -408,8 +414,7 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
             try {
                 return delegate.getDescriptor();
             } catch (AccessDeniedException ade) {
-                LOG.info("Received ACL violation, activating proxy: " + ade.getMessage());
-                useProxy = true;
+                activateProxy(ade);
             }
         }
 
@@ -425,10 +430,9 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
                     }
 
                     Blob blob = rs.getBlob(1);
-                    byte[] bytes = blob.getBytes(1, (int) blob.length());
-
-                    HBaseProtos.TableSchema result = HBaseProtos.TableSchema.parseFrom(bytes);
-//                   TODO return new HPartitionDescriptor(HTableDescriptor.convert(result));
+                    /* byte[] bytes = */ blob.getBytes(1, (int) blob.length());
+                    // HBaseProtos.TableSchema result = HBaseProtos.TableSchema.parseFrom(bytes);
+                    // TODO (DB-9370) return new HPartitionDescriptor(HTableDescriptor.convert(result));
                     return null;
                 }
             }
@@ -440,7 +444,11 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
     @Override
     public boolean grantCreatePrivilege() throws IOException{
         if (!useProxy) {
-           return delegate.grantCreatePrivilege();
+            try {
+                return delegate.grantCreatePrivilege();
+            } catch (AccessDeniedException ade) {
+                activateProxy(ade);
+            }
         }
 
         try {
@@ -450,18 +458,18 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
                 statement.setString(1, tableName.toString());
                 statement.setString(2, "grantCreatePrivilege");
                 statement.setBlob(3, new ArrayInputStream(Bytes.toBytes(userName)));
-                ResultSet rs = statement.executeQuery();
-                rs.next();
-                Blob blob = rs.getBlob(1);
-                byte[] bytes = blob.getBytes(1, (int) blob.length());
+                try (ResultSet rs = statement.executeQuery()) {
+                    rs.next();
+                    Blob blob = rs.getBlob(1);
+                    byte[] bytes = blob.getBytes(1, (int) blob.length());
 
-                String result = new String(bytes).toUpperCase();
-                if (result.equals("TRUE")) {
-                    SpliceLogUtils.info(LOG, "granted create privilege on table %s to user %s", tableName, userName);
-                    return true;
-                }
-                else {
-                    return false;
+                    String result = new String(bytes, StandardCharsets.UTF_8).toUpperCase();
+                    if (result.equals("TRUE")) {
+                        SpliceLogUtils.info(LOG, "granted create privilege on table %s to user %s", tableName, userName);
+                        return true;
+                    } else {
+                        return false;
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -472,7 +480,11 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
     @Override
     public boolean revokeCreatePrivilege() throws IOException {
         if (!useProxy) {
-            return delegate.revokeCreatePrivilege();
+            try {
+                return delegate.revokeCreatePrivilege();
+            } catch (AccessDeniedException ade) {
+                activateProxy(ade);
+            }
         }
 
         try {
@@ -482,18 +494,18 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
                 statement.setString(1, tableName.toString());
                 statement.setString(2, "revokeCreatePrivilege");
                 statement.setBlob(3, new ArrayInputStream(Bytes.toBytes(userName)));
-                ResultSet rs = statement.executeQuery();
-                rs.next();
-                Blob blob = rs.getBlob(1);
-                byte[] bytes = blob.getBytes(1, (int) blob.length());
+                try (ResultSet rs = statement.executeQuery()) {
+                    rs.next();
+                    Blob blob = rs.getBlob(1);
+                    byte[] bytes = blob.getBytes(1, (int) blob.length());
 
-                String result = new String(bytes).toUpperCase();
-                if (result.equals("TRUE")) {
-                    SpliceLogUtils.info(LOG, "revoked create privileges on table %s from user %s", tableName, userName);
-                    return true;
-                }
-                else {
-                    return false;
+                    String result = new String(bytes, StandardCharsets.UTF_8).toUpperCase();
+                    if (result.equals("TRUE")) {
+                        SpliceLogUtils.info(LOG, "revoked create privileges on table %s from user %s", tableName, userName);
+                        return true;
+                    } else {
+                        return false;
+                    }
                 }
             }
         } catch (SQLException e) {

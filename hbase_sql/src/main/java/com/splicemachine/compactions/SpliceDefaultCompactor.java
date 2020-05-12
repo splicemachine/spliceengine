@@ -31,6 +31,7 @@ import com.splicemachine.si.impl.server.CompactionContext;
 import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
@@ -110,6 +111,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     }
 
     @Override
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="static attribute hostname is set from here")
     public List<Path> compact(CompactionRequestImpl request, ThroughputController throughputController, User user) throws IOException {
 
         if(!allowSpark || store.getRegionInfo().getTable().isSystemTable())
@@ -314,9 +316,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 /* Include deletes, unless we are doing a compaction of all files */
                 ScanType scanType = request.isAllFiles() ? COMPACT_DROP_DELETES : COMPACT_RETAIN_DELETES;
                 ScanInfo scanInfo = preCreateCoprocScanner(request, scanType, fd.earliestPutTs, scanners, null);
-                if (scanner == null) {
-                    scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
-                }
+                scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
                 if (needsSI(store.getTableName())) {
                     SIDriver driver=SIDriver.driver();
                     double resolutionShare = HConfiguration.getConfiguration().getOlapCompactionResolutionShare();
@@ -339,10 +339,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, resolutionShare, bufferSize, context);
                     siScanner.start();
                     scanner = siScanner;
-                }
-                if (scanner == null) {
-                    // NULL scanner returned from coprocessor hooks means skip normal processing.
-                    return newFiles;
                 }
                 // Create the writer even if no kv(Empty store file is also ok),
                 // because we need record the max seq id for the store file, see HBASE-6059
