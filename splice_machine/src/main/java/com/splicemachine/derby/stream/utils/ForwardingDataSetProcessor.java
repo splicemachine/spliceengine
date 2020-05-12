@@ -65,6 +65,11 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
+    public <V> DataSet<V> getEmpty(String name, OperationContext context){
+        return delegate.getEmpty(name, context);
+    }
+
+    @Override
     public <V> DataSet<V> singleRowDataSet(V value){
         return delegate.singleRowDataSet(value);
     }

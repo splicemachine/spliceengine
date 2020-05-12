@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -84,7 +85,8 @@ import java.util.List;
 
 
 */
-public class SpecialFunctionNode extends ValueNode 
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
+public class SpecialFunctionNode extends ValueNode
 {
     /**
         Name of SQL function
@@ -132,9 +134,10 @@ public class SpecialFunctionNode extends ValueNode
         case C_NodeTypes.SYSTEM_USER_NODE:
             switch (nodeType)
             {
-                case C_NodeTypes.USER_NODE: sqlName = "USER"; break;
+                case C_NodeTypes.USER_NODE:sqlName = "USER"; break;
                 case C_NodeTypes.CURRENT_USER_NODE: sqlName = "CURRENT_USER"; break;
                 case C_NodeTypes.SYSTEM_USER_NODE: sqlName = "SYSTEM_USER"; break;
+                default: assert false;
             }
             methodName = "getCurrentUserId";
             methodType = "java.lang.String";
@@ -312,8 +315,18 @@ public class SpecialFunctionNode extends ValueNode
         return false;
     }
 
-    public List getChildren() {
+    public List<? extends QueryTreeNode> getChildren() {
         return Collections.EMPTY_LIST;
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        throw new UnsupportedOperationException("Not Implemented");
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        throw new UnsupportedOperationException("Not Implemented");
     }
 
     @Override

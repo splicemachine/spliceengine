@@ -81,7 +81,7 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
             List<byte[]> splits = computeSplits(region, beginKey.toByteArray(), endKey.toByteArray(), requestedSplits, bytesPerSplit);
 
             if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG,"computeSplits with beginKey=%s, endKey=%s, numberOfSplits=%s, bytesPerSplit=%ld",beginKey,endKey,splits.size(), bytesPerSplit);
+                SpliceLogUtils.debug(LOG,"computeSplits with beginKey=%s, endKey=%s, numberOfSplits=%s, bytesPerSplit=%d",beginKey,endKey,splits.size(), bytesPerSplit);
             for (byte[] split : splits)
                 writeResponse.addCutPoint(com.google.protobuf.ByteString.copyFrom(split));
         } catch (java.io.IOException e) {

@@ -22,15 +22,21 @@ public class SpliceHFileUtil {
         HFileBlockIndex.BlockIndexReader indexReader = fileReader.getDataBlockIndexReader();
         int size = indexReader.getRootBlockCount();
         int levels = fileReader.getTrailer().getNumDataIndexLevels();
+        if (LOG.isDebugEnabled())
+            LOG.debug("addStoreFileCutpoints storeFileInBytes " + storeFileInBytes + " carry " + carry +
+                    " splitBlockSize " + splitBlockSize + " size " + size + " levels " + levels);
         if (levels == 1) {
             int incrementalSize = (int) (size > 0 ? storeFileInBytes / (float) size : storeFileInBytes);
-            int sizeCounter = 0;
+            int sizeCounter = carry;
             for (int i = 0; i < size; ++i) {
                 if (sizeCounter >= splitBlockSize) {
-                    sizeCounter = carry;
+                    sizeCounter -= splitBlockSize;
                     Cell blockKey = ((HFileBlockIndex.CellBasedKeyBlockIndexReader)indexReader).getRootBlockKey(i);
                     KeyValue tentative = (KeyValue)blockKey;
                     if (CellUtils.isKeyValueInRange(tentative, range)) {
+                        if (LOG.isTraceEnabled()) {
+                            LOG.trace("Adding cutpoint " + CellUtils.toHex(CellUtil.cloneRow(tentative)));
+                        }
                         cutpoints.add(CellUtil.cloneRow(tentative));
                     }
                 }

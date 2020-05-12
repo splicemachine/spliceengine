@@ -146,6 +146,7 @@ public class PartitionWriteHandler implements WriteHandler {
                  * it's because we were unable to write ANY records to the WAL, so we can safely assume that
                  * all the puts failed and can be safely retried.
                  */
+                LOG.error("Unexpected exception", wce);
                 WriteResult result=WriteResult.failed(wce.getClass().getSimpleName()+":"+wce.getMessage());
                 for(KVPair mutation : filteredMutations){
                     ctx.result(mutation,result);
@@ -176,7 +177,9 @@ public class PartitionWriteHandler implements WriteHandler {
         int failed = 0;
         Iterator<MutationStatus> statusIter = status.iterator();
         Iterator<KVPair> mutationIter = toProcess.iterator();
+        int count = 0;
         while(statusIter.hasNext()){
+            count++;
             if(!mutationIter.hasNext())
                 throw new IllegalStateException("MutationStatus result is not the same size as the mutations collection!");
             MutationStatus stat = statusIter.next();
@@ -200,7 +203,7 @@ public class PartitionWriteHandler implements WriteHandler {
             }
         }
 
-        region.updateWriteRequests(toProcess.size() - failed);
+        region.updateWriteRequests(count - failed);
     }
 
 
