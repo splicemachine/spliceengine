@@ -143,7 +143,8 @@ public class PropertyConglomerate {
                     // Cannot get the origin class because of the dependency, so compare them by
                     // class name
                     if (className.equals("org.apache.hadoop.hbase.NotServingRegionException") ||
-                            className.equals("org.apache.hadoop.hbase.exceptions.RegionOpeningException")) {
+                            className.equals("org.apache.hadoop.hbase.exceptions.RegionOpeningException") ||
+							className.equals("org.apache.hadoop.hbase.client.RetriesExhaustedException"))  {
                         onHold = true;
                         break;
                     }
