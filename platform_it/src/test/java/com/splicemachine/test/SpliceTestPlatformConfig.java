@@ -288,7 +288,7 @@ class SpliceTestPlatformConfig {
         //
         // Splice
         //
-
+        
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15)); // wait 15 seconds before bailing on bad ddl statements
         config.setLong("splice.ddl.maxWaitSeconds",120000);
         config.setInt("splice.olap_server.memory", 4096);
