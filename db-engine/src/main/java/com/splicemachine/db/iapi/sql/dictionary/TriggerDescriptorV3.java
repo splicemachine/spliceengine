@@ -48,12 +48,12 @@ import java.util.List;
  * Instead, we store the version number in the class name, and
  * add the new fields to serialize in this class.
  */
-public class TriggerDescriptorV2 extends TriggerDescriptor {
+public class TriggerDescriptorV3 extends TriggerDescriptor {
 
     /**
      * Default constructor for formatable
      */
-    public TriggerDescriptorV2() {
+    public TriggerDescriptorV3() {
     }
 
     /**
@@ -82,7 +82,7 @@ public class TriggerDescriptorV2 extends TriggerDescriptor {
      * @param whenClauseText                the SQL text of the WHEN clause, or {@code null}
      *                                      if there is no WHEN clause
      */
-    public TriggerDescriptorV2(
+    public TriggerDescriptorV3(
             DataDictionary dataDictionary,
             SchemaDescriptor sd,
             UUID id,
@@ -124,12 +124,7 @@ public class TriggerDescriptorV2 extends TriggerDescriptor {
             oldReferencingName,
             newReferencingName,
             whenClauseText);
-        this.version = 2;
-    }
-
-    @Override
-    public int getNumBaseTableColumns() {
-        return numBaseTableColumns;
+        this.version = 3;
     }
 
     //////////////////////////////////////////////////////////////
@@ -157,7 +152,20 @@ public class TriggerDescriptorV2 extends TriggerDescriptor {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        numBaseTableColumns = in.readInt();
+        version = in.readInt();
+
+        Object obj = in.readObject();
+        if (obj instanceof List) {
+            assert triggerDefinitionList == null : "triggerDefinition and triggerDefinitionList cannot both be defined";
+            triggerDefinitionList = (List<String>) obj;
+        }
+
+        obj = in.readObject();
+        if (obj instanceof List) {
+            assert actionSPSIdList == null : "actionSPSIdList and actionSPSId cannot both be defined";
+            actionSPSIdList= (List<UUID>) obj;
+        }
+
     }
 
     /**
@@ -168,7 +176,9 @@ public class TriggerDescriptorV2 extends TriggerDescriptor {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeInt(numBaseTableColumns);
+        out.writeInt(version);
+        out.writeObject(triggerDefinitionList.size() > 1 ? triggerDefinitionList : null);
+        out.writeObject(actionSPSIdList.size() > 1 ? actionSPSIdList : null);
     }
 }
 

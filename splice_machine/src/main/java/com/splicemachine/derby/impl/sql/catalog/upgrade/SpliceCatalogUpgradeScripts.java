@@ -71,6 +71,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1909), new UpgradeScriptForReplication(sdd, tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1917), new UpgradeScriptForMultiTenancy(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1924), new UpgradeScriptToAddPermissionViewsForMultiTenancy(sdd,tc));
+
         // Two system procedures are moved, so we need to run base script to update all system procedures
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1928), new UpgradeScriptBase(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1933), new UpgradeScriptToUpdateViewForSYSCONGLOMERATEINSCHEMAS(sdd,tc));
@@ -80,6 +81,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1948), new UpgradeScriptForAddDefaultToColumnViewInSYSIBM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1953), new UpgradeScriptForRemoveUnusedIndexInSYSFILESTable(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1954), new UpgradeScriptToInvalidateStoredStatement(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1959), new UpgradeScriptForTriggerMultipleStatements(sdd,tc));
     }
 
     public void run() throws StandardException{
