@@ -146,8 +146,12 @@ public class HRegionUtil extends BaseHRegionUtil{
                 // If we had more than one HFiles we generated more cutpoints than needed, take
                 // only the amount we wanted. We need (#splits - 1) cutpoints
                 int step = (int) (cutPoints.size() / (finalNumSplits - 1));
-                for (int i = step - 1; i < cutPoints.size(); i += step) {
-                    finalCutPoints.add(cutPoints.get(i));
+                if (step <= 1) { // we want all generated cutpoints
+                    finalCutPoints = cutPoints;
+                } else {
+                    for (int i = step - 1; i < cutPoints.size(); i += step) {
+                        finalCutPoints.add(cutPoints.get(i));
+                    }
                 }
             } else {
                 finalCutPoints = cutPoints;
