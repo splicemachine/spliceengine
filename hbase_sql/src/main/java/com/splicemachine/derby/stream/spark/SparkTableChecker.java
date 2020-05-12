@@ -171,6 +171,9 @@ public class SparkTableChecker implements TableChecker {
         }catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
+        finally {
+            SpliceSpark.popScope();
+        }
     }
 
 
@@ -201,7 +204,6 @@ public class SparkTableChecker implements TableChecker {
             count++;
         }
         messages.add(0, String.format("The following %d indexes are duplicates:", count));
-        SpliceSpark.popScope();
         return messages;
     }
 
