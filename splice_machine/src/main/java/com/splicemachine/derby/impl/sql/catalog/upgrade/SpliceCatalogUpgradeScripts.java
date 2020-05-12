@@ -81,7 +81,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1948), new UpgradeScriptForAddDefaultToColumnViewInSYSIBM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1953), new UpgradeScriptForRemoveUnusedIndexInSYSFILESTable(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1954), new UpgradeScriptToInvalidateStoredStatement(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1958), new UpgradeScriptForTriggerMultipleStatements(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1959), new UpgradeScriptForTriggerMultipleStatements(sdd,tc));
     }
 
     public void run() throws StandardException{
