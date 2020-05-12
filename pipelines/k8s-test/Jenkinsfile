@@ -1,6 +1,7 @@
 def parcel_url = ""
 def folder_name = ""
 def scmVars = ""
+def BUILD_USER_EMAIL="build@splicemachine.com"
 String[] clusters = ["aks-dev1","aks-dev2","aks-dev3","aks-dev4","aks-dev5","aks-dev6","aks-dev7","aks-dev8"]
 def vaultSecrets = [
 [$class: 'VaultSecret', path: "secret/azure/service_principals/8777b2db-3764-422b-a302-7aefb352399f", secretValues: [
@@ -21,7 +22,6 @@ def vaultSecrets = [
     [$class: 'VaultSecretValue', envVar: 'aws_splice_access', vaultKey: 'access'],
     [$class: 'VaultSecretValue', envVar: 'aws_splice_secret', vaultKey: 'secret']]]
 ]
-
 
 
 node('splice-standalone'){
@@ -128,7 +128,6 @@ node('splice-standalone'){
             sh "helm init --client-only"
             sh "kubectl get pods -A"
             sh "./create-splice-operator.sh ${target_cluster} az default"
-            sh "sleep 20m"
             sh "kubectl get splicedbclusters"
             sh "kubectl get po -n test"
         }
@@ -136,6 +135,7 @@ node('splice-standalone'){
     stage('Run Integration Tests') {
         wrap([$class: 'VaultBuildWrapper', vaultSecrets: vaultSecrets]) {
             dir ('dbaas-infrastructure/kubernetes/') {
+                checkSpliceDB()
                 def jdbc_ip = sh (script:"kubectl get svc -A | grep 'LoadBalancer.*1527' | awk '{\$1=\$1};1' | cut -d \" \" -f 5 | xargs echo -n", returnStdout: true)
                 if ( jdbc_ip == "") {
                     throw exception("JDBC URL not found/initialized")
@@ -189,6 +189,44 @@ node('splice-standalone'){
         }
         notifyBuild(currentBuild.result)
 }
+
+//scheck for external IP to show and if ingress is accepting connections
+def checkSpliceDB() {
+    sh '''wget http://sourceforge.net/projects/netcat/files/netcat/0.7.1/netcat-0.7.1.tar.gz
+    tar -xzvf netcat-0.7.1.tar.gz
+    cd netcat-0.7.1
+    ls
+    ./configure
+    make
+    cd ..
+    '''
+    def check = 1
+    def counter = 0
+    def jdbc_ip = sh (script:"kubectl get svc -A | grep 'LoadBalancer.*1527' | awk '{\$1=\$1};1' | cut -d \" \" -f 5 | xargs echo -n", returnStdout: true)
+    while ( jdbc_ip == "" || jdbc_ip == "<pending>") {
+        sh "sleep 10s"
+        jdbc_ip = sh (script:"kubectl get svc -A | grep 'LoadBalancer.*1527' | awk '{\$1=\$1};1' | cut -d \" \" -f 5 | xargs echo -n", returnStdout: true)
+    }
+    echo "${jdbc_ip}"
+    while (check != 0) {
+        try{
+            sh """
+            ls
+            ./netcat-0.7.1/src/netcat -vz ${jdbc_ip} 1527
+            """
+            check = sh (script:"echo \$? | xargs echo -n", returnStdout: true)
+            echo "${check}"
+            // while loop condition known to not break, so add a conditional break
+            if (check == "0"){
+                break;
+            }
+        }
+        catch (Exception e) {
+            sh "sleep 10s"
+        }
+    }
+}
+
 
 def notifyBuild(String buildStatus = 'STARTED') {
     // Build status of null means successful.
