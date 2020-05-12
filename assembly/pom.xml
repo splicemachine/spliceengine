@@ -753,7 +753,7 @@
                         <artifactId>maven-antrun-plugin</artifactId>
                         <executions>
                             <execution>
-                                <phase>prepare-package</phase>
+                                <phase>process-resources</phase>
                                 <configuration>
                                     <target>
                                         <replace token="##HBASEVERSION##" value="${envHbase}" dir="mapr/src/main/resources/scripts/splice/">
