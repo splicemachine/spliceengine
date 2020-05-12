@@ -116,14 +116,10 @@ public class OlapServerIT extends SpliceUnitTest {
 
         Thread.sleep(2000);
 
-        // this could generate an exception or not
-        try {
-            rs = methodWatcher.executeQuery(sql);
-            rs.next();
-        } catch (SQLException e) {
-            assertEquals("OS001", e.getSQLState());
-        }
-        
+        // after DB-8949 the first query should already succeed
+        rs = methodWatcher.executeQuery(sql);
+        assertTrue(rs.next());
+
         Thread.sleep(2000);
 
         rs = methodWatcher.executeQuery(sql);
