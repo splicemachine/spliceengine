@@ -18,6 +18,8 @@ import com.splicemachine.access.client.MemstoreAware;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HStoreFile;
+import org.apache.hadoop.hbase.regionserver.Store;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionLifeCycleTracker;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
 import org.apache.log4j.Logger;
 
@@ -33,6 +35,7 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
     private static final Logger LOG = Logger.getLogger(SpliceCompactionRequest.class);
     private AtomicReference<MemstoreAware> memstoreAware;
     private HRegion region;
+    private boolean compactionCountIncremented = false;
 
     public SpliceCompactionRequest(Collection<HStoreFile> files) {
         super(files);
@@ -42,6 +45,7 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
         assert memstoreAware != null;
         while (true) {
             MemstoreAware latest = memstoreAware.get();
+            assert latest.currentCompactionCount >= 0;
             if (latest.currentScannerCount>0) {
                 SpliceLogUtils.warn(LOG,"compaction Delayed waiting for scanners to complete scannersRemaining=%d",latest.currentScannerCount);
                 try {
@@ -51,19 +55,35 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
                 }
                 continue;
             }
-            if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementCompactionCount(latest)))
+            if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementCompactionCount(latest))) {
+                if(LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "memstoreAware@" + System.identityHashCode(memstoreAware) +
+                            " 's compactionCount incremented from " + latest.currentCompactionCount +
+                            " to " + (latest.currentCompactionCount + 1));
+                }
+                assert !compactionCountIncremented;
+                compactionCountIncremented = true;
                 break;
+            }
         }
     }
     public void afterExecute(){
-        if (memstoreAware == null) {
+        if (memstoreAware == null || !compactionCountIncremented) {
             // memstoreAware hasn't been set, the compaction failed before it could block and increment the counter, so don't do anything
             return;
         }
         while (true) {
             MemstoreAware latest = memstoreAware.get();
-            if (memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest)))
+            assert latest.currentCompactionCount > 0;
+            if (memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest))) {
+                if(LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "memstoreAware@" + System.identityHashCode(latest) +
+                            " 's compactionCount decremented from " + latest.currentCompactionCount +
+                            " to " + (latest.currentCompactionCount - 1));
+                }
+                compactionCountIncremented = false;
                 break;
+            }
         }
         if(region != null) {
             try {
@@ -82,4 +102,16 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
         this.region = region;
     }
 
+    @Override
+    public void setOffPeak(boolean value) {
+        // We hijack setOffPeak because it is only called twice:
+        // 1. set to true in SpliceDefaultCompactionPolicy before compaction happens
+        // 2. set to false in HStore.finishCompactionRequest (hbase code)
+        // At those points, the value passed is irrelevant and is "only" used for logging
+        // purpose, so we can hijack it.
+        super.setOffPeak(value);
+        if (!value) {
+            afterExecute();
+        }
+    }
 }
