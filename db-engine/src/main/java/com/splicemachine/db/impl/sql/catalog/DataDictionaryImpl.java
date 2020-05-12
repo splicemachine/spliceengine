@@ -3656,15 +3656,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     Visitable actionStmt,
                     String oldReferencingName,
                     String newReferencingName,
-                    String triggerDefinition,
                     int[] referencedCols,
                     int[] referencedColsInTriggerAction,
-                    int actionOffset,
                     TableDescriptor triggerTableDescriptor,
                     TriggerEventDML triggerEventMask,
-                    boolean createTriggerTime,
-                    List<int[]> replacements
-                    ) throws StandardException
+                    boolean createTriggerTime) throws StandardException
     {
             //Total Number of columns in the trigger table
             int numberOfColsInTriggerTable = triggerTableDescriptor.getNumberOfColumns();
