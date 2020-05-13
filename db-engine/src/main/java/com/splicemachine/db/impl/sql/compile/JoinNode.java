@@ -1143,7 +1143,7 @@ public class JoinNode extends TableOperatorNode{
      *
      * Similar to existing buildRCL method, except buildRCL is private
      * and we need to be able to invoke this externally, in particular
-     * from the splice visitor framework (e.g. RowLocationColumnVisitor).
+     * from the splice visitor framework.
      * Also, buildRCL assumes the RCL has not been build yet, by returning
      * immediately if resultColumns != null, whereas here in rebuildRCL
      * we assume Derby has built it already and we need to force a rebuild.
@@ -2069,12 +2069,12 @@ public class JoinNode extends TableOperatorNode{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         JoinStrategy joinStrategy = RSUtils.ap(this).getJoinStrategy();
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append(joinStrategy.getJoinStrategyType().niceName()).append(rightResultSet.isNotExists()?"Anti":"").append("Join(")
-                .append("n=").append(order)
+                .append("n=").append(getResultSetNumber())
                 .append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         if (joinPredicates != null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);

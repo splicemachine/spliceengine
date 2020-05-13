@@ -33,12 +33,42 @@ import static com.splicemachine.test_tools.Rows.rows;
 public class ExplainPlanIT extends SpliceUnitTest  {
 
     public static final String CLASS_NAME = ExplainPlanIT.class.getSimpleName().toUpperCase();
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
+    protected static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     public static final String TABLE_NAME = "A";
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
-    private static String tableDef = "(I INT)";
-    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME, tableDef);
+    private static final String tableDef = "(I INT)";
+    protected static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME, tableDef);
+
+    /// a class to make sure Connection, Statement and ResultSet are correctly closed (spotbugs)
+    /// todo(martinrupp) there's a lot of other spotbugs in ITs similar to this, check if we can have sth like a
+    /// MultiAutoClose class to do this.
+    static class ConnectionStatementWrapper implements AutoCloseable
+    {
+        public ConnectionStatementWrapper(Connection connection, String schema) throws SQLException {
+            this.connection = connection;
+            this.connection.setSchema(schema);
+            s = connection.createStatement();
+        }
+
+        public ResultSet executeQuery(String query) throws SQLException
+        {
+            if(rs != null && !rs.isClosed() ) rs.close();
+            rs = s.executeQuery(query);
+            return rs;
+        }
+
+        @Override
+        public void close() throws Exception {
+            if(rs != null && !rs.isClosed() ) rs.close();
+            s.close();
+            connection.close();
+        }
+
+        private Connection connection;
+        private Statement s;
+        private ResultSet rs;
+    }
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -235,14 +265,14 @@ public class ExplainPlanIT extends SpliceUnitTest  {
     @Test
     public void testExplainTwice() throws Exception {
         ResultSet rs  = methodWatcher.executeQuery(
-                String.format("-- some comments \n explain\nupdate %s set i = 0 where i = 1", this.getTableReference(TABLE_NAME)));
+                String.format("-- some comments %n explain%nupdate %s set i = 0 where i = 1", this.getTableReference(TABLE_NAME)));
         int count1 = 0;
         while (rs.next()) {
             ++count1;
         }
         rs.close();
         rs  = methodWatcher.executeQuery(
-                String.format("-- some comments \n explain\nupdate %s set i = 0 where i = 1", this.getTableReference(TABLE_NAME)));
+                String.format("-- some comments %n explain%nupdate %s set i = 0 where i = 1", this.getTableReference(TABLE_NAME)));
         int count2 = 0;
         while (rs.next()) {
             ++count2;
@@ -251,14 +281,14 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         rs.close();
 
         rs  = methodWatcher.executeQuery(
-                String.format("-- some comments \n sparkexplain\nupdate %s set i = 0 where i = 1", this.getTableReference(TABLE_NAME)));
+                String.format("-- some comments %n sparkexplain%nupdate %s set i = 0 where i = 1", this.getTableReference(TABLE_NAME)));
         count1 = 0;
         while (rs.next()) {
             ++count1;
         }
         rs.close();
         rs  = methodWatcher.executeQuery(
-                String.format("-- some comments \n sparkexplain\nupdate %s set i = 0 where i = 1", this.getTableReference(TABLE_NAME)));
+                String.format("-- some comments %n sparkexplain%nupdate %s set i = 0 where i = 1", this.getTableReference(TABLE_NAME)));
         count2 = 0;
         while (rs.next()) {
             ++count2;
@@ -272,47 +302,46 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         String sql = format("explain select * from %s.%s --SPLICE-PROPERTIES useSpark=false", CLASS_NAME, TABLE_NAME);
         ResultSet rs  = methodWatcher.executeQuery(sql);
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=OLTP"));
 
         sql = format("explain select * from %s.%s", CLASS_NAME, TABLE_NAME);
         rs  = methodWatcher.executeQuery(sql);
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan contains useSpark=true", rs.getString(1).contains("engine=Spark"));
+        Assert.assertTrue("expect explain plan contains useSpark=true", rs.getString(1).contains("engine=OLAP"));
 
     }
 
     @Test
     public void testSparkConnection() throws Exception {
         String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
-        Connection connection = DriverManager.getConnection(url, new Properties());
-        connection.setSchema(CLASS_NAME.toUpperCase());
-        Statement s = connection.createStatement();
-        ResultSet rs = s.executeQuery("explain select * from A");
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=Spark"));
-
+        try( ConnectionStatementWrapper s = new ConnectionStatementWrapper(DriverManager.getConnection(url, new Properties()), CLASS_NAME.toUpperCase()) )
+        {
+            ResultSet rs = s.executeQuery("explain select * from A");
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=OLAP"));
+        }
     }
 
     @Test
     public void testControlConnection() throws Exception {
         String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=false";
-        Connection connection = DriverManager.getConnection(url, new Properties());
-        connection.setSchema(CLASS_NAME.toUpperCase());
-        Statement s = connection.createStatement();
-        ResultSet rs = s.executeQuery("explain select * from A");
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=control"));
+        try( ConnectionStatementWrapper s = new ConnectionStatementWrapper(DriverManager.getConnection(url, new Properties()), CLASS_NAME.toUpperCase()) )
+        {
+            ResultSet rs = s.executeQuery("explain select * from A");
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=OLTP"));
+        }
     }
 
     @Test
     public void testControlQuery() throws Exception {
         String url = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin";
-        Connection connection = DriverManager.getConnection(url, new Properties());
-        connection.setSchema(CLASS_NAME.toUpperCase());
-        Statement s = connection.createStatement();
-        ResultSet rs = s.executeQuery("explain select * from A --SPLICE-PROPERTIES useSpark=false");
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=control"));
+        try( ConnectionStatementWrapper s = new ConnectionStatementWrapper(DriverManager.getConnection(url, new Properties()), CLASS_NAME.toUpperCase()) )
+        {
+            ResultSet rs = s.executeQuery("explain select * from A --SPLICE-PROPERTIES useSpark=false");
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=OLTP"));
+        }
     }
 
     //DB-5743
@@ -344,23 +373,23 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         // PK access path, we should pick control path
         ResultSet rs = methodWatcher.executeQuery("explain select * from t4 where a4=10000");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan to pick control path", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
 
         // full table scan, we should go for spark path as all rows need to be accessed, even though the output row count
         // is small after applying the predicate
         rs = methodWatcher.executeQuery("explain select * from t4 where b4=10000");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan to pick spark path", rs.getString(1).contains("engine=Spark"));
+        Assert.assertTrue("expect explain plan to pick spark path", rs.getString(1).contains("engine=OLAP"));
 
         // test join case, base table scan may not exceeds the rowcount limit of 20000, if the join result rowcount exceeds this
         // limit, we still need to go for Spark path
         rs = methodWatcher.executeQuery("explain select * from t4 as X, t4 as Y where X.a4>30000 and Y.a4 >30000 and X.b4=Y.b4");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan to pick spark path", rs.getString(1).contains("engine=Spark"));
+        Assert.assertTrue("expect explain plan to pick spark path", rs.getString(1).contains("engine=OLAP"));
 
         rs = methodWatcher.executeQuery("explain select * from t4 as X, t4 as Y where X.a4=30000 and Y.a4 =30000 and X.b4=Y.b4");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan to pick control path", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
     }
 
     @Test
@@ -370,7 +399,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         methodWatcher.executeQuery(format("analyze table %s.t4", CLASS_NAME));
 
         double selectivity[] = {1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7};
-        String engine[] = {"Spark", "Spark", "control", "control", "control", "control", "control", "control"};
+        String engine[] = {"OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount[] = {900000, 90000, 9000, 900, 90, 9, 1,1};
 
         /* Q1: test single table case on PK */
@@ -391,7 +420,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         /* test with stats */
         rs = methodWatcher.executeQuery("explain select * from t5 where a5=100001");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
         //skip the next step to get to the TableScan step
         Assert.assertTrue(rs.next());
 
@@ -401,7 +430,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         rs.close();
 
         /* Q2: test the switch from table scan to index scan */
-        String engine2[] = {"Spark", "Spark", "Spark", "control", "control", "control", "control", "control"};
+        String engine2[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount2[] = {1000000, 1000000, 1000000, 27, 1, 1, 1, 1};
         for (int i=0; i < selectivity.length; i++) {
             rs = methodWatcher.executeQuery(format("explain select * from t5 --splice-properties useDefaultRowCount=1000000, defaultSelectivityFactor=%.8f\n where b5=100001 and c5=3", selectivity[i]));
@@ -431,7 +460,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         /* test with stats */
         rs = methodWatcher.executeQuery("explain select * from t5 where b5=100001 and c5=3");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
         //skip the next two steps to get to the IndexScan step
         Assert.assertTrue(rs.next());
         Assert.assertTrue(rs.next());
@@ -442,7 +471,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         rs.close();
 
         /* Q3: test join case */
-        String engine3[] = {"Spark", "Spark", "Spark", "control", "control", "control", "control", "control"};
+        String engine3[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount3[] = {1000000, 1000000, 1000000, 27, 1, 1, 1, 1};
         String join3[] = {"BroadcastJoin", "BroadcastJoin", "BroadcastJoin",
                 "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin"};
@@ -485,7 +514,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         /* test with stats */
         rs = methodWatcher.executeQuery("explain select * from --splice-properties joinOrder=fixed\n t5, t4 where b5=100001 and c5=3 and d5=a4");
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=control"));
+        Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
         // skip ScrollInsensitive step
         Assert.assertTrue(rs.next());
 
@@ -510,97 +539,92 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         methodWatcher.executeQuery(format("analyze table %s.t4", CLASS_NAME));
 
         double selectivity[] = {1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7};
-        String engine[] = {"Spark", "Spark", "control", "control", "control", "control", "control", "control"};
+        String engine[] = {"OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount[] = {900000, 90000, 9000, 900, 90, 9, 1,1};
 
-        String engine2[] = {"Spark", "Spark", "Spark", "control", "control", "control", "control", "control"};
+        String engine2[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount2[] = {1000000, 1000000, 1000000, 27, 1, 1, 1, 1};
 
-        String engine3[] = {"Spark", "Spark", "Spark", "control", "control", "control", "control", "control"};
+        String engine3[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
         int rowCount3[] = {1000000, 1000000, 1000000, 27, 1, 1, 1, 1};
         String join3[] = {"BroadcastJoin", "BroadcastJoin", "BroadcastJoin",
                 "BroadcastJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin"};
 
         for (int i=0; i<selectivity.length; i++) {
             String url = format("jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;defaultSelectivityFactor=%.8f", selectivity[i]);
-            Connection connection = DriverManager.getConnection(url, new Properties());
-            connection.setSchema(CLASS_NAME.toUpperCase());
-            Statement s = connection.createStatement();
-
-            /* Q1: test single table case on PK */
-            ResultSet rs = s.executeQuery("explain select * from t5 --splice-properties useDefaultRowCount=1000000\n where a5=100001");
-            Assert.assertTrue(rs.next());
-            Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine[i]), rs.getString(1).contains(format("engine=%s", engine[i])));
-            //skip the next step to get to the TableScan step
-            Assert.assertTrue(rs.next());
-
-            Assert.assertTrue(rs.next());
-            Assert.assertTrue(format("Iteration [%d]:Expected TableScan",i), rs.getString(1).contains("TableScan"));
-            Assert.assertTrue(format("Iteration [%d]: outputRows is expected to be: %d", i, rowCount[i]), rs.getString(1).contains(format("outputRows=%d",rowCount[i])));
-            rs.close();
-
-            /* Q2: test the switch from table scan to index scan */
-            rs = s.executeQuery("explain select * from t5 --splice-properties useDefaultRowCount=1000000\n where b5=100001 and c5=3");
-            Assert.assertTrue(rs.next());
-            Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine[i]), rs.getString(1).contains(format("engine=%s", engine2[i])));
-            if (i< 3) {
-                //selectivity is not small enough to make index lookup plan win, so we expect TableScan plan
+            try (ConnectionStatementWrapper s = new ConnectionStatementWrapper(DriverManager.getConnection(url, new Properties()), CLASS_NAME.toUpperCase())) {
+                /* Q1: test single table case on PK */
+                ResultSet rs = s.executeQuery("explain select * from t5 --splice-properties useDefaultRowCount=1000000\n where a5=100001");
+                Assert.assertTrue(rs.next());
+                Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine[i]), rs.getString(1).contains(format("engine=%s", engine[i])));
                 //skip the next step to get to the TableScan step
                 Assert.assertTrue(rs.next());
 
                 Assert.assertTrue(rs.next());
-                Assert.assertTrue(format("Iteration [%d]:Expected TableScan",i), rs.getString(1).contains("TableScan"));
-                Assert.assertTrue(format("Iteration [%d]: outputRows is expected to be: %d", i, rowCount2[i]), rs.getString(1).contains(format("scannedRows=%d",rowCount2[i])));
-            } else {
-                // index lookup plan should win
-                //skip the next two steps to get to the IndexScan step
-                Assert.assertTrue(rs.next());
-                Assert.assertTrue(rs.next());
+                Assert.assertTrue(format("Iteration [%d]:Expected TableScan", i), rs.getString(1).contains("TableScan"));
+                Assert.assertTrue(format("Iteration [%d]: outputRows is expected to be: %d", i, rowCount[i]), rs.getString(1).contains(format("outputRows=%d", rowCount[i])));
+                rs.close();
 
+                /* Q2: test the switch from table scan to index scan */
+                rs = s.executeQuery("explain select * from t5 --splice-properties useDefaultRowCount=1000000\n where b5=100001 and c5=3");
                 Assert.assertTrue(rs.next());
-                Assert.assertTrue(format("Iteration [%d]:Expected IndexScan", i), rs.getString(1).contains("IndexScan"));
-                Assert.assertTrue(format("Iteration [%d]: outputRows is expected to be: %d", i, rowCount2[i]), rs.getString(1).contains(format("scannedRows=%d", rowCount2[i])));
+                Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine[i]), rs.getString(1).contains(format("engine=%s", engine2[i])));
+                if (i < 3) {
+                    //selectivity is not small enough to make index lookup plan win, so we expect TableScan plan
+                    //skip the next step to get to the TableScan step
+                    Assert.assertTrue(rs.next());
+
+                    Assert.assertTrue(rs.next());
+                    Assert.assertTrue(format("Iteration [%d]:Expected TableScan", i), rs.getString(1).contains("TableScan"));
+                    Assert.assertTrue(format("Iteration [%d]: outputRows is expected to be: %d", i, rowCount2[i]), rs.getString(1).contains(format("scannedRows=%d", rowCount2[i])));
+                } else {
+                    // index lookup plan should win
+                    //skip the next two steps to get to the IndexScan step
+                    Assert.assertTrue(rs.next());
+                    Assert.assertTrue(rs.next());
+
+                    Assert.assertTrue(rs.next());
+                    Assert.assertTrue(format("Iteration [%d]:Expected IndexScan", i), rs.getString(1).contains("IndexScan"));
+                    Assert.assertTrue(format("Iteration [%d]: outputRows is expected to be: %d", i, rowCount2[i]), rs.getString(1).contains(format("scannedRows=%d", rowCount2[i])));
+                }
+                rs.close();
+
+
+                /* Q3: test join case */
+                rs = s.executeQuery("explain select * from --splice-properties joinOrder=fixed\n" +
+                        "t5 --splice-properties useDefaultRowCount=1000000\n" +
+                        ", t4 where b5=100001 and c5=3 and d5=a4");
+                Assert.assertTrue(rs.next());
+                Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine3[i]), rs.getString(1).contains(format("engine=%s", engine3[i])));
+                // skip ScrollInsensitive step
+                Assert.assertTrue(rs.next());
+                if (i < 3) {
+                    //selectivity is not small enough to make index lookup plan win, so we expect TableScan plan
+                    // with large input table rows, broadcast join should win
+                    Assert.assertTrue(rs.next());
+                    Assert.assertTrue(format("Iteration [%d]:Expected %s", i, join3[i]), rs.getString(1).contains(join3[i]));
+                    //skip the next step to get to the TableScan step for T5
+                    Assert.assertTrue(rs.next());
+
+                    Assert.assertTrue(rs.next());
+                    Assert.assertTrue(format("Iteration [%d]:Expected TableScan", i), rs.getString(1).contains("TableScan"));
+                    Assert.assertTrue(format("Iteration [%d]: outputRows is expected to be: %d", i, rowCount2[i]), rs.getString(1).contains(format("scannedRows=%d", rowCount3[i])));
+                } else {
+                    // index lookup plan should win
+                    // with small input table rows, nested loop join should win
+                    Assert.assertTrue(rs.next());
+                    Assert.assertTrue(format("Iteration [%d]:Expected %s", i, join3[i]), rs.getString(1).contains(join3[i]));
+
+                    //skip the next two steps to get to the IndexScan step
+                    Assert.assertTrue(rs.next());
+                    Assert.assertTrue(rs.next());
+
+                    Assert.assertTrue(rs.next());
+                    Assert.assertTrue(format("Iteration [%d]:Expected IndexScan", i), rs.getString(1).contains("IndexScan"));
+                    Assert.assertTrue(format("Iteration [%d]: outputRows is expected to be: %d", i, rowCount2[i]), rs.getString(1).contains(format("scannedRows=%d", rowCount3[i])));
+                }
+                rs.close();
             }
-            rs.close();
-
-
-            /* Q3: test join case */
-            rs = s.executeQuery("explain select * from --splice-properties joinOrder=fixed\n" +
-                    "t5 --splice-properties useDefaultRowCount=1000000\n" +
-                    ", t4 where b5=100001 and c5=3 and d5=a4");
-            Assert.assertTrue(rs.next());
-            Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine3[i]), rs.getString(1).contains(format("engine=%s", engine3[i])));
-            // skip ScrollInsensitive step
-            Assert.assertTrue(rs.next());
-            if (i< 3) {
-                //selectivity is not small enough to make index lookup plan win, so we expect TableScan plan
-                // with large input table rows, broadcast join should win
-                Assert.assertTrue(rs.next());
-                Assert.assertTrue(format("Iteration [%d]:Expected %s",i, join3[i]), rs.getString(1).contains(join3[i]));
-                //skip the next step to get to the TableScan step for T5
-                Assert.assertTrue(rs.next());
-
-                Assert.assertTrue(rs.next());
-                Assert.assertTrue(format("Iteration [%d]:Expected TableScan",i), rs.getString(1).contains("TableScan"));
-                Assert.assertTrue(format("Iteration [%d]: outputRows is expected to be: %d", i, rowCount2[i]), rs.getString(1).contains(format("scannedRows=%d",rowCount3[i])));
-            } else {
-                // index lookup plan should win
-                // with small input table rows, nested loop join should win
-                Assert.assertTrue(rs.next());
-                Assert.assertTrue(format("Iteration [%d]:Expected %s",i, join3[i]), rs.getString(1).contains(join3[i]));
-
-                //skip the next two steps to get to the IndexScan step
-                Assert.assertTrue(rs.next());
-                Assert.assertTrue(rs.next());
-
-                Assert.assertTrue(rs.next());
-                Assert.assertTrue(format("Iteration [%d]:Expected IndexScan", i), rs.getString(1).contains("IndexScan"));
-                Assert.assertTrue(format("Iteration [%d]: outputRows is expected to be: %d", i, rowCount2[i]), rs.getString(1).contains(format("scannedRows=%d", rowCount3[i])));
-            }
-            rs.close();
-
-            s.close();
-            connection.close();
         }
     }
 }

@@ -69,7 +69,8 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
         LOCATE("Locate Rows"),
         COLLECT_STATS("Collect Statistics (Table %s)"),
         EXPAND("Emit Multiple Rows For Distinct"),
-        AGGREGATE("Aggregate Function");
+        AGGREGATE("Aggregate Function"),
+        READ_KAFKA_TOPIC("Read Kafka Topic");
 
         private final String stringValue;
 

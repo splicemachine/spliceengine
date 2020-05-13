@@ -6,25 +6,29 @@ public class ReplicationStatus implements Externalizable {
 
     private short peerId;
     private long replicationProgress;
+    private String masterClusterKey;
 
     public ReplicationStatus() {
 
     }
 
-    public ReplicationStatus(short peerId, long replicationProgress) {
+    public ReplicationStatus(short peerId, String masterClusterKey, long replicationProgress) {
         this.peerId = peerId;
+        this.masterClusterKey = masterClusterKey;
         this.replicationProgress = replicationProgress;
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeShort(peerId);
+        out.writeUTF(masterClusterKey);
         out.writeLong(replicationProgress);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         peerId = in.readShort();
+        masterClusterKey = in.readUTF();
         replicationProgress = in.readLong();
     }
 
@@ -59,6 +63,10 @@ public class ReplicationStatus implements Externalizable {
 
     public void setReplicationProgress(long replicationProgress) {
         this.replicationProgress = replicationProgress;
+    }
+
+    public String getMasterClusterKey() {
+        return masterClusterKey;
     }
 }
 

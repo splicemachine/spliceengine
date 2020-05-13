@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1952-SNAPSHOT</version>
+        <version>3.1.0.1959-SNAPSHOT</version>
     </parent>
     <properties>
         <skipTests>${maven.skip.tests}</skipTests>
@@ -64,6 +64,10 @@
                 <exclusion>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>scala_util</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>spark_sql</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -214,6 +218,8 @@
                                 <exclude>com/splicemachine/mrio/**</exclude>
                                 <exclude>**/CallableTransactionIT.java</exclude>
                                 <exclude>**/VacuumIT.java</exclude>
+                                <!-- EE ITs failing in remote mode -->
+                                <exclude>com/splicemachine/backup/**</exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
                             <systemPropertyVariables>

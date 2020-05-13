@@ -32,6 +32,8 @@ import com.splicemachine.si.data.hbase.ZkUpgrade;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -61,6 +63,7 @@ public class RegionServerLifecycleObserver implements RegionServerCoprocessor, R
     /**
      * Logs the start of the observer and runs the SpliceDriver if needed...
      */
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="intentional")
     @Override
     public void start(CoprocessorEnvironment e) throws IOException{
         try {
@@ -73,8 +76,9 @@ public class RegionServerLifecycleObserver implements RegionServerCoprocessor, R
     }
 
     @Override
-    public void preStopRegionServer(ObserverContext<RegionServerCoprocessorEnvironment> env) throws IOException{
+    public void stop(CoprocessorEnvironment e) throws IOException{
         try {
+            SpliceLogUtils.warn(LOG, "Stopping RegionServerLifecycleObserver");
             lifecycleManager.shutdown();
             HBaseRegionLoads.INSTANCE.stopWatching();
             TransactionsWatcher.INSTANCE.stopWatching();
@@ -82,9 +86,9 @@ public class RegionServerLifecycleObserver implements RegionServerCoprocessor, R
             throw CoprocessorUtils.getIOException(t);
         }
     }
-
     /* ****************************************************************************************************************/
     /*private helper methods*/
+    @SuppressFBWarnings(value="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", justification="intentional")
     private DatabaseLifecycleManager startEngine(CoprocessorEnvironment e) throws IOException{
         RegionServerServices regionServerServices =(RegionServerServices)((RegionServerCoprocessorEnvironment) e).getOnlineRegions();
 

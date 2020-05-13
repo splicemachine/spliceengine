@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV2;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV3;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
@@ -54,7 +55,6 @@ import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
-import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
@@ -334,8 +334,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 int size=input.readInt();
                 byte[] data=new byte[size];
                 //noinspection ResultOfMethodCallIgnored
-                int bytesRead=input.read(data);
-                assert bytesRead == size: "Did not read entire data point!";
+                input.readBytes(data);
                 dvd.setValue(data);
             }
         },33);
@@ -351,8 +350,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
             protected void readValue(Kryo kryo,Input input,SQLVarbit dvd) throws StandardException{
                 int size=input.readInt();
                 byte[] data=new byte[size];
-                int read=input.read(data);
-                assert read== size: "Did not read entire data";
+                input.readBytes(data);
                 dvd.setValue(data);
             }
         },34);
@@ -368,8 +366,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
             protected void readValue(Kryo kryo,Input input,SQLLongVarbit dvd) throws StandardException{
                 int size=input.readInt();
                 byte[] data=new byte[size];
-                int read=input.read(data);
-                assert read==size: "Did not read entire data";
+                input.readBytes(data);
                 dvd.setValue(data);
             }
         },35);
@@ -619,8 +616,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
             protected void readValue(Kryo kryo,Input input,SQLBlob dvd) throws StandardException{
                 int size=input.readInt();
                 byte[] data=new byte[size];
-                int read = input.read(data);
-                assert read==size: "Did not read entire data line!";
+                input.readBytes(data);
                 dvd.setValue(data);
             }
         },132);
@@ -837,7 +833,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 //        instance.register(TentativeDropPKConstraintDesc.class,EXTERNALIZABLE_SERIALIZER,256);
         instance.register(TriggerExecutionStack.class,EXTERNALIZABLE_SERIALIZER,257);
         instance.register(TriggerExecutionContext.class,EXTERNALIZABLE_SERIALIZER,258);
-        instance.register(BatchOnceOperation.class,EXTERNALIZABLE_SERIALIZER,261);
         instance.register(ScrollInsensitiveOperation.class,EXTERNALIZABLE_SERIALIZER,263);
         instance.register(VTIOperation.class,EXTERNALIZABLE_SERIALIZER,264);
         instance.register(UDTAliasInfo.class,EXTERNALIZABLE_SERIALIZER,271);
@@ -970,5 +965,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TriggerDescriptorV2.class,EXTERNALIZABLE_SERIALIZER,332);
         instance.register(StringAggregator.class,EXTERNALIZABLE_SERIALIZER,333);
         instance.register(StringBuilder.class,334);
+        instance.register(TriggerDescriptorV3.class,EXTERNALIZABLE_SERIALIZER,335);
     }
 }

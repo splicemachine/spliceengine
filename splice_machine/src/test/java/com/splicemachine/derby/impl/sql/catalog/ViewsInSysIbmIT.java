@@ -20,7 +20,6 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -39,6 +38,26 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
     public static final String CLASS_NAME = ViewsInSysIbmIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+
+    static File tempDir;
+
+    @BeforeClass
+    public static void createTempDirectory() throws Exception
+    {
+        tempDir = createOrWipeTestDirectory( CLASS_NAME );
+    }
+
+    @AfterClass
+    public static void deleteTempDirectory() throws Exception
+    {
+        deleteTempDirectory(tempDir);
+    }
+
+    /// this will return the temp directory, that is created on demand once for each test
+    public String getExternalResourceDirectory() throws Exception
+    {
+        return tempDir.toString() + "/";
+    }
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -80,21 +99,9 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
         conn.commit();
     }
 
-    public static void cleanoutDirectory() {
-        try {
-            File file = new File(getExternalResourceDirectory());
-            if (file.exists())
-                FileUtils.deleteDirectory(new File(getExternalResourceDirectory()));
-            file.mkdir();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     @BeforeClass
     public static void createDataSet() throws Exception {
-        cleanoutDirectory();
-        createData(spliceClassWatcher.getOrCreateConnection());
+        createData( spliceClassWatcher.getOrCreateConnection());
     }
 
     @Test
@@ -237,10 +244,5 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
         rs.close();
 
         methodWatcher.executeUpdate(format("drop table %s.orc_part_2nd", CLASS_NAME));
-    }
-
-
-    public static String getExternalResourceDirectory() {
-        return SpliceUnitTest.getHBaseDirectory()+"/target/external2/";
     }
 }

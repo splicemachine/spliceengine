@@ -77,6 +77,10 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
      */
     private WindowList windows;
 
+    /// list of aliases that can be used later by the ORDER BY statement in ResultColumnList
+    private List<ResultColumn> aliases = new ArrayList<>();
+    /// @sa useAliases
+    private boolean aliasesUsable = false;
 
     /**
      * Initializer for a FromList
@@ -1360,7 +1364,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
         return properties;
     }
 
-    public void setDependencyMapForSSQ(int numTables) {
+    public void moveSSQAndSetDependencyMap(int numTables) {
         // iterate through the list to collect the tablenumber
         JBitSet dependencyMap = new JBitSet(numTables);
         for(int i=0; i<size(); i++) {
@@ -1369,11 +1373,57 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                 dependencyMap.or(fromTable.getReferencedTableMap());
         }
 
-        // set dependencyMap
-        for (int i=0; i<size(); i++) {
-            FromTable fromTable = (FromTable) elementAt(i);
-            if (fromTable.getFromSSQ())
+        ArrayList<FromTable> ssqList = new ArrayList<>();
+        Iterator<QueryTreeNode> itr = iterator();
+        while (itr.hasNext()) {
+            FromTable fromTable = (FromTable)itr.next();
+            if (fromTable.getFromSSQ()) {
                 fromTable.setDependencyMap((JBitSet)dependencyMap.clone());
+                itr.remove();
+                ssqList.add(fromTable);
+            }
         }
+        if (!ssqList.isEmpty()) {
+            for (FromTable fromTable: ssqList)
+                addElement(fromTable);
+        }
+    }
+
+    /// add something that might be used later by ORDER BY for aliases resolving
+    public void addAlias(ResultColumn vn) {
+        if( vn != null && vn.getName() != null )
+            aliases.add(vn);
+    }
+
+    /// check if the columnReference is referencing an alias.
+    /// this should only happen when ColumnReferences that are in ValueNodes of ORDER BY part of ResultColumnList
+    /// callee should then replace the reference to the aliases by the expression that this alias points too
+    public ValueNode getAlias(ColumnReference columnReference) throws StandardException {
+        if( !aliasesUsable ) return null;
+        ResultColumn rc = aliases.stream().filter(c -> c.getName().equals(columnReference.columnName))
+                                 .findFirst().orElse(null);
+        if( rc != null ) {
+            // we might have to replace this with rc.getExpression().getClone() (and fix all getClone())
+            return rc.getExpression();
+        }
+        else
+            return null;
+    }
+
+    /**
+     * we have to call useAliases to make aliases accessible,
+     * otherwise SELECT would also have access to aliases left-to-right
+     */
+    public void useAliases() {
+        aliasesUsable = true;
+    }
+    /// clear aliases so that they're not usable from HAVING or GROUP BY
+    // this is intentional currently, as it's not clear if the current approach in FromList.getAlias
+    // is valid in WHERE, HAVING and GROUP BY statements. maybe we would need to do a copy of the expression,
+    // not only a reference
+    public void clearAliases()
+    {
+        aliases.clear();
+        aliasesUsable = false;
     }
 }

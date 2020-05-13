@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.spark;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -47,6 +48,7 @@ import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.IndentedString;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -57,6 +59,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -67,7 +72,11 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
-import java.io.*;
+import java.io.Externalizable;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
 import java.net.URI;
 import java.util.*;
 
@@ -76,6 +85,7 @@ import java.util.*;
  *
  */
 public class SparkDataSetProcessor implements DistributedDataSetProcessor, Serializable {
+    private static final long serialVersionUID = 9152794997108375878L;
     private long failBadRecordCount = -1;
     private boolean permissive;
     private String statusDirectory;
@@ -97,8 +107,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     // The depth of the current operation being processed via getDataSet
     // in the operation tree.
     private int opDepth = 0;
+    private boolean accumulators;
 
     public SparkDataSetProcessor() {
+        accumulators = EngineDriver.driver().getConfiguration().getSparkAccumulatorsEnabled();
     }
 
     @Override
@@ -137,7 +149,21 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <V> DataSet<V> getEmpty(String name) {
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1), name);
+        return getEmpty(name, null);
+    }
+
+    @Override
+    public <V> DataSet<V> getEmpty(String name, OperationContext context) {
+        if (context == null)
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1), name);
+        try {
+            return new NativeSparkDataSet<>(
+                    SpliceSpark.getSession().createDataFrame(
+                            SpliceSpark.getContext().emptyRDD(),
+                            context.getOperation().getExecRowDefinition().schema()), context);
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -162,7 +188,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
         setupBroadcastedActivation(spliceOperation.getActivation(), spliceOperation);
-        OperationContext<Op> operationContext = new SparkOperationContext<>(spliceOperation, broadcastedActivation);
+        OperationContext<Op> operationContext =
+                accumulators
+                        ? new SparkOperationContext<>(spliceOperation, broadcastedActivation)
+                        : new SparkLeanOperationContext<>(spliceOperation, broadcastedActivation);
         spliceOperation.setOperationContext(operationContext);
         if (permissive) {
             operationContext.setPermissive(statusDirectory, importFileName, failBadRecordCount);
@@ -173,11 +202,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
-        if (activation !=null) {
-            return new SparkOperationContext<>(activation, broadcastedActivation);
-        } else {
-            return new SparkOperationContext<>(activation, null);
-        }
+        BroadcastedActivation ba = activation != null ? broadcastedActivation : null;
+        return accumulators
+                ? new SparkOperationContext<>(activation, ba)
+                : new SparkLeanOperationContext<>(activation, ba);
     }
 
     @Override
@@ -320,14 +348,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
 
                 if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
-                    return getEmpty();
+                    return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
 
-                // Infer schema from external files
-                StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "p");
+                ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
 
                 table = SpliceSpark.getSession()
                         .read()
-                        .schema(dataSchema)
+                        .schema(tableSchema)
                         .parquet(location);
 
                 ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
@@ -345,7 +372,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -398,7 +425,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -474,7 +501,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                 .orc(location);
                     } else if (storedAs.toLowerCase().equals("t")) {
                         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                        schema = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location).schema();
+                        dataset = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location);
+                    } else {
+                        throw new UnsupportedOperationException("Unsupported storedAs " + storedAs);
                     }
                     dataset.printSchema();
                     schema = dataset.schema();
@@ -488,7 +517,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 }
             }
         }catch (Exception e) {
-            throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+            throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
 
         return schema;
@@ -568,7 +597,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
         catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -638,7 +667,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     .map(new RowToLocatedRowFunction(context,execRow)));
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.PIN_READ_FAILURE,e.getMessage());
+                    SQLState.PIN_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -655,7 +684,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
 
             if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
-                return getEmpty();
+                return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
 
             SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType(baseColumnMap));
             Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
@@ -681,7 +710,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -753,7 +782,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -793,6 +822,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     else
                         col=q.negateCompareResult()?col.notEqual(value):col.equalTo(value);
                     break;
+                default:
+                    throw new UnsupportedOperationException("Unknown operator: " + q.getOperator());
             }
             if (andCols ==null)
                 andCols = col;
@@ -827,6 +858,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     case DataType.ORDER_OP_EQUALS:
                         orCol = q.negateCompareResult() ? orCol.notEqual(value) : orCol.equalTo(value);
                         break;
+                    default:
+                        throw new UnsupportedOperationException("Unknown operator: " + q.getOperator());
                 }
                 if (orCols == null)
                     orCols = orCol;
@@ -850,8 +883,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public TableChecker getTableChecker(String schemaName, String tableName, DataSet table, KeyHashDecoder tableKeyDecoder, ExecRow tableKey) {
-        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey);
+    public TableChecker getTableChecker(String schemaName, String tableName, DataSet table,
+                                        KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix) {
+        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix);
     }
 
     @Override
@@ -1143,4 +1177,26 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public void resetOpDepth() { opDepth = 0; }
+
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
+        Properties props = new Properties();
+        String consumerGroupId = "spark-consumer-dss-sdsp";
+        String bootstrapServers = SIDriver.driver().getConfiguration().getKafkaBootstrapServers();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumerGroupId+"-"+UUID.randomUUID());
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
+
+        KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
+        List ps = consumer.partitionsFor(topicName);
+        List<Integer> partitions = new ArrayList<>(ps.size());
+        for (int i = 0; i < ps.size(); ++i) {
+            partitions.add(i);
+        }
+        consumer.close();
+
+        SparkDataSet rdd = new SparkDataSet(SpliceSpark.getContext().parallelize(partitions, partitions.size()));
+        return rdd.flatMap(new KafkaReadFunction(context, topicName, bootstrapServers));
+    }
 }

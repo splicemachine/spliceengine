@@ -166,11 +166,11 @@ public class OrderByNode extends SingleChildResultSetNode {
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("OrderBy").append("(")
-                .append("n=").append(order);
+                .append("n=").append(getResultSetNumber());
         sb.append(attrDelim).append(costEstimate.prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();

@@ -68,6 +68,7 @@ import com.splicemachine.storage.*;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.logging.Logging;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
@@ -181,7 +182,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
         };
 
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
         IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
         try {
@@ -232,9 +232,11 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         for (HostAndPort server : servers) {
             try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_LOGGERS_LOCAL()")) {
-                    while (rs.next()) {
-                        loggers.add(rs.getString(1));
+                try (Statement stmt = connection.createStatement()) {
+                    try (ResultSet rs = stmt.executeQuery("call SYSCS_UTIL.SYSCS_GET_LOGGERS_LOCAL()")) {
+                        while (rs.next()) {
+                            loggers.add(rs.getString(1));
+                        }
                     }
                 }
             }
@@ -255,7 +257,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
         };
 
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
         IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
         try {
@@ -294,16 +295,18 @@ public class SpliceAdmin extends BaseAdminProcedures{
         List<ExecRow> rows = new ArrayList<>();
         for (HostAndPort server : servers) {
             try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO_LOCAL()")) {
-                    while (rs.next()) {
-                        ExecRow row = new ValueRow(5);
+                try (Statement stmt = connection.createStatement()) {
+                    try (ResultSet rs = stmt.executeQuery("call SYSCS_UTIL.SYSCS_GET_VERSION_INFO_LOCAL()")) {
+                        while (rs.next()) {
+                            ExecRow row = new ValueRow(5);
 
-                        row.setColumn(1, new SQLVarchar(rs.getString(1)));
-                        row.setColumn(2, new SQLVarchar(rs.getString(2)));
-                        row.setColumn(3, new SQLVarchar(rs.getString(3)));
-                        row.setColumn(4, new SQLVarchar(rs.getString(4)));
-                        row.setColumn(5, new SQLVarchar(rs.getString(5)));
-                        rows.add(row);
+                            row.setColumn(1, new SQLVarchar(rs.getString(1)));
+                            row.setColumn(2, new SQLVarchar(rs.getString(2)));
+                            row.setColumn(3, new SQLVarchar(rs.getString(3)));
+                            row.setColumn(4, new SQLVarchar(rs.getString(4)));
+                            row.setColumn(5, new SQLVarchar(rs.getString(5)));
+                            rows.add(row);
+                        }
                     }
                 }
             }
@@ -319,7 +322,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
 
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
         IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
         try {
@@ -1090,6 +1092,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
      * as well as the table itself. While the first conglomerate SHOULD be the main table, there
      * really isn't a guarantee, and it shouldn't be relied upon for correctness in all cases.
      */
+    @SuppressFBWarnings(value="OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE", justification="Intentional")
     public static long[] getConglomNumbers(Connection conn,String schemaName,String tableName) throws SQLException{
         List<Long> conglomIDs=new ArrayList<>();
         if(schemaName==null)
@@ -1205,7 +1208,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
         };
 
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
         IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
         try {
@@ -1673,7 +1675,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
         List<ExecRow> rows = getRunningOperations();
 
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
         IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, runningOpsDescriptors, lastActivation);
         try {
@@ -1688,7 +1689,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
         Long id = SIDriver.driver().getTxnStore().oldestActiveTransaction();
 
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
 
         List<ExecRow> rows = new ArrayList<>(1);
@@ -1718,25 +1718,27 @@ public class SpliceAdmin extends BaseAdminProcedures{
         List<ExecRow> rows = new ArrayList<>();
         for (HostAndPort server : servers) {
             try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()")) {
-                    while (rs.next()) {
-                        ExecRow row = new ValueRow(9);
+                try (Statement stmt = connection.createStatement()) {
+                    try (ResultSet rs = stmt.executeQuery("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()")) {
+                        while (rs.next()) {
+                            ExecRow row = new ValueRow(9);
 
-                        if ("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()".equalsIgnoreCase(rs.getString(5))) {
-                            // Filter out the nested calls to SYSCS_GET_RUNNING_OPERATIONS_LOCAL triggered by this stored procedure
-                            continue;
+                            if ("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()".equalsIgnoreCase(rs.getString(5))) {
+                                // Filter out the nested calls to SYSCS_GET_RUNNING_OPERATIONS_LOCAL triggered by this stored procedure
+                                continue;
+                            }
+
+                            row.setColumn(1, new SQLVarchar(rs.getString(1)));
+                            row.setColumn(2, new SQLVarchar(rs.getString(2)));
+                            row.setColumn(3, new SQLVarchar(rs.getString(3)));
+                            row.setColumn(4, new SQLInteger(rs.getInt(4)));
+                            row.setColumn(5, new SQLVarchar(rs.getString(5)));
+                            row.setColumn(6, new SQLVarchar(rs.getString(6)));
+                            row.setColumn(7, new SQLVarchar(rs.getString(7)));
+                            row.setColumn(8, new SQLVarchar(rs.getString(8)));
+                            row.setColumn(9, new SQLVarchar(rs.getString(9)));
+                            rows.add(row);
                         }
-
-                        row.setColumn(1, new SQLVarchar(rs.getString(1)));
-                        row.setColumn(2, new SQLVarchar(rs.getString(2)));
-                        row.setColumn(3, new SQLVarchar(rs.getString(3)));
-                        row.setColumn(4, new SQLInteger(rs.getInt(4)));
-                        row.setColumn(5, new SQLVarchar(rs.getString(5)));
-                        row.setColumn(6, new SQLVarchar(rs.getString(6)));
-                        row.setColumn(7, new SQLVarchar(rs.getString(7)));
-                        row.setColumn(8, new SQLVarchar(rs.getString(8)));
-                        row.setColumn(9, new SQLVarchar(rs.getString(9)));
-                        rows.add(row);
                     }
                 }
             }
@@ -1746,47 +1748,39 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
     public static void SYSCS_GET_RUNNING_OPERATIONS_LOCAL(final ResultSet[] resultSet) throws SQLException{
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
         String userId = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
-        String groupuser = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
         String dbo = lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
-        if (userId.equals(dbo) || (groupuser != null && groupuser.equals(dbo))) {
+        if (userId != null && userId.equals(dbo)) {
             userId = null;
         }
 
         List<Pair<UUID, RunningOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
 
         SConfiguration config=EngineDriver.driver().getConfiguration();
-        String hostname = NetworkUtils.getHostname(config);
-        int port = config.getNetworkBindPort();
-        String timeStampFormat = "yyyy-MM-dd HH:mm:ss";
-        String submittedTime;
-        String engineName;
+        String host_port = NetworkUtils.getHostname(config) + ":" + config.getNetworkBindPort();
+        final String timeStampFormat = "yyyy-MM-dd HH:mm:ss";
 
         List<ExecRow> rows = new ArrayList<>(operations.size());
-        for (Pair<UUID, RunningOperation> pair : operations) {
+        for (Pair<UUID, RunningOperation> pair : operations)
+        {
+            UUID uuid = pair.getFirst();
+            RunningOperation ro = pair.getSecond();
             ExecRow row = new ValueRow(9);
-            Activation activation = pair.getSecond().getOperation().getActivation();
+            Activation activation = ro.getOperation().getActivation();
             assert activation.getPreparedStatement() != null:"Prepared Statement is null";
-            row.setColumn(1, new SQLVarchar(pair.getFirst().toString()));
-            row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation)));
-            row.setColumn(3, new SQLVarchar(hostname + ":" + port));
-            row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber()));
+            row.setColumn(1, new SQLVarchar(uuid.toString())); // UUID
+            row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation))); // USER
+            row.setColumn(3, new SQLVarchar(host_port) ); // HOSTNAME
+            row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber())); // SESSION
             ExecPreparedStatement ps = activation.getPreparedStatement();
-            row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource()));
-            submittedTime = new SimpleDateFormat(timeStampFormat).format(pair.getSecond().getSubmittedTime());
-            row.setColumn(6, new SQLVarchar(submittedTime));
-            String scopeName = pair.getSecond().getOperation().getScopeName();
-            if (scopeName.compareTo("Call Procedure") == 0) {
-                engineName = "SYSTEM";
-            }
-            else {
-                engineName = (pair.getSecond().getEngine() == DataSetProcessor.Type.SPARK) ? "SPARK" : "CONTROL";
-            }
-            row.setColumn(7, new SQLVarchar(getElapsedTimeStr(pair.getSecond().getSubmittedTime(),new Date())));
-            row.setColumn(8, new SQLVarchar(engineName));
-            row.setColumn(9, new SQLVarchar(scopeName));
+            row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource())); // SQL
+            String submittedTime = new SimpleDateFormat(timeStampFormat).format(ro.getSubmittedTime());
+            row.setColumn(6, new SQLVarchar(submittedTime)); // SUBMITTED
+
+            row.setColumn(7, new SQLVarchar(getElapsedTimeStr(ro.getSubmittedTime(),new Date()))); // ELAPSED
+            row.setColumn(8, new SQLVarchar(ro.getEngineName())); // ENGINE
+            row.setColumn(9, new SQLVarchar(ro.getOperation().getScopeName())); // JOBTYPE
             rows.add(row);
         }
 
@@ -2062,7 +2056,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
             List<ExecRow> rows = new ArrayList<>();
 
             SConfiguration config=EngineDriver.driver().getConfiguration();
-            String hostname = NetworkUtils.getHostname(config);
             int length = config.getAuthenticationTokenLength();
             int maxLifetime = config.getAuthenticationTokenMaxLifetime();
             int renewInterval = config.getAuthenticationTokenRenewInterval();
@@ -2142,32 +2135,25 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         for (HostAndPort server : servers) {
             try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                connection.createStatement().execute("call SYSCS_UTIL.INVALIDATE_DICTIONARY_CACHE()");
+                try (Statement stmt = connection.createStatement()) {
+                    stmt.execute("call SYSCS_UTIL.INVALIDATE_DICTIONARY_CACHE()");
+                }
             }
         }
     }
 
+    @SuppressFBWarnings(value="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE", justification="Intentional")
     public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException
     {
+        Connection connection = getDefaultConn();
         try {
-            Connection connection = getDefaultConn();
-            Statement stmt = connection.createStatement();
-
             EngineUtils.verifyTableExists(connection, schemaName, tableName);
 
-            ResultSet tableIdRs = stmt.executeQuery("SELECT T.TABLEID, T.TABLETYPE, T.COMPRESSION, T.DELIMITED, " +
+            String getTableId = "SELECT T.TABLEID, T.TABLETYPE, T.COMPRESSION, T.DELIMITED, " +
                     "T.ESCAPED, T.LINES, T.STORED, T.LOCATION" +
                     " FROM SYSVW.SYSTABLESVIEW T " +
-                    "WHERE T.TABLETYPE IN ('T','E') " +
-                    "AND T.TABLENAME LIKE '" + tableName + "' AND T.SCHEMANAME = '" + schemaName + "'");
-
-            PreparedStatement getColumnInfoStmt = connection.prepareStatement("SELECT C.COLUMNNAME, C.REFERENCEID, " +
-                    "C.COLUMNNUMBER FROM SYSVW.SYSCOLUMNSVIEW C WHERE C.REFERENCEID = ? " +
-                    "ORDER BY C.COLUMNNUMBER");
-
-            PreparedStatement getPartitionedColsStmt = connection.prepareStatement("SELECT C.COLUMNNAME " +
-                    "FROM SYSVW.SYSCOLUMNSVIEW C WHERE C.REFERENCEID = ? " +
-                    "AND C.PARTITIONPOSITION > -1 ORDER BY C.PARTITIONPOSITION");
+                    "WHERE T.TABLETYPE IN ('T','E','S','V') " +
+                    "AND T.TABLENAME LIKE '" + tableName + "' AND T.SCHEMANAME = '" + schemaName + "'";
 
             String tableId = "" ;
             boolean firstCol = true;
@@ -2175,141 +2161,172 @@ public class SpliceAdmin extends BaseAdminProcedures{
             //External Table
             String isExternal = "";
             StringBuilder extTblString = new StringBuilder("");
-            if (tableIdRs.next()){
-                tableId = tableIdRs.getString(1);
-                //Process external table definition
-                if ("E".equals(tableIdRs.getString(2))) {
-                    String tmpStr;
-                    isExternal = "EXTERNAL ";
-                    tmpStr = tableIdRs.getString(3);
-                    if (tmpStr != null && !tmpStr.equals("none"))
-                        extTblString.append("\nCOMPRESSED WITH " + tmpStr );
 
-                    // Partitioned Columns
-                    getPartitionedColsStmt.setString(1,tableId);
-                    ResultSet pcRS = getPartitionedColsStmt.executeQuery();
-                    while (pcRS.next()){
-                        extTblString.append( firstCol ? "\nPARTITIONED BY (" + pcRS.getString(1) : "," + pcRS.getString(1));
-                        firstCol = false;
-                    }
-                    extTblString.append(")");
+            try (Statement stmt = connection.createStatement()) {
+                try (ResultSet tableIdRs = stmt.executeQuery(getTableId)) {
+                    if (tableIdRs.next()) {
+                        tableId = tableIdRs.getString(1);
+                        String tableType = tableIdRs.getString(2);
+                        //Process external table definition
+                        if ("E".equals(tableType)) {
+                            PreparedStatement getPartitionedColsStmt = connection.prepareStatement("SELECT C.COLUMNNAME " +
+                                    "FROM SYSVW.SYSCOLUMNSVIEW C WHERE C.REFERENCEID = ? " +
+                                    "AND C.PARTITIONPOSITION > -1 ORDER BY C.PARTITIONPOSITION");
+                            String tmpStr;
+                            isExternal = "EXTERNAL ";
+                            tmpStr = tableIdRs.getString(3);
+                            if (tmpStr != null && !tmpStr.equals("none"))
+                                extTblString.append("\nCOMPRESSED WITH " + tmpStr);
 
-                    // Row Format
-                    if (tableIdRs.getString(4) != null || tableIdRs.getString(6) != null) {
-                        extTblString.append("\nROW FORMAT DELIMITED");
-                        if ((tmpStr = tableIdRs.getString(4)) != null)
-                            extTblString.append(" FIELDS TERMINATED BY ''" + tmpStr + "''");
-                        if ((tmpStr = tableIdRs.getString(5)) != null)
-                            extTblString.append(" ESCAPED BY ''" + tmpStr + "''");
-                        if ((tmpStr = tableIdRs.getString(6)) != null)
-                            extTblString.append(" LINES TERMINATED BY ''" + tmpStr + "''");
-                    }
-                    // Storage type
-                    if ((tmpStr = tableIdRs.getString(7)) != null) {
-                        extTblString.append("\nSTORED AS ");
-                        switch (tmpStr) {
-                            case "T":
-                                extTblString.append("TEXTFILE");
-                                break;
-                            case "P":
-                                extTblString.append("PARQUET");
-                                break;
-                            case "A":
-                                extTblString.append("AVRO");
-                                break;
-                            case "O":
-                                extTblString.append("ORC");
-                                break;
-                            default:
-                                throw new SQLException("Invalid stored format");
+                            // Partitioned Columns
+                            getPartitionedColsStmt.setString(1, tableId);
+                            try (ResultSet pcRS = getPartitionedColsStmt.executeQuery()) {
+                                while (pcRS.next()) {
+                                    extTblString.append(firstCol ? "\nPARTITIONED BY (" + pcRS.getString(1) : "," + pcRS.getString(1));
+                                    firstCol = false;
+                                }
+                            }
+                            getPartitionedColsStmt.close();
+                            if (!firstCol)
+                                extTblString.append(")");
+
+                            // Row Format
+                            if (tableIdRs.getString(4) != null || tableIdRs.getString(6) != null) {
+                                extTblString.append("\nROW FORMAT DELIMITED");
+                                if ((tmpStr = tableIdRs.getString(4)) != null)
+                                    extTblString.append(" FIELDS TERMINATED BY ''" + tmpStr + "''");
+                                if ((tmpStr = tableIdRs.getString(5)) != null)
+                                    extTblString.append(" ESCAPED BY ''" + tmpStr + "''");
+                                if ((tmpStr = tableIdRs.getString(6)) != null)
+                                    extTblString.append(" LINES TERMINATED BY ''" + tmpStr + "''");
+                            }
+                            // Storage type
+                            if ((tmpStr = tableIdRs.getString(7)) != null) {
+                                extTblString.append("\nSTORED AS ");
+                                switch (tmpStr) {
+                                    case "T":
+                                        extTblString.append("TEXTFILE");
+                                        break;
+                                    case "P":
+                                        extTblString.append("PARQUET");
+                                        break;
+                                    case "A":
+                                        extTblString.append("AVRO");
+                                        break;
+                                    case "O":
+                                        extTblString.append("ORC");
+                                        break;
+                                    default:
+                                        throw new SQLException("Invalid stored format");
+                                }
+                            }
+                            // Location
+                            if ((tmpStr = tableIdRs.getString(8)) != null) {
+                                extTblString.append("\nLOCATION ''" + tmpStr + "''");
+                            }
+                        }//End External Table
+                        else if ("V".equals(tableType)) {
+                            //Target table is a View
+                            throw ErrorState.LANG_INVALID_OPERATION_ON_VIEW.newException("SHOW CREATE TABLE", "\"" + schemaName + "\".\"" + tableName + "\"");
+                        } else if ("S".equals(tableType)) {
+                            //Target table is a system table
+                            throw ErrorState.LANG_NO_USER_DDL_IN_SYSTEM_SCHEMA.newException("SHOW CREATE TABLE", schemaName);
                         }
+                        // Get column list, and write DDL for each column.
+                        StringBuilder colStringBuilder = new StringBuilder("");
+                        String createColString = "";
+
+                        PreparedStatement getColumnInfoStmt = connection.prepareStatement("SELECT C.COLUMNNAME, C.REFERENCEID, " +
+                                "C.COLUMNNUMBER FROM SYSVW.SYSCOLUMNSVIEW C WHERE C.REFERENCEID = ? " +
+                                "ORDER BY C.COLUMNNUMBER");
+                        getColumnInfoStmt.setString(1, tableId);
+                        ResultSet columnRS = getColumnInfoStmt.executeQuery();
+
+                        firstCol = true;
+                        while (columnRS.next()) {
+                            String colName = columnRS.getString(1);
+                            createColString = createColumn(connection, colName, columnRS.getString(2), columnRS.getInt(3));
+                            colStringBuilder.append(firstCol ? createColString : "," + createColString).append("\n");
+                            firstCol = false;
+                        }
+                        columnRS.close();
+                        getColumnInfoStmt.close();
+
+                        colStringBuilder.append(createConstraint((EmbedConnection) connection, schemaName, tableName));
+                        String DDL = "CREATE " + isExternal + "TABLE \"" + schemaName + "\".\"" + tableName + "\" (\n" + colStringBuilder.toString() + ") ";
+                        StringBuilder sb = new StringBuilder("SELECT * FROM (VALUES '");
+                        sb.append(DDL);
+                        String extStr = extTblString.toString();
+                        if (extStr.length() > 0)
+                            sb.append(extStr);
+                        sb.append(";') FOO (DDL)");
+                        resultSet[0] = executeStatement(sb);
                     }
-                    // Location
-                    if ((tmpStr = tableIdRs.getString(8)) != null) {
-                        extTblString.append("\nLOCATION ''" + tmpStr + "''");
-                    }
-                }//End External Table
-
-                // Get column list, and write DDL for each column.
-                StringBuilder colStringBuilder = new StringBuilder("");
-                String createColString = "";
-
-                getColumnInfoStmt.setString(1, tableId);
-                ResultSet columnRS = getColumnInfoStmt.executeQuery();
-
-                firstCol = true;
-                while (columnRS.next()) {
-                    String colName = columnRS.getString(1)  ;
-                    createColString = createColumn(connection, colName, columnRS.getString(2), columnRS.getInt(3));
-                    colStringBuilder.append( firstCol ? createColString : "," + createColString).append("\n");
-                    firstCol = false;
                 }
-
-                colStringBuilder.append(createConstraint((EmbedConnection)connection, schemaName, tableName));
-                String DDL = "CREATE " + isExternal + "TABLE \"" + schemaName + "\".\"" + tableName + "\" (\n" + colStringBuilder.toString() + ") ";
-                StringBuilder sb=new StringBuilder("SELECT * FROM (VALUES '");
-                sb.append(DDL);
-                String extStr = extTblString.toString();
-                if (extStr.length() > 0)
-                    sb.append(extStr);
-                sb.append(";') FOO (DDL)");
-                resultSet[0]=executeStatement(sb);
-
-                isExternal = "";
             }
-        } catch (Exception e) {
+        } catch (SQLException | StandardException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
     }
 
     private static String createColumn(Connection theConnection, String colName, String tableId, int colNum) throws SQLException
     {
-        PreparedStatement getColumnTypeStmt =
-                theConnection.prepareStatement("SELECT COLUMNDATATYPE, COLUMNDEFAULT FROM SYSVW.SYSCOLUMNSVIEW " +
-                        "WHERE REFERENCEID = ? AND COLUMNNAME = ?");
-        PreparedStatement getAutoIncStmt =
-                theConnection.prepareStatement("SELECT AUTOINCREMENTSTART, " +
-                        "AUTOINCREMENTINC, COLUMNNAME, REFERENCEID, COLUMNDEFAULT FROM SYSVW.SYSCOLUMNSVIEW " +
-                        "WHERE COLUMNNAME = ? AND REFERENCEID = ?");
-
-        getColumnTypeStmt.setString(1, tableId);
-        getColumnTypeStmt.setString(2, colName);
-
-        ResultSet rs = getColumnTypeStmt.executeQuery();
+        PreparedStatement getColumnTypeStmt =null;
+        PreparedStatement getAutoIncStmt = null;
         StringBuffer colDef = new StringBuffer();
-        if (rs.next()) {
-            colDef.append("\"" + colName + "\"");
-            colDef.append(" ");
-            String colType = rs.getString(1);
-            colDef.append(colType);
-            if (!reinstateAutoIncrement(getAutoIncStmt, colName, tableId, colDef) &&
-                    rs.getString(2) != null) {
-                String defaultText = rs.getString(2);
 
-                if ( defaultText.startsWith( "GENERATED ALWAYS AS" ) ) {
-                    colDef.append( " " );
-                }
-                else {
-                    colDef.append(" DEFAULT ");
-                    if (colType.indexOf("CHAR") > -1
-                            || colType.indexOf("VARCHAR") > -1
-                            || colType.indexOf("LONG VARCHAR") > -1
-                            || colType.indexOf("CLOB") > -1
-                            || colType.indexOf("DATE") > -1
-                            || colType.indexOf("TIME") > -1
-                            || colType.indexOf("TIMESTAMP") > -1
-                    ) {
-                        if ((defaultText = defaultText.toUpperCase()).startsWith("'"))
-                            defaultText = "'" + defaultText + "'";
+        try {
+            getColumnTypeStmt = theConnection.prepareStatement("SELECT COLUMNDATATYPE, COLUMNDEFAULT FROM SYSVW.SYSCOLUMNSVIEW " +
+                    "WHERE REFERENCEID = ? AND COLUMNNAME = ?");
+
+            getColumnTypeStmt.setString(1, tableId);
+            getColumnTypeStmt.setString(2, colName);
+
+            try (ResultSet rs = getColumnTypeStmt.executeQuery()) {
+                if (rs.next()) {
+                    colDef.append("\"" + colName + "\"");
+                    colDef.append(" ");
+                    String colType = rs.getString(1);
+                    colDef.append(colType);
+                    getAutoIncStmt = theConnection.prepareStatement("SELECT AUTOINCREMENTSTART, " +
+                            "AUTOINCREMENTINC, COLUMNNAME, REFERENCEID, COLUMNDEFAULT FROM SYSVW.SYSCOLUMNSVIEW " +
+                            "WHERE COLUMNNAME = ? AND REFERENCEID = ?");
+                    if (!reinstateAutoIncrement(getAutoIncStmt, colName, tableId, colDef) &&
+                            rs.getString(2) != null) {
+                        String defaultText = rs.getString(2);
+
+                        if (defaultText.startsWith("GENERATED ALWAYS AS")) {
+                            colDef.append(" ");
+                        } else {
+                            colDef.append(" DEFAULT ");
+                            if (colType.indexOf("CHAR") > -1
+                                    || colType.indexOf("VARCHAR") > -1
+                                    || colType.indexOf("LONG VARCHAR") > -1
+                                    || colType.indexOf("CLOB") > -1
+                                    || colType.indexOf("DATE") > -1
+                                    || colType.indexOf("TIME") > -1
+                                    || colType.indexOf("TIMESTAMP") > -1
+                            ) {
+                                if ((defaultText = defaultText.toUpperCase()).startsWith("'"))
+                                    defaultText = "'" + defaultText + "'";
+                            }
+                        }
+                        colDef.append(defaultText);
                     }
                 }
-                colDef.append( defaultText );
+            } finally {
+                if (getAutoIncStmt != null)
+                    getAutoIncStmt.close();
             }
+        } finally {
+            if (getColumnTypeStmt != null)
+                getColumnTypeStmt.close();
+
         }
-        rs.close();
         return colDef.toString();
     }
 
+    @SuppressFBWarnings(value="OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE", justification="Intentional")
     private static String createConstraint(EmbedConnection theConnection, String schemaName, String tableName) throws SQLException
     {
         EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)theConnection.getMetaData();
@@ -2396,6 +2413,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             pkCols.add(rs.getString("PKCOLUMN_NAME"));
             fkCols.add(rs.getString("FKCOLUMN_NAME"));
         }
+        rs.close();
         if (!fkFirst)
             fkKeys.append("," + buildForeignKeyConstraint(fkName,refTblName,pkCols,fkCols,updateType,deleteType)); //Append the final constraint
         //End Foreign Key
@@ -2454,23 +2472,23 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static boolean reinstateAutoIncrement(PreparedStatement getAutoIncStmt, String colName,
-                                          String tableId, StringBuffer colDef) throws SQLException
-    {
+                                          String tableId, StringBuffer colDef) throws SQLException {
         getAutoIncStmt.setString(1, colName);
         getAutoIncStmt.setString(2, tableId);
-        ResultSet autoIncCols = getAutoIncStmt.executeQuery();
-        if (autoIncCols.next()) {
-            long start = autoIncCols.getLong(1);
-            if (!autoIncCols.wasNull()) {
-                colDef.append(" GENERATED ");
-                colDef.append(autoIncCols.getObject(5) == null ?
-                        "ALWAYS ":"BY DEFAULT ");
-                colDef.append("AS IDENTITY (START WITH ");
-                colDef.append(autoIncCols.getLong(1));
-                colDef.append(", INCREMENT BY ");
-                colDef.append(autoIncCols.getLong(2));
-                colDef.append(")");
-                return true;
+        try (ResultSet autoIncCols = getAutoIncStmt.executeQuery()) {
+            if (autoIncCols.next()) {
+                long start = autoIncCols.getLong(1);
+                if (!autoIncCols.wasNull()) {
+                    colDef.append(" GENERATED ");
+                    colDef.append(autoIncCols.getObject(5) == null ?
+                            "ALWAYS " : "BY DEFAULT ");
+                    colDef.append("AS IDENTITY (START WITH ");
+                    colDef.append(autoIncCols.getLong(1));
+                    colDef.append(", INCREMENT BY ");
+                    colDef.append(autoIncCols.getLong(2));
+                    colDef.append(")");
+                    return true;
+                }
             }
         }
         return false;

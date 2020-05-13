@@ -80,8 +80,10 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1941), new UpgradeScriptForTableColumnViewInSYSIBM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1948), new UpgradeScriptBase(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1948), new UpgradeScriptForAddDefaultToColumnViewInSYSIBM(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1953), new UpgradeScriptForRemoveUnusedIndexInSYSFILESTable(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1954), new UpgradeScriptToInvalidateStoredStatement(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1959), new UpgradeScriptForTriggerMultipleStatements(sdd,tc));
     }
-
     public void run() throws StandardException{
 
         // Set the current version to upgrade from.
@@ -95,7 +97,7 @@ public class SpliceCatalogUpgradeScripts{
         NavigableSet<Splice_DD_Version> keys=scripts.navigableKeySet();
         for(Splice_DD_Version version : keys){
             if(currentVersion!=null){
-                if(ddComparator.compare(version,currentVersion)<0){
+                if(ddComparator.compare(version,currentVersion)<=0){
                     continue;
                 }
             }

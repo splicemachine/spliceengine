@@ -317,11 +317,16 @@ public class OperatorToString {
                     String functionName = eon.sparkFunctionName();
 
                     // Splice extracts fractional seconds, but spark only extracts whole seconds.
-                    if (functionName.equals("SECOND") || functionName.equals("WEEK") ||
-                        functionName.equals("WEEKDAY") || functionName.equals("WEEKDAYNAME"))
+                    // Spark by default counts weeks starting on Sunday.
+                    if (functionName.equals("SECOND") || functionName.equals("WEEK")) {
                         throwNotImplementedError();
-                    else
+                    } else if (functionName.equals("WEEKDAY")) {
+                        return format("cast(date_format(%s, \"u\") as int) ", opToString2(uop.getOperand(), vars));
+                    } else if (functionName.equals("WEEKDAYNAME")) {
+                        return format("date_format(%s, \"EEEE\") ", opToString2(uop.getOperand(), vars));
+                    } else {
                         return format("%s(%s) ", functionName, opToString2(uop.getOperand(), vars));
+                    }
                 }
                 else if (operand instanceof DB2LengthOperatorNode) {
                     DB2LengthOperatorNode lengthOp = (DB2LengthOperatorNode)operand;
@@ -347,9 +352,9 @@ public class OperatorToString {
                     else if (operatorString.equals("ABS/ABSVAL"))
                         operatorString = "abs";
                 }
-                else if (operand instanceof SimpleStringOperatorNode) {
-                    SimpleStringOperatorNode sso = (SimpleStringOperatorNode) operand;
-                    return format("%s(%s) ", operatorString, opToString2(sso.getOperand(), vars));
+                else if (operand instanceof SimpleStringOperatorNode ||
+                         operand instanceof NotNode) {
+                    return format("%s(%s) ", operatorString, opToString2(uop.getOperand(), vars));
                 }
                 else
                     throwNotImplementedError();
@@ -520,8 +525,12 @@ public class OperatorToString {
                         bao.getTypeId().getTypeFormatId() &&
                         rightOperand.getTypeId().getTypeFormatId() !=
                         bao.getTypeId().getTypeFormatId()) {
-                        doCast = true;
-                        targetType = bao.getTypeServices().toSparkString();
+                        // if date difference or date subtraction operation, the input parameter and result types are meant to be different */
+                        if (!(bao.getOperatorString() == "-" &&
+                                leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID)) {
+                            doCast = true;
+                            targetType = bao.getTypeServices().toSparkString();
+                        }
                     }
                     if (doCast) {
                         if (leftOperand.getTypeServices().getTypeId().typePrecedence() >
@@ -658,18 +667,22 @@ public class OperatorToString {
                     vars.relationalOpDepth.increment();
                     if (top.getOperator().equals("LOCATE") ||
                         top.getOperator().equals("replace") ||
-                        top.getOperator().equals("substring") ) {
-
-                        if (vars.sparkVersion.lessThan(spark_2_3_0) && top.getOperator().equals("replace"))
-                            throwNotImplementedError();
+                        (top.getOperator().equals("substring") && top.getRightOperand() != null)) {
 
                         vars.relationalOpDepth.decrement();
                         String retval = format("%s(%s, %s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
                                 opToString2(top.getLeftOperand(), vars), opToString2(top.getRightOperand(), vars));
                         vars.relationalOpDepth.decrement();
                         return retval;
-                    }
-                    else if (top.getOperator().equals("trim")) {
+                    } else if (top.getOperator().equals("substring")) {
+                        assert top.getRightOperand() == null;
+                        vars.relationalOpDepth.decrement();
+                        String retval = format("%s(%s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
+                                opToString2(top.getLeftOperand(), vars));
+                        vars.relationalOpDepth.decrement();
+                        return retval;
+
+                    } else if (top.getOperator().equals("trim")) {
                         // Trim is supported starting at Spark 2.3.
                         if (vars.sparkVersion.lessThan(spark_2_3_0))
                             throwNotImplementedError();

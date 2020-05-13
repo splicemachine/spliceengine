@@ -48,7 +48,7 @@ wait_for () {
 }
 
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DEFAULT_PROFILE="hdp3.1.0"  # default hbase platform profile
+DEFAULT_PROFILE="cdh6.3.0"  # default hbase platform profile
 PROFILE=$DEFAULT_PROFILE
 IN_MEM_PROFILE="mem"
 RUN_DIR="${BASE_DIR}/platform_it"
@@ -211,9 +211,11 @@ if [[ "${DISTRIBUTED}" == "1" ]]; then
     wait_for ${HDFS_LOG} "HDFS cluster started"
 fi 
   
+pushd ../standalone/ > /dev/null
 YARN_LOG="${RUN_DIR}/yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"
-(${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+(${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+popd > /dev/null
 
 KAFKALOG="${RUN_DIR}"/kafka.log
 # Start Kafka in background.

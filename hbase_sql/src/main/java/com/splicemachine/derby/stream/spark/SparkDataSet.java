@@ -31,8 +31,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile.COM
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
-import com.splicemachine.derby.stream.control.ControlDataSet;
-import com.splicemachine.derby.stream.control.FutureIterator;
 import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
 import com.splicemachine.derby.stream.function.CountWriteFunction;
 import com.splicemachine.derby.stream.function.ExportFunction;
@@ -45,6 +43,7 @@ import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.function.SplicePairFunction;
 import com.splicemachine.derby.stream.function.SplicePredicateFunction;
 import com.splicemachine.derby.stream.function.TakeFunction;
+import com.splicemachine.derby.stream.function.ZipperFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
@@ -54,7 +53,6 @@ import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.Pair;
@@ -84,8 +82,6 @@ import org.apache.spark.storage.StorageLevel;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 
@@ -531,6 +527,16 @@ public class SparkDataSet<V> implements DataSet<V> {
         return new SparkExportDataSetWriter.Builder(rdd);
     }
 
+    @Override
+    public KafkaDataSetWriterBuilder writeToKafka() {
+        return new KafkaDataSetWriterBuilder() {
+            @Override
+            public DataSetWriter build() {
+                return new SparkKafkaDataSetWriter<>(rdd, topicName);
+            }
+        };
+    }
+
     public static class EOutputFormat extends FileOutputFormat<Void, ExecRow> {
 
         /**
@@ -702,13 +708,13 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet) throws StandardException {
+    public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet, Broadcast type) throws StandardException {
         Dataset<Row> leftDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new LocatedRowToRowFunction()),
                         context.getOperation().getLeftOperation().getExecRowDefinition().schema());
         OperationContext<SpliceOperation> leftContext = EngineDriver.driver().processorFactory().distributedProcessor().createOperationContext(context.getOperation().getLeftOperation());
 
-        return new NativeSparkDataSet(leftDF, leftContext).crossJoin(context, rightDataSet);
+        return new NativeSparkDataSet(leftDF, leftContext).crossJoin(context, rightDataSet, type);
     }
 
     /**

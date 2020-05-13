@@ -99,7 +99,6 @@ public interface DataSet<V> extends //Iterable<V>,
      */
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f);
 
-
     /**
      *
      * Shuffle partitions in no-cost operation
@@ -264,6 +263,8 @@ public interface DataSet<V> extends //Iterable<V>,
 
     ExportDataSetWriterBuilder<String> saveAsTextFile(OperationContext operationContext);
 
+    KafkaDataSetWriterBuilder writeToKafka();
+
     void persist();
 
     void setAttribute(String name, String value);
@@ -276,7 +277,7 @@ public interface DataSet<V> extends //Iterable<V>,
 
     DataSet<V> join(OperationContext operationContext, DataSet<V> rightDataSet,JoinType joinType, boolean isBroadcast) throws StandardException;
 
-    DataSet<V> crossJoin(OperationContext operationContext, DataSet<V> rightDataSet) throws StandardException;
+    DataSet<V> crossJoin(OperationContext operationContext, DataSet<V> rightDataSet, Broadcast type) throws StandardException;
 
     /**
      *  Window Function abstraction. Take a window context that defines the the partition, the sorting , the frame boundary
@@ -374,4 +375,10 @@ public interface DataSet<V> extends //Iterable<V>,
     List<String> buildNativeSparkExplain(ExplainNode.SparkExplainKind sparkExplainKind);
 
     boolean isNativeSpark();
+
+    enum Broadcast {
+        NONE,
+        LEFT,
+        RIGTH
+    }
 }
