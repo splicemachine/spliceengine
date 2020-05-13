@@ -468,7 +468,13 @@ public class ColumnReference extends ValueNode {
         matchingRC = fromList.bindColumnReference(this);
             /* Error if no match found in fromList */
         if (matchingRC == null) {
-            throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, getSQLColumnName());
+            // not found in normal table, check if it is an alias?
+            ValueNode node = fromList.getAlias(this);
+            if (node == null) {
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, getSQLColumnName());
+            }
+            // if found, REPLACE this alias-referencing node with the expression the alias is pointing to
+            return node;
         }
 
         return this;

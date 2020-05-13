@@ -605,7 +605,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                     retVal=resultColumn;
                 }else if(!retVal.isEquivalent(resultColumn)){
                     throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_FOR_ORDER_BY,columnName);
-                }else if(index>=size-orderBySelect){// remove the column due to pullup of orderby item
+                }else if( index >= getFirstOrderByIndex() ){// remove the column due to pullup of orderby item
                     removeElement(resultColumn);
                     decOrderBySelect();
                     obc.clearAddedColumnOffset();
@@ -696,7 +696,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                     retVal=resultColumn;
                 }else if(!retVal.isEquivalent(resultColumn)){
                     throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_FOR_ORDER_BY,columnName);
-                }else if(index>=size-orderBySelect){
+                }else if(index >= getFirstOrderByIndex() ){
                     if(SanityManager.DEBUG)
                         SanityManager.THROWASSERT("Unexpectedly found ORDER BY column '"+
                                         columnName+"' pulled up at position "+index);
@@ -759,12 +759,28 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
         /* Now we bind each result column */
         int size=size();
-        for(int index=0;index<size;index++){
+        int firstOrderByIndex = getFirstOrderByIndex();
+        for( int index=0; index < size; index++ )
+        {
+            // if we're in the ORDER BY part, we can use the aliases previously defined.
+            // note: if we don't do these checks, we can theoretically run things like
+            // select C*C as C2, C2*C2 as C4 from t1;
+            if( index >= firstOrderByIndex )
+                fromList.useAliases();
+
             ValueNode vn=elementAt(index);
             vn=vn.bindExpression(fromList,subqueryList,aggregateVector);
             //-sf- this cast is safe because ResultColumn returns a ResultColumn from bindExpression()
+            ResultColumn rc = (ResultColumn)vn;
             setElementAt((ResultColumn)vn,index);
+
+            // if we have aliases in the SELECT part, add them, so ORDER BY can resolve them later
+            if( index < firstOrderByIndex && ((ResultColumn) vn).getName() != null )
+                fromList.addAlias((ResultColumn)vn);
         }
+        // disable access to alias for WHERE, HAVING and GROUP BY
+        // @sa FromList.clearAliases why we need to do this
+        fromList.clearAliases();
     }
 
     /**
@@ -3474,6 +3490,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         return orderBySelect;
     }
 
+    private int getFirstOrderByIndex() { return size()-orderBySelect; }
+
     public void copyOrderBySelect(ResultColumnList src){
         orderBySelect=src.orderBySelect;
     }
@@ -3622,7 +3640,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
     }
 
 
-    public class ColumnMapping{
+    public static class ColumnMapping{
 
         public final int[] mapArray;
         public final boolean[] cloneMap;
