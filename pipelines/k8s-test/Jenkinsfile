@@ -90,7 +90,7 @@ node('splice-standalone'){
         }
     }
 }
-node('splice-standalone'){
+node('multi-cloud'){
     try{
     stage('Login') {
     wrap([$class: 'VaultBuildWrapper', vaultSecrets: vaultSecrets]) {
