@@ -890,6 +890,7 @@
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
                 <module>platform_it</module>
+                <module>standalone</module>
                 <module>spark_sql</module>
                 <module>splice_spark</module>
                 <module>splice_spark2</module>
@@ -926,6 +927,7 @@
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
                 <module>platform_it</module>
+                <module>standalone</module>
                 <module>spark_sql</module>
                 <module>splice_spark</module>
                 <module>splice_spark2</module>
@@ -963,6 +965,7 @@
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
                 <module>platform_it</module>
+                <module>standalone</module>
                 <module>spark_sql</module>
                 <module>splice_spark</module>
                 <module>splice_spark2</module>
