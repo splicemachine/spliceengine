@@ -750,6 +750,30 @@
             <build>
                 <plugins>
                     <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>process-resources</phase>
+                                <configuration>
+                                    <target>
+                                        <replace token="##HBASEVERSION##" value="${envHbase}" dir="mapr/src/main/resources/scripts/splice/">
+                                            <include name="hbase-env.sh"/>
+                                            <include name="hbase-env.secure.sh"/>
+                                            <include name="mapr-splice-hbase-config.sh"/>
+                                        </replace>
+                                        <replace token="##SPARKVERSION##" value="${spark.version}" dir="mapr/src/main/resources/scripts/splice/">
+                                            <include name="hbase-env.sh"/>
+                                            <include name="hbase-env.secure.sh"/>
+                                        </replace>
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-dependency-plugin</artifactId>
                         <executions>

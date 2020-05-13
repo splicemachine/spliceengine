@@ -35,9 +35,6 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -78,30 +75,6 @@ public class SQLSmallIntTest extends SQLDataValueDescriptorTest {
         }
     
         @Test
-        public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLSmallint value = new SQLSmallint(100);
-                SQLSmallint valueA = new SQLSmallint();
-                value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",100,row.getInt(0),0);
-                valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect",100,valueA.getInt(),0);
-            }
-
-        @Test
-        public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLSmallint value = new SQLSmallint();
-                SQLSmallint valueA = new SQLSmallint();
-                value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
-                value.read(row, 0);
-                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-            }
-
-        @Test
         public void testColumnStatistics() throws Exception {
                 SQLSmallint value1 = new SQLSmallint();
                 ItemStatistics stats = new ColumnStatisticsImpl(value1);
@@ -128,22 +101,6 @@ public class SQLSmallIntTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLSmallint(1000),new SQLSmallint(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLSmallint(),new SQLSmallint(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLSmallint(5000),new SQLSmallint(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
-        }
-
-        @Test
-        public void testArray() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLArray value = new SQLArray();
-                value.setType(new SQLSmallint());
-                value.setValue(new DataValueDescriptor[] {new SQLSmallint(23),new SQLSmallint(48), new SQLSmallint(10), new SQLSmallint()});
-                SQLArray valueA = new SQLArray();
-                valueA.setType(new SQLSmallint());
-                writer.reset();
-                value.write(writer,0);
-                valueA.read(row,0);
-                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
-
         }
 
         @Test

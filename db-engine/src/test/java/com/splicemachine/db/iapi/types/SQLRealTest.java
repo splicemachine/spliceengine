@@ -35,9 +35,6 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -79,30 +76,6 @@ public class SQLRealTest extends SQLDataValueDescriptorTest {
         }
     
         @Test
-        public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLReal value = new SQLReal(100.0f);
-                SQLReal valueA = new SQLReal();
-                value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",100.0f,row.getFloat(0),0.0f);
-                valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect",100f,valueA.getFloat(),0.0d);
-            }
-
-        @Test
-        public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLReal value = new SQLReal();
-                SQLReal valueA = new SQLReal();
-                value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
-                value.read(row, 0);
-                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-            }
-
-        @Test
         public void testColumnStatistics() throws Exception {
 
                 SQLReal value1 = new SQLReal();
@@ -131,22 +104,6 @@ public class SQLRealTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLReal(),new SQLReal(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLReal(5000),new SQLReal(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
-
-        @Test
-        public void testArray() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLArray value = new SQLArray();
-                value.setType(new SQLReal());
-                value.setValue(new DataValueDescriptor[] {new SQLReal(23),new SQLReal(48), new SQLReal(10), new SQLReal()});
-                SQLArray valueA = new SQLArray();
-                valueA.setType(new SQLReal());
-                writer.reset();
-                value.write(writer,0);
-                valueA.read(row,0);
-                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
-        }
-
 
         @Test
         public void testExecRowSparkRowConversion() throws StandardException {

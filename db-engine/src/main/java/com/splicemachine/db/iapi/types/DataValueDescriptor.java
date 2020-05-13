@@ -35,10 +35,6 @@ import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
 import com.splicemachine.db.iapi.services.io.Storable;
@@ -1017,44 +1013,6 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      * @return true if lazy
      */    
     Format getFormat();
-
-	 /**
-	 *
-	 * This allows one to write a DataValueDescriptor to a
-	 * Project Tungsten format (UnsafeRow).
-	 *
-	 * @param unsafeRowWriter
-	 * @param ordinal
-	 */
-	void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException;
-
-	/**
-	 *
-	 * This allows one to write a DataValueDescriptor to a
-	 * Project Tungsten format (UnsafeRow).
-	 *
-	 * @param unsafeRowWriter
-	 * @param ordinal
-	 */
-	void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException;
-
-	/**
-	  * This allows one to read a DataValueDescriptor from a
-	  * Project Tungsten format (UnsafeRow).
-	 *
-	 * @param unsafeRow
-	 * @param ordinal
-	 */
-	void read(UnsafeRow unsafeRow, int ordinal) throws StandardException;
-
-	/**
-	 * This allows one to read a DataValueDescriptor from a
-	 * Project Tungsten format (UnsafeRow).
-	 *
-	 * @param unsafeRow
-	 * @param ordinal
-	 */
-	void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException;
 
 	/**
 	 * This allows one to read a DataValueDescriptor from a

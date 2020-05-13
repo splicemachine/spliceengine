@@ -30,13 +30,13 @@
 # export HBASE_CLASSPATH=
 
 SPLICELIBDIR="/opt/splice/default/lib"
-SPARKLIBDIR="/opt/mapr/spark/spark-2.3.2/jars"
+SPARKLIBDIR="/opt/mapr/spark/spark-2.4.4/jars"
 HADOOPTOOLSDIR="/opt/mapr/hadoop/hadoop-2.7.0/share/hadoop/tools/lib"
 PREPENDSTRING="$SPLICELIBDIR:$SPARKLIBDIR:$HADOOPTOOLSDIR"
 export HBASE_CLASSPATH="${PREPENDSTRING}:${HBASE_CLASSPATH}"
 
 # explicitly use our hbase conf dir
-export HBASE_CONF_DIR="/opt/mapr/hbase/hbase1.1.8-splice/conf"
+export HBASE_CONF_DIR="/opt/mapr/hbase/hbase1.1.13-splice/conf"
 
 # The maximum amount of heap to use. Default is left to JVM default.
 # export HBASE_HEAPSIZE=1G
@@ -90,10 +90,10 @@ SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.yarn.am.waitT
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.yarn.executor.memoryOverhead=2048"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraLibraryPath=/opt/mapr/hadoop/hadoop-2.7.0/lib/native"
-SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraClassPath=/opt/mapr/hbase/hbase1.1.8-splice/conf:/opt/splice/default/lib/*:/opt/mapr/hbase/hbase1.1.8-splice/lib/*"
+SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraClassPath=/opt/mapr/hbase/hbase1.1.13-splice/conf:/opt/splice/default/lib/*:/opt/mapr/hbase/hbase1.1.13-splice/lib/*"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraLibraryPath=/opt/mapr/hadoop/hadoop-2.7.0/lib/native"
-SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraClassPath=/opt/mapr/hbase/hbase1.1.8-splice/conf:/opt/splice/default/lib/*:/opt/mapr/hbase/hbase1.1.8-splice/lib/*"
+SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraClassPath=/opt/mapr/hbase/hbase1.1.13-splice/conf:/opt/splice/default/lib/*:/opt/mapr/hbase/hbase1.1.13-splice/lib/*"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.retainedJobs=100"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.retainedStages=100"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.worker.ui.retainedExecutors=100"

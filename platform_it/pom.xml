@@ -1227,6 +1227,15 @@
             </properties>
         </profile>
         <profile>
+            <id>mapr6.1.0-2.4</id>
+            <properties>
+                <maven.test.skip>true</maven.test.skip>
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
             <id>dbaas</id>
             <properties>
                 <extraDependency>splice_ee</extraDependency>
