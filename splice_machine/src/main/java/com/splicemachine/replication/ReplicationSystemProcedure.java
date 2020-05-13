@@ -41,6 +41,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.procedures.ProcedureUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -62,16 +63,28 @@ public class ReplicationSystemProcedure {
 
     private static Logger LOG = Logger.getLogger(ReplicationSystemProcedure.class);
 
-    public static void GET_REPLICATION_PROGRESS(ResultSet[] resultSets) throws StandardException, SQLException {
-        ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
-        long ts = replicationManager.getReplicationProgress();
-        if (ts > 0) {
-            DateTime dateTime = new DateTime(ts);
-            resultSets[0] = ProcedureUtils.generateResult(
-                    "Replication progress", dateTime.toString());
+    public static void REPLICATION_ENABLED(String schemaName, String tableName, ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            schemaName = EngineUtils.validateSchema(schemaName);
+            tableName = EngineUtils.validateTable(tableName);
+            TableDescriptor td = SpliceRegionAdmin.getTableDescriptor(schemaName, tableName);
+            long conglomerateId = td.getHeapConglomerateId();
+            PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+            boolean enabled = admin.replicationEnabled(Long.toString(conglomerateId));
+            resultSets[0] = ProcedureUtils.generateResult("Enabled", enabled?"TRUE":"FALSE");
+        } catch (Exception e) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
         }
-        else {
-            resultSets[0] = ProcedureUtils.generateResult("Error", "Information not available");
+    }
+
+    public static void DUMP_UNREPLICATED_WALS(ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+            String result = replicationManager.dumpUnreplicatedWals();
+            resultSets[0] = ProcedureUtils.generateResult("Success", result);
+        }
+        catch (Exception e) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
         }
     }
 
@@ -149,14 +162,13 @@ public class ReplicationSystemProcedure {
     public static void ADD_PEER(short peerId,
                                 String peerClusterKey,
                                 boolean enabled,
-                                boolean isSerial,
                                 ResultSet[] resultSets) throws StandardException, SQLException {
         try {
             String clusterKey = getClusterKey();
 
             // Add peer first
             ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
-            replicationManager.addPeer(peerId, peerClusterKey, isSerial);
+            replicationManager.addPeer(peerId, peerClusterKey);
 
             String replicationMonitorQuorum = SIDriver.driver().getConfiguration().getReplicationMonitorQuorum();
             if (replicationMonitorQuorum != null) {
@@ -363,9 +375,9 @@ public class ReplicationSystemProcedure {
                     "Success", String.format("Enabled replication for database"));
         } catch (Exception e) {
             StackTraceElement[] stes = e.getStackTrace();
-            String s = "";
+            StringBuffer s = new StringBuffer();
             for (StackTraceElement ste : stes) {
-                s += ste.toString() + "\n" ;
+                s.append(ste.toString()).append("\n") ;
             }
             SpliceLogUtils.info(LOG, "%s", s);
             resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
@@ -637,7 +649,7 @@ public class ReplicationSystemProcedure {
         String peerClusterKey = null;
         boolean enabled = false;
         for (ReplicationPeerDescription replicationPeerDescription : replicationPeerDescriptions) {
-            short id = new Short(replicationPeerDescription.getId());
+            short id = Short.valueOf(replicationPeerDescription.getId());
             if (id == peerId) {
                 peerClusterKey = replicationPeerDescription.getClusterKey();
                 enabled = replicationPeerDescription.isEnabled();

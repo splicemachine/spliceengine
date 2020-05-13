@@ -126,6 +126,7 @@ public class ConfigurationBuilder {
     public String replicationMonitorPath;
     public int replicationMonitorInterval;
     public String replicationHealthcheckScript;
+    public String kafkaBootstrapServers;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;
@@ -134,7 +135,6 @@ public class ConfigurationBuilder {
     public boolean debugLogStatementContext;
     public boolean ignoreSavePoints;
     public boolean upgradeForced;
-    public int batchOnceBatchSize;
     public int importMaxQuotedColumnLines;
     public int indexBatchSize;
     public int indexLookupBlocks;
@@ -151,6 +151,7 @@ public class ConfigurationBuilder {
     public int olapServerMemory;
     public int olapServerMemoryOverhead;
     public int olapServerVirtualCores;
+    public long olapServerKeepAliveTimeout;
     public int partitionserverJmxPort;
     public String partitionserverJmxUser;
     public String partitionserverJmxPassword;
@@ -173,7 +174,7 @@ public class ConfigurationBuilder {
     public int rollForwardFirstThreads;
     public int rollForwardSecondThreads;
     public CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
-    public int splitsPerTableMin;
+    public int splitsPerRegionMin;
 
     // PipelineConfiguration
     public int coreWriterThreads;
@@ -193,14 +194,15 @@ public class ConfigurationBuilder {
     public String sparkIoCompressionCodec;
     public int sparkResultStreamingBatchSize;
     public int sparkResultStreamingBatches;
-    public int compactionReservedSlots;
-    public int reservedSlotsTimeout;
+    public int sparkSlowResultStreamingBatchSize;
+    public int sparkSlowResultStreamingBatches;
     public int olapCompactionMaximumWait;
     public int olapCompactionMaximumConcurrent;
     public double olapCompactionResolutionShare;
     public double flushResolutionShare;
     public int olapCompactionResolutionBufferSize;
     public boolean olapCompactionBlocking;
+    public int localCompactionResolutionBufferSize;
     public boolean resolutionOnFlushes;
     public int olapClientRetries;
     public double bulkImportSampleFraction;
@@ -208,12 +210,14 @@ public class ConfigurationBuilder {
     public int regionToLoadPerTask;
     public long controlExecutionRowLimit;
     public int olapShufflePartitions;
+    public boolean sparkAccumulatorsEnabled;
     public String olapLog4jConfig;
     public Map<String,String> olapServerIsolatedRoles;
     public Map<String,String> olapServerYarnQueues;
     public boolean olapServerIsolatedCompaction;
     public String olapServerIsolatedCompactionQueueName;
     public boolean olapCompactionAutomaticallyPurgeDeletedRows;
+    public String olapServerMode;
 
 
     /**

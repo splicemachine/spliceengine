@@ -33,6 +33,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
@@ -41,19 +42,31 @@ import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.spark_project.guava.base.Charsets;
 import scala.Tuple2;
 
 import javax.annotation.Nonnull;
+import java.io.ByteArrayInputStream;
+import java.io.Externalizable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.SequenceInputStream;
 import java.net.URISyntaxException;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Scanner;
+import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 
 import static com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind.NONE;
@@ -140,6 +153,11 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public <V> DataSet<V> getEmpty(String name){
+        return getEmpty();
+    }
+
+    @Override
+    public <V> DataSet<V> getEmpty(String name, OperationContext context){
         return getEmpty();
     }
 
@@ -381,8 +399,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
     
     @Override
-    public TableChecker getTableChecker(String schemaName, String tableName, DataSet table, KeyHashDecoder tableKeyDecoder, ExecRow tableKey) {
-        return new ControlTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey);
+    public TableChecker getTableChecker(String schemaName, String tableName, DataSet table,
+                                        KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix) {
+        return new ControlTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix);
     }
 
     // Operations specific to native spark explains
@@ -402,4 +421,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     @Override public void incrementOpDepth() { }
     @Override public void decrementOpDepth() { }
     @Override public void resetOpDepth() { }
+
+    @Override
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
+        throw new UnsupportedOperationException();
+    }
 }

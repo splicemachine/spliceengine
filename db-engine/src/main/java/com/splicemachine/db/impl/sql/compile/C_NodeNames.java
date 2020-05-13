@@ -340,9 +340,9 @@ public interface C_NodeNames
 
     String BINARY_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.BinaryExportNode";
 
-    String TRUNC_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TruncateOperatorNode";
+	String KAFKA_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.KafkaExportNode";
 
-    String BATCH_ONCE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.BatchOnceNode";
+    String TRUNC_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TruncateOperatorNode";
 
     String CREATE_PIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CreatePinNode";
 
@@ -365,6 +365,8 @@ public interface C_NodeNames
     String EMPTY_DEFAULT_CONSTANT_NODE = "com.splicemachine.db.impl.sql.compile.EmptyDefaultConstantNode";
 
     String VALUE_TUPLE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ValueTupleNode";
+
+    String STATEMENT_LIST_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StatementListNode";
 
     // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
     // THEM TO tools/jar/DBMSnodes.properties

@@ -62,6 +62,7 @@ import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSTOKENSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.base.Predicates;
 import org.spark_project.guava.collect.Lists;
@@ -191,6 +192,8 @@ public class FromBaseTable extends FromTable {
     private ResultColumn rowIdColumn;
 
     private boolean isAntiJoin;
+
+    private AggregateNode aggrForSpecialMaxScan;
 
     @Override
     public boolean isParallelizable(){
@@ -586,7 +589,6 @@ public class FromBaseTable extends FromTable {
         boolean constraintSpecified=false;
         ConstraintDescriptor consDesc=null;
 
-        StringUtil.SQLEqualsIgnoreCase(tableDescriptor.getSchemaName(),"SYS");
         Enumeration e=tableProperties.keys();
         while(e.hasMoreElements()){
             String key=(String)e.nextElement();
@@ -649,6 +651,9 @@ public class FromBaseTable extends FromTable {
                 }
             }else if(key.equals("joinStrategy")){
                 userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
+                if (userSpecifiedJoinStrategy.equals("CROSS")) {
+                    dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
+                }
             }
             else if (key.equals("useSpark")) {
                 try {
@@ -684,27 +689,27 @@ public class FromBaseTable extends FromTable {
                     splits = Integer.parseInt(value);
                     if (splits <= 0)
                         throw StandardException.newException(SQLState.LANG_INVALID_SPLITS, value);
-                } catch (Exception skipStatsE) {
+                } catch (NumberFormatException skipStatsE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SPLITS, value);
                 }
             } else if (key.equals("useDefaultRowCount")) {
                 try {
                     skipStats = true;
                     defaultRowCount = Long.parseLong(value);
-                    if (defaultRowCount <= 0)
-                        throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
-                } catch (Exception parseLongE) {
+                } catch (NumberFormatException parseLongE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
                 }
+                if (defaultRowCount <= 0)
+                    throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
             } else if (key.equals("defaultSelectivityFactor")) {
                 try {
                     skipStats = true;
                     defaultSelectivityFactor = Double.parseDouble(value);
-                    if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
-                        throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
-                } catch (Exception parseDoubleE) {
+                } catch (NumberFormatException parseDoubleE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
                 }
+                if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
+                    throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
             }else {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
@@ -749,6 +754,9 @@ public class FromBaseTable extends FromTable {
         ap.setCoveringIndexScan(false);
         bestAp.setCoveringIndexScan(false);
         bestSortAp.setCoveringIndexScan(false);
+        ap.setSpecialMaxScan(false);
+        bestAp.setSpecialMaxScan(false);
+        bestSortAp.setSpecialMaxScan(false);
         ap.setLockMode(0);
         bestAp.setLockMode(0);
         bestSortAp.setLockMode(0);
@@ -785,10 +793,6 @@ public class FromBaseTable extends FromTable {
                                      CostEstimate outerCost,
                                      Optimizer optimizer,
                                      RowOrdering rowOrdering) throws StandardException{
-        /* unknownPredicateList contains all predicates whose effect on
-         * cost/selectivity can't be calculated by the store.
-         */
-        PredicateList unknownPredicateList=null;
 
         AccessPath currentAccessPath=getCurrentAccessPath();
         JoinStrategy currentJoinStrategy=currentAccessPath.getJoinStrategy();
@@ -826,7 +830,6 @@ public class FromBaseTable extends FromTable {
             if (cd.isIndex() || cd.isPrimaryKey()) {
                 baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
                if (!isCoveringIndex(cd) && !cd.isPrimaryKey()) {
-                    baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
                     indexLookupList = new BitSet();
                     for (int i = scanColumnList.nextSetBit(0); i >= 0; i = scanColumnList.nextSetBit(i + 1)) {
                         boolean found = false;
@@ -857,7 +860,23 @@ public class FromBaseTable extends FromTable {
                 forUpdate(),
                 resultColumns);
 
-        if(currentJoinStrategy.allowsJoinPredicatePushdown() && isOneRowResultSet(cd,baseTableRestrictionList)){ // Retrieving only one row...
+        // check if specialMaxScan is applicable
+        currentAccessPath.setSpecialMaxScan(false);
+        if (!optimizer.isForSpark() && aggrForSpecialMaxScan != null) {
+            ColumnReference cr = (ColumnReference)aggrForSpecialMaxScan.getOperand();
+            boolean isMax = ((MaxMinAggregateDefinition)aggrForSpecialMaxScan.getAggregateDefinition()).isMax();
+            if (cd.isIndex() || cd.isPrimaryKey()) {
+                IndexDescriptor id = cd.getIndexDescriptor();
+                baseColumnPositions = id.baseColumnPositions();
+                if (baseColumnPositions[0] == cr.getColumnNumber()) {
+                    if (id.isAscending()[0] && isMax)
+                        currentAccessPath.setSpecialMaxScan(true);
+                    else if (!id.isAscending()[0] && !isMax)
+                        currentAccessPath.setSpecialMaxScan(true);
+                }
+            }
+        }
+        if(currentJoinStrategy.allowsJoinPredicatePushdown() && isOneRowResultSet(cd,baseTableRestrictionList) || currentAccessPath.getSpecialMaxScan()){ // Retrieving only one row...
             singleScanRowCount=1.0;
             scf.generateOneRowCost();
         }
@@ -1166,7 +1185,7 @@ public class FromBaseTable extends FromTable {
             // probably doesn't exist anymore.
             if(baseConglomerateDescriptor==null){
                 //noinspection UnnecessaryBoxing
-                throw StandardException.newException(SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST,new Long(heapConglomerateId));
+                throw StandardException.newException(SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST,Long.valueOf(heapConglomerateId));
             }
 
             /* Build the 0-based array of base column names. */
@@ -3277,6 +3296,7 @@ public class FromBaseTable extends FromTable {
      * set the Information gathered from the parent table that is
      * required to peform a referential action on dependent table.
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     @Override
     public void setRefActionInfo(long fkIndexConglomId,
                                  int[] fkColArray,
@@ -3322,6 +3342,11 @@ public class FromBaseTable extends FromTable {
         return rowIdColumn;
     }
 
+    @Override
+    public void setRowIdColumn(ResultColumn rc) {
+        rowIdColumn = rc;
+    }
+
     /**
      *
      * Is this FromBaseTable node a distinct scan (effects cost estimate)
@@ -3356,12 +3381,12 @@ public class FromBaseTable extends FromTable {
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         String indexName = getIndexName();
         sb.append(spaceToLevel());
         sb.append(getClassName(indexName)).append("(");
-        sb.append("n=").append(order).append(attrDelim);
+        sb.append("n=").append(getResultSetNumber()).append(attrDelim);
         sb.append(getFinalCostEstimate(false).prettyFromBaseTableString(attrDelim));
         if (indexName != null)
             sb.append(attrDelim).append("baseTable=").append(getPrettyTableName());
@@ -3383,6 +3408,8 @@ public class FromBaseTable extends FromTable {
             cName = "MultiProbe"+cName;
         if (isDistinctScan())
             cName = "Distinct" + cName;
+        if (specialMaxScan)
+            cName = "LastKey" + cName;
         return cName;
     }
 
@@ -3485,5 +3512,13 @@ public class FromBaseTable extends FromTable {
 
     public FormatableBitSet getReferencedCols() {
         return referencedCols;
+    }
+
+    public void setAggregateForSpecialMaxScan(AggregateNode aggrNode) {
+        aggrForSpecialMaxScan = aggrNode;
+    }
+
+    public AggregateNode getAggregateForSpecialMaxScan() {
+        return aggrForSpecialMaxScan;
     }
 }

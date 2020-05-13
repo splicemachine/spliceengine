@@ -64,9 +64,6 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String IMPORT_MAX_QUOTED_COLUMN_LINES="splice.import.maxQuotedColumnLines";
     private static final int DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES = 50000;
 
-    public static final String BATCH_ONCE_BATCH_SIZE = "splice.batchonce.batchsize";
-    private static final int DEFAULT_BATCH_ONCE_BATCH_SIZE = 50_000;
-
     public static final String CONTROL_SIDE_COST_THRESHOLD = "splice.dataset.control.costThreshold";
     private static final double DEFAULT_CONTROL_SIDE_COST_THRESHOLD = 1000000D;
 
@@ -272,7 +269,6 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.indexBatchSize = configurationSource.getInt(INDEX_BATCH_SIZE, DEFAULT_INDEX_BATCH_SIZE);
         builder.indexLookupBlocks = configurationSource.getInt(INDEX_LOOKUP_BLOCKS, DEFAULT_INDEX_LOOKUP_BLOCKS);
         builder.importMaxQuotedColumnLines = configurationSource.getInt(IMPORT_MAX_QUOTED_COLUMN_LINES, DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES);
-        builder.batchOnceBatchSize = configurationSource.getInt(BATCH_ONCE_BATCH_SIZE, DEFAULT_BATCH_ONCE_BATCH_SIZE);
         builder.partitionserverJmxPort = configurationSource.getInt(PARTITIONSERVER_JMX_PORT, DEFAULT_PARTITIONSERVER_JMX_PORT);
         builder.partitionserverJmxUser = configurationSource.getString(PARTITIONSERVER_JMX_USER, DEFAULT_PARTITIONSERVER_JMX_USER);
         builder.partitionserverJmxPassword = configurationSource.getString(PARTITIONSERVER_JMX_PASSWORD, DEFAULT_PARTITIONSERVER_JMX_PASSWORD);

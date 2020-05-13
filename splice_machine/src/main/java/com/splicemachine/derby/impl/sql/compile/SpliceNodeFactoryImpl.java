@@ -629,11 +629,11 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.BINARY_EXPORT_NODE:
                 return C_NodeNames.BINARY_EXPORT_NODE_NAME;
 
+            case C_NodeTypes.KAFKA_EXPORT_NODE:
+                return C_NodeNames.KAFKA_EXPORT_NODE_NAME;
+
             case C_NodeTypes.TRUNC_NODE:
                 return C_NodeNames.TRUNC_NODE_NAME;
-
-            case C_NodeTypes.BATCH_ONCE_NODE:
-                return C_NodeNames.BATCH_ONCE_NODE_NAME;
 
             case C_NodeTypes.CREATE_PIN_NODE:
                 return C_NodeNames.CREATE_PIN_NODE_NAME;
@@ -670,6 +670,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
             case C_NodeTypes.TIME_SPAN_NODE:
                 return C_NodeNames.TIME_SPAN_NODE_NAME;
+
+            case C_NodeTypes.STATEMENT_LIST_NODE:
+                return C_NodeNames.STATEMENT_LIST_NODE_NAME;
 
             // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
             // THEM TO tools/jar/DBMSnodes.properties
