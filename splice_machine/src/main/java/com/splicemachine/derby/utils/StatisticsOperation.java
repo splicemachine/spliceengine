@@ -126,6 +126,9 @@ public class StatisticsOperation extends SpliceBaseOperation {
             } else {
                 statsDataSet = scanSetBuilder.buildDataSet(scope).map(new CloneFunction<>(operationContext));
             }
+            if(statsDataSet.partitions() == 0) {
+                statsDataSet = dsp.getEmpty(); // this has 1 partition and the following code works ok with that
+            }
             DataSet stats = statsDataSet
                     .mapPartitions(
                             new StatisticsFlatMapFunction(operationContext, scanSetBuilder.getBaseTableConglomId(), scanSetBuilder.getColumnPositionMap(), scanSetBuilder.getTemplate()));

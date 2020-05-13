@@ -82,6 +82,26 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String OLAP_SERVER_PATH = "/olapServer";
 
     /**
+     * The Path in zookeeper for olap server leader election.
+     */
+    public static final String OLAP_SERVER_LEADER_ELECTION_PATH = "/leaderElection";
+
+    /**
+     * The Path in zookeeper for olap server queues.
+     */
+    public static final String OLAP_SERVER_QUEUE_PATH = "/queues";
+
+    /**
+     * The Path in zookeeper for olap server keep alive.
+     */
+    public static final String OLAP_SERVER_KEEP_ALIVE_PATH = "/keepAlive";
+
+    /**
+     * The Path in zookeeper for olap server diagnostics.
+     */
+    public static final String OLAP_SERVER_DIAGNOSTICS_PATH = "/diagnostics";
+
+    /**
      * The Path in zookeeper for coordinating concurrent HMasters booting up
      */
     public static final String MASTER_INIT_PATH = "/masterInitialization";
@@ -187,6 +207,9 @@ public class HBaseConfiguration implements ConfigurationDefault {
 
     public static final String SPLICE_REPLICATION_HEALTHCHECKSCRIPT = "splice.replication.healthcheck.script";
 
+    public static final String KAFKA_BOOTSTRAP_SERVERS = "splice.kafka.bootstrapServers";
+    public static final String DEFAULT_KAFKA_BOOTSTRAP_SERVERS = "localhost:9092";
+
     /**
      * The Path in zookeeper for storing the maximum reserved timestamp
      * from the ZkTimestampSource implementation.
@@ -270,5 +293,6 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.replicationEnabled = configurationSource.getBoolean(SPLICE_REPLICATION_ENABLED, DEFAULT_SPLICE_REPLICATION_ENABLED);
         builder.replicationMonitorInterval = configurationSource.getInt(SPLICE_REPLICATION_MONITOR_INTERVAL, DEFAULT_SPLICE_REPLICATION_MONITOR_INTERVAL);
         builder.replicationHealthcheckScript = configurationSource.getString(SPLICE_REPLICATION_HEALTHCHECKSCRIPT, null);
+        builder.kafkaBootstrapServers = configurationSource.getString(KAFKA_BOOTSTRAP_SERVERS, System.getProperty(KAFKA_BOOTSTRAP_SERVERS, DEFAULT_KAFKA_BOOTSTRAP_SERVERS));
     }
 }

@@ -179,8 +179,12 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
                 while (true) {
                     MemstoreAware currentState = memstoreAware.get();
                     if (currentState.splitMerge || currentState.currentCompactionCount>0 || currentState.flush) {
-                        SpliceLogUtils.warn(LOG, "splitting, merging, or active compaction on scan on %s : %s", c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString(), currentState);
-                        throw new IOException("splitting, merging, or active compaction on scan on " + c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
+                        String message = "Splitting, merging, or active compaction on scan on " +
+                                c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString() +
+                                " served by " + c.getEnvironment().getServerName() +
+                                " with state" + currentState;
+                        SpliceLogUtils.warn(LOG, message);
+                        throw new IOException(message);
                     }
 
                     if (memstoreAware.compareAndSet(currentState, MemstoreAware.incrementScannerCount(currentState)))
@@ -201,7 +205,7 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
                         if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)))
                             break;
                     }
-                    SpliceLogUtils.warn(LOG, "scan missed do to split after task creation " +
+                    String message = String.format("Scan missed due to split after task creation " +
                                     "scan [%s,%s], partition[%s,%s], region=[%s,%s]," +
                                     "server=[%s,%s]",
                             displayByteArray(scan.getStartRow()),
@@ -211,10 +215,10 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
                             displayByteArray(c.getEnvironment().getRegionInfo().getStartKey()),
                             displayByteArray(c.getEnvironment().getRegionInfo().getEndKey()),
                             Bytes.toString(serverName),
-                            ((RegionServerServices)c.getEnvironment().getOnlineRegions()).getServerName().getHostAndPort()
-                    );
+                            ((RegionServerServices)c.getEnvironment().getOnlineRegions()).getServerName().getHostAndPort());
+                    SpliceLogUtils.warn(LOG, message);
 
-                    throw new DoNotRetryIOException();
+                    throw new DoNotRetryIOException(message);
                 }
             }else return s;
         } catch (Throwable t) {

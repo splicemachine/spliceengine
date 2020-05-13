@@ -352,9 +352,9 @@ public class OperatorToString {
                     else if (operatorString.equals("ABS/ABSVAL"))
                         operatorString = "abs";
                 }
-                else if (operand instanceof SimpleStringOperatorNode) {
-                    SimpleStringOperatorNode sso = (SimpleStringOperatorNode) operand;
-                    return format("%s(%s) ", operatorString, opToString2(sso.getOperand(), vars));
+                else if (operand instanceof SimpleStringOperatorNode ||
+                         operand instanceof NotNode) {
+                    return format("%s(%s) ", operatorString, opToString2(uop.getOperand(), vars));
                 }
                 else
                     throwNotImplementedError();
