@@ -1,6 +1,7 @@
 def parcel_url = ""
 def folder_name = ""
 def scmVars = ""
+def target_cluster = ""
 def BUILD_USER_EMAIL="build@splicemachine.com"
 String[] clusters = ["aks-dev1","aks-dev2","aks-dev3","aks-dev4","aks-dev5","aks-dev6","aks-dev7","aks-dev8"]
 def vaultSecrets = [
