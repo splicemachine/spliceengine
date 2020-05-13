@@ -162,12 +162,8 @@ public class SparkTableChecker implements TableChecker {
                     .mapPartitions(new SparkFlatMapFunction<>(new DeleteDuplicateIndexFunction<>(conglomerate, txn, tentativeIndex, baseColumnMap, fix)));
 
             Iterator it = duplicateIndex.toLocalIterator();
-
-            if (fix) {
-                return fixDuplicateIndexes(it);
-            } else {
-                return reportDuplicateIndexes(it);
-            }
+            long count = duplicateIndex.count();
+            return reportDuplicateIndexes(it, count, fix);
         }catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
@@ -176,34 +172,24 @@ public class SparkTableChecker implements TableChecker {
         }
     }
 
-
-    private List<String> fixDuplicateIndexes(Iterator it) {
+    private List<String> reportDuplicateIndexes(Iterator it, long count, boolean fix) throws StandardException, InterruptedException, ExecutionException {
         List<String> messages = Lists.newLinkedList();
-
-        long count = 0;
+        int n = 0;
         while (it.hasNext()) {
+            n++;
             Tuple2<String, Tuple2<byte[], ExecRow>> t = (Tuple2<String, Tuple2<byte[], ExecRow>>)it.next();
             messages.add(t._2._2 + "=>" + t._1);
-            count++;
-        }
-        messages.add(0,String.format("Deleted the following %d duplicate indexes", count));
-        return messages;
-    }
-
-    private List<String> reportDuplicateIndexes(Iterator it) throws StandardException, InterruptedException, ExecutionException {
-        List<String> messages = Lists.newLinkedList();
-
-        long count = 0;
-        while (it.hasNext()) {
-            Tuple2<String, Tuple2<byte[], ExecRow>> t = (Tuple2<String, Tuple2<byte[], ExecRow>>)it.next();
-            messages.add(t._2._2 + "=>" + t._1);
-            if (count >= maxCheckTableError) {
+            if (!fix && n >= maxCheckTableError) {
                 messages.add("...");
                 break;
             }
-            count++;
         }
-        messages.add(0, String.format("The following %d indexes are duplicates:", count));
+        if (fix) {
+            messages.add(0,String.format("Deleted the following %d duplicate indexes", count));
+        }
+        else {
+            messages.add(0, String.format("The following %d indexes are duplicates:", count));
+        }
         return messages;
     }
 
