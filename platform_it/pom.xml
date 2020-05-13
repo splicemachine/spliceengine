@@ -214,6 +214,10 @@
             <scope>runtime</scope>
             <exclusions>
                 <exclusion>
+                    <groupId>org.glassfish.jersey.containers</groupId>
+                    <artifactId>jersey-container-servlet</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>net.jpountz.lz4</groupId>
                     <artifactId>lz4</artifactId>
                 </exclusion>
@@ -236,16 +240,6 @@
             <version>${hadoop.version}</version>
             <classifier>tests</classifier>
             <scope>runtime</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.sun.jersey</groupId>
-                    <artifactId>jersey-server</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.sun.jersey</groupId>
-                    <artifactId>jersey-core</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -906,54 +900,6 @@
                             <arguments>
                                 <!-- Root of the serve classpath. Yarn config file (yarn-site.xml) will be written here. -->
                                 <argument>${project.build.directory}</argument>
-                            </arguments>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>spliceYarn</id>
-            <activation>
-                <property>
-                    <name>spliceYarn</name>
-                </property>
-            </activation>
-            <properties>
-                <nodeCount>1</nodeCount>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-network-yarn_${scala.binary.version}</artifactId>
-                    <version>${spark.version}</version>
-                    <scope>runtime</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.4.0</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>java</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <!-- exec:java required so that these 2 dependency properties are available (they aren't with exec:exec -->
-                            <classpathScope>test</classpathScope>
-                            <!--<includeProjectDependencies>false</includeProjectDependencies>-->
-                            <!--<includePluginDependencies>true</includePluginDependencies>-->
-                            <mainClass>com.splicemachine.test.SpliceTestYarnPlatform</mainClass>
-                            <arguments>
-                                <argument>${project.build.directory}/classes</argument>
-                                <argument>${secure}</argument>
-                                <argument>${nodeCount}</argument>
-                                <argument>-Dlog4j.configurationFile=${log4j.config.uri}</argument>
                             </arguments>
                         </configuration>
                     </plugin>
