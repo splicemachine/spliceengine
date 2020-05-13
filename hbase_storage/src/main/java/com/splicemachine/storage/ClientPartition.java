@@ -187,36 +187,39 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     }
 
     @Override
-    public PartitionLoad getLoad() throws IOException{
-        Map<ServerName, List<HRegionInfo>> serverToRegionMap=new HashMap<>();
-        try(RegionLocator rl=connection.getRegionLocator(tableName)){
-            List<HRegionLocation> locations=rl.getAllRegionLocations();
-            for(HRegionLocation location : locations){
-                List<HRegionInfo> info=serverToRegionMap.get(location.getServerName());
-                if(info==null){
+    public PartitionLoad getLoad() throws IOException {
+        Map<ServerName, List<RegionInfo>> serverToRegionMap = new HashMap<>();
+        try (RegionLocator rl = connection.getRegionLocator(tableName)) {
+            List<HRegionLocation> locations = rl.getAllRegionLocations();
+            for (HRegionLocation location : locations) {
+                List<RegionInfo> info = serverToRegionMap.get(location.getServerName());
+                if (info == null) {
                     info = new LinkedList<>();
-                    serverToRegionMap.put(location.getServerName(),info);
+                    serverToRegionMap.put(location.getServerName(), info);
                 }
-                info.add(location.getRegionInfo());
+                info.add(location.getRegion());
             }
         }
         int totalStoreFileSizeMB = 0;
         int totalMemstoreSieMB = 0;
-        int storefileIndexSizeMB = 0;
-        try(Admin admin=connection.getAdmin()){
-            ClusterStatus clusterStatus=admin.getClusterStatus();
-            for(Map.Entry<ServerName,List<HRegionInfo>> entry:serverToRegionMap.entrySet()){
-                ServerLoad load=clusterStatus.getLoad(entry.getKey());
-                Map<byte[], RegionLoad> regionsLoad=load.getRegionsLoad();
-                for(HRegionInfo info:entry.getValue()){
-                    RegionLoad rl = regionsLoad.get(info.getRegionName());
-                    totalStoreFileSizeMB+=rl.getStorefileSizeMB();
-                    totalMemstoreSieMB+=rl.getMemStoreSizeMB();
-                    storefileIndexSizeMB+=rl.getStorefileIndexSizeMB();
+        int storeFileIndexSizeMB = 0;
+        try (Admin admin = connection.getAdmin()) {
+            ClusterMetrics metrics = admin.getClusterMetrics();
+            for (Map.Entry<ServerName, List<RegionInfo>> entry : serverToRegionMap.entrySet()) {
+                ServerName serverName = entry.getKey();
+                ServerMetrics serverMetrics = metrics.getLiveServerMetrics().get(serverName);
+                Map<byte[], RegionMetrics> regionsMetrics = serverMetrics.getRegionMetrics();
+                for (RegionInfo regionInfo : entry.getValue()) {
+                    RegionMetrics regionMetrics = regionsMetrics.get(regionInfo.getRegionName());
+                    if (regionMetrics != null) {
+                        totalStoreFileSizeMB += (int) regionMetrics.getStoreFileSize().get(Size.Unit.MEGABYTE);
+                        totalMemstoreSieMB += (int) regionMetrics.getMemStoreSize().get(Size.Unit.MEGABYTE);
+                        storeFileIndexSizeMB += (int) regionMetrics.getStoreFileIndexSize().get(Size.Unit.MEGABYTE);
+                    }
                 }
             }
         }
-        return new HPartitionLoad(getName(),totalStoreFileSizeMB,totalMemstoreSieMB,storefileIndexSizeMB);
+        return new HPartitionLoad(getName(), totalStoreFileSizeMB, totalMemstoreSieMB, storeFileIndexSizeMB);
     }
 
     /**

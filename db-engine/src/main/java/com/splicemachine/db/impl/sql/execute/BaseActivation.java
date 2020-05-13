@@ -1550,7 +1550,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     {
         if( reUse == null)
             reUse = getDataValueFactory().getNullInteger( null);
-        if( value.isNull())
+        if( value == null || value.isNull())
             reUse.setToNull();
         else
         {

@@ -678,6 +678,15 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
     }
 
+    @Override
+    public KafkaDataSetWriterBuilder writeToKafka() {
+        try {
+            return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, this.context)).writeToKafka();
+        } catch (Exception e) {
+            throw Exceptions.throwAsRuntime(e);
+        }
+    }
+
     public static class EOutputFormat extends FileOutputFormat<Void, ExecRow> {
 
         /**
@@ -989,7 +998,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet) {
+    public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet, Broadcast type) {
         try {
             Dataset<Row> leftDF = dataset;
             Dataset<Row> rightDF;
@@ -1011,7 +1020,19 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     expr = i != 0 ? expr.and(joinEquality) : joinEquality;
                 }
             }
-            Dataset<Row> joinedDF = leftDF.crossJoin(rightDF);
+            Dataset<Row> joinedDF;
+            switch (type) {
+                case LEFT:
+                    joinedDF = broadcast(leftDF).crossJoin(rightDF);
+                    break;
+                case RIGTH:
+                    joinedDF = leftDF.crossJoin(broadcast(rightDF));
+                    break;
+                case NONE:
+                default:
+                    joinedDF = leftDF.crossJoin(rightDF);
+                    break;
+            }
             if (expr != null) {
                 joinedDF = joinedDF.filter(expr);
             }
@@ -1120,23 +1141,18 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
         StructType tableSchema = DataTypes.createStructType(fields);
 
-        StructType dataSchema = ExternalTableUtils.getDataSchema(dsp, tableSchema, partitionBy, location, "p");
-
-        if (dataSchema == null)
-            dataSchema = tableSchema;
-
         // construct a DF using schema of data
         Dataset<Row> insertDF = SpliceSpark.getSession()
-                .createDataFrame(dataset.rdd(), dataSchema);
+                .createDataFrame(dataset.rdd(), tableSchema);
 
         List<String> partitionByCols = new ArrayList();
         for (int i = 0; i < partitionBy.length; i++) {
-            partitionByCols.add(dataSchema.fields()[partitionBy[i]].name());
+            partitionByCols.add(tableSchema.fields()[partitionBy[i]].name());
         }
         if (partitionBy.length > 0) {
             List<Column> repartitionCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
-                repartitionCols.add(new Column(dataSchema.fields()[partitionBy[i]].name()));
+                repartitionCols.add(new Column(tableSchema.fields()[partitionBy[i]].name()));
             }
             insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
         }

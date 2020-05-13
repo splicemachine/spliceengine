@@ -410,6 +410,11 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public KafkaDataSetWriterBuilder writeToKafka() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void saveAsTextFile(String path) {
         OutputStream fileOut = null;
         try {
@@ -508,7 +513,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<V> crossJoin(OperationContext operationContext, DataSet<V> rightDataSet) {
+    public DataSet<V> crossJoin(OperationContext operationContext, DataSet<V> rightDataSet, Broadcast type) {
         throw new UnsupportedOperationException("Not Implemented in Control Side");
     }
 

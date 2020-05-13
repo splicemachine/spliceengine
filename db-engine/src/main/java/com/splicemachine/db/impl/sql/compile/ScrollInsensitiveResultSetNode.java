@@ -49,74 +49,74 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
 public class ScrollInsensitiveResultSetNode  extends SingleChildResultSetNode
 {
-	/**
-	 * Initializer for a ScrollInsensitiveResultSetNode.
-	 *
-	 * @param childResult	The child ResultSetNode
-	 * @param rcl			The RCL for the node
-	 * @param tableProperties	Properties list associated with the table
-	 */
+    /**
+     * Initializer for a ScrollInsensitiveResultSetNode.
+     *
+     * @param childResult    The child ResultSetNode
+     * @param rcl            The RCL for the node
+     * @param tableProperties    Properties list associated with the table
+     */
 
-	public void init(
-							Object childResult,
-							Object rcl,
-							Object tableProperties)
-	{
-		init(childResult, tableProperties);
-		resultColumns = (ResultColumnList) rcl;
-	}
+    public void init(
+                            Object childResult,
+                            Object rcl,
+                            Object tableProperties)
+    {
+        init(childResult, tableProperties);
+        resultColumns = (ResultColumnList) rcl;
+    }
 
     /**
      *
-	 *
-	 * @exception StandardException		Thrown on error
+     *
+     * @exception StandardException        Thrown on error
      */
-	public void generate(ActivationClassBuilder acb,
-								MethodBuilder mb)
-							throws StandardException
-	{
-		if (SanityManager.DEBUG)
+    public void generate(ActivationClassBuilder acb,
+                                MethodBuilder mb)
+                            throws StandardException
+    {
+        if (SanityManager.DEBUG)
         SanityManager.ASSERT(resultColumns != null, "Tree structure bad");
 
-		/* Get the next ResultSet #, so that we can number this ResultSetNode, its
-		 * ResultColumnList and ResultSet.
-		 */
-		assignResultSetNumber();
+        /* Get the next ResultSet #, so that we can number this ResultSetNode, its
+         * ResultColumnList and ResultSet.
+         */
+        assignResultSetNumber();
 
-		// build up the tree.
+        // build up the tree.
 
-		// Generate the child ResultSet
+        // Generate the child ResultSet
 
-		// Get the cost estimate for the child
-		costEstimate = childResult.getFinalCostEstimate(true);
+        // Get the cost estimate for the child
+        costEstimate = childResult.getFinalCostEstimate(true);
 
-		int erdNumber = acb.addItem(makeResultDescription());
+        acb.addItem(makeResultDescription());
 
-		acb.pushGetResultSetFactoryExpression(mb);
+        acb.pushGetResultSetFactoryExpression(mb);
 
-		childResult.generate(acb, mb);
-		acb.pushThisAsActivation(mb);
-		mb.push(resultSetNumber);
-		mb.push(resultColumns.size());
+        childResult.generate(acb, mb);
+        acb.pushThisAsActivation(mb);
+        mb.push(resultSetNumber);
+        mb.push(resultColumns.size());
 
-		mb.pushThis();
-		mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "getScrollable",
-						"boolean", 0);
+        mb.pushThis();
+        mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "getScrollable",
+                        "boolean", 0);
 
-		mb.push(costEstimate.rowCount());
-		mb.push(costEstimate.getEstimatedCost());
-		mb.push(printExplainInformationForActivation());
-		
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getScrollInsensitiveResultSet",
-						ClassName.NoPutResultSet, 8);
-	}
+        mb.push(costEstimate.rowCount());
+        mb.push(costEstimate.getEstimatedCost());
+        mb.push(printExplainInformationForActivation());
+
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getScrollInsensitiveResultSet",
+                        ClassName.NoPutResultSet, 8);
+    }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("ScrollInsensitive").append("(")
-                .append("n=").append(order);
+                .append("n=").append(getResultSetNumber());
             sb.append(attrDelim).append(getFinalCostEstimate(false).prettyScrollInsensitiveString(attrDelim));
         sb = sb.append(")");
         return sb.toString();

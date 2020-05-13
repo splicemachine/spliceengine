@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.storage.CheckTableJob;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 
@@ -27,7 +28,10 @@ public interface TableChecker {
     List<String> checkIndex(PairDataSet index,
                             String indexName,
                             KeyHashDecoder indexKeyDecoder,
-                            ExecRow indexKey, CheckTableJob.LeadingIndexColumnInfo leadingIndexColumnInfo) throws Exception;
+                            ExecRow indexKey,
+                            CheckTableJob.LeadingIndexColumnInfo leadingIndexColumnInfo,
+                            long conglomerate,
+                            DDLMessage.TentativeIndex tentativeIndex) throws Exception;
 
     void setTableDataSet(DataSet tableDataSet);
 }

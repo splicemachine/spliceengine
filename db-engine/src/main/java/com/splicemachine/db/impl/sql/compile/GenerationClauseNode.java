@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -46,6 +47,7 @@ import java.util.Vector;
  * This node describes a Generation Clause in a column definition.
  *
  */
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class GenerationClauseNode extends ValueNode
 {
     ///////////////////////////////////////////////////////////////////////////////////
@@ -64,7 +66,7 @@ public class GenerationClauseNode extends ValueNode
     private String      _expressionText;
 
     private ValueNode _boundExpression;
-	private ProviderList _apl;
+    private ProviderList _apl;
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -73,11 +75,11 @@ public class GenerationClauseNode extends ValueNode
     ///////////////////////////////////////////////////////////////////////////////////
 
 
-	public void init( Object generationExpression, Object expressionText )
+    public void init( Object generationExpression, Object expressionText )
     {
         _generationExpression = (ValueNode) generationExpression;
         _expressionText = (String) expressionText;
-	}
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -88,11 +90,11 @@ public class GenerationClauseNode extends ValueNode
     /** Get the defining text of this generation clause */
     public  String  getExpressionText() { return _expressionText; }
     
-	/** Set the auxiliary provider list. */
-	void setAuxiliaryProviderList(ProviderList apl) { _apl = apl; }
+    /** Set the auxiliary provider list. */
+    void setAuxiliaryProviderList(ProviderList apl) { _apl = apl; }
 
-	/** Return the auxiliary provider list. */
-	public ProviderList getAuxiliaryProviderList() { return _apl; }
+    /** Return the auxiliary provider list. */
+    public ProviderList getAuxiliaryProviderList() { return _apl; }
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -100,35 +102,35 @@ public class GenerationClauseNode extends ValueNode
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Binding the generation clause.
-	 */
+    /**
+     * Binding the generation clause.
+     */
     @Override
-	public ValueNode bindExpression(FromList fromList,
+    public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
-                                    List<AggregateNode>	aggregateVector ) throws StandardException {
+                                    List<AggregateNode>    aggregateVector ) throws StandardException {
         _boundExpression = _generationExpression.bindExpression( fromList, subqueryList, aggregateVector );
 
         return _boundExpression;
-	}
+    }
 
-	/**
-	 * Generate code for this node.
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class being built
-	 * @param mb	The method the code to place the code
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void generateExpression(ExpressionClassBuilder acb,
-											MethodBuilder mb)
-									throws StandardException
-	{
+    /**
+     * Generate code for this node.
+     *
+     * @param acb    The ExpressionClassBuilder for the class being built
+     * @param mb    The method the code to place the code
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void generateExpression(ExpressionClassBuilder acb,
+                                            MethodBuilder mb)
+                                    throws StandardException
+    {
         throw StandardException.newException( SQLState.HEAP_UNIMPLEMENTED_FEATURE );
-	}
+    }
 
-	protected boolean isEquivalent(ValueNode other)
-		throws StandardException
+    protected boolean isEquivalent(ValueNode other)
+        throws StandardException
     {
         if ( !( other instanceof GenerationClauseNode) ) { return false; }
 
@@ -137,11 +139,11 @@ public class GenerationClauseNode extends ValueNode
         return this._generationExpression.isEquivalent( that._generationExpression );
     }
     
-	/**
-	 * Return a vector of columns referenced in the generation expression.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Return a vector of columns referenced in the generation expression.
+     *
+     * @exception StandardException        Thrown on error
+     */
     public Vector findReferencedColumns()
         throws StandardException
     {
@@ -156,29 +158,29 @@ public class GenerationClauseNode extends ValueNode
         return result;
     }
 
-	/*
-		Stringify.
-	 */
-	public String toString()
+    /*
+        Stringify.
+     */
+    public String toString()
     {
         return
             "expressionText: GENERATED ALWAYS AS ( " +
             _expressionText + " )\n" +
             super.toString();
-	}
+    }
         
 
     /**
-	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
-	 * how tree printing is supposed to work.
-	 *
-	 * @param depth		The depth of this node in the tree
-	 */
-	public void printSubNodes(int depth)
-	{
-		if (SanityManager.DEBUG)
-		{
-			super.printSubNodes(depth);
+     * Prints the sub-nodes of this object.  See QueryTreeNode.java for
+     * how tree printing is supposed to work.
+     *
+     * @param depth        The depth of this node in the tree
+     */
+    public void printSubNodes(int depth)
+    {
+        if (SanityManager.DEBUG)
+        {
+            super.printSubNodes(depth);
 
             printLabel(depth, "generationExpression: ");
             _generationExpression.treePrint(depth + 1);
@@ -187,16 +189,37 @@ public class GenerationClauseNode extends ValueNode
                 printLabel(depth, "boundExpression. ");
                 _boundExpression.treePrint(depth + 1);
             }
-		}
-	}
+        }
+    }
 
-	public List getChildren() {
+    public List<? extends QueryTreeNode> getChildren() {
 
-		return new LinkedList(){{
-			add(_generationExpression);
-			add(_boundExpression);
-		}};
-	}
+        return new LinkedList<QueryTreeNode>(){{
+            add(_generationExpression);
+            add(_boundExpression);
+        }};
+    }
+
+    @Override
+    public QueryTreeNode getChild(int index) {
+        if (index == 0) {
+            return _generationExpression;
+        } else if (index == 1) {
+            return _boundExpression;
+        }
+        assert false;
+        return null;
+    }
+
+    @Override
+    public void setChild(int index, QueryTreeNode newValue) {
+        if (index == 0) {
+            _generationExpression = (ValueNode) newValue;
+        } else if (index == 1) {
+            _boundExpression = (ValueNode) newValue;
+        }
+        assert false;
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////
     //

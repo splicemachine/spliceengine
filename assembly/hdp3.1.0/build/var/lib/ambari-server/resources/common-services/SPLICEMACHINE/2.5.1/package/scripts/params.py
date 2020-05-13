@@ -35,7 +35,7 @@ hbase_zookeeper_quorum = config['configurations']['hbase-site']['hbase.zookeeper
 #    spark_queue = 'default'
 
 # e.g. 2.3
-stack_version_unformatted = str(config['hostLevelParams']['stack_version'])
+stack_version_unformatted = str(config['clusterLevelParams']['stack_version'])
 
 # e.g. 2.3.0.0
 #hdp_stack_version = format_hdp_stack_version(stack_version_unformatted)

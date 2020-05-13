@@ -17,12 +17,18 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.shaded.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.ReplicationProtos;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
+import org.apache.hbase.thirdparty.com.google.protobuf.CodedOutputStream;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -143,19 +149,22 @@ public class ReplicationUtils {
     public static void addPeer(Connection connection,
                                String peerClusterKey,
                                String peerId,
-                               boolean enabled,
-                               boolean serial) throws SQLException, IOException, KeeperException, InterruptedException {
-        String sql = String.format("call syscs_util.add_peer(%s, '%s', '%s', '%s')", peerId, peerClusterKey,
-                enabled ? "true" : "false", serial ? "true" : "false");
+                               boolean enabled) throws SQLException, IOException, KeeperException, InterruptedException {
+        String sql = String.format("call syscs_util.add_peer(%s, '%s', '%s')", peerId, peerClusterKey,
+                enabled ? "true" : "false");
+        System.out.println("Run " + sql);
         ResultSet rs = connection.createStatement().executeQuery(sql);
         rs.next();
         try {
             int index = rs.findColumn("Success");
             String msg = rs.getString(index);
             SpliceLogUtils.info(LOG, msg);
+            System.out.println(msg);
         }
         catch (SQLException e) {
-            SpliceLogUtils.error(LOG, "Failed to add a peer: %s : ", peerClusterKey, rs.getString(1));
+            String message = String.format("Failed to add a peer: %s : ", peerClusterKey, rs.getString(1));
+            SpliceLogUtils.error(LOG, message);
+            System.out.println(message);
             throw e;
         }
     }
@@ -218,6 +227,54 @@ public class ReplicationUtils {
         } finally {
             if (prepared)
                 transactionResource.close();
+        }
+    }
+
+    public static org.apache.hadoop.hbase.client.Connection createConnection(String clusterKey) throws IOException {
+        String s[] = clusterKey.split(":");
+        String zkQuorum = s[0];
+        String port = s[1];
+        String hbaseRoot = s[2];
+        Configuration conf = org.apache.hadoop.hbase.HBaseConfiguration.create();
+        conf.set(HConstants.ZOOKEEPER_CLIENT_PORT, port);
+        conf.set(HConstants.ZOOKEEPER_QUORUM, zkQuorum);
+        conf.set(HConstants.ZOOKEEPER_ZNODE_PARENT, hbaseRoot);
+        org.apache.hadoop.hbase.client.Connection conn = ConnectionFactory.createConnection(conf);
+        return conn;
+    }
+
+    public static void disableMaster(String masterClusterKey) throws InterruptedException, KeeperException, IOException {
+
+        // Delete all peers from master cluster
+        Configuration conf = ReplicationUtils.createConfiguration(masterClusterKey);
+        ZKWatcher masterZkw = new ZKWatcher(conf, "replication monitor", null, false);
+        RecoverableZooKeeper masterRzk = masterZkw.getRecoverableZooKeeper();
+        String[] s = masterClusterKey.split(":");
+        String hbaseRootDir = s[2];
+        String peerPath = hbaseRootDir+"/replication/peers";
+        List<String> peers = masterRzk.getChildren(peerPath, false);
+        for (String peer : peers) {
+            String p = peerPath + "/" + peer;
+            List<String> children = masterRzk.getChildren(p, false);
+            String peerStatePath = p + "/" + children.get(0);
+            masterRzk.setData(peerStatePath, toByteArray(ReplicationProtos.ReplicationState.State.DISABLED), -1);
+            System.out.println("Disabled peer " + peer);
+        }
+    }
+
+    private static byte[] toByteArray(final ReplicationProtos.ReplicationState.State state) {
+        ReplicationProtos.ReplicationState msg =
+                ReplicationProtos.ReplicationState.newBuilder().setState(state).build();
+        // There is no toByteArray on this pb Message?
+        // 32 bytes is default which seems fair enough here.
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            CodedOutputStream cos = CodedOutputStream.newInstance(baos, 16);
+            msg.writeTo(cos);
+            cos.flush();
+            baos.flush();
+            return ProtobufUtil.prependPBMagic(baos.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

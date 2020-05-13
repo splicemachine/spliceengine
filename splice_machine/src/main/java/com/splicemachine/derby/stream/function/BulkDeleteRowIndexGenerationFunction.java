@@ -16,12 +16,14 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.txn.TxnView;
 import scala.Tuple2;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -55,7 +57,9 @@ public class BulkDeleteRowIndexGenerationFunction extends RowAndIndexGenerator {
         init();
 
         ArrayList<Tuple2<Long,Tuple2<byte[], byte[]>>> list = new ArrayList();
-        list.add(new Tuple2<>(heapConglom,new Tuple2<>(locatedRow.getKey(), new byte[0])));
+
+        RowLocation location = (RowLocation)locatedRow.getColumn(locatedRow.nColumns()).getObject();
+        list.add(new Tuple2<>(heapConglom,new Tuple2<>(location.getBytes(), new byte[0])));
 
         for (int i = 0; i< indexTransformFunctions.length; i++) {
             ExecRow indexRow = getIndexRow(indexTransformFunctions[i], locatedRow);
@@ -127,7 +131,8 @@ public class BulkDeleteRowIndexGenerationFunction extends RowAndIndexGenerator {
             row.setColumn(col, execRow.getColumn(n+1));
             col++;
         }
-        row.setKey(execRow.getKey());
+        RowLocation location = (RowLocation)execRow.getColumn(execRow.nColumns()).getObject();
+        row.setKey(location.getBytes());
         return row;
     }
 }

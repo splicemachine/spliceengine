@@ -73,6 +73,7 @@ import org.spark_project.guava.base.Strings;
 
 import java.sql.Types;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * QueryTreeNode is the root class for all query tree nodes. All
@@ -137,25 +138,25 @@ public abstract class QueryTreeNode implements Node, Visitable{
             char c;
             char[] indent=new char[depth];
 
-			/*
+            /*
             ** Form an array of tab characters for indentation.
-			*/
+            */
             while(depth>0){
                 indent[depth-1]='\t';
                 depth--;
             }
 
-			/* Indent the beginning of the string */
+            /* Indent the beginning of the string */
             nodeStringBuffer.insert(0,indent);
 
-			/*
-			** Look for newline characters, except for the last character.
-			** We don't want to indent after the last newline.
-			*/
+            /*
+            ** Look for newline characters, except for the last character.
+            ** We don't want to indent after the last newline.
+            */
             for(pos=0;pos<nodeStringBuffer.length()-1;pos++){
                 c=nodeStringBuffer.charAt(pos);
                 if(c=='\n'){
-					/* Indent again after each newline */
+                    /* Indent again after each newline */
                     nodeStringBuffer.insert(pos+1,indent);
                 }
             }
@@ -695,6 +696,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         int constantNodeType = getConstantNodeType(type);
         if (constantNodeType == C_NodeTypes.USERTYPE_CONSTANT_NODE) {
             constantNode = (ConstantNode) getNodeFactory().getNode(constantNodeType, value, cm);
+            constantNode.setType(type.getNullabilityType(value.isNull()));
         } else {
             constantNode = (ConstantNode) getNodeFactory().getNode(constantNodeType, type.getTypeId(), cm);
             constantNode.setValue(value);
@@ -727,10 +729,10 @@ public abstract class QueryTreeNode implements Node, Visitable{
      * @throws StandardException Thrown on error
      */
     public DataValueDescriptor convertDefaultNode(DataTypeDescriptor typeDescriptor) throws StandardException{
-		/*
-		** Override in cases where node type
-		** can be converted to default value.
-		*/
+        /*
+        ** Override in cases where node type
+        ** can be converted to default value.
+        */
         return null;
     }
 
@@ -1072,7 +1074,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
             if(nextAD==null)
                 break;
 
-			/* Query is dependent on the AliasDescriptor */
+            /* Query is dependent on the AliasDescriptor */
             cc.createDependency(nextAD);
 
             found=true;
@@ -1453,10 +1455,10 @@ public abstract class QueryTreeNode implements Node, Visitable{
      * separate CompilerContext to perform the compilation.
      */
     StatementNode parseStatement(String sql,boolean internalSQL) throws StandardException{
-		/*
-		** Get a new compiler context, so the parsing of the text
-		** doesn't mess up anything in the current context
-		*/
+        /*
+        ** Get a new compiler context, so the parsing of the text
+        ** doesn't mess up anything in the current context
+        */
         LanguageConnectionContext lcc=getLanguageConnectionContext();
         CompilerContext newCC=lcc.pushCompilerContext();
         if(internalSQL)
@@ -1504,27 +1506,27 @@ public abstract class QueryTreeNode implements Node, Visitable{
             String sql, boolean internalSQL, boolean isStatement)
         throws StandardException
     {
-		/*
-		** Get a new compiler context, so the parsing of the text
-		** doesn't mess up anything in the current context
-		*/
-		LanguageConnectionContext lcc = getLanguageConnectionContext();
-		CompilerContext newCC = lcc.pushCompilerContext();
-		if (internalSQL)
-		    newCC.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
+        /*
+        ** Get a new compiler context, so the parsing of the text
+        ** doesn't mess up anything in the current context
+        */
+        LanguageConnectionContext lcc = getLanguageConnectionContext();
+        CompilerContext newCC = lcc.pushCompilerContext();
+        if (internalSQL)
+            newCC.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
 
-		try
-		{
-			Parser p = newCC.getParser();
+        try
+        {
+            Parser p = newCC.getParser();
             return isStatement
                     ? p.parseStatement(sql)
                     : p.parseSearchCondition(sql);
-		}
+        }
 
-		finally
-		{
-			lcc.popCompilerContext(newCC);
-		}
+        finally
+        {
+            lcc.popCompilerContext(newCC);
+        }
     }
 
     /**
@@ -1547,22 +1549,22 @@ public abstract class QueryTreeNode implements Node, Visitable{
      */
     final SchemaDescriptor getSchemaDescriptor(String schemaName,boolean raiseError)
             throws StandardException{
-		/*
-		** Check for a compilation context.  Sometimes
-		** there is a special compilation context in
-	 	** place to recompile something that may have
-		** been compiled against a different schema than
-		** the current schema (e.g views):
-	 	**
-	 	** 	CREATE SCHEMA x
-	 	** 	CREATE TABLE t
-		** 	CREATE VIEW vt as SEELCT * FROM t
-		** 	SET SCHEMA app
-		** 	SELECT * FROM X.vt
-		**
-		** In the above view vt must be compiled against
-		** the X schema.
-		*/
+        /*
+        ** Check for a compilation context.  Sometimes
+        ** there is a special compilation context in
+         ** place to recompile something that may have
+        ** been compiled against a different schema than
+        ** the current schema (e.g views):
+         **
+         **     CREATE SCHEMA x
+         **     CREATE TABLE t
+        **     CREATE VIEW vt as SEELCT * FROM t
+        **     SET SCHEMA app
+        **     SELECT * FROM X.vt
+        **
+        ** In the above view vt must be compiled against
+        ** the X schema.
+        */
 
         SchemaDescriptor sd=null;
         boolean isCurrent=false;
@@ -1685,9 +1687,9 @@ public abstract class QueryTreeNode implements Node, Visitable{
      */
     private void throwReliabilityException(String fragmentType,int fragmentBitMask) throws StandardException{
         String sqlState;
-		/* Error string somewhat dependent on operation due to different
-		 * nodes being allowed for different operations.
-		 */
+        /* Error string somewhat dependent on operation due to different
+         * nodes being allowed for different operations.
+         */
         if(getCompilerContext().getReliability()==CompilerContext.DEFAULT_RESTRICTION){
             sqlState=SQLState.LANG_INVALID_DEFAULT_DEFINITION;
         }else if(getCompilerContext().getReliability()==CompilerContext.GENERATION_CLAUSE_RESTRICTION){
@@ -1733,23 +1735,23 @@ public abstract class QueryTreeNode implements Node, Visitable{
         tree.add(this);
     }
 
-    public String printExplainInformation(int size, int i, DataSetProcessorType type, boolean fromPlanPrinter) throws StandardException {
+    public String printExplainInformation(boolean printHeader, DataSetProcessorType type, boolean fromPlanPrinter) throws StandardException {
 
-        String s = printExplainInformation(size - i, fromPlanPrinter);
-        if (i > 0)
+        String s = printExplainInformation(fromPlanPrinter);
+        if (!printHeader)
             return s;
         else {
-            String engine = String.format(",engine=%s (%s))", type.isSpark()?"Spark":"control", type.level());
+            String engine = String.format(",engine=%s (%s))", type.isSpark()?"OLAP":"OLTP", type.level());
             s = s.substring(0, s.length()-1) + engine;
         }
         return s;
     }
 
-    public String printExplainInformation(int order, boolean fromPlanPrinter) throws StandardException {
-        return printExplainInformation(",", order);
+    public String printExplainInformation(boolean fromPlanPrinter) throws StandardException {
+        return printExplainInformation(",");
     }
 
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         throw new RuntimeException("Not implemented in: " + this.getClass());
     }
 
@@ -1758,7 +1760,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
     }
 
     public String printExplainInformationForActivation() throws StandardException {
-        return WordUtils.wrap(printExplainInformation(", ", -1), 40, null, false);
+        return WordUtils.wrap(printExplainInformation(", "), 40, null, false);
     }
 
     public String toHTMLString() {
@@ -1766,11 +1768,44 @@ public abstract class QueryTreeNode implements Node, Visitable{
     }
 
     public List<ColumnReference> getHashableJoinColumnReference() {
+        if (this instanceof ParentNode) {
+            return ((ParentNode) this).getChildren()
+                    .stream()
+                    .filter(Objects::nonNull)
+                    .map(QueryTreeNode::getHashableJoinColumnReference)
+                    .filter(Objects::nonNull)
+                    .flatMap(List<ColumnReference>::stream)
+                    .collect(Collectors.toList());
+        }
         return null;
     }
 
-    public void setHashableJoinColumnReference(ColumnReference cr) {}
+    public void setHashableJoinColumnReference(ColumnReference cr) {
+        if (this instanceof ParentNode) {
+            ParentNode thisNode = (ParentNode) this;
+            List<List<ColumnReference>> columnReferences = thisNode.getChildren()
+                    .stream()
+                    .map(QueryTreeNode::getHashableJoinColumnReference)
+                    .collect(Collectors.toList());
 
+            if (columnReferences.stream().filter(Objects::nonNull).anyMatch(colRefs -> colRefs.size() > 1)) {
+                return; // We do not handle multiple column references in hash join // JIRA DB-9274
+            }
+            if (columnReferences.stream().filter(Objects::nonNull).filter(colRefs -> colRefs.size() == 1).count() > 1) {
+                return; // We do not handle referencing columns in multiple children in hash join // JIRA DB-9278
+            }
+
+            for (int i = 0; i < columnReferences.size(); ++i) {
+                if (columnReferences.get(i) != null && columnReferences.get(i).size() == 1) {
+                    if (thisNode.getChild(i) instanceof ColumnReference) {
+                        thisNode.setChild(i, cr);
+                    } else {
+                        thisNode.getChild(i).setHashableJoinColumnReference(cr);
+                    }
+                }
+            }
+        }
+    }
 
     /**
      * For a given ResultColumnList, return a map from
@@ -1965,8 +2000,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
                     rc.setReferenced();
             } else if (col instanceof VirtualColumnNode) {
                 VirtualColumnNode vc = (VirtualColumnNode) col;
-                if (vc != null)
-                    vc.getSourceResultColumn().setReferenced();
+                vc.getSourceResultColumn().setReferenced();
             } else { //OrderedColumn
                 if (col instanceof OrderByColumn) {
                     ResultColumn rc = ((OrderByColumn) col).getResultColumn();

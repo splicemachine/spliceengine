@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>3.1.0.1953-SNAPSHOT</version>
+    <version>3.1.0.1959-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -73,6 +73,7 @@
         </excluded.categories>
         <failTasksRandomly>true</failTasksRandomly>
         <jacoco_out/>
+        <skipUT>false</skipUT>
         <!-- run chaos monkey -->
         <log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
         <olap.log4j.config.uri>file:${basedir}/src/main/resources/olap-log4j.properties</olap.log4j.config.uri>
@@ -564,6 +565,9 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.21.0</version>
+                    <configuration>
+                        <skip>${skipUT}</skip>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <!-- TODO: will need to use splice open source github repo -->
@@ -886,8 +890,10 @@
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
                 <module>platform_it</module>
+                <module>standalone</module>
                 <module>spark_sql</module>
                 <module>splice_spark</module>
+                <module>splice_spark2</module>
                 <module>scala_util</module>
                 <module>assembly</module>
             </modules>
@@ -908,7 +914,6 @@
                 <hadoop.version>3.0.0-cdh6.3.0</hadoop.version>
                 <hbase.version>2.1.0-cdh6.3.0</hbase.version>
                 <hive.version>2.1.1-cdh6.3.0</hive.version>
-                <spark.major.version>spark2.4</spark.major.version>
                 <zookeeper.version>3.4.5-cdh6.3.0</zookeeper.version>
                 <spark.version>2.4.0-cdh6.3.0</spark.version>
                 <spark.major.version>spark2.4</spark.major.version>
@@ -922,8 +927,10 @@
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
                 <module>platform_it</module>
+                <module>standalone</module>
                 <module>spark_sql</module>
                 <module>splice_spark</module>
+                <module>splice_spark2</module>
                 <module>scala_util</module>
                 <module>assembly</module>
             </modules>
@@ -958,8 +965,10 @@
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
                 <module>platform_it</module>
+                <module>standalone</module>
                 <module>spark_sql</module>
                 <module>splice_spark</module>
+                <module>splice_spark2</module>
                 <module>scala_util</module>
                 <module>assembly</module>
             </modules>
