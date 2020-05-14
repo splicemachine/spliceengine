@@ -55,7 +55,8 @@ node('multi-cloud'){
             [$class: 'StringParameterValue', name: 'meta_max_vmcount', value: "3"],
             [$class: 'StringParameterValue', name: 'meta_vmsize', value: "Standard_D8s_v3"],
             [$class: 'StringParameterValue', name: 'db_max_vmcount', value: "12"],
-            [$class: 'StringParameterValue', name: 'tag_creator', value: BUILD_USER_EMAIL]
+            [$class: 'StringParameterValue', name: 'tag_creator', value: BUILD_USER_EMAIL],
+            [$class: 'StringParameterValue', name: 'BUILD_USER_EMAIL', value: BUILD_USER_EMAIL]
         ]
     }
     stage('Create Splice-DB') {
@@ -120,7 +121,8 @@ node('multi-cloud'){
                 [$class: 'StringParameterValue', name: 'meta_max_vmcount', value: "3"],
                 [$class: 'StringParameterValue', name: 'meta_vmsize', value: "Standard_D8s_v3"],
                 [$class: 'StringParameterValue', name: 'db_max_vmcount', value: "12"],
-                [$class: 'StringParameterValue', name: 'tag_creator', value: BUILD_USER_EMAIL]
+                [$class: 'StringParameterValue', name: 'tag_creator', value: BUILD_USER_EMAIL],
+                [$class: 'StringParameterValue', name: 'BUILD_USER_EMAIL', value: BUILD_USER_EMAIL]
             ]
             }
         }
