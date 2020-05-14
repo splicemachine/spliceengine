@@ -24,9 +24,9 @@ def vaultSecrets = [
 ]
 
 node('multi-cloud'){
-    def BUILD_USER_EMAIL = wrap([$class: 'BuildUser']) {
-        return env.BUILD_USER_EMAIL="build@splicemachine.com"
-    }
+    export BUILD_USER="jenkins"
+    export BUILD_USER_EMAIL="build@splicemachine.com"
+
     try{
     stage('Login') {
     wrap([$class: 'VaultBuildWrapper', vaultSecrets: vaultSecrets]) {
