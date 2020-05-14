@@ -27,37 +27,6 @@ environment {
     BUILD_USER_EMAIL="build@splicemachine.com"
 }
 
-node('splice-standalone'){
-    def region = "us-east-1"
-    stage('Checkout Spliceengine') {
-        // Get some code from a GitHub repository
-        scmVars = checkout scm
-        checkout([  
-            $class: 'GitSCM', 
-            branches: [[name: 'refs/heads/'+scmVars.GIT_BRANCH]], 
-            doGenerateSubmoduleConfigurations: false, 
-            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
-            submoduleCfg: [], 
-            userRemoteConfigs: [[credentialsId: 'cloudspliceci_ssh', url: 'https://github.com/splicemachine/spliceengine.git']]
-        ])
-        checkout([  
-            $class: 'GitSCM', 
-            branches: [[name: 'refs/heads/'+scmVars.GIT_BRANCH]], 
-            doGenerateSubmoduleConfigurations: false, 
-            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
-            submoduleCfg: [], 
-            userRemoteConfigs: [[credentialsId: 'cloudspliceci_ssh', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
-        ])
-    }
-    stage('Login') {
-        wrap([$class: 'VaultBuildWrapper', vaultSecrets: vaultSecrets]) {
-        sh "aws configure set aws_access_key_id $aws_splice_access"
-        sh "aws configure set aws_secret_access_key $aws_splice_secret"
-        sh "aws configure set region $region"
-        }
-    }
-}
-
 node('multi-cloud'){
     try{
     stage('Login') {
