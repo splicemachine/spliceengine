@@ -57,7 +57,6 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.FluentIterable;
@@ -616,7 +615,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
         ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId));
         ssb.tableVersion(table.getVersion());
-        ScanSetBuilder scanSetBuilder = createTableScanner(ssb,conn,table,txn,mergeStats);
+        ScanSetBuilder scanSetBuilder = createTableScanner(ssb,conn,table,txn);
         String scope = getScopeName(table);
         // no sample stats support on mem platform
         if (dsp.getType() != DataSetProcessor.Type.SPARK) {
@@ -653,7 +652,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     private static ScanSetBuilder createTableScanner(ScanSetBuilder builder,
                                                      EmbedConnection conn,
                                                      TableDescriptor table,
-                                                     TxnView txn, boolean mergeStats) throws StandardException{
+                                                     TxnView txn) throws StandardException{
 
         List<ColumnDescriptor> colsToCollect = getCollectedColumns(conn, table);
         ExecRow row = new ValueRow(colsToCollect.size());
@@ -718,7 +717,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .tableVersion(table.getVersion())
                 .fieldLengths(fieldLengths)
                 .columnPositionMap(columnPositionMap)
-                .oneSplitPerRegion(!mergeStats)
+                .oneSplitPerRegion(true)
                 .storedAs(table.getStoredAs())
                 .location(table.getLocation())
                 .compression(table.getCompression())
@@ -1030,7 +1029,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                             private double sampleFraction = 0.0d;
 
                             @Override
-                            @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "SpotBugs is confused, we rethrow the exception")
                             public boolean hasNext() {
                                 try {
                                     if (!fetched) {
