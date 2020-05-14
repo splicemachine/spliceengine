@@ -78,13 +78,13 @@ public class ExportKafkaOperation extends SpliceBaseOperation {
         this.topicName = topicName;
         this.sourceColumnDescriptors = sourceColumnDescriptors;
         this.activation = activation;
+        currentTemplate = new ValueRow(0);
     }
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         source.init(context);
-        currentTemplate = new ValueRow(0);
     }
 
     @Override
