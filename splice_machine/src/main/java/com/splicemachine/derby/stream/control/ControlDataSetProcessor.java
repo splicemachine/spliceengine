@@ -42,19 +42,31 @@ import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.spark_project.guava.base.Charsets;
 import scala.Tuple2;
 
 import javax.annotation.Nonnull;
+import java.io.ByteArrayInputStream;
+import java.io.Externalizable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.SequenceInputStream;
 import java.net.URISyntaxException;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Scanner;
+import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 
 import static com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind.NONE;
@@ -409,4 +421,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     @Override public void incrementOpDepth() { }
     @Override public void decrementOpDepth() { }
     @Override public void resetOpDepth() { }
+
+    @Override
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
+        throw new UnsupportedOperationException();
+    }
 }

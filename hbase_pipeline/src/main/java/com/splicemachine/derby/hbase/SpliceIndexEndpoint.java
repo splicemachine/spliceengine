@@ -23,6 +23,7 @@ import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.db.iapi.error.ExceptionUtil;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.PipelineLoadService;
 import com.splicemachine.pipeline.PartitionWritePipeline;
@@ -40,8 +41,10 @@ import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.RegionObserver;
 import org.apache.hadoop.hbase.ipc.RpcUtils;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
@@ -54,6 +57,7 @@ import org.spark_project.guava.collect.Lists;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -62,7 +66,7 @@ import java.util.List;
  * @author Scott Fines
  *         Created on: 3/11/13
  */
-public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implements RegionCoprocessor{
+public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implements RegionCoprocessor, RegionObserver {
     private static final Logger LOG=Logger.getLogger(SpliceIndexEndpoint.class);
 
     private PartitionWritePipeline writePipeline;
@@ -77,7 +81,6 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
     @SuppressWarnings("unchecked")
     public void start(final CoprocessorEnvironment env) throws IOException{
         RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)env);
-        final ServerControl serverControl=new RegionServerControl((HRegion) rce.getRegion(), (RegionServerServices)rce.getOnlineRegions());
 
         tokenEnabled = SIDriver.driver().getConfiguration().getAuthenticationTokenEnabled();
         String tableName= rce.getRegion().getTableDescriptor().getTableName().getQualifierAsString();
@@ -90,45 +93,51 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
                         "index management for batch operations will be disabled",tableName);
                 conglomId=-1;
             }
-            final long cId = conglomId;
-            final RegionPartition baseRegion=new RegionPartition((HRegion)rce.getRegion());
+        }
+    }
 
-            try{
-                service=new PipelineLoadService<TableName>(serverControl,baseRegion,cId){
+    @Override
+    public void postOpen(ObserverContext<RegionCoprocessorEnvironment> c) {
+        RegionCoprocessorEnvironment rce = c.getEnvironment();
+        final ServerControl serverControl=new RegionServerControl((HRegion) rce.getRegion(), (RegionServerServices)rce.getOnlineRegions());
 
-                    @Override
-                    public void start() throws Exception{
-                        super.start();
-                        compressor=getCompressor();
-                        pipelineWriter=getPipelineWriter();
-                        writePipeline=getWritePipeline();
-                    }
+        final long cId = conglomId;
+        final RegionPartition baseRegion=new RegionPartition((HRegion)rce.getRegion());
+        try{
+            service=new PipelineLoadService<TableName>(serverControl,baseRegion,cId){
 
-                    @Override
-                    public void shutdown() throws Exception{
-                        super.shutdown();
-                    }
+                @Override
+                public void start() throws Exception{
+                    super.start();
+                    compressor=getCompressor();
+                    pipelineWriter=getPipelineWriter();
+                    writePipeline=getWritePipeline();
+                }
 
-                    @Override
-                    protected Function<TableName, String> getStringParsingFunction(){
-                        return new Function<TableName, String>(){
-                            @Nullable
-                            @Override
-                            public String apply(TableName tableName){
-                                return tableName.getNameAsString();
-                            }
-                        };
-                    }
+                @Override
+                public void shutdown() throws Exception{
+                    super.shutdown();
+                }
 
-                    @Override
-                    protected PipelineEnvironment loadPipelineEnvironment(ContextFactoryDriver cfDriver) throws IOException{
-                        return HBasePipelineEnvironment.loadEnvironment(new SystemClock(),cfDriver);
-                    }
-                };
-                DatabaseLifecycleManager.manager().registerGeneralService(service);
-            }catch(Exception e){
-                throw new IOException(e);
-            }
+                @Override
+                protected Function<TableName, String> getStringParsingFunction(){
+                    return new Function<TableName, String>(){
+                        @Nullable
+                        @Override
+                        public String apply(TableName tableName){
+                            return tableName.getNameAsString();
+                        }
+                    };
+                }
+
+                @Override
+                protected PipelineEnvironment loadPipelineEnvironment(ContextFactoryDriver cfDriver) throws IOException{
+                    return HBasePipelineEnvironment.loadEnvironment(new SystemClock(),cfDriver);
+                }
+            };
+            DatabaseLifecycleManager.manager().registerGeneralService(service);
+        }catch(Exception e){
+            ExceptionUtil.throwAsRuntime(new IOException(e));
         }
     }
 
@@ -137,6 +146,11 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
         List<Service> services = Lists.newArrayList();
         services.add(this);
         return services;
+    }
+
+    @Override
+    public Optional<RegionObserver> getRegionObserver() {
+        return Optional.of(this);
     }
 
     @Override

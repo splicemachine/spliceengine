@@ -126,6 +126,7 @@ public class ConfigurationBuilder {
     public String replicationMonitorPath;
     public int replicationMonitorInterval;
     public String replicationHealthcheckScript;
+    public String kafkaBootstrapServers;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;
@@ -193,14 +194,15 @@ public class ConfigurationBuilder {
     public String sparkIoCompressionCodec;
     public int sparkResultStreamingBatchSize;
     public int sparkResultStreamingBatches;
-    public int compactionReservedSlots;
-    public int reservedSlotsTimeout;
+    public int sparkSlowResultStreamingBatchSize;
+    public int sparkSlowResultStreamingBatches;
     public int olapCompactionMaximumWait;
     public int olapCompactionMaximumConcurrent;
     public double olapCompactionResolutionShare;
     public double flushResolutionShare;
     public int olapCompactionResolutionBufferSize;
     public boolean olapCompactionBlocking;
+    public int localCompactionResolutionBufferSize;
     public boolean resolutionOnFlushes;
     public int olapClientRetries;
     public double bulkImportSampleFraction;
