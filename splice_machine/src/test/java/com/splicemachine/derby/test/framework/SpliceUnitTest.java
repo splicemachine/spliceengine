@@ -982,4 +982,29 @@ public class SpliceUnitTest {
         }
         return count;
     }
+
+    /// execute sql query 'sqlText' and expect an exception of certain state being thrown
+    public static void SqlExpectException( SpliceWatcher methodWatcher, String sqlText, String expectedState )
+    {
+        try {
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+            rs.close();
+            Assert.fail("Exception not thrown for " + sqlText);
+
+        } catch (SQLException e) {
+            System.out.println( e );
+            Assert.assertEquals("Wrong Exception for " + sqlText, expectedState, e.getSQLState());
+        }
+    }
+
+    /// execute sql query 'sqlText' and expect a certain formatted result
+    public static void SqlExpectToString( SpliceWatcher methodWatcher, String sqlText, String expected, boolean sort ) throws Exception
+    {
+        try( ResultSet rs = methodWatcher.executeQuery(sqlText) ) {
+            String val = sort
+                    ? TestUtils.FormattedResult.ResultFactory.toString(rs)
+                    : TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertEquals(expected, val);
+        }
+    }
 }

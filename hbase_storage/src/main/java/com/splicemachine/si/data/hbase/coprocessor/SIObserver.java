@@ -201,6 +201,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             } else {
                 purgeConfig = PurgeConfig.noPurgeConfig();
             }
+            // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
+            // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
             SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
@@ -215,9 +217,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             if(tableEnvMatch && scanner != null){
                 SIDriver driver=SIDriver.driver();
                 SimpleCompactionContext context = new SimpleCompactionContext();
-                boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
+                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
                 PurgeConfig purgeConfig;
                 if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
@@ -230,7 +231,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 }
                 SICompactionScanner siScanner = new SICompactionScanner(
                         state, scanner, purgeConfig,
-                        conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+                        conf.getOlapCompactionResolutionShare(), conf.getLocalCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
             }else{

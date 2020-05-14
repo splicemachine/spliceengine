@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV2;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV3;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
@@ -964,5 +965,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TriggerDescriptorV2.class,EXTERNALIZABLE_SERIALIZER,332);
         instance.register(StringAggregator.class,EXTERNALIZABLE_SERIALIZER,333);
         instance.register(StringBuilder.class,334);
+        instance.register(TriggerDescriptorV3.class,EXTERNALIZABLE_SERIALIZER,335);
     }
 }

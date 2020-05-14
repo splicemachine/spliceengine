@@ -222,5 +222,9 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     @Override public void incrementOpDepth() { }
     @Override public void decrementOpDepth() { }
     @Override public void resetOpDepth() { }
-}
 
+    @Override
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
+        return delegate.readKafkaTopic(topicName, context);
+    }
+}
