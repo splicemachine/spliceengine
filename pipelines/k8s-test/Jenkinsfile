@@ -24,8 +24,8 @@ def vaultSecrets = [
 ]
 
 node('multi-cloud'){
-    wrap([$class: 'BuildUser']) {
-        env.BUILD_USER_EMAIL="build@splicemachine.com"
+    def BUILD_USER_EMAIL = wrap([$class: 'BuildUser']) {
+        return env.BUILD_USER_EMAIL="build@splicemachine.com"
     }
     try{
     stage('Login') {
