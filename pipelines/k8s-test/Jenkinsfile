@@ -2,7 +2,6 @@ def parcel_url = ""
 def folder_name = ""
 def scmVars = ""
 def target_cluster = ""
-def BUILD_USER_EMAIL="build@splicemachine.com"
 String[] clusters = ["aks-dev1","aks-dev2","aks-dev3","aks-dev4","aks-dev5","aks-dev6","aks-dev7","aks-dev8"]
 def vaultSecrets = [
 [$class: 'VaultSecret', path: "secret/azure/service_principals/8777b2db-3764-422b-a302-7aefb352399f", secretValues: [
@@ -24,6 +23,9 @@ def vaultSecrets = [
     [$class: 'VaultSecretValue', envVar: 'aws_splice_secret', vaultKey: 'secret']]]
 ]
 
+environment {
+    BUILD_USER_EMAIL="build@splicemachine.com"
+}
 
 node('splice-standalone'){
     def region = "us-east-1"
@@ -54,6 +56,7 @@ node('splice-standalone'){
         sh "aws configure set region $region"
         }
     }
+    /*
     stage("Build/Test"){
         // Run Maven on a Unix agent.
         dir('spliceengine'){
@@ -89,7 +92,9 @@ node('splice-standalone'){
             sh "sed -i 's/repository:\\ splicemachine\\/sm_k8_hbase-3.0.0:.*/repository:\\ splicemachine\\/sm_k8_hbase-3.0.0:master/' kubernetes/charts/splice/values.yaml"
         }
     }
+    */
 }
+
 node('multi-cloud'){
     try{
     stage('Login') {
