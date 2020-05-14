@@ -56,7 +56,9 @@ private object Holder extends Serializable {
   * @param options Supported options are SpliceJDBCOptions.JDBC_URL, SpliceJDBCOptions.JDBC_INTERNAL_QUERIES, SpliceJDBCOptions.JDBC_TEMP_DIRECTORY
   */
 @SerialVersionUID(20200513242L)
-@SuppressFBWarnings(value = Array("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD","NP_ALWAYS_NULL","EI_EXPOSE_REP2"))
+@SuppressFBWarnings(value = Array("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"), justification = "Need to set SpliceClient.connectionString")
+@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL"), justification = "These fields usually are not null")
+@SuppressFBWarnings(value = Array("EI_EXPOSE_REP2"), justification = "The prunedFields value is needed and is used read-only")
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] val url = options.get(JDBCOptions.JDBC_URL).get
   

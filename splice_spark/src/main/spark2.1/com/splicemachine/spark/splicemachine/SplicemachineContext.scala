@@ -46,7 +46,9 @@ object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
 }
 @SerialVersionUID(20200513212L)
-@SuppressFBWarnings(value = Array("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD","NP_ALWAYS_NULL","EI_EXPOSE_REP2"))
+@SuppressFBWarnings(value = Array("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"), justification = "Need to set SpliceClient.connectionString")
+@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL"), justification = "These fields usually are not null")
+@SuppressFBWarnings(value = Array("EI_EXPOSE_REP2"), justification = "The prunedFields value is needed and is used read-only")
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
   val url = options.get(JDBCOptions.JDBC_URL).get
 
