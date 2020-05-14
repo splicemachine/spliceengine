@@ -23,9 +23,9 @@ def vaultSecrets = [
     [$class: 'VaultSecretValue', envVar: 'aws_splice_secret', vaultKey: 'secret']]]
 ]
 
-node('multi-cloud'){   
-    environment {
-        BUILD_USER_EMAIL="build@splicemachine.com"
+node('multi-cloud'){
+    wrap([$class: 'BuildUser']) {
+        env.BUILD_USER_EMAIL="build@splicemachine.com"
     }
     try{
     stage('Login') {
