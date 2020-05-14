@@ -167,8 +167,10 @@ public interface SConfiguration {
     String getSparkIoCompressionCodec();
 
     int getSparkResultStreamingBatches();
-
     int getSparkResultStreamingBatchSize();
+
+    int getSparkSlowResultStreamingBatches();
+    int getSparkSlowResultStreamingBatchSize();
 
     double getBulkImportSampleFraction();
 
@@ -340,8 +342,6 @@ public interface SConfiguration {
      */
     Map<String,Object> getConfigMap();
 
-    int getCompactionReservedSlots();
-
     int getOlapCompactionMaximumWait();
 
     int getOlapCompactionMaximumConcurrent();
@@ -352,11 +352,11 @@ public interface SConfiguration {
 
     int getOlapCompactionResolutionBufferSize();
 
+    int getLocalCompactionResolutionBufferSize();
+
     boolean getOlapCompactionBlocking();
 
     boolean getResolutionOnFlushes();
-
-    int getReservedSlotsTimeout();
 
     int getOlapServerTickLimit();
 

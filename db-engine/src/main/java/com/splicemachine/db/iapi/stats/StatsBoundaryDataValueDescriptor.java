@@ -39,10 +39,6 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.yahoo.sketches.quantiles.ItemsSketch;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
 
@@ -435,16 +431,6 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     }
 
     @Override
-    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
-        dvd.write(unsafeRowWriter,ordinal);
-    }
-
-    @Override
-    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-        dvd.read(unsafeRow,ordinal);
-    }
-
-    @Override
     public void read(Row row, int ordinal) throws StandardException {
         dvd.read(row,ordinal);
     }
@@ -517,16 +503,6 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     @Override
     public DataValueDescriptor setArray(DataValueDescriptor[] theValue, DataValueDescriptor dvd) throws StandardException {
         return dvd.setArray(theValue,dvd);
-    }
-
-    @Override
-    public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-        dvd.writeArray(unsafeArrayWriter, ordinal);
-    }
-
-    @Override
-    public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-        dvd.read(unsafeArrayData, ordinal);
     }
 
     @Override

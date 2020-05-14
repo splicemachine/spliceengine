@@ -33,9 +33,6 @@ package com.splicemachine.db.iapi.types;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -47,46 +44,6 @@ import java.util.Arrays;
  *
  */
 public class SQLBlobTest extends SQLDataValueDescriptorTest {
-
-        @Test
-        public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLBlob value = new SQLBlob("1".getBytes());
-                SQLBlob valueA = new SQLBlob();
-                writer.reset();
-                value.write(writer, 0);
-                valueA.read(row,0);
-                Assert.assertTrue("SerdeIncorrect",Arrays.equals("1".getBytes(),valueA.getBytes()));
-        }
-
-        @Test
-        public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLBlob value = new SQLBlob();
-                SQLBlob valueA = new SQLBlob();
-                value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
-                value.read(row, 0);
-                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-        }
-
-        @Test
-        public void testArray() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLArray value = new SQLArray();
-                value.setType(new SQLBlob());
-                value.setValue(new DataValueDescriptor[] {new SQLBlob("1234".getBytes()),new SQLBlob("123".getBytes()),
-                        new SQLBlob("3248932894893289489234892fwdkjfdsjksdjkffddfgdfgdfgfdgdfgdf".getBytes()), new SQLBlob()});
-                SQLArray valueA = new SQLArray();
-                valueA.setType(new SQLBlob());
-                writer.reset();
-                value.write(writer,0);
-                valueA.read(row,0);
-                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
-        }
 
         @Test
         public void testExecRowSparkRowConversion() throws StandardException {

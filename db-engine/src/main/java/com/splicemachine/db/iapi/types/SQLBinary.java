@@ -1327,7 +1327,6 @@ abstract class SQLBinary
      * @param ordinal
      * @throws StandardException
      */
-    @Override
     public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException{
         if (isNull())
             unsafeRowWriter.setNullAt(ordinal);
@@ -1343,7 +1342,6 @@ abstract class SQLBinary
      * @param ordinal
      * @throws StandardException
      */
-    @Override
     public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
         if (unsafeArrayData.isNullAt(ordinal))
             setToNull();
@@ -1361,7 +1359,6 @@ abstract class SQLBinary
      * @param ordinal
      * @throws StandardException
      */
-    @Override
     public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
         if (isNull())
             unsafeArrayWriter.setNull(ordinal);
@@ -1378,7 +1375,6 @@ abstract class SQLBinary
      *
      * @throws StandardException
      */
-    @Override
     public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
         if (unsafeRow.isNullAt(ordinal))
             setToNull();

@@ -1501,7 +1501,7 @@
                 <hbase.version>1.1.8-mapr-1901</hbase.version>
                 <hbase.bundle.version>1.1.8-mapr-1901</hbase.bundle.version>
                 <hive.version>2.3.3-mapr-1901</hive.version>
-                <zookeeper.version>3.4.11-mapr-1808=</zookeeper.version>
+                <zookeeper.version>3.4.11-mapr-1808</zookeeper.version>
                 <maprfs.version>6.1.0-mapr</maprfs.version>
                 <spark.version>2.3.2.0-mapr-1901</spark.version>
                 <spark.major.version>spark2.3</spark.major.version>
@@ -1510,6 +1510,42 @@
                 <netty-all.version>4.1.17.Final</netty-all.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
                 <parquet.version>orc-spark-2.3</parquet.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>platform_it</module>
+                <module>spark_sql</module>
+                <module>splice_spark</module>
+                <module>scala_util</module>
+                <module>assembly</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>mapr6.1.0-2.4</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>mapr6.1.0-2.4</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>mapr6.1.0-2.4</envClassifier>
+                <envHbase>hbase1.1.13</envHbase>
+                <hadoop.version>2.7.0-mapr-1808</hadoop.version>
+                <hbase.version>1.1.13.0-mapr-630</hbase.version>
+                <hbase.bundle.version>1.1.13.0-mapr-630</hbase.bundle.version>
+                <hive.version>2.3.6-mapr-1912</hive.version>
+                <zookeeper.version>3.4.11-mapr-1808</zookeeper.version>
+                <maprfs.version>6.1.0-mapr</maprfs.version>
+                <spark.version>2.4.4.0-mapr-630</spark.version>
+                <spark.major.version>spark2.4</spark.major.version>
+                <assembly.spark>1.1.8-mapr-1901</assembly.spark>
+                <kafka.version>1.1.1-mapr-1912</kafka.version>
+                <netty-all.version>4.1.17.Final</netty-all.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
+                <parquet.version>orc-spark-2.4</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
