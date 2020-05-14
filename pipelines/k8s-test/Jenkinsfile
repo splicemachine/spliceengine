@@ -24,8 +24,10 @@ def vaultSecrets = [
 ]
 
 node('multi-cloud'){
-    export BUILD_USER="jenkins"
-    export BUILD_USER_EMAIL="build@splicemachine.com"
+    BUILD_CAUSE_JSON = sh ( script: "curl --silent ${BUILD_URL}/api/json | tr '{}' '\n' | grep 'Started by'", returnStdout: true ).trim() 
+    echo "BUILD_CAUSE_JSON: ${BUILD_CAUSE_JSON}" 
+    BUILD_USER_ID=new groovy.json.JsonSlurper().parseText("{${BUILD_CAUSE_JSON}}").userId 
+    echo "BUILD_USER_ID: ${BUILD_USER_ID}"
 
     try{
     stage('Login') {
