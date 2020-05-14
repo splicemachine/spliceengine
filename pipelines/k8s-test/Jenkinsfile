@@ -56,43 +56,6 @@ node('splice-standalone'){
         sh "aws configure set region $region"
         }
     }
-    /*
-    stage("Build/Test"){
-        // Run Maven on a Unix agent.
-        dir('spliceengine'){
-            sh "mvn -Dmaven.test.failure.ignore=true -q -B -e --fail-at-end clean install -Pcore,cdh6.3.0,ee,parcel -DskipTests"
-            parcel_url = sh(script:"aws s3 sync assembly/target/parcels/ s3://splice-snapshots/dev//master/ --acl public-read --no-progress | grep el7 | cut -d ' ' -f 4-100 | cut -c 6- | awk '{\$1=\$1};1' | xargs echo -n", returnStdout: true)
-            folder_name = sh(script:"echo '${parcel_url}' | cut -d/ -f 5 | cut -d- -f-3 | awk '{\$1=\$1};1' | xargs echo -n", returnStdout: true)
-            parcel_url="https://s3.amazonaws.com/${parcel_url}"
-        }
-    }
-    stage("Docker Build Dev"){
-        echo "${parcel_url}"
-        echo "${folder_name}"
-        build job: '../PDImageBuilds/pd-hbase-spark-docker-build/master', parameters: [
-                [$class: 'StringParameterValue', name: 'ParcelLocationAndName', value: parcel_url],
-                [$class: 'StringParameterValue', name: 'ExtractedFolderName', value: folder_name],
-                [$class: 'StringParameterValue', name: 'DockerTag', value: scmVars.GIT_BRANCH]
-            ]
-    }
-    stage('Checkout dbaas-infrastructure') {
-        // Get some code from a GitHub repository
-        checkout([  
-            $class: 'GitSCM', 
-            branches: [[name: 'refs/heads/master']], 
-            doGenerateSubmoduleConfigurations: false, 
-            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'dbaas-infrastructure']], 
-            submoduleCfg: [], 
-            userRemoteConfigs: [[credentialsId: 'cloudspliceci_ssh', url: 'https://github.com/splicemachine/dbaas-infrastructure.git']]
-        ])
-    }
-    stage("Setup New Splice Image Tags"){
-        dir("dbaas-infrastructure"){
-            sh "sed -i 's/repository:\\ splicemachine\\/sm_k8_spark-3.0.0:.*/repository:\\ splicemachine\\/sm_k8_spark-3.0.0:master/' kubernetes/charts/splice/values.yaml"
-            sh "sed -i 's/repository:\\ splicemachine\\/sm_k8_hbase-3.0.0:.*/repository:\\ splicemachine\\/sm_k8_hbase-3.0.0:master/' kubernetes/charts/splice/values.yaml"
-        }
-    }
-    */
 }
 
 node('multi-cloud'){
