@@ -21,6 +21,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
@@ -28,6 +29,7 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -41,6 +43,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 /**
  * Created by jyuan on 2/15/18.
  */
+@Category(LongerThanTwoMinutes.class)
 public class CheckTableIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = CheckTableIT.class.getSimpleName().toUpperCase();
