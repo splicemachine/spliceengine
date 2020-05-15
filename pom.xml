@@ -71,6 +71,7 @@
         <argLine>${jacocoAgent}</argLine>
         <excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.BackupTest
         </excluded.categories>
+        <excluded.longerthan> </excluded.longerthan>
         <failTasksRandomly>true</failTasksRandomly>
         <jacoco_out/>
         <skipUT>false</skipUT>
@@ -742,6 +743,12 @@
                 <spark.warehouse>-Dsplice.spark.sql.warehouse.dir=/user/hbase/spark-warehouse</spark.warehouse>
                 <spark.defaultfs>-Dsplice.spark.hadoop.fs.defaultFS=hdfs://localhost:58878/</spark.defaultfs>
                 <hbase.rootdir>-Dhbase.rootdir=/hbase</hbase.rootdir>
+            </properties>
+        </profile>
+        <profile>
+            <id>skipTestsLongerThan2Minutes</id>
+            <properties>
+                <excluded.longerthan>com.splicemachine.test.LongerThanTwoMinutes</excluded.longerthan>
             </properties>
         </profile>
         <profile>
