@@ -20,7 +20,7 @@ import scala.collection.immutable.IndexedSeq
 import org.apache.spark.sql._
 import org.junit.runner.RunWith
 import org.junit.Assert._
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
+import org.scalatest.{BeforeAndAfter, FunSuite, Matchers, Ignore}
 import org.scalatest.junit.JUnitRunner
 import org.apache.spark.sql.functions._
 import java.util.concurrent.{CountDownLatch, TimeUnit, TimeoutException}
@@ -33,6 +33,7 @@ import org.apache.spark.streaming.{Milliseconds, StreamingContext}
 import scala.collection.mutable.Queue
 
 @RunWith(classOf[JUnitRunner])
+@Ignore
 class SparkStreamingIT extends FunSuite with TestStreamingContext with BeforeAndAfter with Matchers {
   val rowCount = 10
   var sqlContext : SQLContext = _
