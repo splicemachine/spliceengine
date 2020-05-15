@@ -16,8 +16,10 @@ package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -41,6 +43,7 @@ import static org.junit.Assert.assertThat;
 
 
 @RunWith(Parameterized.class)
+@Category(LongerThanTwoMinutes.class)
 public class BroadcastJoinIT extends SpliceUnitTest {
 
     private Boolean useSpark;
