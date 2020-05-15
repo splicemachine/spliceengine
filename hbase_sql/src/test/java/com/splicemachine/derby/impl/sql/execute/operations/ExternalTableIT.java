@@ -33,6 +33,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import static com.splicemachine.db.shared.common.reference.SQLState.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -990,6 +991,78 @@ public class ExternalTableIT extends SpliceUnitTest {
         Assert.assertEquals("column1 |\n" +
                 "----------\n" +
                 "   AAA   |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testParquetErrorSuggestSchemaGiven() throws Exception {
+        // test schema suggestion on a given file
+
+        String file = getResourceDirectory()+"parquet_schema_evolution";
+        String suggested = " Suggested Schema is 'CREATE EXTERNAL TABLE T (i INT, j CHAR/VARCHAR(x));'.";
+        try{
+            methodWatcher.executeUpdate("create external table parquet_simple_file_table" +
+                                         " (col1 INTEGER) STORED AS PARQUET LOCATION '" + file + "'");
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception", INCONSISTENT_NUMBER_OF_ATTRIBUTE, e.getSQLState());
+            Assert.assertEquals( "wrong exception message",
+                    "'Only '1' attributes defined but '2' present in the external file : '" + file + "'." + suggested,
+                    e.getMessage() );
+        }
+
+        try{
+            methodWatcher.executeUpdate("create external table parquet_simple_file_table" +
+                    " (decimal_col1 DECIMAL(7, 2), col2_int INTEGER) STORED AS PARQUET LOCATION '" + file + "'");
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception", INCONSISTENT_DATATYPE_ATTRIBUTES, e.getSQLState());
+            Assert.assertEquals( "wrong exception message",
+                    "The field 'DECIMAL_COL1':'DECIMAL(7,2)' defined in the table is not compatible with " +
+                            "the field 'i':'INT' defined in the external file '" + file + "'." + suggested,
+                    e.getMessage() );
+        }
+    }
+
+    // this test checks that when using a wrong schema, the suggested CREATE TABLE statement is
+    // exactly as the actually used CREATE TABLE Statement
+    @Test
+    public void testWriteAllDataTypesCheckSuggest() throws Exception {
+        String file_types[] = {"ORC", "PARQUET"};
+        for( String file_type : file_types ) {
+            String name = "all_datatypes_" + file_type;
+
+            String file = getExternalResourceDirectory() + name;
+            // parquet currently can't use TIME, will be written (or infered) as TIMESTAMP
+            // see DB-9710
+
+            // we currently can't infere the length of CHAR/VARCHAR, so suggestion is CHAR/VARCHAR(x)
+            String nonCharTypes = "COL_DATE DATE, COL_TIMESTAMP TIMESTAMP, " +
+                    "COL_TINYINT TINYINT, COL_SMALLINT SMALLINT, COL_INTEGER INT, COL_BIGINT BIGINT, " +
+                    "COL_DECIMAL DECIMAL(7,2), COL_DOUBLE DOUBLE, COL_REAL REAL, COL_BOOLEAN BOOLEAN";
+            String schema = "COL_CHAR char(10), COL_VARCH varchar(24), " + nonCharTypes;
+            String suggestedTypes = "COL_CHAR CHAR/VARCHAR(x), COL_VARCH CHAR/VARCHAR(x), " + nonCharTypes;
+            String values = "'AAAA', 'AAAA', " +
+                    "'2017-7-27', '2013-03-23 09:45:00', " +
+                    "1, 1, 1, 1, " +
+                    "12.34, 1.5, 1.5, TRUE";
+
+            String externalTableOptions = " COMPRESSED WITH SNAPPY STORED AS PARQUET LOCATION '" + file + "'";
+            methodWatcher.executeUpdate("create external table " + name + " (" + schema + ")" + externalTableOptions);
+
+            int insertCount = methodWatcher.executeUpdate("insert into " + name + " values (" + values + ")");
+            Assert.assertEquals("insertCount is wrong", 1, insertCount);
+
+            try {
+                methodWatcher.executeUpdate("create external table all_datatypes_wrong ( i int )" + externalTableOptions);
+                Assert.fail("Exception not thrown");
+            } catch (SQLException e) {
+                Assert.assertEquals("Wrong Exception", INCONSISTENT_NUMBER_OF_ATTRIBUTE, e.getSQLState());
+                Assert.assertEquals("wrong exception message",
+                        "'Only '1' attributes defined but '12' present in the external file : '" + file + "'. " +
+                                "Suggested Schema is 'CREATE EXTERNAL TABLE T (" + suggestedTypes + ");'.",
+                        e.getMessage());
+            }
+        }
     }
 
     @Test

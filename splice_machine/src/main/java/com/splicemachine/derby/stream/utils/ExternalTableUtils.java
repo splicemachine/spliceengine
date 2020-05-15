@@ -120,18 +120,48 @@ public class ExternalTableUtils {
         }
     }
 
+    public static String getSqlTypeName( org.apache.spark.sql.types.DataType datatype) {
+        if( datatype.toString().equals("StringType") ) {
+            // todo: stringlength?
+            return "CHAR/VARCHAR(x)";
+        }
+        else if( datatype.toString().equals("FloatType") ) {
+            // Spark's FloatType is NOT a SQL FLOAT type.
+            // what is meant is a 4-byte floating point value, which is a REAL in SQL.
+            // see https://doc.splicemachine.com/sqlref_datatypes_float.html .
+            return "REAL";
+        }
+        else return datatype.sql();
+    }
+    /// returns a suggested schema for this schema, e.g. `CREATE EXTERNAL TABLE T (a_float REAL, a_double DOUBLE);`
+    public static String getSuggestedSchema(StructType externalSchema) {
+        StringBuilder sb = new StringBuilder();
+        sb.append( "CREATE EXTERNAL TABLE T (" );
+        for( int i =0 ; i < externalSchema.fields().length; i++)
+        {
+            StructField f = externalSchema.fields()[i];
+            if( i > 0 ) sb.append( ", " );
+            sb.append( f.name() + " ");
+            sb.append( getSqlTypeName( f.dataType() ) );
+            if( !f.nullable() )
+                sb.append(" NOT NULL");
+        }
+        sb.append( ");" );
+        return sb.toString();
+    }
+
     public static void checkSchema(StructType tableSchema,
-                                   StructType dataSchema,
+                                   StructType externalSchema,
                                    int[] partitionColumnMap,
                                    String location) throws StandardException{
 
 
         StructField[] tableFields = tableSchema.fields();
-        StructField[] dataFields = dataSchema.fields();
+        StructField[] externalFields = externalSchema.fields();
 
-        if (tableFields.length != dataFields.length) {
+        if (tableFields.length != externalFields.length) {
             throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE,
-                    tableFields.length, dataFields.length, location);
+                    tableFields.length, externalFields.length, location, getSuggestedSchema(externalSchema) );
         }
 
         StructField[] partitionedTableFields = new StructField[tableSchema.fields().length];
@@ -149,13 +179,12 @@ public class ExternalTableUtils {
         for (int i = 0; i < tableFields.length - partitionColumnMap.length; ++i) {
 
             String tableFiledTypeName = partitionedTableFields[i].dataType().typeName();
-            String dataFieldTypeName = dataFields[i].dataType().typeName();
+            String dataFieldTypeName = externalFields[i].dataType().typeName();
             if (!tableFiledTypeName.equals(dataFieldTypeName)){
                 throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES,
-                        tableFields[i].name(),
-                        tableFields[i].dataType().toString(),
-                        dataFields[i].name(),
-                        dataFields[i].dataType().toString(),location);
+                        tableFields[i].name(), getSqlTypeName(tableFields[i].dataType()),
+                        externalFields[i].name(), getSqlTypeName(externalFields[i].dataType()),
+                        location, getSuggestedSchema(externalSchema) );
             }
         }
     }
