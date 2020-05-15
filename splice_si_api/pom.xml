@@ -101,7 +101,7 @@
                 </plugin>
                 -->
                 <configuration>
-                    <excludedGroups>com.splicemachine.si.testenv.ArchitectureSpecific</excludedGroups>
+                    <excludedGroups>com.splicemachine.si.testenv.ArchitectureSpecific, ${excluded.longerthan}</excludedGroups>
                 </configuration>
             </plugin>
         </plugins>
