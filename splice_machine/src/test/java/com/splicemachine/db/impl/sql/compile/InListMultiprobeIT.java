@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -41,7 +42,7 @@ import static org.junit.Assert.assertEquals;
  */
 @Ignore
 @RunWith(Parameterized.class)
-@Category(SerialTest.class)
+@Category({SerialTest.class, LongerThanTwoMinutes.class})
 public class InListMultiprobeIT  extends SpliceUnitTest {
     
     private Boolean useSpark;
