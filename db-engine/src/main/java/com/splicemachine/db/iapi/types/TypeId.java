@@ -1477,6 +1477,9 @@ public class TypeId{
             case StoredFormatIds.BIT_TYPE_ID:
                 return new SQLBit(new byte[0]);
 
+            case StoredFormatIds.BOOLEAN_TYPE_ID:
+                return new SQLBoolean(false);
+
             case StoredFormatIds.CHAR_TYPE_ID:
                 return new SQLChar("");
 

@@ -20,7 +20,8 @@ import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
@@ -63,6 +64,8 @@ import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.functions;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -571,7 +574,39 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         }
     }
 
+    private String getSuggestedSchema(StructType externalSchema)
+    {
+        TypeId types[] = TypeId.getAllBuiltinTypeIds();
+        StringBuilder sb = new StringBuilder();
+        sb.append( "CREATE TABLE T (" );
+        for( int i =0 ; i < externalSchema.fields().length; i++)
+        {
+            StructField f = externalSchema.fields()[i];
+            if( i > 0 ) sb.append( ", " );
+            sb.append( f.name() + " ");
+
+            // todo: NULLABLE/NOT NULL ?
+
+            if( f.dataType().typeName().equalsIgnoreCase("string") ) {
+                // todo: stringlength?
+                sb.append("VARCHAR(200)");
+            }
+            else {
+                for (TypeId type : types) {
+                    if (type.getNull().getStructField("col").dataType().sameType(f.dataType())) {
+                        sb.append(type.getNull().getTypeName());
+                        break;
+                    }
+                }
+            }
+
+        }
+        sb.append( ");" );
+        return sb.toString();
+    }
+
     private void checkSchema(StructType externalSchema, Activation activation) throws StandardException {
+        String s = getSuggestedSchema(externalSchema);
 
         ExecRow template = new ValueRow(columnInfo.length);
         DataValueDescriptor[] dvds = template.getRowArray();
@@ -581,8 +616,12 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
         //Make sure we have the same amount of attributes in the definition compared to the external file
         if (externalSchema.fields().length != template.length()) {
-            throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE, template.length(), externalSchema.fields().length, location);
+//            throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE, template.length(), externalSchema.fields().length, location);
+            throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, "inconsistent size " + template.length() + " and " + externalSchema.fields().length, "bb",
+                    "xx", s, //externalField.dataType().toString(),
+                    location);
         }
+
 
         int nPartitionColumns = 0;
         for (ColumnInfo column:columnInfo) {
@@ -613,7 +652,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             if (!definedField.dataType().equals(externalField.dataType())) {
                 if (!supportAvroDateToString(storedAs,externalField,definedField)) {
                     throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, definedField.name(),definedField.dataType().toString(),
-                            externalField.name(), externalField.dataType().toString(),location);
+                            externalField.name(), s, //externalField.dataType().toString(),
+                            location);
                 }
             }
         }
@@ -625,7 +665,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             if (!definedField.dataType().equals(externalField.dataType())) {
                 if (!supportAvroDateToString(storedAs,externalField,definedField)) {
                     Object[] objects = new Object[]{definedField.name(),definedField.dataType().toString(),
-                            externalField.name(), externalField.dataType().toString(),location};
+                            externalField.name(), s, //externalField.dataType().toString(),
+                            location};
                     SQLWarning warning = StandardException.newWarning(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, objects);
                     activation.addWarning(warning);
                 }

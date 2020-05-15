@@ -188,7 +188,7 @@ COUNT=65
 ZOO_UP=""
 until [ ${COUNT} -eq 0 ] || [ "${ZOO_UP}" == "imok" ]; do
     sleep 1
-    ZOO_UP="$(echo 'ruok' | nc localhost 2181)"
+    ZOO_UP="$(echo 'ruok' | nc localhost 2181 2> /dev/null)"
     let COUNT-=1
 done
 
