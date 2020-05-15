@@ -34,11 +34,13 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -52,6 +54,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by yxia on 6/8/17.
  */
+@Category(LongerThanTwoMinutes.class)
 public class MultipleDistinctAggregatesIT extends SpliceUnitTest {
     public static final String CLASS_NAME = MultipleDistinctAggregatesIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
