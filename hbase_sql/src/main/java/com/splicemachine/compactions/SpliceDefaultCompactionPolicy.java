@@ -48,7 +48,9 @@ public class SpliceDefaultCompactionPolicy extends ExploringCompactionPolicy {
         HRegion region = store.getHRegion();
         String storeName = store.getColumnFamilyName();
         scr.setIsMajor(cr.isMajor(), cr.isAllFiles());
-        scr.setOffPeak(cr.isOffPeak());
+        // Ignoring cr.isOffPeak() and hardcoding true because SpliceCompactionRequest.setOffPeak is hijacked to run
+        // SpliceCompactionRequest.afterExecute if isOffPeak(false) is called.
+        scr.setOffPeak(true);
         scr.setPriority(cr.getPriority());
         scr.setDescription(region.getRegionInfo().getEncodedName(), storeName);
         return scr;
