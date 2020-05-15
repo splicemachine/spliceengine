@@ -27,8 +27,6 @@ import java.util.List;
 public interface TableChecker {
     List<String> checkIndex(PairDataSet index,
                             String indexName,
-                            KeyHashDecoder indexKeyDecoder,
-                            ExecRow indexKey,
                             CheckTableJob.LeadingIndexColumnInfo leadingIndexColumnInfo,
                             long conglomerate,
                             DDLMessage.TentativeIndex tentativeIndex) throws Exception;
