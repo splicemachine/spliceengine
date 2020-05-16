@@ -571,7 +571,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param schema
    * @param schemaTableName table to delete from
    */
-  def delete(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+  def delete(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = if( !rdd.isEmpty ) {
     val keys = primaryKeys(schemaTableName)
     if (keys.length == 0)
       throw new UnsupportedOperationException(s"$schemaTableName has no Primary Key, Required for the Table to Perform Deletes")
@@ -589,11 +589,13 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     )
   
   /** Schema string built from JDBC metadata. */
-  def schemaString(schemaTableName: String): String =
+  def schemaString(schemaTableName: String, schema: StructType = new StructType()): String =
     SpliceJDBCUtil.retrieveColumnInfo(
       new JdbcOptionsInWrite(Map(
         JDBCOptions.JDBC_URL -> url,
         JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
+    ).filter(
+      col => schema.isEmpty || schema.exists( field => field.name.toUpperCase.equals( col(0).toUpperCase ) )
     ).map(i => {
       val colName = i(0)
       val sqlType = i(1)
@@ -623,7 +625,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     val sqlText = sqlStart +
       " from new com.splicemachine.derby.vti.KafkaVTI('"+topicName+"') " +
-      "as SDVTI (" + schemaString(schemaTableName) + ") where "
+      "as SDVTI (" + schemaString(schemaTableName, schema) + ") where "
     val dialect = JdbcDialects.get(url)
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
@@ -651,7 +653,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param schema
    * @param schemaTableName
    */
-  def update(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+  def update(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = if( !rdd.isEmpty ) {
     val keys = primaryKeys(schemaTableName)
     if (keys.length == 0)
       throw new UnsupportedOperationException(s"$schemaTableName has no Primary Key, Required for the Table to Perform Updates")
