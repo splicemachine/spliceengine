@@ -5440,4 +5440,31 @@ public class WindowFunctionIT extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
+
+
+    @Test
+    public void testInteractionOfWindowFunctionWithGroupByToDistinctOptimization() throws Exception {
+        String sqlText =
+                String.format("select emp_id, years, amount, lead(amount) over (partition by emp_id order by amount desc) as next_lower " +
+                        "from (\n" +
+                        "select emp_id, years, amount\n" +
+                        "from %1$s  --splice-properties useSpark=%2$s\n" +
+                        "where month=1\n" +
+                        "union all \n" +
+                        "select emp_id, years, amount\n" +
+                        "from %1$s \n" +
+                        "where month=1) dt\n" +
+                        "group by emp_id, years, amount\n" +
+                        "order by emp_id, amount desc, next_lower desc nulls last", this.getTableReference(ALL_SALES), useSpark);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "EMP_ID | YEARS | AMOUNT  |NEXT_LOWER |\n" +
+                        "--------------------------------------\n" +
+                        "  21   | 2005  |26034.84 | 16034.84  |\n" +
+                        "  21   | 2006  |16034.84 |   NULL    |\n" +
+                        "  22   | 2005  |16634.84 |   NULL    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 }
