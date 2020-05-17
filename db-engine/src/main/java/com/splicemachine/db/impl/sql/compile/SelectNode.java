@@ -992,9 +992,14 @@ public class SelectNode extends ResultSetNode{
         /* A valid group by without any aggregates or a having clause
          * is equivalent to a distinct without the group by.  We do the transformation
          * in order to simplify the group by code.
-         * The conversion cannot be done if it is a rollup
+         * The conversion cannot be done if it is a rollup, or if a window function is present
          */
-        if(groupByList!=null && !groupByList.isRollup() && havingClause==null && !hasAggregatesInSelectList() && whereAggregates.isEmpty()){
+        if(groupByList!=null &&
+                !groupByList.isRollup() &&
+                havingClause==null &&
+                !hasAggregatesInSelectList() &&
+                whereAggregates.isEmpty() &&
+                !hasWindows()) {
             isDistinct=true;
             groupByList=null;
             wasGroupBy=true;
