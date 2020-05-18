@@ -67,7 +67,8 @@ object KafkaOptions {
   *                JDBCOptions.JDBC_TEMP_DIRECTORY, KafkaOptions.KAFKA_SERVERS, KafkaOptions.KAFKA_POLL_TIMEOUT
   */
 @SerialVersionUID(20200517242L)
-@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL, NP_LOAD_OF_KNOWN_NULL_VALUE"), justification = "These fields usually are not null")
+@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL"), justification = "These fields usually are not null")
+@SuppressFBWarnings(value = Array("NP_LOAD_OF_KNOWN_NULL_VALUE"), justification = "These fields usually are not null")
 @SuppressFBWarnings(value = Array("EI_EXPOSE_REP2"), justification = "The nonKeys value is needed and is used read-only")
 @SuppressFBWarnings(value = Array("SE_BAD_FIELD"), justification = "The meta and itrRow objects are not used in serialization")
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
