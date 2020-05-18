@@ -23,11 +23,12 @@ import org.apache.spark.sql.SQLContext
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.Ignore
 import org.junit.runner.RunWith
 import org.junit.experimental.categories.Category
 
 @RunWith(classOf[JUnitRunner])
-@Category(Array(classOf[LongerThanTwoMinutes]))
+@Ignore //("DB-9562")
 class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
   val rowCount = 10
 
