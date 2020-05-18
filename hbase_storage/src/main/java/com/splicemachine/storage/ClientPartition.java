@@ -200,9 +200,8 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                 info.add(location.getRegion());
             }
         }
-        int totalStoreFileSizeMB = 0;
-        int totalMemstoreSieMB = 0;
-        int storeFileIndexSizeMB = 0;
+        long totalStoreFileSize = 0;
+        long totalMemstoreSize = 0;
         try (Admin admin = connection.getAdmin()) {
             ClusterMetrics metrics = admin.getClusterMetrics();
             for (Map.Entry<ServerName, List<RegionInfo>> entry : serverToRegionMap.entrySet()) {
@@ -212,14 +211,13 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                 for (RegionInfo regionInfo : entry.getValue()) {
                     RegionMetrics regionMetrics = regionsMetrics.get(regionInfo.getRegionName());
                     if (regionMetrics != null) {
-                        totalStoreFileSizeMB += (int) regionMetrics.getStoreFileSize().get(Size.Unit.MEGABYTE);
-                        totalMemstoreSieMB += (int) regionMetrics.getMemStoreSize().get(Size.Unit.MEGABYTE);
-                        storeFileIndexSizeMB += (int) regionMetrics.getStoreFileIndexSize().get(Size.Unit.MEGABYTE);
+                        totalStoreFileSize += regionMetrics.getStoreFileSize().get(Size.Unit.BYTE);
+                        totalMemstoreSize += regionMetrics.getMemStoreSize().get(Size.Unit.BYTE);
                     }
                 }
             }
         }
-        return new HPartitionLoad(getName(), totalStoreFileSizeMB, totalMemstoreSieMB, storeFileIndexSizeMB);
+        return new HPartitionLoad(getName(), totalStoreFileSize, totalMemstoreSize);
     }
 
     /**
