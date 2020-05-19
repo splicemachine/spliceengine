@@ -33,6 +33,7 @@ package com.splicemachine.triggers;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.LongerThanTwoMinutes;
+import com.splicemachine.test.LongerThanFiveMinutes;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -53,7 +54,7 @@ import static org.junit.Assert.assertTrue;
  * Test WHEN clause in triggers.
  */
 @RunWith(Parameterized.class)
-@Category({SerialTest.class, LongerThanTwoMinutes.class})
+@Category({SerialTest.class, LongerThanTwoMinutes.class, LongerThanFiveMinutes.class})
 public class Trigger_When_Clause_IT extends SpliceUnitTest {
 
 

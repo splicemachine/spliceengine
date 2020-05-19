@@ -749,6 +749,12 @@
             </properties>
         </profile>
         <profile>
+            <id>skipTestsLongerThan5Minutes</id>
+            <properties>
+                <excluded.longerthan>com.splicemachine.test.LongerThanFiveMinutes</excluded.longerthan>
+            </properties>
+        </profile>
+        <profile>
             <!-- When jacoco is disabled,the jacocoAgent property still needs to exist -->
             <id>noJacoco</id>
             <activation>
