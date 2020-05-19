@@ -158,7 +158,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
             }
             List<HRegionLocation> tableLocations = ((ClusterConnection) connection).locateRegions(tableName, !refresh, false);
             if (outdated(tableLocations)) {
-                tableLocations = ((ClusterConnection) connection).locateRegions(tableName, refresh, false);
+                tableLocations = ((ClusterConnection) connection).locateRegions(tableName, false, false);
             }
             partitions = new ArrayList<>(tableLocations.size());
             for (HRegionLocation location : tableLocations){
