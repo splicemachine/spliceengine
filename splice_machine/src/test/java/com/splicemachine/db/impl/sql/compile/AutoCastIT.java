@@ -19,7 +19,6 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -41,7 +40,6 @@ import static org.junit.Assert.assertEquals;
  * Test automatic casting of CHAR and VARCHAR to numeric types.
  */
 @RunWith(Parameterized.class)
-@Category(LongerThanTwoMinutes.class)
 public class AutoCastIT  extends SpliceUnitTest {
     
     private Boolean useSpark;

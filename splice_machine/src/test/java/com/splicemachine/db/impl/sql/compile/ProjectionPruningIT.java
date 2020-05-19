@@ -35,7 +35,6 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.log4j.Logger;
@@ -62,7 +61,7 @@ import static org.junit.Assert.assertEquals;
 /* The test result is dependent on different values of the service property setting at the time of the run, so
    need to run sequentially
  */
-@Category({SerialTest.class, LongerThanTwoMinutes.class})
+@Category(SerialTest.class)
 @RunWith(Parameterized.class)
 public class ProjectionPruningIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(ProjectionPruningIT.class);
