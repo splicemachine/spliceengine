@@ -27,6 +27,7 @@ import java.util.Set;
  *         Date: 1/7/16
  */
 public class HServerLoad implements PartitionServerLoad{
+    private static int BYTES_IN_MB = 1024*1024;
     private ServerLoad load;
 
     public HServerLoad(ServerLoad load){
@@ -60,7 +61,7 @@ public class HServerLoad implements PartitionServerLoad{
         for(Map.Entry<byte[],RegionLoad> regionLoad:regionsLoad.entrySet()){
             String name = Bytes.toString(regionLoad.getKey());
             RegionLoad rl = regionLoad.getValue();
-            PartitionLoad pl = new HPartitionLoad(name,rl.getStorefileSizeMB(),rl.getMemStoreSizeMB(),rl.getStorefileIndexSizeMB());
+            PartitionLoad pl = new HPartitionLoad(name,rl.getStorefileSizeMB()*BYTES_IN_MB,rl.getMemStoreSizeMB()*BYTES_IN_MB);
             loads.add(pl);
         }
         return loads;
