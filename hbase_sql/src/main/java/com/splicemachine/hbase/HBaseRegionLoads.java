@@ -210,18 +210,11 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
                         }
                     });
             Collection<Pair<String, Long>> collection = ret.values();
-            long factor = 1024 * 1024;
             Map<String, PartitionLoad> retMap = new HashMap<>();
             for(Pair<String, Long> info : collection){
-                long sizeMB = info.getSecond() / factor;
-                ClusterStatusProtos.RegionLoad.Builder rl = ClusterStatusProtos.RegionLoad.newBuilder();
-                rl.setMemstoreSizeMB((int)(sizeMB / 2));
-                rl.setStorefileSizeMB((int) (sizeMB / 2));
-                rl.setRegionSpecifier(HBaseProtos.RegionSpecifier.newBuilder()
-                    .setType(HBaseProtos.RegionSpecifier.RegionSpecifierType.ENCODED_REGION_NAME).setValue(
-                                        ZeroCopyLiteralByteString.copyFromUtf8(info.getFirst())).build());
-                ClusterStatusProtos.RegionLoad load = rl.build();
-                HPartitionLoad value=new HPartitionLoad(info.getFirst(),load.getStorefileSizeMB(),load.getMemstoreSizeMB(),load.getStorefileIndexSizeMB());
+                long size = info.getSecond();
+                HPartitionLoad value=new HPartitionLoad(info.getFirst(),size/2,
+                        size/2);
                 retMap.put(info.getFirst(),value);
             }
 
@@ -277,10 +270,10 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
         return loads.get(tableName);
     }
     /**
-     * Region Size in MB
+     * Region Size in bytes
      */
-    public static int memstoreAndStorefileSize(PartitionLoad load){
-        return load.getStorefileSizeMB() + load.getMemStoreSizeMB();
+    public static long memstoreAndStorefileSize(PartitionLoad load){
+        return load.getStorefileSize() + load.getMemStoreSize();
     }
 
     public static long memstoreAndStoreFileSize(String tableName) {

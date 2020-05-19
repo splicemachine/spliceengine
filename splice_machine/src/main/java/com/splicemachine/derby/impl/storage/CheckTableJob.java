@@ -89,6 +89,7 @@ public class CheckTableJob implements Callable<Void> {
         this.request = request;
     }
 
+    private static int MB = 1024*1024;
     @Override
     public Void call() throws Exception {
         if(!jobStatus.markRunning()){
@@ -101,7 +102,7 @@ public class CheckTableJob implements Callable<Void> {
         Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(table, true);
         boolean distributed = false;
         for (PartitionLoad load: partitionLoadCollection) {
-            if (load.getMemStoreSizeMB() > 0 || load.getStorefileSizeMB() > 0)
+            if (load.getMemStoreSize() > 1*MB || load.getStorefileSize() > 1*MB)
                 distributed = true;
         }
         DataSetProcessor dsp = null;
