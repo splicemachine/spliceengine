@@ -124,7 +124,6 @@ class SparkStreamingIT extends FunSuite with TestStreamingContext with BeforeAnd
    assert(newDF.count == 10)
  }
 
-  // TODO verify
  test ("deletion") {
    val queue:Queue[RDD[Row]] = Queue()
 
@@ -143,7 +142,7 @@ class SparkStreamingIT extends FunSuite with TestStreamingContext with BeforeAnd
      val df = sqlContext.createDataFrame(rdd, splicemachineContext.getSchema(internalTN))
 
      val deleteDF = df.filter("c6_int < 5").select("C6_INT","C7_BIGINT")
-//     splicemachineContext.delete(deleteDF, internalTN)
+     splicemachineContext.delete(deleteDF, internalTN)
      results.enqueue(true)
    })
    enqueueRows(queue, 10)
@@ -156,7 +155,6 @@ class SparkStreamingIT extends FunSuite with TestStreamingContext with BeforeAnd
    assert(newDF.count == 5)
  }
 
-  // TODO verify
  test ("update") {
    val queue:Queue[RDD[Row]] = Queue()
 
@@ -177,7 +175,7 @@ class SparkStreamingIT extends FunSuite with TestStreamingContext with BeforeAnd
        .filter("C6_INT < 5")
        .select("C6_INT","C7_BIGINT","C8_FLOAT","C9_SMALLINT")
        .withColumn("C8_FLOAT", when(col("C8_FLOAT").leq(10.0), col("C8_FLOAT").plus(10.0)) )
-//     splicemachineContext.update(updatedDF, internalTN)
+     splicemachineContext.update(updatedDF, internalTN)
      results.enqueue(true)
    })
    enqueueRows(queue, 10)
@@ -284,7 +282,7 @@ private class ListenableQueue[A] extends Queue[A] {
     synchronized {
       latch = new CountDownLatch(count - size)
     }
-    if (!latch.await(1, TimeUnit.MINUTES))
+    if (!latch.await(3, TimeUnit.MINUTES))
       throw new TimeoutException("Timeout reached")
   }
 }

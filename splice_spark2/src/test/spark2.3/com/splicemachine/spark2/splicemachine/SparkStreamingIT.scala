@@ -127,7 +127,6 @@ class SparkStreamingIT extends FunSuite with TestStreamingContext with BeforeAnd
    assert(newDF.count == 10)
  }
 
-  // TODO verify
  test ("deletion") {
    val queue:Queue[RDD[Row]] = Queue()
 
@@ -159,7 +158,6 @@ class SparkStreamingIT extends FunSuite with TestStreamingContext with BeforeAnd
    assert(newDF.count == 5)
  }
 
-  // TODO verify
  test ("update") {
    val queue:Queue[RDD[Row]] = Queue()
 
@@ -287,7 +285,7 @@ private class ListenableQueue[A] extends Queue[A] {
     synchronized {
       latch = new CountDownLatch(count - size)
     }
-    if (!latch.await(1, TimeUnit.MINUTES))
+    if (!latch.await(3, TimeUnit.MINUTES))
       throw new TimeoutException("Timeout reached")
   }
 }

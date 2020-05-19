@@ -42,8 +42,9 @@ import org.apache.hadoop.hbase.util.Bytes
 import org.apache.log4j.Logger
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
-
+@SerialVersionUID(20200513231L)
 private object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
 }
@@ -53,6 +54,10 @@ private object Holder extends Serializable {
   *
   * @param options Supported options are SpliceJDBCOptions.JDBC_URL, SpliceJDBCOptions.JDBC_INTERNAL_QUERIES, SpliceJDBCOptions.JDBC_TEMP_DIRECTORY
   */
+@SerialVersionUID(20200513232L)
+@SuppressFBWarnings(value = Array("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"), justification = "Need to set SpliceClient.connectionString")
+@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL"), justification = "These fields usually are not null")
+@SuppressFBWarnings(value = Array("EI_EXPOSE_REP2"), justification = "The prunedFields value is needed and is used read-only")
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] val url = options.get(JDBCOptions.JDBC_URL).get
   
@@ -256,6 +261,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       JDBCOptions.JDBC_TABLE_NAME -> tableName)
     val jdbcOptions = new JDBCOptions(spliceOptions)
     val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val statement = conn.createStatement
     try {
       val actSchemaString = schemaString(structType, jdbcOptions.url)
       val keyArray = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
@@ -266,9 +272,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         primaryKeyString.append(s", $name")
       }
       val sql = s"CREATE TABLE $tableName ($actSchemaString) $primaryKeyString"
-      val statement = conn.createStatement
       statement.executeUpdate(sql)
     } finally {
+      statement.close()
       conn.close()
     }
   }
@@ -285,10 +291,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       JDBCOptions.JDBC_TABLE_NAME -> "dismiss")
     val jdbcOptions = new JDBCOptions(spliceOptions)
     val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val statement = conn.createStatement
     try {
-      val statement = conn.createStatement
       statement.executeUpdate(sql)
     } finally {
+      statement.close()
       conn.close()
     }
   }
@@ -306,10 +313,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       )
     val jdbcOptions = new JDBCOptions(spliceOptions)
     val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
+    val statement = conn.createStatement
     try {
-      val statement = conn.createStatement
       statement.execute(sql)
     } finally {
+      statement.close()
       conn.close()
     }
   }
@@ -378,7 +386,12 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @return Dataset[Row] with the result of the query
     */
   def df(sql: String): Dataset[Row] = {
-    SparkUtils.resultSetToDF(internalConnection.createStatement().executeQuery(sql));
+    val st = internalConnection.createStatement()
+    try {
+      SparkUtils.resultSetToDF(st.executeQuery(sql));
+    } finally {
+      st.close()
+    }
   }
 
   /**
@@ -403,7 +416,12 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
       val schema = resolveQuery(connection, sql, false)
 
-      connection.prepareStatement(s"EXPORT_BINARY('$tempDirectory/$id', false, 'parquet') " + sql).execute()
+      val st = connection.prepareStatement(s"EXPORT_BINARY('$tempDirectory/$id', false, 'parquet') " + sql)
+      try {
+        st.execute()
+      } finally {
+        st.close()
+      }
       // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
       var df = SpliceSpark.getSession.read.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").schema(schema).parquet(fs.getUri + s"$tempDirectory/$id")
       df
@@ -443,6 +461,15 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     df(sqlText).rdd
   }
 
+  private[this] def executeUpd(sql: String): Unit = {
+    val st = internalConnection.createStatement()
+    try {
+      st.executeUpdate(sql)
+    } finally {
+      st.close()
+    }
+  }
+
   /**
     *
     * Insert a dataFrame into a table (schema.table).  This corresponds to an
@@ -459,7 +486,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ") select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       "as SpliceDatasetVTI (" + schemaString + ")"
-    internalConnection.createStatement().executeUpdate(sqlText)
+    executeUpd(sqlText)
   }
 
   /**
@@ -481,7 +508,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       sampleFraction + "\n select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       "as SpliceDatasetVTI (" + schemaString + ")"
-    internalConnection.createStatement().executeUpdate(sqlText)
+    executeUpd(sqlText)
   }
   /**
     * Insert a RDD into a table (schema.table).  The schema is required since RDD's do not have schema.
@@ -497,7 +524,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ") select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
       "as SpliceRDDVTI (" + schemaString + ")"
-    internalConnection.createStatement().executeUpdate(sqlText)
+    executeUpd(sqlText)
   }
 
 
@@ -525,7 +552,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     "select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       "as SpliceDatasetVTI (" + schemaString + ")"
-    internalConnection.createStatement().executeUpdate(sqlText)
+    executeUpd(sqlText)
   }
 
   /**
@@ -551,7 +578,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     " select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
       "as SpliceRDDVTI (" + schemaString + ")"
-    internalConnection.createStatement().executeUpdate(sqlText)
+    executeUpd(sqlText)
   }
 
   /**
@@ -568,7 +595,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ") --splice-properties insertMode=UPSERT\n select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       "as SpliceDatasetVTI (" + schemaString + ")"
-    internalConnection.createStatement().executeUpdate(sqlText)
+    executeUpd(sqlText)
   }
 
   /**
@@ -586,7 +613,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ") --splice-properties insertMode=UPSERT\n select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
       "as SpliceRDDVTI (" + schemaString + ")"
-    internalConnection.createStatement().executeUpdate(sqlText)
+    executeUpd(sqlText)
   }
 
   /**
@@ -612,7 +639,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
-    internalConnection.createStatement().executeUpdate(combinedText)
+    executeUpd(sqlText)
   }
 
   /**
@@ -639,7 +666,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
-    internalConnection.createStatement().executeUpdate(combinedText)
+    executeUpd(sqlText)
   }
 
   /**
@@ -669,7 +696,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
-    internalConnection.createStatement().executeUpdate(combinedText)
+    executeUpd(sqlText)
   }
 
   /**
@@ -700,7 +727,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
-    internalConnection.createStatement().executeUpdate(combinedText)
+    executeUpd(sqlText)
   }
 
   /**
@@ -728,7 +755,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       "select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
       "as SpliceDatasetVTI (" + schemaString + ")"
-    internalConnection.createStatement().executeUpdate(sqlText)
+    executeUpd(sqlText)
   }
 
   /**
@@ -756,7 +783,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       "select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
       "as SpliceRDDVTI (" + schemaString + ")"
-    internalConnection.createStatement().executeUpdate(sqlText)
+    executeUpd(sqlText)
   }
 
   /**
@@ -775,8 +802,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this]val dialect = new SplicemachineDialect
   private[this]val dialectNoTime = new SplicemachineDialectNoTime
   private[this]def resolveQuery(connection: Connection, sql: String, noTime: Boolean): StructType = {
+    val st = connection.prepareStatement(s"select * from ($sql) a where 1=0 ")
     try {
-      val rs = connection.prepareStatement(s"select * from ($sql) a where 1=0 ").executeQuery()
+      val rs = st.executeQuery()
 
       try {
         if (noTime)
@@ -786,6 +814,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       } finally {
         rs.close()
       }
+    } finally {
+      st.close()
     }
   }
 
@@ -799,6 +829,15 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   def pruneSchema(schema: StructType, columns: Array[String]): StructType = {
     val fieldMap = Map(schema.fields.map(x => x.metadata.getString("name") -> x): _*)
     new StructType(columns.map(name => fieldMap(name)))
+  }
+
+  private[this] def executeSql(sql: String): Unit = {
+    val st = internalConnection.createStatement()
+    try {
+      st.execute(sql)
+    } finally {
+      st.close()
+    }
   }
 
   /**
@@ -825,7 +864,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val quoteChar = quotedOrNull(quoteCharacter)
     val sqlText = s"export ( '$location', $compression, $replicationCount, $encoding, $separator, $quoteChar) select " + columnList + " from " +
       s"new com.splicemachine.derby.vti.SpliceDatasetVTI() as SpliceDatasetVTI ($schemaString)"
-    internalConnection.createStatement().execute(sqlText)
+    executeSql(sqlText)
   }
 
   private[this] def quotedOrNull(value: String) = {
@@ -846,6 +885,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
     val sqlText = s"export_binary ( '$location', $compression, '$format') select " + columnList + " from " +
       s"new com.splicemachine.derby.vti.SpliceDatasetVTI() as SpliceDatasetVTI ($schemaString)"
-    internalConnection.createStatement().execute(sqlText)
+    executeSql(sqlText)
   }
 }
