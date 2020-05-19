@@ -21,6 +21,8 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -132,11 +134,11 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     }
 
     private boolean hasLOBs(SpliceBaseOperation root) throws StandardException {
-        ExecRow row = root.getExecRowDefinition();
-        for (int i = 0; i < row.nColumns(); ++i) {
-            DataValueDescriptor dvd = row.getColumn(i+1);
-            if (dvd instanceof SQLBlob || dvd instanceof SQLClob) {
-                return true;
+        if (root instanceof ScrollInsensitiveOperation) {
+            for (ResultColumnDescriptor descriptor : root.getActivation().getResultDescription().getColumnInfo()) {
+                if (descriptor.getType().getTypeId().isBlobTypeId() || descriptor.getType().getTypeId().isClobTypeId()) {
+                    return true;
+                }
             }
         }
         return false;
