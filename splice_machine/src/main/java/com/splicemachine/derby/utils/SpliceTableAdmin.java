@@ -139,9 +139,8 @@ public class SpliceTableAdmin {
 
             out = fs.create(new Path(outputFile));
             // check each table in the schema
-            ResultSet rs = getTables(schema);
-            while (rs.next()) {
-                String table = rs.getString(1);
+            List<String> tables = getTables(schema);
+            for (String table : tables) {
                 Map<String, List<String>> result = checkTable(schema, table, null, level, fix);
                 if (result != null) {
                     for (Map.Entry<String, List<String>> entry : result.entrySet()) {
@@ -278,6 +277,9 @@ public class SpliceTableAdmin {
 
         for (ConglomerateDescriptor searchCD : cdList) {
             if (searchCD.isIndex() && !searchCD.isPrimaryKey()) {
+                if (index == null && !isEligibleConstraint(cdList, searchCD)) {
+                    continue;
+                }
                 if (index == null || searchCD.getObjectName().compareToIgnoreCase(index) == 0) {
                     DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                             activation.getLanguageConnectionContext(),
@@ -295,7 +297,30 @@ public class SpliceTableAdmin {
         return errors;
     }
 
+    /**
+     * If a constraint is reusing an index, exclude it from index list. No need to check the index more than once
+     * @param cdList
+     * @param cd
+     * @return
+     */
+    private static boolean isEligibleConstraint(ConglomerateDescriptorList cdList, ConglomerateDescriptor cd) {
+        // return false if it is not an index or constraint
+        if (!cd.isIndex() && !cd.isConstraint())
+            return false;
 
+        for (ConglomerateDescriptor conglomerateDescriptor : cdList) {
+            if (cd == conglomerateDescriptor)
+                continue;
+
+            // return false if the constraint is reusing an index
+            if (!conglomerateDescriptor.isConstraint() &&
+                    conglomerateDescriptor.isIndex() &&
+                    conglomerateDescriptor.getConglomerateNumber() == cd.getConglomerateNumber()) {
+                return false;
+            }
+        }
+        return true;
+    }
     private static void printErrorMessages(FSDataOutputStream out, Map<String, List<String>> errors) throws IOException {
 
         for(Map.Entry<String, List<String>> entry : errors.entrySet()) {
@@ -364,13 +389,14 @@ public class SpliceTableAdmin {
         String sql = String.format(
                 "select count(*) from %s.%s --splice-properties index=%s", schema, table, index==null?"null":index);
         Connection connection = SpliceAdmin.getDefaultConn();
-        PreparedStatement ps = connection.prepareStatement(sql);
-        ResultSet rs = ps.executeQuery();
-        long count = 0;
-        if (rs.next()){
-            count = rs.getLong(1);
+        try(PreparedStatement ps = connection.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            long count = 0;
+            if (rs.next()) {
+                count = rs.getLong(1);
+            }
+            return count;
         }
-        return count;
     }
 
     private static Map<String, List<String>> checkIndexesInDetail(String schema, String table,
@@ -417,14 +443,20 @@ public class SpliceTableAdmin {
         return errors;
     }
 
-    private static ResultSet getTables(String schemaName) throws SQLException {
+    private static List<String> getTables(String schemaName) throws SQLException {
         String sql = "select tablename from sys.systables t, sys.sysschemas s where s.schemaname=?" +
                 " and s.schemaid=t.schemaid";
         Connection connection = SpliceAdmin.getDefaultConn();
-        PreparedStatement ps = connection.prepareStatement(sql);
-        ps.setString(1, schemaName);
-        ResultSet rs = ps.executeQuery();
-        return rs;
+        List<String> tables = Lists.newArrayList();
+        try(PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, schemaName);
+            try(ResultSet rs = ps.executeQuery()) {
+                while(rs.next()) {
+                    tables.add(rs.getString(1));
+                }
+            }
+            return tables;
+        }
     }
 
     private static ResultSet processResults(Map<String, List<String>> errors,
