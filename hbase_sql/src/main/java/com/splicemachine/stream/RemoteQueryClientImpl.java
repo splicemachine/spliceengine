@@ -134,9 +134,11 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     }
 
     private boolean hasLOBs(SpliceBaseOperation root) throws StandardException {
-        for (ResultColumnDescriptor descriptor: root.getActivation().getResultDescription().getColumnInfo()) {
-            if (descriptor.getType().getTypeId().isBlobTypeId() || descriptor.getType().getTypeId().isClobTypeId()) {
-                return true;
+        if (root instanceof ScrollInsensitiveOperation) {
+            for (ResultColumnDescriptor descriptor : root.getActivation().getResultDescription().getColumnInfo()) {
+                if (descriptor.getType().getTypeId().isBlobTypeId() || descriptor.getType().getTypeId().isClobTypeId()) {
+                    return true;
+                }
             }
         }
         return false;
