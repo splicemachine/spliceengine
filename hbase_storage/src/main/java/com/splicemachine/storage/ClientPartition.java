@@ -157,6 +157,9 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                 }
             }
             List<HRegionLocation> tableLocations = ((ClusterConnection) connection).locateRegions(tableName, !refresh, false);
+            if (outdated(tableLocations)) {
+                tableLocations = ((ClusterConnection) connection).locateRegions(tableName, false, false);
+            }
             partitions = new ArrayList<>(tableLocations.size());
             for (HRegionLocation location : tableLocations){
                 if (location.getServerName() == null) {     // ensure no offline regions
@@ -170,6 +173,20 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    // The connection tried to locate a region busing its start key. If the cache is being used(by default) and contains
+    // stale entries, the returned region locations contains duplicate entries. The duplicate entry is a region that has
+    // be split.
+    private boolean outdated(List<HRegionLocation> tableLocations) {
+        Set<HRegionLocation> regionLocations = new HashSet<>();
+        for (HRegionLocation regionLocation : tableLocations) {
+            if (regionLocations.contains(regionLocation))
+                return true;
+            else
+                regionLocations.add(regionLocation);
+        }
+        return false;
     }
 
     @Override
