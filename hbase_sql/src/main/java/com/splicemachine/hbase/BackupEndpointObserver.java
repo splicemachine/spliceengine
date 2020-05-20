@@ -21,6 +21,7 @@ import com.splicemachine.backup.BackupRegionStatus;
 import com.splicemachine.backup.BackupRestoreConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
+import com.splicemachine.si.data.hbase.coprocessor.DummyScanner;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -243,7 +244,7 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
             BackupUtils.waitForBackupToComplete(tableName, regionName);
             isCompacting.set(true);
             SpliceLogUtils.info(LOG, "setting isCompacting=true for %s:%s", tableName, regionName);
-            return scanner;
+            return scanner == null ? DummyScanner.INSTANCE : scanner;
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
