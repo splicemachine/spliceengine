@@ -44,6 +44,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -174,7 +176,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         }
     }
 
-    private class OlapFuture implements ListenableFuture<OlapResult>, Runnable {
+    private class OlapFuture implements ListenableFuture<OlapResult> {
         private final DistributedJob job;
         private final Lock checkLock=new ReentrantLock();
         private final Condition signal=checkLock.newCondition();
@@ -202,7 +204,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         private volatile Throwable cause=null;
         private volatile long tickTimeNanos=TimeUnit.MILLISECONDS.toNanos(1000L);
         private volatile long waitTimeMillis = 1000;
-        private ScheduledFuture<?> keepAlive;
+        private Timer keepAlive;
         private final ByteString data;
 
         OlapFuture(DistributedJob job) throws IOException {
@@ -284,6 +286,8 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             Future<Channel> channelFuture=channelPool.acquire();
             channelFuture.addListener(new CancelCommand(job.getUniqueName()));
             cancelled=true;
+            if(keepAlive != null)
+                keepAlive.cancel();
             signal();
         }
 
@@ -296,7 +300,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             this.cause=cause;
             this.failed=true;
             if (this.keepAlive != null)
-                this.keepAlive.cancel(false);
+                this.keepAlive.cancel();
             this.executionList.execute();
         }
 
@@ -304,7 +308,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             if (LOG.isTraceEnabled())
                 LOG.trace("Successful job "+ job.getUniqueName());
             this.finalResult = result;
-            this.keepAlive.cancel(false);
+            this.keepAlive.cancel();
             this.executionList.execute();
         }
 
@@ -337,13 +341,16 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             }
         }
 
-        @Override
         public void run() {
-            if (submitted && !isDone()) {
-                // don't request status until submitted
-                Future<Channel> cFut = channelPool.acquire();
-                cFut.addListener(new StatusListener(this));
-            }
+            // don't request status until submitted
+            if (!submitted)
+                return;
+
+            if (isDone())
+                throw new CancellationException("Task is cancelled");
+
+            Future<Channel> cFut = channelPool.acquire();
+            cFut.addListener(new StatusListener(this));
         }
 
         @Override
@@ -352,7 +359,13 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         }
 
         public void scheduleStatusCheck() {
-            this.keepAlive = executorService.scheduleWithFixedDelay(this, 0, tickTimeNanos, TimeUnit.NANOSECONDS);
+            this.keepAlive = new Timer("OlapFuture-status-"+job.getUniqueName(), true);
+            keepAlive.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    OlapFuture.this.run();
+                }
+            }, 0, TimeUnit.NANOSECONDS.toMillis(tickTimeNanos));
         }
     }
 
