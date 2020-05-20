@@ -22,6 +22,7 @@ import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
+import com.splicemachine.si.data.hbase.coprocessor.DummyScanner;
 import com.splicemachine.utils.BlockingProbe;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Coprocessor;
@@ -88,7 +89,7 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
             scr.setMemstoreAware(memstoreAware);
             HRegion region = (HRegion) c.getEnvironment().getRegion();
             scr.setRegion(region);
-            return scanner;
+            return scanner == null ? DummyScanner.INSTANCE : scanner;
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
