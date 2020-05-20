@@ -17,13 +17,10 @@
 package com.splicemachine.spark.splicemachine
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
-
 import org.apache.spark.sql.SQLContext
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FunSuite, Matchers}
-import org.junit.runner.RunWith
-import org.junit.experimental.categories.Category
 
 @RunWith(classOf[JUnitRunner])
 class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
