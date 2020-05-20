@@ -19,10 +19,9 @@ package com.splicemachine.spark2.splicemachine
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{ FunSuite, Matchers, Ignore}
+import org.scalatest.{ FunSuite, Matchers}
 
 @RunWith(classOf[JUnitRunner])
-@Ignore //("DB-9562")
 class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
   val rowCount = 10
 
