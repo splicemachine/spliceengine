@@ -17,18 +17,12 @@
 package com.splicemachine.spark.splicemachine
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
-
-import com.splicemachine.test.LongerThanTwoMinutes
 import org.apache.spark.sql.SQLContext
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{FunSuite, Matchers}
-import org.scalatest.Ignore
-import org.junit.runner.RunWith
-import org.junit.experimental.categories.Category
+import org.scalatest.{ FunSuite, Matchers}
 
 @RunWith(classOf[JUnitRunner])
-@Ignore //("DB-9562")
 class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
   val rowCount = 10
 
