@@ -639,7 +639,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
-    executeUpd(sqlText)
+    executeUpd(combinedText)
   }
 
   /**
@@ -666,7 +666,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
-    executeUpd(sqlText)
+    executeUpd(combinedText)
   }
 
   /**
@@ -696,7 +696,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
-    executeUpd(sqlText)
+    executeUpd(combinedText)
   }
 
   /**
@@ -727,7 +727,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
-    executeUpd(sqlText)
+    executeUpd(combinedText)
   }
 
   /**
