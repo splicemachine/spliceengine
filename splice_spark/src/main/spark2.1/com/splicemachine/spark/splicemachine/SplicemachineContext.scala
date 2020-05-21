@@ -426,7 +426,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
-    executeUpd(sqlText)
+    executeUpd(combinedText)
   }
 
   def delete(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
@@ -446,7 +446,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
-    executeUpd(sqlText)
+    executeUpd(combinedText)
   }
 
   def update(dataFrame: DataFrame, schemaTableName: String): Unit = {
@@ -469,7 +469,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
-    executeUpd(sqlText)
+    executeUpd(combinedText)
   }
 
   def update(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
@@ -492,7 +492,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
-    executeUpd(sqlText)
+    executeUpd(combinedText)
   }
 
   def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
