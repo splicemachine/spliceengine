@@ -99,7 +99,6 @@ public interface DataSet<V> extends //Iterable<V>,
      */
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f);
 
-
     /**
      *
      * Shuffle partitions in no-cost operation
@@ -263,6 +262,8 @@ public interface DataSet<V> extends //Iterable<V>,
     ExportDataSetWriterBuilder writeToDisk();
 
     ExportDataSetWriterBuilder<String> saveAsTextFile(OperationContext operationContext);
+
+    KafkaDataSetWriterBuilder writeToKafka();
 
     void persist();
 

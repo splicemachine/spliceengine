@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1958-SNAPSHOT</version>
+        <version>3.1.0.1959-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -93,6 +93,20 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_spark</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}-tests</classifier>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_spark2</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_spark2</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}-tests</classifier>
             <type>test-jar</type>
@@ -200,6 +214,10 @@
             <scope>runtime</scope>
             <exclusions>
                 <exclusion>
+                    <groupId>org.glassfish.jersey.containers</groupId>
+                    <artifactId>jersey-container-servlet</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>net.jpountz.lz4</groupId>
                     <artifactId>lz4</artifactId>
                 </exclusion>
@@ -209,6 +227,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>  <!-- needed by Kafka 2.0 but not 2.2 -->
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.15</version>
+            <scope>runtime</scope>
+        </dependency>
         <!-- Yarn dependencies -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -216,16 +240,6 @@
             <version>${hadoop.version}</version>
             <classifier>tests</classifier>
             <scope>runtime</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.sun.jersey</groupId>
-                    <artifactId>jersey-server</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.sun.jersey</groupId>
-                    <artifactId>jersey-core</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -484,6 +498,23 @@
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <includes>
                                 <include>com/splicemachine/spark/splicemachine/**/*IT.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>integration-tests-ensds</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <dependenciesToScan>
+                                <dependency>com.splicemachine:splice_spark2</dependency>
+                            </dependenciesToScan>
+                            <argLine>-Xmx2g -Xms64m -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ ${hbase.rootdir}</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <includes>
+                                <include>com/splicemachine/spark2/splicemachine/**/*IT.java</include>
                             </includes>
                         </configuration>
                     </execution>
@@ -869,54 +900,6 @@
                             <arguments>
                                 <!-- Root of the serve classpath. Yarn config file (yarn-site.xml) will be written here. -->
                                 <argument>${project.build.directory}</argument>
-                            </arguments>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>spliceYarn</id>
-            <activation>
-                <property>
-                    <name>spliceYarn</name>
-                </property>
-            </activation>
-            <properties>
-                <nodeCount>1</nodeCount>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-network-yarn_${scala.binary.version}</artifactId>
-                    <version>${spark.version}</version>
-                    <scope>runtime</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.4.0</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>java</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <!-- exec:java required so that these 2 dependency properties are available (they aren't with exec:exec -->
-                            <classpathScope>test</classpathScope>
-                            <!--<includeProjectDependencies>false</includeProjectDependencies>-->
-                            <!--<includePluginDependencies>true</includePluginDependencies>-->
-                            <mainClass>com.splicemachine.test.SpliceTestYarnPlatform</mainClass>
-                            <arguments>
-                                <argument>${project.build.directory}/classes</argument>
-                                <argument>${secure}</argument>
-                                <argument>${nodeCount}</argument>
-                                <argument>-Dlog4j.configurationFile=${log4j.config.uri}</argument>
                             </arguments>
                         </configuration>
                     </plugin>

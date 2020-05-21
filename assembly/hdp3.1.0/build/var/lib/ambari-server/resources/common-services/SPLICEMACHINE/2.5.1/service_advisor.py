@@ -51,13 +51,14 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
     #Update HBase Classpath
     print "getServiceConfigurationRecommendations",services
     splice_jars = ":".join([jar for jar in glob.glob('/var/lib/splicemachine/*.jar')])
-    spark_jars = ":".join([jar for jar in glob.glob('/usr/hdp/2.6.5.0-292/spark2/jars/*.jar')])
+    spark_jars = ":".join([jar for jar in glob.glob('/usr/hdp/3.1.0.0-78/spark2/jars/*.jar')])
     master_jars = ":".join([jar for jar in glob.glob('/usr/hdp/current/hbase-master/lib/*.jar')])
+    kafka_jars = ":".join([jar for jar in glob.glob('/usr/hdp/3.1.0.0-78/hbase/lib/atlas-hbase-plugin-impl/kafka*.jar')])
     if "hbase-env" in services["configurations"]:
         hbase_env = services["configurations"]["hbase-env"]["properties"]
         if "content" in hbase_env:
           content = hbase_env["content"]
-          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX="+ splice_jars + ":" + spark_jars + ":" + master_jars
+          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX="+ splice_jars + ":" + spark_jars + ":" + master_jars + ":" + kafka_jars
           if "splicemachine" not in content:
             print "Updating Hbase Classpath"
             HBASE_CLASSPATH_PREFIX = "#Add Splice Jars to HBASE_PREFIX_CLASSPATH\n" + HBASE_CLASSPATH_PREFIX

@@ -211,9 +211,11 @@ if [[ "${DISTRIBUTED}" == "1" ]]; then
     wait_for ${HDFS_LOG} "HDFS cluster started"
 fi 
   
+pushd ../standalone/ > /dev/null
 YARN_LOG="${RUN_DIR}/yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"
-(${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+(${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+popd > /dev/null
 
 KAFKALOG="${RUN_DIR}"/kafka.log
 # Start Kafka in background.

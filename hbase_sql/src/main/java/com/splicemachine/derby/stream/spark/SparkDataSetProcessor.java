@@ -48,7 +48,9 @@ import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.IndentedString;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -58,6 +60,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -68,7 +73,11 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
-import java.io.*;
+import java.io.Externalizable;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
 import java.net.URI;
 import java.util.*;
 
@@ -191,7 +200,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return operationContext;
     }
 
-
+    @SuppressFBWarnings(value = "NP_LOAD_OF_KNOWN_NULL_VALUE",justification = "Intentional")
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
         BroadcastedActivation ba = activation != null ? broadcastedActivation : null;
@@ -442,6 +451,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         throw e;
     }
 
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH",justification = "Intentional")
     @Override
     public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException {
         StructType schema = null;
@@ -876,8 +886,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public TableChecker getTableChecker(String schemaName, String tableName, DataSet table,
-                                        KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix) {
-        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix);
+                                        KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix,
+                                        int[] baseColumnMap) {
+        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix, baseColumnMap);
     }
 
     @Override
@@ -1169,4 +1180,26 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public void resetOpDepth() { opDepth = 0; }
+
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
+        Properties props = new Properties();
+        String consumerGroupId = "spark-consumer-dss-sdsp";
+        String bootstrapServers = SIDriver.driver().getConfiguration().getKafkaBootstrapServers();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumerGroupId+"-"+UUID.randomUUID());
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
+
+        KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
+        List ps = consumer.partitionsFor(topicName);
+        List<Integer> partitions = new ArrayList<>(ps.size());
+        for (int i = 0; i < ps.size(); ++i) {
+            partitions.add(i);
+        }
+        consumer.close();
+
+        SparkDataSet rdd = new SparkDataSet(SpliceSpark.getContext().parallelize(partitions, partitions.size()));
+        return rdd.flatMap(new KafkaReadFunction(context, topicName, bootstrapServers));
+    }
 }

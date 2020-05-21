@@ -1,0 +1,76 @@
+#!/bin/bash
+
+##################################################################################
+# Start Spark History server
+##################################################################################
+
+BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DEFAULT_PROFILE="cdh6.3.0"  # default hbase platform profile
+PROFILE=$DEFAULT_PROFILE
+RUN_DIR="${BASE_DIR}/support_spark_history"
+LOG_LOCATION="${BASE_DIR}/platform_it/target/SpliceTestYarnPlatform/"
+MVN='mvn -B'
+
+usage() {
+    # $1 is an error, if any
+    if [[ -n "${1}" ]]; then
+        echo "Error: ${1}"
+    fi
+    echo "Usage: $0 -p [<hbase_profile>] [-d <directory>]-h[elp]"
+    echo "Where: "
+    echo "  -p <hbase_profile> is the optional splice hbase platform to run. Default is ${DEFAULT_PROFILE}. (available options are in the top level pom.xml file)"
+    echo "  -d <directory> specify the directory where the Spark event logs are located. Defaults to ${BASE_DIR}/platform_it/target/SpliceTestYarnPlatform"
+    echo "  -h => print this message"
+}
+
+_kill_em_all () {
+  SIG=$1
+   local P=$(ps -ef | awk '/HistoryServer/ && !/awk/ {print $2}')
+   [[ -n $P ]] && echo "Found Spark History server. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; sleep 2; done
+
+}
+export -f _kill_em_all
+
+wait_for () {
+	LOG_FILE=$1
+	shift
+	NEEDLE=$*
+
+	echo -n "  Waiting. "
+	while ! grep -q "$NEEDLE" $LOG_FILE 
+		do echo -n ". " 
+		sleep 2
+	done
+	echo
+}
+
+while getopts "hp:d:" flag ; do
+    case $flag in
+        h* | \?)
+            usage
+            exit 0 # This is not an error, User asked help. Don't do "exit 1"
+        ;;
+        p)
+        # the hbase profile
+            PROFILE="${OPTARG}"
+        ;;
+        d)
+        # path to write debug file
+           LOG_LOCATION=$OPTARG
+        ;;
+        ?)
+            usage "Unknown option (ignored): ${OPTARG}"
+            exit 1
+        ;;
+    esac
+done
+
+cd ${RUN_DIR}
+
+_kill_em_all 9
+
+SPARK_LOG="${RUN_DIR}/spark.log"
+rm $SPARK_LOG > /dev/null
+echo "Starting Spark History Server on http://localhost:18080  Log file is ${SPARK_LOG}"
+(${MVN} exec:exec -e -Denv=${PROFILE} -PsparkHistory > ${SPARK_LOG} 2>&1) &   
+wait_for ${SPARK_LOG} "HistoryServer: Bound HistoryServer" 
