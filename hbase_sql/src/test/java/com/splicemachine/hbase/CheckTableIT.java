@@ -186,6 +186,36 @@ public class CheckTableIT extends SpliceUnitTest {
     public void testCheckTable() throws Exception {
         checkTable(SCHEMA_NAME, A, AI);
         checkTable(SCHEMA_NAME, B, BI);
+        testChekSchema();
+        removeDuplicateIndexes();
+    }
+
+    public void removeDuplicateIndexes() throws Exception {
+        spliceClassWatcher.execute(String.format("call syscs_util.fix_table('%s', '%s', null, '%s/fix-%s.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
+        String select =
+                "SELECT \"message\" " +
+                        "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
+                        "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
+                        "AS messages (\"message\" varchar(200)) order by 1";
+        ResultSet rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-%s.out", getResourceDirectory(), A)));
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        String expected = "message                                |\n" +
+                "-----------------------------------------------------------------------\n" +
+                "Create index for the following 2 rows from base table CHECKTABLEIT.A: |\n" +
+                "                  Removed the following 1 indexes:                    |\n" +
+                "                The following 2 indexes are deleted:                  |\n" +
+                "                        { 1, 810081 }=>810081                         |\n" +
+                "                        { 2, 820082 }=>820082                         |\n" +
+                "                              { 4, 4 }                                |\n" +
+                "                              { 5, 5 }                                |\n" +
+                "                        { 7, 870087 }=>870087                         |\n" +
+                "                                 AI:                                  |";
+
+        Assert.assertEquals(s, expected, s);
+        rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
+        rs.next();
+        s = rs.getString(1);
+        Assert.assertEquals(s, s, "No inconsistencies were found.");
     }
 
     @Test
@@ -259,7 +289,6 @@ public class CheckTableIT extends SpliceUnitTest {
         Assert.assertEquals(s, s, "No inconsistencies were found.");
     }
 
-    @Test
     public void testChekSchema() throws Exception {
 
         spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', null, null, 1, '%s/check-%s1.out')", SCHEMA_NAME, getResourceDirectory(), SCHEMA_NAME));
@@ -308,29 +337,26 @@ public class CheckTableIT extends SpliceUnitTest {
                         "AS messages (\"message\" varchar(200)) order by 1";
         rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/check-%s2.out", getResourceDirectory(), SCHEMA_NAME)));
         s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        expected =
-                "message                               |\n" +
-                        "----------------------------------------------------------------------\n" +
-                        "               The following 2 indexes are duplicates:               |\n" +
-                        "               The following 2 indexes are duplicates:               |\n" +
-                        "                The following 2 indexes are invalid:                 |\n" +
-                        "                The following 2 indexes are invalid:                 |\n" +
-                        "The following 2 rows from base table CHECKTABLEIT.A are not indexed: |\n" +
-                        "The following 2 rows from base table CHECKTABLEIT.B are not indexed: |\n" +
-                        "                            { 1 }=>810081                            |\n" +
-                        "                            { 1 }=>810081                            |\n" +
-                        "                            { 2 }=>820082                            |\n" +
-                        "                            { 2 }=>820082                            |\n" +
-                        "                              { 4, 4 }                               |\n" +
-                        "                              { 4, 4 }                               |\n" +
-                        "                              { 5, 5 }                               |\n" +
-                        "                              { 5, 5 }                               |\n" +
-                        "                            { 7 }=>870087                            |\n" +
-                        "                            { 7 }=>870087                            |\n" +
-                        "                            { 8 }=>870087                            |\n" +
-                        "                            { 8 }=>870087                            |\n" +
-                        "                                 AI:                                 |\n" +
-                        "                                 BI:                                 |";
+        expected = "message                               |\n" +
+                "----------------------------------------------------------------------\n" +
+                "               The following 1 indexes are duplicates:               |\n" +
+                "               The following 1 indexes are duplicates:               |\n" +
+                "                The following 2 indexes are invalid:                 |\n" +
+                "                The following 2 indexes are invalid:                 |\n" +
+                "The following 2 rows from base table CHECKTABLEIT.A are not indexed: |\n" +
+                "The following 2 rows from base table CHECKTABLEIT.B are not indexed: |\n" +
+                "                        { 1, 810081 }=>810081                        |\n" +
+                "                        { 1, 810081 }=>810081                        |\n" +
+                "                        { 2, 820082 }=>820082                        |\n" +
+                "                        { 2, 820082 }=>820082                        |\n" +
+                "                              { 4, 4 }                               |\n" +
+                "                              { 4, 4 }                               |\n" +
+                "                              { 5, 5 }                               |\n" +
+                "                              { 5, 5 }                               |\n" +
+                "                        { 7, 870087 }=>870087                        |\n" +
+                "                        { 7, 870087 }=>870087                        |\n" +
+                "                                 AI:                                 |\n" +
+                "                                 BI:                                 |";
 
         Assert.assertEquals(s, expected, s);
     }
@@ -424,15 +450,14 @@ public class CheckTableIT extends SpliceUnitTest {
         String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         String expected = format("message                               |\n" +
                 "----------------------------------------------------------------------\n" +
-                "               The following 2 indexes are duplicates:               |\n" +
+                "               The following 1 indexes are duplicates:               |\n" +
                 "                The following 2 indexes are invalid:                 |\n" +
                 "The following 2 rows from base table CHECKTABLEIT.%s are not indexed: |\n" +
-                "                            { 1 }=>810081                            |\n" +
-                "                            { 2 }=>820082                            |\n" +
+                "                        { 1, 810081 }=>810081                        |\n" +
+                "                        { 2, 820082 }=>820082                        |\n" +
                 "                              { 4, 4 }                               |\n" +
                 "                              { 5, 5 }                               |\n" +
-                "                            { 7 }=>870087                            |\n" +
-                "                            { 8 }=>870087                            |\n" +
+                "                        { 7, 870087 }=>870087                        |\n" +
                 "                                 %s:                                 |", tableName, indexName);
 
         Assert.assertEquals(s, s, expected);

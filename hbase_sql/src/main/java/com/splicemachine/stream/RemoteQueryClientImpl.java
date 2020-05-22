@@ -21,8 +21,13 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBlob;
+import com.splicemachine.db.iapi.types.SQLClob;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
@@ -78,8 +83,9 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         try {
             updateLimitOffset();
             SConfiguration config = HConfiguration.getConfiguration();
-            int streamingBatches = config.getSparkResultStreamingBatches();
-            int streamingBatchSize = config.getSparkResultStreamingBatchSize();
+            boolean hasLOBs = hasLOBs(root);
+            int streamingBatches = hasLOBs ? config.getSparkSlowResultStreamingBatches() : config.getSparkResultStreamingBatches();
+            int streamingBatchSize = hasLOBs ? config.getSparkSlowResultStreamingBatchSize() : config.getSparkResultStreamingBatchSize();
             streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize);
             StreamListenerServer server = getServer();
             server.register(streamListener);
@@ -125,6 +131,17 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         } catch (IOException e) {
             throw StandardException.newException(SQLState.OLAP_SERVER_CONNECTION, e);
         }
+    }
+
+    private boolean hasLOBs(SpliceBaseOperation root) throws StandardException {
+        if (root instanceof ScrollInsensitiveOperation) {
+            for (ResultColumnDescriptor descriptor : root.getActivation().getResultDescription().getColumnInfo()) {
+                if (descriptor.getType().getTypeId().isBlobTypeId() || descriptor.getType().getTypeId().isClobTypeId()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

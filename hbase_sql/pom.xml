@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.1958-SNAPSHOT</version>
+        <version>3.0.0.1959-SNAPSHOT</version>
     </parent>
     <properties>
         <argLine>-Xmx4g ${jacocoAgent}</argLine>
@@ -71,6 +71,22 @@
             <version>${project.version}</version>
             <classifier>${envClassifier}</classifier>
         </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_${scala.binary.version}</artifactId>
+            <version>${kafka.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>net.jpountz.lz4</groupId>
+                    <artifactId>lz4</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-remote_${scala.binary.version}</artifactId>

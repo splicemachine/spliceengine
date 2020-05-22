@@ -49,6 +49,7 @@ import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
+import scala.Tuple2;
 
 import javax.annotation.Nullable;
 import java.io.Externalizable;
@@ -88,6 +89,7 @@ public class CheckTableJob implements Callable<Void> {
         this.request = request;
     }
 
+    private static int MB = 1024*1024;
     @Override
     public Void call() throws Exception {
         if(!jobStatus.markRunning()){
@@ -100,7 +102,7 @@ public class CheckTableJob implements Callable<Void> {
         Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(table, true);
         boolean distributed = false;
         for (PartitionLoad load: partitionLoadCollection) {
-            if (load.getMemStoreSizeMB() > 0 || load.getStorefileSizeMB() > 0)
+            if (load.getMemStoreSize() > 1*MB || load.getStorefileSize() > 1*MB)
                 distributed = true;
         }
         DataSetProcessor dsp = null;
@@ -119,11 +121,12 @@ public class CheckTableJob implements Callable<Void> {
         CheckTableResult checkTableResult = new CheckTableResult();
         Map<String, List<String>> errors = new TreeMap<>();
 
-        DataSet<ExecRow> tableDataSet = getTableDataSet(dsp, heapConglomId, tentativeIndexList);
+        int[] baseColumnMap = getBaseColumnMap(tentativeIndexList);
+        DataSet<ExecRow> tableDataSet = getTableDataSet(dsp, heapConglomId, tentativeIndexList, baseColumnMap);
         ExecRow key = getTableKeyExecRow(heapConglomId);
         KeyHashDecoder tableKeyDecoder = getKeyDecoder(key, null);
         TableChecker tableChecker = dsp.getTableChecker(schemaName, tableName, tableDataSet,
-                tableKeyDecoder, key, request.txn, request.fix);
+                tableKeyDecoder, key, request.txn, request.fix, baseColumnMap);
 
         // Check each index
         for(DDLMessage.TentativeIndex tentativeIndex : tentativeIndexList) {
@@ -137,7 +140,7 @@ public class CheckTableJob implements Callable<Void> {
                 sortOrder[i] = !descColumnList.get(i);
             }
             KeyHashDecoder indexKeyDecoder = getKeyDecoder(indexKey, sortOrder);
-            PairDataSet<String, byte[]> indexDataSet = getIndexDataSet(dsp, indexConglom, index.getUnique());
+            PairDataSet<String, Tuple2<byte[], ExecRow>> indexDataSet = getIndexDataSet(dsp, indexConglom, index.getUnique());
 
             LeadingIndexColumnInfo leadingIndexColumnInfo = null;
             if (index.getExcludeDefaults() || index.getExcludeNulls()) {
@@ -147,11 +150,11 @@ public class CheckTableJob implements Callable<Void> {
             if (!distributed) {
                 // Create a new dataset for table if it is not checked on spark, because the dataset is essentially an
                 // iterator. Each time the table is checked, the iterator is consumed.
-                tableDataSet = getTableDataSet(dsp, heapConglomId, tentativeIndexList);
+                tableDataSet = getTableDataSet(dsp, heapConglomId, tentativeIndexList, baseColumnMap);
                 tableChecker.setTableDataSet(tableDataSet);
             }
-            List<String> messages = tableChecker.checkIndex(indexDataSet, indexName, indexKeyDecoder, indexKey,
-                    leadingIndexColumnInfo, index.getConglomerate(), tentativeIndex);
+            List<String> messages = tableChecker.checkIndex(indexDataSet, indexName, leadingIndexColumnInfo,
+                    index.getConglomerate(), tentativeIndex);
             if (messages.size() > 0) {
                 errors.put(indexName, messages);
             }
@@ -234,24 +237,24 @@ public class CheckTableJob implements Callable<Void> {
      * @return
      * @throws StandardException
      */
-    private PairDataSet<String, byte[]> getIndexDataSet(DataSetProcessor dsp, long conglomerateId, boolean isUnique) throws StandardException {
+    private PairDataSet<String, Tuple2<byte[], ExecRow>> getIndexDataSet(DataSetProcessor dsp, long conglomerateId, boolean isUnique) throws StandardException {
         SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(conglomerateId);
         int[] formatIds = conglomerate.getFormat_ids();
         int[] columnOrdering = IntArrays.count(isUnique? formatIds.length - 1 :formatIds.length);
         int[] baseColumnMap = new int[formatIds.length];
         for (int i = 0; i < formatIds.length; ++i) {
-            baseColumnMap[i] = -1;
+            baseColumnMap[i] = i;
         }
-        // Only decode last column of an index row, which is the row address of base table
-        baseColumnMap[formatIds.length-1] = 0;
         FormatableBitSet accessedKeyColumns = new FormatableBitSet(formatIds.length);
-        accessedKeyColumns.set(formatIds.length-1);
-        ExecRow templateRow = new ValueRow(1);
+        for (int i = 0; i < formatIds.length; ++i) {
+            accessedKeyColumns.set(i);
+        }
+        ExecRow templateRow = new ValueRow(formatIds.length);
         DataValueDescriptor[] dvds = templateRow.getRowArray();
         DataValueFactory dataValueFactory=lcc.getDataValueFactory();
-        dvds[0] = dataValueFactory.getNull(formatIds[formatIds.length-1],-1);
-
-
+        for (int i = 0 ; i < formatIds.length; ++i) {
+            dvds[i] = dataValueFactory.getNull(formatIds[i], -1);
+        }
         DataSet<ExecRow> scanSet =
                 dsp.<TableScanOperation,ExecRow>newScanSet(null, Long.toString(conglomerateId))
                         .activation(activation)
@@ -268,7 +271,7 @@ public class CheckTableJob implements Callable<Void> {
                         .baseColumnMap(columnOrdering)
                         .buildDataSet();
 
-        PairDataSet<String, byte[]> dataSet = scanSet.index(new KeyByBaseRowIdFunction());
+        PairDataSet<String, Tuple2<byte[], ExecRow>> dataSet = scanSet.index(new KeyByBaseRowIdFunction());
 
         return dataSet;
     }
@@ -281,11 +284,11 @@ public class CheckTableJob implements Callable<Void> {
      * @throws StandardException
      */
     private DataSet<ExecRow> getTableDataSet(DataSetProcessor dsp, long conglomerateId,
-                                                        List<DDLMessage.TentativeIndex> tentativeIndexList) throws StandardException {
+                                             List<DDLMessage.TentativeIndex> tentativeIndexList,
+                                             int[] baseColumnMap) throws StandardException {
         SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(conglomerateId);
         int[] formatIds = conglomerate.getFormat_ids();
         int[] columnOrdering = conglomerate.getColumnOrdering();
-        int[] baseColumnMap = getBaseColumnMap(tentativeIndexList);
         FormatableBitSet accessedKeyColumns = getAccessedKeyColumns(columnOrdering, baseColumnMap);
         ExecRow templateRow = getTemplateRow(baseColumnMap, formatIds);
         ExecRow defaultValueRow = getDefaultValueRow(baseColumnMap, templateRow);

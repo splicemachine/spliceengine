@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.Timestamp;
+import java.util.List;
 
 /**
  * Version 2 of the Trigger Descriptor class.
@@ -68,12 +69,12 @@ public class TriggerDescriptorV2 extends TriggerDescriptor {
      * @param isEnabled                     is this trigger enabled or disabled
      * @param td                            the table upon which this trigger is defined
      * @param whenSPSId                     the sps id for the when clause (may be null)
-     * @param actionSPSId                   the spsid for the trigger action (may be null)
+     * @param actionSPSIdList               the spsid for the trigger action (may be null)
      * @param creationTimestamp             when was this trigger created?
      * @param referencedCols                what columns does this trigger reference (may be null)
      * @param referencedColsInTriggerAction what columns does the trigger
      *                                      action reference through old/new transition variables (may be null)
-     * @param triggerDefinition             The original user text of the trigger action
+     * @param triggerDefinitionList         The original user text of the trigger action
      * @param referencingOld                whether or not OLD appears in REFERENCING clause
      * @param referencingNew                whether or not NEW appears in REFERENCING clause
      * @param oldReferencingName            old referencing table name, if any, that appears in REFERCING clause
@@ -92,11 +93,11 @@ public class TriggerDescriptorV2 extends TriggerDescriptor {
             boolean isEnabled,
             TableDescriptor td,
             UUID whenSPSId,
-            UUID actionSPSId,
+            List<UUID> actionSPSIdList,
             Timestamp creationTimestamp,
             int[] referencedCols,
             int[] referencedColsInTriggerAction,
-            String triggerDefinition,
+            List<String> triggerDefinitionList,
             boolean referencingOld,
             boolean referencingNew,
             String oldReferencingName,
@@ -113,18 +114,17 @@ public class TriggerDescriptorV2 extends TriggerDescriptor {
             isEnabled,
             td,
             whenSPSId,
-            actionSPSId,
+            actionSPSIdList,
             creationTimestamp,
             referencedCols,
             referencedColsInTriggerAction,
-            triggerDefinition,
+            triggerDefinitionList,
             referencingOld,
             referencingNew,
             oldReferencingName,
             newReferencingName,
             whenClauseText);
-
-        this.numBaseTableColumns = td.getNumberOfColumns();
+        this.version = 2;
     }
 
     @Override

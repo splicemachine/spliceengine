@@ -61,8 +61,8 @@ import com.splicemachine.db.impl.sql.compile.StringAggregateDefinition;
 import com.splicemachine.db.impl.sql.compile.AggregateNode;
 import com.splicemachine.db.impl.sql.compile.BinaryOperatorNode;
 import com.splicemachine.db.impl.sql.compile.CallStatementNode;
-import    com.splicemachine.db.impl.sql.compile.CharConstantNode;
-import    com.splicemachine.db.impl.sql.compile.CastNode;
+import com.splicemachine.db.impl.sql.compile.CharConstantNode;
+import com.splicemachine.db.impl.sql.compile.CastNode;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.CreateAliasNode;
@@ -93,6 +93,7 @@ import com.splicemachine.db.impl.sql.compile.PrivilegeNode;
 import com.splicemachine.db.impl.sql.compile.ConstraintDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.DMLModStatementNode;
 import com.splicemachine.db.impl.sql.compile.RoutineDesignator;
+import com.splicemachine.db.impl.sql.compile.StatementListNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TableElementList;
 import com.splicemachine.db.impl.sql.compile.TableElementNode;
@@ -3128,6 +3129,7 @@ TOKEN [IGNORE_CASE] :
 |    <SPARKEXPLAIN_ANALYZED: "sparkexplain_analyzed">
 |    <EXPORT: "export">
 |    <EXPORT_BINARY: "export_binary">
+|	 <EXPORT_KAFKA: "export_kafka">
 |    <FIRSTVALUE: "first_value">
 |    <LAG: "lag">
 |    <LASTVALUE: "last_value">
@@ -3700,6 +3702,7 @@ StatementPart(Token[] tokenHolder) throws StandardException :
         statementNode = explainStatement() |
         statementNode = exportStatement() |
         statementNode = binaryExportStatement() |
+        statementNode = kafkaExportStatement() |
         statementNode = pinStatement() |
         statementNode = dropPinStatement() |
         statementNode = signalStatement()
@@ -4116,6 +4119,22 @@ exportStatement() throws StandardException :
 }
 
 StatementNode
+kafkaExportStatement() throws StandardException :
+{
+    StatementNode   statementNode;
+    Vector parameterList = new Vector();
+}
+{
+    <EXPORT_KAFKA> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
+    {
+        return (KafkaExportNode) nodeFactory.getNode(C_NodeTypes.KAFKA_EXPORT_NODE,
+                                   statementNode,
+                                   parameterList,
+                                   getContextManager());
+    }
+}
+
+StatementNode
 binaryExportStatement() throws StandardException :
 {
     StatementNode   statementNode;
@@ -4210,6 +4229,15 @@ deleteBody() throws StandardException :
           * bind time, in keeping with the design decision that the parser's
            * output should look like the language.
          */
+        boolean isBulkDelete = false;
+        if (tableProperties != null) {
+            String dir = (String)tableProperties.remove(DeleteNode.BULK_DELETE_DIRECTORY);
+            if (dir != null) {
+                deleteProperties = new FormatableProperties();
+                deleteProperties.setProperty(DeleteNode.BULK_DELETE_DIRECTORY, dir);
+                isBulkDelete = true;
+            }
+        }
         if (fromTable == null)
             fromTable = (FromTable) nodeFactory.getNode(
                                         C_NodeTypes.FROM_BASE_TABLE,
@@ -4218,15 +4246,10 @@ deleteBody() throws StandardException :
                                         ReuseFactory.getInteger(
                                                 FromBaseTable.DELETE),
                                         null,
+                                        isBulkDelete,
                                         getContextManager());
 
-        if (tableProperties != null) {
-            String dir = (String)tableProperties.remove(DeleteNode.BULK_DELETE_DIRECTORY);
-            if (dir != null) {
-                deleteProperties = new FormatableProperties();
-                deleteProperties.setProperty(DeleteNode.BULK_DELETE_DIRECTORY, dir);
-            }
-        }
+
         /* Update the FromTable with any properties, if non-null */
         if (tableProperties != null && tableProperties.size() > 0)
         {
@@ -13674,23 +13697,62 @@ actionStatement(Token[] tokenHolder, HashSet<String> hs) throws StandardExceptio
     }
 }
 
-QueryTreeNode
-triggerActions(Token[] tokenHolder, MutableInt endOffset, HashSet<String> hs) throws StandardException :
+StatementListNode
+triggerActionList(HashSet<String> hs,
+                  Boolean isBefore,
+                  List<String> actionTextList) throws StandardException :
 {
-    QueryTreeNode actionNode = null;
-    Token endPosition;
+    StatementListNode actionNodeList = (StatementListNode) nodeFactory.getNode(C_NodeTypes.STATEMENT_LIST_NODE, getContextManager());
+    StatementNode actionNode = null;
 }
 {
-    <BEGIN> <ATOMIC> actionNode = actionStatement(tokenHolder, hs)
-    endPosition = <SEMICOLON>
+    <BEGIN> <ATOMIC>
+    (
+        actionNode = triggerAction(hs, isBefore, actionTextList)
+        <SEMICOLON>
+        {
+            actionNodeList.addStatement(actionNode);
+        }
+    )*
     <END>
     {
-        endOffset.setValue(endPosition.beginOffset - 1);
-        return actionNode;
+        return actionNodeList;
     }
 |
+    actionNode = triggerAction(hs, isBefore, actionTextList)
+    {
+        actionNodeList.addStatement(actionNode);
+        return actionNodeList;
+    }
+}
+
+StatementNode
+triggerAction(HashSet<String> hs,
+              Boolean isBefore,
+              List<String> actionTextList) throws StandardException :
+{
+    Token[] tokenHolder = new Token[1];
+    StatementNode actionNode = null;
+}
+{
     actionNode = actionStatement(tokenHolder, hs)
     {
+        // No DML in action node for BEFORE triggers.
+        if (isBefore.booleanValue() && (actionNode instanceof DMLModStatementNode)) {
+                throw StandardException.newException(
+                    SQLState.LANG_UNSUPPORTED_TRIGGER_STMT,
+                    ((StatementNode) actionNode).statementToString(), "BEFORE");
+                    }
+
+        if (actionNode instanceof SetNode && !isBefore)
+            throw StandardException.newException(SQLState.LANG_UNSUPPORTED_TRIGGER_STMT, "SET", "AFTER");
+
+        actionNode.setBeginOffset(tokenHolder[0].beginOffset);
+        actionNode.setEndOffset(getToken(0).endOffset);
+
+        actionTextList.add(StringUtil.slice(
+                statementSQLText, actionNode.getBeginOffset(), actionNode.getEndOffset(), false));
+
         return actionNode;
     }
 }
@@ -13698,28 +13760,21 @@ triggerActions(Token[] tokenHolder, MutableInt endOffset, HashSet<String> hs) th
 StatementNode
 triggerDefinition() throws StandardException :
 {
-    Boolean                isBefore;
-    Boolean                isRow = Boolean.FALSE;  // STATEMENT implicit by default
-    TableName            tableName;
-    TableName            triggerName;
-    Token[]                tokenHolder = new Token[1];
-    Token                beginToken;
-    Token                checkTok = null;
-    Token                endToken;
-    int                    actionBegin;
-    int                    actionEnd;
-    TriggerEventDML        triggerEvent;
-    QueryTreeNode        actionNode;
+    Boolean             isBefore;
+    Boolean             isRow = Boolean.FALSE;  // STATEMENT implicit by default
+    TableName           tableName;
+    TableName           triggerName;
+    TriggerEventDML     triggerEvent;
+    StatementNode       actionNode;
+    StatementListNode   actionNodeList;
+    List<String>        actionTextList = new ArrayList();
     ValueNode           whenClause = null;
     Token               whenOpen = null;
     Token               whenClose = null;
-    int                 whenOffset = 0;
-    int                 whenEnd = 0;
     ResultColumnList    triggerColumns = (ResultColumnList) nodeFactory.getNode(
                                             C_NodeTypes.RESULT_COLUMN_LIST,
                                             getContextManager());
-    Vector                refClause = null;
-    MutableInt            endOffset = new MutableInt(-1);
+    Vector              refClause = null;
     HashSet<String>     hs = new HashSet<String>();
 }
 {
@@ -13732,25 +13787,12 @@ triggerDefinition() throws StandardException :
         [ <MODE> <DB2SQL> ]
         [ <WHEN> whenOpen = <LEFT_PAREN> whenClause = valueExpression() whenClose = <RIGHT_PAREN> ]
         //we are not top level statement
-        actionNode = triggerActions(tokenHolder, endOffset, hs)
+        actionNodeList = triggerActionList(hs, isBefore, actionTextList)
         // the trigger body
     {
-        actionEnd = endOffset.intValue() != -1 ? endOffset.intValue() : getToken(0).endOffset;
-        actionBegin = tokenHolder[0].beginOffset;
-        actionNode.setBeginOffset(actionBegin);
-        actionNode.setEndOffset(actionEnd);
-
-        // No DML in action node for BEFORE triggers.
-        if (isBefore.booleanValue() && (actionNode instanceof DMLModStatementNode)) {
-                throw StandardException.newException(
-                    SQLState.LANG_UNSUPPORTED_TRIGGER_STMT,
-                    ((StatementNode) actionNode).statementToString(), "BEFORE");
-                    }
-
-
         // no params in trigger action
          HasNodeVisitor visitor = new HasNodeVisitor(ParameterNode.class);
-        actionNode.accept(visitor);
+        actionNodeList.accept(visitor);
         if (whenClause != null) {
             whenClause.accept(visitor);
         }
@@ -13758,21 +13800,19 @@ triggerDefinition() throws StandardException :
         {
             throw StandardException.newException(SQLState.LANG_NO_PARAMS_IN_TRIGGER_ACTION);
         }
-        if (actionNode instanceof SetNode && !isBefore)
-            throw StandardException.newException(SQLState.LANG_UNSUPPORTED_TRIGGER_STMT, "SET", "AFTER");
-
-        String actionText = StringUtil.slice(
-                statementSQLText, actionBegin, actionEnd, false);
 
         String whenText = null;
         if (whenClause != null) {
-            whenOffset = whenOpen.endOffset + 1;
-            whenEnd = whenClose.beginOffset - 1;
-            whenClause.setBeginOffset(whenOffset);
-            whenClause.setEndOffset(whenEnd);
+            whenClause.setBeginOffset(whenOpen.endOffset + 1);
+            whenClause.setEndOffset(whenClose.beginOffset - 1);
             whenText = StringUtil.slice(statementSQLText,
-                                        whenOffset, whenEnd, false);
+                                        whenClause.getBeginOffset(),
+                                        whenClause.getEndOffset(),
+                                        false);
         }
+
+        actionNodeList.setBeginOffset(actionNodeList.get(0).getBeginOffset());
+        actionNodeList.setEndOffset(actionNodeList.get(actionNodeList.size() - 1).getEndOffset());
 
         return (StatementNode) nodeFactory.getNode(
                                 C_NodeTypes.CREATE_TRIGGER_NODE,
@@ -13786,10 +13826,8 @@ triggerDefinition() throws StandardException :
                                 refClause,            // referencing clause
                                 whenClause,  // when clause node
                                 whenText,    // when clause text
-                                ReuseFactory.getInteger(whenOffset),  // when clause begin offset
-                                actionNode,
-                                actionText,
-                                ReuseFactory.getInteger(actionBegin),
+                                actionNodeList,
+                                actionTextList,
                                 getContextManager());
     }
 }

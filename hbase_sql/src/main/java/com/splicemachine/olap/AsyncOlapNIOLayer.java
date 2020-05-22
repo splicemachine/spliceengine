@@ -40,6 +40,7 @@ import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -128,12 +129,24 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         assert job.isSubmitted();
         if (LOG.isTraceEnabled())
             LOG.trace("Submitting job request " + job.getUniqueName());
-        connectIfNeeded();
-        synchronized (connectionLock) {
-            OlapFuture future = new OlapFuture(job);
-            future.doSubmit();
-            return future;
-        }
+        boolean retry = false;
+        do {
+            connectIfNeeded();
+            try {
+                synchronized (connectionLock) {
+                    OlapFuture future = new OlapFuture(job);
+                    future.doSubmit();
+                    return future;
+                }
+            } catch (ConnectException ce) {
+                connected = false;
+                // retry submission once if it's a connection exception
+                if (!retry)
+                    retry = true;
+                else
+                    throw ce;
+            }
+        } while (true);
     }
 
     private void connectIfNeeded() throws IOException {
@@ -355,7 +368,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         }
     }
 
-    private class SubmitCommand implements GenericFutureListener<Future<Channel>>{
+    private static class SubmitCommand implements GenericFutureListener<Future<Channel>>{
         private OlapFuture olapFuture;
 
         SubmitCommand(OlapFuture olapFuture){
@@ -390,7 +403,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         }
     }
 
-    private class StatusListener implements GenericFutureListener<Future<Channel>>{
+    private static class StatusListener implements GenericFutureListener<Future<Channel>>{
         private final OlapFuture olapFuture;
 
         StatusListener(OlapFuture olapFuture){
