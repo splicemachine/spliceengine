@@ -890,7 +890,7 @@
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
-                                <argument>-Xmx2g</argument>
+                                <argument>-Xmx3g</argument>
                                 <argument>-Xms64m</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
