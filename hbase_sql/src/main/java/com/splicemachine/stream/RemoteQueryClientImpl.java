@@ -99,11 +99,14 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
             int localPort = config.getNetworkBindPort();
             int sessionId = activation.getLanguageConnectionContext().getInstanceNumber();
+            Integer parallelPartitionsProperty = (Integer) activation.getLanguageConnectionContext().getSessionProperties()
+                    .getProperty(SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
+            int parallelPartitions = parallelPartitionsProperty == null ? StreamableRDD.DEFAULT_PARALLEL_PARTITIONS : parallelPartitionsProperty;
             String opUuid = root.getUuid() != null ? "," + root.getUuid().toString() : "";
             String session = hostname + ":" + localPort + "," + sessionId + opUuid;
 
             RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
-                    streamingBatches, streamingBatchSize);
+                    streamingBatches, streamingBatchSize, parallelPartitions);
 
             String requestedQueue = (String) activation.getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
             List<String> roles = activation.getLanguageConnectionContext().getCurrentRoles(activation);
