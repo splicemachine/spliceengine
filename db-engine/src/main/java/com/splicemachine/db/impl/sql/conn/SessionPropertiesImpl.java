@@ -68,6 +68,10 @@ public class SessionPropertiesImpl implements SessionProperties {
                 int recursiveQueryIterationLimit = Integer.parseInt(valString);
                 properties[RECURSIVEQUERYITERATIONLIMIT.getId()] = recursiveQueryIterationLimit;
                 break;
+            case OLAP_PARALLEL_PARTITIONS:
+                int parallelPartitions = Integer.parseInt(valString);
+                properties[OLAP_PARALLEL_PARTITIONS.getId()] = parallelPartitions;
+                break;
             case SNAPSHOT_TIMESTAMP:
                 long timestamp = Long.parseLong(valString);
                 properties[SNAPSHOT_TIMESTAMP.getId()] = timestamp;

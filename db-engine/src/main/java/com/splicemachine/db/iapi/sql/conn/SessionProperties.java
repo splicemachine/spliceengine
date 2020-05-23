@@ -46,7 +46,8 @@ public interface SessionProperties {
         SKIPSTATS(2),
         RECURSIVEQUERYITERATIONLIMIT(3),
         OLAPQUEUE(4),
-        SNAPSHOT_TIMESTAMP(5);
+        SNAPSHOT_TIMESTAMP(5),
+        OLAPPARALLELPARTITIONS(6);
 
         public static int COUNT = PROPERTYNAME.values().length;
 
@@ -106,13 +107,14 @@ public interface SessionProperties {
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value in the range(0,1] or null");
                 break;
             case RECURSIVEQUERYITERATIONLIMIT:
-                int recursivequeryIterationLimit;
+            case OLAP_PARALLEL_PARTITIONS:
+                int value;
                 try {
-                    recursivequeryIterationLimit = Integer.parseInt(valString);
+                    value = Integer.parseInt(valString);
                 } catch (Exception parseIntE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive integer or null");
                 }
-                if (recursivequeryIterationLimit <= 0)
+                if (value <= 0)
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive integer or null");
                 break;
             case SNAPSHOT_TIMESTAMP:

@@ -1487,4 +1487,10 @@ public interface Property {
      * Create a read only connection at some fixed point in the past determined by this transaction id
      */
     String CONNECTION_SNAPSHOT = "snapshot";
+
+    /**
+     * How many partitions to fetch in parallel from Spark. It can increase memory consumption on RegionServer if fetching
+     * too much data
+     */
+    String OLAP_PARALLEL_PARTITIONS = "olapParallelPartitions";
 }
