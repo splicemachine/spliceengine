@@ -416,6 +416,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (snapshot != null) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP, snapshot);
             }
+            String parallelPartitions = connectionProperties.getProperty(Property.OLAP_PARALLEL_PARTITIONS);
+            if (snapshot != null) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS, parallelPartitions);
+            }
         }
         if (type.isSessionHinted()) {
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USESPARK, type.isSpark());
