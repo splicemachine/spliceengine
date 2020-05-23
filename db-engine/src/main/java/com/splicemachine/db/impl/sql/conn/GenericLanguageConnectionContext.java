@@ -418,7 +418,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             }
             String parallelPartitions = connectionProperties.getProperty(Property.OLAP_PARALLEL_PARTITIONS);
             if (snapshot != null) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS, parallelPartitions);
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.OLAP_PARALLEL_PARTITIONS, parallelPartitions);
             }
         }
         if (type.isSessionHinted()) {

@@ -47,7 +47,7 @@ public interface SessionProperties {
         RECURSIVEQUERYITERATIONLIMIT(3),
         OLAPQUEUE(4),
         SNAPSHOT_TIMESTAMP(5),
-        OLAPPARALLELPARTITIONS(6);
+        OLAP_PARALLEL_PARTITIONS(6);
 
         public static int COUNT = PROPERTYNAME.values().length;
 
