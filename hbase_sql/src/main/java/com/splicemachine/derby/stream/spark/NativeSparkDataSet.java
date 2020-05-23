@@ -521,10 +521,14 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
      * @param scopeDetail
      * @return
      */
+
     public DataSet<V> windows(WindowContext windowContext, OperationContext context,  boolean pushScope, String scopeDetail) {
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
             Dataset<Row> dataset = this.dataset;
+            WindowAggregator[] windowFunctions = windowContext.getWindowFunctions();
+            List<String> names = new ArrayList<>(windowFunctions.length);
+            List<Column> cols = new ArrayList<>(windowFunctions.length);
 
             for(WindowAggregator aggregator : windowContext.getWindowFunctions()) {
                 // we need to remove to convert resultColumnId from a 1 position index to a 0position index
@@ -542,10 +546,12 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                         .functionSpecificArgs(aggregator.getFunctionSpecificArgs())
                         .toColumn();
 
-                // Now we replace the result column by the spark specification.
-                // the result column is already define by derby. We need to replace it
-                dataset = dataset.withColumn(ValueRow.getNamedColumn(aggregator.getResultColumnId()-1),col);
+                names.add(ValueRow.getNamedColumn(aggregator.getResultColumnId()-1));
+                cols.add(col);
             }
+            // Now we replace the result column by the spark specification.
+            // the result column is already define by derby. We need to replace it
+            dataset = NativeSparkUtils.withColumns(names, cols, dataset);
            return new NativeSparkDataSet<>(dataset, context);
 
         } catch (Exception se){
@@ -1469,10 +1475,14 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             }
 
             Dataset<Row> newDS;
+            List<String> toDrop = new ArrayList<>();
             // Prune out unused columns.
             for (String colname:dataset.columns()) {
                 if (!inputColumns.contains(colname))
-                    dataset = dataset.drop(colname);
+                    toDrop.add(colname);
+            }
+            if (!toDrop.isEmpty()) {
+                dataset = dataset.drop(toDrop.toArray(new String[toDrop.size()]));
             }
             if (noGroupingColumns) {
                 newDS = dataset.agg(aggregateColumn1, aggregateColumns2ToN);
@@ -1499,6 +1509,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             // column position, not column name, the Dataset schema must
             // match the ExecRow definition in case the parent operation
             // does not use native spark execution.
+            List<String> names = new ArrayList<>();
+            List<Column> cols = new ArrayList<>();
             for (int i=0; i < rowDef.nColumns(); i++) {
                 String fieldName =  ValueRow.getNamedColumn(i);
 
@@ -1509,9 +1521,14 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     DataType dataType =
                         rowDef.getColumn(i+1).getStructField(fieldName).dataType();
                     Column newCol = lit(null).cast(dataType);
-                    newDS = newDS.withColumn(fieldName, newCol);
+                    names.add(fieldName);
+                    cols.add(newCol);
                 }
             }
+            if(!names.isEmpty()) {
+                newDS = NativeSparkUtils.withColumns(names, cols, newDS);
+            }
+
             // Now add another select expression so that the named columns are
             // in the correct column positions.
             StringBuilder expression = new StringBuilder();
