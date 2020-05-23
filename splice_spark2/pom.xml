@@ -270,6 +270,11 @@
     <profiles>
         <profile>
             <id>dbaas</id>
+            <activation>
+                <property>
+                    <name>nsds2jar</name>
+                </property>
+            </activation>
             <build>
                 <plugins>
                     <plugin>
