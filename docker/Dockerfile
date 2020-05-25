@@ -6,3 +6,7 @@ RUN apt-get update && apt-get install -y netcat
 COPY entrypoint.sh /usr/local/bin/se-entrypoint.sh
 RUN chmod +x /usr/local/bin/se-entrypoint.sh
 ENTRYPOINT [ "/usr/local/bin/se-entrypoint.sh" ]
+
+RUN adduser splice
+USER splice
+COPY bashrc.sh /home/splice/.bashrc

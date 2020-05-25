@@ -1,2 +1,2 @@
 #!/bin/bash
-bash docker_run.sh /bin/bash docker/start.sh $*
+bash docker_run.sh --stdPortMap --- /bin/bash docker/start.sh $*
