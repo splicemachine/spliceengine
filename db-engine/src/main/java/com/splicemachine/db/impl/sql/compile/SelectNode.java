@@ -960,7 +960,7 @@ public class SelectNode extends ResultSetNode{
         if(wherePredicates!=null && !wherePredicates.isEmpty() && !fromList.isEmpty()){
             // Perform various forms of transitive closure on wherePredicates
             if(fromList.size()>1){
-                performTransitiveClosure(numTables);
+                performTransitiveClosure();
             }
 
             if(orderByList!=null){
@@ -2086,6 +2086,10 @@ public class SelectNode extends ResultSetNode{
      */
     void pushExpressionsIntoSelect(Predicate predicate) throws StandardException{
         wherePredicates.pullExpressions(referencedTableMap.size(),predicate.getAndNode());
+        // Perform various forms of transitive closure on wherePredicates
+        if(fromList.size()>1){
+            performTransitiveClosure();
+        }
         fromList.pushPredicates(wherePredicates);
     }
 
@@ -2366,15 +2370,14 @@ public class SelectNode extends ResultSetNode{
      * The 2 types are transitive closure on join clauses and on search clauses.
      * Join clauses will be processed first to maximize benefit for search clauses.
      *
-     * @param numTables The number of tables in the query
      * @throws StandardException Thrown on error
      */
-    private void performTransitiveClosure(int numTables) throws StandardException{
+    private void performTransitiveClosure() throws StandardException{
         // Join clauses
-        wherePredicates.joinClauseTransitiveClosure(numTables,fromList,getCompilerContext());
+        wherePredicates.joinClauseTransitiveClosure(fromList,getCompilerContext());
 
         // Search clauses
-        wherePredicates.searchClauseTransitiveClosure(numTables,fromList.hashJoinSpecified());
+        wherePredicates.searchClauseTransitiveClosure(fromList.hashJoinSpecified());
     }
 
     /**

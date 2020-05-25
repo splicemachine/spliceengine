@@ -802,6 +802,7 @@ public class ColumnReference extends ValueNode {
         {
             ColumnReference cr = (ColumnReference) source.getExpression();
             tableNumber = cr.getTableNumber();
+            columnNumber = cr.getColumnNumber();
             if (SanityManager.DEBUG)
             {
                 // if dummy cr generated to replace aggregate, it may not have table number
