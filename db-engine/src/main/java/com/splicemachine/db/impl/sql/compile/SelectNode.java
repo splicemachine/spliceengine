@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -960,7 +961,7 @@ public class SelectNode extends ResultSetNode{
         if(wherePredicates!=null && !wherePredicates.isEmpty() && !fromList.isEmpty()){
             // Perform various forms of transitive closure on wherePredicates
             if(fromList.size()>1){
-                performTransitiveClosure(numTables);
+                performTransitiveClosure();
             }
 
             if(orderByList!=null){
@@ -2086,6 +2087,12 @@ public class SelectNode extends ResultSetNode{
      */
     void pushExpressionsIntoSelect(Predicate predicate) throws StandardException{
         wherePredicates.pullExpressions(referencedTableMap.size(),predicate.getAndNode());
+        Boolean enableTC = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.ENABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+        if (enableTC != null && enableTC) {
+            if (fromList.size() > 1) {
+                performTransitiveClosure();
+            }
+        }
         fromList.pushPredicates(wherePredicates);
     }
 
@@ -2366,15 +2373,14 @@ public class SelectNode extends ResultSetNode{
      * The 2 types are transitive closure on join clauses and on search clauses.
      * Join clauses will be processed first to maximize benefit for search clauses.
      *
-     * @param numTables The number of tables in the query
      * @throws StandardException Thrown on error
      */
-    private void performTransitiveClosure(int numTables) throws StandardException{
+    private void performTransitiveClosure() throws StandardException{
         // Join clauses
-        wherePredicates.joinClauseTransitiveClosure(numTables,fromList,getCompilerContext());
+        wherePredicates.joinClauseTransitiveClosure(fromList,getCompilerContext());
 
         // Search clauses
-        wherePredicates.searchClauseTransitiveClosure(numTables,fromList.hashJoinSpecified());
+        wherePredicates.searchClauseTransitiveClosure(fromList.hashJoinSpecified());
     }
 
     /**

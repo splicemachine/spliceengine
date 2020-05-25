@@ -1487,4 +1487,6 @@ public interface Property {
      * Create a read only connection at some fixed point in the past determined by this transaction id
      */
     String CONNECTION_SNAPSHOT = "snapshot";
+
+    String CONNECTION_ENABLE_TC_PUSHED_DOWN_INTO_VIEWS = "enhancedTC";
 }
