@@ -48,7 +48,8 @@ public interface SessionProperties {
         OLAPQUEUE(4),
         SNAPSHOT_TIMESTAMP(5),
         OLAPPARALLELPARTITIONS(6),
-        OLAPSHUFFLEPARTITIONS(7);
+        OLAPSHUFFLEPARTITIONS(7),
+        ENABLE_TC_PUSHED_DOWN_INTO_VIEWS(8);
 
         public static int COUNT = PROPERTYNAME.values().length;
 
@@ -90,6 +91,7 @@ public interface SessionProperties {
         switch (property) {
             case USESPARK:
             case SKIPSTATS:
+            case ENABLE_TC_PUSHED_DOWN_INTO_VIEWS:
                 try {
                     boolean val = Boolean.parseBoolean(valString);
                 } catch (Exception e) {

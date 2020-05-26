@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -2086,9 +2087,11 @@ public class SelectNode extends ResultSetNode{
      */
     void pushExpressionsIntoSelect(Predicate predicate) throws StandardException{
         wherePredicates.pullExpressions(referencedTableMap.size(),predicate.getAndNode());
-        // Perform various forms of transitive closure on wherePredicates
-        if(fromList.size()>1){
-            performTransitiveClosure();
+        Boolean enableTC = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.ENABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+        if (enableTC != null && enableTC) {
+            if (fromList.size() > 1) {
+                performTransitiveClosure();
+            }
         }
         fromList.pushPredicates(wherePredicates);
     }

@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
@@ -802,7 +803,10 @@ public class ColumnReference extends ValueNode {
         {
             ColumnReference cr = (ColumnReference) source.getExpression();
             tableNumber = cr.getTableNumber();
-            columnNumber = cr.getColumnNumber();
+            Boolean enableTC = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.ENABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+            if (enableTC != null && enableTC)
+                columnNumber = cr.getColumnNumber();
+
             if (SanityManager.DEBUG)
             {
                 // if dummy cr generated to replace aggregate, it may not have table number

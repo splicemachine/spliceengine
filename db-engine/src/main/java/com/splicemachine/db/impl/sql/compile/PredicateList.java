@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
@@ -2641,9 +2642,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             return;
         }
 
-        /* do not remove equality join conditions, in the presence of 3 tables, this could still cause unconstaint join
-        */
-        /*
+        Boolean enableTC = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.ENABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+        if (enableTC != null && enableTC) {
+            /* do not remove equality join conditions, in the presence of 3 tables, this could still cause unconstaints join,
+             * so return here directly */
+            return;
+        }
+
+
         // If all equijoin predicates are candidate for transitive closure transformation,
         // don't do it, because otherwise all potentially fast hashable join strategies will be ruled out.
         boolean doTransform = false;
@@ -2658,9 +2664,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         if (!doTransform) {
             return;
         }
-        * Walk list backwards since we can delete while
+        /* Walk list backwards since we can delete while
         * traversing the list.
-        *
+        */
         for(int index=size()-1;index>=0;index--){
             Predicate predicate=elementAt(index);
 
@@ -2668,7 +2674,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 removeElementAt(index);
             }
         }
-        */
 
         return;
     }

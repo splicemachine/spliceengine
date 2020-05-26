@@ -1493,4 +1493,6 @@ public interface Property {
      * too much data
      */
     String OLAP_PARALLEL_PARTITIONS = "olapParallelPartitions";
+
+    String CONNECTION_ENABLE_TC_PUSHED_DOWN_INTO_VIEWS = "enhancedTC";
 }
