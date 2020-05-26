@@ -72,6 +72,10 @@ public class SessionPropertiesImpl implements SessionProperties {
                 int parallelPartitions = Integer.parseInt(valString);
                 properties[OLAPPARALLELPARTITIONS.getId()] = parallelPartitions;
                 break;
+            case OLAPSHUFFLEPARTITIONS:
+                int shufflePartitions = Integer.parseInt(valString);
+                properties[OLAPSHUFFLEPARTITIONS.getId()] = shufflePartitions;
+                break;
             case SNAPSHOT_TIMESTAMP:
                 long timestamp = Long.parseLong(valString);
                 properties[SNAPSHOT_TIMESTAMP.getId()] = timestamp;
