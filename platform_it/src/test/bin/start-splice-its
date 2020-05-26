@@ -58,13 +58,7 @@ while getopts ":chp:b:" flag ; do
 done
 
 # Check if server running. Shut down if so.
-Y=( $(ps -ef | awk '/spliceYarn|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}') )
-S=( $(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}') )
-Z=( $(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}') )
-if [[ -n ${Y[0]} || -n ${S[0]} || -n ${Z[0]} ]]; then
-    echo "Splice server is running. Shutting down."
-    "${SCRIPT_DIR}"/stop-splice-its
-fi
+"${SCRIPT_DIR}"/stop-splice-its
 
 # Start zookeeper in background.
 echo "Starting ZooKeeperServerMain, log file is ${ZOOLOG}"
