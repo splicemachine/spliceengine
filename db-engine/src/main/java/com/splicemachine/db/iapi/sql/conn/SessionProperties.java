@@ -47,7 +47,8 @@ public interface SessionProperties {
         RECURSIVEQUERYITERATIONLIMIT(3),
         OLAPQUEUE(4),
         SNAPSHOT_TIMESTAMP(5),
-        OLAPPARALLELPARTITIONS(6);
+        OLAPPARALLELPARTITIONS(6),
+        OLAPSHUFFLEPARTITIONS(7);
 
         public static int COUNT = PROPERTYNAME.values().length;
 
@@ -108,6 +109,7 @@ public interface SessionProperties {
                 break;
             case RECURSIVEQUERYITERATIONLIMIT:
             case OLAPPARALLELPARTITIONS:
+            case OLAPSHUFFLEPARTITIONS:
                 int value;
                 try {
                     value = Integer.parseInt(valString);
