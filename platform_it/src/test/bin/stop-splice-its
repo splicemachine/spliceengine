@@ -7,7 +7,7 @@
 
 # Check if server running. If not, no need to proceed.
 splice_pids=( $(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant|OlapServerMaster/ && !/awk/ {print $2}') )
-yarn_pids=( $(ps -ef | awk '/spliceYarn|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}') )
+yarn_pids=( $(ps -ef | awk '/spliceYarn|SpliceTestYarnPlatform|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}') )
 zoo_pids=( $(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}') )
 kafka_pids=( $(ps -ef | awk '/TestKafkaCluster/ && !/awk/ {print $2}') )
 
