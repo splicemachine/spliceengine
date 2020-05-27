@@ -155,7 +155,7 @@ public class OlapClientTest {
         }
     }
 
-    @Test
+    @Test @Ignore("DB-9279")
     public void concurrencySameNameTest() throws Exception {
         int size = 32;
         Thread[] threads = new Thread[size];

@@ -16,11 +16,14 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
+import com.splicemachine.test.LongerThanFiveMinutes;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -43,6 +46,7 @@ import static org.junit.Assert.*;
  */
 @SuppressWarnings("unchecked")
 @RunWith(Parameterized.class)
+@Category({LongerThanTwoMinutes.class, LongerThanFiveMinutes.class})
 public class WindowFunctionIT extends SpliceUnitTest {
     private Boolean useSpark;
 

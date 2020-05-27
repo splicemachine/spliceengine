@@ -34,7 +34,11 @@ import org.scalatest.junit.JUnitRunner
 import org.apache.spark.sql.functions._
 import java.sql.Connection
 
+import com.splicemachine.test.{LongerThanFiveMinutes, LongerThanTwoMinutes}
+import org.junit.experimental.categories.Category
+
 @RunWith(classOf[JUnitRunner])
+@Category(Array(classOf[LongerThanTwoMinutes], classOf[LongerThanFiveMinutes]))
 class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with Matchers {
   val rowCount = 10
   var sqlContext : SQLContext = _

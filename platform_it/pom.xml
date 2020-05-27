@@ -342,7 +342,8 @@
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
                             <excludedGroups>
-                                ${excluded.categories}
+                                ${excluded.categories},
+                                ${excluded.longerthan}
                             </excludedGroups>
                             <argLine>-Xmx2g -Xms64m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
@@ -374,7 +375,8 @@
                             <excludedGroups>
                                 com.splicemachine.test.SerialTest,
                                 com.splicemachine.test.RestoreTest,
-                                ${excluded.categories}
+                                ${excluded.categories},
+                                ${excluded.longerthan}
                             </excludedGroups>
                             <parallel>classes</parallel>
                             <threadCount>1</threadCount>

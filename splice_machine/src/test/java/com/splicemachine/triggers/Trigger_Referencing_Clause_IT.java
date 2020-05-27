@@ -32,6 +32,8 @@
 package com.splicemachine.triggers;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.LongerThanFiveMinutes;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -51,8 +53,8 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_TRIGGER
 /**
  * Test REFERENCING clause in triggers.
  */
-@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
+@Category({SerialTest.class, LongerThanTwoMinutes.class, LongerThanFiveMinutes.class})
 public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
 
