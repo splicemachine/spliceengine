@@ -4,8 +4,10 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
@@ -26,6 +28,7 @@ import static org.junit.Assert.assertEquals;
  * Created by yxia on 5/30/19.
  */
 @RunWith(Parameterized.class)
+@Category(LongerThanTwoMinutes.class)
 public class PredicatePushToUnionIT extends SpliceUnitTest {
 
     private Boolean useSpark;
