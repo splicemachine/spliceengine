@@ -17,6 +17,7 @@ package com.splicemachine.triggers;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.util.StatementUtils;
@@ -37,8 +38,8 @@ import static org.junit.Assert.*;
 /**
  * Test ROW triggers.
  */
-@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
+@Category({SerialTest.class, LongerThanTwoMinutes.class})
 public class Trigger_Row_IT {
 
     private static final String SCHEMA = Trigger_Row_IT.class.getSimpleName();
