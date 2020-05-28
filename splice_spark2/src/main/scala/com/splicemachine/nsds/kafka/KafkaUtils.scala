@@ -1,4 +1,19 @@
-package com.splicemachine.spark2.splicemachine
+/*
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+package com.splicemachine.nsds.kafka
 
 import java.io.Externalizable
 import java.util.{Collections, Properties, UUID}
@@ -13,10 +28,10 @@ import scala.collection.JavaConverters._
 object KafkaUtils {
   def messageCount(bootstrapServers: String, topicName: String): Long = {
     val props = new Properties
-    val groupId = "spark-consumer-s2s-ku"
+    val groupId = "spark-consumer-nsdsk-ku"
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
     props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
-    props.put(ConsumerConfig.CLIENT_ID_CONFIG, groupId + UUID.randomUUID)
+    props.put(ConsumerConfig.CLIENT_ID_CONFIG, groupId +"-"+ UUID.randomUUID)
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, classOf[IntegerDeserializer].getName)
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ExternalizableDeserializer].getName)
 
@@ -34,10 +49,10 @@ object KafkaUtils {
 
   def messageCount(bootstrapServers: String, topicName: String, partition: Int): Long = {
     val props = new Properties
-    val groupId = "spark-consumer-s2s-ku"
+    val groupId = "spark-consumer-nsdsk-ku"
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
     props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
-    props.put(ConsumerConfig.CLIENT_ID_CONFIG, groupId + UUID.randomUUID)
+    props.put(ConsumerConfig.CLIENT_ID_CONFIG, groupId +"-"+ UUID.randomUUID)
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, classOf[IntegerDeserializer].getName)
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ExternalizableDeserializer].getName)
 

@@ -41,10 +41,10 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long, querySchema: StructType
 
   def rdd_schema(topicName: String): (RDD[Row], StructType) = {
     val props = new Properties()
-    val consumerId = UUID.randomUUID()
+    val groupId = "spark-consumer-s2s-ktdf"
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServers)
-    props.put(ConsumerConfig.GROUP_ID_CONFIG, "spark-consumer-group-"+consumerId)
-    props.put(ConsumerConfig.CLIENT_ID_CONFIG, "spark-consumer-"+consumerId)
+    props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
+    props.put(ConsumerConfig.CLIENT_ID_CONFIG, groupId +"-"+ UUID.randomUUID())
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, classOf[IntegerDeserializer].getName)
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ExternalizableDeserializer].getName)
     props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
