@@ -121,23 +121,25 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
     conn.createStatement().execute("create table TestContext.T(id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), c1 double, c2 double, c3 double, primary key(id))")
     conn.createStatement().execute("insert into TestContext.T(c1,c2,c3) values (100, 100, 100), (200, 200, 200), (300, 300, 300), (400, 400, 400)");
-    for (i <- 0 to 15) {
+    for (i <- 0 to 20) {
       conn.createStatement().execute("insert into TestContext.T(c1,c2,c3) select c1,c2,c3 from TestContext.t")
     }
     conn.createStatement().execute("create table TestContext.T2(id int, c1 double, c2 double, c3 double, primary key(id))")
     val options = Map(
       JDBCOptions.JDBC_TABLE_NAME -> (schema+"."+"T"),
-      JDBCOptions.JDBC_URL -> defaultJDBCURL
+      JDBCOptions.JDBC_URL -> defaultJDBCURL,
+      SpliceJDBCOptions.JDBC_INTERNAL_QUERIES -> "true"
     )
     val df = sqlContext.read.options(options).splicemachine
 
     val options2 = Map(
       JDBCOptions.JDBC_TABLE_NAME -> (schema+"."+"T2"),
-      JDBCOptions.JDBC_URL -> defaultJDBCURL
+      JDBCOptions.JDBC_URL -> defaultJDBCURL,
+      SpliceJDBCOptions.JDBC_INTERNAL_QUERIES -> "true"
     )
     splicemachineContext.splitAndInsert(df, schema+"."+"T2", 0.001)
     val newDF = sqlContext.read.options(options2).splicemachine
-    assert(newDF.count == 262144)
+    assert(newDF.count == 8388608)
   }
 
   test("insertion using RDD") {
