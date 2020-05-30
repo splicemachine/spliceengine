@@ -20,7 +20,7 @@ import java.security.SecureRandom
 
 @SerialVersionUID(20200518241L)
 class KafkaTopics(kafkaServers: String) extends Serializable {
-  val unneeded = collection.mutable.Set[String]()
+  val unneeded = collection.mutable.HashSet[String]()
 
   def create(): String = {
     val name = new Array[Byte](32)

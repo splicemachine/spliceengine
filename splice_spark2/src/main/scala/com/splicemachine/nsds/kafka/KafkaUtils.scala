@@ -35,7 +35,7 @@ object KafkaUtils {
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, classOf[IntegerDeserializer].getName)
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ExternalizableDeserializer].getName)
 
-    val consumer = new KafkaConsumer[Integer, Externalizable](props)
+    @transient lazy val consumer = new KafkaConsumer[Integer, Externalizable](props)
     val partitionInfo = consumer.partitionsFor(topicName).asScala
     val partitions = partitionInfo.map(pi => new TopicPartition(topicName, pi.partition()))
     consumer.assign(partitions.asJava)
@@ -56,7 +56,7 @@ object KafkaUtils {
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, classOf[IntegerDeserializer].getName)
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ExternalizableDeserializer].getName)
 
-    val consumer = new KafkaConsumer[Integer, Externalizable](props)
+    @transient lazy val consumer = new KafkaConsumer[Integer, Externalizable](props)
 
     val topicPartition = new TopicPartition(topicName, partition)
     val partitions = Seq(topicPartition)
