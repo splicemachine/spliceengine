@@ -25,9 +25,12 @@ import org.apache.kafka.common.serialization.IntegerDeserializer
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 import scala.collection.JavaConverters._
 
+@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL"), justification = "Fields 'row' and 'records' aren't always null, and null checks didn't eliminate Spotbugs error; see DB-9580.")
+@SuppressFBWarnings(value = Array("SE_BAD_FIELD"), justification = "This class isn't serializable, and there's no field named 'outer'.")
 class KafkaToDF(kafkaServers: String, pollTimeout: Long, querySchema: StructType) {
 
   def spark(): SparkSession = SparkSession.builder.getOrCreate
