@@ -652,6 +652,15 @@ public class SpliceUnitTest {
         return bulkLoadDirectory;
     }
 
+    public static File createBackupDirectory() {
+        File backupDirectory = new File(SpliceUnitTest.getBaseDirectory() + "/target/backup/");
+        if (!backupDirectory.exists()) {
+            assertTrue("Couldn't create " + backupDirectory, backupDirectory.mkdirs());
+            assertTrue("Failed to create " + backupDirectory, backupDirectory.exists());
+        }
+        return backupDirectory;
+    }
+
     public static void recursiveDelete(File file) {
         if (file != null) {
             File[] directoryFiles = file.listFiles();

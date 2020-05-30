@@ -115,10 +115,8 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                     boolean refreshPartitionLoad = splits.size() < PARTITION_LOAD_REFRESH_THRESHOLD;
                     Collection<PartitionLoad> tableLoad = loadWatcher.tableLoad(tableName, refreshPartitionLoad);
                     for (PartitionLoad partitionLoad : tableLoad) {
-                        tableSize += (partitionLoad.getStorefileSizeMB() + partitionLoad.getMemStoreSizeMB());
+                        tableSize += (partitionLoad.getStorefileSize() + partitionLoad.getMemStoreSize());
                     }
-                    // Convert MB to bytes.
-                    tableSize *= 1048576;
                     if (tableSize < 0)
                         tableSize = 0;
                 }

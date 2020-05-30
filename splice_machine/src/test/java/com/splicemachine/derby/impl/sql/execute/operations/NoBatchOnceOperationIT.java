@@ -18,6 +18,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -33,7 +34,7 @@ import java.util.Collection;
 import static org.junit.Assert.*;
 
 @RunWith(Parameterized.class)
-@Category(SerialTest.class)
+@Category({SerialTest.class, LongerThanTwoMinutes.class})
 public class NoBatchOnceOperationIT extends SpliceUnitTest {
 
     private static final String SCHEMA = NoBatchOnceOperationIT.class.getSimpleName().toUpperCase();

@@ -12,36 +12,11 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.storage;
+package com.splicemachine.test;
 
 /**
- * @author Scott Fines
- *         Date: 1/12/16
+ * Used together with JUnit's @Category to annotate tests which run for more than 2 minutes and can be
+ * excluded for quicker IT runs
  */
-public class MPartitionLoad implements PartitionLoad{
-    private final String partitionName;
-
-    public MPartitionLoad(String partitionName){
-        this.partitionName=partitionName;
-    }
-
-    @Override
-    public long getStorefileSize(){
-        return 0;
-    }
-
-    @Override
-    public long getMemStoreSize(){
-        return 1;
-    }
-
-    @Override
-    public long getStorefileIndexSize(){
-        return 0;
-    }
-
-    @Override
-    public String getPartitionName(){
-        return partitionName;
-    }
+public interface LongerThanTwoMinutes {
 }
