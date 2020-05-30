@@ -47,9 +47,11 @@ import com.splicemachine.nsds.kafka.KafkaTopics
 import com.splicemachine.nsds.kafka.KafkaUtils
 import org.apache.log4j.Logger
 import org.apache.spark.TaskContext
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 import scala.collection.JavaConverters._
 
+@SerialVersionUID(20200517241L)
 private object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
 }
@@ -66,6 +68,11 @@ object KafkaOptions {
   * @param options Supported options are JDBCOptions.JDBC_URL (required), JDBCOptions.JDBC_INTERNAL_QUERIES,
   *                JDBCOptions.JDBC_TEMP_DIRECTORY, KafkaOptions.KAFKA_SERVERS, KafkaOptions.KAFKA_POLL_TIMEOUT
   */
+@SerialVersionUID(20200517242L)
+@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL"), justification = "These fields usually are not null")
+@SuppressFBWarnings(value = Array("NP_LOAD_OF_KNOWN_NULL_VALUE"), justification = "These fields usually are not null")
+@SuppressFBWarnings(value = Array("EI_EXPOSE_REP2"), justification = "The nonKeys value is needed and is used read-only")
+@SuppressFBWarnings(value = Array("SE_BAD_FIELD"), justification = "The meta and itrRow objects are not used in serialization")
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] val url = options(JDBCOptions.JDBC_URL) + ";useSpark=true"
 
@@ -243,6 +250,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
                   keys: Seq[String] = Seq(),
                   createTableOptions: String = ""): Unit = {
     val (conn, jdbcOptionsInWrite) = getConnection(schemaTableName)
+    val statement = conn.createStatement
     try {
       val actSchemaString = schemaString(structType, jdbcOptionsInWrite.url)
 
@@ -252,9 +260,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       }
       
       val sql = s"CREATE TABLE $schemaTableName ($actSchemaString$primaryKeyString)"
-      val statement = conn.createStatement
       statement.executeUpdate(sql)
     } finally {
+      statement.close()
       conn.close()
     }
   }
@@ -284,9 +292,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     */
   def executeUpdate(sql: String): Unit = {
     val conn = getConnection()
+    val statement = conn.createStatement
     try {
-      conn.createStatement.executeUpdate(sql)
+      statement.executeUpdate(sql)
     } finally {
+      statement.close()
       conn.close()
     }
   }
@@ -299,9 +309,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     */
   def execute(sql: String): Unit = {
     val conn = getConnection()
+    val statement = conn.createStatement
     try {
-      conn.createStatement.execute(sql)
+      statement.execute(sql)
     } finally {
+      statement.close()
       conn.close()
     }
   }
@@ -367,10 +379,12 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     // hbase user has read/write permission on the topic
     val conn = getConnection()
+    val statement = conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql)
     try {
 //      println( s"SMC.sendSql sql $sql" )
-      conn.prepareStatement(s"EXPORT_KAFKA('$topicName') " + sql).execute()
+      statement.execute()
     } finally {
+      statement.close()
       conn.close()
     }
   }
@@ -592,7 +606,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param schema
    * @param schemaTableName table to delete from
    */
-  def delete(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+  def delete(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = if( !rdd.isEmpty ) {
     val keys = primaryKeys(schemaTableName)
     if (keys.length == 0)
       throw new UnsupportedOperationException(s"$schemaTableName has no Primary Key, Required for the Table to Perform Deletes")
@@ -610,11 +624,13 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     )
   
   /** Schema string built from JDBC metadata. */
-  def schemaString(schemaTableName: String): String =
+  def schemaString(schemaTableName: String, schema: StructType = new StructType()): String =
     SpliceJDBCUtil.retrieveColumnInfo(
       new JdbcOptionsInWrite(Map(
         JDBCOptions.JDBC_URL -> url,
         JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
+    ).filter(
+      col => schema.isEmpty || schema.exists( field => field.name.toUpperCase.equals( col(0).toUpperCase ) )
     ).map(i => {
       val colName = i(0)
       val sqlType = i(1)
@@ -676,7 +692,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param schema
    * @param schemaTableName
    */
-  def update(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+  def update(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = if( !rdd.isEmpty ) {
     val keys = primaryKeys(schemaTableName)
     if (keys.length == 0)
       throw new UnsupportedOperationException(s"$schemaTableName has no Primary Key, Required for the Table to Perform Updates")
@@ -804,25 +820,28 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   
   private[this] def getSchemaOfQuery(query: String): StructType = {
     val stmt = getConnection.prepareStatement(query)
-    val meta = stmt.getMetaData()  // might be jdbc driver dependent
-    val colNames = for (c <- 1 to meta.getColumnCount) yield meta.getColumnLabel(c)
-    val hasDuplicateNames = colNames.size != colNames.distinct.size
-    val fields = for (i <- 1 to meta.getColumnCount) yield {
-      val name = if(hasDuplicateNames) {
-        meta.getSchemaName(i)+"."+meta.getTableName(i)+"."+meta.getColumnLabel(i)
-      } else meta.getColumnLabel(i)
-      val dataType = meta.getColumnType(i)
-      val typeName = meta.getColumnTypeName(i)
-      val precision = meta.getPrecision(i)
-      val scale = meta.getScale(i)
-      val nullable = meta.isNullable(i) == ResultSetMetaData.columnNullable
-      val columnType =
-        dialect.getCatalystType(dataType, typeName, precision, null).getOrElse(
-          SpliceJDBCUtil.getCatalystType(dataType, precision, scale, meta.isSigned(i)) )
-      StructField(name, columnType, nullable)
+    try {
+      val meta = stmt.getMetaData() // might be jdbc driver dependent
+      val colNames = for (c <- 1 to meta.getColumnCount) yield meta.getColumnLabel(c)
+      val hasDuplicateNames = colNames.size != colNames.distinct.size
+      val fields = for (i <- 1 to meta.getColumnCount) yield {
+        val name = if (hasDuplicateNames) {
+          meta.getSchemaName(i) + "." + meta.getTableName(i) + "." + meta.getColumnLabel(i)
+        } else meta.getColumnLabel(i)
+        val dataType = meta.getColumnType(i)
+        val typeName = meta.getColumnTypeName(i)
+        val precision = meta.getPrecision(i)
+        val scale = meta.getScale(i)
+        val nullable = meta.isNullable(i) == ResultSetMetaData.columnNullable
+        val columnType =
+          dialect.getCatalystType(dataType, typeName, precision, null).getOrElse(
+            SpliceJDBCUtil.getCatalystType(dataType, precision, scale, meta.isSigned(i)))
+        StructField(name, columnType, nullable)
+      }
+      StructType(fields)
+    } finally {
+      stmt.close
     }
-    stmt.close
-    StructType(fields)
   }
 
   /**

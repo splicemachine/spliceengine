@@ -43,10 +43,11 @@ public class TransactionsWatcher {
             MoreExecutors.namedSingleThreadScheduledExecutor("hbase-transactions-watcher-%d");
 
     private static final Runnable updater = () -> {
-        String role = SIDriver.driver().lifecycleManager().getReplicationRole();
-        boolean isSlave = role.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0;
-        long fetchTimestamp = isSlave ? SIDriver.driver().getTimestampSource().currentTimestamp() :
-                SIDriver.driver().getTimestampSource().nextTimestamp();
+
+        boolean isRestoreMode = SIDriver.driver().lifecycleManager().isRestoreMode();
+        if (isRestoreMode) return;
+
+        long fetchTimestamp = SIDriver.driver().getTimestampSource().currentTimestamp();
         long oldestActiveTransaction = fetchOldestActiveTransaction();
         if (oldestActiveTransaction == Long.MAX_VALUE) {
             lowWatermarkTransaction.set(fetchTimestamp);

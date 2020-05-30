@@ -70,7 +70,7 @@
                     <dependenciesToScan>
                         <dependency>com.splicemachine:splice_si_api</dependency>
                     </dependenciesToScan>
-                    <excludedGroups>com.splicemachine.si.testenv.ArchitectureIndependent</excludedGroups>
+                    <excludedGroups>com.splicemachine.si.testenv.ArchitectureIndependent, ${excluded.longerthan}</excludedGroups>
                 </configuration>
             </plugin>
         </plugins>

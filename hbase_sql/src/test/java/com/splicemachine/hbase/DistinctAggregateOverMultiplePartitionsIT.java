@@ -21,12 +21,14 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -44,6 +46,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Created by yxia on 6/28/17.
  */
+@Category(LongerThanTwoMinutes.class)
 public class DistinctAggregateOverMultiplePartitionsIT extends SpliceUnitTest {
     public static final String CLASS_NAME = DistinctAggregateOverMultiplePartitionsIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
