@@ -82,7 +82,7 @@ public class SpliceTestYarnPlatform {
 
         SpliceTestYarnPlatform yarnParticipant = new SpliceTestYarnPlatform(classPathRoot, secure);
         yarnParticipant.configForSplice(classPathRoot);
-        LOG.error("Yarn -- > class " + yarnParticipant.getConfig().get("yarn.nodemanager.container-executor.class"));
+        LOG.info("Yarn -- > class " + yarnParticipant.getConfig().get("yarn.nodemanager.container-executor.class"));
         yarnParticipant.start(nodeCount);
     }
 

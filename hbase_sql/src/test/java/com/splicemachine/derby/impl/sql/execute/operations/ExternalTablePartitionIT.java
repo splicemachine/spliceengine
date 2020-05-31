@@ -53,7 +53,7 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
     @BeforeClass
     public static void createTempDirectory() throws Exception
     {
-        tempDir = createOrWipeTestDirectory( SCHEMA_NAME );
+        tempDir = createTempDirectory(SCHEMA_NAME);
     }
 
     @AfterClass
