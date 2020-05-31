@@ -107,7 +107,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
     @BeforeClass
     public static void createTempDirectory() throws Exception
     {
-        tempDir = createOrWipeTestDirectory( SCHEMA );
+        tempDir = createTempDirectory(SCHEMA);
     }
 
     @AfterClass
