@@ -124,6 +124,7 @@
                             <arguments>
                                 <argument>-classpath</argument>
                                 <classpath />
+                                <argument>-Djava.io.tmpdir=${project.build.directory}/../../platform_it/target/tmp</argument>
                                 <argument>com.splicemachine.test.SpliceTestYarnPlatform</argument>
                                 <argument>${project.build.directory}/../../platform_it/target/classes</argument>
                                 <argument>${secure}</argument>
