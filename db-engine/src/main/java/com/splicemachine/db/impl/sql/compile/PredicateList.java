@@ -4215,7 +4215,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
      * being considered in estimateCost. For us, each predicate can have
      * different index positions for different indices.
      */
-    private class PredicateWrapper{
+    private static class PredicateWrapper{
         int indexPosition;
         Predicate pred;
         int predicateID;
@@ -4258,7 +4258,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     /**
      * Another inner class which is basically a List of Predicate Wrappers.
      */
-    private class PredicateWrapperList{
+    private static class PredicateWrapperList{
         List<PredicateWrapper> pwList;
         int numPreds;
         int numDuplicates;
