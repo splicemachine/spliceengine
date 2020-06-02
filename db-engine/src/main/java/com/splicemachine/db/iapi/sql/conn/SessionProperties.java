@@ -49,7 +49,7 @@ public interface SessionProperties {
         SNAPSHOT_TIMESTAMP(5),
         ENABLE_TC_PUSHED_DOWN_INTO_VIEWS(6);
 
-        public static int COUNT = PROPERTYNAME.values().length;
+        public static final int COUNT = PROPERTYNAME.values().length;
 
         private int id;
 
@@ -91,7 +91,7 @@ public interface SessionProperties {
             case SKIPSTATS:
             case ENABLE_TC_PUSHED_DOWN_INTO_VIEWS:
                 try {
-                    boolean val = Boolean.parseBoolean(valString);
+                    Boolean.parseBoolean(valString);
                 } catch (Exception e) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "boolean or null");
                 }
