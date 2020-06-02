@@ -461,9 +461,7 @@ public class SelectNode extends ResultSetNode{
     public void bindExpressions(FromList fromListParam) throws StandardException{
         int fromListParamSize=fromListParam.size();
         int fromListSize=fromList.size();
-        int numDistinctAggs;
 
-        assert fromList!=null: "FromList is unexepctedly null!";
         assert resultColumns!=null: "ResultColumns is unexpectedly null!";
 
         /* NOTE - a lot of this code would be common to bindTargetExpression(),
@@ -1099,9 +1097,11 @@ public class SelectNode extends ResultSetNode{
         }
 
         /* Copy the referenced table map to the new tree top, if necessary */
+        /* the code that update newTop above has been commented out, so this code has become obselete
         if(newTop!=this){
             newTop.setReferencedTableMap((JBitSet)referencedTableMap.clone());
         }
+        */
 
 
         if(orderByList!=null){
