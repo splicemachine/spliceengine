@@ -320,7 +320,6 @@ public class JoinNode extends TableOperatorNode{
              * Also need to figure out the pushing of the joinClause.
              */
             subqueryList.optimize(optimizer.getDataDictionary(), costEstimate.rowCount(), optimizer.isForSpark());
-            subqueryList.modifyAccessPaths();
         }
 
         optimized=true;
@@ -371,6 +370,10 @@ public class JoinNode extends TableOperatorNode{
 
     @Override
     public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException{
+        // modify access path for On clause subqueries
+        if (subqueryList != null)
+            subqueryList.modifyAccessPaths();
+
         super.modifyAccessPath(outerTables);
 
         /* By the time we're done here, both the left and right
@@ -2235,5 +2238,9 @@ public class JoinNode extends TableOperatorNode{
             }
         }
         return rightHashKeysToBaseTableMap;
+    }
+
+    public void resetOptimized() {
+        optimized = false;
     }
 }
