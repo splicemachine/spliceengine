@@ -176,18 +176,12 @@ public class MemStoreFlushAwareScanner extends StoreScanner implements RegionSca
             return HBasePlatformUtils.scannerEndReached(scannerContext);
         }
         if (super.next(outResult,scannerContext)) {
-            if (didWeFlush()) {
-                SpliceLogUtils.warn(LOG, "Flush happened while scanning the row that we return. We might return incomplete results: %s", outResult);
-            }
             if (LOG.isTraceEnabled()) {
                 SpliceLogUtils.trace(LOG, "Next: returning " + outResult.size() +
                         ". mayHaveMoreCellsInARow=" + HRegionUtil.mayHaveMoreCellsInARow(scannerContext));
                 SpliceLogUtils.trace(LOG, "Next: actual output: %s" + outResult);
             }
             return true;
-        }
-        if (didWeFlush()) {
-            SpliceLogUtils.warn(LOG, "Flush happened after didWeFlush returned false");
         }
 
         if (LOG.isTraceEnabled())

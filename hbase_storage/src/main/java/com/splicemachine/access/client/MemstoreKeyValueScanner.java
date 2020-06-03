@@ -79,9 +79,7 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
                 if (LOG.isTraceEnabled())
                     LOG.trace("PREVIOUS CELL: " + previousCell);
                 if (CellUtil.matchingRows(currentResult.rawCells()[0], HConstants.EMPTY_START_ROW)) {
-                    byte[] rowId = Bytes.add(
-                            CellUtil.cloneRow(previousCell),
-                            CellUtil.cloneRow(currentResult.rawCells()[0]));
+                    byte[] rowId = Bytes.add(CellUtil.cloneRow(previousCell), new byte[]{0});
                     currentResult = Result.create(new KeyValue[]{new KeyValue(rowId, FLUSH, FLUSH, previousCell.getTimestamp(), new byte[0])});
                     if (LOG.isTraceEnabled())
                         LOG.trace("NEW CELL: " + currentResult.rawCells()[0]);
