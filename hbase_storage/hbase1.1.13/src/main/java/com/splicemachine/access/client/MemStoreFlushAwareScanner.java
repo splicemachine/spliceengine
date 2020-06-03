@@ -156,8 +156,14 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
             }
             return HBasePlatformUtils.scannerEndReached(scannerContext);
         }
-        if (directInternalNext(outResult,scannerContext))
+        if (directInternalNext(outResult,scannerContext)) {
+            if (LOG.isTraceEnabled()) {
+                SpliceLogUtils.trace(LOG, "Next: returning " + outResult.size() +
+                        ". partialResultFormed=" + HRegionUtil.partialResultFormed(scannerContext));
+                SpliceLogUtils.trace(LOG, "Next: actual output: %s" + outResult);
+            }
             return true;
+        }
 
         // We don't have more rows but can't return null here
         endRowNeedsToBeReturned = true;
