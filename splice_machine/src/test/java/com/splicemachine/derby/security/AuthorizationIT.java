@@ -86,7 +86,6 @@ public class AuthorizationIT {
 
         Connection conn = spliceClassWatcher.createConnection();
         conn.createStatement().execute(format("grant access on schema %s to public", SCHEMA));
-        conn.createStatement().executeUpdate("CALL SYSCS_UTIL.SYSCS_ENABLE_ENTERPRISE('false')");
     }
 
     @Test
