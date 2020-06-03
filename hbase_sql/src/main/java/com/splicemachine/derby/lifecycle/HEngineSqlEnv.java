@@ -130,7 +130,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     private OlapClient initializeOlapClient(SConfiguration config,Clock clock) {
         int timeoutMillis = config.getOlapClientWaitTime();
         final int retries = config.getOlapClientRetries();
-        int maxRetries = config.getMaxRetries();
+        int maxRetries = config.getOlapServerMaxRetries();
         HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
         final OlapServerProvider osp = queue -> {
             try {
