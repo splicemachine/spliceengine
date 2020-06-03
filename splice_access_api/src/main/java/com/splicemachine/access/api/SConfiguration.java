@@ -240,6 +240,8 @@ public interface SConfiguration {
 
     boolean getOlapServerExternal();
 
+    int getOlapServerMaxRetries();
+
     long getOlapServerKeepAliveTimeout();
 
     int getOlapServerThreads();
