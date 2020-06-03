@@ -39,8 +39,8 @@
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo-shaded</artifactId>
             <version>3.0.3</version>
+            <scope>provided</scope>
         </dependency>
-
         <dependency>
             <!-- org.spark_project.guava -->
             <groupId>org.apache.spark</groupId>
