@@ -836,7 +836,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             compression = "uncompressed";
         }
         insertDF.write().option(SPARK_COMPRESSION_OPTION,compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                .mode(SaveMode.Append).format("avro").save(location);
+                .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
