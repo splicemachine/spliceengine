@@ -585,7 +585,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                             .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
                      */
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                            .mode(SaveMode.Append).format("avro").save(location);
+                            .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
                 }
                 else if (storedAs.toLowerCase().equals("o")) {
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
