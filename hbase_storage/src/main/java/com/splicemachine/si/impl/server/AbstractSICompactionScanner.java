@@ -49,6 +49,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
     private AtomicReference<IOException> failure = new AtomicReference<>();
     private AtomicLong remainingTime;
     private volatile boolean stop = false;
+    private Thread readerThread;
 
     public AbstractSICompactionScanner(SICompactionState compactionState,
                                        InternalScanner scanner,
@@ -61,16 +62,20 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
         this.purgeConfig = purgeConfig;
         this.queue = new ArrayBlockingQueue(bufferSize);
         this.permits = new Semaphore(bufferSize);
-        this.timer = new Timer("Compaction-resolution-throttle", true);
         this.timeDelta = (int) (60000 * resolutionShare);
         this.remainingTime = new AtomicLong(timeDelta);
         this.context = context;
+
+        String name = "Compaction-resolution-throttle-"+UUID.randomUUID();
+        LOG.info("Starting " + name);
+        this.timer = new Timer(name, true);
     }
 
     @Override
     public boolean next(List<Cell> list) throws IOException {
         if (failure.get() != null) {
             timer.cancel();
+            delegate.close();
             throw failure.get();
         }
         /*
@@ -92,6 +97,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
         } catch (Throwable t) {
             timer.cancel();
             stop = true;
+            delegate.close();
 
             // unblock reading thread
             permits.release(queue.size());
@@ -137,36 +143,36 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
 
     @Override
     public void close() throws IOException {
+        stop = true;
+        timer.cancel();
         delegate.close();
+        readerThread.interrupt();
     }
 
     public void start() {
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                boolean more = true;
-                try {
-                    while (more && !stop) {
-                        List<Cell> list = new ArrayList<>();
-                        more = delegate.next(list);
-                        List<Future<TxnView>> txns = compactionState.resolve(list);
-                        queue.put(new Entry(list, txns, more));
-                        // We acquire the permits after inserting because we don't want to block indefinitely if
-                        // we process a row with more Cells than maximum permits available, we don't care too much about
-                        // going a bit above the max number of permits
-                        permits.acquire(list.size());
-                    }
-                } catch (IOException e) {
-                    LOG.error("Unexpected exception", e);
-                    failure.set(e);
-                } catch (Throwable t) {
-                    LOG.error("Unexpected exception", t);
-                    failure.set(new IOException("Compaction interrupted", t));
+        readerThread = new Thread(() -> {
+            boolean more = true;
+            try {
+                while (more && !stop) {
+                    List<Cell> list = new ArrayList<>();
+                    more = delegate.next(list);
+                    List<Future<TxnView>> txns = compactionState.resolve(list);
+                    queue.put(new Entry(list, txns, more));
+                    // We acquire the permits after inserting because we don't want to block indefinitely if
+                    // we process a row with more Cells than maximum permits available, we don't care too much about
+                    // going a bit above the max number of permits
+                    permits.acquire(list.size());
                 }
+            } catch (IOException e) {
+                LOG.error("Unexpected exception", e);
+                failure.set(e);
+            } catch (Throwable t) {
+                LOG.error("Unexpected exception", t);
+                failure.set(new IOException("Compaction interrupted", t));
             }
         }, "CompactionReader");
-        thread.setDaemon(true);
-        thread.start();
+        readerThread.setDaemon(true);
+        readerThread.start();
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {

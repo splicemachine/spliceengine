@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -41,8 +42,8 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by yxia on 11/27/17.
  */
-@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
+@Category({SerialTest.class, LongerThanTwoMinutes.class})
 public class UpdateFromSubqueryIT extends SpliceUnitTest {
     private static final String SCHEMA = UpdateFromSubqueryIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);

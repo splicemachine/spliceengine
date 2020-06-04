@@ -71,6 +71,7 @@
         <argLine>${jacocoAgent}</argLine>
         <excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.BackupTest
         </excluded.categories>
+        <excluded.longerthan> </excluded.longerthan>
         <failTasksRandomly>true</failTasksRandomly>
         <jacoco_out/>
         <skipUT>false</skipUT>
@@ -745,6 +746,12 @@
             </properties>
         </profile>
         <profile>
+            <id>skipTestsLongerThan2Minutes</id>
+            <properties>
+                <excluded.longerthan>com.splicemachine.test.LongerThanTwoMinutes</excluded.longerthan>
+            </properties>
+        </profile>
+        <profile>
             <id>it</id>
             <modules>
                 <module>remote_it</module>
@@ -889,8 +896,8 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
-                <module>platform_it</module>
                 <module>standalone</module>
+                <module>platform_it</module>
                 <module>spark_sql</module>
                 <module>splice_spark</module>
                 <module>splice_spark2</module>
@@ -926,8 +933,8 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
-                <module>platform_it</module>
                 <module>standalone</module>
+                <module>platform_it</module>
                 <module>spark_sql</module>
                 <module>splice_spark</module>
                 <module>splice_spark2</module>
@@ -964,8 +971,8 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
-                <module>platform_it</module>
                 <module>standalone</module>
+                <module>platform_it</module>
                 <module>spark_sql</module>
                 <module>splice_spark</module>
                 <module>splice_spark2</module>

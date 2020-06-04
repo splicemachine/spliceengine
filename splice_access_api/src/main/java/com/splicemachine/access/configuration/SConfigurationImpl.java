@@ -155,6 +155,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapServerBindPort;
     private final String olapServerStagingDir;
     private final boolean olapServerExternal;
+    private final int olapServerMaxRetries;
     private final int olapServerThreads;
     private final int olapServerTickLimit;
     private final int olapClientRetries;
@@ -646,6 +647,12 @@ public final class SConfigurationImpl implements SConfiguration {
     public boolean getOlapServerExternal() {
         return olapServerExternal;
     }
+
+    @Override
+    public int getOlapServerMaxRetries() {
+        return olapServerMaxRetries;
+    }
+
     @Override
     public int getOlapServerSubmitAttempts() {
         return olapServerSubmitAttempts;
@@ -1056,6 +1063,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapServerBindPort = builder.olapServerBindPort;
         olapServerStagingDir = builder.olapServerStagingDir;
         olapServerExternal = builder.olapServerExternal;
+        olapServerMaxRetries = builder.olapServerMaxRetries;
         olapServerThreads = builder.olapServerThreads;
         olapServerTickLimit = builder.olapServerTickLimit;
         olapServerSubmitAttempts = builder.olapServerSubmitAttempts;
