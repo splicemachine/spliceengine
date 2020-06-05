@@ -1488,5 +1488,5 @@ public interface Property {
      */
     String CONNECTION_SNAPSHOT = "snapshot";
 
-    String CONNECTION_ENABLE_TC_PUSHED_DOWN_INTO_VIEWS = "enhancedTC";
+    String CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS = "disableAdvancedTC";
 }

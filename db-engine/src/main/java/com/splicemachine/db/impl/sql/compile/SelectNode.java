@@ -2087,8 +2087,8 @@ public class SelectNode extends ResultSetNode{
      */
     void pushExpressionsIntoSelect(Predicate predicate) throws StandardException{
         wherePredicates.pullExpressions(referencedTableMap.size(),predicate.getAndNode());
-        Boolean enableTC = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.ENABLE_TC_PUSHED_DOWN_INTO_VIEWS);
-        if (enableTC != null && enableTC) {
+        Boolean disableTC = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+        if (disableTC == null || !disableTC) {
             if (fromList.size() > 1) {
                 performTransitiveClosure();
             }
