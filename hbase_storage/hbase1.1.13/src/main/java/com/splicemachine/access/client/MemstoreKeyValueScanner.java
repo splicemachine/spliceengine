@@ -15,7 +15,9 @@
 package com.splicemachine.access.client;
 
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -23,7 +25,6 @@ import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
 import org.apache.hadoop.hbase.regionserver.Store;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -31,13 +32,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.SortedSet;
 
-import static com.splicemachine.access.client.ClientRegionConstants.FLUSH;
-
 public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner{
     protected static final Logger LOG=Logger.getLogger(MemstoreKeyValueScanner.class);
     protected ResultScanner resultScanner;
     protected Result currentResult;
-    protected Result previousResult;
     protected KeyValue peakKeyValue;
     protected Cell[] cells;
     int cellScannerIndex=0;
@@ -61,33 +59,16 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
 
     public boolean nextResult() throws IOException{
         cellScannerIndex=0;
-        previousResult = currentResult;
-        currentResult = this.resultScanner.next();
-        if(currentResult == null) {
+        currentResult=this.resultScanner.next();
+        if(currentResult!=null){
+            cells=currentResult.rawCells();
+            peakKeyValue=(KeyValue)current();
+            rows++;
+            return true;
+        }else{
             // This shouldn't happen, throw exception and re-init the scanner
             throw new DoNotRetryIOException("Memstore scanner shouldn't end prematurely");
         }
-        if (currentResult.rawCells() != null && CellUtil.matchingFamily(currentResult.rawCells()[0], FLUSH) ) {
-            if (LOG.isTraceEnabled())
-                LOG.trace("CURRENT CELL: " + currentResult.rawCells()[0]);
-            assert currentResult.rawCells().length == 1;
-            if (previousResult != null && previousResult.rawCells() != null) {
-                assert previousResult.rawCells().length > 0;
-                KeyValue previousCell = (KeyValue) previousResult.rawCells()[previousResult.rawCells().length - 1];
-                if (LOG.isTraceEnabled())
-                    LOG.trace("PREVIOUS CELL: " + previousCell);
-                if (CellUtil.matchingRow(currentResult.rawCells()[0], HConstants.EMPTY_START_ROW)) {
-                    byte[] rowId = Bytes.add(CellUtil.cloneRow(previousCell), new byte[]{0});
-                    currentResult = Result.create(new KeyValue[]{new KeyValue(rowId, FLUSH, FLUSH, previousCell.getTimestamp(), new byte[0])});
-                    if (LOG.isTraceEnabled())
-                        LOG.trace("NEW CELL: " + currentResult.rawCells()[0]);
-                }
-            }
-        }
-        cells=currentResult.rawCells();
-        peakKeyValue = (KeyValue) current();
-        rows++;
-        return true;
     }
 
 
