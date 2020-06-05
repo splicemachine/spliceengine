@@ -150,8 +150,8 @@ public class SYSALIASESRowFactory extends CatalogRowFactory
 		boolean					systemAlias = false;
 		AliasInfo				aliasInfo = null;
 
-		if (td != null) {
-
+		if (td != null && (td instanceof AliasDescriptor)) {
+			
 			AliasDescriptor 		ad = (AliasDescriptor)td;
 			aliasID	= ad.getUUID().toString();
 			aliasName = ad.getDescriptorName();
