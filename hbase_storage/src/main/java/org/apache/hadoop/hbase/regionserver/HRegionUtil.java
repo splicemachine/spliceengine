@@ -416,6 +416,8 @@ public class HRegionUtil extends BaseHRegionUtil{
         return ((DefaultMemStore) store.memstore).snapshot;
     }
 
+    public static boolean partialResultFormed(ScannerContext context) {
 
-
+        return context.partialResultFormed();
+    }
 }

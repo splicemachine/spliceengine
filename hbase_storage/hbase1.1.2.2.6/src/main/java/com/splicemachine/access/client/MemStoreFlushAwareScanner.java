@@ -172,8 +172,11 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
             return HBasePlatformUtils.scannerEndReached(scannerContext);
         }
         if (super.next(outResult,scannerContext)) {
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "Next: returning " + outResult.size());
+            if (LOG.isTraceEnabled()) {
+                SpliceLogUtils.trace(LOG, "Next: returning " + outResult.size() +
+                        ". partialResultFormed=" + HRegionUtil.partialResultFormed(scannerContext));
+                SpliceLogUtils.trace(LOG, "Next: actual output: %s" + outResult);
+            }
             return true;
         }
 
@@ -189,8 +192,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 
     @Override
     public void close() {
-        if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG, "close");
+        if (LOG.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG, "close");
         }
         super.close();
         boolean shouldC;
