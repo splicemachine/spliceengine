@@ -2642,8 +2642,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             return;
         }
 
-        Boolean enableTC = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.ENABLE_TC_PUSHED_DOWN_INTO_VIEWS);
-        if (enableTC != null && enableTC) {
+        Boolean disableTC = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+        if (disableTC == null || !disableTC) {
             /* do not remove equality join conditions, in the presence of 3 tables, this could still cause unconstaints join,
              * so return here directly */
             return;

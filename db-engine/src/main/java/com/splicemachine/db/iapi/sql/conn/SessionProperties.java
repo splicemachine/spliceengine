@@ -47,7 +47,7 @@ public interface SessionProperties {
         RECURSIVEQUERYITERATIONLIMIT(3),
         OLAPQUEUE(4),
         SNAPSHOT_TIMESTAMP(5),
-        ENABLE_TC_PUSHED_DOWN_INTO_VIEWS(6);
+        DISABLE_TC_PUSHED_DOWN_INTO_VIEWS(6);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
@@ -89,7 +89,7 @@ public interface SessionProperties {
         switch (property) {
             case USESPARK:
             case SKIPSTATS:
-            case ENABLE_TC_PUSHED_DOWN_INTO_VIEWS:
+            case DISABLE_TC_PUSHED_DOWN_INTO_VIEWS:
                 try {
                     Boolean.parseBoolean(valString);
                 } catch (Exception e) {

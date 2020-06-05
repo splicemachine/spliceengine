@@ -95,7 +95,6 @@ public class PredicateTransitiveClosureIT extends SpliceUnitTest {
     @Test
     public void testTCForPredicatePushedDownInDT() throws Exception {
         TestConnection conn = methodWatcher.createConnection();
-        conn.execute("set session_property ENABLE_TC_PUSHED_DOWN_INTO_VIEWS=true");
         String sqlText = "select a1 from --splice-properties joinOrder=fixed\n" +
                 "(select a1 from (select * from --splice-properties joinOrder=fixed\n" +
                 "t1, t3 where a1=a3) dt1 \n" +
@@ -140,7 +139,6 @@ public class PredicateTransitiveClosureIT extends SpliceUnitTest {
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
-        conn.execute("set session_property ENABLE_TC_PUSHED_DOWN_INTO_VIEWS=false");
         conn.close();
     }
 }

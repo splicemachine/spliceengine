@@ -416,9 +416,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (snapshot != null) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP, snapshot);
             }
-            String enhancedTC = connectionProperties.getProperty(Property.CONNECTION_ENABLE_TC_PUSHED_DOWN_INTO_VIEWS);
-            if (enhancedTC != null && enhancedTC.equalsIgnoreCase("true")) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.ENABLE_TC_PUSHED_DOWN_INTO_VIEWS, "TRUE".toString());
+            String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+            if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS, "TRUE".toString());
             }
         }
         if (type.isSessionHinted()) {
