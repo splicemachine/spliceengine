@@ -78,6 +78,8 @@ public class SICompactionState {
     private void ensureTransactionCached(long timestamp,Cell element) throws IOException {
         if(!transactionStore.transactionCached(timestamp)){
             if(isFailedCommitTimestamp(element)){
+                if (LOG.isDebugEnabled())
+                    LOG.debug("Timestamp  " + timestamp + " is failed txn");
                 transactionStore.cache(new RolledBackTxn(timestamp));
             }else if (element.getValueLength()>0){ //shouldn't happen, but you never know
                 long commitTs = Bytes.toLong(element.getValueArray(),element.getValueOffset(),element.getValueLength());
