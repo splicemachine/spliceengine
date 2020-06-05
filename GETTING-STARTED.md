@@ -66,7 +66,3 @@ This will compile everything and start the database.
 Then to connect to the database:
 
 `./sqlshell.sh`
-
-Or if you are on Windows:
-
-`call sqlshell.cmd`
