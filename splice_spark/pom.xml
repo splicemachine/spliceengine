@@ -312,7 +312,7 @@
     </build>
     <profiles>
         <profile>
-            <id>dbaas</id>
+            <id>nsdsjar</id>
             <build>
                 <plugins>
                     <plugin>

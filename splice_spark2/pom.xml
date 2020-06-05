@@ -269,7 +269,7 @@
     </build>
     <profiles>
         <profile>
-            <id>dbaas</id>
+            <id>nsds2jar</id>
             <build>
                 <plugins>
                     <plugin>
