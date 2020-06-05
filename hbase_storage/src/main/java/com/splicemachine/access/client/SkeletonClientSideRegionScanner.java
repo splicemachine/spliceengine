@@ -14,38 +14,34 @@
 
 package com.splicemachine.access.client;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Sets;
 import com.splicemachine.coprocessor.SpliceMessage;
-import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.SkeletonHBaseClientPartition;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.IsolationLevel;
-import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcUtils;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
-import org.apache.hadoop.hbase.regionserver.*;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
+import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
-import org.apache.hadoop.hdfs.ProxiedFilesystem;
-import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.security.AccessControlException;
 import org.apache.log4j.Logger;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.spark_project.guava.base.Throwables;
+
+import java.io.IOException;
+import java.util.*;
 
 /**
  * 
@@ -206,7 +202,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
             flushed = false;
             results.clear();
             return nextRaw(results);
-        } else if (response)
+        } else if (response && !results.isEmpty())
             topCell = results.get(results.size() - 1);
         return response;
     }
@@ -230,6 +226,8 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 
             List<Cell> nextResult = new ArrayList<>();
             boolean res = scanner.nextRaw(nextResult);
+            if (LOG.isTraceEnabled())
+                LOG.trace(String.format("nextMerged just called nextRaw, res=%s, nextResult=%s", res, nextResult));
             if (matchingFamily(nextResult, ClientRegionConstants.HOLD)) {
                 // Second Hold, null out scanner
                 if (nextResult.get(0).getTimestamp() == HConstants.LATEST_TIMESTAMP) {
@@ -237,9 +235,10 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
                         LOG.debug("Second hold, close scanner");
                     }
                     noMoreRecords = true;
-                    assert rowBuffer != null;
-                    result.addAll(rowBuffer);
-                    rowBuffer = null;
+                    if (rowBuffer != null) {
+                        result.addAll(rowBuffer);
+                        rowBuffer = null;
+                    }
                     return true;
                 } else { // First Hold, traverse to real records.
                     if (LOG.isDebugEnabled()) {
@@ -262,7 +261,6 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
             rowBuffer.addAll(nextResult);
             if (!res)
                 noMoreRecords = true;
-            assert !result.isEmpty();
             return true;
         } finally {
             if (LOG.isTraceEnabled())
