@@ -214,6 +214,9 @@
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
                                             <fileset dir="common/src/main/resources/bin" includes="sqlshell.sh"/>
                                         </copy>
+                                        <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
+                                            <fileset dir="common/src/main/resources/bin" includes="winsqlshell.cmd"/>
+                                        </copy>
                                         <replace token="##SPLICELIBDIR##" value="${splice.lib.dir}" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
                                             <include name="sqlshell.sh"/>
                                         </replace>
@@ -616,6 +619,9 @@
                                             <sources>
                                                 <source>
                                                     <location>common/src/main/resources/bin/sqlshell.sh</location>
+                                                </source>
+                                                <source>
+                                                    <location>common/src/main/resources/bin/winsqlshell.cmd</location>
                                                 </source>
                                                 <source>
                                                     <location>common/src/main/resources/scripts/install-test.sql</location>
@@ -1185,6 +1191,9 @@
                                                 <source>
                                                     <location>common/src/main/resources/bin/sqlshell.sh</location>
                                                 </source>
+                                                <source>
+                                                    <location>common/src/main/resources/bin/winsqlshell.cmd</location>
+                                                </source>
                                             </sources>
                                             <filemode>755</filemode>
                                         </mapping>
@@ -1616,6 +1625,7 @@
                                 <directory>common/src/main/resources/bin</directory>
                                 <includes>
                                   <include>sqlshell.sh</include>
+                                  <include>winsqlshell.cmd</include>
                                 </includes>
                             </resource>
                           </resources>
