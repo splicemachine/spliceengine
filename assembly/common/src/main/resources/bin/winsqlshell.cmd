@@ -140,9 +140,8 @@ IF %JVER% LSS 18 (
 
 REM set splice lib dir, for Windows we assume it is always local
 
-set SCRIPT_DIR=%SCRIPT_DIR:"=%
+SET SCRIPT_DIR=%SCRIPT_DIR:"=%
 SET SPLICE_LIB_DIR=%SCRIPT_DIR%lib
-echo SPLICE_LIB_DIR=%SPLICE_LIB_DIR%
 
 REM check if all the tools needed to connect are found
 IF NOT EXIST "%SPLICE_LIB_DIR%" (
@@ -242,6 +241,7 @@ REM todo: catch stderr messages and filter out Picked up JAVA_TOOL_OPTIONS   2>n
 java -classpath %CLASSPATH% %GEN_SYS_ARGS% %SSL_ARGS% %IJ_SYS_ARGS% com.splicemachine.db.tools.ij %SCRIPT% 2>nul
 
 CALL :eof
+EXIT /B 0
 
 REM write something considering QUIET parameter
 :message
