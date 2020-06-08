@@ -18,6 +18,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.*;
@@ -38,18 +39,18 @@ import com.splicemachine.replication.HBaseReplicationPlatformUtil;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
 import org.apache.hadoop.hbase.exceptions.MergeRegionException;
 import org.apache.hadoop.hbase.exceptions.RegionOpeningException;
 import org.apache.hadoop.hbase.ipc.HBaseRpcController;
-import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
-import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
+import org.apache.hadoop.hbase.shaded.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.security.access.AccessControlClient;
 import org.apache.hadoop.hbase.security.access.Permission;
 import org.apache.hadoop.hbase.security.access.UserPermission;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.AdminProtos;
-import org.apache.hadoop.hbase.shaded.protobuf.generated.ReplicationProtos;
 import org.apache.hadoop.hbase.util.HBaseFsckRepair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
@@ -148,6 +149,7 @@ public class HBasePartitionAdmin implements PartitionAdmin{
         }
     }
 
+    @SuppressFBWarnings(value="DE_MIGHT_IGNORE", justification="Intentional")
     private void retriableSplit(TableName tableInfo, byte[] splitPoint) throws IOException, SQLException{
 
         List<HRegionInfo> regions = admin.getTableRegions(tableInfo);
@@ -317,7 +319,8 @@ public class HBasePartitionAdmin implements PartitionAdmin{
 
     @Override
     public void move(String partition, String server) throws IOException {
-        admin.move(partition.getBytes(), server!=null && !server.isEmpty() ?server.getBytes():null);
+        String cn = Charset.defaultCharset().name();
+        admin.move(partition.getBytes(cn), server!=null && !server.isEmpty() ?server.getBytes(cn):null);
     }
 
     @Override
@@ -467,11 +470,10 @@ public class HBasePartitionAdmin implements PartitionAdmin{
                         return results;
                     }
                 case "descriptor":
-//                    TODO try (Table table = admin.getConnection().getTable(TableName.valueOf(tableName))) {
-//                        HTableDescriptor descriptor = table.getTableDescriptor();
-//                        return Arrays.asList(descriptor.convert().toByteArray());
-//                    }
-                    return Collections.emptyList();
+                    try (Table table = admin.getConnection().getTable(TableName.valueOf(tableName))) {
+                        org.apache.hadoop.hbase.client.TableDescriptor descriptor = table.getDescriptor();
+                        return Arrays.asList(ProtobufUtil.toTableSchema(descriptor).toByteArray());
+                    }
                 case "grant":
                     String userName = Bytes.toString(bytes);
                     String spliceNamespace = SIDriver.driver().getConfiguration().getNamespace();
@@ -482,13 +484,13 @@ public class HBasePartitionAdmin implements PartitionAdmin{
                 case "grantCreatePrivilege": {
                     userName = Bytes.toString(bytes);
                     boolean granted = grantCreatePrivilege(tableName, userName);
-                    return Arrays.asList(new Boolean(granted).toString().getBytes());
+                    return Arrays.asList(Boolean.valueOf(granted).toString().getBytes(Charset.defaultCharset().name()));
                 }
 
                 case "revokeCreatePrivilege": {
                     userName = Bytes.toString(bytes);
                     boolean granted = revokeCreatePrivilege(tableName, userName);
-                    return Arrays.asList(new Boolean(granted).toString().getBytes());
+                    return Arrays.asList(Boolean.valueOf(granted).toString().getBytes(Charset.defaultCharset().name()));
                 }
                 default:
                     throw new UnsupportedOperationException(operation);
