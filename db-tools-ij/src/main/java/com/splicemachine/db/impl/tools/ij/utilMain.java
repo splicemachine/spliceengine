@@ -37,15 +37,11 @@ import com.splicemachine.db.iapi.tools.i18n.*;
 import com.splicemachine.db.iapi.services.info.ProductVersionHolder;
 import com.splicemachine.db.iapi.services.info.ProductGenusNames;
 
+import java.io.*;
 import java.util.List;
 import java.util.Stack;
 import java.util.Hashtable;
 
-import java.io.InputStream;
-import java.io.FileInputStream;
-import java.io.BufferedInputStream;
-import java.io.FileNotFoundException;
-import java.io.StringReader;
 import java.sql.DriverManager;
 import java.sql.Driver;
 import java.sql.Connection;
@@ -68,13 +64,15 @@ public class utilMain implements java.security.PrivilegedAction {
 	ij ijParser;
 	ConnectionEnv[] connEnv;
 	private int currCE;
-	private final int		numConnections;
+	private final int numConnections;
 	private boolean fileInput;
 	private boolean initialFileInput;
 	private boolean mtUse;
 	private boolean firstRun = true;
 	private LocalizedOutput out = null;
 	private Hashtable ignoreErrors;
+	private boolean logToFile = false;
+	private String logFileName = null;
 	/**
 	 * True if to display the error code when
 	 * displaying a SQLException.
@@ -251,7 +249,6 @@ public class utilMain implements java.security.PrivilegedAction {
 
 			supportIJProperties(connEnv[currCE]);
     	}
-		this.out = out;
 		runScriptGuts();
 		cleanupGo(in);
 	}
@@ -320,6 +317,11 @@ public class utilMain implements java.security.PrivilegedAction {
 				out.flush();
 				command = commandGrabber[currCE].nextStatement();
 
+				if(logToFile) {
+					out.println(command + ";");
+					out.flush();
+				}
+
 				// if there is no next statement,
 				// pop back to the top saved grabber.
 				while (command == null && ! oldGrabbers.empty()) {
@@ -341,7 +343,7 @@ public class utilMain implements java.security.PrivilegedAction {
 					long	beginTime = 0;
 					long	endTime;
 
-					if (fileInput) {
+					if (fileInput && !logToFile) {
 						out.println(command+";");
 						out.flush();
 					}
@@ -844,5 +846,27 @@ public class utilMain implements java.security.PrivilegedAction {
 
 	public final Object run() {
 		return  getClass().getResourceAsStream(ProductGenusNames.TOOLS_INFO);
+	}
+
+	public void startLogging(String path) throws IOException {
+		logToFile = true;
+		logFileName = path;
+		File f = new File(logFileName);
+		f.createNewFile(); // no-op if file exists.
+		this.out = new LocalizedOutput(new ForkOutputStream(new FileOutputStream(f)));
+	}
+
+	public void stopLogging() {
+		logToFile = false;
+		this.out.flush();
+		this.out = new LocalizedOutput(System.out);
+	}
+
+	public void clearLogging() throws IOException {
+		if(logToFile)
+		{
+			PrintWriter pw = new PrintWriter(logFileName);
+			pw.close();
+		}
 	}
 }

@@ -59,8 +59,6 @@ import java.io.IOException;
 import java.util.Vector;
 import java.util.Enumeration;
 import java.util.Locale;
-import java.util.List;
-import java.util.ArrayList;
 import javax.transaction.xa.XAResource;
 
 /**
@@ -1472,6 +1470,9 @@ TOKEN [IGNORE_CASE] :
 |	<CP_DISCONNECT: "CP_disconnect">
 |	<WORK : "work">
 |   <JSON: "JSON">
+|   <SPOOL: "SPOOL">
+|   <STOP: "STOP">
+|   <CLEAR: "CLEAR">
 }
 
 TOKEN :
@@ -1754,7 +1755,7 @@ TOKEN :
 
 ijResult
 ijStatement() 
-throws SQLException
+throws SQLException, IOException
 :
 {
 	ijResult r = null;
@@ -1818,6 +1819,9 @@ throws SQLException
 |	r=CP_ConnectStatement()
 |	r=CP_GetConnectionStatement()
 |	r=CP_DisconnectStatement()
+|   r=LogStop()
+|   r=LogClear()
+|   r=LogToStatement()
 )? <EOF>
 	{
 		return r;
@@ -3374,6 +3378,7 @@ HelpStatement() :
 		while (st.hasMoreTokens()) {
 		    v.addElement(st.nextToken());
 		}
+		v.addElement("Something");
 							 
 		return new ijVectorResult(v,null);
 	}
@@ -3391,6 +3396,19 @@ identifier() :
 		// ij doesn't recognize any use of delimited identifiers in its syntax.
 		return (t.image.toUpperCase(Locale.ENGLISH));
 	}
+}
+
+
+String
+path() :
+{
+    Token t;
+}
+{
+    t=<STRING>
+    {
+        return (stringValue(t.image));
+    }
 }
 
 /**
@@ -4043,7 +4061,42 @@ ijResult CP_DisconnectStatement() throws SQLException
 
 }
 
+ijResult LogToStatement() throws IOException
+:
+{
+    String n = null;
+}
+{
+    <SPOOL> [n = path()]
+    {
+        utilInstance.startLogging(n);
+        return null;
+    }
+}
 
+ijResult LogStop()
+:
+{
+}
+{
+    LOOKAHEAD({(getToken(1).kind == SPOOL && getToken(2).kind == STOP)}) <SPOOL> <STOP>
+    {
+        utilInstance.stopLogging();
+        return null;
+    }
+}
+
+ijResult LogClear() throws IOException
+:
+{
+}
+{
+    LOOKAHEAD({(getToken(1).kind == SPOOL && getToken(2).kind == CLEAR)}) <SPOOL> <CLEAR>
+    {
+        utilInstance.clearLogging();
+        return null;
+    }
+}
 
 void attributeList(Properties properties) :
 {
@@ -4225,6 +4278,9 @@ keyword() :
 |	tok = <CP_DISCONNECT>
 |	tok = <WORK>
 |   tok = <JSON>
+|   tok = <SPOOL>
+|   tok = <STOP>
+|   tok = <CLEAR>
 	)
 	{
 
