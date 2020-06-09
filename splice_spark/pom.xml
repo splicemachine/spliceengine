@@ -17,7 +17,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1959-SNAPSHOT</version>
+        <version>3.1.0.1960-SNAPSHOT</version>
     </parent>
     <artifactId>splice_spark</artifactId>
     <name>Splicemachine Spark Bindings</name>
@@ -312,7 +312,7 @@
     </build>
     <profiles>
         <profile>
-            <id>dbaas</id>
+            <id>nsdsjar</id>
             <build>
                 <plugins>
                     <plugin>
