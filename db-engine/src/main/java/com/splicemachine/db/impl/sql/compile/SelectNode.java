@@ -1836,8 +1836,6 @@ public class SelectNode extends ResultSetNode{
              */
             leftResultSet=(ResultSetNode)fromList.elementAt(0);
 
-            getBaseTableNode(leftResultSet); //gets the left base table node. HAS SIDE-EFFECTS, do not remove
-
             leftRCList=leftResultSet.getResultColumns();
             leftResultSet.setResultColumns(leftRCList.copyListAndObjects());
             leftRCList.genVirtualColumnNodes(leftResultSet,leftResultSet.resultColumns);
@@ -1853,8 +1851,6 @@ public class SelectNode extends ResultSetNode{
              * (Right gets appended to left, so only right's ids need updating.)
              */
             rightResultSet=(ResultSetNode)fromList.elementAt(1);
-
-            getBaseTableNode(rightResultSet); //gets the right base table node. HAS SIDE-EFFECTS, do not remove
 
             rightRCList=rightResultSet.getResultColumns();
             rightResultSet.setResultColumns(rightRCList.copyListAndObjects());
