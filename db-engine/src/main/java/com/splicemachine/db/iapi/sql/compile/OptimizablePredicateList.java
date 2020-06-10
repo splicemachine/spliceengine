@@ -206,7 +206,8 @@ public interface OptimizablePredicateList {
 	 */
 	void transferPredicates(OptimizablePredicateList otherList,
 							JBitSet referencedTableMap,
-							Optimizable table) throws StandardException;
+							Optimizable table,
+							JBitSet joinedTableSet) throws StandardException;
 
 
 	/**
