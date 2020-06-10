@@ -132,6 +132,9 @@ public class RSUtils {
     public static final org.spark_project.guava.base.Predicate<Object> isBinaryRSNExcludeUnion =
             Predicates.compose(Predicates.in(binaryRSNsExcludeUnion), classOf);
 
+    public static final org.spark_project.guava.base.Predicate<Object> isIntersectOrExcept =
+            Predicates.compose(Predicates.in(ImmutableSet.of(IntersectOrExceptNode.class)), classOf);
+
     // leafRSNs might need VTI eventually
     public static final Set<?> leafRSNs = ImmutableSet.of(
             FromBaseTable.class,
@@ -215,6 +218,13 @@ public class RSUtils {
         return CollectingVisitorBuilder.forClass(ResultSetNode.class)
                 .onAxis(isRSN)
                 .until(isBinaryRSNExcludeUnion)
+                .collect(rsn);
+    }
+
+    public static List<ResultSetNode> nodesUntilIntersectOrExcept(ResultSetNode rsn) throws StandardException {
+        return CollectingVisitorBuilder.forClass(ResultSetNode.class)
+                .onAxis(isRSN)
+                .until(isIntersectOrExcept)
                 .collect(rsn);
     }
 

@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.Vector;
 
@@ -394,7 +395,8 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
      * @exception StandardException		Thrown on error
      */
     public void divideUpPredicateLists(
-            Optimizable				 innerTable,
+            Optimizable innerTable,
+            JBitSet joinedTableSet,
             OptimizablePredicateList originalRestrictionList,
             OptimizablePredicateList storeRestrictionList,
             OptimizablePredicateList nonStoreRestrictionList,
@@ -434,7 +436,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		 */
 
         // Build the list to be applied when creating the hash table
-        originalRestrictionList.transferPredicates(storeRestrictionList, innerTable.getReferencedTableMap(), innerTable);
+        originalRestrictionList.transferPredicates(storeRestrictionList, innerTable.getReferencedTableMap(), innerTable, joinedTableSet);
 		/*
          * Eliminate any non-qualifiers that may have been pushed, but
          * are redundant and not useful for hash join.
