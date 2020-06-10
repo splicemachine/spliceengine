@@ -1628,7 +1628,7 @@ public class FromBaseTable extends FromTable {
      * @throws StandardException Thrown on error
      * @see ResultSetNode#changeAccessPath
      */
-    public ResultSetNode changeAccessPath() throws StandardException{
+    public ResultSetNode changeAccessPath(JBitSet joinedTableSet) throws StandardException{
         ResultSetNode retval;
         AccessPath ap=getTrulyTheBestAccessPath();
         ConglomerateDescriptor trulyTheBestConglomerateDescriptor= ap.getConglomerateDescriptor();
@@ -1682,6 +1682,7 @@ public class FromBaseTable extends FromTable {
         requalificationRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         trulyTheBestJoinStrategy.divideUpPredicateLists(
                 this,
+                joinedTableSet,
                 restrictionList,
                 storeRestrictionList,
                 nonStoreRestrictionList,
