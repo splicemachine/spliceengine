@@ -65,6 +65,7 @@ import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -1943,6 +1944,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * execution time, set transaction isolation level calls this method before
      * changing the isolation level.
      */
+    @SuppressFBWarnings(value = "DM_GC", justification = "Intentional")
     @Override
     public boolean verifyAllHeldResultSetsAreClosed() throws StandardException{
         boolean seenOpenResultSets=false;
@@ -1981,7 +1983,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         System.gc();
         System.runFinalization();
 
-
         /* For every activation */
         for(int i=acts.size()-1;i>=0;i--){
 
@@ -2018,6 +2019,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param action   The action causing the possible invalidation
      * @return Nothing.
      */
+    @SuppressFBWarnings(value = "DM_GC", justification = "Intentional")
     @Override
     public boolean verifyNoOpenResultSets(PreparedStatement pStmt,Provider provider,int action)
             throws StandardException{
@@ -2062,7 +2064,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         // let's try and force these out rather than throw an error
         System.gc();
         System.runFinalization();
-
 
         /* For every activation */
         // synchronize on acts as other threads may be closing activations
