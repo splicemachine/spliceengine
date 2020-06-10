@@ -2759,7 +2759,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     @Override
     public void transferPredicates(OptimizablePredicateList otherList,
                                    JBitSet referencedTableMap,
-                                   Optimizable table) throws StandardException{
+                                   Optimizable table,
+                                   JBitSet joinedTableSet) throws StandardException{
         Predicate predicate;
         PredicateList theOtherList=(PredicateList)otherList;
 
@@ -2778,7 +2779,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
             }
 
-            if(referencedTableMap.contains(predicate.getReferencedSet())){
+            // there could be nestedloop join condition pushed from outer block that should be treated as
+            // single table conditions, however, they would contain table number from tables from the outer block,
+            // so use joinedTableSet to mask out those table numbers
+            JBitSet maskedReferencedSet = (JBitSet)predicate.getReferencedSet().clone();
+            maskedReferencedSet.and(joinedTableSet);
+
+            // may not be fully covered by the current joined table set, however,
+            if(referencedTableMap.contains(maskedReferencedSet)){
                 // We need to keep the counters up to date when removing a predicate
                 if(predicate.isStartKey())
                     numberOfStartPredicates--;

@@ -58,7 +58,7 @@ public class BaseTableNumbersVisitor implements Visitor
 	 * base table was.
 	 */
 	private int columnNumber;
-	private boolean doNotAllowLimitNAndJoin = false;
+	private boolean doNotAllowLimitN = false;
 	private boolean stopTraversing = false;
 
 	/**
@@ -73,11 +73,11 @@ public class BaseTableNumbersVisitor implements Visitor
 		columnNumber = -1;
 	}
 
-	public BaseTableNumbersVisitor(JBitSet tableMap, boolean doNotAllowLimitNAndJoin)
+	public BaseTableNumbersVisitor(JBitSet tableMap, boolean doNotAllowLimitN)
 	{
 		this.tableMap = tableMap;
 		columnNumber = -1;
-		this.doNotAllowLimitNAndJoin = doNotAllowLimitNAndJoin;
+		this.doNotAllowLimitN = doNotAllowLimitN;
 	}
 	/**
 	 * Set a new JBitSet to serve as the holder for base table numbers
@@ -142,16 +142,10 @@ public class BaseTableNumbersVisitor implements Visitor
 			rc = (ResultColumn)node;
 		else if (node instanceof SelectNode)
 		{
-			if (doNotAllowLimitNAndJoin) {
+			if (doNotAllowLimitN) {
 				boolean noPush = false;
 				// no limit n/top n
 				if (((SelectNode) node).offset != null || ((SelectNode) node).fetchFirst != null) {
-					noPush = true;
-				}
-
-				// no join
-				if (((SelectNode) node).fromList.size() > 1 ||
-						((SelectNode) node).fromList.elementAt(0) instanceof JoinNode) {
 					noPush = true;
 				}
 
