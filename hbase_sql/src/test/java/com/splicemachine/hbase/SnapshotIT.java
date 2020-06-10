@@ -92,12 +92,15 @@ public class SnapshotIT extends SpliceUnitTest
     @AfterClass
     public static void cleanup() throws Exception
     {
-        TestConnection conn = classWatcher.getOrCreateConnection();
-        conn.execute("call syscs_util.delete_snapshot('EXIST')");
-        PreparedStatement ps = conn.prepareStatement("select count(*) from sys.syssnapshots");
-        ResultSet rs = ps.executeQuery();
-        rs.next();
-        Assert.assertEquals(0, rs.getInt(1));
+        try (TestConnection conn = classWatcher.getOrCreateConnection()) {
+            conn.execute("call syscs_util.delete_snapshot('EXIST')");
+            try (PreparedStatement ps = conn.prepareStatement("select count(*) from sys.syssnapshots")) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    Assert.assertEquals(0, rs.getInt(1));
+                }
+            }
+        }
     }
 
     @Test

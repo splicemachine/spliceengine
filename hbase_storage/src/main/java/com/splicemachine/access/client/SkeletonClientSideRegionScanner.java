@@ -155,29 +155,29 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
      * created by MemStore flushes or current scanner fails due to compaction
      */
     public void updateScanner() throws IOException {
-            if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG,
-                        "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",
-                        hri, htd.getNameAsString(), rootDir, scan);
-            }
-            if (flushed) {
+        if (LOG.isDebugEnabled()) {
+            SpliceLogUtils.debug(LOG,
+                    "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",
+                    hri, htd.getNameAsString(), rootDir, scan);
+        }
+        if (flushed) {
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "Flush occurred");
+            if (this.topCell != null) {
                 if (LOG.isDebugEnabled())
-                    SpliceLogUtils.debug(LOG, "Flush occurred");
-                if (this.topCell != null) {
-                    if (LOG.isDebugEnabled())
-                        SpliceLogUtils.debug(LOG, "setting start row to %s", topCell);
-                    //noinspection deprecation
-                    scan.setStartRow(Bytes.add(CellUtil.cloneRow(topCell), new byte[]{0}));
-                }
+                    SpliceLogUtils.debug(LOG, "setting start row to %s", topCell);
+                //noinspection deprecation
+                scan.setStartRow(Bytes.add(CellUtil.cloneRow(topCell), new byte[]{0}));
             }
-            memScannerList.add(getMemStoreScanner());
-            this.region = openHRegion();
-            RegionScanner regionScanner = new CountingRegionScanner(HRegionUtil.getScanner(region, scan, memScannerList), region, scan);
-            if (flushed) {
-                if (scanner != null)
-                    scanner.close();
-            }
-            scanner = regionScanner;
+        }
+        memScannerList.add(getMemStoreScanner());
+        this.region = openHRegion();
+        RegionScanner regionScanner = new CountingRegionScanner(HRegionUtil.getScanner(region, scan, memScannerList), region, scan);
+        if (flushed) {
+            if (scanner != null)
+                scanner.close();
+        }
+        scanner = regionScanner;
     }
 
     public HRegion getRegion(){
