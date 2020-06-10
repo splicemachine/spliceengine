@@ -214,7 +214,12 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner, ScanType scanType, CompactionLifeCycleTracker tracker, CompactionRequest request) throws IOException {
         try {
-            if(tableEnvMatch && scanner != null){
+            // We can't return null, there's a check in org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost.preCompact
+            // return a dummy implementation instead
+            if (scanner == null || scanner == DummyScanner.INSTANCE)
+                return DummyScanner.INSTANCE;
+
+            if(tableEnvMatch){
                 SIDriver driver=SIDriver.driver();
                 SimpleCompactionContext context = new SimpleCompactionContext();
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
@@ -234,9 +239,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                         conf.getOlapCompactionResolutionShare(), conf.getLocalCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
-            }else{
-                return scanner;
             }
+            return scanner;
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }

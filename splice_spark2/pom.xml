@@ -17,7 +17,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.1959-SNAPSHOT</version>
+        <version>3.0.0.1960-SNAPSHOT</version>
     </parent>
     <artifactId>splice_spark2</artifactId>
     <name>External Native Spark Data Source</name>
@@ -269,7 +269,7 @@
     </build>
     <profiles>
         <profile>
-            <id>dbaas</id>
+            <id>nsds2jar</id>
             <build>
                 <plugins>
                     <plugin>
@@ -288,7 +288,8 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
-                        <argLine>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ -Dhbase.rootdir=${project.build.directory}/../../platform_it/target/hbase</argLine>
+                            <argLine>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ -Dhbase.rootdir=${project.build.directory}/../../platform_it/target/hbase</argLine>
+                            <excludedGroups>${excluded.longerthan}</excludedGroups>
                         </configuration>
                     </plugin>
                      <plugin>

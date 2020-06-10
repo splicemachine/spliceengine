@@ -146,10 +146,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
         ScanType scanType = request.isAllFiles() ? COMPACT_DROP_DELETES : COMPACT_RETAIN_DELETES;
         // trigger MemstoreAwareObserver
-        List<StoreFileScanner> scanners = createFileScanners(((CompactionRequestImpl)request).getFiles(), smallestReadPoint, true);
-        InternalScanner scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
-        postCreateCoprocScanner(request, scanType, scanner,user);
-        scanner.close();
+        postCreateCoprocScanner(request, scanType, null,user);
 
         if (hostName == null)
             hostName = RSRpcServices.getHostname(conf,false);
