@@ -87,18 +87,18 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     private static final Logger LOG = Logger.getLogger(SparkDataSetProcessor.class);
 
-    private ExplainNode.SparkExplainKind sparkExplainKind = ExplainNode.SparkExplainKind.NONE;
-    private LinkedList<IndentedString> explainStrings = new LinkedList<>();
-    private LinkedList<IndentedString> tempOperationStrings = new LinkedList<>();
-    private LinkedList<List<IndentedString>> stashedSpliceOperationStrings = new LinkedList<>();
-    private LinkedList<List<IndentedString>> spliceOperationStrings = new LinkedList<>();
+    transient private ExplainNode.SparkExplainKind sparkExplainKind = ExplainNode.SparkExplainKind.NONE;
+    transient private LinkedList<IndentedString> explainStrings = new LinkedList<>();
+    transient private LinkedList<IndentedString> tempOperationStrings = new LinkedList<>();
+    transient private LinkedList<List<IndentedString>> stashedSpliceOperationStrings = new LinkedList<>();
+    transient private LinkedList<List<IndentedString>> spliceOperationStrings = new LinkedList<>();
 
-    private TreeMap<Integer, Integer> numLeadingSpaces = new TreeMap<>();
-    private TreeMap<Integer, String>  spacesMap = new TreeMap<>();
+    transient private TreeMap<Integer, Integer> numLeadingSpaces = new TreeMap<>();
+    transient private TreeMap<Integer, String>  spacesMap = new TreeMap<>();
 
     // The depth of the current operation being processed via getDataSet
     // in the operation tree.
-    private int opDepth = 0;
+    transient private int opDepth = 0;
     private boolean accumulators;
 
     public SparkDataSetProcessor() {

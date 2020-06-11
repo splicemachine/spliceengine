@@ -146,6 +146,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 				throw new IOException("RecordReader is closed");
 			}
 			currentRow = siTableScanner.next();
+			if (currentRow != null)
+			    currentRow = currentRow.getClone();
 			rowLocation = siTableScanner.getCurrentRowLocation();
 			return currentRow != null;
 		} catch (StandardException e) {

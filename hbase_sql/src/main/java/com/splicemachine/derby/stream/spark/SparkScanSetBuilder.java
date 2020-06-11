@@ -40,6 +40,7 @@ import org.apache.spark.sql.types.StructType;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -120,17 +121,24 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             int requestedSplits = sop.getSplits();
             conf.setInt(MRConstants.SPLICE_SPLITS_PER_TABLE, requestedSplits);
         }
+        String builderString;
         try {
-             conf.set(MRConstants.SPLICE_SCAN_INFO,getTableScannerBuilderBase64String());
-             conf.set(MRConstants.SPLICE_OPERATION_CONTEXT,  Base64.encodeBase64String(org.apache.commons.lang3.SerializationUtils.serialize(operationContext)));
+            builderString = getTableScannerBuilderBase64String();
+            conf.set(MRConstants.SPLICE_SCAN_INFO, builderString);
+            conf.set(MRConstants.SPLICE_OPERATION_CONTEXT,  Base64.encodeBase64String(org.apache.commons.lang3.SerializationUtils.serialize(operationContext)));
         } catch (IOException ioe) {
             throw StandardException.unexpectedUserException(ioe);
         }
 
         String scopePrefix = StreamUtils.getScopeString(caller);
         SpliceSpark.pushScope(String.format("%s: Scan", scopePrefix));
-        JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(
-            conf, SMInputFormat.class, RowLocation.class, ExecRow.class);
+        JavaPairRDD<RowLocation, ExecRow> rawRDD;
+        try {
+            rawRDD = SparkScanCache.cache.get(builderString, () -> ctx.newAPIHadoopRDD(
+                    conf, SMInputFormat.class, RowLocation.class, ExecRow.class).cache());
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
         // rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, tableDisplayName));
         rawRDD.setName("Perform Scan");
         SpliceSpark.popScope();
@@ -167,7 +175,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         super.writeExternal(out);
         out.writeUTF(tableName);
         out.writeObject(dsp);
-        out.writeObject(op);
+//        out.writeObject(op);
 
     }
 
@@ -176,6 +184,6 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         super.readExternal(in);
         this.tableName = in.readUTF();
         this.dsp = (SparkDataSetProcessor)in.readObject();
-        this.op = (SpliceOperation)in.readObject();
+//        this.op = (SpliceOperation)in.readObject();
     }
 }
