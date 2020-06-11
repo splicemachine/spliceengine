@@ -241,8 +241,7 @@ public class MergeSortJoinOperation extends JoinOperation {
             joined = getJoinedDataset(operationContext, leftDataSet, rightDataSet);
             handleSparkExplain(joined, leftDataSet2, rightDataSet2, dsp);
         }
-            return joined;
-                    //.map(new CountProducedFunction(operationContext), true);
+        return joined;
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })

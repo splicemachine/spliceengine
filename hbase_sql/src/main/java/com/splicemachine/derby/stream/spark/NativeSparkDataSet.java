@@ -69,6 +69,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 
@@ -256,9 +257,20 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
-            Dataset<Row> result = dataset.distinct();
+            SpliceBaseOperation op = (SpliceBaseOperation) context.getOperation();
+            NativeSparkDataSet<V> result = new NativeSparkDataSet<>(dataset.distinct(), context);
 
-            return new NativeSparkDataSet<>(result, context);
+            return SparkScanCache.dataSetCache.get(
+                    new SparkScanCache.Id(
+                            op.getActivation().getClass().getName(),
+                            op.getResultSetNumber(),
+                            op.getCurrentTransaction().getTxnId()), () -> {
+                        result.dataset.persist(StorageLevel.MEMORY_ONLY());
+                        return result;
+                    }
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         } finally {
             if (pushScope) context.popScope();
         }
@@ -938,6 +950,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     public DataSet<V> join(OperationContext context, DataSet<V> rightDataSet, JoinType joinType, boolean isBroadcast) {
         try {
             JoinOperation op = (JoinOperation) context.getOperation();
+
             Dataset<Row> leftDF = dataset;
             Dataset<Row> rightDF;
             if (rightDataSet instanceof NativeSparkDataSet) {
@@ -969,7 +982,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     expr = i != 0 ? expr.and(joinEquality) : joinEquality;
                 }
             }
-            DataSet joinedSet;
+            NativeSparkDataSet joinedSet;
 
             if (op.wasRightOuterJoin) {
                 NativeSparkDataSet nds =
@@ -986,7 +999,15 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                                                op.getLeftOperation(), op.getRightOperation());
             }
 
-            return joinedSet;
+            return SparkScanCache.dataSetCache.get(
+                    new SparkScanCache.Id(
+                            op.getActivation().getClass().getName(),
+                            op.getResultSetNumber(),
+                            op.getCurrentTransaction().getTxnId()), () -> {
+                                joinedSet.dataset.persist(StorageLevel.MEMORY_ONLY());
+                                return joinedSet;
+                             }
+                    );
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
