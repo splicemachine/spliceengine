@@ -1608,6 +1608,7 @@
                                 <directory>common/src/main/resources/bin</directory>
                                 <includes>
                                   <include>sqlshell.sh</include>
+                                  <include>winsqlshell.cmd</include>
                                 </includes>
                             </resource>
                           </resources>
