@@ -17,7 +17,6 @@ package com.splicemachine.derby.test.framework;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.runner.Description;
 import org.spark_project.guava.base.Joiner;
@@ -227,6 +226,28 @@ public class SpliceUnitTest {
 
     public static void rowContainsQuery(int[] levels, String query,SpliceWatcher methodWatcher,String[]... contains) throws Exception {
         try(ResultSet resultSet = methodWatcher.executeQuery(query)){
+            int i=0;
+            int k=0;
+            while(resultSet.next()){
+                i++;
+                for(int level : levels){
+                    if(level==i){
+                        String resultString = resultSet.getString(1);
+                        for (String phrase: contains[k]) {
+                            Assert.assertTrue("failed query at level (" + level + "): \n" + query + "\nExpected: " + phrase + "\nWas: "
+                                    + resultString, resultString.contains(phrase));
+                        }
+                        k++;
+                    }
+                }
+            }
+            if (k < contains.length)
+                fail("fail to match the given strings");
+        }
+    }
+
+    public static void rowContainsQuery(int[] levels, String query, TestConnection conn, String[]... contains) throws Exception {
+        try(ResultSet resultSet = conn.query(query)){
             int i=0;
             int k=0;
             while(resultSet.next()){
