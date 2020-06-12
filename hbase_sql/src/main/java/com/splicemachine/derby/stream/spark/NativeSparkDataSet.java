@@ -260,15 +260,17 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             SpliceBaseOperation op = (SpliceBaseOperation) context.getOperation();
             NativeSparkDataSet<V> result = new NativeSparkDataSet<>(dataset.distinct(), context);
 
-            return SparkScanCache.dataSetCache.get(
+            SparkScanCache.Container container = SparkScanCache.dataSetCache.get(
                     new SparkScanCache.Id(
                             op.getActivation().getClass().getName(),
                             op.getResultSetNumber(),
                             op.getCurrentTransaction().getTxnId()), () -> {
                         result.dataset.persist(StorageLevel.MEMORY_ONLY());
-                        return result;
+                        return new SparkScanCache.Container(result, result.dataset.rdd(), result.dataset.schema());
                     }
             );
+            if (container.dataset == result) return result;
+            else return new NativeSparkDataSet(SpliceSpark.getSession().createDataFrame(container.rdd, container.schema), context);
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
@@ -999,15 +1001,14 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                                                op.getLeftOperation(), op.getRightOperation());
             }
 
-            return SparkScanCache.dataSetCache.get(
+            SparkScanCache.Container container = SparkScanCache.dataSetCache.get(
                     new SparkScanCache.Id(
                             op.getActivation().getClass().getName(),
                             op.getResultSetNumber(),
-                            op.getCurrentTransaction().getTxnId()), () -> {
-                                joinedSet.dataset.persist(StorageLevel.MEMORY_ONLY());
-                                return joinedSet;
-                             }
+                            op.getCurrentTransaction().getTxnId()), () -> new SparkScanCache.Container(joinedSet, joinedSet.dataset.rdd(), joinedSet.dataset.schema())
                     );
+            if (container.dataset == joinedSet) return joinedSet;
+            return new NativeSparkDataSet(SpliceSpark.getSession().createDataFrame(container.rdd, container.schema), context);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
