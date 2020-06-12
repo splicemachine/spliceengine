@@ -1499,4 +1499,5 @@ public interface Property {
      * dealing with smaller datasets too many partitions cause a lot of overhead
      */
     String OLAP_SHUFFLE_PARTITIONS = "olapShufflePartitions";
+    String CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS = "disableAdvancedTC";
 }
