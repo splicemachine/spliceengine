@@ -196,36 +196,30 @@ public class FromBaseTable extends FromTable {
     private AggregateNode aggrForSpecialMaxScan;
 
     private boolean isBulkDelete = false;
+
+    private long pastTxId = -1;
+
     @Override
     public boolean isParallelizable(){
         return false;
     }
 
     /**
-     * Initializer for a table in a FROM list. Parameters are as follows:
-     * <p/>
-     * <ul>
-     * <li>tableName            The name of the table</li>
-     * <li>correlationName    The correlation name</li>
-     * <li>derivedRCL        The derived column list</li>
-     * <li>tableProperties    The Properties list associated with the table.</li>
-     * </ul>
-     * <p/>
-     * <p>
-     * - OR -
-     * </p>
-     * <p/>
-     * <ul>
-     * <li>tableName            The name of the table</li>
-     * <li>correlationName    The correlation name</li>
-     * <li>updateOrDelete    Table is being updated/deleted from. </li>
-     * <li>derivedRCL        The derived column list</li>
-     * </ul>
+     * Initializer for a table in a FROM list.
+     * @param tableName The name of the table
+     * @param correlationName The correlation name
+     * @param rclOrUD update/delete flag or result column list
+     * @param propsOrRcl properties or result column list
+     * @param isBulkDeleteOrTxId bulk delete flag or past tx id.
      */
     @Override
-    public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete){
+    public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDeleteOrTxId){
+        if(isBulkDeleteOrTxId instanceof Boolean) {
+            this.isBulkDelete = (Boolean) isBulkDeleteOrTxId;
+        }else if(isBulkDeleteOrTxId instanceof Long){
+            this.pastTxId = (Long) isBulkDeleteOrTxId;
+        }
         init(tableName, correlationName, rclOrUD, propsOrRcl);
-        this.isBulkDelete = (Boolean) isBulkDelete;
     }
 
     @Override
@@ -2357,6 +2351,10 @@ public class FromBaseTable extends FromTable {
         // compute the default row
         numArgs += generateDefaultRow((ActivationClassBuilder)acb, mb);
 
+        // also add the past transaction id
+        mb.push(pastTxId);
+        numArgs++;
+
         return numArgs;
     }
 
@@ -3410,7 +3408,11 @@ public class FromBaseTable extends FromTable {
         if(niceIndexName!=null){
             cName = "IndexScan["+niceIndexName+"]";
         }else{
-            cName = "TableScan["+getPrettyTableName()+"]";
+            cName = "TableScan["+getPrettyTableName();
+            if(pastTxId >= 0){
+                cName += "timeTravelTx(" + pastTxId + ")";
+            }
+            cName += "]";
         }
         if(isMultiProbing())
             cName = "MultiProbe"+cName;
