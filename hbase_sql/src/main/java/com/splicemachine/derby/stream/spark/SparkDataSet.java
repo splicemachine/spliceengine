@@ -43,6 +43,7 @@ import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.function.SplicePairFunction;
 import com.splicemachine.derby.stream.function.SplicePredicateFunction;
 import com.splicemachine.derby.stream.function.TakeFunction;
+import com.splicemachine.derby.stream.function.ZipperFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
@@ -526,6 +527,16 @@ public class SparkDataSet<V> implements DataSet<V> {
         return new SparkExportDataSetWriter.Builder(rdd);
     }
 
+    @Override
+    public KafkaDataSetWriterBuilder writeToKafka() {
+        return new KafkaDataSetWriterBuilder() {
+            @Override
+            public DataSetWriter build() {
+                return new SparkKafkaDataSetWriter<>(rdd, topicName);
+            }
+        };
+    }
+
     public static class EOutputFormat extends FileOutputFormat<Void, ExecRow> {
 
         /**
@@ -825,7 +836,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             compression = "uncompressed";
         }
         insertDF.write().option(SPARK_COMPRESSION_OPTION,compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                .mode(SaveMode.Append).format("avro").save(location);
+                .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));

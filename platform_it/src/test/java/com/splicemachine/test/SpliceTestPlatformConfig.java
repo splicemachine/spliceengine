@@ -215,6 +215,7 @@ class SpliceTestPlatformConfig {
         config.setLong("hbase.rpc.timeout", MINUTES.toMillis(5));
         config.setInt("hbase.client.max.perserver.tasks",50);
         config.setInt("hbase.client.ipc.pool.size",10);
+        config.setInt("hbase.client.retries.number", 35);
         config.setInt("hbase.rowlock.wait.duration",10);
 
         config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
@@ -288,7 +289,7 @@ class SpliceTestPlatformConfig {
         //
         // Splice
         //
-
+        
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15)); // wait 15 seconds before bailing on bad ddl statements
         config.setLong("splice.ddl.maxWaitSeconds",120000);
         config.setInt("splice.olap_server.memory", 4096);

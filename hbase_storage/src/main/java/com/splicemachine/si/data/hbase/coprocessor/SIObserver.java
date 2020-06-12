@@ -201,6 +201,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             } else {
                 purgeConfig = PurgeConfig.noPurgeConfig();
             }
+            // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
+            // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
             SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
@@ -212,12 +214,16 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner, ScanType scanType, CompactionLifeCycleTracker tracker, CompactionRequest request) throws IOException {
         try {
-            if(tableEnvMatch && scanner != null){
+            // We can't return null, there's a check in org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost.preCompact
+            // return a dummy implementation instead
+            if (scanner == null || scanner == DummyScanner.INSTANCE)
+                return DummyScanner.INSTANCE;
+
+            if(tableEnvMatch){
                 SIDriver driver=SIDriver.driver();
                 SimpleCompactionContext context = new SimpleCompactionContext();
-                boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
+                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
                 PurgeConfig purgeConfig;
                 if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
@@ -230,12 +236,11 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 }
                 SICompactionScanner siScanner = new SICompactionScanner(
                         state, scanner, purgeConfig,
-                        conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+                        conf.getOlapCompactionResolutionShare(), conf.getLocalCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
-            }else{
-                return scanner;
             }
+            return scanner;
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }

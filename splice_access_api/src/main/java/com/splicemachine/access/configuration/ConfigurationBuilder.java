@@ -126,6 +126,7 @@ public class ConfigurationBuilder {
     public String replicationMonitorPath;
     public int replicationMonitorInterval;
     public String replicationHealthcheckScript;
+    public String kafkaBootstrapServers;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;
@@ -144,12 +145,14 @@ public class ConfigurationBuilder {
     public int olapServerBindPort;
     public String olapServerStagingDir;
     public boolean olapServerExternal;
+    public int olapServerMaxRetries;
     public int olapServerThreads;
     public int olapServerTickLimit;
     public int olapServerSubmitAttempts;
     public int olapServerMemory;
     public int olapServerMemoryOverhead;
     public int olapServerVirtualCores;
+    public long olapServerKeepAliveTimeout;
     public int partitionserverJmxPort;
     public String partitionserverJmxUser;
     public String partitionserverJmxPassword;
@@ -192,14 +195,15 @@ public class ConfigurationBuilder {
     public String sparkIoCompressionCodec;
     public int sparkResultStreamingBatchSize;
     public int sparkResultStreamingBatches;
-    public int compactionReservedSlots;
-    public int reservedSlotsTimeout;
+    public int sparkSlowResultStreamingBatchSize;
+    public int sparkSlowResultStreamingBatches;
     public int olapCompactionMaximumWait;
     public int olapCompactionMaximumConcurrent;
     public double olapCompactionResolutionShare;
     public double flushResolutionShare;
     public int olapCompactionResolutionBufferSize;
     public boolean olapCompactionBlocking;
+    public int localCompactionResolutionBufferSize;
     public boolean resolutionOnFlushes;
     public int olapClientRetries;
     public double bulkImportSampleFraction;
@@ -214,6 +218,7 @@ public class ConfigurationBuilder {
     public boolean olapServerIsolatedCompaction;
     public String olapServerIsolatedCompactionQueueName;
     public boolean olapCompactionAutomaticallyPurgeDeletedRows;
+    public String olapServerMode;
 
 
     /**

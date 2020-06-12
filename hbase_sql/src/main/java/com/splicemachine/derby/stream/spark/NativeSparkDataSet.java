@@ -678,6 +678,15 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
     }
 
+    @Override
+    public KafkaDataSetWriterBuilder writeToKafka() {
+        try {
+            return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, this.context)).writeToKafka();
+        } catch (Exception e) {
+            throw Exceptions.throwAsRuntime(e);
+        }
+    }
+
     public static class EOutputFormat extends FileOutputFormat<Void, ExecRow> {
 
         /**

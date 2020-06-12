@@ -140,6 +140,8 @@ public interface SConfiguration {
 
     boolean getHbaseSecurityAuthentication();
 
+    String getKafkaBootstrapServers();
+
     // OperationConfiguration
     int getSequenceBlockSize();
 
@@ -177,8 +179,10 @@ public interface SConfiguration {
     String getSparkIoCompressionCodec();
 
     int getSparkResultStreamingBatches();
-
     int getSparkResultStreamingBatchSize();
+
+    int getSparkSlowResultStreamingBatches();
+    int getSparkSlowResultStreamingBatchSize();
 
     double getBulkImportSampleFraction();
 
@@ -235,6 +239,10 @@ public interface SConfiguration {
     String getOlapServerStagingDirectory();
 
     boolean getOlapServerExternal();
+
+    int getOlapServerMaxRetries();
+
+    long getOlapServerKeepAliveTimeout();
 
     int getOlapServerThreads();
 
@@ -350,8 +358,6 @@ public interface SConfiguration {
      */
     Map<String,Object> getConfigMap();
 
-    int getCompactionReservedSlots();
-
     int getOlapCompactionMaximumWait();
 
     int getOlapCompactionMaximumConcurrent();
@@ -362,11 +368,11 @@ public interface SConfiguration {
 
     int getOlapCompactionResolutionBufferSize();
 
+    int getLocalCompactionResolutionBufferSize();
+
     boolean getOlapCompactionBlocking();
 
     boolean getResolutionOnFlushes();
-
-    int getReservedSlotsTimeout();
 
     int getOlapServerTickLimit();
 
@@ -393,6 +399,8 @@ public interface SConfiguration {
     String getMetadataRestrictionEnabled();
 
     String getRangerUserSyncCaseConversion();
+
+    String getOlapServerMode();
 
     boolean getSparkAccumulatorsEnabled();
 }

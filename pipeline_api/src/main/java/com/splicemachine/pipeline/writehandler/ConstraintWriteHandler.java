@@ -21,6 +21,7 @@ import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.api.Constraint;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.utils.ByteSlice;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -31,6 +32,7 @@ import java.util.Map;
  *         Created on: 4/30/13
  */
 public class ConstraintWriteHandler implements WriteHandler {
+    private static final Logger LOG = Logger.getLogger(ConstraintWriteHandler.class);
 
     private static final WriteResult additiveWriteConflict = WriteResult.failed("Additive WriteConflict");
 
@@ -84,10 +86,13 @@ public class ConstraintWriteHandler implements WriteHandler {
             //noinspection ThrowableResultOfMethodCallIgnored
             if(exceptionFactory.processPipelineException(nsre)instanceof NotServingPartitionException){
                 ctx.failed(mutation,WriteResult.notServingRegion());
-            }else
-                ctx.failed(mutation, WriteResult.failed(nsre.getClass().getSimpleName()+":"+nsre.getMessage()));
+            }else {
+                LOG.error("Unexpected exception", nsre);
+                ctx.failed(mutation, WriteResult.failed(nsre.getClass().getSimpleName() + ":" + nsre.getMessage()));
+            }
         } catch (Exception e) {
             failed = true;
+            LOG.error("Unexpected exception", e);
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         }
     }
