@@ -17,7 +17,6 @@ package com.splicemachine.derby.test.framework;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.runner.Description;
 import org.spark_project.guava.base.Joiner;
@@ -178,7 +177,7 @@ public class SpliceUnitTest {
     }
     
     public static String getHiveWarehouseDirectory() {
-		return getBaseDirectory()+"/user/hive/warehouse";
+		return getHBaseDirectory()+"/user/hive/warehouse";
 	}
 
     public static class MyWatcher extends SpliceTableWatcher {
@@ -227,6 +226,28 @@ public class SpliceUnitTest {
 
     public static void rowContainsQuery(int[] levels, String query,SpliceWatcher methodWatcher,String[]... contains) throws Exception {
         try(ResultSet resultSet = methodWatcher.executeQuery(query)){
+            int i=0;
+            int k=0;
+            while(resultSet.next()){
+                i++;
+                for(int level : levels){
+                    if(level==i){
+                        String resultString = resultSet.getString(1);
+                        for (String phrase: contains[k]) {
+                            Assert.assertTrue("failed query at level (" + level + "): \n" + query + "\nExpected: " + phrase + "\nWas: "
+                                    + resultString, resultString.contains(phrase));
+                        }
+                        k++;
+                    }
+                }
+            }
+            if (k < contains.length)
+                fail("fail to match the given strings");
+        }
+    }
+
+    public static void rowContainsQuery(int[] levels, String query, TestConnection conn, String[]... contains) throws Exception {
+        try(ResultSet resultSet = conn.query(query)){
             int i=0;
             int k=0;
             while(resultSet.next()){
@@ -633,7 +654,7 @@ public class SpliceUnitTest {
     }
 
     public static File createBadLogDirectory(String schemaName) {
-        File badImportLogDirectory = new File(SpliceUnitTest.getBaseDirectory()+"/target/BAD/"+schemaName);
+        File badImportLogDirectory = new File(getHBaseDirectory() + "/target/BAD/" + schemaName);
         if (badImportLogDirectory.exists()) {
             recursiveDelete(badImportLogDirectory);
         }
@@ -643,13 +664,22 @@ public class SpliceUnitTest {
     }
 
     public static File createBulkLoadDirectory(String schemaName) {
-        File bulkLoadDirectory = new File(SpliceUnitTest.getBaseDirectory() + "/target/HFILE/" + schemaName);
+        File bulkLoadDirectory = new File(getHBaseDirectory() + "/target/HFILE/" + schemaName);
         if (bulkLoadDirectory.exists()) {
             recursiveDelete(bulkLoadDirectory);
         }
         assertTrue("Couldn't create " + bulkLoadDirectory, bulkLoadDirectory.mkdirs());
         assertTrue("Failed to create " + bulkLoadDirectory, bulkLoadDirectory.exists());
         return bulkLoadDirectory;
+    }
+
+    public static File createBackupDirectory() {
+        File backupDirectory = new File(getHBaseDirectory() + "/target/backup/");
+        if (!backupDirectory.exists()) {
+            assertTrue("Couldn't create " + backupDirectory, backupDirectory.mkdirs());
+            assertTrue("Failed to create " + backupDirectory, backupDirectory.exists());
+        }
+        return backupDirectory;
     }
 
     public static void recursiveDelete(File file) {
@@ -669,7 +699,7 @@ public class SpliceUnitTest {
     }
 
     public static File createImportFileDirectory(String schemaName) {
-        File importFileDirectory = new File(SpliceUnitTest.getBaseDirectory()+"/target/import_data/"+schemaName);
+        File importFileDirectory = new File(getHBaseDirectory() + "/target/import_data/" + schemaName);
         if (importFileDirectory.exists()) {
             //noinspection ConstantConditions
             for (File file : importFileDirectory.listFiles()) {
@@ -931,12 +961,11 @@ public class SpliceUnitTest {
         }
     }
 
-    public static File createOrWipeTestDirectory( String subpath ) throws java.io.IOException
+    public static File createTempDirectory(String subpath) throws java.io.IOException
     {
-        File path = new File(getHBaseDirectory(), "/target/external/" + subpath);
-        path.mkdirs();
+        File path = new File(getHBaseDirectory(), "/target/tmp/" + subpath);
         FileUtils.deleteDirectory(path); // clean directory
-        path.mkdir();
+        path.mkdirs();
         return path;
     }
 

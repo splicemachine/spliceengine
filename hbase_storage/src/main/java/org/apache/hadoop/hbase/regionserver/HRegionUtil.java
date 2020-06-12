@@ -293,4 +293,8 @@ public class HRegionUtil {
             throws IOException {
         store.replaceStoreFiles(compactedFiles, result);
     }
+
+    public static boolean mayHaveMoreCellsInARow(ScannerContext context) {
+        return context.mayHaveMoreCellsInRow();
+    }
 }

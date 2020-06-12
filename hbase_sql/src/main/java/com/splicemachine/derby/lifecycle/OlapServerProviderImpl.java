@@ -23,13 +23,11 @@ public class OlapServerProviderImpl implements OlapServerProvider {
     private static final Logger LOG = Logger.getLogger(OlapServerProviderImpl.class);
 
     private final SConfiguration config;
-    private final int maxRetries;
     private final Clock clock;
     private final HBaseConnectionFactory hbcf;
 
-    public OlapServerProviderImpl(SConfiguration config, int maxRetries, Clock clock, HBaseConnectionFactory hbcf) {
+    public OlapServerProviderImpl(SConfiguration config, Clock clock, HBaseConnectionFactory hbcf) {
         this.config = config;
-        this.maxRetries = maxRetries;
         this.clock = clock;
         this.hbcf = hbcf;
     }
@@ -42,7 +40,7 @@ public class OlapServerProviderImpl implements OlapServerProvider {
                 int tries = 0;
                 OlapServerNotReadyException osnr = null;
                 String root = HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH;
-                while (tries < maxRetries) {
+                while (tries < config.getOlapServerMaxRetries()) {
                     tries++;
                     try {
                         List<String> servers = ZkUtils.getChildren(root, false);

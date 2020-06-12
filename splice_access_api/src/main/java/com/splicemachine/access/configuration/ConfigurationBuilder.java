@@ -145,6 +145,7 @@ public class ConfigurationBuilder {
     public int olapServerBindPort;
     public String olapServerStagingDir;
     public boolean olapServerExternal;
+    public int olapServerMaxRetries;
     public int olapServerThreads;
     public int olapServerTickLimit;
     public int olapServerSubmitAttempts;
