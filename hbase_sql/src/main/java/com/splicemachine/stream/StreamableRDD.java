@@ -57,7 +57,6 @@ public class StreamableRDD<T> {
     private final UUID uuid;
     private final OperationContext<?> context;
     private final int parallelPartitions;
-    private final Integer shufflePartitions;
     private OlapStatus jobStatus;
 
 
@@ -66,11 +65,11 @@ public class StreamableRDD<T> {
     }
 
     public StreamableRDD(JavaRDD<T> rdd, OperationContext<?> context, UUID uuid, String clientHost, int clientPort, int batches, int batchSize) {
-        this(rdd, context, uuid, clientHost, clientPort, batches, batchSize, DEFAULT_PARALLEL_PARTITIONS, null);
+        this(rdd, context, uuid, clientHost, clientPort, batches, batchSize, DEFAULT_PARALLEL_PARTITIONS);
     }
 
     public StreamableRDD(JavaRDD<T> rdd, OperationContext<?> context, UUID uuid, String clientHost, int clientPort,
-                         int batches, int batchSize, int parallelPartitions, Integer shufflePartitions) {
+                         int batches, int batchSize, int parallelPartitions) {
         this.rdd = rdd;
         this.context = context;
         this.uuid = uuid;
@@ -81,7 +80,6 @@ public class StreamableRDD<T> {
         completionService = new ExecutorCompletionService<>(executor);
         this.clientBatchSize = batchSize;
         this.clientBatches = batches;
-        this.shufflePartitions = shufflePartitions;
     }
 
     public void submit() throws Exception {
@@ -156,8 +154,6 @@ public class StreamableRDD<T> {
             public Object call() throws Exception {
                 SparkContext sc = SpliceSpark.getContextUnsafe().sc();
                 sc.setLocalProperties(properties);
-                if (shufflePartitions != null)
-                    sc.setLocalProperty(SQLConf.SHUFFLE_PARTITIONS().key(), shufflePartitions.toString());
                 AtomicBoolean cont = new AtomicBoolean(true);
                 SimpleFutureAction<Boolean> job = sc.submitJob(streamed.rdd(), new FunctionAdapter(), objects, new AbstractFunction2<Object, String, BoxedUnit>() {
                     @Override
