@@ -207,7 +207,7 @@ IF NOT [%OUTPUT%] == [] (
 IF NOT [%URL%] == [] (
     SET IJ_SYS_ARGS=%IJ_SYS_ARGS% -Dij.connection.splice^=%URL%
 ) ELSE (
-    REM Add optional URL parameters
+    REM Add optional URL parameters for SSL and Kerberos
     SET SSL=
     SET KERBEROS=
     IF %SECURE% EQU 1 (
