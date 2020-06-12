@@ -183,6 +183,8 @@ public abstract class DMLStatementNode extends StatementNode {
             for (Object obj : cnv.getList()) {
                 FromTable ft = (FromTable) obj;
                 ft.resetAccessPaths();
+                if (ft instanceof JoinNode)
+                    ((JoinNode)ft).resetOptimized();
             }
             resultSet = resultSet.optimize(getDataDictionary(), null, 1.0d, true);
         }

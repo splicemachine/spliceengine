@@ -53,8 +53,8 @@ import com.splicemachine.db.iapi.sql.conn.*;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
+import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
 import com.splicemachine.db.iapi.types.DataValueFactory;
@@ -65,6 +65,7 @@ import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -391,7 +392,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
 
         String maxStatementLogLenStr = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.maxStatementLogLen");
-        maxStatementLogLen = maxStatementLogLenStr == null ? -1 : Integer.valueOf
+        maxStatementLogLen = maxStatementLogLenStr == null ? -1 : Integer.parseInt
                 (maxStatementLogLenStr);
 
         String logQueryPlanProperty=PropertyUtil.getCachedDatabaseProperty(this,"derby.language.logQueryPlan");
@@ -404,9 +405,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         sessionProperties = new SessionPropertiesImpl();
         // transfer setting of skipStats and defaultSelectivityFactor from jdbc connnection string to sessionProperties
         if (skipStats)
-            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SKIPSTATS, new Boolean(skipStats).toString());
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SKIPSTATS, Boolean.toString(skipStats));
         if (defaultSelectivityFactor > 0)
-            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, new Double(defaultSelectivityFactor).toString());
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, Double.toString(defaultSelectivityFactor));
         if (connectionProperties != null) {
             String olapQueue = connectionProperties.getProperty(Property.CONNECTION_OLAP_QUEUE);
             if (olapQueue != null) {
@@ -423,6 +424,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             String shufflePartitions = connectionProperties.getProperty(Property.OLAP_SHUFFLE_PARTITIONS);
             if (shufflePartitions != null) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS, shufflePartitions);
+	    }
+            String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+            if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS, "TRUE".toString());
             }
         }
         if (type.isSessionHinted()) {
@@ -1569,7 +1574,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 tempTablesXApostCommit();
             }
         }
-        tc.commitDataDictionaryChange();
+        if (tc != null)
+            tc.commitDataDictionaryChange();
     }
 
     /**
@@ -1946,6 +1952,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * execution time, set transaction isolation level calls this method before
      * changing the isolation level.
      */
+    @SuppressFBWarnings(value = "DM_GC", justification = "Intentional")
     @Override
     public boolean verifyAllHeldResultSetsAreClosed() throws StandardException{
         boolean seenOpenResultSets=false;
@@ -1984,7 +1991,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         System.gc();
         System.runFinalization();
 
-
         /* For every activation */
         for(int i=acts.size()-1;i>=0;i--){
 
@@ -2021,6 +2027,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param action   The action causing the possible invalidation
      * @return Nothing.
      */
+    @SuppressFBWarnings(value = "DM_GC", justification = "Intentional")
     @Override
     public boolean verifyNoOpenResultSets(PreparedStatement pStmt,Provider provider,int action)
             throws StandardException{
@@ -2065,7 +2072,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         // let's try and force these out rather than throw an error
         System.gc();
         System.runFinalization();
-
 
         /* For every activation */
         // synchronize on acts as other threads may be closing activations
@@ -3301,10 +3307,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String getCurrentGroupUserDelimited(Activation a) throws StandardException {
         if(LOG.isDebugEnabled()) {
-            LOG.debug(String.format("getCurrentGroupUserDelimited():\n" +
-                            "sessionUser: %s,\n" +
-                            "defaultRoles: %s,\n" +
-                            "groupUserList: %s\n",
+            LOG.debug(String.format("getCurrentGroupUserDelimited():%n" +
+                            "sessionUser: %s,%n" +
+                            "defaultRoles: %s,%n" +
+                            "groupUserList: %s%n",
                     sessionUser,
                     (defaultRoles==null?"null":defaultRoles.toString()),
                     (groupuserlist==null?"null":groupuserlist.toString())));
@@ -3328,10 +3334,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String getCurrentRoleIdDelimited(Activation a) throws StandardException{
         if(LOG.isDebugEnabled()) {
-            LOG.debug(String.format("getCurrentRoleIdDelimited():\n" +
-                            "sessionUser: %s,\n" +
-                            "defaultRoles: %s,\n" +
-                            "groupUserList: %s\n",
+            LOG.debug(String.format("getCurrentRoleIdDelimited():%n" +
+                            "sessionUser: %s,%n" +
+                            "defaultRoles: %s,%n" +
+                            "groupUserList: %s%n",
                     sessionUser,
                     (defaultRoles==null?"null":defaultRoles.toString()),
                     (groupuserlist==null?"null":groupuserlist.toString())));
@@ -3385,9 +3391,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public void setSessionProperties(Properties newProperties) {
-        for (Object property: newProperties.keySet()) {
-            SessionProperties.PROPERTYNAME propertyName = (SessionProperties.PROPERTYNAME)property;
-            sessionProperties.setProperty(propertyName, newProperties.get(property));
+        for (Map.Entry<Object, Object> propertyEntry: newProperties.entrySet()) {
+            SessionProperties.PROPERTYNAME propertyName = (SessionProperties.PROPERTYNAME)propertyEntry.getKey();
+            sessionProperties.setProperty(propertyName, propertyEntry.getValue());
         }
 
         return;

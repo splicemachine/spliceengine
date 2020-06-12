@@ -80,6 +80,10 @@ public class SessionPropertiesImpl implements SessionProperties {
                 long timestamp = Long.parseLong(valString);
                 properties[SNAPSHOT_TIMESTAMP.getId()] = timestamp;
                 break;
+            case DISABLE_TC_PUSHED_DOWN_INTO_VIEWS:
+                boolean disabled = Boolean.valueOf(valString);
+                properties[DISABLE_TC_PUSHED_DOWN_INTO_VIEWS.getId()] = disabled;
+                break;
             default:
                 break;
         }
