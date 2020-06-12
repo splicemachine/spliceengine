@@ -1,11 +1,10 @@
 @ECHO OFF
-
-SETLOCAL
+SETLOCAL ENABLEDELAYEDEXPANSION
 
 REM defaults
 SET "URL="
 SET HOST="localhost"
-SET PORT="1527"
+SET PORT=1527
 SET USER="splice"
 SET QUOTE=0
 SET PASS="admin"
@@ -209,19 +208,18 @@ IF NOT [%URL%] == [] (
     SET IJ_SYS_ARGS=%IJ_SYS_ARGS% -Dij.connection.splice^=%URL%
 ) ELSE (
     REM Add optional URL parameters
-    SET SSL=""
-    SET KERBEROS=""
+    SET SSL=
+    SET KERBEROS=
     IF %SECURE% EQU 1 (
-        SET SSL=";ssl=basic"
+        SET SSL^=;ssl=basic
     )
     IF NOT [%PRINCIPAL%] == [] (
         SET KERBEROS=;principal^=%PRINCIPAL%
         IF NOT [%KEYTAB%] == [] (
-            SET KERBEROS=%KERBEROS%;keytab^=%KEYTAB%
+            SET KERBEROS=!KERBEROS!;keytab^=%KEYTAB%
         )
     )
-    SET IJ_SYS_ARGS=%IJ_SYS_ARGS% -Dij.connection.splice^=jdbc:splice://%HOST%:%PORT%/splicedb%SSL%%KERBEROS%
-
+    SET IJ_SYS_ARGS=%IJ_SYS_ARGS% -Dij.connection.splice^=jdbc:splice://%HOST%:%PORT%/splicedb!SSL!!KERBEROS!
     SET JAVA_TOOL_OPTIONS=-Dij.user^=%USER% -Dij.password^=%PASS%
     IF %QUOTE% EQU 1 (
         SET JAVA_TOOL_OPTIONS=-Dij.user^='"%USER%"' -Dij.password^=%PASS%
