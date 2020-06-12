@@ -15,6 +15,10 @@
 
 package org.apache.spark.sql
 
+/**
+ * This is copied from org.apache.spark.sql.Dataset.withColumns() which was introduced in Spark 2.3 and is not available
+ * in Spark 2.2
+ */
 object WithColumns {
 
   def withColumns(colNames: Seq[String], cols: Seq[Column], ds: DataFrame): DataFrame = {
