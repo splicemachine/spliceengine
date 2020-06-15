@@ -51,10 +51,12 @@ import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -65,6 +67,7 @@ import org.spark_project.guava.collect.Lists;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.sql.*;
 import java.util.*;
@@ -1052,6 +1055,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 rowCount = partitionRowCount;
                                                 totalSize = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE).getLong();
                                                 avgRowWidth = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getInt();
+                                                // while collecting merged stats, we may use more splits for one region/partition, so the numberOfPartitions here is really the number of splits, not ncessarily the number of regions
                                                 numberOfPartitions = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS).getLong();
                                                 statsType = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE).getInt();
                                                 sampleFraction = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION).getDouble();
@@ -1078,9 +1082,17 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                         statsType = SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS;
                                     else if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
                                         statsType = SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
-                                    statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, avgRowWidth, numberOfPartitions, statsType, sampleFraction);
-                                    dataDictionary.addTableStatistics(statsRow, tc);
                                     Pair<String, String> pair = displayPair.get(conglomId);
+                                    SchemaDescriptor sd = dataDictionary.getSchemaDescriptor(pair.getFirst(), tc, true);
+                                    TableDescriptor td = dataDictionary.getTableDescriptor(pair.getSecond(), sd, tc);
+                                    // instead of using the numberOfPartitions which is really the number of splits for
+                                    // merged stats, directly fetch the number of regions
+                                    long numOfRegions = numberOfPartitions;
+                                    if (!td.isExternal())
+                                        numOfRegions = getNumOfPartitions(td);
+                                    statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, avgRowWidth, numOfRegions, statsType, sampleFraction);
+                                    dataDictionary.addTableStatistics(statsRow, tc);
+
                                     return generateOutputRow(pair.getFirst(), pair.getSecond(), statsRow);
                                 } catch (Exception e) {
                                     throw new RuntimeException(e);
@@ -1137,6 +1149,28 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     }
                 }
             });
+        }
+    }
+
+    private static long getNumOfPartitions(TableDescriptor td) throws StandardException {
+        String tableId = Long.toString(td.getBaseConglomerateDescriptor().getConglomerateNumber());
+        byte[] table = Bytes.toBytes(tableId);
+        Partition root = null;
+        try {
+            long result = 1;
+            root = SIDriver.driver().getTableFactory().getTable(table);
+            if (root != null)
+                result = root.subPartitions(true).size();
+            return result;
+        } catch (Exception ioe) {
+            throw StandardException.plainWrapException(ioe);
+        } finally {
+            try {
+                if (root != null)
+                    root.close();
+            } catch (IOException e) {
+                throw StandardException.plainWrapException(e);
+            }
         }
     }
 
