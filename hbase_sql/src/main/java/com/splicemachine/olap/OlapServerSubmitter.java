@@ -16,11 +16,12 @@
 package com.splicemachine.olap;
 
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.util.NetworkUtils;
 import com.splicemachine.hbase.ZkUtils;
-import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -32,7 +33,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.mapreduce.MRJobConfig;
@@ -60,12 +60,9 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.spark.util.ShutdownHookManager;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
-import scala.runtime.AbstractFunction0;
-import scala.runtime.BoxedUnit;
 
 import java.io.File;
 import java.io.IOException;
@@ -166,10 +163,13 @@ public class OlapServerSubmitter implements Runnable {
                         public void run() {
                             RecoverableZooKeeper zk = ZkUtils.getRecoverableZooKeeper();
                             String root = HConfiguration.getConfiguration().getSpliceRootPath();
-                            String path = root + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_KEEP_ALIVE_PATH + "/" + appName;
-                            byte[] payload = Bytes.toBytes(System.currentTimeMillis());
+                            String keepAlivePath = root + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_KEEP_ALIVE_PATH + "/" + appName;
+
+                            byte[] payload = getKeepAlivePayload();
                             try {
-                                zk.create(path, payload, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+                                // clean up node if it exists
+                                ZkUtils.safeDelete(keepAlivePath, -1);
+                                zk.create(keepAlivePath, payload, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
                             } catch (KeeperException ke) {
                                 if (ke.code().equals(NODEEXISTS)) {
                                     // ignore
@@ -184,8 +184,8 @@ public class OlapServerSubmitter implements Runnable {
                             while (!stop && !stopAttempt.get()) {
                                 try {
                                     Thread.sleep(30000);
-                                    payload = Bytes.toBytes(System.currentTimeMillis());
-                                    zk.setData(path, payload, -1);
+                                    payload = getKeepAlivePayload();
+                                    zk.setData(keepAlivePath, payload, -1);
                                 } catch (InterruptedException e) {
                                     // We were interrupted, stop keep alive
                                     LOG.warn("Caught interrupted exception, stop OlapServer-"+queueName+" keep alive");
@@ -242,6 +242,24 @@ public class OlapServerSubmitter implements Runnable {
             stopLatch.countDown();
         }
 
+    }
+
+    private byte[] getKeepAlivePayload() {
+        DatabaseVersion version;
+        try {
+            version = JMXUtils.getLocalMBeanProxy(JMXUtils.SPLICEMACHINE_VERSION, DatabaseVersion.class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        OlapMessage.KeepAlive message = OlapMessage.KeepAlive.newBuilder().setTime(System.currentTimeMillis())
+                .setMajor(version.getMajorVersionNumber())
+                .setMinor(version.getMinorVersionNumber())
+                .setPatch(version.getPatchVersionNumber())
+                .setSprint(version.getSprintVersionNumber())
+                .setImplementation(version.getImplementationVersion()).build();
+
+        return message.toByteArray();
     }
 
     private ApplicationId findApplication(YarnClient yarnClient) throws IOException, YarnException {
