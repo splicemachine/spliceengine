@@ -183,7 +183,7 @@ public class FailuresSparkIT {
             try(ResultSet rs = s.executeQuery("explain " + sql)) {
                 assertTrue(rs.next());
                 String plan = rs.getString(1);
-                assertTrue(plan.contains("control"));
+                assertTrue(plan.contains("OLTP"));
             }
             try(ResultSet rs = s.executeQuery(sql)) {
                 assertTrue(rs.next());

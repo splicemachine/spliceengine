@@ -39,6 +39,7 @@ import com.splicemachine.si.impl.server.CompactionContext;
 import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
@@ -125,6 +126,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     }
 
     @Override
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="static attribute hostname is set from here")
     public List<Path> compact(CompactionRequestImpl request, ThroughputController throughputController, User user) throws IOException {
 
         if(!allowSpark || store.getRegionInfo().getTable().isSystemTable())
@@ -144,10 +146,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
         ScanType scanType = request.isAllFiles() ? COMPACT_DROP_DELETES : COMPACT_RETAIN_DELETES;
         // trigger MemstoreAwareObserver
-        List<StoreFileScanner> scanners = createFileScanners(((CompactionRequestImpl)request).getFiles(), smallestReadPoint, true);
-        InternalScanner scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
-        postCreateCoprocScanner(request, scanType, scanner,user);
-        scanner.close();
+        postCreateCoprocScanner(request, scanType, null,user);
 
         if (hostName == null)
             hostName = RSRpcServices.getHostname(conf,false);
@@ -166,50 +165,46 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         CompactionResult result = null;
         SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
 
-        try {
-            Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest, getCompactionQueue());
-            while (result == null) {
-                try {
-                    result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
-                } catch (InterruptedException e) {
-                    //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
-                    Thread.currentThread().interrupt();
-                    throw new IOException(e);
-                } catch (ExecutionException e) {
-                    if (e.getCause() instanceof RejectedExecutionException) {
-                        LOG.warn("Spark compaction execution rejected, falling back to RegionServer execution", e.getCause());
-                        return super.compact(request, throughputController, user);
-                    }
-                    throw Exceptions.rawIOException(e.getCause());
-                } catch (TimeoutException e) {
-                    // check region write status
-                    if (!store.areWritesEnabled()) {
-                        futureResult.cancel(true);
-                        progress.cancel();
-                        // TODO should we cleanup files written by Spark?
-                        throw new IOException("Region has been closed, compaction aborted");
-                    }
+        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest, getCompactionQueue());
+        while (result == null) {
+            try {
+                result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
+                Thread.currentThread().interrupt();
+                throw new IOException(e);
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof RejectedExecutionException) {
+                    LOG.warn("Spark compaction execution rejected, falling back to RegionServer execution", e.getCause());
+                    return super.compact(request, throughputController, user);
+                }
+                throw Exceptions.rawIOException(e.getCause());
+            } catch (TimeoutException e) {
+                // check region write status
+                if (!store.areWritesEnabled()) {
+                    futureResult.cancel(true);
+                    progress.cancel();
+                    // TODO should we cleanup files written by Spark?
+                    throw new IOException("Region has been closed, compaction aborted");
                 }
             }
-
-            List<String> sPaths = result.getPaths();
-
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
-
-            this.progress.complete();
-
-            scr.preStorefilesRename();
-
-            List<Path> paths = new ArrayList<>();
-            for (String spath : sPaths) {
-                paths.add(new Path(spath));
-            }
-
-            return paths;
-        } finally {
-            scr.afterExecute();
         }
+
+        List<String> sPaths = result.getPaths();
+
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
+
+        this.progress.complete();
+
+        scr.preStorefilesRename();
+
+        List<Path> paths = new ArrayList<>();
+        for (String spath : sPaths) {
+            paths.add(new Path(spath));
+        }
+
+        return paths;
     }
 
     private SparkCompactionFunction getCompactionFunction(boolean isMajor, InetSocketAddress[] favoredNodes) {
@@ -333,9 +328,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 /* Include deletes, unless we are doing a compaction of all files */
                 ScanType scanType = request.isAllFiles() ? COMPACT_DROP_DELETES : COMPACT_RETAIN_DELETES;
                 ScanInfo scanInfo = preCreateCoprocScanner(request, scanType, fd.earliestPutTs, scanners, null);
-                if (scanner == null) {
-                    scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
-                }
+                scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
                 if (needsSI(store.getTableName())) {
                     SIDriver driver=SIDriver.driver();
                     double resolutionShare = HConfiguration.getConfiguration().getOlapCompactionResolutionShare();
@@ -358,10 +351,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, resolutionShare, bufferSize, context);
                     siScanner.start();
                     scanner = siScanner;
-                }
-                if (scanner == null) {
-                    // NULL scanner returned from coprocessor hooks means skip normal processing.
-                    return newFiles;
                 }
                 // Create the writer even if no kv(Empty store file is also ok),
                 // because we need record the max seq id for the store file, see HBASE-6059
