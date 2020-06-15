@@ -550,14 +550,14 @@ public class SparkExplainIT extends SpliceUnitTest {
 
     @Test
     public void testMixtureOfOuterJoins() throws Exception {
-        String sqlText = format("sparkexplain select * from t1 left join t2 --splice-properties useSpark=%s\n" +
+        String sqlText = format("sparkexplain select * from t1 left join t2 --splice-properties useSpark=%s, useDefaultRowCount=1000000000\n" +
                 "full join t3 " +
                 "on a2=a3 on a1=a3", useSpark);
         testQueryContains(sqlText, "rightouter", methodWatcher, true);
         testQueryContains(sqlText, "leftouter", methodWatcher, true);
 
 
-        sqlText = format("sparkexplain select * from t1 left join t2 --splice-properties useSpark=%s\n" +
+        sqlText = format("sparkexplain select * from t1 left join t2 --splice-properties useSpark=%s, useDefaultRowCount=1000000000\n" +
                 "full join t3 " +
                 "on a2=a3 on a1=a2", useSpark);
 
