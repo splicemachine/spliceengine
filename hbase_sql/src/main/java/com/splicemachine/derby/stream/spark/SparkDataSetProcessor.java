@@ -572,13 +572,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
             if (storedAs!=null) {
                 if (storedAs.toLowerCase().equals("p")) {
+                    compression = SparkDataSet.getParquetCompression(compression);
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                             .mode(SaveMode.Append).parquet(location);
                 }
                 else if (storedAs.toLowerCase().equals("a")) {
-                    if (compression.equals("none")) {
-                        compression = "uncompressed";
-                    }
+                    compression = SparkDataSet.getAvroCompression(compression);
                     /*
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                             .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
