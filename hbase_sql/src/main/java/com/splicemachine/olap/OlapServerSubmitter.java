@@ -105,6 +105,7 @@ public class OlapServerSubmitter implements Runnable {
     private Path appStagingBaseDir;
     private String amKeytabFileName = null;
     private Thread keepAlive;
+    private OlapMessage.KeepAlive keepAlivePrototype;
 
     private Configuration conf;
 
@@ -119,6 +120,8 @@ public class OlapServerSubmitter implements Runnable {
         try {
             // Create yarnClient
             conf = HConfiguration.unwrapDelegate();
+
+            initKeepAlivePrototype();
 
             YarnClient yarnClient = YarnClient.createYarnClient();
             yarnClient.init(conf);
@@ -170,13 +173,6 @@ public class OlapServerSubmitter implements Runnable {
                                 // clean up node if it exists
                                 ZkUtils.safeDelete(keepAlivePath, -1);
                                 zk.create(keepAlivePath, payload, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
-                            } catch (KeeperException ke) {
-                                if (ke.code().equals(NODEEXISTS)) {
-                                    // ignore
-                                } else {
-                                    LOG.error("Couldn't create keepAlive for OlapServer-"+queueName, ke);
-                                    return;
-                                }
                             } catch (Exception e) {
                                 LOG.error("Couldn't create keepAlive for OlapServer-"+queueName, e);
                                 return;
@@ -244,21 +240,20 @@ public class OlapServerSubmitter implements Runnable {
 
     }
 
-    private byte[] getKeepAlivePayload() {
-        DatabaseVersion version;
-        try {
-            version = JMXUtils.getLocalMBeanProxy(JMXUtils.SPLICEMACHINE_VERSION, DatabaseVersion.class);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        OlapMessage.KeepAlive message = OlapMessage.KeepAlive.newBuilder().setTime(System.currentTimeMillis())
+    private void initKeepAlivePrototype() throws Exception {
+        DatabaseVersion version = JMXUtils.getLocalMBeanProxy(JMXUtils.SPLICEMACHINE_VERSION, DatabaseVersion.class);
+        keepAlivePrototype = OlapMessage.KeepAlive.newBuilder()
                 .setMajor(version.getMajorVersionNumber())
                 .setMinor(version.getMinorVersionNumber())
                 .setPatch(version.getPatchVersionNumber())
                 .setSprint(version.getSprintVersionNumber())
-                .setImplementation(version.getImplementationVersion()).build();
+                .setImplementation(version.getImplementationVersion()).buildPartial();
+    }
 
+    private byte[] getKeepAlivePayload() {
+        OlapMessage.KeepAlive message = OlapMessage.KeepAlive.newBuilder(keepAlivePrototype)
+                .setTime(System.currentTimeMillis())
+                .build();
         return message.toByteArray();
     }
 
