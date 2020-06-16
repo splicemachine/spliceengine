@@ -84,7 +84,7 @@ public class SpliceSpark {
         }
         SparkSession result = sessions.get();
         if (result == null) {
-            result = session.newSession();
+            result = getSessionUnsafe().newSession();
             sessions.set(result);
         }
         return result;
