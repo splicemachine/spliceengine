@@ -67,7 +67,6 @@ import org.spark_project.guava.collect.Lists;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.sql.*;
 import java.util.*;
@@ -1155,22 +1154,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     private static long getNumOfPartitions(TableDescriptor td) throws StandardException {
         String tableId = Long.toString(td.getBaseConglomerateDescriptor().getConglomerateNumber());
         byte[] table = Bytes.toBytes(tableId);
-        Partition root = null;
-        try {
-            long result = 1;
-            root = SIDriver.driver().getTableFactory().getTable(table);
-            if (root != null)
-                result = root.subPartitions(true).size();
-            return result;
+        try (Partition root = SIDriver.driver().getTableFactory().getTable(table)) {
+            return root != null ? root.subPartitions(true).size() : 1;
         } catch (Exception ioe) {
             throw StandardException.plainWrapException(ioe);
-        } finally {
-            try {
-                if (root != null)
-                    root.close();
-            } catch (IOException e) {
-                throw StandardException.plainWrapException(e);
-            }
         }
     }
 
