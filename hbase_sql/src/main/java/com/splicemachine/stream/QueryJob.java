@@ -30,7 +30,6 @@ import com.splicemachine.derby.stream.spark.SparkDataSet;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.internal.SQLConf;
 
 import java.util.UUID;
 import java.util.concurrent.*;
@@ -65,12 +64,7 @@ public class QueryJob implements Callable<Void>{
         DataSet<ExecRow> dataset;
         OperationContext<SpliceOperation> context;
         String jobName = null;
-        boolean resetSession = false;
         try {
-            if (queryRequest.shufflePartitions != null) {
-                SpliceSpark.getSession().conf().set(SQLConf.SHUFFLE_PARTITIONS().key(), queryRequest.shufflePartitions);
-                resetSession = true;
-            }
             ah.reinitialize(null);
             Activation activation = ah.getActivation();
             root.setActivation(activation);
@@ -101,8 +95,7 @@ public class QueryJob implements Callable<Void>{
 
             JavaRDD rdd =  sparkDataSet.rdd;
             StreamableRDD streamableRDD = new StreamableRDD<>(rdd, context, uuid, clientHost, clientPort,
-                    queryRequest.streamingBatches, queryRequest.streamingBatchSize,
-                    queryRequest.parallelPartitions);
+                    queryRequest.streamingBatches, queryRequest.streamingBatchSize);
             streamableRDD.setJobStatus(status);
             streamableRDD.submit();
 
@@ -114,8 +107,6 @@ public class QueryJob implements Callable<Void>{
                 SpliceSpark.getContext().sc().cancelJobGroup(jobName);
             throw e;
         } finally {
-            if(resetSession)
-                SpliceSpark.resetSession();
             ah.close();
         }
 
