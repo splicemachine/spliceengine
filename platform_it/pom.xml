@@ -353,7 +353,7 @@
                                 <dependency>com.splicemachine:hbase_sql</dependency>
                             </dependenciesToScan>
                             <includes>
-                                <include>**/*IT.java</include>
+                                <include>**/NONE*IT.java</include>
                             </includes>
                             <excludes>
                                 <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**
@@ -390,7 +390,7 @@
                                 <dependency>com.splicemachine:hbase_sql</dependency>
                             </dependenciesToScan>
                             <includes>
-                                <include>**/*IT.java</include>
+                                <include>**/NONE*IT.java</include>
                             </includes>
                             <runOrder>alphabetical</runOrder>
                             <systemPropertyVariables>
