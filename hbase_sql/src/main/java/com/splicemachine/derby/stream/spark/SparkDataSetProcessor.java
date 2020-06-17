@@ -161,7 +161,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             return new NativeSparkDataSet<>(
                     SpliceSpark.getSession().createDataFrame(
                             SpliceSpark.getContext().emptyRDD(),
-                            context.getOperation().getExecRowDefinition().schema()), context);
+                            context.getOperation().schema()), context);
         } catch (StandardException e) {
             throw new RuntimeException(e);
         }

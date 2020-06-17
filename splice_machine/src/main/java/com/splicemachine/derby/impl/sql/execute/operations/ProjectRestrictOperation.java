@@ -21,7 +21,6 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -69,8 +68,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		private boolean alwaysFalse;
 		public SpliceMethod<DataValueDescriptor> restriction;
 		public SpliceMethod<ExecRow> projection;
-        public ExecRow projectionResult;
-		public NoPutResultSet[] subqueryTrackingArray;
 		private ExecRow execRowDefinition;
 		private ExecRow projRow;
 		private String filterPred = null;
@@ -113,6 +110,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                                         Activation activation,
                                         GeneratedMethod restriction,
                                         GeneratedMethod projection,
+                                        int resultColumnTypeArrayItem,
                                         int resultSetNumber,
                                         GeneratedMethod cr,
                                         int mapRefItem,
@@ -125,7 +123,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                                         String[] expressions,
 				        boolean hasGroupingFunction,
                                         String subqueryText) throws StandardException {
-				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+				super(activation,resultColumnTypeArrayItem, resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
 				this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
 				this.projectionMethodName = (projection == null) ? null : projection.getMethodName();
 				this.constantRestrictionMethodName = (cr == null) ? null : cr.getMethodName();
