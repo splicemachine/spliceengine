@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import org.apache.spark.sql.types.StructField;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -1751,6 +1752,21 @@ public class DataTypeDescriptor implements Formatable{
 
     public DataValueDescriptor getDefault() throws StandardException {
         return typeId.getDefault();
+    }
+
+    public StructField getStructField(String columnName) {
+        StructField childStructField = null;
+        if (typeId.isArray()) {
+            // get the child type descriptor & struct field
+            assert typeDescriptor!=null:"Catalog Type";
+            assert typeDescriptor.getChildren() != null:"Catalog Type";
+            TypeDescriptorImpl childTypeDescriptor = (TypeDescriptorImpl) typeDescriptor.getChildren()[0];
+            TypeId childTypeId = TypeId.getBuiltInTypeId(childTypeDescriptor.getTypeId().getJDBCTypeId());
+            childStructField = childTypeId.getStructField("co", childTypeDescriptor.getPrecision(), childTypeDescriptor.getScale(), null);
+
+        }
+        return typeId.getStructField(columnName, getPrecision(), getScale(), childStructField);
+
     }
 }
 
