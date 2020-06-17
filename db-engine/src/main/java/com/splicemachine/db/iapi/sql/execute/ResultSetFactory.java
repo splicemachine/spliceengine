@@ -351,7 +351,9 @@ public interface ResultSetFactory {
      */
     NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
                                                GeneratedMethod restriction,
-                                               GeneratedMethod projection, int resultSetNumber,
+                                               GeneratedMethod projection,
+                                               int resultColumnTypeArrayItem,
+                                               int resultSetNumber,
                                                GeneratedMethod constantRestriction,
                                                int mapArrayItem,
                                                int cloneMapItem,
@@ -367,7 +369,9 @@ public interface ResultSetFactory {
 
         NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
                                                        GeneratedMethod restriction,
-                                                       GeneratedMethod projection, int resultSetNumber,
+                                                       GeneratedMethod projection,
+                                                       int resultColumnTypeArrayItem,
+                                                       int resultSetNumber,
                                                        GeneratedMethod constantRestriction,
                                                        int mapArrayItem,
                                                        int cloneMapItem,
@@ -384,7 +388,9 @@ public interface ResultSetFactory {
     // can handle old versions of this method that were serialized to disk.
     NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
                                                GeneratedMethod restriction,
-                                               GeneratedMethod projection, int resultSetNumber,
+                                               GeneratedMethod projection,
+                                               int resultColumnTypeArrayItem,
+                                               int resultSetNumber,
                                                GeneratedMethod constantRestriction,
                                                int mapArrayItem,
                                                int cloneMapItem,
@@ -398,7 +404,9 @@ public interface ResultSetFactory {
 
     NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
                                                GeneratedMethod restriction,
-                                               GeneratedMethod projection, int resultSetNumber,
+                                               GeneratedMethod projection,
+                                               int resultColumnTypeArrayItem,
+                                               int resultSetNumber,
                                                GeneratedMethod constantRestriction,
                                                int mapArrayItem,
                                                int cloneMapItem,
