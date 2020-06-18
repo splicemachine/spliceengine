@@ -18,7 +18,7 @@ import java.util.concurrent.*;
  */
 
 public class FetchSplitsJob implements Callable<List<InputSplit>> {
-    public static Map<String, Future<List<InputSplit>>> splitCache = new ConcurrentHashMap<>();
+    public static final Map<String, Future<List<InputSplit>>> splitCache = new ConcurrentHashMap<>();
 
     private Configuration conf;
 
