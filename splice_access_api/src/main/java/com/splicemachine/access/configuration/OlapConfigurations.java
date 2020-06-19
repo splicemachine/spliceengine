@@ -148,9 +148,13 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME = "splice.olap_server.isolated.compaction.queue_name";
     public static final String DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME = "compaction";
 
-    // Whether we should purge deleted rows during compaction
+    // Whether we should purge deleted rows during flush & compaction
     public static final String OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS = "splice.olap.compaction.automaticallyPurgeDeletedRows";
     public static final boolean DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS = true;
+
+    // Whether we should purge old updates during flush & compaction
+    public static final String OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = "splice.olap.compaction.automaticallyPurgeOldUpdates";
+    public static final boolean DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = true;
 
     // Olap Server keepalive timeout in seconds until it kills itself. It has to be larger than an HMaster failover
     // when deployed on premise if we want it to survive the HMaster failover.
@@ -221,6 +225,7 @@ public class OlapConfigurations implements ConfigurationDefault {
         builder.olapServerIsolatedCompaction = configurationSource.getBoolean(OLAP_SERVER_ISOLATED_COMPACTION, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION);
         builder.olapServerIsolatedCompactionQueueName = configurationSource.getString(OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME);
         builder.olapCompactionAutomaticallyPurgeDeletedRows = configurationSource.getBoolean(OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS, DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS);
+        builder.olapCompactionAutomaticallyPurgeOldUpdates = configurationSource.getBoolean(OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES, DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES);
 
         builder.sparkIoCompressionCodec = configurationSource.getString(SPARK_IO_COMPRESSION_CODEC, DEFAULT_SPARK_IO_COMPRESSION_CODEC);
         builder.sparkResultStreamingBatches = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_RESULT_STREAMING_BATCHES);
