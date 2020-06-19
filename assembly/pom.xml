@@ -764,7 +764,7 @@
                                             <include name="mapr-splice-hbase-config.sh"/>
                                             <include name="splice-init-script"/>
                                         </replace>
-                                        <replace token="##SPARKVERSION##" value="${spark.version}" dir="mapr/src/main/resources/scripts/splice/">
+                                        <replace token="##SPARKVERSION##" value="${spark.minor.version}" dir="mapr/src/main/resources/scripts/splice/">
                                             <include name="hbase-env.sh"/>
                                             <include name="hbase-env.secure.sh"/>
                                         </replace>

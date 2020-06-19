@@ -32,7 +32,7 @@ test -e ${maprhbase} || {
 	exit 1
 }
 hbase_ver=##HBASEVERSION##
-hbase_home="${maprhbase}/hbase${hbase_ver}-splice"
+hbase_home="${maprhbase}/${hbase_ver}-splice"
 hbase_conf="${hbase_home}/conf"
 hbase_bin="${hbase_home}/bin"
 hbase_daemon="${hbase_bin}/hbase-daemon.sh"
