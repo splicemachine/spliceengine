@@ -477,20 +477,28 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void createParquetTableMergeSchema() throws  Exception{
-        String tablePath = getResourceDirectory()+"parquet_sample_one";
+        String tablePath = getTempCopyOfResourceDirectory(tempDir, "parquet_sample_one" );
+        try {
+            // check also that merging doesn't require writeable directory
+            new File(tablePath).setWritable(false);
 
-        methodWatcher.executeUpdate(String.format("create external table parquet_table_to_existing_file (\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))" +
-                " PARTITIONED BY (\"partition1\") STORED AS PARQUET  LOCATION '%s'",tablePath));
+            methodWatcher.executeUpdate(String.format("create external table parquet_table_to_existing_file (\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))" +
+                    " PARTITIONED BY (\"partition1\") STORED AS PARQUET  LOCATION '%s'", tablePath));
 
-        ResultSet rs = methodWatcher.executeQuery("select * from parquet_table_to_existing_file order by 1");
-        String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
-        String expected =
-                "partition1 | column1 | column2 |\n" +
-                        "--------------------------------\n" +
-                        "    AAA    |   AAA   |   AAA   |\n" +
-                        "    BBB    |   BBB   |   BBB   |\n" +
-                        "    CCC    |   CCC   |   CCC   |";
-        Assert.assertEquals(actual, expected, actual);
+            ResultSet rs = methodWatcher.executeQuery("select * from parquet_table_to_existing_file order by 1");
+            String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            String expected =
+                    "partition1 | column1 | column2 |\n" +
+                            "--------------------------------\n" +
+                            "    AAA    |   AAA   |   AAA   |\n" +
+                            "    BBB    |   BBB   |   BBB   |\n" +
+                            "    CCC    |   CCC   |   CCC   |";
+            Assert.assertEquals(actual, expected, actual);
+        }
+        finally {
+            // otherwise cleanup scripts can't delete this directory
+            new File(tablePath).setWritable(true);
+        }
     }
 
     @Test
