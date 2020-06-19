@@ -16,23 +16,28 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
 public class SICompactionStateMutateTest {
-    long watermark = 0x1000;
-    SICompactionStateMutate cutNoPurge = new SICompactionStateMutate(PurgeConfig.noPurgeConfig(), watermark);
-    SICompactionStateMutate cutForcePurge = new SICompactionStateMutate(PurgeConfig.forcePurgeConfig(), watermark);
-    SICompactionStateMutate cutPurgeDuringFlush = new SICompactionStateMutate(PurgeConfig.purgeDuringFlushConfig(), watermark);
-    SICompactionStateMutate cutPurgeDuringMajorCompaction = new SICompactionStateMutate(PurgeConfig.purgeDuringMajorCompactionConfig(), watermark);
-    SICompactionStateMutate cutPurgeDuringMinorCompaction = new SICompactionStateMutate(PurgeConfig.purgeDuringMinorCompactionConfig(), watermark);
-    List<Cell> inputCells = new ArrayList<>();
-    List<TxnView> transactions = new ArrayList<>();
-    List<Cell> outputCells = new ArrayList<>();
+    private long watermark = 0x1000;
+    private SICompactionStateMutate cutNoPurge = new SICompactionStateMutate(
+            new PurgeConfigBuilder().noPurge().build(), watermark);
+    private SICompactionStateMutate cutForcePurge = new SICompactionStateMutate(
+            new PurgeConfigBuilder().forcePurgeDeletes().purgeUpdates(true).build(), watermark);
+    private SICompactionStateMutate cutPurgeDuringFlush = new SICompactionStateMutate(
+            new PurgeConfigBuilder().purgeDeletesDuringFlush().purgeUpdates(true).build(), watermark);
+    private SICompactionStateMutate cutPurgeDuringMajorCompaction = new SICompactionStateMutate(
+            new PurgeConfigBuilder().purgeDeletesDuringMajorCompaction().purgeUpdates(true).build(), watermark);
+    private SICompactionStateMutate cutPurgeDuringMinorCompaction = new SICompactionStateMutate(
+            new PurgeConfigBuilder().purgeDeletesDuringMinorCompaction().purgeUpdates(true).build(), watermark);
+    private List<Cell> inputCells = new ArrayList<>();
+    private List<TxnView> transactions = new ArrayList<>();
+    private List<Cell> outputCells = new ArrayList<>();
 
-    public List<Cell> getNewlyAddedCells(List<Cell> inputCells, List<Cell> outputCells) {
+    private List<Cell> getNewlyAddedCells(List<Cell> inputCells, List<Cell> outputCells) {
         Set<Cell> set = new HashSet<>(outputCells);
         set.removeAll(new HashSet<>(inputCells));
         return new ArrayList<>(set);
     }
 
-    public List<Cell> getRemovedCells(List<Cell> inputCells, List<Cell> outputCells) {
+    private List<Cell> getRemovedCells(List<Cell> inputCells, List<Cell> outputCells) {
         return getNewlyAddedCells(outputCells, inputCells);
     }
 
@@ -470,13 +475,14 @@ public class SICompactionStateMutateTest {
         assertThat(outputCells, hasSize(2));
     }
 
+    @Test
     public void mutatePurgeDuringMinorCompactionAntiTombstoneGhostsTombstone() throws IOException {
         inputCells.addAll(Arrays.asList(
                 SITestUtils.getMockCommitCell(0x200),
                 SITestUtils.getMockCommitCell(0x100),
                 SITestUtils.getMockAntiTombstoneCell(0x200),
-                SITestUtils.getMockValueCell(0x200),
-                SITestUtils.getMockValueCell(0x100),
+                SITestUtils.getMockValueCell(0x200, new boolean[]{true, false, false}),
+                SITestUtils.getMockValueCell(0x100, new boolean[]{false, true, false}),
                 SITestUtils.getMockDeleteRightAfterFirstWriteCell(0x200),
                 SITestUtils.getMockFirstWriteCell(0x100)
         ));
@@ -492,6 +498,124 @@ public class SICompactionStateMutateTest {
                 transaction1
         ));
         cutPurgeDuringMinorCompaction.mutate(inputCells, transactions, outputCells);
+        assertThat(outputCells, equalTo(inputCells));
+    }
+
+    @Test
+    public void mutateCannotPurgeNonGhostingUpdates() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockCommitCell(0x300),
+                SITestUtils.getMockCommitCell(0x200),
+                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockValueCell(0x300, new boolean[]{false, true, false}),
+                SITestUtils.getMockValueCell(0x200, new boolean[]{true, false, false}),
+                SITestUtils.getMockValueCell(0x100, new boolean[]{true, true, true})
+        ));
+        transactions.addAll(Arrays.asList(
+                null,
+                null,
+                null,
+                TxnTestUtils.getMockCommittedTxn(0x300, 0x310),
+                TxnTestUtils.getMockCommittedTxn(0x200, 0x210),
+                TxnTestUtils.getMockCommittedTxn(0x100, 0x110)
+        ));
+        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        assertThat(outputCells, equalTo(inputCells));
+    }
+
+    @Test
+    public void mutatePurgeOneColumnUpdatedOverAndOver() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockCommitCell(0x300),
+                SITestUtils.getMockCommitCell(0x200),
+                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockValueCell(0x300, new boolean[]{true}),
+                SITestUtils.getMockValueCell(0x200, new boolean[]{true}),
+                SITestUtils.getMockValueCell(0x100, new boolean[]{true})
+        ));
+        transactions.addAll(Arrays.asList(
+                null,
+                null,
+                null,
+                TxnTestUtils.getMockCommittedTxn(0x300, 0x310),
+                TxnTestUtils.getMockCommittedTxn(0x200, 0x210),
+                TxnTestUtils.getMockCommittedTxn(0x100, 0x110)
+        ));
+        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        assertThat(outputCells, hasSize(2));
+        assertThat(outputCells, contains(
+                SITestUtils.getMockCommitCell(0x300),
+                SITestUtils.getMockValueCell(0x300, new boolean[]{true})
+        ));
+    }
+
+    @Test
+    public void mutatePurgePartialUpdateButNotBaselineInsert() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockCommitCell(0x300),
+                SITestUtils.getMockCommitCell(0x200),
+                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockValueCell(0x300, new boolean[]{true, false}),
+                SITestUtils.getMockValueCell(0x200, new boolean[]{true, false}),
+                SITestUtils.getMockValueCell(0x100, new boolean[]{true, true})
+        ));
+        transactions.addAll(Arrays.asList(
+                null,
+                null,
+                null,
+                TxnTestUtils.getMockCommittedTxn(0x300, 0x310),
+                TxnTestUtils.getMockCommittedTxn(0x200, 0x210),
+                TxnTestUtils.getMockCommittedTxn(0x100, 0x110)
+        ));
+        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        assertThat(outputCells, hasSize(4));
+        assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
+                SITestUtils.getMockValueCell(0x200, new boolean[]{true, false}),
+                SITestUtils.getMockCommitCell(0x200)
+        ));
+    }
+
+    @Test
+    public void mutatePurgeBaselineUpdateBecausePartialUpdatesCoverItAll() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockCommitCell(0x300),
+                SITestUtils.getMockCommitCell(0x200),
+                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockValueCell(0x300, new boolean[]{false, true}),
+                SITestUtils.getMockValueCell(0x200, new boolean[]{true, false}),
+                SITestUtils.getMockValueCell(0x100, new boolean[]{true, true})
+        ));
+        transactions.addAll(Arrays.asList(
+                null,
+                null,
+                null,
+                TxnTestUtils.getMockCommittedTxn(0x300, 0x310),
+                TxnTestUtils.getMockCommittedTxn(0x200, 0x210),
+                TxnTestUtils.getMockCommittedTxn(0x100, 0x110)
+        ));
+        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        assertThat(outputCells, hasSize(4));
+        assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
+                SITestUtils.getMockValueCell(0x100, new boolean[]{true, true}),
+                SITestUtils.getMockCommitCell(0x100)
+        ));
+    }
+
+    @Test
+    public void mutateDoNotPurgeUpdateBecauseOverrideIsAboveWatermark() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockCommitCell(0x1200),
+                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockValueCell(0x1200, new boolean[]{true}),
+                SITestUtils.getMockValueCell(0x100, new boolean[]{true})
+        ));
+        transactions.addAll(Arrays.asList(
+                null,
+                null,
+                TxnTestUtils.getMockCommittedTxn(0x1200, 0x1210),
+                TxnTestUtils.getMockCommittedTxn(0x100, 0x110)
+        ));
+        cutForcePurge.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(inputCells));
     }
 

@@ -6,6 +6,8 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.CellType;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.index.BitIndex;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.log4j.Logger;
@@ -16,20 +18,18 @@ import java.util.*;
 
 class SICompactionStateMutate {
     private static final Logger LOG = Logger.getLogger(SICompactionStateMutate.class);
-    private SortedSet<Cell> dataToReturn;
+    private SortedSet<Cell> dataToReturn = new TreeSet<>(KeyValue.COMPARATOR);
     private final PurgeConfig purgeConfig;
-    private long maxTombstoneTimestamp;
+    private long maxTombstoneTimestamp = 0;
     private long lowWatermarkTransaction;
-    private boolean firstWriteToken;
-    private long deleteRightAfterFirstWriteTimestamp;
+    private boolean firstWriteToken = false;
+    private long deleteRightAfterFirstWriteTimestamp = 0;
+    private Map<Integer, Long> columnUpdateLatestTimestamp = new HashMap<>();
+    private Set<Long> updatesToPurgeTimestamps = new HashSet<>();
 
     SICompactionStateMutate(PurgeConfig purgeConfig, long lowWatermarkTransaction) {
         this.purgeConfig = purgeConfig;
-        this.dataToReturn = new TreeSet<>(KeyValue.COMPARATOR);
-        this.maxTombstoneTimestamp = 0;
         this.lowWatermarkTransaction = lowWatermarkTransaction;
-        this.firstWriteToken = false;
-        this.deleteRightAfterFirstWriteTimestamp = 0;
     }
 
     private boolean isSorted(List<Cell> list) {
@@ -61,9 +61,12 @@ class SICompactionStateMutate {
                 TxnView txn = it.next();
                 mutate(aRawList, txn);
             }
-            if (purgeConfig.shouldPurge() &&
+            if (purgeConfig.shouldPurgeDeletes() &&
                     (!purgeConfig.shouldRespectActiveTransactions() || maxTombstoneTimestamp > 0)) {
                 removeDeletedRows();
+            }
+            if (purgeConfig.shouldPurgeUpdates()) {
+                removeUpdates();
             }
             results.addAll(dataToReturn);
             assert isSorted(results) : "CompactionStateMutate: results not sorted";
@@ -101,13 +104,14 @@ class SICompactionStateMutate {
             long globalCommitTimestamp = txn.getEffectiveCommitTimestamp();
             dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(globalCommitTimestamp)));
             switch (cellType) {
-                case TOMBSTONE:
+                case TOMBSTONE: {
                     long t = element.getTimestamp();
                     if (t > maxTombstoneTimestamp &&
                             (!purgeConfig.shouldRespectActiveTransactions() || t < lowWatermarkTransaction)) {
                         maxTombstoneTimestamp = t;
                     }
                     break;
+                }
                 case FIRST_WRITE_TOKEN:
                     assert !firstWriteToken;
                     firstWriteToken = true;
@@ -116,6 +120,27 @@ class SICompactionStateMutate {
                     assert deleteRightAfterFirstWriteTimestamp == 0;
                     deleteRightAfterFirstWriteTimestamp = element.getTimestamp();
                     break;
+                case USER_DATA: {
+                    long t = element.getTimestamp();
+                    if (purgeConfig.shouldPurgeUpdates() && t < lowWatermarkTransaction) {
+                        EntryDecoder decoder = new EntryDecoder(element.getValueArray(), element.getValueOffset(), element.getValueLength());
+                        BitIndex index = decoder.getCurrentIndex();
+                        LOG.trace("BitIndex: " + index + " , length=" + index.length());
+                        boolean purge = true;
+                        for (int col = index.nextSetBit(0); col >= 0; col = index.nextSetBit(col + 1)) {
+                            if (!columnUpdateLatestTimestamp.containsKey(col)) {
+                                columnUpdateLatestTimestamp.put(col, element.getTimestamp());
+                                purge = false;
+                                LOG.trace("Update cannot be purged: " + element);
+                            }
+                        }
+                        if (purge) {
+                            boolean ret = updatesToPurgeTimestamps.add(element.getTimestamp());
+                            assert ret;
+                        }
+                    }
+                    break;
+                }
             }
         }
         // Committed or active, return the original data too
@@ -143,6 +168,20 @@ class SICompactionStateMutate {
             if (timestamp == maxTombstoneTimestamp && shouldRemoveMostRecentTombstone())
                 it.remove();
             else if (timestamp < maxTombstoneTimestamp) {
+                it.remove();
+            }
+        }
+    }
+
+    private void removeUpdates() {
+        if (updatesToPurgeTimestamps.isEmpty()) {
+            return;
+        }
+        Iterator<Cell> it = dataToReturn.iterator();
+        while (it.hasNext()) {
+            Cell element = it.next();
+            long timestamp = element.getTimestamp();
+            if (updatesToPurgeTimestamps.contains(timestamp)) {
                 it.remove();
             }
         }
