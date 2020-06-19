@@ -30,7 +30,7 @@
 # export HBASE_CLASSPATH=
 
 SPLICELIBDIR="/opt/splice/default/lib"
-SPARKLIBDIR="/opt/mapr/spark/##SPARKVERSION##/jars"
+SPARKLIBDIR="/opt/mapr/spark/spark-##SPARKVERSION##/jars"
 HADOOPTOOLSDIR="/opt/mapr/hadoop/hadoop-2.7.0/share/hadoop/tools/lib"
 PREPENDSTRING="$SPLICELIBDIR:$SPARKLIBDIR:$HADOOPTOOLSDIR"
 export HBASE_CLASSPATH="${PREPENDSTRING}:${HBASE_CLASSPATH}"
