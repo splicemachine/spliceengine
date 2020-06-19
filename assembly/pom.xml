@@ -753,18 +753,22 @@
                         <artifactId>maven-antrun-plugin</artifactId>
                         <executions>
                             <execution>
-                                <phase>process-resources</phase>
+                                <phase>generate-resources</phase>
                                 <configuration>
                                     <target>
                                         <replace token="##HBASEVERSION##" value="${envHbase}" dir="mapr/src/main/resources/scripts/splice/">
                                             <include name="hbase-env.sh"/>
                                             <include name="hbase-env.secure.sh"/>
+                                        </replace>
+                                        <replace token="##HBASEVERSION##" value="${envHbase}" dir="mapr/src/main/resources/scripts/service/">
                                             <include name="mapr-splice-hbase-config.sh"/>
+                                            <include name="splice-init-script"/>
                                         </replace>
                                         <replace token="##SPARKVERSION##" value="${spark.version}" dir="mapr/src/main/resources/scripts/splice/">
                                             <include name="hbase-env.sh"/>
                                             <include name="hbase-env.secure.sh"/>
                                         </replace>
+                                        
                                     </target>
                                 </configuration>
                                 <goals>
@@ -792,6 +796,59 @@
                                         javax.servlet-api,
                                         javax.ws.rs-api
                                     </includeArtifactIds>
+                                </configuration>
+                            </execution>
+                        <execution>
+                            <id>extract-patch-yarn</id>
+                            <goals>
+                              <goal>unpack</goal>
+                            </goals>
+                            <configuration>
+                              <artifactItems>
+                                <artifactItem>
+                                  <groupId>org.apache.spark</groupId>
+                                  <artifactId>spark-yarn_2.11</artifactId>
+                                  <version>${spark.version}</version>
+                                  <classifier>sources</classifier>
+                                  <type>jar</type>
+                                  <outputDirectory>${project.build.directory}/tmp/</outputDirectory>
+                                  <includes>**/*</includes>
+                                </artifactItem>
+                              </artifactItems>
+                            </configuration>
+                        </execution>
+                    </executions>
+                    </plugin>
+                    <plugin>  
+                        <groupId>org.codehaus.mojo</groupId> 
+                        <artifactId>exec-maven-plugin</artifactId> 
+                        <version>1.1.1</version> 
+                        <executions>
+                          <execution>
+                            <id>patch-yarn</id>
+                            <phase>generate-resources</phase>
+                            <goals>
+                              <goal>exec</goal> 
+                            </goals>
+                         <configuration>
+                            <executable>bash</executable>
+                            <commandlineArgs>${basedir}/mapr/src/main/resources/scripts/splice/patch.sh</commandlineArgs>  
+                          </configuration>
+                          </execution>
+                        </executions>
+                      </plugin>
+                      <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <version>2.4</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <configuration>
+                                    <finalName>spark-yarn_2.11-${spark.version}-patched</finalName> 
                                 </configuration>
                             </execution>
                         </executions>
@@ -945,6 +1002,7 @@
                         <executions>
                             <execution>
                                 <id>generate-splice-region</id>
+                                <phase>package</phase>
                                 <goals>
                                     <goal>attached-rpm</goal>
                                 </goals>
@@ -984,6 +1042,7 @@
                             </execution>
                             <execution>
                                 <id>generate-splice-master</id>
+                                <phase>package</phase>
                                 <goals>
                                     <goal>attached-rpm</goal>
                                 </goals>
@@ -1023,6 +1082,7 @@
                             </execution>
                             <execution>
                                 <id>generate-splice-insecure</id>
+                                <phase>package</phase>
                                 <goals>
                                     <goal>attached-rpm</goal>
                                 </goals>
@@ -1095,6 +1155,7 @@
                             </execution>
                             <execution>
                                 <id>generate-splice-secure</id>
+                                <phase>package</phase>
                                 <goals>
                                     <goal>attached-rpm</goal>
                                 </goals>
@@ -1159,6 +1220,7 @@
                             </execution>
                             <execution>
                                 <id>generate-splice-bin</id>
+                                <phase>package</phase>
                                 <goals>
                                     <goal>attached-rpm</goal>
                                 </goals>
@@ -1220,6 +1282,9 @@
                                                     <include>org.python:jython-standalone</include>
                                                     <include>org.mortbay.jetty:jetty</include>
                                                 </includes>
+                                                <excludes>
+                                                    <exclude>org.apache.spark:spark-yarn_2.11</exclude>
+                                                </excludes>
                                             </dependency>
                                             <sources>
                                                 <source>
@@ -1277,6 +1342,7 @@
                                                 <excludes>
                                                     <exclude>org.mortbay.jetty:servlet-api</exclude>
                                                     <exclude>org.mortbay.jetty:servlet-api-2.5</exclude>
+                                                    <exclude>org.apache.spark:spark-yarn_2.11</exclude>
                                                 </excludes>
                                             </dependency>
                                             <filemode>755</filemode>
@@ -1290,6 +1356,21 @@
                                                     <location>/opt/splice/default/lib/javax.servlet-api-3.1.0.jar</location>
                                                 </softlinkSource>
                                             </sources>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/mapr/hbase/${envHbase}-splice/lib</directory>
+                                            <configuration>true</configuration>
+                                            <username>mapr</username>
+                                            <groupname>mapr</groupname>
+                                            <sources>
+                                                <source>
+                                                    <location>target/</location>
+                                                    <includes>
+                                                        <include>spark-yarn_2.11-${spark.version}-patched.jar</include>
+                                                    </includes>
+                                                </source>
+                                            </sources>
+                                            <filemode>755</filemode>
                                         </mapping>
                                     </mappings>
                                     <cleanScriptlet>

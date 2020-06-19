@@ -95,7 +95,13 @@
             <groupId>com.facebook.presto.orc</groupId>
             <artifactId>orc-protobuf</artifactId>
             <version>1</version>
-        </dependency>
+    	</dependency>
+        <dependency>
+	    <groupId>org.apache.orc</groupId>
+	    <artifactId>orc-core</artifactId>
+	    <version>1.5.5</version>
+	    <scope>compile</scope>
+	</dependency>
         <dependency>
             <!-- com.databricks.spark.avro -->
             <groupId>com.databricks</groupId>

@@ -1509,7 +1509,7 @@
                 <kafka.version>1.1.1-mapr-1901</kafka.version>
                 <netty-all.version>4.1.17.Final</netty-all.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
-                <parquet.version>orc-spark-2.3</parquet.version>
+                <parquet.version>orc-mapr-2.3</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -1545,7 +1545,7 @@
                 <kafka.version>1.1.1-mapr-1912</kafka.version>
                 <netty-all.version>4.1.17.Final</netty-all.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
-                <parquet.version>orc-spark-2.4</parquet.version>
+                <parquet.version>orc-mapr-2.4</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>

@@ -164,6 +164,7 @@
   <property><name>splice.compression</name><value>snappy</value></property>
   <property><name>splice.marshal.kryoPoolSize</name><value>1100</value></property>
   <property><name>splice.olap_server.clientWaitTime</name><value>90000</value></property>
+  <property><name>splice.olap_server.external</name><value>true</value></property>
   <property><name>splice.ring.bufferSize</name><value>131072</value></property>
   <property><name>splice.splitBlockSize</name><value>67108864</value></property>
   <property><name>splice.task.priority.dmlRead.default</name><value>0</value></property>
