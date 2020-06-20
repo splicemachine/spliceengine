@@ -35,6 +35,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -254,8 +255,16 @@ public class CheckTableIT extends SpliceUnitTest {
 
     @Test
     public void testCheckTable() throws Exception {
-        checkTable(SCHEMA_NAME, A, AI);
-        checkTable(SCHEMA_NAME, B, BI);
+
+        checkTable(SCHEMA_NAME, A, AI, Arrays.asList(
+                "                 { 1, 810081 }@8100C0C09090=>810081                  |\n",
+                "                 { 2, 820082 }@8200C18090A0=>820082                  |\n",
+                "                 { 7, 870087 }@8700C3C090F0=>870087                  |\n"));
+
+        checkTable(SCHEMA_NAME, B, BI, Arrays.asList(
+                "                      { 1, 810081 }@81=>810081                       |\n",
+                "                      { 2, 820082 }@82=>820082                       |\n",
+                "                      { 7, 870087 }@87=>870087                       |\n"));
         testChekSchema();
         removeDuplicateIndexes();
     }
@@ -269,17 +278,18 @@ public class CheckTableIT extends SpliceUnitTest {
                         "AS messages (\"message\" varchar(200)) order by 1";
         ResultSet rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-%s.out", getResourceDirectory(), A)));
         String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        String expected = "message                                 |\n" +
-                "--------------------------------------------------------------------------\n" +
-                "Created indexes for the following 2 rows from base table CHECKTABLEIT.A: |\n" +
-                "                    Removed the following 1 indexes:                     |\n" +
-                "                  The following 2 indexes are deleted:                   |\n" +
-                "                          { 1, 810081 }=>810081                          |\n" +
-                "                          { 2, 820082 }=>820082                          |\n" +
-                "                                { 4, 4 }                                 |\n" +
-                "                                { 5, 5 }                                 |\n" +
-                "                          { 7, 870087 }=>870087                          |\n" +
-                "                                   AI:                                   |";
+        String expected = "message                                |\n" +
+                "-----------------------------------------------------------------------\n" +
+                "Create index for the following 2 rows from base table CHECKTABLEIT.A: |\n" +
+                "                  Removed the following 1 indexes:                    |\n" +
+                "                The following 2 indexes are deleted:                  |\n" +
+                "                 { 1, 810081 }@8100C0C09090=>810081                   |\n" +
+                "                 { 2, 820082 }@8200C18090A0=>820082                   |\n" +
+                "                              { 4, 4 }                                |\n" +
+                "                              { 5, 5 }                                |\n" +
+                "                 { 7, 870087 }@8700C3C090F0=>870087                   |\n" +
+                "                                 AI:                                  |";
+
         Assert.assertEquals(s, expected, s);
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
         rs.next();
@@ -414,16 +424,16 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                The following 2 indexes are invalid:                 |\n" +
                 "The following 2 rows from base table CHECKTABLEIT.A are not indexed: |\n" +
                 "The following 2 rows from base table CHECKTABLEIT.B are not indexed: |\n" +
-                "                        { 1, 810081 }=>810081                        |\n" +
-                "                        { 1, 810081 }=>810081                        |\n" +
-                "                        { 2, 820082 }=>820082                        |\n" +
-                "                        { 2, 820082 }=>820082                        |\n" +
+                "                 { 1, 810081 }@8100C0C09090=>810081                  |\n" +
+                "                      { 1, 810081 }@81=>810081                       |\n" +
+                "                 { 2, 820082 }@8200C18090A0=>820082                  |\n" +
+                "                      { 2, 820082 }@82=>820082                       |\n" +
                 "                              { 4, 4 }                               |\n" +
                 "                              { 4, 4 }                               |\n" +
                 "                              { 5, 5 }                               |\n" +
                 "                              { 5, 5 }                               |\n" +
-                "                        { 7, 870087 }=>870087                        |\n" +
-                "                        { 7, 870087 }=>870087                        |\n" +
+                "                 { 7, 870087 }@8700C3C090F0=>870087                  |\n" +
+                "                      { 7, 870087 }@87=>870087                       |\n" +
                 "                                 AI:                                 |\n" +
                 "                                 BI:                                 |";
 
@@ -506,7 +516,7 @@ public class CheckTableIT extends SpliceUnitTest {
         }
     }
 
-    private void checkTable(String schemaName, String tableName, String indexName) throws Exception {
+    private void checkTable(String schemaName, String tableName, String indexName, List<String> expectedRowIds) throws Exception {
 
         //Run check_table
         spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s.out')", schemaName, tableName, getResourceDirectory(), tableName));
@@ -522,11 +532,11 @@ public class CheckTableIT extends SpliceUnitTest {
                 "               The following 1 indexes are duplicates:               |\n" +
                 "                The following 2 indexes are invalid:                 |\n" +
                 "The following 2 rows from base table CHECKTABLEIT.%s are not indexed: |\n" +
-                "                        { 1, 810081 }=>810081                        |\n" +
-                "                        { 2, 820082 }=>820082                        |\n" +
+                expectedRowIds.get(0) +
+                expectedRowIds.get(1) +
                 "                              { 4, 4 }                               |\n" +
                 "                              { 5, 5 }                               |\n" +
-                "                        { 7, 870087 }=>870087                        |\n" +
+                expectedRowIds.get(2) +
                 "                                 %s:                                 |", tableName, indexName);
 
         Assert.assertEquals(s, s, expected);
