@@ -224,13 +224,21 @@ public class OlapServerSubmitter implements Runnable {
                         return;
                     }
                 } catch (Exception e) {
-                    LOG.error("Exception while submitting Olap Server, retrying in 10s", e);
-                    reportDiagnostics(e.getMessage());
-                    Thread.sleep(10000);
+                    if (!stop) {
+                        LOG.error("Exception while submitting Olap Server, retrying in 10s", e);
+                        reportDiagnostics(e.getMessage());
+                        Thread.sleep(10000);
+                    } else {
+                        LOG.warn("Exception while submitting Olap Server, but Submitter was already stopped. Stop retrying.", e);
+                        break;
+                    }
                 }
             }
-
-            LOG.error("Maximum number of attempts reached, stopping OlapServer startup");
+            if (!stop) {
+                LOG.error("Maximum number of attempts reached, stopping OlapServer startup");
+            } else {
+                LOG.info("Submitter is stopped");
+            }
         } catch (Exception e) {
             LOG.error("unexpected exception", e);
             throw new RuntimeException(e);
