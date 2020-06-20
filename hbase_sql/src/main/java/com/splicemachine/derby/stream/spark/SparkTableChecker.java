@@ -183,7 +183,7 @@ public class SparkTableChecker implements TableChecker {
         while (it.hasNext()) {
             n++;
             Tuple2<String, Tuple2<byte[], ExecRow>> t = (Tuple2<String, Tuple2<byte[], ExecRow>>)it.next();
-            messages.add(t._2._2 + "=>" + t._1);
+            messages.add(t._2._2 + "@" + Bytes.toHex(t._2._1) + "=>" + t._1);
             if (!fix && n >= maxCheckTableError) {
                 messages.add("...");
                 break;
@@ -268,7 +268,7 @@ public class SparkTableChecker implements TableChecker {
                 break;
             }
             byte[] key = tuple._2._1;
-            messages.add(tuple._2._2 + "=>" + tuple._1);
+            messages.add(tuple._2._2 + "@" + Bytes.toHex(key) + "=>" + tuple._1);
             i++;
         }
 
