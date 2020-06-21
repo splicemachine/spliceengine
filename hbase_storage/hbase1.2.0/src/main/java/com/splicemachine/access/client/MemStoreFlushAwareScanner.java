@@ -22,10 +22,17 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.*;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.ScanInfo;
+import org.apache.hadoop.hbase.regionserver.Store;
+import org.apache.hadoop.hbase.regionserver.StoreScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
+import org.apache.hadoop.hbase.regionserver.ScannerContext;
+import org.apache.hadoop.hbase.regionserver.NoLimitScannerContext;
+
 
 /**
  *
@@ -68,7 +75,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
         this.region = region;
         this.stopRow = Bytes.equals(scan.getStopRow(), HConstants.EMPTY_END_ROW) ? null : scan.getStopRow();
     }
-
+    
     protected boolean isStopRow(Cell peek) {
         byte[] currentRow = peek.getRowArray();
         int offset = peek.getRowOffset();
@@ -172,11 +179,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
             return HBasePlatformUtils.scannerEndReached(scannerContext);
         }
         if (super.next(outResult,scannerContext)) {
-            if (LOG.isTraceEnabled()) {
-                SpliceLogUtils.trace(LOG, "Next: returning " + outResult.size() +
-                        ". partialResultFormed=" + HRegionUtil.partialResultFormed(scannerContext));
-                SpliceLogUtils.trace(LOG, "Next: actual output: %s" + outResult);
-            }
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "Next: returning " + outResult.size());
             return true;
         }
 
@@ -217,5 +221,6 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
     public boolean next(List<Cell> outResult, ScannerContext scannerContext) throws IOException {
         return internalNext(outResult,scannerContext);
     }
+
 
 }
