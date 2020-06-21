@@ -465,19 +465,42 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             if (!mergeSchema) {
                 fs = FileSystem.get(URI.create(location), conf);
                 String fileName = getFile(fs, location);
-                if (fileName != null) {
-                    temp = new Path(location, TEMP_DIR_PREFIX + "_" + UUID.randomUUID().toString().replaceAll("-",""));
-                    fs.mkdirs(temp);
-                    SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
+                boolean canWrite = true;
+                if( (fileName == null || (fs.getFileStatus(new Path(location)).getPermission().toShort() & 0222) == 0 )) {
+                    canWrite = false;
+                }
+                else {
+                    temp = new Path(location, TEMP_DIR_PREFIX + "_" + UUID.randomUUID().toString().replaceAll("-", ""));
 
+                    try {
+                        fs.mkdirs(temp);
+                    } catch (IOException e) {
+                        canWrite = false;
+                        temp = null;
+                    }
+                }
+
+                if( canWrite )
+                {
+                    SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
                     // Copy a data file to temp directory
                     int index = fileName.indexOf(location);
                     if (index != -1) {
                         String s = fileName.substring(index + location.length() + 1);
                         Path destDir = new Path(temp, s);
-                        FileUtil.copy(fs, new Path(fileName), fs, destDir, false, conf);
-                        location = temp.toString();
+                        try {
+                            FileUtil.copy(fs, new Path(fileName), fs, destDir, false, conf);
+                            location = temp.toString();
+                        } catch (IOException e) {
+                            canWrite = false;
+                        }
                     }
+                }
+
+                if( !canWrite )
+                {
+                    SpliceLogUtils.info(LOG, "couldn't create temporary directory %s, " +
+                            "will read schema from whole directory", temp);
                 }
             }
             try {
@@ -572,13 +595,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
             if (storedAs!=null) {
                 if (storedAs.toLowerCase().equals("p")) {
+                    compression = SparkDataSet.getParquetCompression(compression);
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                             .mode(SaveMode.Append).parquet(location);
                 }
                 else if (storedAs.toLowerCase().equals("a")) {
-                    if (compression.equals("none")) {
-                        compression = "uncompressed";
-                    }
+                    compression = SparkDataSet.getAvroCompression(compression);
                     /*
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                             .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);

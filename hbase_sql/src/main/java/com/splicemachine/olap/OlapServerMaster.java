@@ -18,12 +18,14 @@ package com.splicemachine.olap;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.util.NetworkUtils;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
+import com.splicemachine.tools.version.ManifestReader;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -32,7 +34,6 @@ import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKConfig;
@@ -56,7 +57,6 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
@@ -422,19 +422,32 @@ public class OlapServerMaster implements LeaderSelectorListener {
     }
 
     class AppWatcher implements Runnable {
+        private final DatabaseVersion version;
         private long latestTimestamp;
         private long timeout;
 
         public AppWatcher(long timeoutInSeconds) {
             this.timeout = timeoutInSeconds * 1000;
             latestTimestamp = System.currentTimeMillis();
+            ManifestReader reader = new ManifestReader();
+            this.version = reader.createVersion();
         }
 
         @Override
         public void run() {
             try {
                 byte[] payload = rzk.getData(appZkPath, false, null);
-                latestTimestamp = Bytes.toLong(payload);
+                OlapMessage.KeepAlive msg = OlapMessage.KeepAlive.parseFrom(payload);
+                latestTimestamp = msg.getTime();
+                if (msg.getMajor() != version.getMajorVersionNumber()
+                        || msg.getMinor() != version.getMinorVersionNumber()
+                        || msg.getPatch() != version.getPatchVersionNumber()
+                        || msg.getSprint() != version.getSprintVersionNumber()
+                        || !msg.getImplementation().equals(version.getImplementationVersion())) {
+                    LOG.info("New version detected, restarting OlapServer-" + queueName);
+                    end.set(true);
+                    return;
+                }
             } catch (Exception e) {
                 LOG.warn("KeepAlive failed, retrying later", e);
             }
