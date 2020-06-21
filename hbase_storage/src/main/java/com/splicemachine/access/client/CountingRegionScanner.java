@@ -18,7 +18,10 @@ package com.splicemachine.access.client;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.*;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.regionserver.ScannerContext;
+import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -73,11 +76,7 @@ public class CountingRegionScanner implements RegionScanner {
     @Override
     public boolean nextRaw(List<Cell> result) throws IOException {
         rows++;
-        boolean returnCode = delegate.nextRaw(result);
-        if (LOG.isTraceEnabled()) {
-            LOG.trace("Next: (" +result.size() + ") " + result);
-        }
-        return returnCode;
+        return delegate.nextRaw(result);
     }
 
     @Override

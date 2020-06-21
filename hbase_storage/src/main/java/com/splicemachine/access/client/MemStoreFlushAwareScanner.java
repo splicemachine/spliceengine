@@ -14,9 +14,13 @@
 
 package com.splicemachine.access.client;
 
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.util.List;
+import java.util.NavigableSet;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Scan;
@@ -24,11 +28,7 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.NavigableSet;
-import java.util.concurrent.atomic.AtomicReference;
+import com.splicemachine.utils.SpliceLogUtils;
 
 
 /**
@@ -176,11 +176,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner implements RegionSca
             return HBasePlatformUtils.scannerEndReached(scannerContext);
         }
         if (super.next(outResult,scannerContext)) {
-            if (LOG.isTraceEnabled()) {
-                SpliceLogUtils.trace(LOG, "Next: returning " + outResult.size() +
-                        ". mayHaveMoreCellsInARow=" + HRegionUtil.mayHaveMoreCellsInARow(scannerContext));
-                SpliceLogUtils.trace(LOG, "Next: actual output: %s" + outResult);
-            }
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "Next: returning " + outResult.size());
             return true;
         }
 
