@@ -874,6 +874,9 @@ public class TypeId{
                 isLongConcatableTypeId=true;
                 break;
 
+            default:
+                // for spotbugs
+                return;
         }
 
     }
@@ -1380,6 +1383,9 @@ public class TypeId{
      *
      * @return SQL null value for this type.
      */
+    // SpotBugs reports decimalImplementation is never written to,
+    // but is written DataValueFactoryImpl.java / J2SEDataValueFactory.java
+    @SuppressWarnings("UWF_UNWRITTEN_FIELD")
     public DataValueDescriptor getNull(){
         switch(formatId){
             case StoredFormatIds.BIT_TYPE_ID:
