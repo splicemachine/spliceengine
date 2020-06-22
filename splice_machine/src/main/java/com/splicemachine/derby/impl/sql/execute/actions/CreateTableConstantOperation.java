@@ -309,10 +309,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             throw StandardException.plainWrapException(e);
         }
         /* create the conglomerate to hold the table's rows
-		 * RESOLVE - If we ever have a conglomerate creator
-		 * that lets us specify the conglomerate number then
-		 * we will need to handle it here.
-		 */
+         * RESOLVE - If we ever have a conglomerate creator
+         * that lets us specify the conglomerate number then
+         * we will need to handle it here.
+         */
         long conglomId = tc.createConglomerate(storedAs!=null,
                 "heap", // we're requesting a heap conglomerate
                 template.getRowArray(), // row template
@@ -348,10 +348,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
 
         String createAsVersion2String = null;
-        if (lcc != null) {
-            createAsVersion2String =
-            PropertyUtil.getCachedDatabaseProperty(lcc, Property.CREATE_TABLES_AS_VERSION_2);
-        }
+        createAsVersion2String = PropertyUtil.getCachedDatabaseProperty(lcc, Property.CREATE_TABLES_AS_VERSION_2);
         boolean createAsVersion2 = createAsVersion2String != null && Boolean.valueOf(createAsVersion2String);
 
         dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, createAsVersion2);
@@ -359,14 +356,14 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         // Save the TableDescriptor off in the Activation
         activation.setDDLTableDescriptor(td);
 
-				/*
-				 * NOTE: We must write the columns out to the system
-				 * tables before any of the conglomerates, including
-				 * the heap, since we read the columns before the
-				 * conglomerates when building a TableDescriptor.
-				 * This will hopefully reduce the probability of
-				 * a deadlock involving those system tables.
-				 */
+        /*
+         * NOTE: We must write the columns out to the system
+         * tables before any of the conglomerates, including
+         * the heap, since we read the columns before the
+         * conglomerates when building a TableDescriptor.
+         * This will hopefully reduce the probability of
+         * a deadlock involving those system tables.
+         */
 
         // for each column, stuff system.column
         int index = 1;
@@ -374,10 +371,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnInfo.length];
         for (int ix = 0; ix < columnInfo.length; ix++) {
             UUID defaultUUID = columnInfo[ix].newDefaultUUID;
-						/*
-						 * Generate a UUID for the default, if one exists
-						 * and there is no default id yet.
-						 */
+            /*
+             * Generate a UUID for the default, if one exists
+             * and there is no default id yet.
+             */
             if (columnInfo[ix].defaultInfo != null && defaultUUID == null) {
                 defaultUUID = dd.getUUIDFactory().createUUID();
             }
