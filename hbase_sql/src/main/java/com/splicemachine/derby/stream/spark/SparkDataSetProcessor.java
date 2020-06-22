@@ -50,6 +50,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.IndentedString;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -86,6 +87,7 @@ import java.util.*;
  */
 public class SparkDataSetProcessor implements DistributedDataSetProcessor, Serializable {
     private static final long serialVersionUID = 9152794997108375878L;
+
     private long failBadRecordCount = -1;
     private boolean permissive;
     private String statusDirectory;
@@ -199,7 +201,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return operationContext;
     }
 
-
+    @SuppressFBWarnings(value = "NP_LOAD_OF_KNOWN_NULL_VALUE",justification = "Intentional")
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
         BroadcastedActivation ba = activation != null ? broadcastedActivation : null;
@@ -450,6 +452,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         throw e;
     }
 
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH",justification = "Intentional")
     @Override
     public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException {
         StructType schema = null;
@@ -463,19 +466,42 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             if (!mergeSchema) {
                 fs = FileSystem.get(URI.create(location), conf);
                 String fileName = getFile(fs, location);
-                if (fileName != null) {
-                    temp = new Path(location, TEMP_DIR_PREFIX + "_" + UUID.randomUUID().toString().replaceAll("-",""));
-                    fs.mkdirs(temp);
-                    SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
+                boolean canWrite = true;
+                if( (fileName == null || (fs.getFileStatus(new Path(location)).getPermission().toShort() & 0222) == 0 )) {
+                    canWrite = false;
+                }
+                else {
+                    temp = new Path(location, TEMP_DIR_PREFIX + "_" + UUID.randomUUID().toString().replaceAll("-", ""));
 
+                    try {
+                        fs.mkdirs(temp);
+                    } catch (IOException e) {
+                        canWrite = false;
+                        temp = null;
+                    }
+                }
+
+                if( canWrite )
+                {
+                    SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
                     // Copy a data file to temp directory
                     int index = fileName.indexOf(location);
                     if (index != -1) {
                         String s = fileName.substring(index + location.length() + 1);
                         Path destDir = new Path(temp, s);
-                        FileUtil.copy(fs, new Path(fileName), fs, destDir, false, conf);
-                        location = temp.toString();
+                        try {
+                            FileUtil.copy(fs, new Path(fileName), fs, destDir, false, conf);
+                            location = temp.toString();
+                        } catch (IOException e) {
+                            canWrite = false;
+                        }
                     }
+                }
+
+                if( !canWrite )
+                {
+                    SpliceLogUtils.info(LOG, "couldn't create temporary directory %s, " +
+                            "will read schema from whole directory", temp);
                 }
             }
             try {
@@ -570,19 +596,18 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
             if (storedAs!=null) {
                 if (storedAs.toLowerCase().equals("p")) {
+                    compression = SparkDataSet.getParquetCompression(compression);
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                             .mode(SaveMode.Append).parquet(location);
                 }
                 else if (storedAs.toLowerCase().equals("a")) {
-                    if (compression.equals("none")) {
-                        compression = "uncompressed";
-                    }
+                    compression = SparkDataSet.getAvroCompression(compression);
                     /*
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                             .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
                      */
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                            .mode(SaveMode.Append).format("avro").save(location);
+                            .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
                 }
                 else if (storedAs.toLowerCase().equals("o")) {
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
@@ -884,8 +909,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public TableChecker getTableChecker(String schemaName, String tableName, DataSet table,
-                                        KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix) {
-        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix);
+                                        KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix,
+                                        int[] baseColumnMap) {
+        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix, baseColumnMap);
     }
 
     @Override

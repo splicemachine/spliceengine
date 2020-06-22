@@ -239,4 +239,10 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
     public abstract Table unwrapDelegate();
 
     public abstract  <T extends Service,V> Map<byte[],V> coprocessorExec(Class<T> serviceClass, Batch.Call<T,V> call) throws Throwable;
+
+    public abstract <T extends Service,V> Map<byte[],V> coprocessorExec(
+            Class<T> serviceClass,
+            byte[] startKey,
+            byte[] endKey,
+            final Batch.Call<T,V> callable) throws Throwable;
 }

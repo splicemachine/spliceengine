@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.1959-SNAPSHOT</version>
+        <version>3.0.0.1961-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -85,7 +85,7 @@
                     <dependenciesToScan>
                         <dependency>com.splicemachine:pipeline_api</dependency>
                     </dependenciesToScan>
-                    <excludedGroups>com.splicemachine.si.testenv.ArchitectureIndependent</excludedGroups>
+                    <excludedGroups>com.splicemachine.si.testenv.ArchitectureIndependent, ${excluded.longerthan}</excludedGroups>
                 </configuration>
             </plugin>
         </plugins>

@@ -21,6 +21,8 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -37,6 +39,7 @@ import org.apache.log4j.Logger;
 import org.spark_project.guava.util.concurrent.ListenableFuture;
 import org.spark_project.guava.util.concurrent.MoreExecutors;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -117,7 +120,12 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
                         streamListener.completed(olapResult);
                     } catch (ExecutionException e) {
                         LOG.warn("Execution failed", e);
-                        streamListener.failed(e.getCause());
+                        Throwable cause = e.getCause();
+                        if (cause instanceof IOException || cause instanceof ConnectException) {
+                            streamListener.failed(StandardException.newException(SQLState.OLAP_SERVER_CONNECTION, cause));
+                        } else {
+                            streamListener.failed(cause);
+                        }
                     } catch (InterruptedException e) {
                         // this shouldn't happen, the olapFuture already completed
                         Thread.currentThread().interrupt();
@@ -132,11 +140,11 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     }
 
     private boolean hasLOBs(SpliceBaseOperation root) throws StandardException {
-        ExecRow row = root.getExecRowDefinition();
-        for (int i = 0; i < row.nColumns(); ++i) {
-            DataValueDescriptor dvd = row.getColumn(i+1);
-            if (dvd instanceof SQLBlob || dvd instanceof SQLClob) {
-                return true;
+        if (root instanceof ScrollInsensitiveOperation) {
+            for (ResultColumnDescriptor descriptor : root.getActivation().getResultDescription().getColumnInfo()) {
+                if (descriptor.getType().getTypeId().isBlobTypeId() || descriptor.getType().getTypeId().isClobTypeId()) {
+                    return true;
+                }
             }
         }
         return false;

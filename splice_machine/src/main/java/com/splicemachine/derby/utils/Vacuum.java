@@ -77,7 +77,7 @@ public class Vacuum{
                 }
             }
         }
-        LOG.info("Found " + activeConglomerates.size() + " active conglomerates.");
+        LOG.info("Found " + activeConglomerates.size() + " active conglomerates, oldest transaction: " + oldestActiveTransaction);
 
         //get all dropped conglomerates
         Map<Long, Long> droppedConglomerates = new HashMap<>();
