@@ -16,7 +16,6 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.db.iapi.error.ExceptionUtil;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
@@ -35,16 +34,11 @@ import org.apache.spark.TaskContext;
 import org.apache.spark.TaskKilledException;
 import org.apache.spark.util.TaskCompletionListener;
 
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.*;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
  /**
@@ -158,6 +152,8 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                 Supplier<OperationContext> supplier = context != null ? () -> context : () -> {
                     try {
                         OperationContext ctx = operationContext.getClone();
+                        /* we need to re-generate sequenceid for cloned broadcast join operations */
+                        ctx.getOperation().resetSequenceId();
                         allContexts.add(ctx);
                         if(isClosed)
                             ctx.getOperation().close();

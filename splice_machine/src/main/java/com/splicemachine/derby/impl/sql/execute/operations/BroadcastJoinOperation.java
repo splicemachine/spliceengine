@@ -331,4 +331,10 @@ public class BroadcastJoinOperation extends JoinOperation{
     public int[] getLeftHashKeys() {
         return leftHashKeys;
     }
+
+    @Override
+    public void resetSequenceId() {
+        this.rightSequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
+        this.leftSequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
+    }
 }

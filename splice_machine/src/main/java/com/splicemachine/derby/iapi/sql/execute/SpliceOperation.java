@@ -407,4 +407,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
                             DataSet<ExecRow> leftDataSet,
                             DataSet<ExecRow> rightDataSet,
                             DataSetProcessor dsp);
+
+    /* currently on broadcast join have needs to reset Sequencid for its left and right operation */
+    void resetSequenceId();
 }
