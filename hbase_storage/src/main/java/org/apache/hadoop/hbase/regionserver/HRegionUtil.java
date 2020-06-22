@@ -288,4 +288,9 @@ public class HRegionUtil {
     public static RegionScanner getScanner(HRegion region, Scan scan, List<KeyValueScanner> keyValueScanners) throws IOException {
         return region.getScanner(scan, keyValueScanners);
     }
+
+    public static void replaceStoreFiles(HStore store, Collection<HStoreFile> compactedFiles, Collection<HStoreFile> result)
+            throws IOException {
+        store.replaceStoreFiles(compactedFiles, result);
+    }
 }

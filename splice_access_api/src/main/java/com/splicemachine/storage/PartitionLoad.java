@@ -19,11 +19,11 @@ package com.splicemachine.storage;
  *         Date: 1/6/16
  */
 public interface PartitionLoad{
-    int getStorefileSizeMB();
+    long getStorefileSize();
 
-    int getMemStoreSizeMB();
+    long getMemStoreSize();
 
-    int getStorefileIndexSizeMB();
+    long getStorefileIndexSize();
 
     String getPartitionName();
 }

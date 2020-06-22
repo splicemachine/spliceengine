@@ -47,7 +47,9 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * A ColumnReference represents a column in the query tree.  The parser generates a
@@ -808,6 +810,8 @@ public class ColumnReference extends ValueNode {
         {
             ColumnReference cr = (ColumnReference) source.getExpression();
             tableNumber = cr.getTableNumber();
+            columnNumber = cr.getColumnNumber();
+
             if (SanityManager.DEBUG)
             {
                 // if dummy cr generated to replace aggregate, it may not have table number

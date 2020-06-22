@@ -2523,6 +2523,10 @@ public class OptimizerImpl implements Optimizer{
         if (currentAp.getJoinStrategy().getJoinStrategyType() != JoinStrategy.JoinStrategyType.BROADCAST)
             return true;
 
+        /* if it is hinted, skip the check */
+        if (currentAp.isHintedJoinStrategy())
+            return true;
+
         double memoryAlreadyConsumed = 0;
         int i=joinPosition-1;
         while (i>=0) {

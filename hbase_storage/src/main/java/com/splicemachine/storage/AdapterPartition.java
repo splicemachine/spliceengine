@@ -26,22 +26,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.ClusterConnection;
 import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Increment;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.RegionLocator;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.client.metrics.ScanMetrics;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
-import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.security.AccessDeniedException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
@@ -55,19 +45,8 @@ import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.sql.Blob;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.sql.*;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -380,6 +359,14 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
         return delegate.coprocessorExec(serviceClass,call);
     }
 
+    public <T extends Service,V> Map<byte[],V> coprocessorExec(
+            Class<T> serviceClass,
+            byte[] startKey,
+            byte[] endKey,
+            final Batch.Call<T,V> callable) throws Throwable {
+        return delegate.coprocessorExec(serviceClass, startKey, endKey, callable);
+    }
+
     public Table unwrapDelegate(){
         return delegate.unwrapDelegate();
     }
@@ -420,10 +407,9 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
                     }
 
                     Blob blob = rs.getBlob(1);
-
-                    /*byte[] bytes = */blob.getBytes(1, (int) blob.length());
-                    //HBaseProtos.TableSchema result = HBaseProtos.TableSchema.parseFrom(bytes);
-                    //TODO (DB-9370) return new HPartitionDescriptor(HTableDescriptor.convert(result));
+                    /* byte[] bytes = */ blob.getBytes(1, (int) blob.length());
+                    // HBaseProtos.TableSchema result = HBaseProtos.TableSchema.parseFrom(bytes);
+                    // TODO (DB-9370) return new HPartitionDescriptor(HTableDescriptor.convert(result));
                     return null;
                 }
             }

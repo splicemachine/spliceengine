@@ -50,7 +50,7 @@ public class SimpleDateArithmeticIT {
     private static final String QUALIFIED_TABLE_NAME = schemaWatcher.schemaName + ".date_add_test";
     private static final String QUALIFIED_TABLE_NAME2 = schemaWatcher.schemaName + ".old_date_test";
     private static final String QUALIFIED_TIME_TABLE_NAME = schemaWatcher.schemaName + ".time_test";
-    private static final String QUALIFIED_TABLE_NAME3 = schemaWatcher.schemaName + "null_value_test";
+    private static final String QUALIFIED_TABLE_NAME3 = schemaWatcher.schemaName + ".null_value_test";
 
     private static String BADDIR;
 

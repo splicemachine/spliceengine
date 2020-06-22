@@ -44,7 +44,7 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
     @BeforeClass
     public static void createTempDirectory() throws Exception
     {
-        tempDir = createOrWipeTestDirectory( CLASS_NAME );
+        tempDir = createTempDirectory(CLASS_NAME);
     }
 
     @AfterClass
