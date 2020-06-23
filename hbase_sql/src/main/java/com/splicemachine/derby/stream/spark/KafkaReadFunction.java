@@ -61,9 +61,9 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
 
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
 
-        String group_id = "spark-consumer-dss-krf";
-        props.put(ConsumerConfig.GROUP_ID_CONFIG,group_id);
-        props.put(ConsumerConfig.CLIENT_ID_CONFIG, group_id+"-"+UUID.randomUUID());
+        String consumer_id = "spark-consumer-dss-krf-"+UUID.randomUUID();
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumer_id);
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumer_id);
 
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
