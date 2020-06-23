@@ -19,8 +19,8 @@ public class SITestUtils {
         return new KeyValue(row, SIConstants.DEFAULT_FAMILY_BYTES, qualifier, timestamp, value);
     }
 
-    public static KeyValue getMockCommitCell(long timestamp) {
-        return generateKV(row, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES, timestamp, Bytes.toBytes(""));
+    public static KeyValue getMockCommitCell(long timestamp, long commitTimestamp) {
+        return generateKV(row, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES, timestamp, Bytes.toBytes(commitTimestamp));
     }
 
     public static KeyValue getMockTombstoneCell(long timestamp) {
