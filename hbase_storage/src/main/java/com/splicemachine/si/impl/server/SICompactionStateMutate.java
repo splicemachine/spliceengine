@@ -6,30 +6,54 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.CellType;
+import com.sun.istack.NotNull;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Iterator;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 
 class SICompactionStateMutate {
+    private static class CellAndCommit implements Comparable{
+        private Cell cell;
+        private Long commitTimestamp;
+
+        CellAndCommit(Cell cell, Long commitTimestamp) {
+            this.cell = cell;
+            this.commitTimestamp = commitTimestamp;
+        }
+
+        Cell getCell() {
+            return cell;
+        }
+
+        Long getCommitTimestamp() {
+            return commitTimestamp;
+        }
+
+        @Override
+        public int compareTo(@NotNull Object other) {
+            return KeyValue.COMPARATOR.compare(cell, ((CellAndCommit) other).cell);
+        }
+    }
+
+
     private static final Logger LOG = Logger.getLogger(SICompactionStateMutate.class);
-    private SortedSet<Cell> dataToReturn;
+    private SortedSet<CellAndCommit> dataToReturn = new TreeSet<>();
     private final PurgeConfig purgeConfig;
-    private long maxTombstoneTimestamp;
+    private long maxTombstoneTimestamp = 0;
     private long lowWatermarkTransaction;
-    private boolean firstWriteToken;
-    private long deleteRightAfterFirstWriteTimestamp;
+    private boolean firstWriteToken = false;
+    private long deleteRightAfterFirstWriteTimestamp = 0;
 
     SICompactionStateMutate(PurgeConfig purgeConfig, long lowWatermarkTransaction) {
         this.purgeConfig = purgeConfig;
-        this.dataToReturn = new TreeSet<>(KeyValue.COMPARATOR);
-        this.maxTombstoneTimestamp = 0;
         this.lowWatermarkTransaction = lowWatermarkTransaction;
-        this.firstWriteToken = false;
-        this.deleteRightAfterFirstWriteTimestamp = 0;
     }
 
     private boolean isSorted(List<Cell> list) {
@@ -65,7 +89,7 @@ class SICompactionStateMutate {
                     (!purgeConfig.shouldRespectActiveTransactions() || maxTombstoneTimestamp > 0)) {
                 removeDeletedRows();
             }
-            results.addAll(dataToReturn);
+            dataToReturn.stream().map(CellAndCommit::getCell).forEachOrdered(results::add);
             assert isSorted(results) : "CompactionStateMutate: results not sorted";
         } catch (AssertionError e) {
             LOG.error(e);
@@ -81,45 +105,48 @@ class SICompactionStateMutate {
         final CellType cellType= CellUtils.getKeyValueType(element);
         if (cellType == CellType.COMMIT_TIMESTAMP) {
             assert txn == null;
-            dataToReturn.add(element);
+            long commitTimestamp = Bytes.toLong(element.getValueArray(), element.getValueOffset(), element.getValueLength());
+            dataToReturn.add(new CellAndCommit(element, commitTimestamp));
             return;
         }
         if (txn == null) {
             // we don't have transactional information, just return the data as is
-            dataToReturn.add(element);
+            dataToReturn.add(new CellAndCommit(element, null));
             return;
         }
         if (txn.getState() == Txn.State.ROLLEDBACK) {
             // rolled back data, remove it from the compacted data
             return;
         }
-        if (isCommitted(txn)) {
-            /*
-             * This element has been committed all the way to the user level, so a
-             * commit timestamp can be placed on it.
-             */
-            long globalCommitTimestamp = txn.getEffectiveCommitTimestamp();
-            dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(globalCommitTimestamp)));
-            switch (cellType) {
-                case TOMBSTONE:
-                    long t = element.getTimestamp();
-                    if (t > maxTombstoneTimestamp &&
-                            (!purgeConfig.shouldRespectActiveTransactions() || t < lowWatermarkTransaction)) {
-                        maxTombstoneTimestamp = t;
-                    }
-                    break;
-                case FIRST_WRITE_TOKEN:
-                    assert !firstWriteToken;
-                    firstWriteToken = true;
-                    break;
-                case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
-                    assert deleteRightAfterFirstWriteTimestamp == 0;
-                    deleteRightAfterFirstWriteTimestamp = element.getTimestamp();
-                    break;
-            }
+        if (!isCommitted(txn)) {
+            dataToReturn.add(new CellAndCommit(element, null));
+            return;
         }
-        // Committed or active, return the original data too
-        dataToReturn.add(element);
+
+        /*
+         * This element has been committed all the way to the user level, so a
+         * commit timestamp can be placed on it.
+         */
+        long commitTimestamp = txn.getEffectiveCommitTimestamp();
+        dataToReturn.add(new CellAndCommit(
+                newTransactionTimeStampKeyValue(element, Bytes.toBytes(commitTimestamp)), commitTimestamp));
+        switch (cellType) {
+            case TOMBSTONE:
+                if (commitTimestamp > maxTombstoneTimestamp &&
+                        (!purgeConfig.shouldRespectActiveTransactions() || commitTimestamp < lowWatermarkTransaction)) {
+                    maxTombstoneTimestamp = commitTimestamp;
+                }
+                break;
+            case FIRST_WRITE_TOKEN:
+                assert !firstWriteToken;
+                firstWriteToken = true;
+                break;
+            case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
+                assert deleteRightAfterFirstWriteTimestamp == 0;
+                deleteRightAfterFirstWriteTimestamp = commitTimestamp;
+                break;
+        }
+        dataToReturn.add(new CellAndCommit(element, commitTimestamp));
     }
 
     private boolean shouldRemoveMostRecentTombstone() {
@@ -136,10 +163,13 @@ class SICompactionStateMutate {
     }
 
     private void removeDeletedRows() {
-        Iterator<Cell> it = dataToReturn.iterator();
+        Iterator<CellAndCommit> it = dataToReturn.iterator();
         while (it.hasNext()) {
-            Cell element = it.next();
-            long timestamp = element.getTimestamp();
+            CellAndCommit element = it.next();
+            Long timestamp = element.getCommitTimestamp();
+            if (timestamp == null) {
+                continue;
+            }
             if (timestamp == maxTombstoneTimestamp && shouldRemoveMostRecentTombstone())
                 it.remove();
             else if (timestamp < maxTombstoneTimestamp) {
