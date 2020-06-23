@@ -178,7 +178,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
             byte currentStartRow[] = ((SMSplit) lss.get(i)).split.getStartRow();
             byte prevEndRow[] = ((SMSplit) lss.get(i - 1)).split.getEndRow();
             if (org.apache.hadoop.hbase.util.Bytes.compareTo(currentStartRow, prevEndRow) != 0) {
-                LOG.warn("The gap in is splits found: current split [" + lss.get(i) + "], previous split [" + lss.get(i - 1) + "]");
+                LOG.warn("The gap in splits is found: current split [" + lss.get(i) + "], previous split [" + lss.get(i - 1) + "]");
                 return true;
             }
         }
