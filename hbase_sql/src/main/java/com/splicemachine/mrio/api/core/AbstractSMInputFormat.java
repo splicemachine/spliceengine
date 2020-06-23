@@ -44,6 +44,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 
 import static java.lang.String.format;
@@ -136,11 +137,11 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
 
             List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), this.splits, tableSize);
             //check if split count changed in-between
-            List<Partition>  newSplits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), true);
-            if (splits.size() != newSplits.size()) {
+
+            if (isRefreshNeeded(lss)) {
                 // retry
                 refresh = true;
-                LOG.warn("mismatched splits: earlier [" + splits.size() + "], later [" + newSplits.size() + "] for region " + clientPartition);
+                LOG.warn("mismatched splits for region " + clientPartition + ", refresh of splits is needed");
                 retryCounter++;
                 if (retryCounter > MAX_RETRIES) {
                     throw new RuntimeException("MAX_RETRIES exceeded during getSplits");
@@ -150,6 +151,39 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                return lss;
             }
         }
+    }
+
+    /**
+     * Checks the sequence of split rows. If any gap is found, the splitting has to be recalculated again.
+     *
+     * @param lss
+     * @return
+     */
+    private boolean isRefreshNeeded(List<InputSplit> lss) {
+        if (lss.size() < 2 || !lss.stream().allMatch(is -> (is instanceof SMSplit))) {
+            return false;
+        }
+
+        lss.sort(new Comparator<InputSplit>() {
+            @Override
+            public int compare(InputSplit o1, InputSplit o2) {
+                SMSplit smSplit1 = (SMSplit) o1;
+                SMSplit smSplit2 = (SMSplit) o2;
+
+                return org.apache.hadoop.hbase.util.Bytes.compareTo(smSplit1.split.getStartRow(), smSplit2.split.getStartRow());
+            }
+        });
+
+        for (int i = 1; i < lss.size(); i++) {
+            byte currentStartRow[] = ((SMSplit) lss.get(i)).split.getStartRow();
+            byte prevEndRow[] = ((SMSplit) lss.get(i - 1)).split.getEndRow();
+            if (org.apache.hadoop.hbase.util.Bytes.compareTo(currentStartRow, prevEndRow) != 0) {
+                LOG.warn("The gap in is splits found: current split [" + lss.get(i) + "], previous split [" + lss.get(i - 1) + "]");
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
