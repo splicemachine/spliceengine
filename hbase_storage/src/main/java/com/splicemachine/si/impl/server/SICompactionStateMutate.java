@@ -39,6 +39,19 @@ class SICompactionStateMutate {
         public int compareTo(@NotNull Object other) {
             return KeyValue.COMPARATOR.compare(cell, ((CellAndCommit) other).cell);
         }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(cell, commitTimestamp);
+        }
+
+        @Override
+        public boolean equals(@NotNull Object other) {
+            if (!(other instanceof CellAndCommit)) {
+                return false;
+            }
+            return compareTo(other) == 0;
+        }
     }
 
 
@@ -171,6 +184,8 @@ class SICompactionStateMutate {
                 }
                 break;
             }
+            default:
+                break;
         }
         dataToReturn.add(new CellAndCommit(element, commitTimestamp));
     }
