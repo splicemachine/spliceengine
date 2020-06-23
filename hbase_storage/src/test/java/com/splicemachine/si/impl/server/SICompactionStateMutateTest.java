@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl.server;
 
 import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.TxnTestUtils;
 import com.splicemachine.storage.CellType;
@@ -53,10 +54,10 @@ public class SICompactionStateMutateTest {
         inputCells.addAll(Arrays.asList(
                 SITestUtils.getMockValueCell(0x200),
                 SITestUtils.getMockValueCell(0x100)));
-        TxnView activeTransaction = TxnTestUtils.getMockActiveTxn(0x100);
         transactions.addAll(Arrays.asList(
-                activeTransaction,
-                activeTransaction));
+                TxnTestUtils.getMockActiveTxn(0x200),
+                TxnTestUtils.getMockActiveTxn(0x100)
+        ));
         cutNoPurge.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(inputCells));
     }
@@ -84,11 +85,10 @@ public class SICompactionStateMutateTest {
                 SITestUtils.getMockValueCell(0x200),
                 SITestUtils.getMockValueCell(0x100)
         ));
-        TxnView rolledBackTransaction = TxnTestUtils.getMockRolledBackTxn(0x400);
         transactions.addAll(Arrays.asList(
-                rolledBackTransaction,
-                rolledBackTransaction,
-                rolledBackTransaction
+                TxnTestUtils.getMockRolledBackTxn(0x300),
+                TxnTestUtils.getMockRolledBackTxn(0x200),
+                TxnTestUtils.getMockRolledBackTxn(0x100)
         ));
         cutNoPurge.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, is(empty()));
@@ -136,10 +136,9 @@ public class SICompactionStateMutateTest {
                 SITestUtils.getMockTombstoneCell(0x200),
                 SITestUtils.getMockValueCell(0x100)
         ));
-        TxnView committedTransaction = TxnTestUtils.getMockCommittedTxn(0x100, 0x250);
         transactions.addAll(Arrays.asList(
-                committedTransaction,
-                committedTransaction
+                TxnTestUtils.getMockCommittedTxn(0x200, 0x250),
+                TxnTestUtils.getMockCommittedTxn(0x100, 0x250)
         ));
         cutNoPurge.mutate(inputCells, transactions, outputCells);
         assertThat(getRemovedCells(inputCells, outputCells), is(empty()));
@@ -655,29 +654,5 @@ public class SICompactionStateMutateTest {
         ));
         cutForcePurge.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(inputCells));
-    }
-
-    @Test
-    public void isCommitted() {
-        TxnView committedWithRootParent = TxnTestUtils.getMockCommittedTxn(0x100, 0x200);
-        assertTrue(SICompactionStateMutate.isCommitted(committedWithRootParent));
-
-        TxnView committedWithCommittedParent = TxnTestUtils.getMockCommittedTxn(0x100, 0x200, committedWithRootParent);
-        assertTrue(SICompactionStateMutate.isCommitted(committedWithCommittedParent));
-
-        TxnView committedThirdGeneration = TxnTestUtils.getMockCommittedTxn(0x100, 0x200, committedWithCommittedParent);
-        assertTrue(SICompactionStateMutate.isCommitted(committedThirdGeneration));
-
-        TxnView activeWithRootParent = TxnTestUtils.getMockActiveTxn(0x100);
-        assertFalse(SICompactionStateMutate.isCommitted(activeWithRootParent));
-
-        TxnView activeWithCommittedParent = TxnTestUtils.getMockActiveTxn(0x150, committedWithCommittedParent);
-        assertFalse(SICompactionStateMutate.isCommitted(activeWithCommittedParent));
-
-        TxnView activeWithActiveParent = TxnTestUtils.getMockActiveTxn(0x150, activeWithRootParent);
-        assertFalse(SICompactionStateMutate.isCommitted(activeWithActiveParent));
-
-        TxnView committedWithActiveParent = TxnTestUtils.getMockCommittedTxn(0x150, 0x250, activeWithRootParent);
-        assertFalse(SICompactionStateMutate.isCommitted(committedWithActiveParent));
     }
 }

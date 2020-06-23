@@ -15,6 +15,8 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 
 class SICompactionStateMutate {
@@ -90,7 +92,7 @@ class SICompactionStateMutate {
         assert dataToReturn.isEmpty();
         assert results.isEmpty();
         assert maxTombstoneTimestamp == 0;
-        assert isSorted(rawList): "CompactionStateMutate: rawList not sorted";
+        //assert isSorted(rawList): "CompactionStateMutate: rawList not sorted";
         assert rawList.size() == txns.size();
 
         try {
@@ -99,18 +101,20 @@ class SICompactionStateMutate {
                 TxnView txn = it.next();
                 mutate(aRawList, txn);
             }
+            Stream<CellAndCommit> stream = dataToReturn.stream();
             if (purgeConfig.shouldPurgeDeletes() &&
                     (!purgeConfig.shouldRespectActiveTransactions() || maxTombstoneTimestamp > 0)) {
-                removeDeletedRows();
+                stream = stream.filter(not(this::purgeableDeletedRow));
             }
-            if (purgeConfig.shouldPurgeUpdates()) {
-                removeUpdates();
+            if (purgeConfig.shouldPurgeUpdates() && !updatesToPurgeTimestamps.isEmpty()) {
+                stream = stream.filter(not(this::purgeableOldUpdate));
             }
-            dataToReturn.stream().map(CellAndCommit::getCell).forEachOrdered(results::add);
-            assert isSorted(results) : "CompactionStateMutate: results not sorted";
+            stream.map(CellAndCommit::getCell).forEachOrdered(results::add);
+            //assert isSorted(results) : "CompactionStateMutate: results not sorted";
         } catch (AssertionError e) {
             LOG.error(e);
             LOG.error(rawList.toString());
+            LOG.error(txns.toString());
             throw e;
         }
     }
@@ -119,9 +123,14 @@ class SICompactionStateMutate {
      * Apply SI mutation logic to an individual key-value.
      */
     private void mutate(Cell element, TxnView txn) throws IOException {
-        final CellType cellType= CellUtils.getKeyValueType(element);
+        final CellType cellType = CellUtils.getKeyValueType(element);
+        if (element.getType() != Cell.Type.Put) {
+            // Rolled back data, remote it
+            return;
+        }
         if (cellType == CellType.COMMIT_TIMESTAMP) {
             assert txn == null;
+            assert element.getValueLength() == 8: "Element does not contain a timestamp: " + element;
             long commitTimestamp = Bytes.toLong(element.getValueArray(), element.getValueOffset(), element.getValueLength());
             dataToReturn.add(new CellAndCommit(element, commitTimestamp));
             return;
@@ -131,14 +140,20 @@ class SICompactionStateMutate {
             dataToReturn.add(new CellAndCommit(element, null));
             return;
         }
-        if (txn.getState() == Txn.State.ROLLEDBACK) {
+        //assert element.getTimestamp() == txn.getBeginTimestamp();
+        Txn.State txnState = txn.getEffectiveState();
+
+        if (txnState == Txn.State.ROLLEDBACK) {
             // rolled back data, remove it from the compacted data
             return;
         }
-        if (!isCommitted(txn)) {
+
+        if (txnState == Txn.State.ACTIVE) {
             dataToReturn.add(new CellAndCommit(element, null));
             return;
         }
+
+        assert txnState == Txn.State.COMMITTED;
 
         /*
          * This element has been committed all the way to the user level, so a
@@ -203,41 +218,22 @@ class SICompactionStateMutate {
         return false;
     }
 
-    private void removeDeletedRows() {
-        Iterator<CellAndCommit> it = dataToReturn.iterator();
-        while (it.hasNext()) {
-            CellAndCommit element = it.next();
-            Long timestamp = element.getCommitTimestamp();
-            if (timestamp == null) {
-                continue;
-            }
-            if (timestamp == maxTombstoneTimestamp && shouldRemoveMostRecentTombstone())
-                it.remove();
-            else if (timestamp < maxTombstoneTimestamp) {
-                it.remove();
-            }
-        }
+    public static <R> Predicate<R> not(Predicate<R> predicate) {
+        return predicate.negate();
     }
 
-    private void removeUpdates() {
-        if (updatesToPurgeTimestamps.isEmpty()) {
-            return;
-        }
-        Iterator<CellAndCommit> it = dataToReturn.iterator();
-        while (it.hasNext()) {
-            CellAndCommit element = it.next();
-            long timestamp = element.getCommitTimestamp();
-            if (updatesToPurgeTimestamps.contains(timestamp)) {
-                it.remove();
-            }
-        }
+    private boolean purgeableDeletedRow(CellAndCommit element) {
+        Long timestamp = element.getCommitTimestamp();
+        if (timestamp == null)
+            return false;
+        if (timestamp == maxTombstoneTimestamp && shouldRemoveMostRecentTombstone())
+            return true;
+        return timestamp < maxTombstoneTimestamp;
     }
 
-    static boolean isCommitted(TxnView txn) {
-        while (txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() != Txn.ROOT_TRANSACTION) {
-            txn = txn.getParentTxnView();
-        }
-        return txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() == Txn.ROOT_TRANSACTION;
+    private boolean purgeableOldUpdate(CellAndCommit element) {
+        Long timestamp = element.getCommitTimestamp();
+        return timestamp != null && updatesToPurgeTimestamps.contains(timestamp);
     }
 
     private static Cell newTransactionTimeStampKeyValue(Cell element, byte[] value) {
