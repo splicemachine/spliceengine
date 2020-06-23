@@ -5,6 +5,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.TxnTestUtils;
 import com.splicemachine.storage.CellType;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -57,18 +58,18 @@ public class SICompactionStateMutateTest {
 
     @Test
     public void mutateSimpleOneCommittedTransaction() throws IOException {
-        inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x200),
+        inputCells.addAll(Collections.singletonList(
                 SITestUtils.getMockValueCell(0x100)));
-        transactions.addAll(Arrays.asList(
-                null,
+        transactions.addAll(Collections.singletonList(
                 TxnTestUtils.getMockCommittedTxn(0x100, 0x200)));
         cutNoPurge.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(inputCells.size() + 1));
         List<Cell> newCells = getNewlyAddedCells(inputCells, outputCells);
         assertThat(newCells, hasSize(1));
-        assertThat(CellUtils.getKeyValueType(newCells.get(0)), equalTo(CellType.COMMIT_TIMESTAMP));
-        assertThat(newCells.get(0).getTimestamp(), equalTo(0x100L));
+        Cell commit = newCells.get(0);
+        assertThat(CellUtils.getKeyValueType(commit), equalTo(CellType.COMMIT_TIMESTAMP));
+        assertThat(commit.getTimestamp(), equalTo(0x100L));
+        assertThat(Bytes.toLong(commit.getValueArray(), commit.getValueOffset(), commit.getValueLength()), equalTo(0x200L));
     }
 
     @Test
@@ -142,8 +143,8 @@ public class SICompactionStateMutateTest {
     @Test
     public void mutatePurgeTombstones() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x200),
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x200, 0x210),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockTombstoneCell(0x200),
                 SITestUtils.getMockValueCell(0x100)
         ));
@@ -160,7 +161,7 @@ public class SICompactionStateMutateTest {
     @Test
     public void mutateDoNotPurgeBecauseTombstoneNotCommitted() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockTombstoneCell(0x200),
                 SITestUtils.getMockValueCell(0x100)
         ));
@@ -176,7 +177,7 @@ public class SICompactionStateMutateTest {
     @Test
     public void mutateDoNotPurgeBecauseTombstoneRolledBack() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockTombstoneCell(0x200),
                 SITestUtils.getMockValueCell(0x100)
         ));
@@ -188,16 +189,16 @@ public class SICompactionStateMutateTest {
         cutForcePurge.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(2));
         assertThat(outputCells, contains(
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockValueCell(0x100)));
     }
 
     @Test
     public void mutatePartialPurge() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x300),
-                SITestUtils.getMockCommitCell(0x200),
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x300, 0x310),
+                SITestUtils.getMockCommitCell(0x200, 0x210),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockAntiTombstoneCell(0x300),
                 SITestUtils.getMockTombstoneCell(0x200),
                 SITestUtils.getMockValueCell(0x300),
@@ -219,7 +220,7 @@ public class SICompactionStateMutateTest {
         cutForcePurge.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(3));
         assertThat(outputCells, contains(
-                SITestUtils.getMockCommitCell(0x300),
+                SITestUtils.getMockCommitCell(0x300, 0x310),
                 SITestUtils.getMockAntiTombstoneCell(0x300),
                 SITestUtils.getMockValueCell(0x300)));
     }
@@ -227,8 +228,8 @@ public class SICompactionStateMutateTest {
     @Test
     public void mutatePurgeKeepTombstones() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x200),
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x200, 0x210),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockTombstoneCell(0x200),
                 SITestUtils.getMockValueCell(0x100)
         ));
@@ -241,7 +242,7 @@ public class SICompactionStateMutateTest {
         cutPurgeDuringFlush.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(2));
         assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockValueCell(0x100)
         ));
     }
@@ -249,8 +250,8 @@ public class SICompactionStateMutateTest {
     @Test
     public void mutateNonForcePurge() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x200),
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x200, 0x210),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockTombstoneCell(0x200),
                 SITestUtils.getMockValueCell(0x100)
         ));
@@ -267,10 +268,10 @@ public class SICompactionStateMutateTest {
     @Test
     public void mutatePurgeConsideringWatermark() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x1100),
-                SITestUtils.getMockCommitCell(0x300),
-                SITestUtils.getMockCommitCell(0x200),
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x1100, 0x1110),
+                SITestUtils.getMockCommitCell(0x300, 0x310),
+                SITestUtils.getMockCommitCell(0x200, 0x210),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockTombstoneCell(0x1100),
                 SITestUtils.getMockAntiTombstoneCell(0x300),
                 SITestUtils.getMockTombstoneCell(0x200),
@@ -299,18 +300,18 @@ public class SICompactionStateMutateTest {
         assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
                 SITestUtils.getMockValueCell(0x100),
                 SITestUtils.getMockTombstoneCell(0x200),
-                SITestUtils.getMockCommitCell(0x100),
-                SITestUtils.getMockCommitCell(0x200)
+                SITestUtils.getMockCommitCell(0x100, 0x110),
+                SITestUtils.getMockCommitCell(0x200, 0x210)
         ));
     }
 
     @Test
     public void mutatePurgeConsideringWatermarkKeepTombstone() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x1100),
-                SITestUtils.getMockCommitCell(0x300),
-                SITestUtils.getMockCommitCell(0x200),
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x1100, 0x1110),
+                SITestUtils.getMockCommitCell(0x300, 0x310),
+                SITestUtils.getMockCommitCell(0x200, 0x210),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockTombstoneCell(0x1100),
                 SITestUtils.getMockAntiTombstoneCell(0x300),
                 SITestUtils.getMockTombstoneCell(0x200),
@@ -338,15 +339,34 @@ public class SICompactionStateMutateTest {
         assertThat(outputCells, hasSize(7));
         assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
                 SITestUtils.getMockValueCell(0x100),
-                SITestUtils.getMockCommitCell(0x100)
+                SITestUtils.getMockCommitCell(0x100, 0x110)
         ));
+    }
+
+    @Test
+    public void mutateDoNotPurgeBecauseDeleteStartedBeforeWatermarkButCommittedAfter() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockCommitCell(0x900, 0x1100),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
+                SITestUtils.getMockTombstoneCell(0x900),
+                SITestUtils.getMockValueCell(0x100)
+        ));
+        transactions.addAll(Arrays.asList(
+                null,
+                null,
+                TxnTestUtils.getMockCommittedTxn(0x900, 0x1100),
+                TxnTestUtils.getMockCommittedTxn(0x100, 0x110)
+        ));
+        cutPurgeDuringMajorCompaction.mutate(inputCells, transactions, outputCells);
+        assertThat(outputCells, equalTo(inputCells));
+
     }
 
     @Test
     public void mutatePurgeKeepTombstonesOverriddenByFirstOccurrenceToken() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x200),
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x200, 0x210),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockTombstoneCell(0x200),
                 SITestUtils.getMockValueCell(0x100),
                 SITestUtils.getMockFirstWriteCell(0x100)
@@ -365,8 +385,8 @@ public class SICompactionStateMutateTest {
     @Test
     public void mutatePurgeLatestTombstoneInMinorCompaction() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x200),
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x200, 0x210),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockTombstoneCell(0x200),
                 SITestUtils.getMockValueCell(0x100),
                 SITestUtils.getMockDeleteRightAfterFirstWriteCell(0x200),
@@ -390,10 +410,10 @@ public class SICompactionStateMutateTest {
     @Test
     public void mutateDoNotPurgeLatestTombstoneInMinorCompactionDespiteTwoTokens() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x400),
-                SITestUtils.getMockCommitCell(0x300),
-                SITestUtils.getMockCommitCell(0x200),
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x400, 0x410),
+                SITestUtils.getMockCommitCell(0x300, 0x310),
+                SITestUtils.getMockCommitCell(0x200, 0x210),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockTombstoneCell(0x400),
                 SITestUtils.getMockAntiTombstoneCell(0x300),
                 SITestUtils.getMockTombstoneCell(0x200),
@@ -405,7 +425,7 @@ public class SICompactionStateMutateTest {
         TxnView transaction1 = TxnTestUtils.getMockCommittedTxn(0x100, 0x110);
         TxnView transaction2 = TxnTestUtils.getMockCommittedTxn(0x200, 0x210);
         TxnView transaction3 = TxnTestUtils.getMockCommittedTxn(0x300, 0x310);
-        TxnView transaction4 = TxnTestUtils.getMockCommittedTxn(0x1100, 0x1110);
+        TxnView transaction4 = TxnTestUtils.getMockCommittedTxn(0x400, 0x410);
         transactions.addAll(Arrays.asList(
                 null,
                 null,
@@ -421,7 +441,7 @@ public class SICompactionStateMutateTest {
         ));
         cutPurgeDuringMinorCompaction.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, contains(
-                SITestUtils.getMockCommitCell(0x400),
+                SITestUtils.getMockCommitCell(0x400, 0x410),
                 SITestUtils.getMockTombstoneCell(0x400)
         ));
     }
@@ -429,8 +449,8 @@ public class SICompactionStateMutateTest {
     @Test
     public void mutateDoNotPurgeLatestTombstoneDuringMinorCompactionMissingFirstWriteToken() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x200),
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x200, 0x210),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockTombstoneCell(0x200),
                 SITestUtils.getMockValueCell(0x100),
                 SITestUtils.getMockDeleteRightAfterFirstWriteCell(0x200)
@@ -451,8 +471,8 @@ public class SICompactionStateMutateTest {
     @Test
     public void mutateDoNotPurgeLatestTombstoneDuringMinorCompactionMissingDeleteToken() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x200),
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x200, 0x210),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockTombstoneCell(0x200),
                 SITestUtils.getMockValueCell(0x100),
                 SITestUtils.getMockFirstWriteCell(0x100)
@@ -470,10 +490,11 @@ public class SICompactionStateMutateTest {
         assertThat(outputCells, hasSize(2));
     }
 
+    @Test
     public void mutatePurgeDuringMinorCompactionAntiTombstoneGhostsTombstone() throws IOException {
         inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x200),
-                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockCommitCell(0x200, 0x210),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
                 SITestUtils.getMockAntiTombstoneCell(0x200),
                 SITestUtils.getMockValueCell(0x200),
                 SITestUtils.getMockValueCell(0x100),
