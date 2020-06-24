@@ -27,6 +27,7 @@ import com.splicemachine.utils.ByteSlice;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.primitives.Longs;
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
