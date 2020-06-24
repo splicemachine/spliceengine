@@ -125,7 +125,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                                         int partitionByRefItem,
                                         GeneratedMethod defaultRowFunc,
                                         int defaultValueMapItem,
-                                        long pastTxId
+                                        GeneratedMethod pastTxFunctor
                                         )
             throws StandardException
     {
@@ -167,7 +167,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 partitionByRefItem,
                 defaultRowFunc,
                 defaultValueMapItem,
-                pastTxId);
+                pastTxFunctor);
 
         this.inlistPosition = inlistPosition;
 
