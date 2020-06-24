@@ -393,4 +393,6 @@ public interface Transaction {
      **/
 	DataValueFactory getDataValueFactory()
 		throws StandardException;
+
+	boolean isRestoreMode();
 }
