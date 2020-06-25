@@ -463,10 +463,10 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER, false),
                         null,null,view,viewId,0,0,0),
                 new ColumnDescriptor("COLUMNDATATYPE"               ,5,5,
-                        new DataTypeDescriptor(TypeId.getUserDefinedTypeId("com.splicemachine.db.catalog.TypeDescriptor", false), false),
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
                         null,null,view,viewId,0,0,0),
                 new ColumnDescriptor("COLUMNDEFAULT"               ,6,6,
-                        new DataTypeDescriptor(TypeId.getUserDefinedTypeId("java.io.Serializable", true), false),
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.LONGVARCHAR, true),
                         null,null,view,viewId,0,0,0),
                 new ColumnDescriptor("COLUMNDEFAULTID"               ,7,7,
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
@@ -534,11 +534,22 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         return cdsl;
     }
     public static String SYSCOLUMNS_VIEW_SQL = "create view SYSCOLUMNSVIEW as \n" +
-            "SELECT C.*, " +
+            "SELECT C.REFERENCEID, " +
+            "C.COLUMNNAME, " +
+            "C.COLUMNNUMBER, " +
+            "C.STORAGENUMBER, " +
+            "cast (C.COLUMNDATATYPE as varchar(128)) as COLUMNDATATYPE, " +
+            "cast (c.COLUMNDEFAULT as long varchar) as COLUMNDEFAULT, " +
+            "C.COLUMNDEFAULTID, " +
+            "C.AUTOINCREMENTVALUE, " +
+            "C.AUTOINCREMENTSTART, " +
+            "C.AUTOINCREMENTINC, " +
+            "C.COLLECTSTATS, " +
+            "C.PARTITIONPOSITION, " +
+            "C.USEEXTRAPOLATION, " +
             "T.TABLENAME, " +
             "T.SCHEMANAME " +
             "FROM SYS.SYSCOLUMNS C, SYSVW.SYSTABLESVIEW T WHERE T.TABLEID = C.REFERENCEID";
-
 
     public static String SYSCOLUMNS_VIEW_IN_SYSIBM = "create view SYSCOLUMNS as \n" +
             "select\n" +
