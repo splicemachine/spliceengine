@@ -337,14 +337,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "The view syscolumns and systables in SYSIBM are created!");
     }
 
-    public void updateColumnViewInSysIBM(TransactionController tc) throws StandardException {
+    private void updateColumnViewInSys(TransactionController tc, String tableName, int viewIndex, SchemaDescriptor schemaDescriptor, String viewDef) throws StandardException {
         tc.elevate("dictionary");
 
         /**
-         * handle syscolumns in sysibm
+         * handle syscolumns in sysibm or sysvm
          */
-        // check the existence of syscolumns view in sysibm
-        TableDescriptor td = getTableDescriptor("SYSCOLUMNS", sysIBMSchemaDesc, tc);
+        // check the existence of syscolumns view in sysibm or sysvm
+        TableDescriptor td = getTableDescriptor(tableName, schemaDescriptor, tc);
 
         Boolean needUpdate = true;
         // drop it if it exists
@@ -360,14 +360,23 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 // drop the view deifnition
                 dropAllColumnDescriptors(td.getUUID(), tc);
                 dropViewDescriptor(vd, tc);
-                dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+                dropTableDescriptor(td, schemaDescriptor, tc);
             }
 
             // add new view deifnition
-            createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, "SYSCOLUMNS", 1, sysIBMSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_IN_SYSIBM);
+            createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, tableName, viewIndex, schemaDescriptor, viewDef);
 
-            SpliceLogUtils.info(LOG, "The view syscolumns in SYSIBM has been updated with default column!");
+            SpliceLogUtils.info(LOG, String.format("The view %s in %s has been updated with default column!", tableName, schemaDescriptor.getSchemaName()));
         }
+    }
+
+
+    public void updateColumnViewInSysIBM(TransactionController tc) throws StandardException {
+        updateColumnViewInSys(tc, "SYSCOLUMNS", 1, sysIBMSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_IN_SYSIBM);
+    }
+
+    public void updateColumnViewInSysVM(TransactionController tc) throws StandardException {
+        updateColumnViewInSys(tc, "SYSCOLUMNSVIEW", 0, sysViewSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL);
     }
 
     public void moveSysStatsViewsToSysVWSchema(TransactionController tc) throws StandardException {
