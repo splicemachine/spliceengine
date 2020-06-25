@@ -75,7 +75,7 @@ public class MergeJoinOperation extends JoinOperation {
                               GeneratedMethod restriction,
                               int resultSetNumber,
                               boolean oneRowRightSide,
-                              boolean notExistsRightSide,
+                              byte semiJoinType,
                               boolean rightFromSSQ,
                               double optimizerEstimatedRowCount,
                               double optimizerEstimatedCost,
@@ -84,7 +84,7 @@ public class MergeJoinOperation extends JoinOperation {
             throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
                  activation, restriction, resultSetNumber, oneRowRightSide,
-                 notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
+                semiJoinType, rightFromSSQ, optimizerEstimatedRowCount,
                  optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
         this.leftHashKeyItem = leftHashKeyItem;
         this.rightHashKeyItem = rightHashKeyItem;
@@ -165,7 +165,7 @@ public class MergeJoinOperation extends JoinOperation {
             if (isOuterJoin())
                 joined = left.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext), true);
             else {
-                if (notExistsRightSide)
+                if (isAntiJoin())
                     joined = left.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext), true);
                 else {
                     joined = left.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext), true);

@@ -762,9 +762,8 @@ public class HalfOuterJoinNode extends JoinNode{
 
     @Override
     protected void oneRowRightSide(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
-        // always return false for now
         mb.push(rightResultSet.getFromSSQ() && rightResultSet.isOneRowResultSet());
-        mb.push(false);  //isNotExists?
+        mb.push(((FromTable)rightResultSet).getSemiJoinType());
     }
 
     /**

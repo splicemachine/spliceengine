@@ -81,7 +81,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
         this.operationContext = operationContext;
         if (mergeJoinOperation.rightFromSSQ)
             forSSQ = true;
-        if (mergeJoinOperation.isOneRowRightSide())
+        if (mergeJoinOperation.isInclusionJoin())
             isSemiJoin = true;
         hashKeySortOrders = ((MergeJoinOperation)mergeJoinOperation).getRightHashKeySortOrders();
     }

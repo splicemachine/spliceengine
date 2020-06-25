@@ -64,14 +64,14 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
             GeneratedMethod rightEmptyRowFun,
             boolean wasRightOuterJoin,
             boolean oneRowRightSide,
-            boolean notExistsRightSide,
+            byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String sparkExpressionTreeAsString) throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
-                activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ,
+                activation, restriction, resultSetNumber, oneRowRightSide, semiJoinType, rightFromSSQ,
                 optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
                 sparkExpressionTreeAsString);
         SpliceLogUtils.trace(LOG, "instantiate");
@@ -132,7 +132,7 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
 
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
-                    getJoinTypeString(), notExistsRightSide, restriction != null);
+                    getJoinTypeString(), isAntiJoin(), restriction != null);
 
         DataSet<ExecRow> result;
         boolean usesNativeSparkDataSet =

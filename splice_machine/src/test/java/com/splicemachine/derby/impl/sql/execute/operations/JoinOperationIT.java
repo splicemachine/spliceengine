@@ -242,4 +242,16 @@ public class JoinOperationIT extends SpliceUnitTest {
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
+    @Test
+    public void testSemiJoin() throws Exception {
+        String sql = String.format("select * from  --splice-properties joinOrder=fixed\n" +
+                "FOO join (select * from FOO2) dt --splice-properties useSpark=%s, joinStrategy=%s\n" +
+                "on FOO.col1=dt.col1 where dt.col1=1", this.useSparkString, this.joinStrategy);
+
+        String expected = "COL1 |COL2 |COL1 |COL2 |\n" +
+                "------------------------\n" +
+                "  1  |  1  |  1  |  5  |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
 }
