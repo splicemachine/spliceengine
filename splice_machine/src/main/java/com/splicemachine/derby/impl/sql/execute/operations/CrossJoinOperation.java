@@ -65,7 +65,7 @@ public class CrossJoinOperation extends JoinOperation{
                               GeneratedMethod restriction,
                               int resultSetNumber,
                               boolean oneRowRightSide,
-                              boolean notExistsRightSide,
+                              byte semiJoinType,
                               boolean rightFromSSQ,
                               double optimizerEstimatedRowCount,
                               double optimizerEstimatedCost,
@@ -73,7 +73,7 @@ public class CrossJoinOperation extends JoinOperation{
                               String sparkExpressionTreeAsString) throws
             StandardException{
         super(leftResultSet,leftNumCols,rightResultSet,rightNumCols,
-                activation,restriction,resultSetNumber,oneRowRightSide,notExistsRightSide, rightFromSSQ,
+                activation,restriction,resultSetNumber,oneRowRightSide, semiJoinType, rightFromSSQ,
                 optimizerEstimatedRowCount,optimizerEstimatedCost,userSuppliedOptimizerOverrides,
                 sparkExpressionTreeAsString);
         this.leftHashKeyItem=leftHashKeyItem;
@@ -156,7 +156,7 @@ public class CrossJoinOperation extends JoinOperation{
             }
         } else {
             LOG.warn("Cross join supposed to be run with Spark only, using BroadcastJoin now");
-            if (isOuterJoin() || this.notExistsRightSide || isOneRowRightSide()) {
+            if (isOuterJoin() || isAntiJoin() || isInclusionJoin()) {
                 throw new UnsupportedOperationException("Cross join shouldn't be run on outer join or anti join");
             }
             if (this.leftHashKeys.length != 0)

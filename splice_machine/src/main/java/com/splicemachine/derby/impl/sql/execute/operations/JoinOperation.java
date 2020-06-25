@@ -91,7 +91,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		protected int leftNumCols;
 		protected int rightNumCols;
 		public boolean oneRowRightSide;
-		public boolean notExistsRightSide;
+		public byte semiJoinType;
 		public boolean rightFromSSQ;
 		protected String userSuppliedOptimizerOverrides;
 		protected String restrictionMethodName;
@@ -119,24 +119,24 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		}
 
 		public JoinOperation(SpliceOperation leftResultSet,
-												 int leftNumCols,
-												 SpliceOperation rightResultSet,
-												 int rightNumCols,
-												 Activation activation,
-												 GeneratedMethod restriction,
-												 int resultSetNumber,
-												 boolean oneRowRightSide,
-												 boolean notExistsRightSide,
-							                     boolean rightFromSSQ,
-												 double optimizerEstimatedRowCount,
-												 double optimizerEstimatedCost,
-												 String userSuppliedOptimizerOverrides,
-				                                                                 String sparkExpressionTreeAsString) throws StandardException {
+							 int leftNumCols,
+							 SpliceOperation rightResultSet,
+							 int rightNumCols,
+							 Activation activation,
+							 GeneratedMethod restriction,
+							 int resultSetNumber,
+							 boolean oneRowRightSide,
+							 byte semiJoinType,
+							 boolean rightFromSSQ,
+							 double optimizerEstimatedRowCount,
+							 double optimizerEstimatedCost,
+							 String userSuppliedOptimizerOverrides,
+							 String sparkExpressionTreeAsString) throws StandardException {
 				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
 				this.leftNumCols = leftNumCols;
 				this.rightNumCols = rightNumCols;
 				this.oneRowRightSide = oneRowRightSide;
-				this.notExistsRightSide = notExistsRightSide;
+				this.semiJoinType = semiJoinType;
 				this.rightFromSSQ = rightFromSSQ;
 				this.userSuppliedOptimizerOverrides = userSuppliedOptimizerOverrides;
 				this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
@@ -155,7 +155,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				restrictionMethodName = readNullableString(in);
 				userSuppliedOptimizerOverrides = readNullableString(in);
 				oneRowRightSide = in.readBoolean();
-				notExistsRightSide = in.readBoolean();
+				semiJoinType = in.readByte();
 				rightFromSSQ = in.readBoolean();
                 wasRightOuterJoin = in.readBoolean();
                 joinType = in.readInt();
@@ -191,7 +191,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				writeNullableString(restrictionMethodName, out);
 				writeNullableString(userSuppliedOptimizerOverrides, out);
 				out.writeBoolean(oneRowRightSide);
-				out.writeBoolean(notExistsRightSide);
+				out.writeByte(semiJoinType);
 				out.writeBoolean(rightFromSSQ);
                 out.writeBoolean(wasRightOuterJoin);
                 out.writeInt(joinType);
@@ -459,4 +459,12 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	protected boolean isOuterJoin() {
 		return joinType == JoinNode.LEFTOUTERJOIN || joinType == JoinNode.FULLOUTERJOIN;
 	}
+
+    public boolean isAntiJoin() {
+        return semiJoinType == 1;
+    }
+
+    public boolean isInclusionJoin() {
+        return semiJoinType == -1;
+    }
 }
