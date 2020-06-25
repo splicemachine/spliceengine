@@ -99,9 +99,13 @@ Follow the steps to install splicemachine server.
 
 (5)
 
-| Custom hdfs-site Property   | Value   |
-|---------------------------- |-------  |
-| dfs.datanode.handler.count  | 20      |
+| Custom hdfs-site Property                                  | Value   |
+|----------------------------------------------------------- |-------  |
+| dfs.datanode.handler.count                                 | 20      |
+| dfs.client.block.write.retries                             | 6       |
+| dfs.client.block.write.locateFollowingBlock.retries        | 10      |
+| dfs.client.block.write.replace-datanode-on-failure.policy  | ALWAYS  |
+| dfs.namenode.replication.min                               | 2       |
 
 ### YARN Configuration
 
