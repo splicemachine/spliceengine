@@ -1260,6 +1260,9 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                     fbt.setExistsTable(true,isNotExists, matchRowId);
                     fbt.setDependencyMap((JBitSet)dependencyMap.clone());
                 }
+                // set the same for the parent PR node:
+                prn.setExistsTable(true, isNotExists, matchRowId);
+                prn.setDependencyMap((JBitSet)dependencyMap.clone());
             }
         }
     }
