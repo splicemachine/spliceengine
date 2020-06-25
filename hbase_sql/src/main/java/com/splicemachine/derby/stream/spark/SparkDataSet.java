@@ -361,8 +361,15 @@ public class SparkDataSet<V> implements DataSet<V> {
         DataSet<V> branch = null;
         int i = 0;
         MultiProbeTableScanOperation operation = operationContext.getOperation();
+
+        List<DataSet<V>> dataSets = new ArrayList<>();
+
         for (ScanSetBuilder<ExecRow> builder: scanSetBuilders) {
             DataSet<V> dataSet = (DataSet<V>) builder.buildDataSet(operation);
+            dataSets.add(dataSet);
+        }
+
+        for (DataSet<V> dataSet : dataSets) {
             if (i % 100 == 0) {
                 if (branch != null) {
                     if (toReturn == null)
