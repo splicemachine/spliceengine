@@ -62,6 +62,7 @@ public class SpliceSpark {
 
     static JavaSparkContext ctx;
     static SparkSession session;
+    static ThreadLocal<SparkSession> sessions = new ThreadLocal<>();
     static boolean initialized = false;
     static boolean spliceStaticComponentsSetup = false;
 
@@ -70,6 +71,10 @@ public class SpliceSpark {
     private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
     private static final String OLD_SCOPE_OVERRIDE = "spark.rdd.scope.noOverride.old";
 
+    public static void resetSession() {
+        sessions.remove();
+    }
+
     // Sets both ctx and session
     public static synchronized SparkSession getSession() {
         String threadName = Thread.currentThread().getName();
@@ -77,7 +82,12 @@ public class SpliceSpark {
              // Not running on the Olap Server... raise exception. Use getSessionUnsafe() if you know what you are doing.
             throw new RuntimeException("Trying to get a SparkSession from outside the OlapServer");
         }
-        return getSessionUnsafe();
+        SparkSession result = sessions.get();
+        if (result == null) {
+            result = getSessionUnsafe().newSession();
+            sessions.set(result);
+        }
+        return result;
     }
 
     /** This method is unsafe, it should only be used on tests are as a convenience when trying to

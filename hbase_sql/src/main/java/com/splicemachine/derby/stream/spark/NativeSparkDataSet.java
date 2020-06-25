@@ -982,7 +982,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
             if (op.wasRightOuterJoin) {
                 NativeSparkDataSet nds =
-                  new NativeSparkDataSet(rightDF.join(leftDF, expr, joinType.RIGHTOUTER.strategy()), context);
+                  new NativeSparkDataSet(rightDF.join(leftDF, expr, joinType.RIGHTOUTER.strategy()).repartition(), context);
                 joinedSet = nds;
                 nds.dataset = fixupColumnNames(op, joinType, rightDF, leftDF, nds.dataset,
                                                op.getRightOperation(), op.getLeftOperation());
