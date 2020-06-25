@@ -198,7 +198,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
      * @param lss
      * @return
      */
-    private boolean isRefreshNeeded(List<InputSplit> lss) {
+    protected boolean isRefreshNeeded(List<InputSplit> lss) {
         if (lss.size() < 2 || !lss.stream().allMatch(is -> (is instanceof SMSplit))) {
             return false;
         }
