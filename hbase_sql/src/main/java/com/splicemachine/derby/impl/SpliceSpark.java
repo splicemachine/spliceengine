@@ -362,6 +362,7 @@ public class SpliceSpark {
     
     public synchronized static void setContext(JavaSparkContext sparkContext) {
         session = SparkSession.builder().config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
+        sessions.set(session);
         ctx = sparkContext;
         initialized = true;
     }
