@@ -18,11 +18,7 @@ package com.splicemachine.db.impl.sql.catalog;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TokenDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -75,9 +71,9 @@ public class SYSTOKENSRowFactory extends CatalogRowFactory
     //
     /////////////////////////////////////////////////////////////////////////////
 
-    public SYSTOKENSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSTOKENSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
     {
-        super(uuidf,ef,dvf);
+        super(uuidf,ef,dvf,dd);
         initInfo(COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids);
     }
 
@@ -95,8 +91,7 @@ public class SYSTOKENSRowFactory extends CatalogRowFactory
      * @exception StandardException thrown on failure
      */
 
-    public ExecRow makeRow(TupleDescriptor td,
-                           TupleDescriptor parent)
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
             throws StandardException
     {
 
@@ -108,6 +103,9 @@ public class SYSTOKENSRowFactory extends CatalogRowFactory
 
         if (td != null)
         {
+            if (!(td instanceof TokenDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             TokenDescriptor descriptor = (TokenDescriptor)td;
             token = descriptor.getToken();
             userName = descriptor.getUserName();

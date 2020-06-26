@@ -14,6 +14,7 @@
 
 package com.splicemachine.access.api;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
 
@@ -79,4 +80,8 @@ public interface PartitionAdmin extends AutoCloseable{
     List<ReplicationPeerDescription> getReplicationPeers() throws IOException;
 
     boolean replicationEnabled(String tableName) throws IOException;
+
+    void setCatalogVersion(long conglomerateNumber, String version) throws IOException;
+
+    String getCatalogVersion(long conglomerateNumber) throws StandardException;
 }
