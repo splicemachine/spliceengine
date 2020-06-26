@@ -22,6 +22,7 @@ import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.timestamp.api.TimestampSource;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -217,6 +218,10 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
         }
     }
 
+    @Override
+    public Pair<Long, Long> getTxnAt(long ts) throws IOException {
+        return baseStore.getTxAt(ts);
+    }
 
     @Override
     public long[] getActiveTransactionIds(byte[] destTable,long startId,long endId) throws IOException{
