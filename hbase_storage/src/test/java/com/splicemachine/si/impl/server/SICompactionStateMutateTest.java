@@ -679,4 +679,26 @@ public class SICompactionStateMutateTest {
         cutForcePurge.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(inputCells));
     }
+
+    @Test
+    public void mutatePurgeUpdatesPrimaryKeys() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockCommitCell(0x200, 0x210),
+                SITestUtils.getMockCommitCell(0x100, 0x110),
+                SITestUtils.getMockValueCell(0x200, new boolean[]{}),
+                SITestUtils.getMockValueCell(0x100, new boolean[]{})
+        ));
+        transactions.addAll(Arrays.asList(
+                null,
+                null,
+                TxnTestUtils.getMockCommittedTxn(0x200, 0x210),
+                TxnTestUtils.getMockCommittedTxn(0x100, 0x110)
+        ));
+        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        assertThat(outputCells, hasSize(2));
+        assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
+                SITestUtils.getMockValueCell(0x100, new boolean[]{}),
+                SITestUtils.getMockCommitCell(0x100, 0x110)
+        ));
+    }
 }
