@@ -1816,9 +1816,7 @@ throws SQLException, IOException
 |	r=CP_ConnectStatement()
 |	r=CP_GetConnectionStatement()
 |	r=CP_DisconnectStatement()
-|   r=LogStop()
-|   r=LogClear()
-|   r=LogToStatement()
+|   r=Spool()
 )? <EOF>
 	{
 		return r;
@@ -3371,11 +3369,10 @@ HelpStatement() :
 	{
 		Vector v = new Vector();
 
-                StringTokenizer st = new StringTokenizer(LocalizedResource.getMessage("IJ_HelpText"), "\n");
+        StringTokenizer st = new StringTokenizer(LocalizedResource.getMessage("IJ_HelpText"), "\n");
 		while (st.hasMoreTokens()) {
 		    v.addElement(st.nextToken());
 		}
-		v.addElement("Something");
 							 
 		return new ijVectorResult(v,null);
 	}
@@ -4058,39 +4055,21 @@ ijResult CP_DisconnectStatement() throws SQLException
 
 }
 
-ijResult LogToStatement() throws IOException
+ijResult Spool() throws IOException
 :
 {
     String n = null;
+    Token stop = null, clear = null;
 }
 {
-    <SPOOL> [n = path()]
+    <SPOOL> [ (n=path()) | stop = <STOP> | clear = <CLEAR> ]
     {
-        utilInstance.startLogging(n);
-        return null;
-    }
-}
-
-ijResult LogStop()
-:
-{
-}
-{
-    LOOKAHEAD({(getToken(1).kind == SPOOL && getToken(2).kind == STOP)}) <SPOOL> <STOP>
-    {
-        utilInstance.stopLogging();
-        return null;
-    }
-}
-
-ijResult LogClear() throws IOException
-:
-{
-}
-{
-    LOOKAHEAD({(getToken(1).kind == SPOOL && getToken(2).kind == CLEAR)}) <SPOOL> <CLEAR>
-    {
-        utilInstance.clearLogging();
+        if(n != null)
+            utilInstance.startLogging(n);
+        else if(stop != null)
+            utilInstance.stopLogging();
+        else if(clear != null)
+            utilInstance.clearLogging();
         return null;
     }
 }
