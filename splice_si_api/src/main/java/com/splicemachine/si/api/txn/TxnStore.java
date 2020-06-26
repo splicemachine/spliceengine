@@ -72,6 +72,8 @@ public interface TxnStore extends TxnSupplier{
 
     List<TxnView> getActiveTransactions(long minTxnid,long maxTxnId,byte[] table) throws IOException;
 
+    long getTxnAt(long ts) throws IOException;
+
     /**
      * @return a count of the total number of store lookups made since the server last started
      */
