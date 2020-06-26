@@ -20,45 +20,8 @@ import java.util.stream.Stream;
 
 
 class SICompactionStateMutate {
-    private static class CellAndCommit implements Comparable{
-        private Cell cell;
-        private Long commitTimestamp;
-
-        CellAndCommit(Cell cell, Long commitTimestamp) {
-            this.cell = cell;
-            this.commitTimestamp = commitTimestamp;
-        }
-
-        Cell getCell() {
-            return cell;
-        }
-
-        Long getCommitTimestamp() {
-            return commitTimestamp;
-        }
-
-        @Override
-        public int compareTo(@NotNull Object other) {
-            return KeyValue.COMPARATOR.compare(cell, ((CellAndCommit) other).cell);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(cell, commitTimestamp);
-        }
-
-        @Override
-        public boolean equals(@NotNull Object other) {
-            if (!(other instanceof CellAndCommit)) {
-                return false;
-            }
-            return compareTo(other) == 0;
-        }
-    }
-
-
     private static final Logger LOG = Logger.getLogger(SICompactionStateMutate.class);
-    private SortedSet<CellAndCommit> dataToReturn = new TreeSet<>();
+    private SortedSet<Cell> dataToReturn = new TreeSet<>(KeyValue.COMPARATOR);
     private final PurgeConfig purgeConfig;
     private long maxTombstoneTimestamp = 0;
     private long lowWatermarkTransaction;
@@ -101,15 +64,12 @@ class SICompactionStateMutate {
                 TxnView txn = it.next();
                 mutate(aRawList, txn);
             }
-            Stream<CellAndCommit> stream = dataToReturn.stream();
-            if (purgeConfig.shouldPurgeDeletes() &&
-                    (!purgeConfig.shouldRespectActiveTransactions() || maxTombstoneTimestamp > 0)) {
+            Stream<Cell> stream = dataToReturn.stream();
+            if (shouldPurgeDeletes())
                 stream = stream.filter(not(this::purgeableDeletedRow));
-            }
-            if (purgeConfig.shouldPurgeUpdates() && !updatesToPurgeTimestamps.isEmpty()) {
+            if (shouldPurgeUpdates())
                 stream = stream.filter(not(this::purgeableOldUpdate));
-            }
-            stream.map(CellAndCommit::getCell).forEachOrdered(results::add);
+            stream.forEachOrdered(results::add);
             //assert isSorted(results) : "CompactionStateMutate: results not sorted";
         } catch (AssertionError e) {
             LOG.error(e);
@@ -125,22 +85,20 @@ class SICompactionStateMutate {
     private void mutate(Cell element, TxnView txn) throws IOException {
         final CellType cellType = CellUtils.getKeyValueType(element);
         if (element.getType() != Cell.Type.Put) {
-            // Rolled back data, remote it
+            // Rolled back data, remove it
             return;
         }
         if (cellType == CellType.COMMIT_TIMESTAMP) {
             assert txn == null;
             assert element.getValueLength() == 8: "Element does not contain a timestamp: " + element;
-            long commitTimestamp = Bytes.toLong(element.getValueArray(), element.getValueOffset(), element.getValueLength());
-            dataToReturn.add(new CellAndCommit(element, commitTimestamp));
+            dataToReturn.add(element);
             return;
         }
         if (txn == null) {
             // we don't have transactional information, just return the data as is
-            dataToReturn.add(new CellAndCommit(element, null));
+            dataToReturn.add(element);
             return;
         }
-        //assert element.getTimestamp() == txn.getBeginTimestamp();
         Txn.State txnState = txn.getEffectiveState();
 
         if (txnState == Txn.State.ROLLEDBACK) {
@@ -149,7 +107,7 @@ class SICompactionStateMutate {
         }
 
         if (txnState == Txn.State.ACTIVE) {
-            dataToReturn.add(new CellAndCommit(element, null));
+            dataToReturn.add(element);
             return;
         }
 
@@ -160,13 +118,13 @@ class SICompactionStateMutate {
          * commit timestamp can be placed on it.
          */
         long commitTimestamp = txn.getEffectiveCommitTimestamp();
-        dataToReturn.add(new CellAndCommit(
-                newTransactionTimeStampKeyValue(element, Bytes.toBytes(commitTimestamp)), commitTimestamp));
+        long beginTimestamp = element.getTimestamp();
+        dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(commitTimestamp)));
         switch (cellType) {
             case TOMBSTONE:
-                if (commitTimestamp > maxTombstoneTimestamp &&
+                if (beginTimestamp > maxTombstoneTimestamp &&
                         (!purgeConfig.shouldRespectActiveTransactions() || commitTimestamp < lowWatermarkTransaction)) {
-                    maxTombstoneTimestamp = commitTimestamp;
+                    maxTombstoneTimestamp = beginTimestamp;
                 }
                 break;
             case FIRST_WRITE_TOKEN:
@@ -175,7 +133,7 @@ class SICompactionStateMutate {
                 break;
             case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
                 assert deleteRightAfterFirstWriteTimestamp == 0;
-                deleteRightAfterFirstWriteTimestamp = commitTimestamp;
+                deleteRightAfterFirstWriteTimestamp = beginTimestamp;
                 break;
             case USER_DATA: {
                 if (purgeConfig.shouldPurgeUpdates() && commitTimestamp < lowWatermarkTransaction) {
@@ -185,15 +143,15 @@ class SICompactionStateMutate {
                     boolean purge = true;
                     for (int col = index.nextSetBit(0); col >= 0; col = index.nextSetBit(col + 1)) {
                         if (!columnUpdateLatestTimestamp.containsKey(col)) {
-                            columnUpdateLatestTimestamp.put(col, commitTimestamp);
+                            columnUpdateLatestTimestamp.put(col, beginTimestamp);
                             purge = false;
                             LOG.trace("Update cannot be purged: " + element);
                         } else {
-                            assert commitTimestamp <= columnUpdateLatestTimestamp.get(col);
+                            assert beginTimestamp < columnUpdateLatestTimestamp.get(col);
                         }
                     }
                     if (purge) {
-                        boolean ret = updatesToPurgeTimestamps.add(commitTimestamp);
+                        boolean ret = updatesToPurgeTimestamps.add(beginTimestamp);
                         assert ret;
                     }
                 }
@@ -202,7 +160,16 @@ class SICompactionStateMutate {
             default:
                 break;
         }
-        dataToReturn.add(new CellAndCommit(element, commitTimestamp));
+        dataToReturn.add(element);
+    }
+
+    private boolean shouldPurgeDeletes() {
+        return purgeConfig.shouldPurgeDeletes() &&
+                (!purgeConfig.shouldRespectActiveTransactions() || maxTombstoneTimestamp > 0);
+    }
+
+    private boolean shouldPurgeUpdates() {
+        return purgeConfig.shouldPurgeUpdates() && !updatesToPurgeTimestamps.isEmpty();
     }
 
     private boolean shouldRemoveMostRecentTombstone() {
@@ -222,18 +189,15 @@ class SICompactionStateMutate {
         return predicate.negate();
     }
 
-    private boolean purgeableDeletedRow(CellAndCommit element) {
-        Long timestamp = element.getCommitTimestamp();
-        if (timestamp == null)
-            return false;
+    private boolean purgeableDeletedRow(Cell element) {
+        long timestamp = element.getTimestamp();
         if (timestamp == maxTombstoneTimestamp && shouldRemoveMostRecentTombstone())
             return true;
         return timestamp < maxTombstoneTimestamp;
     }
 
-    private boolean purgeableOldUpdate(CellAndCommit element) {
-        Long timestamp = element.getCommitTimestamp();
-        return timestamp != null && updatesToPurgeTimestamps.contains(timestamp);
+    private boolean purgeableOldUpdate(Cell element) {
+        return updatesToPurgeTimestamps.contains(element.getTimestamp());
     }
 
     private static Cell newTransactionTimeStampKeyValue(Cell element, byte[] value) {

@@ -137,7 +137,7 @@ public class SICompactionStateMutateTest {
                 SITestUtils.getMockValueCell(0x100)
         ));
         transactions.addAll(Arrays.asList(
-                TxnTestUtils.getMockCommittedTxn(0x200, 0x250),
+                TxnTestUtils.getMockCommittedTxn(0x100, 0x250),
                 TxnTestUtils.getMockCommittedTxn(0x100, 0x250)
         ));
         cutNoPurge.mutate(inputCells, transactions, outputCells);
@@ -518,6 +518,30 @@ public class SICompactionStateMutateTest {
         ));
         cutPurgeDuringMinorCompaction.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(inputCells));
+    }
+
+    @Test
+    public void mutatePurgeTombstoneRespectBeginTimestampDespiteEverythingHavingTheSameCommitTimestamp() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockAntiTombstoneCell(0x300),
+                SITestUtils.getMockTombstoneCell(0x200),
+                SITestUtils.getMockValueCell(0x300),
+                SITestUtils.getMockValueCell(0x100)
+        ));
+        TxnView transaction = TxnTestUtils.getMockCommittedTxn(0x50, 0x400);
+        transactions.addAll(Arrays.asList(
+                transaction,
+                transaction,
+                transaction,
+                transaction
+        ));
+        cutForcePurge.mutate(inputCells, transactions, outputCells);
+        assertThat(outputCells, not(empty()));
+        assertThat(outputCells, contains(
+                SITestUtils.getMockCommitCell(0x300, 0x400),
+                SITestUtils.getMockAntiTombstoneCell(0x300),
+                SITestUtils.getMockValueCell(0x300)
+        ));
     }
 
     @Test
