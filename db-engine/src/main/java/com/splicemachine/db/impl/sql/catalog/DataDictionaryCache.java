@@ -57,6 +57,7 @@ import javax.management.MBeanServer;
 import javax.management.MXBean;
 import javax.management.ObjectName;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -85,11 +86,15 @@ public class DataDictionaryCache {
     private ManagedCache<Pair<String, String>, Optional<RoleGrantDescriptor>> roleGrantCache;
     private ManagedCache<ByteSlice,TokenDescriptor> tokenCache;
     private ManagedCache<String, Optional<String>> propertyCache;
+    private ManagedCache<Long, Optional<String>> catalogVersionCache;
     private DataDictionary dd;
-    public static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
+    private static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
             "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
-            "tokenCache", "propertyCache", "conglomerateDescriptorCache", "oldSchemaCache"};
+            "tokenCache", "propertyCache", "conglomerateDescriptorCache", "oldSchemaCache", "catalogVersionCache"};
 
+    public static List<String> getCacheNames() {
+        return Collections.unmodifiableList(Arrays.asList(cacheNames));
+    }
     private int getCacheSize(Properties startParams, String propertyName, int defaultValue) throws StandardException {
         String value = startParams.getProperty(propertyName);
         return PropertyUtil.intPropertyValue(propertyName, value,
@@ -133,6 +138,8 @@ public class DataDictionaryCache {
         int tokenCacheSize = getCacheSize(startParams, Property.LANG_TOKEN_CACHE_SIZE,
                 Property.LANG_TOKEN_CACHE_SIZE_DEFAULT);
         int propertyCacheSize = getCacheSize(startParams, Property.LANG_PROPERTY_CACHE_SIZE,
+                Property.LANG_PROPERTY_CACHE_SIZE_DEFAULT);
+        int catalogVersionCacheSize = getCacheSize(startParams, Property.LANG_PROPERTY_CACHE_SIZE,
                 Property.LANG_PROPERTY_CACHE_SIZE_DEFAULT);
 
         RemovalListener<Object,Dependent> dependentInvalidator = new RemovalListener<Object, Dependent>() {
@@ -180,6 +187,8 @@ public class DataDictionaryCache {
                 (roleGrantCacheSize).build(), roleGrantCacheSize);
         propertyCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
                 (propertyCacheSize).build(), propertyCacheSize);
+        catalogVersionCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
+                (catalogVersionCacheSize).build(), catalogVersionCacheSize);
         this.dd = dd;
     }
 
@@ -463,21 +472,7 @@ public class DataDictionaryCache {
         conglomerateCache.invalidateAll();
         conglomerateDescriptorCache.invalidateAll();
         aliasDescriptorCache.invalidateAll();
-    }
-
-    public void clearTableCache(){
-        oidTdCache.invalidateAll();
-        nameTdCache.invalidateAll();
-        partitionStatisticsCache.invalidateAll();
-        schemaCache.invalidateAll();
-        oidSchemaCache.invalidateAll();
-        sequenceGeneratorCache.invalidateAll();
-        permissionsCache.invalidateAll();
-        statementCache.invalidateAll();
-        roleCache.invalidateAll();
-        defaultRoleCache.invalidateAll();
-        roleGrantCache.invalidateAll();
-        tokenCache.invalidateAll();
+        catalogVersionCache.invalidateAll();
     }
 
     public void clearAliasCache() {
@@ -645,6 +640,32 @@ public class DataDictionaryCache {
         if (LOG.isDebugEnabled())
             LOG.debug("clearPropertyCache ");
         propertyCache.invalidateAll();
+    }
+
+    public void catalogVersionCacheAdd(Long key, Optional<String> optional) throws StandardException {
+        if (!dd.canWriteCache(null))
+            return;
+        if (LOG.isDebugEnabled())
+            LOG.debug("catalogVersionCacheAdd " + key);
+        catalogVersionCache.put(key,optional);
+    }
+
+    public Optional<String> catalogVersionCacheFind(Long key) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("catalogVersionCacheFind " + key);
+        return catalogVersionCache.getIfPresent(key);
+    }
+
+    public void catalogVersionCacheRemove(Long key) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("catalogVersionCacheRemove " + key);
+        catalogVersionCache.invalidate(key);
+    }
+
+    public void clearCatalogVersionCache() {
+        if (LOG.isDebugEnabled())
+            LOG.debug("clearCatalogVersionCache");
+        catalogVersionCache.invalidateAll();
     }
 
     public ConglomerateDescriptor conglomerateDescriptorCacheFind(long conglomId) throws StandardException {

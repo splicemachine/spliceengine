@@ -113,9 +113,9 @@ public class SYSSTATEMENTSRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    public SYSSTATEMENTSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSSTATEMENTSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf,DataDictionary dd)
 	{
-		super(uuidf,ef,dvf);
+		super(uuidf,ef,dvf,dd);
 		initInfo(SYSSTATEMENTS_COLUMN_COUNT, TABLENAME_STRING, 
 				 indexColumnPositions, uniqueness, uuids);
 	}
@@ -265,7 +265,6 @@ public class SYSSTATEMENTSRowFactory extends CatalogRowFactory
         Timestamp time = null;
         ExecPreparedStatement preparedStatement = null;
         boolean initiallyCompilable;
-        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(row.nColumns() == SYSSTATEMENTS_COLUMN_COUNT,
@@ -351,6 +350,11 @@ public class SYSSTATEMENTSRowFactory extends CatalogRowFactory
 
         return descriptor;
     }
+
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent) throws StandardException
+	{
+		return makeEmptyRow();
+	}
 
 	public ExecRow makeEmptyRow()
 		throws StandardException

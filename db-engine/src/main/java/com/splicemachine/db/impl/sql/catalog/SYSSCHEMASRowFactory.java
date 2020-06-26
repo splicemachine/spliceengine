@@ -87,6 +87,13 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
+	SYSSCHEMASRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
+	{
+		super(uuidf,ef,dvf, dd);
+		initInfo(SYSSCHEMAS_COLUMN_COUNT, TABLENAME_STRING,
+				indexColumnPositions, uniqueness, uuids );
+	}
+
     SYSSCHEMASRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
 	{
 		super(uuidf,ef,dvf);
@@ -108,7 +115,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 	 * @exception   StandardException thrown on failure
 	 */
 
-	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
 					throws StandardException
 	{
 		DataTypeDescriptor		dtd;
@@ -121,6 +128,9 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
 		if (td != null)
 		{
+			if (!(td instanceof SchemaDescriptor))
+				throw new RuntimeException("Unexpected TupleDescriptor " + parent.getClass().getName());
+
 			SchemaDescriptor	schemaDescriptor = (SchemaDescriptor)td;
 
 			name = schemaDescriptor.getSchemaName();

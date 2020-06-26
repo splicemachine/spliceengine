@@ -118,6 +118,7 @@ public class TabInfoImpl
     {
         this.heapConglomerate = heapConglomerate;
         heapSet = true;
+        crf.setHeapConglomerate(heapConglomerate);
     }
 
     /**
@@ -546,7 +547,6 @@ public class TabInfoImpl
     {
         int							insertRetCode;
         int							retCode = ROWNOTDUPLICATE;
-        int							indexCount = crf.getNumIndexes();
         ConglomerateController	indexController = null;
 
         // Open the conglomerates
@@ -926,7 +926,7 @@ public class TabInfoImpl
         try
         {
             RowLocation rl[] = new RowLocation[1];
-            ExecRow notUsed = getRowInternal(tc, heapCC, key, indexNumber, rl);
+            getRowInternal(tc, heapCC, key, indexNumber, rl);
             return rl[0];
         }
         finally

@@ -69,17 +69,20 @@ public class SYSPRIMARYKEYSRowFactory extends CatalogRowFactory {
             "f48ad516-013d-35d6-f400-6915f6177d2f", //INDEX_1
     };
 
-    public SYSPRIMARYKEYSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
-        super(uuidf, ef, dvf);
+    public SYSPRIMARYKEYSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd) {
+        super(uuidf, ef, dvf, dd);
         initInfo(SYSPRIMARYKEYS_COLUMN_COUNT,TABLENAME_STRING,indexColumnPositions,uniqueness,uuids);
     }
 
     @Override
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException {
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent) throws StandardException {
         UUID oid;
         String constraintOid = null;
         String conglomerateId = null;
         if(td!=null){
+            if (!(td instanceof KeyConstraintDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             KeyConstraintDescriptor constraint = (KeyConstraintDescriptor)td;
 
             oid = constraint.getUUID();
@@ -114,8 +117,6 @@ public class SYSPRIMARYKEYSRowFactory extends CatalogRowFactory {
                     row.nColumns()==SYSPRIMARYKEYS_COLUMN_COUNT,
                     "Wrong number of columns for a SYSPRIMARYKEYS row");
         }
-
-        DataDescriptorGenerator ddg = dataDictionary.getDataDescriptorGenerator();
 
         /*
          * First column is a constraint UUID

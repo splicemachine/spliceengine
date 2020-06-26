@@ -126,6 +126,11 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		initInfo(SYSTABLES_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, (boolean[]) null, uuids);
 	}
 
+	SYSTABLESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
+	{
+		super(uuidf,ef,dvf, dd);
+		initInfo(SYSTABLES_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, (boolean[]) null, uuids);
+	}
 	/////////////////////////////////////////////////////////////////////////////
 	//
 	//	METHODS
@@ -140,7 +145,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	 * @exception   StandardException thrown on failure
 	 */
 
-	public ExecRow makeRow(TupleDescriptor td,
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor td,
 						   TupleDescriptor	parent)
 					throws StandardException
 	{
@@ -167,6 +172,11 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 
 		if (td != null)
 		{
+			if (!(td instanceof TableDescriptor))
+				throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
+			if (!(parent instanceof SchemaDescriptor))
+				throw new RuntimeException("Unexpected TupleDescriptor " + parent.getClass().getName());
 			/*
 			** We only allocate a new UUID if the descriptor doesn't already have one.
 			** For descriptors replicated from a Source system, we already have an UUID.
@@ -321,6 +331,8 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		    case SYSTABLES_INDEX2_ID:
 				/* 1st column is TABLEID (UUID - char(36)) */
 				row.setColumn(1,new SQLChar());
+				break;
+			default:
 				break;
 		}	// end switch
 

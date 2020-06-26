@@ -112,18 +112,17 @@ public class JMXUtils {
         }
         return jmxThreadList;
     }
-    public static List<ManagedCacheMBean> getManagedCache(List<Pair<String,JMXConnector>> mbscArray, String [] mc) throws MalformedObjectNameException, IOException {
+    public static List<ManagedCacheMBean> getManagedCache(List<Pair<String,JMXConnector>> mbscArray, List<String> mc) throws MalformedObjectNameException, IOException {
         List<ManagedCacheMBean> managedCache =new ArrayList<>();
         for (Pair<String,JMXConnector> mbsc: mbscArray) {
-            for(int i = 0; i < mc.length; i++) {
-                managedCache.add(getNewMBeanProxy(mbsc.getSecond(), MANAGED_CACHE + mc[i], ManagedCacheMBean.class));
+            for(int i = 0; i < mc.size(); i++) {
+                managedCache.add(getNewMBeanProxy(mbsc.getSecond(), MANAGED_CACHE + mc.get(i), ManagedCacheMBean.class));
             }
         }
         return managedCache;
     }
     public static List<ManagedCacheMBean> getTotalManagedCache(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
         List<ManagedCacheMBean> managedCache = new ArrayList<>();
-        List<ManagedCache> mc = new ArrayList<>();
         for (Pair<String,JMXConnector> mbsc: mbscArray) {
             managedCache.add(getNewMBeanProxy(mbsc.getSecond(),TOTAL_MANAGED_CACHE, ManagedCacheMBean.class));
         }

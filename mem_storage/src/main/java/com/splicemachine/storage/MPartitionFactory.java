@@ -14,6 +14,7 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.Iterables;
 import com.splicemachine.access.api.*;
@@ -63,7 +64,6 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
     private class Creator implements PartitionCreator{
         private String name;
-        private long txnId;
 
         @Override
         public PartitionCreator withName(String name){
@@ -101,6 +101,11 @@ public class MPartitionFactory implements PartitionFactory<Object>{
             return this;
         }
 
+        @Override
+        public PartitionCreator withCatalogVersion(String version) {
+            //no-op
+            return this;
+        }
         @Override
         public Partition create() throws IOException{
             assert name!=null:"No name specified!";
@@ -238,6 +243,16 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         @Override
         public boolean replicationEnabled(String tableName) throws IOException {
             return false;
+        }
+
+        @Override
+        public void setCatalogVersion(long conglomerateNumber, String version) throws IOException {
+            throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+        }
+
+        @Override
+        public String getCatalogVersion(long conglomerateNumber) throws StandardException {
+            throw new UnsupportedOperationException("Operation not supported in mem storage engine");
         }
     }
 }
