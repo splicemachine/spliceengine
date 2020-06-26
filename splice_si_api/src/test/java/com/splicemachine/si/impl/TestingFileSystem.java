@@ -21,20 +21,10 @@ import com.splicemachine.access.api.FileInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URI;
-import java.nio.channels.AsynchronousFileChannel;
-import java.nio.channels.FileChannel;
-import java.nio.channels.SeekableByteChannel;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
 /**
@@ -180,7 +170,12 @@ public class TestingFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public long fileCount(){
+        public boolean isEmptyDirectory() {
+            return isDirectory() && fileCount_SLOW() == 0;
+        }
+
+        @Override
+        public long fileCount_SLOW(){
             if(!isDirectory()) return 0l;
             try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(p)) {
                 long count = 0;
@@ -194,7 +189,7 @@ public class TestingFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public long spaceConsumed(){
+        public long spaceConsumed_SLOW(){
             try{
                 return Files.size(p);
             }catch(IOException e){
@@ -203,7 +198,7 @@ public class TestingFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public long size(){
+        public long size_SLOW(){
             try{
                 return Files.size(p);
             }catch(IOException e){
@@ -239,8 +234,8 @@ public class TestingFileSystem extends DistributedFileSystem{
         public String toSummary() {
             StringBuilder sb = new StringBuilder();
             sb.append(this.isDirectory() ? "Directory = " : "File = ").append(fullPath());
-            sb.append("\nFile Count = ").append(this.fileCount());
-            sb.append("\nSize = ").append(size());
+            sb.append("\nFile Count = ").append(this.fileCount_SLOW());
+            sb.append("\nSize = ").append(size_SLOW());
             return sb.toString();
         }
 

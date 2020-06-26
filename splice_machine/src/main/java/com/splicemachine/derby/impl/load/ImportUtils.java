@@ -91,7 +91,7 @@ public class ImportUtils{
         FileInfo info;
 
         try{
-            info = fsLayer.getInfo(path);
+            info = fsLayer.getInfo(path); // another one, just checking if file is writable
         }catch(Exception e){
             throw StandardException.plainWrapException(e);
         }

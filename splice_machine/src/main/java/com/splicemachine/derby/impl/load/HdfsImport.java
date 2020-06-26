@@ -739,16 +739,16 @@ public class HdfsImport {
                             new SQLLongint(rowsUpdated),
                             new SQLLongint(rowsImported),
                             new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getFailedRecords()),
-                            new SQLLongint(contentSummary.fileCount()),
-                            new SQLLongint(contentSummary.size()),
+                            new SQLLongint(contentSummary.fileCount_SLOW()),
+                            new SQLLongint(contentSummary.size_SLOW()),
                             new SQLVarchar((badFileName == null || badFileName.isEmpty() ? "NONE" : badFileName))
                     });
                 } else {
                     result.setRowArray(new DataValueDescriptor[]{
                             new SQLLongint(rowsImported),
                             new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getFailedRecords()),
-                            new SQLLongint(contentSummary.fileCount()),
-                            new SQLLongint(contentSummary.size()),
+                            new SQLLongint(contentSummary.fileCount_SLOW()),
+                            new SQLLongint(contentSummary.size_SLOW()),
                             new SQLVarchar((badFileName == null || badFileName.isEmpty() ? "NONE" : badFileName))
                     });
                 }

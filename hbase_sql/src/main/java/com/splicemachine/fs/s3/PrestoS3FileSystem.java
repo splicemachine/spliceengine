@@ -18,6 +18,7 @@ import splice.aws.com.amazonaws.AmazonClientException;
 import splice.aws.com.amazonaws.ClientConfiguration;
 import splice.aws.com.amazonaws.Protocol;
 import splice.aws.com.amazonaws.auth.*;
+import splice.aws.com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import splice.aws.com.amazonaws.event.ProgressEvent;
 import splice.aws.com.amazonaws.event.ProgressEventType;
 import splice.aws.com.amazonaws.event.ProgressListener;
@@ -124,10 +125,30 @@ public class PrestoS3FileSystem
     private PrestoS3SseType sseType;
     private String sseKmsKeyId;
 
+//    private HashMap<Path, ObjectMetadata> getS3ObjectMetadata_cache = new HashMap<>();
+    private HashMap<Path, ObjectMetadata> getS3ObjectMetadata_cache = null;
+//    private HashMap<Path, FileStatus[]> listStatus_cache = new HashMap<>();
+    private HashMap<Path, FileStatus[]> listStatus_cache = null;
+//    private HashMap<Path, FileStatus> getFileStatus_cache = new HashMap<>();
+    private HashMap<Path, FileStatus> getFileStatus_cache = null;
+
+
+    private static void log(String str)
+    {
+//        try {
+//            java.io.FileOutputStream fos = new java.io.FileOutputStream("/tmp/log.txt", true);
+//            fos.write((Thread.currentThread().getStackTrace()[2] + str + "\n").getBytes());
+//            fos.close();
+//        }
+//        catch( Exception e) {}
+    }
+
     @Override
     public void initialize(URI uri, Configuration conf)
             throws IOException
     {
+        log("init" );
+
         requireNonNull(uri, "uri is null");
         requireNonNull(conf, "conf is null");
         super.initialize(uri, conf);
@@ -205,18 +226,35 @@ public class PrestoS3FileSystem
     public FileStatus[] listStatus(Path path)
             throws IOException
     {
+        if( listStatus_cache == null ) {
+            listStatus_cache = new HashMap<>();
+            getFileStatus_cache = new HashMap<>();
+            getS3ObjectMetadata_cache = new HashMap<>();
+        }
+
+//        if( listStatus_cache != null )
+        if( false && listStatus_cache != null )
+        {
+            if( listStatus_cache.containsKey(path) ) {
+                FileStatus[] s = listStatus_cache.get(path);
+                return s;
+            }
+        }
         STATS.newListStatusCall();
         List<LocatedFileStatus> list = new ArrayList<>();
         RemoteIterator<LocatedFileStatus> iterator = listLocatedStatus(path);
         while (iterator.hasNext()) {
             list.add(iterator.next());
         }
-        return toArray(list, LocatedFileStatus.class);
+        FileStatus[] s = toArray(list, LocatedFileStatus.class);
+        if( listStatus_cache != null ) listStatus_cache.put(path, s );
+        return s;
     }
 
     @Override
     public RemoteIterator<LocatedFileStatus> listLocatedStatus(Path path)
     {
+        log("listLocatedStatus " + path );
         STATS.newListLocatedStatusCall();
         return new RemoteIterator<LocatedFileStatus>()
         {
@@ -248,10 +286,23 @@ public class PrestoS3FileSystem
         };
     }
 
-    @Override
+    @Override /// /!\ this is recursive -----> bad
     public FileStatus getFileStatus(Path path)
             throws IOException
     {
+        if( getFileStatus_cache == null ) {
+            listStatus_cache = new HashMap<>();
+            getFileStatus_cache = new HashMap<>();
+            getS3ObjectMetadata_cache = new HashMap<>();
+        }
+//         if( getFileStatus_cache != null )
+        if( false && getFileStatus_cache != null )
+        {
+            if( getFileStatus_cache.containsKey(path) ) {
+                FileStatus fs = getFileStatus_cache.get(path);
+                return fs;
+            }
+        }
         if (path.getName().isEmpty()) {
             // the bucket root requires special handling
             if (getS3ObjectMetadata(path) != null) {
@@ -259,7 +310,7 @@ public class PrestoS3FileSystem
             }
             throw new FileNotFoundException("File does not exist: " + path);
         }
-
+        // strange way to check if something is a directory?!
         ObjectMetadata metadata = getS3ObjectMetadata(path);
 
         if (metadata == null) {
@@ -271,13 +322,17 @@ public class PrestoS3FileSystem
             throw new FileNotFoundException("File does not exist: " + path);
         }
 
-        return new FileStatus(
+        FileStatus fs = new FileStatus(
                 getObjectSize(metadata),
                 false,
                 1,
                 BLOCK_SIZE.toBytes(),
                 lastModifiedTime(metadata),
                 qualifiedPath(path));
+
+        if( getFileStatus_cache != null )
+            getFileStatus_cache.put(path, fs);
+        return fs;
     }
 
     private static long getObjectSize(ObjectMetadata metadata)
@@ -328,6 +383,7 @@ public class PrestoS3FileSystem
     public boolean rename(Path src, Path dst)
             throws IOException
     {
+        log("" );
         boolean srcDirectory;
         try {
             srcDirectory = directory(src);
@@ -399,6 +455,7 @@ public class PrestoS3FileSystem
 
     private boolean deleteObject(String key)
     {
+        log("" );
         try {
             s3.deleteObject(uri.getHost(), key);
             return true;
@@ -417,6 +474,7 @@ public class PrestoS3FileSystem
 
     private Iterator<LocatedFileStatus> listPrefix(Path path)
     {
+        log("listPrefix" );
         String key = keyFromPath(path);
         if (!key.isEmpty()) {
             key += PATH_SEPARATOR;
@@ -436,6 +494,7 @@ public class PrestoS3FileSystem
                 if (!previous.isTruncated()) {
                     return null;
                 }
+                log( "nextBatch" );
                 return s3.listNextBatchOfObjects(previous);
             }
         };
@@ -498,8 +557,21 @@ public class PrestoS3FileSystem
     ObjectMetadata getS3ObjectMetadata(Path path)
             throws IOException
     {
+        log("getS3ObjectMetadata " + path );
+        if( getS3ObjectMetadata_cache == null ) {
+            listStatus_cache = new HashMap<>();
+            getFileStatus_cache = new HashMap<>();
+            getS3ObjectMetadata_cache = new HashMap<>();
+        }
+//        if( getS3ObjectMetadata_cache != null ) {
+        if( false && getS3ObjectMetadata_cache != null ) {
+            if( getS3ObjectMetadata_cache.containsKey(path) ) {
+                ObjectMetadata omd = getS3ObjectMetadata_cache.get(path);
+                return omd;
+            }
+        }
         try {
-            return retry()
+            ObjectMetadata omd = retry()
                     .maxAttempts(maxAttempts)
                     .exponentialBackoff(BACKOFF_MIN_SLEEP, maxBackoffTime, maxRetryTime, 2.0)
                     .stopOn(InterruptedException.class, UnrecoverableS3OperationException.class)
@@ -523,6 +595,9 @@ public class PrestoS3FileSystem
                             throw Throwables.propagate(e);
                         }
                     });
+            if( getS3ObjectMetadata_cache != null )
+                getS3ObjectMetadata_cache.put( path, omd );
+            return omd;
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -577,6 +652,7 @@ public class PrestoS3FileSystem
     private AmazonS3Client createAmazonS3Client(URI uri, Configuration hadoopConfig, ClientConfiguration clientConfig)
     {
         AWSCredentialsProvider credentials = getAwsCredentialsProvider(uri, hadoopConfig);
+
         Optional<EncryptionMaterialsProvider> emp = createEncryptionMaterialsProvider(hadoopConfig);
         AmazonS3Client client;
         String signerType = hadoopConfig.get(S3_SIGNER_TYPE);
@@ -835,6 +911,7 @@ public class PrestoS3FileSystem
         private InputStream openStream(Path path, long start)
                 throws IOException
         {
+            log("openStream " + path );
             try {
                 return retry()
                         .maxAttempts(maxAttempts)

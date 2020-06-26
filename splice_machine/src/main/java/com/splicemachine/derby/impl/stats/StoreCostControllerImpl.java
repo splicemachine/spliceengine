@@ -158,9 +158,10 @@ public class StoreCostControllerImpl implements StoreCostController {
                 tableStatistics = RegionLoadStatistics.getTableStatistics(tableId, partitions,fallbackNullFraction,extraQualifierMultiplier, defaultRowCount);
             else {
                 try {
+                    // todo: is this correct for ORC/Parquet?
                     FileInfo fileInfo = ImportUtils.getImportFileInfo(td.getLocation());
-                    long rowCount = fileInfo !=null?fileInfo.size()/100:(long) VTICosting.defaultEstimatedRowCount;
-                    long heapSize = fileInfo !=null?fileInfo.size():(long) VTICosting.defaultEstimatedRowCount*100;
+                    long rowCount = fileInfo !=null?fileInfo.size_SLOW()/100:(long) VTICosting.defaultEstimatedRowCount;
+                    long heapSize = fileInfo !=null?fileInfo.size_SLOW():(long) VTICosting.defaultEstimatedRowCount*100;
                     if (defaultRowCount > 0) {
                         rowCount = defaultRowCount;
                         heapSize = rowCount * 100;

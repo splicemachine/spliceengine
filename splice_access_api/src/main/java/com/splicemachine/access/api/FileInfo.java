@@ -26,22 +26,25 @@ public interface FileInfo{
 
     boolean isDirectory();
 
+    boolean isEmptyDirectory();
+
     /**
      * @return the number of files in the directory, or 1 if this is a file.
      */
-    long fileCount();
+    long fileCount_SLOW();
+
 
     /**
      * Returns the overall space consumed for the file.
      * Depends on the file system. For HDFS, this would return
      * not the current size of the file but rather
      * current size * replication factor. For a local system,
-     * it would return the same value as {@link #size()},
+     * it would return the same value as {@link #size_SLOW()},
      * the actual current size of the file.
      */
-    long spaceConsumed();
+    long spaceConsumed_SLOW();
 
-    long size();
+    long size_SLOW();
 
     boolean isReadable();
 

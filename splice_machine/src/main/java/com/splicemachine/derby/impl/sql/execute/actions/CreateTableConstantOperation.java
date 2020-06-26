@@ -342,6 +342,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
         if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
+            // maybe a good point here to set add FileInfo to location
             td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity,columnInfo.length,
                     delimited,
                     escaped,
@@ -532,14 +533,19 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 // test constraint only if the external file exits
                 DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
                 FileInfo fileInfo = fileSystem.getInfo(location);
-                if(!fileInfo.exists() || (fileInfo.isDirectory() && ExternalTableUtils.isEmptyDirectory(location))) {
+                if(!fileInfo.isDirectory()) {
+                    throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
+                }
+                else if( fileInfo.isEmptyDirectory() ) {
                     // need the create the external file if the location provided is empty
                     String pathToParent = location.substring(0, location.lastIndexOf("/"));
-                    ImportUtils.validateWritable(pathToParent, false);
+                    ImportUtils.validateWritable(pathToParent, false); // ah wtf
+                    // this will ALSO call getFileStatus in SparkE / PrestoS3, but without the correct credentials?!
                     EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup, columnInfo));
 
-                } else if(fileInfo.exists() && fileInfo.isDirectory() && fileInfo.fileCount() > 0 && storedAs.compareToIgnoreCase("t") != 0) {
-                    Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema));
+                } else if( storedAs.compareToIgnoreCase("t") != 0 ) {
+                    Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().
+                            submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema));
                     GetSchemaExternalResult result = null;
                     SConfiguration config = EngineDriver.driver().getConfiguration();
                     while (result == null) {
@@ -559,10 +565,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         }
                     }
                     StructType externalSchema = result.getSchema();
-
                     checkSchema(externalSchema, activation);
-                } else if(!fileInfo.isDirectory()) {
-                    throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
                 }
 
             }

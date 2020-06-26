@@ -290,6 +290,7 @@ public class ExternalTableUtils {
     }
 
     public static boolean isEmptyDirectory(String location) throws Exception {
+        // todo(martinrupp): check how slow this is
         String[] files = ImportUtils.getFileSystem(location).getExistingFiles(location, "*");
         return ((files.length == 0) || (files.length == 1 && "_SUCCESS".equals(truncateFileNameFromFullPath(files[0]))));
 

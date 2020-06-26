@@ -229,6 +229,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) throws StandardException {
         try {
+            // todo(martinrupp): fix this, this is just checking if the file exists, can we cache this information?
             FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
             String displayString="";
             if(op!=null)
@@ -464,38 +465,40 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
             if (!mergeSchema) {
                 fs = FileSystem.get(URI.create(location), conf);
-                String fileName = getFile(fs, location);
-                boolean canWrite = true;
-                if( (fileName == null || (fs.getFileStatus(new Path(location)).getPermission().toShort() & 0222) == 0 )) {
-                    canWrite = false;
-                }
-                else {
-                    temp = new Path(location, TEMP_DIR_PREFIX + "_" + UUID.randomUUID().toString().replaceAll("-", ""));
-
-                    try {
-                        fs.mkdirs(temp);
-                    } catch (IOException e) {
-                        canWrite = false;
-                        temp = null;
-                    }
-                }
-
-                if( canWrite )
-                {
-                    SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
-                    // Copy a data file to temp directory
-                    int index = fileName.indexOf(location);
-                    if (index != -1) {
-                        String s = fileName.substring(index + location.length() + 1);
-                        Path destDir = new Path(temp, s);
-                        try {
-                            FileUtil.copy(fs, new Path(fileName), fs, destDir, false, conf);
-                            location = temp.toString();
-                        } catch (IOException e) {
-                            canWrite = false;
-                        }
-                    }
-                }
+                boolean canWrite = false;
+//                String fileName = getFile(fs, location);
+//                boolean canWrite = true;
+//                if( (fileName == null || (fs.getFileStatus(new Path(location)).getPermission().toShort() & 0222) == 0 )) {
+//                    canWrite = false;
+//                }
+//                else {
+//                    temp = new Path(location, TEMP_DIR_PREFIX + "_" + UUID.randomUUID().toString().replaceAll("-", ""));
+//
+//                    try {
+//                        //fs.mkdirs(temp);
+//                        throw new IOException("nope");
+//                    } catch (IOException e) {
+//                        canWrite = false;
+//                        temp = null;
+//                    }
+//                }
+//
+//                if( canWrite )
+//                {
+//                    SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
+//                    // Copy a data file to temp directory
+//                    int index = fileName.indexOf(location);
+//                    if (index != -1) {
+//                        String s = fileName.substring(index + location.length() + 1);
+//                        Path destDir = new Path(temp, s);
+//                        try {
+//                            FileUtil.copy(fs, new Path(fileName), fs, destDir, false, conf);
+//                            location = temp.toString();
+//                        } catch (IOException e) {
+//                            canWrite = false;
+//                        }
+//                    }
+//                }
 
                 if( !canWrite )
                 {
@@ -555,6 +558,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
      * @return
      * @throws IOException
      */
+    // todo(martinrupp): please don't use this, recursive lists all files... bad
     private String getFile(FileSystem fs, String location) throws IOException {
 
         Path path = new Path(location);
@@ -592,7 +596,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             List<String> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
                 partitionByCols.add(fields[partitionBy[i]].name());
-            }
+            } // this is running in OlapServer /!\ file access below!!, but doesn't seem to get credentials right
             if (storedAs!=null) {
                 if (storedAs.toLowerCase().equals("p")) {
                     compression = SparkDataSet.getParquetCompression(compression);
