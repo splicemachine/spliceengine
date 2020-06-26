@@ -394,6 +394,11 @@ public class MemTxnStore implements TxnStore{
     }
 
     @Override
+    public long getTxnAt(long ts) throws IOException {
+        return 0;
+    }
+
+    @Override
     public long lookupCount(){
         return 0;
     }

@@ -36,9 +36,11 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -190,8 +192,11 @@ public class TableScanOperation extends ScanOperation{
         init();
         if(pastTxFunctor != null) {
             this.pastTx = MapToTxId((DataValueDescriptor)pastTxFunctor.invoke(activation));
+            if(pastTx == -1) {
+                pastTx = 0; // force going back to oldest transaction instead of ignoring it.
+            }
         } else {
-            this.pastTx = -1;
+            this.pastTx = -1; // nothing is set, go ahead and use latest transaction.
         }
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
@@ -201,7 +206,11 @@ public class TableScanOperation extends ScanOperation{
         if(dataValue instanceof SQLTimestamp) {
             Timestamp ts = ((SQLTimestamp)dataValue).getTimestamp(null);
             SpliceLogUtils.trace(LOG,"time travel ts=%s", ts.toString());
-            return ts.getTime(); // todo implement function that maps ts to txid
+            try {
+                return SIDriver.driver().getTxnStore().getTxnAt(ts.getTime());
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
         }else if(dataValue instanceof SQLTinyint || dataValue instanceof SQLSmallint || dataValue instanceof SQLInteger || dataValue instanceof SQLLongint) {
             return dataValue.getLong();
         }else {
@@ -354,10 +363,7 @@ public class TableScanOperation extends ScanOperation{
     }
 
     /**
-     *
-     * Return the string representation for TableScan.
-     *
-     * @return
+     * @return the string representation for TableScan.
      */
     @Override
     public String toString(){
@@ -371,7 +377,6 @@ public class TableScanOperation extends ScanOperation{
     /**
      * @param pastTx The ID of the past transaction.
      * @return a view of a past transaction.
-     * @throws StandardException
      */
     private TxnView getPastTransaction(long pastTx) throws StandardException {
         TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
@@ -383,7 +388,6 @@ public class TableScanOperation extends ScanOperation{
 
     /**
      * @return either current transaction or a committed transaction in the past.
-     * @throws StandardException
      */
     protected TxnView getTransaction() throws StandardException {
         return (pastTx >= 0) ? getPastTransaction(pastTx) : super.getCurrentTransaction();
