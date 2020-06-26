@@ -323,6 +323,10 @@ Check the location of your hdp version if not 3.1.0.0-78, update the locations t
 
 7. Restart all the services affected to start Splice Machine!
 
+### Kafka Maintenance Installation
+
+See the [splice_spark2 README](../../../splice_spark2/README.md) for instructions for setting up the Kafka Maintenance 
+process in a bare metal installation.
 
 ## Start any Additional Services
 
