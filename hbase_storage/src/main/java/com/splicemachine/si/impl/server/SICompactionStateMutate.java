@@ -29,6 +29,7 @@ class SICompactionStateMutate {
     private long deleteRightAfterFirstWriteTimestamp = 0;
     private Map<Integer, Long> columnUpdateLatestTimestamp = new HashMap<>();
     private Set<Long> updatesToPurgeTimestamps = new HashSet<>();
+    private boolean firstUpdateCell = true;
 
     SICompactionStateMutate(PurgeConfig purgeConfig, long lowWatermarkTransaction) {
         this.purgeConfig = purgeConfig;
@@ -140,7 +141,8 @@ class SICompactionStateMutate {
                     EntryDecoder decoder = new EntryDecoder(element.getValueArray(), element.getValueOffset(), element.getValueLength());
                     BitIndex index = decoder.getCurrentIndex();
                     LOG.trace("BitIndex: " + index + " , length=" + index.length());
-                    boolean purge = true;
+                    boolean purge = !firstUpdateCell;
+                    firstUpdateCell = false;
                     for (int col = index.nextSetBit(0); col >= 0; col = index.nextSetBit(col + 1)) {
                         if (!columnUpdateLatestTimestamp.containsKey(col)) {
                             columnUpdateLatestTimestamp.put(col, beginTimestamp);
