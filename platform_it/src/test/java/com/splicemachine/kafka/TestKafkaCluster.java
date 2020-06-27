@@ -40,6 +40,7 @@ public class TestKafkaCluster {
         assert props.containsKey("zookeeper.connect");
         props.put("zookeeper.connect", zkConnectString);
         props.put("port","9092");
+        props.put("log.dir", System.getProperty("java.io.tmpdir", "target/tmp") + "/kafka-logs");
         return new KafkaConfig(props);
     }
 

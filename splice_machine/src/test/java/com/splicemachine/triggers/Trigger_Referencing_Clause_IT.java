@@ -53,6 +53,7 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_TRIGGER
 /**
  * Test REFERENCING clause in triggers.
  */
+@Ignore
 @RunWith(Parameterized.class)
 @Category({SerialTest.class, LongerThanTwoMinutes.class, LongerThanFiveMinutes.class})
 public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {

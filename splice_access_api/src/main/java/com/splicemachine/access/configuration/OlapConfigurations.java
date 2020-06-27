@@ -83,6 +83,9 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String OLAP_SERVER_EXTERNAL = "splice.olap_server.external";
     private static final boolean DEFAULT_OLAP_SERVER_EXTERNAL = true;
 
+    public static final String OLAP_SERVER_MAX_RETRIES = "splice.olap_server.maxRetries";
+    public static final int DEFAULT_OLAP_SERVER_MAX_RETRIES = 30;
+
     public static final String OLAP_SERVER_SUBMIT_ATTEMPTS = "splice.olap_server.submitAttempts";
     private static final int DEFAULT_OLAP_SERVER_SUBMIT_ATTEMPTS = 50;
 
@@ -179,6 +182,7 @@ public class OlapConfigurations implements ConfigurationDefault {
         builder.olapServerBindPort  = configurationSource.getInt(OLAP_SERVER_BIND_PORT, DEFAULT_OLAP_SERVER_BIND_PORT);
         builder.olapServerStagingDir = configurationSource.getString(OLAP_SERVER_STAGING_DIR, DEFAULT_OLAP_SERVER_STAGING_DIR);
         builder.olapServerExternal  = configurationSource.getBoolean(OLAP_SERVER_EXTERNAL, DEFAULT_OLAP_SERVER_EXTERNAL);
+        builder.olapServerMaxRetries = configurationSource.getInt(OLAP_SERVER_MAX_RETRIES, DEFAULT_OLAP_SERVER_MAX_RETRIES);
         builder.olapClientWaitTime  = configurationSource.getInt(OLAP_CLIENT_WAIT_TIME, DEFAULT_OLAP_CLIENT_WAIT_TIME);
         builder.olapClientTickTime  = configurationSource.getInt(OLAP_CLIENT_TICK_TIME, DEFAULT_OLAP_CLIENT_TICK_TIME);
         builder.olapServerThreads = configurationSource.getInt(OLAP_SERVER_THREADS, DEFAULT_OLAP_SERVER_THREADS);
