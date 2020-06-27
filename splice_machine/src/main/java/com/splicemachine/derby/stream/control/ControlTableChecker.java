@@ -24,6 +24,7 @@ import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.config.WriteConfiguration;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -228,7 +229,7 @@ public class ControlTableChecker implements TableChecker {
                         messages.add("...");
                         return messages;
                     }
-                    messages.add(indexRow._2 + "=>" + baseRowId);
+                    messages.add(indexRow._2 + "@" + Bytes.toHex(indexRow._1) + "=>" + baseRowId);
                     num++;
                 }
             }
@@ -275,7 +276,7 @@ public class ControlTableChecker implements TableChecker {
                     messages.add("...");
                     return messages;
                 }
-                messages.add(indexRow._2 + "=>" + baseRowId);
+                messages.add(indexRow._2 + "@" + Bytes.toHex(indexRow._1) + "=>" + baseRowId);
                 i++;
             }
         }

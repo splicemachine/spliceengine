@@ -74,3 +74,12 @@ message Result{
     }
     required bytes resultBytes = 1;
 }
+
+message KeepAlive {
+    required int64 time = 1;
+    required int32 major = 2;
+    required int32 minor = 3;
+    required int32 patch = 4;
+    required int32 sprint = 5;
+    required string implementation = 6;
+}
