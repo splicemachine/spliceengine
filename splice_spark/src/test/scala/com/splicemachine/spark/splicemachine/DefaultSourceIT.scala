@@ -19,7 +19,6 @@ import java.nio.file.{Files, Path}
 import java.sql.{Time, Timestamp}
 import java.util.Date
 
-import com.splicemachine.access.HConfiguration
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
