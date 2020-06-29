@@ -85,7 +85,7 @@ class SICompactionStateMutate {
      */
     private void mutate(Cell element, TxnView txn) throws IOException {
         final CellType cellType = CellUtils.getKeyValueType(element);
-        if (element.getType() != Cell.Type.Put) {
+        if (element.getTypeByte() != KeyValue.Type.Put.getCode()) {
             // Rolled back data, remove it
             return;
         }
