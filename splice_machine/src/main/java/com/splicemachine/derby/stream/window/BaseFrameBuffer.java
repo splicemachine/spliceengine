@@ -21,8 +21,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinitio
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.PeekingIterator;
+import org.sparkproject.guava.collect.Iterators;
+import org.sparkproject.guava.collect.PeekingIterator;
 
 import java.io.IOException;
 import java.util.ArrayList;

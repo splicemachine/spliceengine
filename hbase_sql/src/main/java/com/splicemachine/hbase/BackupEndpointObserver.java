@@ -39,7 +39,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import java.io.IOException;
 import java.util.Collection;

@@ -51,7 +51,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 /**
  * A CreateTriggerNode is the root of a QueryTree that represents a CREATE TRIGGER statement.

@@ -26,7 +26,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import java.io.IOException;
 import java.io.ObjectInput;

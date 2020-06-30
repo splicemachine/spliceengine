@@ -15,8 +15,8 @@
 package com.splicemachine.impl;
 
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.Sets;
+import org.sparkproject.guava.base.Predicate;
+import org.sparkproject.guava.collect.Sets;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;

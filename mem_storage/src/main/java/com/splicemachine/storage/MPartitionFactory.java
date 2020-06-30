@@ -14,8 +14,8 @@
 
 package com.splicemachine.storage;
 
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.Iterables;
+import org.sparkproject.guava.base.Predicate;
+import org.sparkproject.guava.collect.Iterables;
 import com.splicemachine.access.api.*;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;

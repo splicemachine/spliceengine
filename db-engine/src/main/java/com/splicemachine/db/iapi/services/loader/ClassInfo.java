@@ -35,9 +35,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import org.spark_project.guava.cache.CacheBuilder;
-import org.spark_project.guava.cache.CacheLoader;
-import org.spark_project.guava.cache.LoadingCache;
+import org.sparkproject.guava.cache.CacheBuilder;
+import org.sparkproject.guava.cache.CacheLoader;
+import org.sparkproject.guava.cache.LoadingCache;
 
 public class ClassInfo implements InstanceGetter {
 

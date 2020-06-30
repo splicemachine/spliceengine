@@ -34,7 +34,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import java.util.List;
 

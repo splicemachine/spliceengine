@@ -14,7 +14,7 @@
 
 package com.splicemachine.collections;
 
-import org.spark_project.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Iterables;
 import java.util.Arrays;
 import java.util.List;
 

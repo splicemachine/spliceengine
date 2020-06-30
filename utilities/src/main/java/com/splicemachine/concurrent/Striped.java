@@ -14,15 +14,15 @@
 
 package com.splicemachine.concurrent;
 
-import static org.spark_project.guava.base.Objects.firstNonNull;
+import static org.sparkproject.guava.base.Objects.firstNonNull;
 
-import org.spark_project.guava.annotations.Beta;
-import org.spark_project.guava.base.Preconditions;
-import org.spark_project.guava.base.Supplier;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.MapMaker;
-import org.spark_project.guava.math.IntMath;
-import org.spark_project.guava.primitives.Ints;
+import org.sparkproject.guava.annotations.Beta;
+import org.sparkproject.guava.base.Preconditions;
+import org.sparkproject.guava.base.Supplier;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.MapMaker;
+import org.sparkproject.guava.math.IntMath;
+import org.sparkproject.guava.primitives.Ints;
 
 import java.math.RoundingMode;
 import java.util.Arrays;

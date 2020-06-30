@@ -33,14 +33,14 @@ package com.splicemachine.db.impl.ast;
 
 
 import com.carrotsearch.hppc.LongArrayList;
-import org.spark_project.guava.base.Function;
+import org.sparkproject.guava.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Collections2;
-import org.spark_project.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Collections2;
+import org.sparkproject.guava.collect.Iterables;
 import java.util.*;
 
 /**
@@ -111,7 +111,7 @@ public class CorrelatedPushDown extends AbstractSpliceVisitor {
             return subq;
         }
         /* revisit, thinking about non-colrefs or colrefs w/o ResultCols underneath */
-        org.spark_project.guava.base.Predicate<ValueNode> isUncorrelated =
+        org.sparkproject.guava.base.Predicate<ValueNode> isUncorrelated =
             RSUtils.refPointsTo(pr);
         Collection<ValueNode> uncorrelated =
             Collections2.filter(colRefs, isUncorrelated);

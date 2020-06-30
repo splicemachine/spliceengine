@@ -15,9 +15,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import org.spark_project.guava.base.Supplier;
-import org.spark_project.guava.base.Suppliers;
-import org.spark_project.guava.base.Throwables;
+import org.sparkproject.guava.base.Supplier;
+import org.sparkproject.guava.base.Suppliers;
+import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;

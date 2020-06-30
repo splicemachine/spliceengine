@@ -30,8 +30,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Iterators;
+import org.sparkproject.guava.base.Function;
+import org.sparkproject.guava.collect.Iterators;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

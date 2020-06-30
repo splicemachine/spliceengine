@@ -14,7 +14,7 @@
 
 package com.splicemachine.metrics;
 
-import org.spark_project.guava.util.concurrent.AtomicDouble;
+import org.sparkproject.guava.util.concurrent.AtomicDouble;
 import com.splicemachine.annotations.ThreadSafe;
 
 import java.util.concurrent.TimeUnit;

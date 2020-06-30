@@ -16,7 +16,7 @@
 package com.splicemachine.access.configuration;
 
 
-import org.spark_project.guava.base.Splitter;
+import org.sparkproject.guava.base.Splitter;
 
 import java.util.Collections;
 import java.util.HashMap;

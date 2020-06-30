@@ -14,7 +14,7 @@
 
 package com.splicemachine.backup;
 
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import java.io.*;
 import java.util.List;

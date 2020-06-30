@@ -23,7 +23,7 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
-import org.spark_project.guava.net.HostAndPort;
+import org.sparkproject.guava.net.HostAndPort;
 
 import java.io.IOException;
 import java.util.ArrayList;

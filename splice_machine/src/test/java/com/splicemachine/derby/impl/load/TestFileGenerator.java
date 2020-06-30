@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.impl.load;
 
-import org.spark_project.guava.base.Joiner;
+import org.sparkproject.guava.base.Joiner;
 
 import java.io.*;
 

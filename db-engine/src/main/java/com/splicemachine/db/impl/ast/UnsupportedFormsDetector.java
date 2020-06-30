@@ -35,8 +35,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.base.Function;
+import org.sparkproject.guava.collect.Lists;
 import java.util.*;
 
 /**

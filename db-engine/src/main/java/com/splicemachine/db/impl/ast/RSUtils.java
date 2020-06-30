@@ -31,12 +31,12 @@
 
 package com.splicemachine.db.impl.ast;
 
-import org.spark_project.guava.base.Function;
+import org.sparkproject.guava.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.*;
-import org.spark_project.guava.base.Predicates;
-import org.spark_project.guava.collect.*;
+import org.sparkproject.guava.base.Predicates;
+import org.sparkproject.guava.collect.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -90,14 +90,14 @@ public class RSUtils {
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    public static final org.spark_project.guava.base.Predicate<Object> isRSN = Predicates.instanceOf(ResultSetNode.class);
+    public static final org.sparkproject.guava.base.Predicate<Object> isRSN = Predicates.instanceOf(ResultSetNode.class);
 
-    public static final org.spark_project.guava.base.Predicate<ResultSetNode> rsnHasPreds =
+    public static final org.sparkproject.guava.base.Predicate<ResultSetNode> rsnHasPreds =
             Predicates.or(Predicates.instanceOf(ProjectRestrictNode.class), Predicates.instanceOf(FromBaseTable.class),
                     Predicates.instanceOf(IndexToBaseRowNode.class));
 
 
-    public final static org.spark_project.guava.base.Predicate<ResultSetNode> isSinkingNode = new org.spark_project.guava.base.Predicate<ResultSetNode>() {
+    public final static org.sparkproject.guava.base.Predicate<ResultSetNode> isSinkingNode = new org.sparkproject.guava.base.Predicate<ResultSetNode>() {
         @Override
         public boolean apply(ResultSetNode rsn) {
             return sinkers.contains(rsn.getClass()) &&
@@ -126,10 +126,10 @@ public class RSUtils {
             FullOuterJoinNode.class,
             IntersectOrExceptNode.class);
 
-    public static final org.spark_project.guava.base.Predicate<Object> isBinaryRSN =
+    public static final org.sparkproject.guava.base.Predicate<Object> isBinaryRSN =
             Predicates.compose(Predicates.in(binaryRSNs), classOf);
 
-    public static final org.spark_project.guava.base.Predicate<Object> isBinaryRSNExcludeUnion =
+    public static final org.sparkproject.guava.base.Predicate<Object> isBinaryRSNExcludeUnion =
             Predicates.compose(Predicates.in(binaryRSNsExcludeUnion), classOf);
 
     // leafRSNs might need VTI eventually
@@ -174,14 +174,14 @@ public class RSUtils {
      * that if the predicate evaluates to true for the passed top node parameter then no nodes will be visited.
      */
     public static <N> List<N> collectNodesUntil(Visitable node, Class<N> clazz,
-                                                org.spark_project.guava.base.Predicate<? super Visitable> pred) throws StandardException {
+                                                org.sparkproject.guava.base.Predicate<? super Visitable> pred) throws StandardException {
         return CollectingVisitorBuilder.forClass(clazz).until(pred).collect(node);
     }
 
     public static <N> List<N> collectExpressionNodes(ResultSetNode node, Class<N> clazz) throws StandardException {
         // define traversal axis to be the node itself (so we can get to its descendants) or,
         // our real target, non-ResultSetNodes
-        org.spark_project.guava.base.Predicate<Object> onAxis = Predicates.or(Predicates.equalTo((Object) node), Predicates.not(isRSN));
+        org.sparkproject.guava.base.Predicate<Object> onAxis = Predicates.or(Predicates.equalTo((Object) node), Predicates.not(isRSN));
         return CollectingVisitorBuilder.forClass(clazz).onAxis(onAxis).collect(node);
     }
 
@@ -197,8 +197,8 @@ public class RSUtils {
      * Return immediate (ResultSetNode) children of node
      */
     public static List<ResultSetNode> getChildren(ResultSetNode node) throws StandardException {
-        org.spark_project.guava.base.Predicate<Object> self = Predicates.equalTo((Object) node);
-        org.spark_project.guava.base.Predicate<Object> notSelfButRS = Predicates.and(Predicates.not(self), isRSN);
+        org.sparkproject.guava.base.Predicate<Object> self = Predicates.equalTo((Object) node);
+        org.sparkproject.guava.base.Predicate<Object> notSelfButRS = Predicates.and(Predicates.not(self), isRSN);
         return CollectingVisitorBuilder.<ResultSetNode>forPredicate(notSelfButRS)
                 .onAxis(self)
                 .collect(node);
@@ -300,9 +300,9 @@ public class RSUtils {
         return isMSJ(ap) || isMJ(ap);
     }
 
-    public static org.spark_project.guava.base.Predicate<ResultColumn> pointsTo(ResultSetNode rsn) throws StandardException {
+    public static org.sparkproject.guava.base.Predicate<ResultColumn> pointsTo(ResultSetNode rsn) throws StandardException {
         final Set<Integer> rsns = Sets.newHashSet(Iterables.transform(getSelfAndDescendants(rsn), rsNum));
-        return new org.spark_project.guava.base.Predicate<ResultColumn>() {
+        return new org.sparkproject.guava.base.Predicate<ResultColumn>() {
             @Override
             public boolean apply(ResultColumn rc) {
                 return rc != null && rsns.contains(rc.getResultSetNumber());
@@ -310,7 +310,7 @@ public class RSUtils {
         };
     }
 
-    public static org.spark_project.guava.base.Predicate<ValueNode> refPointsTo(ResultSetNode rsn) throws StandardException {
+    public static org.sparkproject.guava.base.Predicate<ValueNode> refPointsTo(ResultSetNode rsn) throws StandardException {
         return Predicates.compose(pointsTo(rsn), refToRC);
     }
 

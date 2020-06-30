@@ -22,7 +22,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import org.apache.commons.lang.SerializationUtils;
-import org.spark_project.guava.primitives.Ints;
+import org.sparkproject.guava.primitives.Ints;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -45,7 +45,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.spark_project.guava.base.Preconditions.checkArgument;
+import static org.sparkproject.guava.base.Preconditions.checkArgument;
 
 /**
  * Builds an index table KVPair given a base table KVPair.

@@ -24,8 +24,8 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-import org.spark_project.guava.collect.Maps;
-import org.spark_project.guava.collect.Sets;
+import org.sparkproject.guava.collect.Maps;
+import org.sparkproject.guava.collect.Sets;
 
 import java.sql.ResultSet;
 import java.sql.Statement;

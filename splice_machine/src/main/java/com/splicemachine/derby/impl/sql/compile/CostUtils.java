@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.compile;
 
-import static org.spark_project.guava.base.Preconditions.checkArgument;
+import static org.sparkproject.guava.base.Preconditions.checkArgument;
 
 public class CostUtils {
 

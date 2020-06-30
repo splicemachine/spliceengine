@@ -30,7 +30,7 @@ import com.splicemachine.management.DirectDatabaseAdministrator;
 import com.splicemachine.management.Manager;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
-import org.spark_project.guava.net.HostAndPort;
+import org.sparkproject.guava.net.HostAndPort;
 
 import java.io.IOException;
 import java.net.InetAddress;

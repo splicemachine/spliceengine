@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.stream.function;
 
-import org.spark_project.guava.collect.Iterators;
+import org.sparkproject.guava.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
@@ -30,8 +30,8 @@ import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.FluentIterable;
+import org.sparkproject.guava.base.Function;
+import org.sparkproject.guava.collect.FluentIterable;
 
 import javax.annotation.Nullable;
 import java.io.Externalizable;

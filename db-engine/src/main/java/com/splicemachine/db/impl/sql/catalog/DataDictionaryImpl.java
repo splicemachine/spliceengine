@@ -70,12 +70,12 @@ import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.base.Optional;
-import org.spark_project.guava.collect.FluentIterable;
-import org.spark_project.guava.collect.ImmutableListMultimap;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Multimaps;
+import org.sparkproject.guava.base.Function;
+import org.sparkproject.guava.base.Optional;
+import org.sparkproject.guava.collect.FluentIterable;
+import org.sparkproject.guava.collect.ImmutableListMultimap;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Multimaps;
 
 import javax.annotation.Nullable;
 import java.io.File;

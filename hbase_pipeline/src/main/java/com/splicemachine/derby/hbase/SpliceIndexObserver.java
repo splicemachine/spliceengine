@@ -53,7 +53,7 @@ import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.wal.WALEdit;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
+import org.sparkproject.guava.base.Function;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

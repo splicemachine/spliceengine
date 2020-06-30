@@ -15,10 +15,10 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.access.util.ByteComparisons;
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.BiMap;
-import org.spark_project.guava.collect.HashBiMap;
-import org.spark_project.guava.collect.Sets;
+import org.sparkproject.guava.base.Predicate;
+import org.sparkproject.guava.collect.BiMap;
+import org.sparkproject.guava.collect.HashBiMap;
+import org.sparkproject.guava.collect.Sets;
 import com.splicemachine.collections.EmptyNavigableSet;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;

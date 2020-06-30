@@ -5,7 +5,7 @@ import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.spark_project.guava.base.Throwables;
+import org.sparkproject.guava.base.Throwables;
 
 import java.sql.Connection;
 import java.sql.ResultSet;

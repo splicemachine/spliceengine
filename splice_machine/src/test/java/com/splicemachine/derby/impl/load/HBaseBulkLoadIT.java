@@ -23,7 +23,7 @@ import org.apache.commons.io.IOUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.spark_project.guava.base.Throwables;
+import org.sparkproject.guava.base.Throwables;
 
 import java.io.File;
 import java.io.FileInputStream;

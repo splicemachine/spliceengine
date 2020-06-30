@@ -43,7 +43,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.ColumnCollectingVisitor;
-import org.spark_project.guava.base.Predicates;
+import org.sparkproject.guava.base.Predicates;
 
 import java.util.HashMap;
 import java.util.List;

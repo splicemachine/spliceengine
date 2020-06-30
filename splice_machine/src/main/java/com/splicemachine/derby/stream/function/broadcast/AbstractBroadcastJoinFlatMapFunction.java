@@ -38,8 +38,8 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.Streams;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.FluentIterable;
+import org.sparkproject.guava.base.Function;
+import org.sparkproject.guava.collect.FluentIterable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

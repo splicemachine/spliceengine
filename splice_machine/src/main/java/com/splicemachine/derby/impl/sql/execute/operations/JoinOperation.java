@@ -31,7 +31,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Strings;
+import org.sparkproject.guava.base.Strings;
 
 import java.io.IOException;
 import java.io.ObjectInput;

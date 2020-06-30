@@ -27,8 +27,8 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Maps;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Maps;
 
 import java.io.File;
 import java.nio.charset.Charset;

@@ -26,7 +26,7 @@ import java.util.ServiceLoader;
 
 import com.carrotsearch.hppc.BitSet;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Preconditions;
+import org.sparkproject.guava.base.Preconditions;
 
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.access.api.PartitionAdmin;

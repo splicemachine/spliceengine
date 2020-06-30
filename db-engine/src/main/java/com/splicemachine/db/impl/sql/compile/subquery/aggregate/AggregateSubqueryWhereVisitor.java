@@ -39,10 +39,10 @@ import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.CorrelationLevelPredicate;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import java.util.List;
-import static org.spark_project.guava.collect.Iterables.any;
-import static org.spark_project.guava.collect.Iterables.filter;
+import static org.sparkproject.guava.collect.Iterables.any;
+import static org.sparkproject.guava.collect.Iterables.filter;
 
 /**
  * Encapsulates/implements current restrictions on the where-clause of subqueries in aggregate subquery flattening. We

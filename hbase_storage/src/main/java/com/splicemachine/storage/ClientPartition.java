@@ -14,16 +14,16 @@
 
 package com.splicemachine.storage;
 
-import org.spark_project.guava.base.Function;
+import org.sparkproject.guava.base.Function;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.HNotServingRegion;
 import com.splicemachine.si.impl.HRegionTooBusy;
 import com.splicemachine.si.impl.HWrongRegion;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.ImmutableList;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Iterators;
+import org.sparkproject.guava.collect.ImmutableList;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Iterators;
 import com.google.protobuf.Service;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.kvpair.KVPair;

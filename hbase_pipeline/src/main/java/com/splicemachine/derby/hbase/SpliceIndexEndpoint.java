@@ -51,8 +51,8 @@ import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.base.Function;
+import org.sparkproject.guava.collect.Lists;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

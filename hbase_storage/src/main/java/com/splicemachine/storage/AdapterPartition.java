@@ -36,10 +36,10 @@ import org.apache.hadoop.hbase.shaded.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.security.AccessDeniedException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.ImmutableList;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Iterators;
+import org.sparkproject.guava.base.Function;
+import org.sparkproject.guava.collect.ImmutableList;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Iterators;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.sql.DataSource;

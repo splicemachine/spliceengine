@@ -59,7 +59,7 @@ import java.sql.Timestamp;
 import java.text.RuleBasedCollator;
 import java.util.Calendar;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
-import org.spark_project.guava.io.CharStreams;
+import org.sparkproject.guava.io.CharStreams;
 
 
 /**

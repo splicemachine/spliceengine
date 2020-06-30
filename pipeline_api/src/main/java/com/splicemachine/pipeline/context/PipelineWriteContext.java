@@ -30,7 +30,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Maps;
+import org.sparkproject.guava.collect.Maps;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;

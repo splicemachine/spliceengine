@@ -31,8 +31,8 @@
 
 package com.splicemachine.db.impl.ast;
 
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.base.Joiner;
+import org.sparkproject.guava.collect.Lists;
 
 import java.util.List;
 

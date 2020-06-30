@@ -27,7 +27,7 @@ import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import java.io.EOFException;
 import java.io.FileNotFoundException;

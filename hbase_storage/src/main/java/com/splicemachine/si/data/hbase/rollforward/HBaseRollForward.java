@@ -24,7 +24,7 @@ import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 
 import java.io.IOException;
 import java.util.List;

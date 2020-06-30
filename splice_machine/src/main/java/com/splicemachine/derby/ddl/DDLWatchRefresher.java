@@ -30,7 +30,7 @@ import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.jetty.util.ConcurrentHashSet;
+import org.sparkproject.jetty.util.ConcurrentHashSet;
 
 import java.io.IOException;
 import java.util.*;

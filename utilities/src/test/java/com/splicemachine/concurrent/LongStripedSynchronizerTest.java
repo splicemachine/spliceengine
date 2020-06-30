@@ -14,7 +14,7 @@
 
 package com.splicemachine.concurrent;
 
-import org.spark_project.guava.collect.Sets;
+import org.sparkproject.guava.collect.Sets;
 import org.junit.Test;
 
 import java.util.Set;

@@ -25,9 +25,9 @@ import org.junit.Test;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.ObjectObjectHashMap;
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.Collections2;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.base.Predicate;
+import org.sparkproject.guava.collect.Collections2;
+import org.sparkproject.guava.collect.Lists;
 
 public class ObjectArrayListBufferTest {
 	protected static Map<String,String> map = new HashMap<String,String>();

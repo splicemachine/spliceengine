@@ -23,7 +23,7 @@ import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import java.sql.ResultSet;
 import java.util.Collection;

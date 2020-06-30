@@ -29,9 +29,9 @@ import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.PeekingIterator;
+import org.sparkproject.guava.base.Function;
+import org.sparkproject.guava.collect.Iterators;
+import org.sparkproject.guava.collect.PeekingIterator;
 
 import javax.annotation.Nullable;
 import java.io.Closeable;

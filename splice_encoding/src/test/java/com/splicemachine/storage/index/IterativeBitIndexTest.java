@@ -15,7 +15,7 @@
 package com.splicemachine.storage.index;
 
 import com.carrotsearch.hppc.BitSet;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

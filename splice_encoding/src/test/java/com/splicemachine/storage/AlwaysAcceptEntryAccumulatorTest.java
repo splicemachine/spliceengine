@@ -14,7 +14,7 @@
 
 package com.splicemachine.storage;
 
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.encoding.TestType;

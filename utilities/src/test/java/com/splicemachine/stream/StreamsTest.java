@@ -14,7 +14,7 @@
 
 package com.splicemachine.stream;
 
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import org.junit.Test;
 
 import java.io.IOException;

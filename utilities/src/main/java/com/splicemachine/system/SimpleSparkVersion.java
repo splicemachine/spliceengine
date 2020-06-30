@@ -14,7 +14,7 @@
 
 package com.splicemachine.system;
 
-import org.spark_project.guava.base.Splitter;
+import org.sparkproject.guava.base.Splitter;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Matcher;

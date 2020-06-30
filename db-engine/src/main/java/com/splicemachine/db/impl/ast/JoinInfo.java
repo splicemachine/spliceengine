@@ -31,10 +31,10 @@
 
 package com.splicemachine.db.impl.ast;
 
-import org.spark_project.guava.base.Function;
+import org.sparkproject.guava.base.Function;
 import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
 import com.splicemachine.db.impl.sql.compile.*;
-import org.spark_project.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Iterables;
 
 import java.util.List;
 import static java.lang.String.format;

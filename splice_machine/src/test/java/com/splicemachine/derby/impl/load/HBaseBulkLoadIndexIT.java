@@ -23,7 +23,7 @@ import com.splicemachine.test_tools.TableCreator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
-import org.spark_project.guava.base.Throwables;
+import org.sparkproject.guava.base.Throwables;
 
 import java.io.File;
 import java.io.FileInputStream;

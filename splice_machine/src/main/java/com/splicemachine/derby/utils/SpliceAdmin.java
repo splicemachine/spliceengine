@@ -74,8 +74,8 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.net.HostAndPort;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.net.HostAndPort;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;

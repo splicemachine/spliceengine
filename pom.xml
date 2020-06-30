@@ -86,9 +86,9 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
-        <scala.binary.version>2.11</scala.binary.version>
-        <spark.version>2.4.3</spark.version>
-        <scala.version>2.11.6</scala.version>
+        <scala.binary.version>2.12</scala.binary.version>
+        <spark.version>3.0.0</spark.version>
+        <scala.version>2.12.10</scala.version>
         <netty-all.version>4.1.17.Final</netty-all.version>
         <spark.warehouse>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</spark.warehouse>
         <hbase.rootdir>-Dhbase.rootdir=${project.build.directory}/hbase</hbase.rootdir>
@@ -389,7 +389,7 @@
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.module</groupId>
-                <artifactId>jackson-module-scala_2.11</artifactId>
+                <artifactId>jackson-module-scala_2.12</artifactId>
                 <version>2.9.9</version>
             </dependency>
             <dependency>
@@ -862,7 +862,7 @@
             <properties>
                 <envClassifier>mem</envClassifier>
                 <hbase.version>2.0.2</hbase.version>
-                <spark.version>2.4.3</spark.version>
+                <spark.version>3.0.0</spark.version>
             </properties>
             <modules>
                 <module>mem_storage</module>

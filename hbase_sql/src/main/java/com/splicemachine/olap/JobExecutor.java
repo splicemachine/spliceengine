@@ -16,7 +16,7 @@ package com.splicemachine.olap;
 
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
-import org.spark_project.guava.util.concurrent.ListenableFuture;
+import org.sparkproject.guava.util.concurrent.ListenableFuture;
 
 import java.io.IOException;
 

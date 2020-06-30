@@ -14,7 +14,7 @@
 
 package com.splicemachine.si.impl;
 
-import org.spark_project.guava.collect.Iterators;
+import org.sparkproject.guava.collect.Iterators;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;

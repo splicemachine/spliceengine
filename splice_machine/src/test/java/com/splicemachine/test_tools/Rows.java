@@ -14,7 +14,7 @@
 
 package com.splicemachine.test_tools;
 
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import java.util.List;
 

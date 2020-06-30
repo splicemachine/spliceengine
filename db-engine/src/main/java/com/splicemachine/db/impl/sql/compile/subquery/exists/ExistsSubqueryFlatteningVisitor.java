@@ -40,8 +40,8 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.ast.AbstractSpliceVisitor;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.*;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Collections;

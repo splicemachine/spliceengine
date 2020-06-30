@@ -14,7 +14,7 @@
 
 package com.splicemachine.encoding;
 
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;

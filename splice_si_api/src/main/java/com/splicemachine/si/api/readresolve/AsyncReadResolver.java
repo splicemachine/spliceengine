@@ -25,7 +25,7 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.TrafficControl;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;

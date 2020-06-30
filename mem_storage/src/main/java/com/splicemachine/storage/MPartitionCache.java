@@ -14,8 +14,8 @@
 
 package com.splicemachine.storage;
 
-import org.spark_project.guava.cache.Cache;
-import org.spark_project.guava.cache.CacheBuilder;
+import org.sparkproject.guava.cache.Cache;
+import org.sparkproject.guava.cache.CacheBuilder;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.primitives.Bytes;
 

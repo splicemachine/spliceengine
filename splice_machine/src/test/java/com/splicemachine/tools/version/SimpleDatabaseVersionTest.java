@@ -14,8 +14,8 @@
 
 package com.splicemachine.tools.version;
 
-import org.spark_project.guava.collect.ImmutableMap;
-import org.spark_project.guava.collect.Maps;
+import org.sparkproject.guava.collect.ImmutableMap;
+import org.sparkproject.guava.collect.Maps;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.stream.iterator;
 
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.kvpair.KVPair;

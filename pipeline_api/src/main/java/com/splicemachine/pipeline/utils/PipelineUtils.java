@@ -24,7 +24,7 @@ import com.splicemachine.pipeline.client.BulkWriteResult;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import java.util.*;
 

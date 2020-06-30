@@ -24,8 +24,8 @@ import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.base.Throwables;
-import org.spark_project.guava.collect.Lists;
+import org.sparkproject.guava.base.Throwables;
+import org.sparkproject.guava.collect.Lists;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

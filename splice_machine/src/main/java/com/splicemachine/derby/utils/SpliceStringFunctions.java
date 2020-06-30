@@ -20,9 +20,9 @@ import java.util.regex.Pattern;
 import com.splicemachine.db.iapi.util.StringUtil;
 import org.apache.commons.lang3.text.WordUtils;
 
-import org.spark_project.guava.cache.CacheBuilder;
-import org.spark_project.guava.cache.CacheLoader;
-import org.spark_project.guava.cache.LoadingCache;
+import org.sparkproject.guava.cache.CacheBuilder;
+import org.sparkproject.guava.cache.CacheLoader;
+import org.sparkproject.guava.cache.LoadingCache;
 
 /**
  * Implementation of standard Splice String functions,

@@ -24,10 +24,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.log4j.Logger;
-import org.spark_project.guava.util.concurrent.ListenableFuture;
-import org.spark_project.guava.util.concurrent.ListeningExecutorService;
-import org.spark_project.guava.util.concurrent.MoreExecutors;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import org.sparkproject.guava.util.concurrent.ListenableFuture;
+import org.sparkproject.guava.util.concurrent.ListeningExecutorService;
+import org.sparkproject.guava.util.concurrent.MoreExecutors;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.ServerStoppedException;

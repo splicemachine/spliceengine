@@ -32,7 +32,7 @@ import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Optional;
+import org.sparkproject.guava.base.Optional;
 
 import java.sql.SQLException;
 import java.util.ArrayList;

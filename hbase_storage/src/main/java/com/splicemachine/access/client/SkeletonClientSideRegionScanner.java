@@ -38,7 +38,7 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Throwables;
+import org.sparkproject.guava.base.Throwables;
 
 import java.io.IOException;
 import java.util.*;
