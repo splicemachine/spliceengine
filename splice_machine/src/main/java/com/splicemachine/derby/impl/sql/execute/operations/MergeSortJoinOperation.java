@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -287,11 +288,13 @@ public class MergeSortJoinOperation extends JoinOperation {
         }
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     @Override
     public int[] getLeftHashKeys() {
         return leftHashKeys;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     @Override
     public int[] getRightHashKeys() {
         return rightHashKeys;
