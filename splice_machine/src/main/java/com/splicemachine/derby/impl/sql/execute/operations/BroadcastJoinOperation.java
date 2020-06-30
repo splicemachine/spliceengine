@@ -192,8 +192,6 @@ public class BroadcastJoinOperation extends JoinOperation{
 
         OperationContext operationContext = dsp.createOperationContext(this);
 
-        SConfiguration configuration= EngineDriver.driver().getConfiguration();
-
         boolean useDataset = true;
 
         /** TODO don't know how to let spark report SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION error,
