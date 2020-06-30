@@ -1,0 +1,130 @@
+def vault_addr="https://vault.build.splicemachine-dev.io"
+def branch = ""
+def source_branch = "${BRANCH_NAME}"
+
+// Launch the docker container
+node('splice-standalone') {
+    def artifact_values  = [
+        [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
+            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
+            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
+    ]
+
+    try {
+
+    notifyBuild('STARTED')
+
+    echo source_branch
+
+    stage('Checkout') {
+      // Checkout code from repository
+        checkout([  
+            $class: 'GitSCM', 
+            branches: [[name: source_branch]], 
+            doGenerateSubmoduleConfigurations: false, 
+            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
+            submoduleCfg: [], 
+            userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
+        ])
+        checkout([  
+            $class: 'GitSCM', 
+            branches: [[name: source_branch]],
+            doGenerateSubmoduleConfigurations: false, 
+            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
+            submoduleCfg: [], 
+            userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
+        ])
+        checkout([  
+            $class: 'GitSCM', 
+            branches: [[name: source_branch]],
+            doGenerateSubmoduleConfigurations: false, 
+            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'splice-machine-spark-connector']], 
+            submoduleCfg: [], 
+            userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/splice-machine-spark-connector.git']]
+        ])
+        wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
+            dir('spliceengine'){
+                def platforms = ""
+                branch = source_branch[-2..-1]
+
+                if ( "$branch" == ".8" ) {
+                        platforms = "cdh5.16.1"
+                        branch = "branch-2.8"
+                    } else if ( "$branch" == ".0" ) {
+                        platforms = "cdh6.3.0"
+                        branch = "branch-3.0"
+                    } else {
+                        platforms = "cdh6.3.0"
+                        branch = "master"
+                    }
+                sh "mvn -B clean install -Pcore -DskipTests"
+                sh '''
+                cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
+                sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
+                sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
+                '''
+                sh "mvn -B clean install -Pmem,$platforms,ee -DskipTests"
+            }
+        }
+      }
+
+    stage('Build') {
+      dir('splice-machine-spark-connector'){
+                def platforms = ""
+                branch = source_branch[-2..-1]
+
+                if ( "$branch" == ".8" ) {
+                        platforms = "cdh5.16.1"
+                        branch = "branch-2.8"
+                        sh '''
+                        cd spark2.3
+                        sbt package
+                        '''
+                    } else if ( "$branch" == ".0" ) {
+                        platforms = "cdh6.3.0"
+                        branch = "branch-3.0"
+                        sh '''
+                        cd spark2.4
+                        sbt package
+                        '''
+                    } else {
+                        platforms = "cdh6.3.0"
+                        branch = "master"
+                        sh '''
+                        cd spark2.4
+                        sbt package
+                        '''
+                    }
+            }
+      }
+    } catch (any) {
+        // if there was an exception thrown, the build failed
+        currentBuild.result = "FAILED"
+        throw any
+
+    } finally {
+        // success or failure, always send notifications
+        notifyBuild(currentBuild.result)
+    }
+}
+
+def notifyBuild(String buildStatus = 'STARTED') {
+    // Build status of null means successful.
+    buildStatus =  buildStatus ?: 'SUCCESSFUL'
+    // Override default values based on build status.
+    if (buildStatus == 'STARTED' || buildStatus == 'INPUT') {
+        color = 'YELLOW'
+        colorCode = '#FFFF00'
+    } else if (buildStatus == 'CREATING' || buildStatus == 'DESTROYING'){
+        color = 'BLUE'
+        colorCode = '#0000FF'
+    } else if (buildStatus == 'SUCCESSFUL') {
+        color = 'GREEN'
+        colorCode = '#00FF00'
+    } else if (buildStatus == 'FAILED'){
+        color = 'RED'
+        colorCode = '#FF0000'
+    } else {
+        echo "End of pipeline"
+    }
+}
