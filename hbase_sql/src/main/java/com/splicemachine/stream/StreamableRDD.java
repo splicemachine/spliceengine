@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class StreamableRDD<T> {
     private static final Logger LOG = Logger.getLogger(StreamableRDD.class);
-    public static int DEFAULT_PARALLEL_PARTITIONS = 4;
+    public static final int DEFAULT_PARALLEL_PARTITIONS = 4;
 
     private static final ClassTag<String> tag = scala.reflect.ClassTag$.MODULE$.apply(String.class);
     private final int port;
