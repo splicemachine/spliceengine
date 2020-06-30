@@ -30,9 +30,10 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.client.metrics.ScanMetrics;
-import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
-import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.security.AccessDeniedException;
+import org.apache.hadoop.hbase.shaded.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
@@ -407,10 +408,10 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
                     }
 
                     Blob blob = rs.getBlob(1);
-                    /* byte[] bytes = */ blob.getBytes(1, (int) blob.length());
-                    // HBaseProtos.TableSchema result = HBaseProtos.TableSchema.parseFrom(bytes);
-                    // TODO (DB-9370) return new HPartitionDescriptor(HTableDescriptor.convert(result));
-                    return null;
+                    byte[] bytes =  blob.getBytes(1, (int) blob.length());
+                    HBaseProtos.TableSchema result = HBaseProtos.TableSchema.parseFrom(bytes);
+                    TableDescriptor d = ProtobufUtil.toTableDescriptor(result);
+                    return new HPartitionDescriptor(d);
                 }
             }
         } catch (SQLException e) {
