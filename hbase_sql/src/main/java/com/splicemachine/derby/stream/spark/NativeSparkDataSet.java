@@ -43,6 +43,7 @@ import com.splicemachine.spark.splicemachine.ShuffleUtils;
 import com.splicemachine.sparksql.ParserUtils;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -81,6 +82,7 @@ import java.util.zip.GZIPOutputStream;
  * @see java.io.Serializable
  *
  */
+@SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Some checked exceptions are not declared")
 public class NativeSparkDataSet<V> implements DataSet<V> {
 
     private static String SPARK_COMPRESSION_OPTION = "compression";
@@ -967,7 +969,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
             if (op.wasRightOuterJoin) {
                 NativeSparkDataSet nds =
-                  new NativeSparkDataSet(rightDF.join(leftDF, expr, joinType.RIGHTOUTER.strategy()).repartition(), context);
+                  new NativeSparkDataSet(rightDF.join(leftDF, expr, joinType.RIGHTOUTER.strategy()), context);
                 joinedSet = nds;
                 nds.dataset = fixupColumnNames(op, joinType, rightDF, leftDF, nds.dataset,
                                                op.getRightOperation(), op.getLeftOperation());
@@ -1238,10 +1240,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                                                 int[] baseColumnMap,
                                                 OperationContext context) {
         Dataset<Row> insertDF = dataset;
-        List<Column> cols = new ArrayList();
-        for (int i = 0; i < baseColumnMap.length; i++) {
-            cols.add(new Column(ValueRow.getNamedColumn(baseColumnMap[i])));
-        }
         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
         insertDF.write().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
                 .mode(SaveMode.Append).csv(location);
@@ -1505,14 +1503,10 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             }
             // Now add another select expression so that the named columns are
             // in the correct column positions.
-            StringBuilder expression = new StringBuilder();
             String [] expressions = new String[rowDef.nColumns()];
             for (int i=0; i < rowDef.nColumns(); i++) {
                 String fieldName = ValueRow.getNamedColumn(i);
                 expressions[i] = fieldName;
-                expression.append(fieldName);
-                if (i != rowDef.nColumns())
-                    expression.append(", ");
             }
             newDS = newDS.selectExpr(expressions);
             return new NativeSparkDataSet(newDS, this.context, false);
