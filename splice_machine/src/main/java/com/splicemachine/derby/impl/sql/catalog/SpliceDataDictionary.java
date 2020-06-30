@@ -341,9 +341,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         tc.elevate("dictionary");
 
         /**
-         * handle syscolumns in sysibm or sysvm
+         * handle syscolumns in sysibm or sysvw
          */
-        // check the existence of syscolumns view in sysibm or sysvm
+        // check the existence of syscolumns view in sysibm or sysvw
         TableDescriptor td = getTableDescriptor(tableName, schemaDescriptor, tc);
 
         Boolean needUpdate = true;
@@ -375,7 +375,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         updateColumnViewInSys(tc, "SYSCOLUMNS", 1, sysIBMSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_IN_SYSIBM);
     }
 
-    public void updateColumnViewInSysVM(TransactionController tc) throws StandardException {
+    public void updateColumnViewInSysVW(TransactionController tc) throws StandardException {
         updateColumnViewInSys(tc, "SYSCOLUMNSVIEW", 0, sysViewSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL);
     }
 

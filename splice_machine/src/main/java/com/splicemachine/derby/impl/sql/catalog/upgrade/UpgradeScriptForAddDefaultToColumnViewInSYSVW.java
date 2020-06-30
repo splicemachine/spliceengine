@@ -21,19 +21,19 @@ import com.splicemachine.utils.SpliceLogUtils;
 /**
  * Created by Igor Praznik on 06/24/2020.
  */
-public class UpgradeScriptForAddDefaultToColumnViewInSYSVM extends UpgradeScriptBase {
-    public UpgradeScriptForAddDefaultToColumnViewInSYSVM(SpliceDataDictionary sdd, TransactionController tc) {
+public class UpgradeScriptForAddDefaultToColumnViewInSYSVW extends UpgradeScriptBase {
+    public UpgradeScriptForAddDefaultToColumnViewInSYSVW(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        sdd.updateColumnViewInSysVM(tc);
+        sdd.updateColumnViewInSysVW(tc);
 
-        // we need to re-generate the metadataSPS if it is a change of definition of the table/column views in sysVM
+        // we need to re-generate the metadataSPS if it is a change of definition of the table/column views in SysVW
         sdd.updateMetadataSPSes(tc);
 
-        SpliceLogUtils.info(LOG, "Catalog upgraded: updated syscolumns view in SYSVM schema");
+        SpliceLogUtils.info(LOG, "Catalog upgraded: updated syscolumns view in SYSVW schema");
     }
 }
 
