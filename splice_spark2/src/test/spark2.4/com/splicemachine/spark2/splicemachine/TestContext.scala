@@ -14,17 +14,21 @@
 package com.splicemachine.spark2.splicemachine
 
 import java.math.BigDecimal
-import java.sql.{Time, Timestamp}
+import java.sql.{Connection, Time, Timestamp}
 import java.util.Date
 
 import com.splicemachine.derby.impl.SpliceSpark
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.apache.spark.sql.types._
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 trait TestContext extends BeforeAndAfterAll { self: Suite =>
-  var sc: SparkContext = null
-  var splicemachineContext: SplicemachineContext = null
+  var spark: SparkSession = _
+  var splicemachineContext: SplicemachineContext = _
+  var internalTNDF: Dataset[Row] = _
   val table = "test"
   val externalTable = "testExternal"
   val schema = "TestContext"
@@ -62,7 +66,26 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c11_timestamp timestamp, " +
     "c12_varchar varchar(56)" +
     ")"
+  
+  def allTypesSchema(withPrimaryKey: Boolean): StructType = {
+    val c6 = StructField("c6_int", IntegerType, ! withPrimaryKey)
+    val c7 = StructField("c7_bigint", LongType, ! withPrimaryKey)
 
+    StructType(
+      StructField("c1_boolean", BooleanType, true) ::
+      StructField("c2_char", StringType, true) ::
+      StructField("c3_date", DateType, true) ::
+      StructField("c4_decimal", DecimalType(15,2), true) ::
+      StructField("c5_double", DoubleType, true) ::
+      c6 :: c7 ::
+      StructField("c8_float", FloatType, true) ::
+      StructField("c9_smallint", ShortType, true) ::
+      StructField("c10_time", TimestampType, true) ::
+      StructField("c11_timestamp", TimestampType, true) ::
+      StructField("c12_varchar", StringType, true) ::
+      Nil)
+  }
+  
   val primaryKeys = Seq("c6_int","c7_bigint")
 
   val allTypesInsertString = "(" +
@@ -116,17 +139,31 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     set("spark.app.id", appID)
 
   override def beforeAll() {
-    sc = new SparkContext(conf)
-    SpliceSpark.setContext(sc)
+    spark = SparkSession.builder.config(conf).getOrCreate
     splicemachineContext = new SplicemachineContext(defaultJDBCURL)
+    internalTNDF = dataframe(
+      rdd(Seq(
+        Row.fromSeq( Seq(true, "abcde", java.sql.Date.valueOf("2013-09-04"), new BigDecimal("" + 4), 1.5, 6,
+          7L, 1.8f, new java.lang.Short("9"), new java.sql.Timestamp(10), new java.sql.Timestamp(11), "Varchar C12") )
+      )),
+      allTypesSchema(true)
+    )
   }
 
   override def afterAll() {
-    if (sc != null) sc.stop()
+    if (spark != null) spark.stop()
   }
 
+  def rdd(rows: Seq[Row]): RDD[Row] = {
+    spark.sparkContext.parallelize(rows)
+  }
+
+  def dataframe(rdd: RDD[Row], schema: StructType): Dataset[Row] = spark.createDataFrame( rdd , schema )
+
+  def getConnection(): Connection = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
+
   def deleteInternalRow(key: Int): Unit = {
-    val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
+    val conn = getConnection()
     try {
       val ps = conn.prepareStatement(primaryKeyDelete)
       ps.setInt(1,key)
@@ -136,6 +173,10 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
       conn.close()
     }
   }
+  
+  def createInternalTable(): Unit =
+    if (!splicemachineContext.tableExists(internalTN))
+      getConnection.createStatement().execute("create table "+internalTN + this.allTypesCreateStringWithPrimaryKey)
 
   /**
     *
@@ -145,9 +186,8 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     * @return
     */
   def insertInternalRows(rowCount: Integer): Unit = {
-      val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
-      if (!splicemachineContext.tableExists(internalTN))
-        conn.createStatement().execute("create table "+internalTN + this.allTypesCreateStringWithPrimaryKey)
+      val conn = getConnection()
+      createInternalTable()
       try {
         Range(0, rowCount).map { i =>
           val ps = conn.prepareStatement("insert into " + internalTN + allTypesInsertString + allTypesInsertStringValues)
