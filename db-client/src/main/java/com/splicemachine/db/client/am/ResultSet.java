@@ -444,10 +444,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
             return;
         }
         closeOpenStreams();
-        // See if there are open locators on the current row, if valid.
-        if (isValidCursorPosition_ && !isOnInsertRow_) {
-            lobState.checkCurrentRow(cursor_);
-        }
+
         // NOTE: The preClose_ method must also check for locators if
         //       prefetching of data is enabled for result sets containing LOBs.
         preClose_();
@@ -459,6 +456,11 @@ public abstract class ResultSet implements java.sql.ResultSet,
             }
         } finally {
             markClosed(true);
+        }
+
+        // See if there are open locators on the current row, if valid.
+        if (isValidCursorPosition_ && !isOnInsertRow_) {
+            lobState.checkCurrentRow(cursor_);
         }
 
         if (statement_.openOnClient_ && statement_.isCatalogQuery_) {
