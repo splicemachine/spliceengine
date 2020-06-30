@@ -48,8 +48,6 @@ public class MergeJoinOperation extends JoinOperation {
     public int[] rightHashKeys;
     public int[] rightHashKeyToBaseTableMap;
     public int[] rightHashKeySortOrders;
-    // for overriding
-    public boolean wasRightOuterJoin = false;
 
     protected static final String NAME = MergeJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
