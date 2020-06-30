@@ -116,7 +116,7 @@ public class SpliceSpark {
     }
 
     public static synchronized JavaSparkContext getContext() {
-        SparkSession s = getSession();
+        getSession();
         return ctx;
     }
 
@@ -124,7 +124,7 @@ public class SpliceSpark {
      * get a local Spark Context, it should never be used when implementing Splice operations or functions
      */
     public static synchronized JavaSparkContext getContextUnsafe() {
-        SparkSession s = getSessionUnsafe();
+        getSessionUnsafe();
         return ctx;
     }
 
@@ -254,8 +254,6 @@ public class SpliceSpark {
                 conf.set("spark.yarn.keytab", HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file"));
             }
         }
-        String user = System.getProperty("splice.spark.yarn.principal");
-        String keytab = System.getProperty("splice.spark.yarn.keytab");
 
         // set all spark props that start with "splice.".  overrides are set below.
         for (Object sysPropertyKey : System.getProperties().keySet()) {
