@@ -302,7 +302,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         setParams(preparedStatement.getParameterTypes());
 
         String role = lcc.getReplicationRole();
-        if (!dd.isReadOnlyUpgrade() && role.compareToIgnoreCase("SLAVE") != 0 &&
+        if (!dd.isReadOnlyUpgrade() && role.compareToIgnoreCase("REPLICA") != 0 &&
                 lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP) == null) {
 
             dd.startWriting(lcc);
@@ -910,7 +910,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         DataDictionary dd = getDataDictionary();
 
         String role = lcc.getReplicationRole();
-        if (dd.isReadOnlyUpgrade() || role.compareToIgnoreCase("SLAVE") == 0 ||
+        if (dd.isReadOnlyUpgrade() || role.compareToIgnoreCase("REPLICA") == 0 ||
                 lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP) != null)
             return;
 
