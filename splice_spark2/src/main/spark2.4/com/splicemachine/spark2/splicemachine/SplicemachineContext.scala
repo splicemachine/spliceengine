@@ -75,7 +75,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] val url = options(JDBCOptions.JDBC_URL) + ";useSpark=true"
 
   private[this] val kafkaServers = options.getOrElse(KafkaOptions.KAFKA_SERVERS, "localhost:9092")
-  println(s"Kafka: $kafkaServers")
+  println(s"Splice Kafka: $kafkaServers")
 
   private[this] val kafkaPollTimeout = options.getOrElse(KafkaOptions.KAFKA_POLL_TIMEOUT, "20000").toLong
 
@@ -105,6 +105,18 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     ))
   }
 
+  // Check url validity, throws exception during instantiation if url is invalid
+  try {
+    if( options(JDBCOptions.JDBC_URL).isEmpty ) throw new Exception("JDBC Url is an empty string.")
+    getConnection()
+  } catch {
+    case e: Exception => throw new Exception(
+      "Problem connecting to the DB. Verify that the input JDBC Url is correct."
+        + "\n"
+        + e.toString
+    )
+  }
+  
   JdbcDialects.registerDialect(new SplicemachineDialect2)
 
   /**
