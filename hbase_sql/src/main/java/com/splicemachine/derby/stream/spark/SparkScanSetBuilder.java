@@ -31,8 +31,10 @@ import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.types.StructType;
@@ -40,6 +42,9 @@ import org.apache.spark.sql.types.StructType;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Future;
 
 /**
  * @author Scott Fines
@@ -129,9 +134,17 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
 
         String scopePrefix = StreamUtils.getScopeString(caller);
         SpliceSpark.pushScope(String.format("%s: Scan", scopePrefix));
+
+        String splitCacheId = UUID.randomUUID().toString();
+        conf.set(MRConstants.SPLICE_SCAN_INPUT_SPLITS_ID, splitCacheId);
+
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(
             conf, SMInputFormat.class, RowLocation.class, ExecRow.class);
         // rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, tableDisplayName));
+
+        Future<List<InputSplit>> splitFuture = SIDriver.driver().getExecutorService().submit(new FetchSplitsJob(conf));
+        FetchSplitsJob.splitCache.put(splitCacheId, splitFuture);
+
         rawRDD.setName("Perform Scan");
         SpliceSpark.popScope();
         SparkSpliceFunctionWrapper f = new SparkSpliceFunctionWrapper(new TableScanTupleMapFunction<SpliceOperation>(operationContext));
@@ -139,7 +152,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         SpliceSpark.pushScope(String.format("%s: Deserialize", scopePrefix));
         try {
             return new SparkDataSet<>(rawRDD.map(f).filter(pred),
-                                      op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
+                    op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
         } finally {
             SpliceSpark.popScope();
         }
