@@ -87,35 +87,30 @@ public class TimestampOracle implements TimestampOracleStatistics{
             }
     }
 
-    public long getNextTimestamp(boolean refresh, boolean increment) throws TimestampIOException {
-        if (refresh) {
-            synchronized (this) {
-                _maxReservedTimestamp = timestampBlockManager.initialize();
-                _timestampCounter.set(_maxReservedTimestamp);
-            }
-        }
+    public long getCurrentTimestamp() {
+        return _timestampCounter.get();
+    }
 
-        long nextTS = increment ? _timestampCounter.addAndGet(TIMESTAMP_INCREMENT): _timestampCounter.get();
+    public synchronized void bumpTimestamp(long timestamp) throws TimestampIOException {
+        if (timestamp > _timestampCounter.get()) {
+            timestampBlockManager.reserveNextBlock(timestamp);
+            _maxReservedTimestamp = timestamp;
+            _timestampCounter.set(timestamp);
+        }
+    }
+
+    public long getNextTimestamp() throws TimestampIOException {
+        long nextTS = _timestampCounter.addAndGet(TIMESTAMP_INCREMENT);
         long maxTS = _maxReservedTimestamp; // avoid the double volatile read
-        reserveNextBlockIfNecessary(maxTS);
+        if (nextTS > maxTS) {
+            reserveNextBlock(nextTS);
+        }
         _numTimestampsCreated.incrementAndGet(); // JMX metric
         return nextTS;
     }
 
-    private void reserveNextBlockIfNecessary(long nextTimestamp) throws TimestampIOException {
-        long maxTS = _maxReservedTimestamp; // avoid the double volatile read
-        if (nextTimestamp > maxTS) {
-            reserveNextBlock(maxTS);
-        }
-        // Check if reserving next block was enough
-        if (nextTimestamp > _maxReservedTimestamp) {
-            reserveNextBlockIfNecessary(nextTimestamp);
-        }
-    }
-
-    private void reserveNextBlock(long priorMaxReservedTimestamp) throws TimestampIOException {
-        synchronized(this)  {
-            if (_maxReservedTimestamp > priorMaxReservedTimestamp) return; // some other thread got there first
+    private synchronized void reserveNextBlock(long nextTS) throws TimestampIOException {
+        while (nextTS > _maxReservedTimestamp) {
             long nextMax = _maxReservedTimestamp + blockSize;
             timestampBlockManager.reserveNextBlock(nextMax);
             _maxReservedTimestamp = nextMax;

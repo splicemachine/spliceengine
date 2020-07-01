@@ -54,7 +54,7 @@ public class ConcurrentTimestampSource implements TimestampSource{
      }
 
      @Override
-     public void refresh() {
+     public void bumpTimestamp(long timestamp) {
 
      }
 }
