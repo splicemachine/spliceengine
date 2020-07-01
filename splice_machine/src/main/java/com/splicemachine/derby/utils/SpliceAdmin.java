@@ -693,9 +693,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
      */
     public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName,String tableName) throws SQLException {
         LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+        assert lcc != null;
         DataDictionary dd = lcc.getDataDictionary();
         // sys query for table conglomerate for in schema
         PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = EngineUtils.validateTable(tableName);
         for (long conglomID : getConglomNumbers(getDefaultConn(), schemaName, tableName)) {
             try {
                 ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomID);
@@ -727,6 +730,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SYSCS_FLUSH_TABLE(String schemaName,String tableName) throws SQLException{
         // sys query for table conglomerate for in schema
         PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = EngineUtils.validateTable(tableName);
         for(long conglomID : getConglomNumbers(getDefaultConn(),schemaName,tableName)){
             try(Partition partition=tableFactory.getTable(Long.toString(conglomID))){
                 partition.flush();
@@ -1115,9 +1120,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
         PreparedStatement s=null;
         try{
             s=conn.prepareStatement(query);
-            s.setString(1,schemaName.toUpperCase());
+            s.setString(1,schemaName);
             if(!isTableNameEmpty){
-                s.setString(2,tableName.toUpperCase());
+                s.setString(2,tableName);
             }
             rs=s.executeQuery();
             while(rs.next()){
@@ -1312,7 +1317,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SYSCS_UPDATE_SCHEMA_OWNER(String schemaName, String ownerName) throws SQLException {
         if (schemaName == null || schemaName.isEmpty()) throw new SQLException("Invalid null or empty value for 'schemaName'");
         if (ownerName == null || ownerName.isEmpty()) throw new SQLException("Invalid null or empty value for 'ownerName'");
-        schemaName = schemaName.toUpperCase();
+        schemaName = EngineUtils.validateSchema(schemaName);
         ownerName = ownerName.toUpperCase();
         try {
             checkCurrentUserIsDatabaseOwnerAccess();
@@ -1371,6 +1376,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SYSCS_SAVE_SOURCECODE(String schemaName, String objectName, String objectType, String objectForm, String definerName, Blob sourceCode) throws SQLException {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc = lcc.getTransactionExecute();
+        schemaName = EngineUtils.validateSchema(schemaName);
         try {
             tc.elevate("sourceCode");
             DataDictionary dd = lcc.getDataDictionary();
@@ -1383,6 +1389,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SET_PURGE_DELETED_ROWS (String schemaName, String tableName, String enable) throws Exception{
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = EngineUtils.validateTable(tableName);
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc  = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
@@ -1422,6 +1430,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         TransactionController tc  = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
 
+        schemaName = EngineUtils.validateSchema(schemaName);
         EngineUtils.checkSchemaVisibility(schemaName);
 
         dd.startWriting(lcc);
@@ -1447,6 +1456,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
         TransactionController tc  = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
 
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = EngineUtils.validateTable(tableName);
         EngineUtils.checkSchemaVisibility(schemaName);
 
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
@@ -2148,6 +2159,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
     {
         Connection connection = getDefaultConn();
         try {
+            schemaName = EngineUtils.validateSchema(schemaName);
+            tableName = EngineUtils.validateTable(tableName);
             EngineUtils.verifyTableExists(connection, schemaName, tableName);
 
             String getTableId = "SELECT T.TABLEID, T.TABLETYPE, T.COMPRESSION, T.DELIMITED, " +
@@ -2550,6 +2563,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSystemProcedure(activeTransaction.getTxnId());
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
+            schemaName = EngineUtils.validateSchema(schemaName);
             dd.createOrUpdateSystemProcedure(schemaName,procName,tc);
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
