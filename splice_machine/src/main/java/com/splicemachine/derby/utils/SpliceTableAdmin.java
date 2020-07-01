@@ -24,6 +24,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -407,6 +408,7 @@ public class SpliceTableAdmin {
         tc.elevate("check_table");
         TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
         Activation activation = lcc.getLastActivation();
+        Boolean useSpark = (Boolean)lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USESPARK);
 
         SIDriver driver = SIDriver.driver();
         String hostname = NetworkUtils.getHostname(driver.getConfiguration());
@@ -419,8 +421,9 @@ public class SpliceTableAdmin {
 
         OlapClient olapClient = EngineDriver.driver().getOlapClient();
         ActivationHolder ah = new ActivationHolder(activation, null);
+        boolean isSystemTable = schema.equalsIgnoreCase("SYS");
         DistributedCheckTableJob checkTableJob = new DistributedCheckTableJob(ah, txn, schema, table,
-                tentativeIndexList, fix, jobGroup);
+                tentativeIndexList, fix, jobGroup, isSystemTable, useSpark);
         Future<CheckTableResult> futureResult = olapClient.submit(checkTableJob );
         CheckTableResult result = null;
         while (result == null) {

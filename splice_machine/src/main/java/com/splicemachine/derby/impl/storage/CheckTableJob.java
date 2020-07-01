@@ -79,10 +79,9 @@ public class CheckTableJob implements Callable<Void> {
     private TableDescriptor td;
     private ConglomerateDescriptorList cdList;
     private DDLMessage.Table table;
-    LanguageConnectionContext lcc;
+    private LanguageConnectionContext lcc;
     private String tableVersion;
     private Map<Long, LeadingIndexColumnInfo> leadingIndexColumnInfoMap;
-    private Map<Long, int[]> indexColumnInfoMap;
 
     public CheckTableJob(DistributedCheckTableJob request,OlapStatus jobStatus) {
         this.jobStatus = jobStatus;
@@ -100,17 +99,21 @@ public class CheckTableJob implements Callable<Void> {
 
         String table = Long.toString(heapConglomId);
         Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(table, true);
+
         boolean distributed = false;
-        for (PartitionLoad load: partitionLoadCollection) {
-            if (load.getMemStoreSize() > 1*MB || load.getStorefileSize() > 1*MB)
-                distributed = true;
+        if (request.useSpark == null) {
+            for (PartitionLoad load : partitionLoadCollection) {
+                if (load.getMemStoreSize() > 1 * MB || load.getStorefileSize() > 1 * MB)
+                    distributed = true;
+            }
+        } else {
+            distributed = request.useSpark;
         }
         DataSetProcessor dsp = null;
         if (distributed) {
             SpliceLogUtils.info(LOG, "Run check_table on spark");
             dsp = EngineDriver.driver().processorFactory().distributedProcessor();
-        }
-        else {
+        } else {
             SpliceLogUtils.info(LOG, "Run check_table on region server");
             dsp = EngineDriver.driver().processorFactory().localProcessor(null, null);
         }
@@ -126,20 +129,13 @@ public class CheckTableJob implements Callable<Void> {
         ExecRow key = getTableKeyExecRow(heapConglomId);
         KeyHashDecoder tableKeyDecoder = getKeyDecoder(key, null);
         TableChecker tableChecker = dsp.getTableChecker(schemaName, tableName, tableDataSet,
-                tableKeyDecoder, key, request.txn, request.fix, baseColumnMap);
+                tableKeyDecoder, key, request.txn, request.fix, baseColumnMap, request.isSystemTable);
 
         // Check each index
         for(DDLMessage.TentativeIndex tentativeIndex : tentativeIndexList) {
             DDLMessage.Index index = tentativeIndex.getIndex();
             long indexConglom = index.getConglomerate();
             String indexName = SpliceTableAdmin.getIndexName(cdList, index.getConglomerate());
-            ExecRow indexKey = getIndexExecRow(indexConglom);
-            List<Boolean> descColumnList = index.getDescColumnsList();
-            boolean[] sortOrder = new boolean[descColumnList.size()];
-            for (int i = 0; i < descColumnList.size(); ++i) {
-                sortOrder[i] = !descColumnList.get(i);
-            }
-            KeyHashDecoder indexKeyDecoder = getKeyDecoder(indexKey, sortOrder);
             PairDataSet<String, Tuple2<byte[], ExecRow>> indexDataSet = getIndexDataSet(dsp, indexConglom, index.getUnique());
 
             LeadingIndexColumnInfo leadingIndexColumnInfo = null;
@@ -295,7 +291,6 @@ public class CheckTableJob implements Callable<Void> {
         FormatableBitSet defaultValueMap = getDefaultValueMap(defaultValueRow);
 
         this.leadingIndexColumnInfoMap = getLeadingIndexColumnMap(tentativeIndexList, baseColumnMap);
-        this.indexColumnInfoMap = getIndexColumnMap(tentativeIndexList, baseColumnMap);
         DataSet<ExecRow> scanSet =
                 dsp.<TableScanOperation,ExecRow>newScanSet(null, Long.toString(conglomerateId))
                         .activation(activation)
@@ -362,25 +357,6 @@ public class CheckTableJob implements Callable<Void> {
             }
         }
         return defaultValueRow;
-    }
-
-    private Map<Long, int[]> getIndexColumnMap(List<DDLMessage.TentativeIndex> tentativeIndexList, int[] baseColumnMap) {
-
-        Map<Long, int[]> indexColumnInfoMap = new HashMap<>();
-        for (DDLMessage.TentativeIndex tentativeIndex : tentativeIndexList) {
-            List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
-            int[] indexColumnMap = new int[indexCols.size()];
-            Long conglomerate = tentativeIndex.getIndex().getConglomerate();
-            int i = 0;
-            for (int indexCol : indexCols) {
-                // Find the position in template row
-                int pos = baseColumnMap[indexCol-1];
-                indexColumnMap[i++] = pos;
-            }
-            indexColumnInfoMap.put(conglomerate, indexColumnMap);
-        }
-
-        return indexColumnInfoMap;
     }
 
     private Map<Long, LeadingIndexColumnInfo> getLeadingIndexColumnMap(List<DDLMessage.TentativeIndex> tentativeIndexList, int[] baseColumnMap) {

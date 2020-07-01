@@ -35,9 +35,11 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import scala.Tuple2;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 /**
  * Created by jyuan on 2/12/18.
@@ -64,6 +66,7 @@ public class SparkTableChecker implements TableChecker {
     private long conglomerate;
     private DDLMessage.TentativeIndex tentativeIndex;
     private int[] baseColumnMap;
+    private boolean isSystemTable;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public SparkTableChecker(String schemaName,
@@ -73,7 +76,8 @@ public class SparkTableChecker implements TableChecker {
                              ExecRow tableKey,
                              TxnView txn,
                              boolean fix,
-                             int[] baseColumnMap) {
+                             int[] baseColumnMap,
+                             boolean isSystemTable) {
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.baseTable = table;
@@ -82,6 +86,7 @@ public class SparkTableChecker implements TableChecker {
         this.txn = txn;
         this.fix = fix;
         this.baseColumnMap = baseColumnMap;
+        this.isSystemTable = isSystemTable;
         maxCheckTableError = SIDriver.driver().getConfiguration().getMaxCheckTableErrors();
     }
 
@@ -307,9 +312,15 @@ public class SparkTableChecker implements TableChecker {
     private List<String> reportMissingIndexes(JavaPairRDD rdd, boolean fix) throws StandardException {
 
         if (fix) {
+            List<Integer> baseColumnMapList = Lists.newArrayList();
+            for (int i = 0; i < baseColumnMap.length; ++i) {
+                if (baseColumnMap[i] >= 0) {
+                    baseColumnMapList.add(i+1);
+                }
+            }
             PairDataSet dsToWrite =  new SparkPairDataSet(rdd)
                     .map(new AddKeyFunction())
-                    .map(new IndexTransformFunction(tentativeIndex), null, false, true, "Prepare Index")
+                    .map(new IndexTransformFunction(tentativeIndex, baseColumnMapList, isSystemTable), null, false, true, "Prepare Index")
                     .index(new KVPairFunction(), false, true, "Add missing indexes");
             DataSetWriter writer = dsToWrite.directWriteData()
                     .destConglomerate(tentativeIndex.getIndex().getConglomerate())

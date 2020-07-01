@@ -40,6 +40,8 @@ public class DistributedCheckTableJob extends DistributedJob implements External
     String jobGroup;
     List<DDLMessage.TentativeIndex> tentativeIndexList;
     boolean fix;
+    boolean isSystemTable;
+    Boolean useSpark;
 
     public DistributedCheckTableJob(){
     }
@@ -50,7 +52,9 @@ public class DistributedCheckTableJob extends DistributedJob implements External
                                     String tableName,
                                     List<DDLMessage.TentativeIndex> tentativeIndexList,
                                     boolean fix,
-                                    String jobGroup) {
+                                    String jobGroup,
+                                    boolean isSystemTable,
+                                    Boolean useSpark) {
         this.ah = ah;
         this.txn = txn;
         this.schemaName = schemaName;
@@ -58,6 +62,8 @@ public class DistributedCheckTableJob extends DistributedJob implements External
         this.tentativeIndexList = tentativeIndexList;
         this.fix = fix;
         this.jobGroup = jobGroup;
+        this.isSystemTable = isSystemTable;
+        this.useSpark = useSpark;
     }
 
 
@@ -83,6 +89,10 @@ public class DistributedCheckTableJob extends DistributedJob implements External
         }
         fix = in.readBoolean();
         jobGroup = in.readUTF();
+        isSystemTable = in.readBoolean();
+        if (in.readBoolean()) {
+            useSpark = in.readBoolean();
+        }
     }
 
     @Override
@@ -99,6 +109,11 @@ public class DistributedCheckTableJob extends DistributedJob implements External
         }
         out.writeBoolean(fix);
         out.writeUTF(jobGroup);
+        out.writeBoolean(isSystemTable);
+        out.writeBoolean(useSpark!=null);
+        if (useSpark != null) {
+            out.writeBoolean(useSpark);
+        }
     }
 
     @Override
