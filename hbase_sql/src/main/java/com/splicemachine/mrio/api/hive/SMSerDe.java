@@ -24,10 +24,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.serde.Constants;
-import org.apache.hadoop.hive.serde2.AbstractSerDe;
-import org.apache.hadoop.hive.serde2.SerDe;
-import org.apache.hadoop.hive.serde2.SerDeException;
-import org.apache.hadoop.hive.serde2.SerDeStats;
+import org.apache.hadoop.hive.serde2.*;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
@@ -55,7 +52,7 @@ import java.util.*;
 
 // TODO FIX HIVE INTEGRATION JL
 
-public class SMSerDe implements SerDe {
+public class SMSerDe extends AbstractSerDe {
 	protected StructTypeInfo rowTypeInfo;
     protected ObjectInspector rowOI;
     protected SMSQLUtil sqlUtil = null;

@@ -25,7 +25,7 @@ import org.apache.spark.serializer.KryoSerializerInstance;
 public class SpliceKryoSerializerInstance extends KryoSerializerInstance {
 
     public SpliceKryoSerializerInstance(KryoSerializer ks) {
-        super(ks,false);
+        super(ks,false, false);
     }
 
     @Override

@@ -319,7 +319,7 @@
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.binary.version}</artifactId>
-            <version>2.2.4</version>
+            <version>3.0.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -1140,6 +1140,14 @@
         </profile>
         <profile>
             <id>cdh6.3.0</id>
+            <properties>
+                <extraDependency>splice_sentry</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>spark_3.0</id>
             <properties>
                 <extraDependency>splice_sentry</extraDependency>
                 <extraDependency2>splice_ee</extraDependency2>
