@@ -21,6 +21,7 @@ import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.spark.FetchSplitsJob;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -29,6 +30,7 @@ import com.splicemachine.storage.HScan;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Connection;
@@ -45,6 +47,8 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import static java.lang.String.format;
 
@@ -57,7 +61,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
     private static int PARTITION_LOAD_REFRESH_THRESHOLD = 8;
     protected Configuration conf;
     protected Table table;
-    protected int splits;
+    private List<InputSplit> inputSplits;
 
     private List<InputSplit> toSMSplits (List<Partition> splits) throws IOException {
         List<InputSplit> sMSplits = Lists.newArrayList();
@@ -74,10 +78,46 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         return sMSplits;
     }
 
+    private List<InputSplit> getInputSplitsFromCache(JobContext context) {
+        if (inputSplits != null) {
+            return inputSplits;
+        }
+
+        String splitCacheId = context.getConfiguration().get(MRConstants.SPLICE_SCAN_INPUT_SPLITS_ID);
+        if (StringUtils.isNotEmpty(splitCacheId)) {
+            if (FetchSplitsJob.splitCache.containsKey(splitCacheId)) {
+                Future<List<InputSplit>> cachedSplitsFuture = FetchSplitsJob.splitCache.get(splitCacheId);
+                List<InputSplit> cachedSplits = null;
+                if (cachedSplitsFuture != null) {
+                    try {
+                        cachedSplits = cachedSplitsFuture.get();
+                    } catch (ExecutionException | InterruptedException e) {
+                        throw new RuntimeException(e.getMessage(), e);
+                    }
+                }
+                FetchSplitsJob.splitCache.remove(splitCacheId);
+                if (cachedSplits != null) {
+                    inputSplits = cachedSplits;
+                    return cachedSplits;
+                }
+            }
+        }
+
+        return null;
+    }
+
     @Override
     public List<InputSplit> getSplits(JobContext context) throws IOException,
             InterruptedException {
+
+        List<InputSplit> cachedSplits = getInputSplitsFromCache(context);
+        if (cachedSplits != null) {
+            return cachedSplits;
+        }
+
         setConf(context.getConfiguration());
+        int splitsPerTable = conf.getInt(MRConstants.SPLICE_SPLITS_PER_TABLE, 0);
+
         Scan s;
         try {
             TableScannerBuilder tsb = TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO));
@@ -95,7 +135,6 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         Partition clientPartition = new ClientPartition(connection, table.getName(), table, clock, driver.getPartitionInfoCache());
         int retryCounter = 0;
         boolean refresh = false;
-        this.splits = conf.getInt(MRConstants.SPLICE_SPLITS_PER_TABLE, 0);
 
         boolean eachRegionOneSplit = oneSplitPerRegion(conf);
         long tableSize = 0;
@@ -108,7 +147,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                 return regionSplits;
             }
             List<Partition> splits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), refresh);
-            if (this.splits > 0) { // we only use the total table size if the user explicitly request a number of splits
+            if (splitsPerTable > 0) { // we only use the total table size if the user explicitly request a number of splits
                 try {
                     String tableName = table.getName().getNameAsString().split(":")[1];
                     HBaseRegionLoads loadWatcher = HBaseRegionLoads.INSTANCE;
@@ -134,7 +173,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
             }
             SubregionSplitter splitter = new HBaseSubregionSplitter();
 
-            List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), this.splits, tableSize);
+            List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), splitsPerTable, tableSize);
             //check if split count changed in-between
             List<Partition>  newSplits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), true);
             if (splits.size() != newSplits.size()) {

@@ -22,28 +22,17 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.util.PartitionInRangePredicate;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.sun.xml.bind.api.impl.NameConverter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.ClusterConnection;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Increment;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.RegionLocator;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.client.metrics.ScanMetrics;
-import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
-import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
-import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
+import org.apache.hadoop.hbase.shaded.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.security.AccessDeniedException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
@@ -430,10 +419,11 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
                     }
 
                     Blob blob = rs.getBlob(1);
-                    /* byte[] bytes = */ blob.getBytes(1, (int) blob.length());
-                    // HBaseProtos.TableSchema result = HBaseProtos.TableSchema.parseFrom(bytes);
-                    // TODO (DB-9370) return new HPartitionDescriptor(HTableDescriptor.convert(result));
-                    return null;
+                    byte[] bytes =  blob.getBytes(1, (int) blob.length());
+                    HBaseProtos.TableSchema result = HBaseProtos.TableSchema.parseFrom(bytes);
+                    TableDescriptor d = ProtobufUtil.toTableDescriptor(result);
+                    HTableDescriptor htd = new HTableDescriptor(d);
+                    return new HPartitionDescriptor(htd);
                 }
             }
         } catch (SQLException e) {
