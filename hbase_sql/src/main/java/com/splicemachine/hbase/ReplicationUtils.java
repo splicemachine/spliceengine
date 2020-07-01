@@ -57,26 +57,8 @@ public class ReplicationUtils {
      */
     public static void setTimestamp(long timestamp) throws IOException, KeeperException, InterruptedException {
         TimestampSource timestampSource = SIDriver.driver().getTimestampSource();
-        long currentTimestamp = timestampSource.currentTimestamp();
-        if (currentTimestamp < timestamp) {
-            RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
-            HBaseSIEnvironment env = HBaseSIEnvironment.loadEnvironment(new SystemClock(), rzk);
-            ConfigurationSource configurationSource = env.configuration().getConfigSource();
-            String rootNode = configurationSource.getString(HConfiguration.SPLICE_ROOT_PATH, HConfiguration.DEFAULT_ROOT_PATH);
-            String node = rootNode + HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
-            //if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.info(LOG, "bump up timestamp to %d", timestamp);
-            //}
-            byte[] data = Bytes.toBytes(timestamp);
-            rzk.setData(node, data, -1 /* version */);
-            timestampSource.refresh();
-        }
-        else {
-            //if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.info(LOG, "current timestamp = %d >  %d",
-                    currentTimestamp, timestamp);
-            //}
-        }
+        timestampSource.bumpTimestamp(timestamp);
+        SpliceLogUtils.info(LOG, "bump up timestamp to %d", timestamp);
     }
 
     public static Configuration createConfiguration(String clusterKey) {

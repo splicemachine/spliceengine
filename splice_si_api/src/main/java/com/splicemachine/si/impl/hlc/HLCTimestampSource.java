@@ -14,7 +14,6 @@
 
 package com.splicemachine.si.impl.hlc;
 
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.timestamp.api.TimestampSource;
 
 /**
@@ -53,7 +52,7 @@ public class HLCTimestampSource implements TimestampSource {
     }
 
     @Override
-    public void refresh() {
+    public void bumpTimestamp(long timestamp) {
 
     }
 }
