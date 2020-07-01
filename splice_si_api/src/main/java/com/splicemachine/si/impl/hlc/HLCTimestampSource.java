@@ -20,7 +20,7 @@ import com.splicemachine.timestamp.api.TimestampSource;
  * Created by jleach on 4/21/16.
  */
 public class HLCTimestampSource implements TimestampSource {
-    public static HLC hlc = new HLC();
+    public static final HLC hlc = new HLC();
 
     public HLCTimestampSource() {
     }
