@@ -36,6 +36,10 @@ import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler;
 import org.apache.log4j.Logger;
+import splice.aws.com.amazonaws.auth.AWSCredentials;
+import splice.aws.com.amazonaws.auth.AWSCredentialsProvider;
+import splice.aws.com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
+import splice.aws.com.amazonaws.auth.profile.ProfileCredentialsProvider;
 
 /**
  * Starts Yarn server
@@ -98,6 +102,35 @@ public class SpliceTestYarnPlatform {
             yarnCluster.stop();
         }
     }
+    // todo: this is the same as SpliceTestPlatform.ConfigureS3( config ),
+    // but I didn't manage to get dependencies right
+    private static void ConfigureS3(Configuration config)
+    {
+        // AWS Credentials for test
+        AWSCredentialsProvider credentialproviders[] = {
+                new EnvironmentVariableCredentialsProvider(), // first try env AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+                new ProfileCredentialsProvider()              // second try from $HOME/.aws/credentials (aws cli store)
+        };
+        for( AWSCredentialsProvider provider : credentialproviders )
+        {
+            try {
+                // can throw SdkClientException if env is not set or can't parse .aws/credentials
+                // or IllegalArgumentException if .aws/credentials is not there
+                AWSCredentials cred = provider.getCredentials();
+                config.set("presto.s3.access-key", cred.getAWSAccessKeyId());
+                config.set("presto.s3.secret-key", cred.getAWSSecretKey());
+                config.set("fs.s3a.access.key", cred.getAWSAccessKeyId());
+                config.set("fs.s3a.secret.key", cred.getAWSSecretKey());
+                config.set("fs.s3a.awsAccessKeyId", cred.getAWSAccessKeyId());
+                config.set("fs.s3a.awsSecretAccessKey", cred.getAWSSecretKey());
+                break;
+            } catch( Exception e )
+            {
+                continue;
+            }
+        }
+        config.set("fs.s3a.impl","com.splicemachine.fs.s3.PrestoS3FileSystem");
+    }
 
     public void start(int nodeCount) throws Exception {
         if (yarnCluster == null) {
@@ -129,7 +162,9 @@ public class SpliceTestYarnPlatform {
             // save the server config to classpath so yarn clients can read it
             Configuration yarnClusterConfig = yarnCluster.getConfig();
             yarnClusterConfig.set("yarn.application.classpath", new File(yarnSiteConfigURL.getPath()).getParent());
-            yarnClusterConfig.set("fs.s3a.impl","com.splicemachine.fs.s3.PrestoS3FileSystem");
+
+            ConfigureS3( yarnClusterConfig );
+
             //write the document to a buffer (not directly to the file, as that
             //can cause the file being written to get read -which will then fail.
             ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
