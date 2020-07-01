@@ -744,6 +744,9 @@ public final class Encoding {
 				byte b = (byte)0x01;
 				System.out.println(Bytes.toStringBinary(encode(104300001L, true)));
 				System.out.println(Bytes.toLong(Bytes.toBytesBinary("\\x00\\x00\\x00\\x00:\\xD6?\\x00")));
+				byte[] bytes = Bytes.toBytesBinary("\\xCA\\xC0");
+				System.out.println(Bytes.toStringBinary(decodeBytesUnsortd(bytes, 0, bytes.length)));
+				decodeInt(new byte[]{(byte) 0x94});
 
     }
 
