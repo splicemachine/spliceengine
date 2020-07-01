@@ -47,7 +47,7 @@ public class HLCTimestampSource implements TimestampSource {
     }
 
     @Override
-    public void refresh() {
+    public void bumpTimestamp(long timestamp) {
 
     }
 }
