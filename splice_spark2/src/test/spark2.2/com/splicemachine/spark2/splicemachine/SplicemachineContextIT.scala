@@ -100,7 +100,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     dropInternalTable
     createInternalTable
 
-    val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+"splice_spark2-SplicemachineContextIT/bulkImport" )
+    val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+"/splice_spark2-SplicemachineContextIT/bulkImport" )
     bulkImportDirectory.mkdirs()
 
     splicemachineContext.bulkImportHFile(internalTNDF, internalTN,
