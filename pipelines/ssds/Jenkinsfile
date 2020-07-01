@@ -1,6 +1,34 @@
+properties([
+    // Job parameter defintions.
+    parameters([
+        choiceParam(
+            description: 'Release or Dev branch to build',
+            name: 'Branch',
+            choices: 'branch-3.0\nbranch-2.8\nmaster'
+        ),
+        choiceParam(
+            description: 'Avaliable platforms to build off of',
+            name: 'Platform',
+            choices: 'cdh5.12.0\ncdh5.12.2\ncdh5.12.2-2.3\ncdh5.13.3\ncdh5.14.0\ncdh5.14.2\ncdh5.16.1\ncdh6.3.0\nhdp2.6.1\nhdp2.6.3\nhdp2.6.4\nhdp2.6.5\nhdp3.1.0'
+        ),
+        stringParam(
+            description: 'Tag to build off of i.e. 3.0.0.1960',
+            name: 'Tag',
+            defaultValue: '3.0.0.1960'
+        )
+    ])
+])
+
 def vault_addr="https://vault.build.splicemachine-dev.io"
 def branch = ""
-def source_branch = "${BRANCH_NAME}"
+def source_branch = ${Tag}
+def source_folder = "."
+def splice_version = ${Tag}
+def env_classifier = ${Platform}
+def hbase_version = ""
+def hadoop_version = ""
+def kafka_version = ""
+def spark_folder = ""
 
 // Launch the docker container
 node('splice-standalone') {
@@ -13,7 +41,6 @@ node('splice-standalone') {
     try {
 
     notifyBuild('STARTED')
-
     echo source_branch
 
     stage('Checkout') {
@@ -42,21 +69,11 @@ node('splice-standalone') {
             submoduleCfg: [], 
             userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/splice-machine-spark-connector.git']]
         ])
+    }
+    stage('Build Dependencies') {
         wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
             dir('spliceengine'){
-                def platforms = ""
-                branch = source_branch[-2..-1]
-
-                if ( "$branch" == ".8" ) {
-                        platforms = "cdh5.16.1"
-                        branch = "branch-2.8"
-                    } else if ( "$branch" == ".0" ) {
-                        platforms = "cdh6.3.0"
-                        branch = "branch-3.0"
-                    } else {
-                        platforms = "cdh6.3.0"
-                        branch = "master"
-                    }
+                def platforms = $env_classifier
                 sh "mvn -B clean install -Pcore -DskipTests"
                 sh '''
                 cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
@@ -64,35 +81,121 @@ node('splice-standalone') {
                 sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
                 '''
                 sh "mvn -B clean install -Pmem,$platforms,ee -DskipTests"
+                sh '''
+                echo "deb https://dl.bintray.com/sbt/debian /" | tee -a /etc/apt/sources.list.d/sbt.list
+                curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | apt-key add
+                apt-get update
+                wget http://www.scala-lang.org/files/archive/scala-2.11.8.deb
+                dpkg -i scala-2.11.8.deb
+                apt-get install sbt
+                '''
             }
         }
       }
 
-    stage('Build') {
+    stage('Build SSDS') {
       dir('splice-machine-spark-connector'){
-                def platforms = ""
+                if ("$env_classifier" == "cdh5.12.0"){
+                    spark_folder = "."
+                    hbase_version = "1.2.0-$env_classifier"
+                    hadoop_version = "2.6.0-$env_classifier"
+                    kafka_version = "0.10.0-kafka-2.1.0"
+                } else if ("$env_classifier" == "cdh5.12.2"){
+                    spark_folder = "."
+                    hbase_version = "1.2.0-$env_classifier"
+                    hadoop_version = "2.6.0-$env_classifier"
+                    kafka_version = "0.10.0-kafka-2.1.0"
+                } else if ("$env_classifier" == "cdh5.12.2-2.3"){
+                    env_classifier = "cdh5.12.2"
+                    spark_folder = "."
+                    hbase_version = "1.2.0-$env_classifier"
+                    hadoop_version = "2.6.0-$env_classifier"
+                    kafka_version = "0.10.0-kafka-2.1.0"
+                } else if ("$env_classifier" == "cdh5.13.3"){
+                    spark_folder = "."
+                    hbase_version = "1.2.0-$env_classifier"
+                    hadoop_version = "2.6.0-$env_classifier"
+                    kafka_version = "0.10.0-kafka-2.1.0"
+                } else if ("$env_classifier" == "cdh5.14.0"){
+                    spark_folder = "."
+                    hbase_version = "1.2.0-$env_classifier"
+                    hadoop_version = "2.6.0-$env_classifier"
+                    kafka_version = "0.10.0-kafka-2.1.0"
+                } else if ("$env_classifier" == "cdh5.14.2"){
+                    spark_folder = "."
+                    hbase_version = "1.2.0-$env_classifier"
+                    hadoop_version = "2.6.0-$env_classifier"
+                    kafka_version = "0.10.0-kafka-2.1.0"
+                } else if ("$env_classifier" == "cdh5.16.1"){
+                    spark_folder = "."
+                    hbase_version = "1.2.0-$env_classifier"
+                    hadoop_version = "2.6.0-$env_classifier"
+                    kafka_version = "0.10.0-kafka-2.1.0"
+                } else if ("$env_classifier" == "cdh6.3.0"){
+                    spark_folder = "spark2.4"
+                    hbase_version = "2.1.0-$env_classifier"
+                    hadoop_version = "3.0.0-$env_classifier"
+                    kafka_version = "2.2.1-$env_classifier"
+                } else if ("$env_classifier" == "hdp2.6.1"){
+                    spark_folder = "."
+                    hbase_version = "1.1.2.2.6.1.0-129"
+                    hadoop_version = "2.7.3.2.6.1.0-129"
+                    kafka_version = "0.10.1.2.6.1.0-129"
+                } else if ("$env_classifier" == "hdp2.6.3"){
+                    spark_folder = "."
+                    hbase_version = "1.1.2.2.6.3.0-235"
+                    hadoop_version = "2.7.3.2.6.3.0-235"
+                    kafka_version = "0.10.1.2.6.3.0-235"
+                } else if ("$env_classifier" == "hdp2.6.4"){
+                    spark_folder = "."
+                    hbase_version = "1.1.2.2.6.4.0-91"
+                    hadoop_version = "2.7.3.2.6.4.0-91"
+                    kafka_version = "0.10.1.2.6.4.0-91"
+                } else if ("$env_classifier" == "hdp2.6.5"){
+                    spark_folder = "spark2.3"
+                    hbase_version = "1.1.2.2.6.5.0-292"
+                    hadoop_version = "2.7.3.2.6.5.0-292"
+                    kafka_version = "1.0.0.2.6.5.0-292"
+                } else if ("$env_classifier" == "hdp3.1.0"){
+                    spark_folder = "spark2.3"
+                    hbase_version = "2.0.2.3.1.0.0-78"
+                    hadoop_version = "3.1.1.3.1.0.61-1"
+                    kafka_version = "2.0.0.3.1.0.0-78"
+                }
+ 
                 branch = source_branch[-2..-1]
 
                 if ( "$branch" == ".8" ) {
-                        platforms = "cdh5.16.1"
-                        branch = "branch-2.8"
                         sh '''
-                        cd spark2.3
+                        cd $spark_folder
+                        sed -i '/spliceVersion/c\val spliceVersion = "$splice_version"' build.sbt
+                        sed -i '/envClassifier/c\envClassifier = "$env_classifier"' build.sbt
+                        sed -i '/hbaseVersion/c\hbaseVersion := s"$hbase_version"' build.sbt
+                        sed -i '/hadoopVersion/c\hadoopVersion := s"$hadoop_version"' build.sbt
                         sbt package
+                        sbt assemble
                         '''
                     } else if ( "$branch" == ".0" ) {
-                        platforms = "cdh6.3.0"
-                        branch = "branch-3.0"
                         sh '''
-                        cd spark2.4
+                        cd $spark_folder
+                        sed -i '/spliceVersion/c\val spliceVersion = "$splice_version"' build.sbt
+                        sed -i '/envClassifier/c\envClassifier = "$env_classifier"' build.sbt
+                        sed -i '/hbaseVersion/c\hbaseVersion := s"$hbase_version"' build.sbt
+                        sed -i '/hadoopVersion/c\hadoopVersion := s"$hadoop_version"' build.sbt
+                        sed -i '/kafkaVersion/c\kafkaVersion := s"$kafka_version"' build.sbt
                         sbt package
+                        sbt assemble
                         '''
                     } else {
-                        platforms = "cdh6.3.0"
-                        branch = "master"
                         sh '''
-                        cd spark2.4
+                        cd $spark_folder
+                        sed -i '/spliceVersion/c\val spliceVersion = "$splice_version"' build.sbt
+                        sed -i '/envClassifier/c\envClassifier = "$env_classifier"' build.sbt
+                        sed -i '/hbaseVersion/c\hbaseVersion := s"$hbase_version"' build.sbt
+                        sed -i '/hadoopVersion/c\hadoopVersion := s"$hadoop_version"' build.sbt
+                        sed -i '/kafkaVersion/c\kafkaVersion := s"$kafka_version"' build.sbt
                         sbt package
+                        sbt assemble
                         '''
                     }
             }
