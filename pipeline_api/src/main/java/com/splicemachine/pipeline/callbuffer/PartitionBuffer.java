@@ -98,4 +98,18 @@ public class PartitionBuffer{
     public Partition partition(){
         return partition;
     }
+
+    @Override
+    public String toString() {
+        return "PartitionBuffer{" +
+                "buffer=" + buffer +
+                ", heapSize=" + heapSize +
+                ", partition=" + partition +
+                ", preFlushHook=" + preFlushHook +
+                ", skipIndexWrites=" + skipIndexWrites +
+                ", skipConflictDetection=" + skipConflictDetection +
+                ", skipWAL=" + skipWAL +
+                ", rollforward=" + rollforward +
+                '}';
+    }
 }

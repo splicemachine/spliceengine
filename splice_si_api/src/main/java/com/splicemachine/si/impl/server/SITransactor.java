@@ -218,6 +218,9 @@ public class SITransactor implements Transactor{
                 toWrite[i]=write.value;
                 i++;
             }
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Writing " + Arrays.toString(toWrite));
+            }
             Iterator<MutationStatus> status=table.writeBatch(toWrite);
 
             //convert the status back into the larger array
