@@ -21,10 +21,10 @@ properties([
 
 def vault_addr="https://vault.build.splicemachine-dev.io"
 def branch = ""
-def source_branch = ${Tag}
+def source_branch = "${Tag}"
 def source_folder = "."
-def splice_version = ${Tag}
-def env_classifier = ${Platform}
+def splice_version = "${Tag}"
+def env_classifier = "${Platform}"
 def hbase_version = ""
 def hadoop_version = ""
 def kafka_version = ""
@@ -168,32 +168,32 @@ node('splice-standalone') {
                 if ( "$branch" == ".8" ) {
                         sh '''
                         cd $spark_folder
-                        sed -i '/spliceVersion/c\val spliceVersion = "$splice_version"' build.sbt
-                        sed -i '/envClassifier/c\envClassifier = "$env_classifier"' build.sbt
-                        sed -i '/hbaseVersion/c\hbaseVersion := s"$hbase_version"' build.sbt
-                        sed -i '/hadoopVersion/c\hadoopVersion := s"$hadoop_version"' build.sbt
+                        sed -i '/spliceVersion/c\\val spliceVersion = "$splice_version"' build.sbt
+                        sed -i '/envClassifier/c\\envClassifier = "$env_classifier"' build.sbt
+                        sed -i '/hbaseVersion/c\\hbaseVersion := s"$hbase_version"' build.sbt
+                        sed -i '/hadoopVersion/c\\hadoopVersion := s"$hadoop_version"' build.sbt
                         sbt package
                         sbt assemble
                         '''
                     } else if ( "$branch" == ".0" ) {
                         sh '''
                         cd $spark_folder
-                        sed -i '/spliceVersion/c\val spliceVersion = "$splice_version"' build.sbt
-                        sed -i '/envClassifier/c\envClassifier = "$env_classifier"' build.sbt
-                        sed -i '/hbaseVersion/c\hbaseVersion := s"$hbase_version"' build.sbt
-                        sed -i '/hadoopVersion/c\hadoopVersion := s"$hadoop_version"' build.sbt
-                        sed -i '/kafkaVersion/c\kafkaVersion := s"$kafka_version"' build.sbt
+                        sed -i '/spliceVersion/c\\val spliceVersion = "$splice_version"' build.sbt
+                        sed -i '/envClassifier/c\\envClassifier = "$env_classifier"' build.sbt
+                        sed -i '/hbaseVersion/c\\hbaseVersion := s"$hbase_version"' build.sbt
+                        sed -i '/hadoopVersion/c\\hadoopVersion := s"$hadoop_version"' build.sbt
+                        sed -i '/kafkaVersion/c\\kafkaVersion := s"$kafka_version"' build.sbt
                         sbt package
                         sbt assemble
                         '''
                     } else {
                         sh '''
                         cd $spark_folder
-                        sed -i '/spliceVersion/c\val spliceVersion = "$splice_version"' build.sbt
-                        sed -i '/envClassifier/c\envClassifier = "$env_classifier"' build.sbt
-                        sed -i '/hbaseVersion/c\hbaseVersion := s"$hbase_version"' build.sbt
-                        sed -i '/hadoopVersion/c\hadoopVersion := s"$hadoop_version"' build.sbt
-                        sed -i '/kafkaVersion/c\kafkaVersion := s"$kafka_version"' build.sbt
+                        sed -i '/spliceVersion/c\\val spliceVersion = "$splice_version"' build.sbt
+                        sed -i '/envClassifier/c\\envClassifier = "$env_classifier"' build.sbt
+                        sed -i '/hbaseVersion/c\\hbaseVersion := s"$hbase_version"' build.sbt
+                        sed -i '/hadoopVersion/c\\hadoopVersion := s"$hadoop_version"' build.sbt
+                        sed -i '/kafkaVersion/c\\kafkaVersion := s"$kafka_version"' build.sbt
                         sbt package
                         sbt assemble
                         '''
