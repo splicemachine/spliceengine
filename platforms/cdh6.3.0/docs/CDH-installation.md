@@ -446,6 +446,10 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
 
    ````
    <property><name>dfs.client.read.shortcircuit.buffer.size</name><value>131072</value></property>
+   <property><name>dfs.client.block.write.retries</name><value>6</value></property>
+   <property><name>dfs.client.block.write.locateFollowingBlock.retries</name><value>10</value></property>
+   <property><name>dfs.client.block.write.replace-datanode-on-failure.policy</name><value>ALWAYS</value></property>
+   <property><name>dfs.namenode.replication.min</name><value>2</value></property>
    <property><name>hbase.balancer.period</name><value>60000</value></property>
    <property><name>hbase.client.ipc.pool.size</name><value>10</value></property>
    <property><name>hbase.client.max.perregion.tasks</name><value>100</value></property>
@@ -495,6 +499,10 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
 
   ```
   <property><name>dfs.client.read.shortcircuit.buffer.size</name><value>131072</value></property>                                     
+  <property><name>dfs.client.block.write.retries</name><value>6</value></property>
+  <property><name>dfs.client.block.write.locateFollowingBlock.retries</name><value>10</value></property>
+  <property><name>dfs.client.block.write.replace-datanode-on-failure.policy</name><value>ALWAYS</value></property>
+  <property><name>dfs.namenode.replication.min</name><value>2</value></property>
   <property><name>hbase.balancer.period</name><value>60000</value></property>                                     
   <property><name>hbase.client.ipc.pool.size</name><value>10</value></property>                                     
   <property><name>hbase.client.max.perregion.tasks</name><value>100</value></property>                                     
