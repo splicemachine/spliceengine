@@ -100,7 +100,7 @@ class SpliceTestPlatformConfig {
             SpliceHFileCleaner.class,
             TimeToLiveHFileCleaner.class);
 
-    public static void ConfigureS3(Configuration config)
+    public static void configureS3(Configuration config)
     {
         // AWS Credentials for test
         splice.aws.com.amazonaws.auth.AWSCredentialsProvider credentialproviders[] = {
@@ -308,7 +308,7 @@ class SpliceTestPlatformConfig {
         config.set("hbase.cluster.distributed", "true");  // don't start zookeeper for us
         config.set("hbase.master.distributed.log.splitting", "false"); // TODO: explain why we are setting this
 
-        ConfigureS3( config );
+        configureS3( config );
 
         config.set("hive.exec.orc.split.strategy","BI");
         config.setInt("io.file.buffer.size",65536);

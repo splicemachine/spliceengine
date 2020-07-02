@@ -104,7 +104,7 @@ public class SpliceTestYarnPlatform {
     }
     // todo: this is the same as SpliceTestPlatform.ConfigureS3( config ),
     // but I didn't manage to get dependencies right
-    private static void ConfigureS3(Configuration config)
+    private static void configureS3(Configuration config)
     {
         // AWS Credentials for test
         AWSCredentialsProvider credentialproviders[] = {
@@ -163,7 +163,7 @@ public class SpliceTestYarnPlatform {
             Configuration yarnClusterConfig = yarnCluster.getConfig();
             yarnClusterConfig.set("yarn.application.classpath", new File(yarnSiteConfigURL.getPath()).getParent());
 
-            ConfigureS3( yarnClusterConfig );
+            configureS3( yarnClusterConfig );
 
             //write the document to a buffer (not directly to the file, as that
             //can cause the file being written to get read -which will then fail.
