@@ -251,6 +251,7 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                         SYSCONGLOMERATES_INDEX1:                           |\n" +
                 "                         SYSCONGLOMERATES_INDEX2:                           |", rowid, rowid);
 
+        Assert.assertEquals(s, expected, s);
         // Check the table again
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('SYS', 'SYSCONGLOMERATES', null, 2, '%s/fix-conglomerates.out')", getResourceDirectory()));
         rs.next();
