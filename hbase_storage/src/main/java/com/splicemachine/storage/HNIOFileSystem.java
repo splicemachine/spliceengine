@@ -191,19 +191,22 @@ public class HNIOFileSystem extends DistributedFileSystem{
                 }
                 else {
                     // f is a directory
-                    long[] summary = {0, 0, 1};
+                    long length = 0, fileCount = 0, dirCount = 1;
                     for (FileStatus s : listRoot()) {
-                        long length = s.getLen();
-                        ContentSummary c = s.isDirectory() ? fs.getContentSummary(s.getPath()) :
-                                new ContentSummary.Builder().length(length).
-                                        fileCount(1).directoryCount(0).spaceConsumed(length).build();
-                        summary[0] += c.getLength();
-                        summary[1] += c.getFileCount();
-                        summary[2] += c.getDirectoryCount();
+                        if( s.isDirectory() ) {
+                            ContentSummary c = fs.getContentSummary(s.getPath());
+                            length += c.getLength();
+                            fileCount += c.getFileCount();
+                            dirCount += c.getDirectoryCount();
+                        }
+                        else {
+                            length += s.getLen();
+                            fileCount++;
+                        }
                     }
-                    contentSummary = new ContentSummary.Builder().length(summary[0]).
-                            fileCount(summary[1]).directoryCount(summary[2]).
-                            spaceConsumed(summary[0]).build();
+                    contentSummary = new ContentSummary.Builder().length(length).
+                            fileCount(fileCount).directoryCount(dirCount).
+                            spaceConsumed(length).build();
                 }
             } catch (IOException ioe) {
                 LOG.error("Unexpected error getting content summary. We ignore it for now, but you should probably check it out:", ioe);
@@ -245,6 +248,7 @@ public class HNIOFileSystem extends DistributedFileSystem{
                 return true;
             } catch( Exception e ) {
                 // this shouldn't happen, as we already check if it exists.
+                LOG.error("Unexpected error listing directory", e);
                 return false;
             }
         }

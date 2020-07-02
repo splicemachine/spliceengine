@@ -37,6 +37,7 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -270,16 +271,6 @@ public class ExternalTableUtils {
         FileInfo fileInfo = ImportUtils.getFileSystem(location).getInfo(location);
         return fileInfo.exists();
 
-    }
-    public static FileInfo getFileInfoOrNull(String location)
-    {
-        try {
-            return ImportUtils.getFileSystem(location).getInfo(location);
-        }
-        catch( StandardException | IOException e )
-        {
-            return null;
-        }
     }
 
     public static String truncateFileNameFromFullPath(String file)

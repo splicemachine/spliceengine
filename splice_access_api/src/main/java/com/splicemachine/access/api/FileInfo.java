@@ -26,7 +26,7 @@ public interface FileInfo{
 
     boolean isDirectory();
 
-    /// returns true if isDirectory() and (directory is empty or only contains one file _SUCCESS)
+    /** returns true if isDirectory() and (directory is empty or only contains one file _SUCCESS) */
     boolean isEmptyDirectory();
 
     /**
@@ -50,7 +50,8 @@ public interface FileInfo{
      */
     long spaceConsumed();
 
-    /* Note: this is SLOW on big directory trees when using remote filesystems like S3,
+    /**
+     *  Note: this is SLOW on big directory trees when using remote filesystems like S3,
      * since requiring a full recursive listdir
      */
     long size();

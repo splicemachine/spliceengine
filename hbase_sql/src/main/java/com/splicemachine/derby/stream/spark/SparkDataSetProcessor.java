@@ -689,9 +689,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     SQLState.PIN_READ_FAILURE, e, e.getMessage());
         }
     }
-    private <V> DataSet<V> checkExistingOrEmpty( String location, OperationContext context ) throws StandardException {
-        FileInfo fileinfo = ExternalTableUtils.getFileInfoOrNull(location);
-        if( fileinfo == null )
+    private <V> DataSet<V> checkExistingOrEmpty( String location, OperationContext context ) throws StandardException, IOException {
+        FileInfo fileinfo = ImportUtils.getImportFileInfo(location);
+        if( !fileinfo.exists() )
             throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
         if ( fileinfo.isEmptyDirectory() ) // Handle Empty Directory
             return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
