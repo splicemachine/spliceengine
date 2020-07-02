@@ -148,24 +148,6 @@ public class HNIOFileSystem extends DistributedFileSystem{
         }
     }
 
-    @Override
-    public void concat(Path target, Path... sources)  throws IOException {
-        org.apache.hadoop.fs.Path[] srcPaths = new org.apache.hadoop.fs.Path[sources.length];
-        for (int i=0; i<sources.length; i++) {
-            srcPaths[i] = new org.apache.hadoop.fs.Path(sources[i].getParent().toString(), sources[i].getFileName().toString());
-        }
-        org.apache.hadoop.fs.Path targetPath = new org.apache.hadoop.fs.Path(target.getParent().toString(), target.getFileName().toString());
-
-
-        if (isDistributedFS) {
-            fs.concat(targetPath, srcPaths);
-        } else {
-            for (org.apache.hadoop.fs.Path src : srcPaths) {
-                fs.copyFromLocalFile(true, false, src, targetPath);
-            }
-        }
-    }
-
     /* *************************************************************************************/
     /*private helper methods*/
     private org.apache.hadoop.fs.Path toHPath(Path path){
