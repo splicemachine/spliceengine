@@ -403,6 +403,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                     }
                     break;
                 case "useSpark":
+                case "useOLAP":
                     dataSetProcessorType = dataSetProcessorType.combine(
                             Boolean.parseBoolean(StringUtil.SQLToUpperCase(value))?
                                     DataSetProcessorType.QUERY_HINTED_SPARK:
