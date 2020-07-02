@@ -186,8 +186,7 @@ public class HNIOFileSystem extends DistributedFileSystem{
                 if (fileStatus.isFile()) {
                     // f is a file
                     long length = fileStatus.getLen();
-                    contentSummary = new ContentSummary.Builder().length(length).
-                            fileCount(1).directoryCount(0).spaceConsumed(length).build();
+                    contentSummary = new ContentSummary(length, 1, 0);
                 }
                 else {
                     // f is a directory
@@ -204,9 +203,7 @@ public class HNIOFileSystem extends DistributedFileSystem{
                             fileCount++;
                         }
                     }
-                    contentSummary = new ContentSummary.Builder().length(length).
-                            fileCount(fileCount).directoryCount(dirCount).
-                            spaceConsumed(length).build();
+                    contentSummary = new ContentSummary(length, fileCount, dirCount);
                 }
             } catch (IOException ioe) {
                 LOG.error("Unexpected error getting content summary. We ignore it for now, but you should probably check it out:", ioe);
