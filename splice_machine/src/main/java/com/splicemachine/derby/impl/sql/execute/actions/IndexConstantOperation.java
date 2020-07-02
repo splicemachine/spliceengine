@@ -132,7 +132,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         Txn childTxn;
         try {
             LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-            Boolean sparkHint = (Boolean)lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USESPARK);
+            Boolean sparkHint = (Boolean)lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USEOLAP);
 
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
             ScanSetBuilder<ExecRow> builder = getIndexScanBuilder(td, indexTransaction, demarcationPoint,

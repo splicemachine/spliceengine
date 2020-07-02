@@ -131,44 +131,49 @@ public class SessionPropertyIT extends SpliceUnitTest {
 
     @Test
     public void testUseSparkSessionProperty() throws Exception {
-        TestConnection conn = methodWatcher.createConnection();
-        conn.execute("set session_property useSpark=true");
+        String configNames[] = {"useOLAP", "useSpark" /* deprecated */};
+        for (String configName : configNames) {
+            TestConnection conn = methodWatcher.createConnection();
+            conn.execute("set session_property " + configName + "=true");
 
-        String sqlText = "values current session_property";
-        ResultSet rs = conn.query(sqlText);
-        String expected = "1       |\n" +
-                "----------------\n" +
-                "USESPARK=true; |";
-        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
+            String sqlText = "values current session_property";
+            ResultSet rs = conn.query(sqlText);
+            String expected =
+                    "1       |\n" +
+                    "---------------\n" +
+                    "USEOLAP=true; |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            rs.close();
 
-        sqlText = "explain select * from t1 where a1=1";
-        rowContainsQuery(1, sqlText, "engine=OLAP", conn);
+            sqlText = "explain select * from t1 where a1=1";
+            rowContainsQuery(1, sqlText, "engine=OLAP", conn);
 
-        // set property to false
-        conn.execute("set session_property useSpark=false");
-        sqlText = "values current session_property";
-        rs = conn.query(sqlText);
-        expected = "1        |\n" +
-                "-----------------\n" +
-                "USESPARK=false; |";
-        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
+            // set property to false
+            conn.execute("set session_property " + configName + "=false");
+            sqlText = "values current session_property";
+            rs = conn.query(sqlText);
+            expected = "1       |\n" +
+                    "----------------\n" +
+                    "USEOLAP=false; |";
 
-        sqlText = "explain select * from t1 where a1=1";
-        rowContainsQuery(1, sqlText, "engine=OLTP", conn);
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            rs.close();
 
-        //reset property
-        conn.execute("set session_property useSpark=null");
-        sqlText = "values current session_property";
-        rs = conn.query(sqlText);
-        expected = "1 |\n" +
-                "----\n" +
-                "   |";
-        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
+            sqlText = "explain select * from t1 where a1=1";
+            rowContainsQuery(1, sqlText, "engine=OLTP", conn);
 
-        conn.close();
+            //reset property
+            conn.execute("set session_property " + configName + "=null");
+            sqlText = "values current session_property";
+            rs = conn.query(sqlText);
+            expected = "1 |\n" +
+                    "----\n" +
+                    "   |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            rs.close();
+
+            conn.close();
+        }
     }
 
     @Test
