@@ -1467,6 +1467,7 @@ public interface Property {
      * True force Spark execution for this session; false forces Control execution for this connection
      */
     String CONNECTION_USE_SPARK = "useSpark";
+    String CONNECTION_USE_OLAP = "useOLAP";
 
     /**
      * True ignores statistics for this connection
