@@ -37,17 +37,17 @@ public class BadRecordsAccumulator extends AccumulatorV2<String, BadRecordsRecor
 
     @Override
     public boolean isZero() {
-        return false;
+        return badRecordsRecorder.getNumberOfBadRecords() == 0;
     }
 
     @Override
     public AccumulatorV2<String, BadRecordsRecorder> copy() {
-        return null;
+        return new BadRecordsAccumulator(badRecordsRecorder);
     }
 
     @Override
     public void reset() {
-//        badRecordsRecorder.reset();
+        badRecordsRecorder.reset();
     }
 
     @Override
