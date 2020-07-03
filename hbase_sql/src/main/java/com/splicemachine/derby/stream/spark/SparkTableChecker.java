@@ -3,11 +3,12 @@ package com.splicemachine.derby.stream.spark;
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.impl.storage.CheckTableJob.IndexFilter;
-import com.splicemachine.derby.impl.storage.CheckTableJob.LeadingIndexColumnInfo;
+import com.splicemachine.derby.impl.storage.CheckTableUtils.IndexFilter;
+import com.splicemachine.derby.impl.storage.CheckTableUtils.LeadingIndexColumnInfo;
 import com.splicemachine.derby.impl.storage.KeyByRowIdFunction;
 import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.function.KVPairFunction;
@@ -35,11 +36,9 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import scala.Tuple2;
 
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 /**
  * Created by jyuan on 2/12/18.
@@ -353,7 +352,8 @@ public class SparkTableChecker implements TableChecker {
                 byte[] key = Bytes.fromHex(tuple._1);
                 tableKeyDecoder.set(key, 0, key.length);
                 tableKeyDecoder.decode(tableKeyTemplate);
-                messages.add(tableKeyTemplate.getClone().toString());
+                ValueRow r = (ValueRow) tableKeyTemplate.getClone();
+                messages.add(r.toString());
             }
             else {
                 messages.add(tuple._1);

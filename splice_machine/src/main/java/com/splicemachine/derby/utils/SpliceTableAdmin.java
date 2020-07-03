@@ -40,6 +40,7 @@ import com.splicemachine.ddl.DDLMessage.TentativeIndex;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.storage.CheckTableResult;
+import com.splicemachine.derby.impl.storage.CheckTableUtils;
 import com.splicemachine.derby.impl.storage.DistributedCheckTableJob;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -48,6 +49,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.PartitionLoad;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -57,10 +59,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.net.URI;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -72,6 +71,7 @@ import java.util.concurrent.TimeoutException;
 public class SpliceTableAdmin {
 
     private static final Logger LOG = Logger.getLogger(SpliceTableAdmin.class);
+    private static int MB = 1024*1024;
 
     public enum Level{
         FAST (1),
@@ -293,7 +293,7 @@ public class SpliceTableAdmin {
 
         Map<String, List<String>> errors = null;
         if (tentativeIndexList.size() > 0) {
-            errors = checkIndexes(schema, table, cdList, tentativeIndexList, level, fix);
+            errors = checkIndexes(td, schema, table, cdList, tentativeIndexList, level, fix);
         }
         return errors;
     }
@@ -335,17 +335,18 @@ public class SpliceTableAdmin {
         }
     }
 
-    private static Map<String, List<String>> checkIndexes(String schema,
+    private static Map<String, List<String>> checkIndexes(TableDescriptor td,
+                                                          String schema,
                                                           String table,
                                                           ConglomerateDescriptorList cdList,
                                                           List<TentativeIndex> tentativeIndexList,
                                                           int level,
-                                                          boolean fix) throws IOException, SQLException, StandardException {
+                                                          boolean fix) throws Exception {
         if (level == Level.FAST.levelCode ) {
             return checkIndexesFast(schema, table, cdList, tentativeIndexList);
         }
         else if (level == Level.DETAIL.levelCode){
-            return checkIndexesInDetail(schema, table, tentativeIndexList, fix);
+            return checkIndexesInDetail(td, schema, table, tentativeIndexList, fix);
         }
         else {
             throw StandardException.newException(SQLState.INVALID_CONSISTENCY_LEVEL);
@@ -400,16 +401,28 @@ public class SpliceTableAdmin {
         }
     }
 
-    private static Map<String, List<String>> checkIndexesInDetail(String schema, String table,
+    private static Map<String, List<String>> checkIndexesInDetail(TableDescriptor td, String schema, String table,
                                                                   List<TentativeIndex> tentativeIndexList,
-                                                                  boolean fix) throws IOException, SQLException, StandardException {
+                                                                  boolean fix) throws Exception {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc = lcc.getTransactionExecute();
         tc.elevate("check_table");
         TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
         Activation activation = lcc.getLastActivation();
         Boolean useSpark = (Boolean)lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USESPARK);
+        String conglomId = Long.toString(tentativeIndexList.get(0).getTable().getConglomerate());
+        Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(conglomId, true);
 
+        boolean distributed = false;
+        if (useSpark == null) {
+            for (PartitionLoad load : partitionLoadCollection) {
+                if (load.getMemStoreSize() > 1 * MB || load.getStorefileSize() > 1 * MB)
+                    distributed = true;
+            }
+        } else {
+            distributed = useSpark;
+        }
+        boolean isSystemTable = schema.equalsIgnoreCase("SYS");
         SIDriver driver = SIDriver.driver();
         String hostname = NetworkUtils.getHostname(driver.getConfiguration());
         SConfiguration config = SIDriver.driver().getConfiguration();
@@ -419,30 +432,36 @@ public class SpliceTableAdmin {
         String session = hostname + ":" + localPort + "," + sessionId;
         String jobGroup = userId + " <" + session + "," + txn.getTxnId() + ">";
 
-        OlapClient olapClient = EngineDriver.driver().getOlapClient();
-        ActivationHolder ah = new ActivationHolder(activation, null);
-        boolean isSystemTable = schema.equalsIgnoreCase("SYS");
-        DistributedCheckTableJob checkTableJob = new DistributedCheckTableJob(ah, txn, schema, table,
-                tentativeIndexList, fix, jobGroup, isSystemTable, useSpark);
-        Future<CheckTableResult> futureResult = olapClient.submit(checkTableJob );
-        CheckTableResult result = null;
-        while (result == null) {
-            try {
-                result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
-                Thread.currentThread().interrupt();
-                throw new IOException(e);
-            } catch (ExecutionException e) {
-                throw Exceptions.rawIOException(e.getCause());
-            } catch (TimeoutException e) {
-                        /*
-                         * A TimeoutException just means that tickTime expired. That's okay, we just stick our
-                         * head up and make sure that the client is still operating
-                         */
+        Map<String, List<String>> errors = null;
+        if (distributed) {
+            OlapClient olapClient = EngineDriver.driver().getOlapClient();
+            ActivationHolder ah = new ActivationHolder(activation, null);
+            DistributedCheckTableJob checkTableJob = new DistributedCheckTableJob(ah, txn, schema, table,
+                    tentativeIndexList, fix, jobGroup, isSystemTable);
+            Future<CheckTableResult> futureResult = olapClient.submit(checkTableJob);
+            CheckTableResult result = null;
+            while (result == null) {
+                try {
+                    result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
+                    Thread.currentThread().interrupt();
+                    throw new IOException(e);
+                } catch (ExecutionException e) {
+                    throw Exceptions.rawIOException(e.getCause());
+                } catch (TimeoutException e) {
+                    /*
+                     * A TimeoutException just means that tickTime expired. That's okay, we just stick our
+                     * head up and make sure that the client is still operating
+                     */
+                }
             }
+            errors = result.getResults();
         }
-        Map<String, List<String>> errors = result.getResults();
+        else  {
+            errors = CheckTableUtils.checkTable(schema, table, td, tentativeIndexList, Long.parseLong(conglomId),
+                    false, fix, isSystemTable, txn, activation, jobGroup);
+        }
         return errors;
     }
 

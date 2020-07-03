@@ -107,6 +107,7 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         out.writeInt(message.length);
         out.write(message);
         ArrayUtil.writeIntArray(out,projectedMapping);
+        out.writeBoolean(isSystemTable);
     }
 
     @Override
@@ -116,6 +117,7 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         tentativeIndex = DDLMessage.TentativeIndex.parseFrom(message);
         projectedMapping= ArrayUtil.readIntArray(in);
         initialized = false;
+        isSystemTable = in.readBoolean();
     }
 
     public long getIndexConglomerateId() {

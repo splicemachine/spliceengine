@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.control;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.function.KVPairFunction;
@@ -33,8 +34,8 @@ import org.spark_project.guava.collect.ArrayListMultimap;
 import org.spark_project.guava.collect.ListMultimap;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.storage.CheckTableJob.IndexFilter;
-import com.splicemachine.derby.impl.storage.CheckTableJob.LeadingIndexColumnInfo;
+import com.splicemachine.derby.impl.storage.CheckTableUtils.IndexFilter;
+import com.splicemachine.derby.impl.storage.CheckTableUtils.LeadingIndexColumnInfo;
 import com.splicemachine.derby.impl.storage.KeyByRowIdFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
@@ -367,7 +368,8 @@ public class ControlTableChecker implements TableChecker {
             if (tableKeyTemplate.nColumns() > 0) {
                 tableKeyDecoder.set(key, 0, key.length);
                 tableKeyDecoder.decode(tableKeyTemplate);
-                messages.add(tableKeyTemplate.getClone().toString());
+                ValueRow r = (ValueRow) tableKeyTemplate.getClone();
+                messages.add(r.toString());
             }
             else {
                 messages.add(entry.getKey());
