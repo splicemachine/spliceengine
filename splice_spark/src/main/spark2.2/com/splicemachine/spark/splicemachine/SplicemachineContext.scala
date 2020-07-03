@@ -185,18 +185,13 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     * @return true if the table exists, false otherwise
     */
-  def tableExists(schemaTableName: String): Boolean = {
-    val spliceOptions = Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName)
-    val jdbcOptions = new JDBCOptions(spliceOptions)
-    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
-    try {
-      JdbcUtils.tableExists(conn, jdbcOptions)
-    } finally {
-      conn.close()
-    }
-  }
+  def tableExists(schemaTableName: String): Boolean =
+    SpliceJDBCUtil.retrieveTableInfo(
+      new JDBCOptions( Map(
+        JDBCOptions.JDBC_URL -> url,
+        JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
+      ))
+    ).nonEmpty
 
   /**
     * Determine whether a table exists given the schema name and table name.
