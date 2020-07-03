@@ -172,14 +172,10 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     * @return true if the table exists, false otherwise
     */
-  def tableExists(schemaTableName: String): Boolean = {
-    val (conn, jdbcOptionsInWrite) = getConnection(schemaTableName)
-    try {
-      JdbcUtils.tableExists(conn, jdbcOptionsInWrite)
-    } finally {
-      conn.close()
-    }
-  }
+  def tableExists(schemaTableName: String): Boolean =
+    SpliceJDBCUtil.retrieveTableInfo(
+      getJdbcOptionsInWrite( schemaTableName )
+    ).nonEmpty
 
   /**
     * Determine whether a table exists given the schema name and table name.
@@ -249,6 +245,12 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     }
   }
 
+  private[this] def getJdbcOptionsInWrite(schemaTableName: String): JdbcOptionsInWrite =
+    new JdbcOptionsInWrite( Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
+    ))
+
   /**
    * Get JDBC connection
    */
@@ -258,10 +260,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * Get JDBC connection
    */
   private[this] def getConnection(schemaTableName: String): (Connection, JdbcOptionsInWrite) = {
-    val jdbcOptionsInWrite = new JdbcOptionsInWrite( Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
-    ))
+    val jdbcOptionsInWrite = getJdbcOptionsInWrite( schemaTableName )
     val conn = JdbcUtils.createConnectionFactory( jdbcOptionsInWrite )()
     (conn, jdbcOptionsInWrite)
   }
@@ -597,17 +596,13 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
   def primaryKeys(schemaTableName: String): Array[String] =
     SpliceJDBCUtil.retrievePrimaryKeys(
-      new JdbcOptionsInWrite(Map(
-        JDBCOptions.JDBC_URL -> url,
-        JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
+      getJdbcOptionsInWrite( schemaTableName)
     )
   
   /** Schema string built from JDBC metadata. */
   def schemaString(schemaTableName: String, schema: StructType = new StructType()): String =
     SpliceJDBCUtil.retrieveColumnInfo(
-      new JdbcOptionsInWrite(Map(
-        JDBCOptions.JDBC_URL -> url,
-        JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
+      getJdbcOptionsInWrite( schemaTableName)
     ).filter(
       col => schema.isEmpty || schema.exists( field => field.name.toUpperCase.equals( col(0).toUpperCase ) )
     ).map(i => {
