@@ -382,8 +382,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     @Override
     public TableChecker getTableChecker(String schemaName, String tableName, DataSet table,
                                         KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix,
-                                        int[] baseColumnMap) {
-        return new ControlTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix, baseColumnMap);
+                                        int[] baseColumnMap, boolean isSystemTable) {
+        return new ControlTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix, baseColumnMap,
+                isSystemTable);
     }
 
     // Operations specific to native spark explains
