@@ -241,6 +241,11 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
     public Collection<PartitionLoad> tableLoad(String tableName, boolean refresh){
         if (refresh) {
             Map<String, Map<String, PartitionLoad>> loads = cache.get();
+            if (loads == null) {
+                if (LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(LOG, "This should not happen");
+                return Collections.emptyList();
+            }
             Map<String, PartitionLoad> regions = getCostWhenNoCachedRegionLoadsFound(tableName);
             loads.put(HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration()).getTableInfo(tableName).getNameWithNamespaceInclAsString(),
                     regions
