@@ -880,8 +880,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public TableChecker getTableChecker(String schemaName, String tableName, DataSet table,
                                         KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix,
-                                        int[] baseColumnMap) {
-        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix, baseColumnMap);
+                                        int[] baseColumnMap, boolean isSystemTable) {
+        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix, baseColumnMap,
+                isSystemTable);
     }
 
     @Override
