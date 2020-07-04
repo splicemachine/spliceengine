@@ -409,7 +409,7 @@ public class SpliceTableAdmin {
         tc.elevate("check_table");
         TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
         Activation activation = lcc.getLastActivation();
-        Boolean useSpark = (Boolean)lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USESPARK);
+        Boolean useSpark = (Boolean)lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USEOLAP);
         String conglomId = Long.toString(tentativeIndexList.get(0).getTable().getConglomerate());
         Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(conglomId, true);
 
