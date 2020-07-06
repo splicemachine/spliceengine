@@ -41,4 +41,5 @@ public class MRConstants {
     final public static String TABLE_WRITER_TYPE = "table.writer.type";
     final public static String REGION_LOCATION = "region.location";
     final public static String COMPACTION_FILES = "compaction.files";
+    final public static String SPLICE_SCAN_INPUT_SPLITS_ID = "splice.scan.input.splits.id";
 }

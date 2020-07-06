@@ -566,7 +566,7 @@ public class FromBaseTable extends FromTable {
         skipStats = skipStatsObj==null?false:skipStatsObj.booleanValue();
         Double defaultSelectivityFactorObj = (Double)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR);
         defaultSelectivityFactor = defaultSelectivityFactorObj==null?-1d:defaultSelectivityFactorObj.doubleValue();
-        Boolean useSparkObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USESPARK);
+        Boolean useSparkObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USEOLAP);
         if (useSparkObj != null)
             dataSetProcessorType = dataSetProcessorType.combine(useSparkObj ?
                     DataSetProcessorType.SESSION_HINTED_SPARK:
@@ -658,14 +658,14 @@ public class FromBaseTable extends FromTable {
                     dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
                 }
             }
-            else if (key.equals("useSpark")) {
+            else if (key.equals("useSpark") || key.equals("useOLAP")) {
                 try {
                     dataSetProcessorType = dataSetProcessorType.combine(
                             Boolean.parseBoolean(StringUtil.SQLToUpperCase(value))?
                                     DataSetProcessorType.QUERY_HINTED_SPARK:
                                     DataSetProcessorType.QUERY_HINTED_CONTROL);
                 } catch (Exception sparkE) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,value);
+                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK, key, value);
                 }
             }
             else if (key.equals("pin")) {
@@ -674,7 +674,7 @@ public class FromBaseTable extends FromTable {
                     dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
                     tableProperties.setProperty("index","null");
                 } catch (Exception pinE) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,value); // TODO Fix Error message - JL
+                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK, key, value); // TODO Fix Error message - JL
                 }
             }
             else if (key.equals("skipStats")) {
@@ -717,7 +717,8 @@ public class FromBaseTable extends FromTable {
             }else {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
-                        "index, constraint, joinStrategy, useSpark, pin, skipStats, splits, useDefaultRowcount, defaultSelectivityFactor");
+                        "index, constraint, joinStrategy, useSpark, useOLAP, pin, skipStats, splits, " +
+                                "useDefaultRowcount, defaultSelectivityFactor");
             }
 
 
