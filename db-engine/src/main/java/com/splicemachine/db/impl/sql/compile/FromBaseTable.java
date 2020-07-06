@@ -1038,6 +1038,17 @@ public class FromBaseTable extends FromTable {
                                           FromList fromListParam)throws StandardException{
         TableDescriptor tableDescriptor=bindTableDescriptor();
 
+        int tableType = tableDescriptor.getTableType();
+        if(pastTxId >= 0)
+        {
+            if(tableType==TableDescriptor.VIEW_TYPE) {
+                throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "views");
+            }
+            else if(tableType==TableDescriptor.EXTERNAL_TYPE) {
+                throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "external tables");
+            }
+        }
+
         if(tableDescriptor.getTableType()==TableDescriptor.VTI_TYPE){
             ResultSetNode vtiNode=mapTableAsVTI(
                     tableDescriptor,
