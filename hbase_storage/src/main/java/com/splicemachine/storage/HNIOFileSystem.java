@@ -21,6 +21,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.log4j.Logger;
 
@@ -30,6 +32,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.*;
+import java.util.*;
+
+import static com.google.common.collect.Iterables.toArray;
 
 /**
  * @author Scott Fines
@@ -162,27 +167,59 @@ public class HNIOFileSystem extends DistributedFileSystem{
         public HFileInfo(org.apache.hadoop.fs.Path path) throws IOException{
             this.path=path;
             try {
-                this.fileStatus = fs.getFileStatus(path);
+                URI uri = URI.create(path.toString());
+                String scheme = uri.getScheme();
+                if (scheme != null && scheme.equalsIgnoreCase("s3a") ) {
+                    this.fileStatus = s3getFileStatus(path);
+                }
+                else {
+                    this.fileStatus = fs.getFileStatus(path);
+                }
             } catch( FileNotFoundException e )
             {
                 this.fileStatus = null;
             }
         }
 
+        private FileStatus s3getFileStatus(org.apache.hadoop.fs.Path path) throws IOException {
+            // PrestoS3AFileSystem has problem reading an empty folder. It cannot determine whether the folder does not
+            // exist, or the folder is empty. Skip checking for S3A. If the directory does not exist, it will be
+            // created.
+            listRoot();
+
+            if( rootFileStatusArr.length > 1 ) {
+                // a directory
+                long maxLastModifiedTime = Arrays.stream(rootFileStatusArr)
+                                                .map( f -> f.getModificationTime() ).max(Long::compare).orElse((long) 0);
+                return new FileStatus(0,true,1, 0, maxLastModifiedTime, path);
+            }
+            else if( rootFileStatusArr.length > 0 ){
+                return rootFileStatusArr[0];
+            }
+            else
+            {
+                return null;
+            }
+        }
+
         // these two methods are to avoid having to re-calculate the list of files in the directory
         // for isEmptyDirectory
-        // todo(martinrupp): replace with recursive listdir
         private FileStatus rootFileStatusArr[];
         private FileStatus[] listRoot() throws IOException {
-            if (rootFileStatusArr != null || !exists() || !fileStatus.isDirectory()) return rootFileStatusArr;
-            rootFileStatusArr = fs.listStatus(path);
+            if (rootFileStatusArr != null) return rootFileStatusArr;
+            List<LocatedFileStatus> list = new ArrayList<>();
+            RemoteIterator<LocatedFileStatus> iterator = fs.listFiles(path, true); // recursive!
+            while (iterator.hasNext()) {
+                list.add(iterator.next());
+            }
+            rootFileStatusArr = toArray(list, LocatedFileStatus.class);
             return rootFileStatusArr;
         }
-        // note this is expensive for deeply nested directories. avoid calling fileCount, spaceConsumed and size
-        // partly copied FileSystem.getContentSummary , however with cached fileStatus and using (cached) listRoot for listing root.
+
         private ContentSummary getContentSummary() {
             if( contentSummary != null ) return contentSummary;
-            try {
+            try
+            {
                 if (fileStatus.isFile()) {
                     // f is a file
                     long length = fileStatus.getLen();
@@ -190,25 +227,18 @@ public class HNIOFileSystem extends DistributedFileSystem{
                             fileCount(1).directoryCount(0).spaceConsumed(length).build();
                 }
                 else {
-                    // f is a directory
-                    long length = 0, fileCount = 0, dirCount = 1;
-                    for (FileStatus s : listRoot()) {
-                        if( s.isDirectory() ) {
-                            ContentSummary c = fs.getContentSummary(s.getPath());
-                            length += c.getLength();
-                            fileCount += c.getFileCount();
-                            dirCount += c.getDirectoryCount();
-                        }
-                        else {
-                            length += s.getLen();
-                            fileCount++;
-                        }
+                    FileStatus[] all = listRoot();
+                    Set<String> directories = new HashSet<>();
+                    long length = 0, fileCount = 0;
+                    for (FileStatus a : all) {
+                        directories.add(a.getPath().getParent().toString());
+                        length += a.getLen();
+                        fileCount++;
                     }
-                    contentSummary = new ContentSummary.Builder().length(length).
-                            fileCount(fileCount).directoryCount(dirCount).
-                            spaceConsumed(length).build();
+                    contentSummary = new ContentSummary(length, fileCount, directories.size());
                 }
-            } catch (IOException ioe) {
+            }
+            catch (IOException ioe) {
                 LOG.error("Unexpected error getting content summary. We ignore it for now, but you should probably check it out:", ioe);
                 contentSummary = new ContentSummary(0L, 0L, 0L);
             }
