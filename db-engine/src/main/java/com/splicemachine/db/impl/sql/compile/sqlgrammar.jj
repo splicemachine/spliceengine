@@ -4229,6 +4229,7 @@ deleteBody() throws StandardException :
                                                 FromBaseTable.DELETE),
                                         null,
                                         isBulkDelete,
+                                        -1L,
                                         getContextManager());
 
 
@@ -10902,7 +10903,7 @@ optionalTableClauses() throws StandardException :
     Properties       tableProperties = null;
     ResultColumnList derivedRCL = null;
     String           correlationName = null;
-    Long             txnId = null;
+    Long             txnId = -1L;
 }
 {
     otc = optionalTableProperties()
@@ -11027,6 +11028,7 @@ FromTable tableFactor() throws StandardException :
                                             (String) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME],
                                             (ResultColumnList) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL],
                                             (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES],
+                                            false,
                                             (Long) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TXN_ID],
                                             getContextManager());
         return fromTable;
@@ -12284,7 +12286,7 @@ asOfClause() throws StandardException :
     Long txId = null;
 }
 {
-    LOOKAHEAD({(getToken(1).kind == AS && getToken(2).kind == OF)}) <AS> <OF> txId = exactNumber()
+    <AS> <OF> txId = exactNumber()
     {
         return txId;
     }
