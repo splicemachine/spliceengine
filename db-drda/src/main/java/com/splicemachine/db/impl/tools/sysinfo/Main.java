@@ -1033,7 +1033,6 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
             }
             if (thisEntry == null)
             {
-                zf.close();
                 return null;
             }
 

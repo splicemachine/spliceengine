@@ -69,7 +69,7 @@ public class utilMain implements java.security.PrivilegedAction {
 	private boolean firstRun = true;
 	private LocalizedOutput out = null;
 	private Hashtable ignoreErrors;
-	private boolean logToFile = false;
+	private boolean doSpool = false;
 	private String logFileName = null;
 	/**
 	 * True if to display the error code when
@@ -295,7 +295,7 @@ public class utilMain implements java.security.PrivilegedAction {
 				out.flush();
 				command = commandGrabber[currCE].nextStatement();
 
-				if(logToFile) {
+				if(doSpool) {
 					out.println(command + ";");
 					out.flush();
 				}
@@ -321,7 +321,7 @@ public class utilMain implements java.security.PrivilegedAction {
 					long	beginTime = 0;
 					long	endTime;
 
-					if (fileInput && !logToFile) {
+					if (fileInput && !doSpool) {
 						out.println(command+";");
 						out.flush();
 					}
@@ -821,22 +821,22 @@ public class utilMain implements java.security.PrivilegedAction {
 		return  getClass().getResourceAsStream(ProductGenusNames.TOOLS_INFO);
 	}
 	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",justification = "Intentional, we don't care if the file already exists")
-	public void startLogging(String path) throws IOException {
-		logToFile = true;
+	public void startSpooling(String path) throws IOException {
+		doSpool = true;
 		logFileName = path;
 		File f = new File(logFileName);
 		f.createNewFile(); // no-op if file exists.
 		this.out = new LocalizedOutput(new ForkOutputStream(new FileOutputStream(f)));
 	}
 
-	public void stopLogging() {
-		logToFile = false;
+	public void stopSpooling() {
+		doSpool = false;
 		this.out.flush();
 		this.out = new LocalizedOutput(System.out);
 	}
 
-	public void clearLogging() throws IOException {
-		if(logToFile)
+	public void clearSpooling() throws IOException {
+		if(doSpool)
 		{
 			PrintWriter pw = new PrintWriter(logFileName, "UTF-8");
 			pw.close();
