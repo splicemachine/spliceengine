@@ -202,12 +202,11 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                     compareRows(split.split.getEndRow(), scanStopRow) == 0;
         } else {
             if (compareRows(split.split.getStartRow(), scanStartRow) < 1) {
-                if (split.split.getEndRow().length == 0 && compareRows(split.split.getEndRow(), scanStopRow) >= 0) {
-                    return false;
+                if (split.split.getEndRow().length == 0 || compareRows(split.split.getEndRow(), scanStopRow) >= 0) {
+                    return true;
                 }
-
             }
-            return true;
+            return false;
         }
     }
 
