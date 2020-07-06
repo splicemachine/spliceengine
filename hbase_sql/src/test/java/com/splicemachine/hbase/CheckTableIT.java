@@ -183,6 +183,76 @@ public class CheckTableIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testSystemTable() throws Exception {
+        // delete one row from SYSCONGLOMERATES_INDEX2
+        ResultSet rs = spliceClassWatcher.executeQuery("select rowid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX2\n" +
+                "where conglomeratename='GI'");
+        rs.next();
+        String rowid = rs.getString(1);
+        rs = spliceClassWatcher.executeQuery("select conglomeratenumber from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX2\n" +
+                "where conglomeratename='SYSCONGLOMERATES_INDEX2'");
+        rs.next();
+        long index2 = rs.getLong(1);
+        rs.close();
+        spliceClassWatcher.execute(String.format("call syscs_util.syscs_dictionary_delete(%d, '%s')",
+               index2, rowid));
+
+        // delete one row from SYSCONGLOMERATES_INDEX1
+        rs = spliceClassWatcher.executeQuery("select conglomerateid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX1\n" +
+                "where conglomeratename='GI'");
+        rs.next();
+        String conglomerateId = rs.getString(1);
+        rs.close();
+
+        rs = spliceClassWatcher.executeQuery(String.format("select rowid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX1\n" +
+                "where conglomerateid='%s'", conglomerateId));
+        rs.next();
+        rowid = rs.getString(1);
+        rs.close();
+
+        rs = spliceClassWatcher.executeQuery("select conglomeratenumber from sys.sysconglomerates --splice-properties index=null\n" +
+                "where conglomeratename='SYSCONGLOMERATES_INDEX1'");
+        rs.next();
+        long index1 = rs.getLong(1);
+        rs.close();
+
+        spliceClassWatcher.execute(String.format("call syscs_util.syscs_dictionary_delete(%d, '%s')",
+                index1, rowid));
+
+        // Repair missing indexes
+        spliceClassWatcher.execute(String.format("call syscs_util.fix_table('SYS', 'SYSCONGLOMERATES', null, '%s/fix-conglomerates.out')", getResourceDirectory()));
+        String select =
+                "SELECT \"message\" " +
+                        "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
+                        "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
+                        "AS messages (\"message\" varchar(200)) order by 1";
+        rs = spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-conglomerates.out", getResourceDirectory())));
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        rs.close();
+
+        rs = spliceClassWatcher.executeQuery("select rowid from sys.sysconglomerates --splice-properties index=null\n" +
+                "where conglomeratename='GI'");
+        rs.next();
+        rowid = rs.getString(1);
+
+        String expected = String.format("message                                   |\n" +
+                "-----------------------------------------------------------------------------\n" +
+                "                             %s                               |\n" +
+                "                             %s                               |\n" +
+                "Create index for the following 1 rows from base table SYS.SYSCONGLOMERATES: |\n" +
+                "Create index for the following 1 rows from base table SYS.SYSCONGLOMERATES: |\n" +
+                "                         SYSCONGLOMERATES_INDEX1:                           |\n" +
+                "                         SYSCONGLOMERATES_INDEX2:                           |", rowid, rowid);
+
+        Assert.assertEquals(s, expected, s);
+        // Check the table again
+        rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('SYS', 'SYSCONGLOMERATES', null, 2, '%s/fix-conglomerates.out')", getResourceDirectory()));
+        rs.next();
+        s = rs.getString(1);
+        Assert.assertEquals(s, s, "No inconsistencies were found.");
+    }
+
+    @Test
     public void testCheckTable() throws Exception {
         checkTable(SCHEMA_NAME, A, AI);
         checkTable(SCHEMA_NAME, B, BI);
