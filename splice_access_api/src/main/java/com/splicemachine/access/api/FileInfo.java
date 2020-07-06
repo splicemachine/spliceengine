@@ -37,6 +37,7 @@ public interface FileInfo{
      */
     long fileCount();
 
+    default String getDeepest() { throw new RuntimeException("not implemented"); }
 
     /**
      * Returns the overall space consumed for the file.

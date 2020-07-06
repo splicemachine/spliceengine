@@ -167,18 +167,33 @@ public class HNIOFileSystem extends DistributedFileSystem{
         public HFileInfo(org.apache.hadoop.fs.Path path) throws IOException{
             this.path=path;
             try {
-//                URI uri = URI.create(path.toString());
-//                String scheme = uri.getScheme();
-//                if (scheme != null && scheme.equalsIgnoreCase("s3a") ) {
-//                    this.fileStatus = s3getFileStatus(path);
-//                }
-//                else
-                    {
+                URI uri = URI.create(path.toString());
+                String scheme = uri.getScheme();
+                if (scheme != null && scheme.equalsIgnoreCase("s3a") ) {
+                    this.fileStatus = s3getFileStatus(path);
+                }
+                else {
                     this.fileStatus = fs.getFileStatus(path);
                 }
             } catch( FileNotFoundException e )
             {
                 this.fileStatus = null;
+            }
+        }
+
+        @Override
+        public String getDeepest() {
+            try {
+                listRoot();
+                for (FileStatus a : rootFileStatusArr) {
+                    if (!a.isDirectory() && !a.getPath().getName().toString().startsWith(".") && !a.getPath().getName().toString().equals("_SUCCESS"))
+                        return a.getPath().toString();
+                }
+                return null;
+            }
+            catch( Exception e )
+            {
+                return null;
             }
         }
 

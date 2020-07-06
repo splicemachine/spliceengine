@@ -18,6 +18,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -455,10 +456,15 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         // normalize location string
         location = new Path(location).toString();
         try {
-
+            long ___startTime___ = System.nanoTime();
             if (!mergeSchema) {
                 fs = FileSystem.get(URI.create(location), conf);
-                String fileName = getFile(fs, location);
+
+                DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
+                FileInfo fileInfo = fileSystem.getInfo(location);
+                String fileName = fileInfo.getDeepest();
+                //String fileName = getFile(fs, location);
+
                 boolean canWrite = true;
                 if( (fileName == null || (fs.getFileStatus(new Path(location)).getPermission().toShort() & 0222) == 0 )) {
                     canWrite = false;
@@ -496,6 +502,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     SpliceLogUtils.info(LOG, "couldn't create temporary directory %s, " +
                             "will read schema from whole directory", temp);
                 }
+
+                double ___took_ms____ = (System.nanoTime()-___startTime___) / 1000000.0;
+                try { java.io.FileOutputStream fos = new java.io.FileOutputStream("/tmp/log.txt", true); fos.write((Thread.currentThread().getStackTrace()[1] + "took " + ___took_ms____ + " ms\n").getBytes()); fos.close(); } catch( Exception e) {}
             }
             try {
                 Dataset dataset = null;
