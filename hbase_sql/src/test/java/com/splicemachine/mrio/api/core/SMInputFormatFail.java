@@ -13,9 +13,9 @@ import java.util.List;
 public class SMInputFormatFail extends SMInputFormat {
 
     @Override
-    protected boolean isRefreshNeeded(List<InputSplit> lss) {
-        corruptStartRow(lss);
-        return super.isRefreshNeeded(lss);
+    protected boolean isRefreshNeeded(List<InputSplit> inputSplits, byte[] startRow, byte[] stopRow) {
+        corruptStartRow(inputSplits);
+        return super.isRefreshNeeded(inputSplits, startRow, stopRow);
     }
 
     private void corruptStartRow(List<InputSplit> lss) {

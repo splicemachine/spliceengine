@@ -14,21 +14,18 @@
 
 package com.splicemachine.mrio.api.core;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.test.HBaseTestUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -44,8 +41,6 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.mrio.MRConstants;
 
-import static org.junit.Assert.assertTrue;
-
 @Category({SlowTest.class, SerialTest.class})
 public class SMInputFormatIT extends BaseMRIOTest {
     private static final String CLASS_NAME = SMInputFormatIT.class.getSimpleName().toUpperCase();
@@ -55,6 +50,8 @@ public class SMInputFormatIT extends BaseMRIOTest {
             "A", schemaWatcher.schemaName, "(col1 varchar(100) primary key, col2 varchar(100))");
     private static final SpliceTableWatcher tableWatcherB = new SpliceTableWatcher(
             "B", schemaWatcher.schemaName, "(col1 bigint primary key, col2 varchar(100))");
+    private static final SpliceTableWatcher tableWatcherC = new SpliceTableWatcher(
+            "C", schemaWatcher.schemaName, "(col1 bigint primary key, col2 varchar(100))");
     private static final SpliceSparkWatcher sparkWatcher = new SpliceSparkWatcher(CLASS_NAME);
 
     @ClassRule
@@ -62,6 +59,7 @@ public class SMInputFormatIT extends BaseMRIOTest {
             .around(schemaWatcher)
             .around(tableWatcherA)
             .around(tableWatcherB)
+            .around(tableWatcherC)
             .around(sparkWatcher)
             .around(new SpliceDataWatcher() {
                 @Override
@@ -69,6 +67,7 @@ public class SMInputFormatIT extends BaseMRIOTest {
                     try{
                         PreparedStatement ps1;
                         PreparedStatement ps2;
+                        PreparedStatement ps3;
                         ps1 = classWatcher.prepareStatement(
                                 "insert into " + tableWatcherA + " (col1, col2) values (?,?)");
                         ps1.setString(1, "John");
@@ -103,6 +102,17 @@ public class SMInputFormatIT extends BaseMRIOTest {
                             }
                         }
                         ps2.executeBatch();
+
+                        ps3 = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherC + " (col1, col2) values (?,?)");
+                        for (int i =0; i<10000;i++) {
+                            ps3.setInt(1, i);
+                            ps3.setString(2, i + "sdfasdgffdgdfgdfgdfgdfgdfgdfgd");
+                            ps3.addBatch();
+                        }
+
+                        ps3.executeBatch();
+
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } catch (Throwable t) {
@@ -151,21 +161,35 @@ public class SMInputFormatIT extends BaseMRIOTest {
 
     }
 
+    private void executeQueryAndAssert(String query, int expected) throws SQLException {
+        try (PreparedStatement ps = methodWatcher.prepareStatement(query)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                Assert.assertTrue("No rows returned from count query!", rs.next());
+                Assert.assertEquals("Incorrect query count!", expected, rs.getLong(1));
+            }
+        }
+    }
+
+    private void testQueryInSpark(SpliceTableWatcher tableWatcher) throws SQLException {
+        executeQueryAndAssert("select count(*) from " + tableWatcher.toString() + " where col1 in (1,2,4) --splice-properties useSpark=true", 3);
+        executeQueryAndAssert("select count(*) from " + tableWatcher.toString() +
+                        " where col2 in ('1sdfasdgffdgdfgdfgdfgdfgdfgdfgd') --splice-properties useSpark=true",
+                1);
+        executeQueryAndAssert("select count(*) from " + tableWatcher.toString() +
+                        " where col1 in (1,2,5,6,7,8,9,10) and col2 in ('1sdfasdgffdgdfgdfgdfgdfgdfgdfgd', '7sdfasdgffdgdfgdfgdfgdfgdfgdfgd') --splice-properties useSpark=true",
+                2);
+    }
+
     @Test
     public void testQueryOverMultipleRegionsInSpark() throws Exception {
-        try (PreparedStatement ps = methodWatcher.prepareStatement("select count(*) from " + tableWatcherB.toString() + " where col1 in (1,2,4) --splice-properties useSpark=true")) {
-            try (ResultSet rs = ps.executeQuery()) {
-                Assert.assertTrue("No rows returned from count query!", rs.next());
-                Assert.assertEquals("Incorrect query count!", 3, rs.getLong(1));
-            }
-        }
+        Assert.assertTrue("Should be more than one region for this table", getRegionCount(tableWatcherB.toString()) > 1);
+        testQueryInSpark(tableWatcherB);
+    }
 
-        try (PreparedStatement ps = methodWatcher.prepareStatement("select count(*) from " + tableWatcherB.toString() + " where col2 in ('1sdfasdgffdgdfgdfgdfgdfgdfgdfgd') --splice-properties useSpark=true")) {
-            try (ResultSet rs = ps.executeQuery()) {
-                Assert.assertTrue("No rows returned from count query!", rs.next());
-                Assert.assertEquals("Incorrect query count!", 1, rs.getLong(1));
-            }
-        }
+    @Test
+    public void testQueryOverSingleRegionInSpark() throws Exception {
+        Assert.assertEquals("Should be one region for this table", 1, getRegionCount(tableWatcherC.toString()));
+        testQueryInSpark(tableWatcherC);
     }
 
     @Rule
