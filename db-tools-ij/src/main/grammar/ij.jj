@@ -4060,19 +4060,35 @@ ijResult CP_DisconnectStatement() throws SQLException
 
 ijResult Spool() throws IOException
 :
+{}
+{
+    <SPOOL>
+    {
+        return HandleSpool();
+    }
+}
+
+ijResult HandleSpool() throws IOException
+:
 {
     String n = null;
-    Token stop = null, clear = null;
 }
 {
-    <SPOOL> [ (n=path()) | stop = <STOP> | clear = <CLEAR> ]
+    n=path()
     {
-        if(n != null)
-            utilInstance.startLogging(n);
-        else if(stop != null)
-            utilInstance.stopLogging();
-        else if(clear != null)
-            utilInstance.clearLogging();
+        utilInstance.startSpooling(n);
+        return null;
+    }
+|
+    <STOP>
+    {
+        utilInstance.stopSpooling();
+        return null;
+    }
+|
+    <CLEAR>
+    {
+        utilInstance.clearSpooling();
         return null;
     }
 }
