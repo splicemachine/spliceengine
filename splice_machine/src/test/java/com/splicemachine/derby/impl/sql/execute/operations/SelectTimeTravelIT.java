@@ -1,12 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.test.framework.*;
-import org.junit.*;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Test;
 
-import java.sql.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import static org.junit.Assert.fail;
 
 public class SelectTimeTravelIT {
 
@@ -249,5 +252,38 @@ public class SelectTimeTravelIT {
         ResultSet rs =  watcher.executeQuery(query);
         Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
         Assert.assertFalse(rs.next());
+    }
+
+    @Test
+    public void testTimeTravelWithViewIsNotAllowed() throws Exception {
+        String tbl = GenerateTableName();
+        String view = GenerateTableName();
+        watcher.executeUpdate("CREATE TABLE " + tbl + "(a INT)");
+        watcher.executeUpdate("CREATE VIEW " + view + " AS SELECT * FROM " + tbl);
+
+        try {
+            watcher.executeQuery("SELECT * FROM " + view + " AS OF 42");
+            fail("Expected: java.sql.SQLException: ERROR 42ZD2: Using time travel clause with views is not allowed");
+        } catch (SQLException e) {
+            Assert.assertEquals("42ZD2", e.getSQLState());
+            return;
+        }
+        fail("Expected: java.sql.SQLException: ERROR 42ZD2: Using time travel clause with views is not allowed");
+    }
+
+    @Test
+    public void testTimeTravelWithExternalTablesIsNotAllowed() throws Exception {
+        String externalTable = GenerateTableName();
+        watcher.executeUpdate("CREATE EXTERNAL TABLE " + externalTable + "(a INT, b INT) PARTITIONED BY (a) " +
+                "STORED AS PARQUET LOCATION '/tmp/bla'");
+
+        try {
+            watcher.executeQuery("SELECT * FROM " + externalTable + " AS OF 42");
+            fail("Expected: java.sql.SQLException: ERROR 42ZD2: Using time travel clause with external tables is not allowed");
+        } catch (SQLException e) {
+            Assert.assertEquals("42ZD2", e.getSQLState());
+            return;
+        }
+        fail("Expected: java.sql.SQLException: ERROR 42ZD2: Using time travel clause with external tables is not allowed");
     }
 }
