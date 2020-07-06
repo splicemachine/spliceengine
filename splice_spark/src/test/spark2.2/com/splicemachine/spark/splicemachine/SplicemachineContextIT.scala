@@ -83,7 +83,8 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
         StructField("NUMBER", IntegerType, false) ::
           StructField("MAKE", StringType, true) ::
           StructField("MODEL", StringType, true) :: Nil),
-      Seq("NUMBER")
+      Seq("NUMBER"),
+      ""
     )
   }
 
