@@ -210,14 +210,16 @@ public class FromBaseTable extends FromTable {
      * @param correlationName The correlation name
      * @param rclOrUD update/delete flag or result column list
      * @param propsOrRcl properties or result column list
-     * @param isBulkDeleteOrTxId bulk delete flag or past tx id.
+     * @param isBulkDelete bulk delete flag or past tx id.
+     * @param pastTxId the ID of the past transaction.
      */
     @Override
-    public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDeleteOrTxId){
-        if(isBulkDeleteOrTxId instanceof Boolean) {
-            this.isBulkDelete = (Boolean) isBulkDeleteOrTxId;
-        }else if(isBulkDeleteOrTxId instanceof Long){
-            this.pastTxId = (Long) isBulkDeleteOrTxId;
+    public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxId){
+        this.isBulkDelete = (Boolean) isBulkDelete;
+        if(pastTxId != null) {
+            this.pastTxId = (Long) pastTxId;
+        } else {
+            this.pastTxId = -1;
         }
         init(tableName, correlationName, rclOrUD, propsOrRcl);
     }
@@ -3410,7 +3412,7 @@ public class FromBaseTable extends FromTable {
         }else{
             cName = "TableScan["+getPrettyTableName();
             if(pastTxId >= 0){
-                cName += "timeTravelTx(" + pastTxId + ")";
+                cName += " timeTravelTx(" + pastTxId + ")";
             }
             cName += "]";
         }
