@@ -55,7 +55,6 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.ast.RSUtils;
-import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.vti.DeferModification;
 
 import java.sql.Types;
@@ -93,6 +92,7 @@ public final class InsertNode extends DMLModStatementNode {
     public static final String STATUS_DIRECTORY = "statusDirectory";
     public static final String BAD_RECORDS_ALLOWED = "badRecordsAllowed";
     public static final String USE_SPARK = "useSpark";
+    public static final String USE_OLAP = "useOLAP";
     public static final String SKIP_CONFLICT_DETECTION = "skipConflictDetection";
     public static final String SKIP_WAL = "skipWAL";
     public static final String INSERT = "INSERT";
@@ -735,7 +735,6 @@ public final class InsertNode extends DMLModStatementNode {
         throws StandardException {
         // The only property that we're currently interested in is insertMode
         String insertModeString = targetProperties.getProperty(INSERT_MODE);
-        String useSparkString = targetProperties.getProperty(USE_SPARK);
         String statusDirectoryString = targetProperties.getProperty(STATUS_DIRECTORY);
         bulkImportDirectory = targetProperties.getProperty(BULK_IMPORT_DIRECTORY);
         samplingOnly = Boolean.parseBoolean(targetProperties.getProperty(SAMPLING_ONLY));
@@ -778,18 +777,25 @@ public final class InsertNode extends DMLModStatementNode {
             skipWAL = Boolean.parseBoolean(StringUtil.SQLToUpperCase(skipWALString));
         }
 
-        if (useSparkString != null) {
-            try {
-                dataSetProcessorType = dataSetProcessorType.combine(
-                        Boolean.parseBoolean(StringUtil.SQLToUpperCase(useSparkString)) ?
-                                DataSetProcessorType.QUERY_HINTED_SPARK:
-                                DataSetProcessorType.QUERY_HINTED_CONTROL);
-            } catch (Exception sparkE) {
-                throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK, useSparkString);
+        // check for property "useSpark" or "useOLAP"
+        for( String propertyStr : new String[]{ USE_OLAP, USE_SPARK } )
+        {
+            String val = targetProperties.getProperty(propertyStr);
+            if (val != null) {
+                try {
+                    dataSetProcessorType = dataSetProcessorType.combine(
+                            Boolean.parseBoolean(StringUtil.SQLToUpperCase(val)) ?
+                            DataSetProcessorType.QUERY_HINTED_SPARK :
+                            DataSetProcessorType.QUERY_HINTED_CONTROL);
+                } catch (Exception sparkE) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,
+                            propertyStr, val);
+                }
             }
         }
-
     }
+
+
 
     /**
      * Do the bind time checks to see if bulkInsert is allowed on
