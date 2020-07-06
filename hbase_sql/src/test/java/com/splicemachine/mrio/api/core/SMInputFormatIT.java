@@ -41,7 +41,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.mrio.MRConstants;
 
-@Category({SlowTest.class, SerialTest.class})
+@Category(value = {SerialTest.class})
 public class SMInputFormatIT extends BaseMRIOTest {
     private static final String CLASS_NAME = SMInputFormatIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
