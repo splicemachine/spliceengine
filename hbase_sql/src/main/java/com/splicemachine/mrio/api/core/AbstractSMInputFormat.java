@@ -138,7 +138,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
             List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), this.splits, tableSize);
             //check if split count changed in-between
 
-            if (isRefreshNeeded(lss)) {
+            if (isRefreshNeeded(lss, s.getStartRow(), s.getStopRow())) {
                 // retry
                 refresh = true;
                 LOG.warn("mismatched splits for region " + clientPartition + ", refresh of splits is needed");
@@ -153,36 +153,64 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         }
     }
 
+    private int compareRows(byte[] left, byte[] right) {
+        return org.apache.hadoop.hbase.util.Bytes.compareTo(left, right);
+    }
+
+    private boolean splitContainsScan(SMSplit split, byte[] scanStartRow, byte[] scanStopRow) {
+        if (scanStartRow.length == 0 && scanStopRow.length == 0) {
+            return compareRows(split.split.getStartRow(), scanStartRow) == 0 &&
+                    compareRows(split.split.getEndRow(), scanStopRow) == 0;
+        } else {
+            if (compareRows(split.split.getStartRow(), scanStartRow) < 1) {
+                if (split.split.getEndRow().length == 0 && compareRows(split.split.getEndRow(), scanStopRow) >= 0) {
+                    return false;
+                }
+
+            }
+            return true;
+        }
+    }
+
     /**
-     * Checks the sequence of split rows. If any gap is found, the splitting has to be recalculated again.
+     * Checks the sequence of split rows. If any gap between splits is found or start/stop row of scan does not
+     * correspond to the generated splits, the splitting has to be recalculated again.
      *
-     * @param lss
+     * @param inputSplits generated splits
+     * @param scanStartRow
+     * @param scanStopRow
      * @return
      */
-    protected boolean isRefreshNeeded(List<InputSplit> lss) {
-        if (lss.size() < 2 || !lss.stream().allMatch(is -> (is instanceof SMSplit))) {
-            return false;
-        }
+    protected boolean isRefreshNeeded(List<InputSplit> inputSplits, byte[] scanStartRow, byte[] scanStopRow) {
+        assert inputSplits.stream().allMatch(is -> (is instanceof SMSplit)) : "items expected to be instanceof SMSplit";
 
-        lss.sort(new Comparator<InputSplit>() {
-            @Override
-            public int compare(InputSplit o1, InputSplit o2) {
-                SMSplit smSplit1 = (SMSplit) o1;
-                SMSplit smSplit2 = (SMSplit) o2;
+        if (inputSplits.size() < 2) {
+            return !splitContainsScan((SMSplit) inputSplits.get(0), scanStartRow, scanStopRow);
+        } else {
+            inputSplits.sort(new Comparator<InputSplit>() {
+                @Override
+                public int compare(InputSplit o1, InputSplit o2) {
+                    SMSplit smSplit1 = (SMSplit) o1;
+                    SMSplit smSplit2 = (SMSplit) o2;
 
-                return org.apache.hadoop.hbase.util.Bytes.compareTo(smSplit1.split.getStartRow(), smSplit2.split.getStartRow());
+                    return compareRows(smSplit1.split.getStartRow(), smSplit2.split.getStartRow());
+                }
+            });
+
+            for (int i = 1; i < inputSplits.size(); i++) {
+                byte currentStartRow[] = ((SMSplit) inputSplits.get(i)).split.getStartRow();
+                byte prevEndRow[] = ((SMSplit) inputSplits.get(i - 1)).split.getEndRow();
+                if (compareRows(currentStartRow, prevEndRow) != 0) {
+                    LOG.warn("The gap in splits is found: current split [" + inputSplits.get(i) + "], previous split [" + inputSplits.get(i - 1) + "]");
+                    return true;
+                }
             }
-        });
-
-        for (int i = 1; i < lss.size(); i++) {
-            byte currentStartRow[] = ((SMSplit) lss.get(i)).split.getStartRow();
-            byte prevEndRow[] = ((SMSplit) lss.get(i - 1)).split.getEndRow();
-            if (org.apache.hadoop.hbase.util.Bytes.compareTo(currentStartRow, prevEndRow) != 0) {
-                LOG.warn("The gap in splits is found: current split [" + lss.get(i) + "], previous split [" + lss.get(i - 1) + "]");
+            SMSplit firstSplit = (SMSplit) inputSplits.get(0);
+            SMSplit lastSplit = (SMSplit) inputSplits.get(inputSplits.size() - 1);
+            if (compareRows(firstSplit.split.getStartRow(), scanStartRow) != 0 || compareRows(lastSplit.split.getEndRow(), scanStopRow) != 0) {
                 return true;
             }
         }
-
         return false;
     }
 
