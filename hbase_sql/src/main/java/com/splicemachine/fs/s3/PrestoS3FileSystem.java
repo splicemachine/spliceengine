@@ -201,7 +201,6 @@ public class PrestoS3FileSystem
         workingDirectory = path;
     }
 
-    @Override
     public FileStatus[] listStatus(Path path)
             throws IOException
     {

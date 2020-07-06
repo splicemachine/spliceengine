@@ -33,7 +33,10 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.*;
 import java.util.*;
+<<<<<<< HEAD
 import java.util.stream.Stream;
+=======
+>>>>>>> DB-9756 more optimizations
 
 import static com.google.common.collect.Iterables.toArray;
 
@@ -169,10 +172,38 @@ public class HNIOFileSystem extends DistributedFileSystem{
         public HFileInfo(org.apache.hadoop.fs.Path path) throws IOException{
             this.path=path;
             try {
-                this.fileStatus = fs.getFileStatus(path);
+                URI uri = URI.create(path.toString());
+                String scheme = uri.getScheme();
+                if (scheme != null && scheme.equalsIgnoreCase("s3a") ) {
+                    this.fileStatus = s3getFileStatus(path);
+                }
+                else {
+                    this.fileStatus = fs.getFileStatus(path);
+                }
             } catch( FileNotFoundException e )
             {
                 this.fileStatus = null;
+            }
+        }
+
+        private FileStatus s3getFileStatus(org.apache.hadoop.fs.Path path) throws IOException {
+            // PrestoS3AFileSystem has problem reading an empty folder. It cannot determine whether the folder does not
+            // exist, or the folder is empty. Skip checking for S3A. If the directory does not exist, it will be
+            // created.
+            listRoot();
+
+            if( rootFileStatusArr.length > 1 ) {
+                // a directory
+                long maxLastModifiedTime = Arrays.stream(rootFileStatusArr)
+                                                .map( f -> f.getModificationTime() ).max(Long::compare).orElse((long) 0);
+                return new FileStatus(0,true,1, 0, maxLastModifiedTime, path);
+            }
+            else if( rootFileStatusArr.length > 0 ){
+                return rootFileStatusArr[0];
+            }
+            else
+            {
+                return null;
             }
         }
 
