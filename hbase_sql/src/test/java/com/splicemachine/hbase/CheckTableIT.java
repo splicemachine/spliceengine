@@ -204,7 +204,8 @@ public class CheckTableIT extends SpliceUnitTest {
                 "where conglomeratename='GI'");
         rs.next();
         String rowid = rs.getString(1);
-        rs = spliceClassWatcher.executeQuery("select conglomeratenumber from sys.sysconglomerates where conglomeratename='SYSCONGLOMERATES_INDEX2'");
+        rs = spliceClassWatcher.executeQuery("select conglomeratenumber from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX2\n" +
+                "where conglomeratename='SYSCONGLOMERATES_INDEX2'");
         rs.next();
         long index2 = rs.getLong(1);
         rs.close();
@@ -212,7 +213,8 @@ public class CheckTableIT extends SpliceUnitTest {
                index2, rowid));
 
         // delete one row from SYSCONGLOMERATES_INDEX1
-        rs = spliceClassWatcher.executeQuery("select conglomerateid from sys.sysconglomerates where conglomeratename='GI'");
+        rs = spliceClassWatcher.executeQuery("select conglomerateid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX1\n" +
+                "where conglomeratename='GI'");
         rs.next();
         String conglomerateId = rs.getString(1);
         rs.close();
@@ -223,7 +225,8 @@ public class CheckTableIT extends SpliceUnitTest {
         rowid = rs.getString(1);
         rs.close();
 
-        rs = spliceClassWatcher.executeQuery("select conglomeratenumber from sys.sysconglomerates where conglomeratename='SYSCONGLOMERATES_INDEX1'");
+        rs = spliceClassWatcher.executeQuery("select conglomeratenumber from sys.sysconglomerates --splice-properties index=null\n" +
+                "where conglomeratename='SYSCONGLOMERATES_INDEX1'");
         rs.next();
         long index1 = rs.getLong(1);
         rs.close();
