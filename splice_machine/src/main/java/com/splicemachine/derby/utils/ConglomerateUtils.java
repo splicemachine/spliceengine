@@ -74,7 +74,7 @@ public class ConglomerateUtils{
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomId);
         SIDriver driver=SIDriver.driver();
-        try(Partition partition=driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
+        try(Partition partition=driver.getTableFactory().getTable(SQLConfiguration.getConglomerateTableNameBytes())){
             DataGet get=driver.getOperationFactory().newDataGet(txn,Bytes.toBytes(conglomId),null);
             get.returnAllVersions();
             get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
@@ -284,7 +284,7 @@ public class ConglomerateUtils{
             }
         }
 
-        try(Partition table=tableFactory.getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
+        try(Partition table=tableFactory.getTable(SQLConfiguration.getConglomerateTableNameBytes())){
             DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomId));
             BitSet fields=new BitSet();
             fields.set(0);
@@ -313,7 +313,7 @@ public class ConglomerateUtils{
         SpliceLogUtils.debug(LOG,"updating table {%s} in hbase with serialized data {%s}",tableName,conglomerate);
         EntryEncoder entryEncoder=null;
         SIDriver driver=SIDriver.driver();
-        try(Partition table=driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
+        try(Partition table=driver.getTableFactory().getTable(SQLConfiguration.getConglomerateTableNameBytes())){
             DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomerate.getContainerid()));
             BitSet setFields=new BitSet();
             setFields.set(0);
