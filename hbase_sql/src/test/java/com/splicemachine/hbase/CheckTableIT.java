@@ -235,14 +235,14 @@ public class CheckTableIT extends SpliceUnitTest {
         rs.next();
         rowid = rs.getString(1);
 
-        String expected = String.format("message                                   |\n" +
-                "-----------------------------------------------------------------------------\n" +
-                "                             %s                               |\n" +
-                "                             %s                               |\n" +
-                "Create index for the following 1 rows from base table SYS.SYSCONGLOMERATES: |\n" +
-                "Create index for the following 1 rows from base table SYS.SYSCONGLOMERATES: |\n" +
-                "                         SYSCONGLOMERATES_INDEX1:                           |\n" +
-                "                         SYSCONGLOMERATES_INDEX2:                           |", rowid, rowid);
+        String expected = String.format("message                                    |\n" +
+                "--------------------------------------------------------------------------------\n" +
+                "                               %s                                |\n" +
+                "                               %s                                |\n" +
+                "Created indexes for the following 1 rows from base table SYS.SYSCONGLOMERATES: |\n" +
+                "Created indexes for the following 1 rows from base table SYS.SYSCONGLOMERATES: |\n" +
+                "                           SYSCONGLOMERATES_INDEX1:                            |\n" +
+                "                           SYSCONGLOMERATES_INDEX2:                            |", rowid, rowid);
 
         Assert.assertEquals(s, expected, s);
         // Check the table again
@@ -269,18 +269,17 @@ public class CheckTableIT extends SpliceUnitTest {
                         "AS messages (\"message\" varchar(200)) order by 1";
         ResultSet rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-%s.out", getResourceDirectory(), A)));
         String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        String expected = "message                                |\n" +
-                "-----------------------------------------------------------------------\n" +
-                "Create index for the following 2 rows from base table CHECKTABLEIT.A: |\n" +
-                "                  Removed the following 1 indexes:                    |\n" +
-                "                The following 2 indexes are deleted:                  |\n" +
-                "                        { 1, 810081 }=>810081                         |\n" +
-                "                        { 2, 820082 }=>820082                         |\n" +
-                "                              { 4, 4 }                                |\n" +
-                "                              { 5, 5 }                                |\n" +
-                "                        { 7, 870087 }=>870087                         |\n" +
-                "                                 AI:                                  |";
-
+        String expected = "message                                 |\n" +
+                "--------------------------------------------------------------------------\n" +
+                "Created indexes for the following 2 rows from base table CHECKTABLEIT.A: |\n" +
+                "                    Removed the following 1 indexes:                     |\n" +
+                "                  The following 2 indexes are deleted:                   |\n" +
+                "                          { 1, 810081 }=>810081                          |\n" +
+                "                          { 2, 820082 }=>820082                          |\n" +
+                "                                { 4, 4 }                                 |\n" +
+                "                                { 5, 5 }                                 |\n" +
+                "                          { 7, 870087 }=>870087                          |\n" +
+                "                                   AI:                                   |";
         Assert.assertEquals(s, expected, s);
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
         rs.next();
@@ -339,12 +338,12 @@ public class CheckTableIT extends SpliceUnitTest {
                         "AS messages (\"message\" varchar(200)) order by 1";
         rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-%s.out", getResourceDirectory(), E)));
         s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        expected = "message                                |\n" +
-                "------------------------------------------------------------------------\n" +
-                "Create index for the following 2 rows from base table CHECKTABLEIT2.E: |\n" +
-                "                               { 1, 1 }                                |\n" +
-                "                               { 2, 2 }                                |\n" +
-                "                                  EI:                                  |";
+        expected = "message                                  |\n" +
+                "---------------------------------------------------------------------------\n" +
+                "Created indexes for the following 2 rows from base table CHECKTABLEIT2.E: |\n" +
+                "                                { 1, 1 }                                  |\n" +
+                "                                { 2, 2 }                                  |\n" +
+                "                                   EI:                                    |";
         Assert.assertEquals(s, expected, s);
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", "CHECKTABLEIT2", E, getResourceDirectory(), E));
         rs.next();

@@ -341,7 +341,7 @@ public class ControlTableChecker implements TableChecker {
 
         int i = 0;
         if (fix) {
-            messages.add(String.format("Create index for the following %d rows from base table %s.%s:", result.size(),
+            messages.add(String.format("Created indexes for the following %d rows from base table %s.%s:", result.size(),
                     schemaName, tableName));
         }
         else {
