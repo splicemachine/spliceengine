@@ -21,7 +21,6 @@ import java.util.List;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.test.SerialTest;
-import com.splicemachine.test.SlowTest;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.junit.Assert;
