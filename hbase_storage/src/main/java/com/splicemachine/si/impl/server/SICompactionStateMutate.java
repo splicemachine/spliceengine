@@ -90,6 +90,8 @@ class SICompactionStateMutate {
             return;
         }
         if (txn.getState() == Txn.State.ROLLEDBACK) {
+            if (LOG.isDebugEnabled())
+                LOG.debug("Removing cell " + element + " because txn " + txn + " is rolled back");
             // rolled back data, remove it from the compacted data
             return;
         }
@@ -140,9 +142,13 @@ class SICompactionStateMutate {
         while (it.hasNext()) {
             Cell element = it.next();
             long timestamp = element.getTimestamp();
-            if (timestamp == maxTombstoneTimestamp && shouldRemoveMostRecentTombstone())
+            if (timestamp == maxTombstoneTimestamp && shouldRemoveMostRecentTombstone()) {
+                if (LOG.isDebugEnabled())
+                    LOG.debug("Removing cell " + element + " because deleted and shouldRemoveMostRecentTombstone");
                 it.remove();
-            else if (timestamp < maxTombstoneTimestamp) {
+            } else if (timestamp < maxTombstoneTimestamp) {
+                if (LOG.isDebugEnabled())
+                    LOG.debug("Removing cell " + element + " because deleted");
                 it.remove();
             }
         }

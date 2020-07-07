@@ -28,6 +28,7 @@ import com.google.protobuf.Service;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.util.PartitionInRangePredicate;
 import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.*;
@@ -100,11 +101,27 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
 
     @Override
     protected void doPut(Put put) throws IOException{
+        if (LOG.isDebugEnabled()) {
+            logPut(put);
+        }
         table.put(put);
+    }
+
+    private void logPut(Put put) {
+        if (put.has(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.TOMBSTONE_COLUMN_BYTES)) {
+            LOG.debug("Writing tombstone " + put + " to table " + table.getName());
+        } else {
+            LOG.debug("Writing entry " + put + " to table " + table.getName());
+        }
     }
 
     @Override
     protected void doPut(List<Put> puts) throws IOException{
+        if (LOG.isDebugEnabled()) {
+            for (Put put : puts) {
+                logPut(put);
+            }
+        }
         table.put(puts);
     }
 
