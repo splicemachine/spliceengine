@@ -27,6 +27,8 @@ import com.splicemachine.derby.stream.function.LocatedRowToRowFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.spark.splicemachine.SplicePartitioningUtils;
+import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -36,18 +38,19 @@ import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import scala.Option;
 import scala.collection.JavaConversions;
+import scala.collection.JavaConverters;
 
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static org.apache.spark.sql.functions.*;
 
 public class SparkUtils {
@@ -276,6 +279,46 @@ public class SparkUtils {
     public static int getDefaultPartitions() {
         SIDriver driver = SIDriver.driver();
         return driver != null ? driver.getConfiguration().getOlapShufflePartitions() : DEFAULT_PARTITIONS;
+    }
+
+    // todo(martinrupp): docu
+    public static com.splicemachine.spark.splicemachine.PartitionSpec parsePartitions(List<Path> directories,
+                                                                        boolean typeInference,
+                                                                        java.util.Set<org.apache.hadoop.fs.Path> basePaths,
+                                                                        Map<String, DataType> userSpecifiedDataTypes,
+                                                                        TimeZone timeZone) {
+
+        scala.collection.Seq<Path> scala_directories =
+                scala.collection.JavaConverters.collectionAsScalaIterableConverter(directories).asScala().toList();
+        scala.collection.immutable.Set<Path> scala_basePaths =
+                JavaConverters.collectionAsScalaIterableConverter(basePaths).asScala().toSet();
+
+        // todo: user defined types
+//        scala.collection.immutable.Map<String, DataType> scala_userSpecifiedDataTypes = userSpecifiedDataTypes == null
+//                        ? new scala.collection.immutable.HashMap<String, DataType>()
+//                        : JavaConverters.mapAsScalaMapConverter(userSpecifiedDataTypes).asScala().toMap(Predef.<Tuple2<String, DataType>>conforms());
+        Option<StructType> scala_userSpecifiedDataTypes = scala.Option.apply((StructType) null);
+        if (timeZone == null) timeZone = TimeZone.getDefault();
+        boolean caseSensitive = true;
+        return SplicePartitioningUtils.parsePartitions(scala_directories, typeInference, scala_basePaths, scala_userSpecifiedDataTypes, caseSensitive, timeZone);
+    }
+
+    // todo(martinrupp): docu
+    public static List<Path> getDistinctSubdirectoriesOf(List<Path> files, java.util.Set<org.apache.hadoop.fs.Path> basePaths)
+    {
+        return files.stream()
+                .map( s -> s.getParent() ).distinct()
+                .filter( s -> !basePaths.contains(s) ).collect(toList());
+    }
+
+    // todo(martinrupp): docu
+    public static com.splicemachine.spark.splicemachine.PartitionSpec parsePartitionsFromFiles(List<Path> files,
+                                                                                 boolean typeInference,
+                                                                                 java.util.Set<org.apache.hadoop.fs.Path> basePaths,
+                                                                                 Map<String, DataType> userSpecifiedDataTypes,
+                                                                                 TimeZone timeZone) {
+        List<Path> directories = getDistinctSubdirectoriesOf(files, basePaths);
+        return parsePartitions( directories, typeInference, basePaths, userSpecifiedDataTypes, timeZone);
     }
 }
 

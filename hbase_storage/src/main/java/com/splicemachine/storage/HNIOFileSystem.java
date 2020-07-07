@@ -163,11 +163,24 @@ public class HNIOFileSystem extends DistributedFileSystem{
         return new org.apache.hadoop.fs.Path(path.toUri());
     }
 
+
     private class HFileInfo implements FileInfo{
         private org.apache.hadoop.fs.Path path;
         private FileStatus fileStatus;
         private ContentSummary contentSummary;               // calculated on demand
         private List<LocatedFileStatus> rootFileStatusList;  // calculated on demand
+
+        @Override
+        public FileInfo[] listRecursive() {
+            if( !exists() ) return new FileInfo[] {};
+            if( !isDirectory() ) return new FileInfo[] { this };
+            try {
+                listRoot();
+            } catch (IOException e) {
+                return new FileInfo[] {};
+            }
+            return (FileInfo[]) Arrays.stream(rootFileStatusArr).map(f -> new HFileInfo(f) ).toArray();
+        }
 
         public HFileInfo(org.apache.hadoop.fs.Path path) throws IOException{
             this.path=path;
@@ -184,6 +197,10 @@ public class HNIOFileSystem extends DistributedFileSystem{
             {
                 this.fileStatus = null;
             }
+        }
+        public HFileInfo(FileStatus fileStatus) {
+            this.fileStatus = fileStatus;
+            this.path = fileStatus.getPath();
         }
 
         @Override

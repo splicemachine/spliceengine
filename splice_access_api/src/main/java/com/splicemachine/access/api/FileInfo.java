@@ -51,6 +51,8 @@ public interface FileInfo{
      */
     long spaceConsumed();
 
+    default FileInfo[] listRecursive() { throw new RuntimeException("not implemented!"); }
+
     /**
      *  Note: this is SLOW on big directory trees when using remote filesystems like S3,
      * since requiring a full recursive listdir
