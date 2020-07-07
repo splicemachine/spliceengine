@@ -682,6 +682,8 @@ public enum ErrorState{
 
         @Override
         public StandardException newException(Throwable rootCause){
+            if(!(rootCause instanceof ForeignKeyViolation))
+                return super.newException(rootCause);
             ForeignKeyViolation fkV=(ForeignKeyViolation)rootCause;
             ConstraintContext context=fkV.getContext();
             return StandardException.newException(getSqlState(),context.getMessages());
@@ -1990,6 +1992,8 @@ public enum ErrorState{
 
         @Override
         public StandardException newException(Throwable rootCause){
+            if(!(rootCause instanceof CannotCommitException))
+                return super.newException(rootCause);
             CannotCommitException cce=(CannotCommitException)rootCause;
             return StandardException.newException(getSqlState(),cce.getTxnId());
         }
