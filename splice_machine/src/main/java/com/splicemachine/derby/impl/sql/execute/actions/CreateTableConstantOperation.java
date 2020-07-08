@@ -518,14 +518,20 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 // test constraint only if the external file exits
                 DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
                 FileInfo fileInfo = fileSystem.getInfo(location);
-                if(!fileInfo.exists() || (fileInfo.isDirectory() && ExternalTableUtils.isEmptyDirectory(location))) {
-                    // need the create the external file if the location provided is empty
+                if( !fileInfo.exists() || fileInfo.isEmptyDirectory() ) {
+                    // need to create the external file if the location provided is empty
                     String pathToParent = location.substring(0, location.lastIndexOf("/"));
                     ImportUtils.validateWritable(pathToParent, false);
-                    EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup, columnInfo));
+                    EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited,
+                            escaped, lines, storedAs, location, compression, partitionby, jobGroup, columnInfo));
 
-                } else if(fileInfo.exists() && fileInfo.isDirectory() && fileInfo.fileCount() > 0 && storedAs.compareToIgnoreCase("t") != 0) {
-                    Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema));
+                }
+                else if( !fileInfo.isDirectory() ) {
+                    throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
+                }
+                else if( storedAs.compareToIgnoreCase("t") != 0 ) {
+                    Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().
+                            submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema));
                     GetSchemaExternalResult result = null;
                     SConfiguration config = EngineDriver.driver().getConfiguration();
                     while (result == null) {
@@ -545,10 +551,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         }
                     }
                     StructType externalSchema = result.getSchema();
-
                     checkSchema(externalSchema, activation);
-                } else if(!fileInfo.isDirectory()) {
-                    throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
                 }
 
             }
