@@ -254,7 +254,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      */
     public ResultColumn getOrderByColumn(int position){
         // this wraps the cast needed, and the 0-based nature of the Vectors.
-        if(position==0)
+        if(position<=0)
             return null;
 
         return getResultColumn(position);
