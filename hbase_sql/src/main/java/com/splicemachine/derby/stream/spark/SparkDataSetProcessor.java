@@ -345,11 +345,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             Dataset<Row> table = null;
 
             try {
-                if (!ExternalTableUtils.isExisting(location))
-                    throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
-
-                if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
-                    return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
+                DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
+                if( empty_ds != null ) return empty_ds;
 
                 ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
 
@@ -387,11 +384,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         try {
             Dataset<Row> table = null;
             try {
-                if (!ExternalTableUtils.isExisting(location))
-                    throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
-
-                if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
-                    return getEmpty();
+                DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
+                if( empty_ds != null ) return empty_ds;
 
                 StructType copy = new StructType(Arrays.copyOf(tableSchema.fields(), tableSchema.fields().length));
 
@@ -694,6 +688,15 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     SQLState.PIN_READ_FAILURE, e, e.getMessage());
         }
     }
+    private <V> DataSet<V> checkExistingOrEmpty( String location, OperationContext context ) throws StandardException, IOException {
+        FileInfo fileinfo = ImportUtils.getImportFileInfo(location);
+        if( !fileinfo.exists() )
+            throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
+        if ( fileinfo.isEmptyDirectory() ) // Handle Empty Directory
+            return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
+        else
+            return null;
+    }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
@@ -704,11 +707,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         assert baseColumnMap != null:"baseColumnMap Null";
         assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
-            if (!ExternalTableUtils.isExisting(location))
-                throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
-
-            if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
-                return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
+            DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
+            if( empty_ds != null ) return empty_ds;
 
             SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType(baseColumnMap));
             Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
