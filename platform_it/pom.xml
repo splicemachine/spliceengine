@@ -420,6 +420,11 @@
             </plugin>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <additionalClasspathElements>
+                        <additionalClasspathElement>${project.basedir}/target/hbase-site.xml</additionalClasspathElement>
+                    </additionalClasspathElements>
+                </configuration>
                 <executions>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
                     <execution>
