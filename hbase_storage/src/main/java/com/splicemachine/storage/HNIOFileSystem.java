@@ -21,9 +21,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsAction;
-import org.apache.hadoop.hdfs.protocol.AclException;
 import org.apache.log4j.Logger;
 
 import java.io.FileNotFoundException;
@@ -92,22 +90,9 @@ public class HNIOFileSystem extends DistributedFileSystem{
         return fs.exists(p);
     }
 
-    @Override
-    public FileInfo getInfo(String filePath) throws IOException{
-        org.apache.hadoop.fs.Path f=new org.apache.hadoop.fs.Path(filePath);
-        ContentSummary contentSummary;
-        try{
-            contentSummary=fs.getContentSummary(f);
-        }catch(IOException ioe){
-            LOG.error("Unexpected error getting content summary. We ignore it for now, but you should probably check it out:",ioe);
-            contentSummary = new ContentSummary(0L,0L,0L);
+    public FileInfo getInfo(String filePath) throws IOException {
 
-        }
-        return new HFileInfo(f,contentSummary);
-    }
-
-    public FileSystem getFileSystem(URI uri){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return new HFileInfo( new org.apache.hadoop.fs.Path(filePath) );
     }
 
     public Path getPath(URI uri){
@@ -163,81 +148,71 @@ public class HNIOFileSystem extends DistributedFileSystem{
         }
     }
 
-    @Override
-    public void concat(Path target, Path... sources)  throws IOException {
-        org.apache.hadoop.fs.Path[] srcPaths = new org.apache.hadoop.fs.Path[sources.length];
-        for (int i=0; i<sources.length; i++) {
-            srcPaths[i] = toHPath( sources[i] );
-        }
-        org.apache.hadoop.fs.Path targetPath = toHPath( target );
-
-        if (isDistributedFS) {
-            fs.concat(targetPath, srcPaths);
-        } else {
-            for (org.apache.hadoop.fs.Path src : srcPaths) {
-                fs.copyFromLocalFile(true, false, src, targetPath);
-            }
-        }
-    }
-
     /* *************************************************************************************/
     /*private helper methods*/
     private org.apache.hadoop.fs.Path toHPath(Path path){
         return new org.apache.hadoop.fs.Path(path.toUri());
     }
 
-
     private class HFileInfo implements FileInfo{
-        private final boolean isDir;
-        private final AclStatus aclStatus;
-        private final boolean isReadable;
-        private final boolean isWritable;
         private org.apache.hadoop.fs.Path path;
-        private ContentSummary contentSummary;
+        FileStatus fileStatus;
+        private ContentSummary contentSummary = null; // calculate on demand
 
-        public HFileInfo(org.apache.hadoop.fs.Path path,ContentSummary contentSummary) throws IOException{
+        public HFileInfo(org.apache.hadoop.fs.Path path) throws IOException{
             this.path=path;
-            this.contentSummary=contentSummary;
-            this.isDir = fs.isDirectory(path);
-            AclStatus aclS;
-            try{
-                aclS=fs.getAclStatus(path);
-            } catch (UnsupportedOperationException | AclException e) { // Runtime Exception for RawFS
-                aclS = new AclStatus.Builder().owner("unknown").group("unknown").build();
-            } catch(Exception e){
-                e = exceptionFactory.processRemoteException(e); //strip any multi-retry errors out
-                //noinspection ConstantConditions
-                if(e instanceof UnsupportedOperationException|| e instanceof AclException){
-                    /*
-                     * Some Filesystems don't support aclStatus. In that case,
-                     * we replace it with our own ACL status object
-                     */
-                    aclS=new AclStatus.Builder().owner("unknown").group("unknown").build();
-                }else{
-                    /*
-                     * the remaining errors are of the category of FileNotFound,UnresolvedPath,
-                     * etc. These are environmental, so we should throw up here.
-                     */
-                    throw new IOException(e);
+            try {
+                this.fileStatus = fs.getFileStatus(path);
+            } catch( FileNotFoundException e )
+            {
+                this.fileStatus = null;
+            }
+        }
+
+        // these two methods are to avoid having to re-calculate the list of files in the directory
+        // for isEmptyDirectory
+        // todo(martinrupp): replace with recursive listdir
+        private FileStatus rootFileStatusArr[];
+        private FileStatus[] listRoot() throws IOException {
+            if (rootFileStatusArr != null || !exists() || !fileStatus.isDirectory()) return rootFileStatusArr;
+            rootFileStatusArr = fs.listStatus(path);
+            return rootFileStatusArr;
+        }
+        // note this is expensive for deeply nested directories. avoid calling fileCount, spaceConsumed and size
+        // partly copied FileSystem.getContentSummary , however with cached fileStatus and using (cached) listRoot for listing root.
+        private ContentSummary getContentSummary() {
+            if( contentSummary != null ) return contentSummary;
+            try {
+                if (fileStatus.isFile()) {
+                    // f is a file
+                    long length = fileStatus.getLen();
+                    contentSummary = new ContentSummary.Builder().length(length).
+                            fileCount(1).directoryCount(0).spaceConsumed(length).build();
                 }
+                else {
+                    // f is a directory
+                    long length = 0, fileCount = 0, dirCount = 1;
+                    for (FileStatus s : listRoot()) {
+                        if( s.isDirectory() ) {
+                            ContentSummary c = fs.getContentSummary(s.getPath());
+                            length += c.getLength();
+                            fileCount += c.getFileCount();
+                            dirCount += c.getDirectoryCount();
+                        }
+                        else {
+                            length += s.getLen();
+                            fileCount++;
+                        }
+                    }
+                    contentSummary = new ContentSummary.Builder().length(length).
+                            fileCount(fileCount).directoryCount(dirCount).
+                            spaceConsumed(length).build();
+                }
+            } catch (IOException ioe) {
+                LOG.error("Unexpected error getting content summary. We ignore it for now, but you should probably check it out:", ioe);
+                contentSummary = new ContentSummary(0L, 0L, 0L);
             }
-            this.aclStatus = aclS;
-            boolean readable;
-            try{
-                fs.access(path,FsAction.READ);
-                readable= true;
-            }catch(IOException ioe){
-               readable = false;
-            }
-            boolean writable;
-            try{
-                fs.access(path,FsAction.WRITE);
-                writable = true;
-            }catch(IOException ioe){
-                writable = false;
-            }
-            this.isReadable = readable;
-            this.isWritable = writable;
+            return contentSummary;
         }
 
         @Override
@@ -252,64 +227,88 @@ public class HNIOFileSystem extends DistributedFileSystem{
 
         @Override
         public boolean isDirectory(){
-            return isDir;
+            return fileStatus != null && fileStatus.isDirectory();
         }
 
         @Override
         public long fileCount(){
-            return contentSummary.getFileCount();
+            if( !exists() ) return 0;
+            return getContentSummary().getFileCount();
+        }
+
+        @Override
+        public boolean isEmptyDirectory() {
+            if( !exists() ) return false;
+            if( !isDirectory() ) return false;
+            try {
+                for (FileStatus s : listRoot() ) {
+                    if (s.getPath().getName().equals("_SUCCESS") || s.getPath().getName().equals("_SUCCESS.crc") ) continue;
+                    return false;
+                }
+                return true;
+            } catch( Exception e ) {
+                // this shouldn't happen, as we already check if it exists.
+                LOG.error("Unexpected error listing directory", e);
+                return false;
+            }
         }
 
         @Override
         public long spaceConsumed(){
-            return contentSummary.getSpaceConsumed();
+            if( !exists() ) return 0;
+            return getContentSummary().getSpaceConsumed();
         }
 
         @Override
         public long size(){
-            return contentSummary.getLength();
+            if( !exists() ) return 0;
+            return getContentSummary().getLength();
         }
 
         @Override
         public boolean isReadable(){
-            return isReadable;
+            if( !exists() ) return false;
+            return fileStatus.getPermission().getUserAction().implies(FsAction.READ);
         }
 
         @Override
         public String getUser(){
-            return aclStatus.getOwner();
+            if( !exists() ) return "";
+            return fileStatus.getOwner();
         }
 
         @Override
         public String getGroup(){
-            return aclStatus.getGroup();
+            if( !exists() ) return "";
+            return fileStatus.getGroup();
         }
 
         @Override
         public boolean isWritable(){
-            return isWritable;
+            if( !exists() ) return false;
+            return fileStatus.getPermission().getUserAction().implies(FsAction.WRITE);
         }
 
         @Override
-        public String toSummary() { // FileUtils.byteCountToDisplaySize
+        public String toSummary() {
+            if( !exists() ) return "file not found " + fullPath();
             StringBuilder sb = new StringBuilder();
             sb.append(this.isDirectory() ? "Directory = " : "File = ").append(fullPath());
-            sb.append("\nFile Count = ").append(contentSummary.getFileCount());
-            sb.append("\nSize = ").append(FileUtils.byteCountToDisplaySize(this.size()));
-            // Not important to display here, but keep it around in case.
-            // For import we only care about the actual file size, not space consumed.
-            // if (this.spaceConsumed() != this.size())
-            //     sb.append("\nSpace Consumed = ").append(FileUtils.byteCountToDisplaySize(this.spaceConsumed()));
+            if( !isDirectory() ) {
+                // this is slow for directories (needs recursive scan), so just do for files
+                sb.append("\nSize = ").append(FileUtils.byteCountToDisplaySize(this.size()));
+                // Not important to display here, but keep it around in case.
+                // For import we only care about the actual file size, not space consumed.
+                // if (this.spaceConsumed() != this.size())
+                //     sb.append("\nSpace Consumed = ").append(FileUtils.byteCountToDisplaySize(this.spaceConsumed()));
+            }
+
             return sb.toString();
         }
 
         @Override
         public boolean exists(){
-            try{
-                return fs.exists(path);
-            }catch(IOException e){
-                throw new RuntimeException(e);
-            }
+            return fileStatus != null;
         }
     }
 }

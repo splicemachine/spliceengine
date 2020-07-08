@@ -15,6 +15,7 @@
 
 package com.splicemachine.derby.stream.utils;
 
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -36,6 +37,7 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -290,14 +292,13 @@ public class ExternalTableUtils {
     }
 
     public static boolean isEmptyDirectory(String location) throws Exception {
-        String[] files = ImportUtils.getFileSystem(location).getExistingFiles(location, "*");
-        return ((files.length == 0) || (files.length == 1 && "_SUCCESS".equals(truncateFileNameFromFullPath(files[0]))));
-
+        DistributedFileSystem dfs = ImportUtils.getFileSystem(location);
+        return dfs.getInfo(location).isEmptyDirectory();
     }
 
     public static boolean isExisting(String location) throws Exception {
         FileInfo fileInfo = ImportUtils.getFileSystem(location).getInfo(location);
-        return  fileInfo.exists();
+        return fileInfo.exists();
 
     }
 

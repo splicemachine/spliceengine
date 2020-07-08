@@ -2595,7 +2595,8 @@ Guide.
 
             <msg>
                 <name>42Y47</name>
-                <text>Invalid Properties list in FROM list.  The hint useSpark needs (true/false) and does not support '{0}'.</text>
+                <text>Invalid Properties list in FROM list.  The hint {0} needs (true/false) and does not support '{1}'.</text>
+                <arg>hintName</arg>
                 <arg>value</arg>
             </msg>
 
@@ -3205,11 +3206,13 @@ Guide.
             <msg>
                 <name>42ZD0</name>
 		<text>Surpassed limit of buffered rows in control mode, please resubmit as Spark query</text>
+                <!-- todo(Spark->OLAP) -->
             </msg>
 
             <msg>
                 <name>42ZD1</name>
                 <text>Using both useSpark=true and useSpark=false at the same level ('{0}') is illegal</text>
+                <!-- todo(Spark->OLAP) -->
                 <arg>level</arg>
             </msg>
 
