@@ -4,7 +4,6 @@ import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.IOException;
 import java.util.concurrent.Callable;
 
 /**
@@ -21,11 +20,11 @@ public class SetReplicationRoleTask implements Callable<Void> {
                 while (DatabaseLifecycleManager.manager().getState() != DatabaseLifecycleManager.State.RUNNING) {
                     Thread.sleep(100);
                 }
-                if (Bytes.compareTo(status, HBaseConfiguration.REPLICATION_MASTER) == 0) {
-                    ReplicationUtils.setReplicationRoleLocal("MASTER");
+                if (Bytes.compareTo(status, HBaseConfiguration.REPLICATION_PRIMARY) == 0) {
+                    ReplicationUtils.setReplicationRoleLocal("PRIMARY");
                 }
-                else if (Bytes.compareTo(status, HBaseConfiguration.REPLICATION_SLAVE) == 0) {
-                    ReplicationUtils.setReplicationRoleLocal("SLAVE");
+                else if (Bytes.compareTo(status, HBaseConfiguration.REPLICATION_REPLICA) == 0) {
+                    ReplicationUtils.setReplicationRoleLocal("REPLICA");
                 }
             }
             return null;

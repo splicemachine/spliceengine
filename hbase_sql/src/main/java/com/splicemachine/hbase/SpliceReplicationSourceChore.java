@@ -72,13 +72,13 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
             }
             byte[] status = rzk.getData(replicationPath, new ReplicationMasterWatcher(this), null);
             isReplicationMaster = (status != null &&
-                    Bytes.compareTo(status, HBaseConfiguration.REPLICATION_MASTER) == 0);
+                    Bytes.compareTo(status, HBaseConfiguration.REPLICATION_PRIMARY) == 0);
 
             Configuration configuration = HConfiguration.unwrapDelegate();
             hbaseRoot = configuration.get(HConstants.ZOOKEEPER_ZNODE_PARENT);
             String namespace = HConfiguration.getConfiguration().getNamespace();
             replicationProgressTableName = TableName.valueOf(namespace,
-                    HConfiguration.SLAVE_REPLICATION_PROGRESS_TABLE_NAME);
+                    HConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME);
         }
         catch (Exception e) {
             throw new IOException(e);
@@ -363,7 +363,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
     }
 
     /**
-     * Insert a row to splice:SPLICE_MASTER_SNAPSHOTS for each slave cluster
+     * Insert a row to splice:SPLICE_MASTER_SNAPSHOTS for each replica cluster
      * @param conn
      * @param timestamp
      * @param serverSnapshot
@@ -426,13 +426,13 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
     private void initReplicationConfig() throws IOException {
         SpliceLogUtils.info(LOG, "isReplicationMaster = %s", isReplicationMaster);
         if (isReplicationMaster) {
-            //ReplicationUtils.setReplicationRole("MASTER");
+            //ReplicationUtils.setReplicationRole("PRIMARY");
         }
     }
     public void changeStatus() throws IOException{
         byte[] status = ZkUtils.getData(replicationPath, new ReplicationMasterWatcher(this), null);
         boolean wasReplicationMaster = isReplicationMaster;
-        isReplicationMaster = Bytes.compareTo(status, HBaseConfiguration.REPLICATION_MASTER) == 0;
+        isReplicationMaster = Bytes.compareTo(status, HBaseConfiguration.REPLICATION_PRIMARY) == 0;
         SpliceLogUtils.info(LOG, "isReplicationMaster changes from %s to %s", wasReplicationMaster, isReplicationMaster);
         statusChanged = wasReplicationMaster!=isReplicationMaster;
     }
