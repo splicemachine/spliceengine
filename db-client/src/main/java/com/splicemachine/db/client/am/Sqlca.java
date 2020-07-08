@@ -32,10 +32,12 @@ import java.util.List;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.client.net.Typdef;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public abstract class Sqlca {
     transient protected Connection connection_;
     SqlException exceptionThrownOnStoredProcInvocation_;
+    @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "messageTextRetrievedContainsTokensOnly_ is read in ExceptionFormatter.printTrace")
     boolean messageTextRetrievedContainsTokensOnly_ = true;
 
     // data corresponding to SQLCA fields
@@ -57,7 +59,6 @@ public abstract class Sqlca {
     protected byte[] sqlErrpBytes_;
     protected byte[] sqlWarnBytes_;
     
-    protected int sqlErrmcCcsid_;
     protected boolean containsSqlcax_ = true;
     protected long rowsetRowCount_;
 
@@ -152,6 +153,7 @@ public abstract class Sqlca {
      * Initialize and build the arrays <code>sqlErrmcMessages_</code> and
      * <code>sqlStates_</code>.
      */
+    @SuppressFBWarnings(value = "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", justification = "the value is set in NetSqlcla.setSqlerrmcBytes")
     private void initSqlErrmcMessages() {
         if (sqlErrmcMessages_ == null || sqlStates_ == null) {
             // processSqlErrmcTokens handles null sqlErrmcBytes_ case
@@ -179,6 +181,7 @@ public abstract class Sqlca {
         }
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9811")
     public int[] getSqlErrd() {
         if (sqlErrd_ != null) {
             return sqlErrd_;
@@ -188,6 +191,7 @@ public abstract class Sqlca {
         return sqlErrd_;
     }
 
+    @SuppressFBWarnings(value = {"EI_EXPOSE_REP", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"}, justification = "DB-9811, sqlWarn_ is set in NetSqlca.setSqlwarnBytes")
     synchronized public char[] getSqlWarn() {
         if (sqlWarn_ != null) {
             return sqlWarn_;
@@ -305,6 +309,7 @@ public abstract class Sqlca {
     }
 
     // May or may not get the formatted message depending upon datasource directives.  cannot throw exeption.
+    @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "exceptionThrownOnStoredProcInvocation is read in ExceptionFormatter.printTrace")
     synchronized String getJDBCMessage(int messageNumber) {
         // The transient connection_ member will only be null if the Sqlca has been deserialized
         if (connection_ != null && connection_.retrieveMessageText_) {
@@ -457,6 +462,7 @@ public abstract class Sqlca {
         return containsSqlcax_;
     }
 
+    @SuppressFBWarnings(value = {"EI_EXPOSE_REP2", "IS2_INCONSISTENT_SYNC"}, justification = "DB-9811, DB-9812")
     public void resetRowsetSqlca(com.splicemachine.db.client.am.Connection connection,
                                  int sqlCode,
                                  String sqlState,
