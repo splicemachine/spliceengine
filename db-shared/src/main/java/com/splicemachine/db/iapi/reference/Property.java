@@ -1490,4 +1490,9 @@ public interface Property {
     String CONNECTION_SNAPSHOT = "snapshot";
 
     String CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS = "disableAdvancedTC";
+
+    String SPARK_RESULT_STREAMING_BATCHES = "sparkResultStreamingBatches";
+
+    String SPARK_RESULT_STREAMING_BATCH_SIZE = "sparkResultStreamingBatchSize";
 }
+

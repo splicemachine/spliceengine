@@ -22,12 +22,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
-import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLBlob;
-import com.splicemachine.db.iapi.types.SQLClob;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
@@ -76,6 +72,30 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         return server;
     }
 
+    private int getSparkBatchesProperty(Activation activation, SConfiguration config, boolean hasLOBs) {
+        int streamingBatches;
+        Integer batchesProperty = (Integer) activation.getLanguageConnectionContext().getSessionProperties()
+                .getProperty(SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES);
+        if (batchesProperty != null) {
+            streamingBatches = batchesProperty.intValue();
+        } else {
+            streamingBatches = hasLOBs ? config.getSparkSlowResultStreamingBatches() : config.getSparkResultStreamingBatches();
+        }
+        return streamingBatches;
+    }
+
+    private int getSparkBatchSizeProperty(Activation activation, SConfiguration config, boolean hasLOBs) {
+        int streamingBatchSize;
+        Integer batchSizeProperty = (Integer) activation.getLanguageConnectionContext().getSessionProperties()
+                .getProperty(SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE);
+        if (batchSizeProperty != null) {
+            streamingBatchSize = batchSizeProperty.intValue();
+        } else {
+            streamingBatchSize = hasLOBs ? config.getSparkSlowResultStreamingBatchSize() : config.getSparkResultStreamingBatchSize();
+        }
+        return streamingBatchSize;
+    }
+
     @Override
     public void submit() throws StandardException {
         Activation activation = root.getActivation();
@@ -85,8 +105,8 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             updateLimitOffset();
             SConfiguration config = HConfiguration.getConfiguration();
             boolean hasLOBs = hasLOBs(root);
-            int streamingBatches = hasLOBs ? config.getSparkSlowResultStreamingBatches() : config.getSparkResultStreamingBatches();
-            int streamingBatchSize = hasLOBs ? config.getSparkSlowResultStreamingBatchSize() : config.getSparkResultStreamingBatchSize();
+            int streamingBatches = getSparkBatchesProperty(activation, config, hasLOBs);
+            int streamingBatchSize = getSparkBatchSizeProperty(activation, config, hasLOBs);
             streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize);
             StreamListenerServer server = getServer();
             server.register(streamListener);
