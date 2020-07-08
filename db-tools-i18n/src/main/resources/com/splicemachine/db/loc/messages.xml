@@ -9259,20 +9259,22 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 
            <msg>
                <name>EXT23</name>
-               <text>'Only '{0}' attributes defined but '{1}' present in the external file : '{2}'</text>
+               <text>Only '{0}' attributes defined but '{1}' present in the external file : '{2}'. Suggested Schema is '{3}'.</text>
                <arg>definedAttributeCount</arg>
                <arg>externalAttributeCount</arg>
                <arg>location</arg>
+               <arg>suggestedSchema</arg>
            </msg>
 
            <msg>
                <name>EXT24</name>
-               <text>The field '{0}':'{1}' defined in the table is not compatible with the field '{2}':'{3}' defined in the external file '{4}'</text>
+               <text>The field '{0}':'{1}' defined in the table is not compatible with the field '{2}':'{3}' defined in the external file '{4}'. Suggested Schema is '{5}'.</text>
                <arg>definedAttributeName</arg>
                <arg>definedAttributeDataType</arg>
                <arg>externalAttributeName</arg>
                <arg>externalAttributeDataType</arg>
                <arg>location</arg>
+               <arg>suggestedSchema</arg>
            </msg>
 
            <msg>
