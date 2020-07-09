@@ -14,9 +14,6 @@
 
 package com.splicemachine.test_dao;
 
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.utils.EngineUtils;
-
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -30,6 +27,7 @@ import static java.lang.String.format;
 public class TableDAO {
 
     private JDBCTemplate jdbcTemplate;
+    public enum TABLETYPE {TABLE, VIEW, ALIAS}
 
     public TableDAO(Connection connection) {
         this.jdbcTemplate = new JDBCTemplate(connection);
@@ -40,14 +38,14 @@ public class TableDAO {
      */
     public void drop(String schemaName, String... tableNames) {
         for (String tableName : tableNames) {
-            drop(schemaName, tableName, false);
+            drop(schemaName, tableName, TABLETYPE.TABLE);
         }
     }
 
     /**
      * Drop the given table or view.
      */
-    public void drop(String schemaName, String tableName, boolean isView) {
+    public void drop(String schemaName, String tableName, TABLETYPE tableType) {
         try {
             synchronized(jdbcTemplate){ //TODO -sf- synchronize on something else, or remove the need
                 DatabaseMetaData metaData=jdbcTemplate.getConnection().getMetaData();
@@ -62,10 +60,15 @@ public class TableDAO {
                 }
                 try(ResultSet rs=metaData.getTables(null,schemaName.toUpperCase(),tableName,null)){
                     if(rs.next()){
-                        if(isView){
-                            jdbcTemplate.executeUpdate(format("drop view %s.%s",schemaName,tN));
-                        }else{
-                            jdbcTemplate.executeUpdate(format("drop table %s.%s",schemaName,tN));
+                        switch (tableType) {
+                            case VIEW:
+                                jdbcTemplate.executeUpdate(format("drop view %s.%s",schemaName,tN));
+                                break;
+                            case ALIAS:
+                                jdbcTemplate.executeUpdate(format("drop alias %s.%s",schemaName,tN));
+                                break;
+                            default:
+                                jdbcTemplate.executeUpdate(format("drop table %s.%s",schemaName,tN));
                         }
                     }
                 }

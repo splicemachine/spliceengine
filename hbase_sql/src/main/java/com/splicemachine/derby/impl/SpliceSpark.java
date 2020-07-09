@@ -156,11 +156,11 @@ public class SpliceSpark {
                 LOG.info("Splice Client in SpliceSpark "+SpliceClient.isClient());
                 String replicationPath = ReplicationUtils.getReplicationPath();
                 byte[] status = ZkUtils.getData(replicationPath);
-                if (Bytes.compareTo(status, HBaseConfiguration.REPLICATION_MASTER) == 0) {
-                    driver.lifecycleManager().setReplicationRole("MASTER");
+                if (Bytes.compareTo(status, HBaseConfiguration.REPLICATION_PRIMARY) == 0) {
+                    driver.lifecycleManager().setReplicationRole("PRIMARY");
                 }
-                else if (Bytes.compareTo(status, HBaseConfiguration.REPLICATION_SLAVE) == 0) {
-                    driver.lifecycleManager().setReplicationRole("SLAVE");
+                else if (Bytes.compareTo(status, HBaseConfiguration.REPLICATION_REPLICA) == 0) {
+                    driver.lifecycleManager().setReplicationRole("REPLICA");
                 }
                 //boot derby components
                 new EngineLifecycleService(new DistributedDerbyStartup(){
