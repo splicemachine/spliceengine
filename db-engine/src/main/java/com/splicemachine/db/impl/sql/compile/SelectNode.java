@@ -1771,7 +1771,7 @@ public class SelectNode extends ResultSetNode{
         **
         ** This should be the same optimizer we got above.
         */
-        optimizer.modifyAccessPaths();
+        optimizer.modifyAccessPaths(null);
 
         // Load the costEstimate for the final "best" join order.
         costEstimate=optimizer.getFinalCost();

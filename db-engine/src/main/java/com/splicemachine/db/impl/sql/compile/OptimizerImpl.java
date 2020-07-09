@@ -1231,7 +1231,7 @@ public class OptimizerImpl implements Optimizer{
     }
 
     @Override
-    public void modifyAccessPaths() throws StandardException{
+    public void modifyAccessPaths(JBitSet outerSet) throws StandardException{
         OptimizerTrace tracer = tracer();
         if(optimizerTrace){
             tracer.trace(OptimizerFlag.MODIFYING_ACCESS_PATHS,0,0,0.0);
@@ -1244,6 +1244,8 @@ public class OptimizerImpl implements Optimizer{
 
         /* Form a bit map of the tables as they are put into the join order */
         JBitSet outerTables=new JBitSet(numOptimizables);
+        if (outerSet != null)
+            outerTables.or(outerSet);
 
         /* Modify the access path of each table, as necessary */
         for(int ictr=0;ictr<numOptimizables;ictr++){
