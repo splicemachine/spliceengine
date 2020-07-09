@@ -214,7 +214,8 @@ public class ConfigurationBuilder {
     public boolean olapServerIsolatedCompaction;
     public String olapServerIsolatedCompactionQueueName;
     public boolean olapCompactionAutomaticallyPurgeDeletedRows;
-
+    public boolean olapCompactionAutomaticallyPurgeOldUpdates;
+    public String olapServerMode;
 
     /**
      * Build the {@link SConfiguration} given the list of subsystem defaults and the configuration source.<br/>

@@ -252,6 +252,8 @@ public interface SConfiguration {
 
     boolean getOlapCompactionAutomaticallyPurgeDeletedRows();
 
+    boolean getOlapCompactionAutomaticallyPurgeOldUpdates();
+
     // SQLConfiguration
     boolean debugDumpBindTree();
 

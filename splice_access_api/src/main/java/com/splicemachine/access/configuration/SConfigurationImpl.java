@@ -167,6 +167,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final boolean olapServerIsolatedCompaction;
     private final String olapServerIsolatedCompactionQueueName;
     private final boolean olapCompactionAutomaticallyPurgeDeletedRows;
+    private final boolean olapCompactionAutomaticallyPurgeOldUpdates;
 
     // SIConfigurations
     private final  int activeTransactionMaxCacheSize;
@@ -681,6 +682,11 @@ public final class SConfigurationImpl implements SConfiguration {
     }
 
     @Override
+    public boolean getOlapCompactionAutomaticallyPurgeOldUpdates() {
+        return olapCompactionAutomaticallyPurgeOldUpdates;
+    }
+
+    @Override
     public int getTimestampClientWaitTime() {
         return timestampClientWaitTime;
     }
@@ -1053,6 +1059,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapServerIsolatedCompaction = builder.olapServerIsolatedCompaction;
         olapServerIsolatedCompactionQueueName = builder.olapServerIsolatedCompactionQueueName;
         olapCompactionAutomaticallyPurgeDeletedRows = builder.olapCompactionAutomaticallyPurgeDeletedRows;
+        olapCompactionAutomaticallyPurgeOldUpdates = builder.olapCompactionAutomaticallyPurgeOldUpdates;
         resolutionOnFlushes = builder.resolutionOnFlushes;
         reservedSlotsTimeout = builder.reservedSlotsTimeout;
         storageFactoryHome = builder.storageFactoryHome;
