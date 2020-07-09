@@ -162,21 +162,6 @@ message SpliceRegionSizeResponse {
     required int64 sizeInBytes = 2;
 }
 
-service BackupCoprocessorService {
-  rpc prepareBackup(PrepareBackupRequest)
-  returns (PrepareBackupResponse);
-}
-
-message PrepareBackupRequest {
-    optional bytes startKey=1;
-    optional bytes endKey=2;
-    optional int64 backupId=3;
-}
-
-message PrepareBackupResponse {
-  optional bool readyForBackup = 1;
-}
-
 message BlockingProbeRequest {
     required bool doBlock = 1;
 }
