@@ -18,7 +18,6 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Manipulate schemas.
@@ -47,7 +46,14 @@ public class SchemaDAO {
         //
         try(ResultSet resultSet = metaData.getTables(null,uSchema,null,new String[]{"VIEW"})){
             while(resultSet.next()){
-                tableDAO.drop(schemaName,resultSet.getString("TABLE_NAME"),true);
+                tableDAO.drop(schemaName,resultSet.getString("TABLE_NAME"), TableDAO.TABLETYPE.VIEW);
+            }
+        }
+
+        // Delete aliases
+        try(ResultSet resultSet = metaData.getTables(null,uSchema,null,new String[]{"SYNONYM"})){
+            while(resultSet.next()){
+                tableDAO.drop(schemaName,resultSet.getString("TABLE_NAME"), TableDAO.TABLETYPE.ALIAS);
             }
         }
 
@@ -56,7 +62,7 @@ public class SchemaDAO {
         //
         try(ResultSet resultSet = metaData.getTables(null,uSchema,null,null)){
             while(resultSet.next()){
-                tableDAO.drop(schemaName,resultSet.getString("TABLE_NAME"),false);
+                tableDAO.drop(schemaName,resultSet.getString("TABLE_NAME"), TableDAO.TABLETYPE.TABLE);
             }
         }
 
