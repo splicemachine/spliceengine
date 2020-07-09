@@ -43,11 +43,14 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.RowId;
+import java.sql.Timestamp;
+
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
+import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 
 public class SQLRef extends DataType implements RefDataValue {
 	protected RowLocation	value;
@@ -319,4 +322,11 @@ public class SQLRef extends DataType implements RefDataValue {
 		return value.getSparkObject();
 	}
 
+	@Override
+	public DateTimeDataValue getInstant(DateTimeDataValue in) throws StandardException {
+		if(isNull()) {
+			return null;
+		}
+		return new SQLTimestamp(new Timestamp(System.currentTimeMillis()));
+	}
 }

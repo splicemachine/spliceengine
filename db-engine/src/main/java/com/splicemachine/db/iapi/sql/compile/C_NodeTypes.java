@@ -286,8 +286,10 @@ public interface C_NodeTypes
     int STATEMENT_LIST_NODE = 276;
     int KAFKA_EXPORT_NODE = 277;
 
+    int TO_INSTANT_NODE = 278;
+
     // Final value in set, keep up to date!
-    int FINAL_VALUE = KAFKA_EXPORT_NODE;
+    int FINAL_VALUE = TO_INSTANT_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision
