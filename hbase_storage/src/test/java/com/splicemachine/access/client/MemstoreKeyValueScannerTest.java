@@ -46,7 +46,7 @@ public class MemstoreKeyValueScannerTest {
         MemstoreKeyValueScanner mkvs = new MemstoreKeyValueScanner(rs);
 
         List<Cell> results = new ArrayList<>();
-        results.add(SITestUtils.getMockCommitCell(10));
+        results.add(SITestUtils.getMockCommitCell(10, 11));
         results.add(SITestUtils.getMockValueCell(10));
 
         mkvs.next(results);
