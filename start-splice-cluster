@@ -152,9 +152,9 @@ if [[ "${BUILD}" == "1" ]]; then
   echo "Building first..."
   pushd "${BASE_DIR}" > /dev/null
   if [[ "${CLEAN}" == "1" ]]; then
-    (${MVN} clean install -Pcore,${PROFILE} -DskipTests )
+    (${MVN} clean install -Pcore,${PROFILE} -DskipTests ) || exit
   else
-    (${MVN} install -Pcore,${PROFILE} -DskipTests )
+    (${MVN} install -Pcore,${PROFILE} -DskipTests ) || exit
   fi
   popd > /dev/null
   echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
