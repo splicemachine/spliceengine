@@ -218,6 +218,7 @@ public class ConfigurationBuilder {
     public boolean olapServerIsolatedCompaction;
     public String olapServerIsolatedCompactionQueueName;
     public boolean olapCompactionAutomaticallyPurgeDeletedRows;
+    public boolean olapCompactionAutomaticallyPurgeOldUpdates;
     public String olapServerMode;
 
 
