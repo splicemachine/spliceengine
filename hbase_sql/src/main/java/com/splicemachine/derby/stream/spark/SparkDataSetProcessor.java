@@ -345,11 +345,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             Dataset<Row> table = null;
 
             try {
-                if (!ExternalTableUtils.isExisting(location))
-                    throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
-
-                if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
-                    return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
+                DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
+                if( empty_ds != null ) return empty_ds;
 
                 ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
 
@@ -387,11 +384,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         try {
             Dataset<Row> table = null;
             try {
-                if (!ExternalTableUtils.isExisting(location))
-                    throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
-
-                if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
-                    return getEmpty();
+                DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
+                if( empty_ds != null ) return empty_ds;
 
                 StructType copy = new StructType(Arrays.copyOf(tableSchema.fields(), tableSchema.fields().length));
 
@@ -465,19 +459,42 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             if (!mergeSchema) {
                 fs = FileSystem.get(URI.create(location), conf);
                 String fileName = getFile(fs, location);
-                if (fileName != null) {
-                    temp = new Path(location, TEMP_DIR_PREFIX + "_" + UUID.randomUUID().toString().replaceAll("-",""));
-                    fs.mkdirs(temp);
-                    SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
+                boolean canWrite = true;
+                if( (fileName == null || (fs.getFileStatus(new Path(location)).getPermission().toShort() & 0222) == 0 )) {
+                    canWrite = false;
+                }
+                else {
+                    temp = new Path(location, TEMP_DIR_PREFIX + "_" + UUID.randomUUID().toString().replaceAll("-", ""));
 
+                    try {
+                        fs.mkdirs(temp);
+                    } catch (IOException e) {
+                        canWrite = false;
+                        temp = null;
+                    }
+                }
+
+                if( canWrite )
+                {
+                    SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
                     // Copy a data file to temp directory
                     int index = fileName.indexOf(location);
                     if (index != -1) {
                         String s = fileName.substring(index + location.length() + 1);
                         Path destDir = new Path(temp, s);
-                        FileUtil.copy(fs, new Path(fileName), fs, destDir, false, conf);
-                        location = temp.toString();
+                        try {
+                            FileUtil.copy(fs, new Path(fileName), fs, destDir, false, conf);
+                            location = temp.toString();
+                        } catch (IOException e) {
+                            canWrite = false;
+                        }
                     }
+                }
+
+                if( !canWrite )
+                {
+                    SpliceLogUtils.info(LOG, "couldn't create temporary directory %s, " +
+                            "will read schema from whole directory", temp);
                 }
             }
             try {
@@ -572,19 +589,18 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
             if (storedAs!=null) {
                 if (storedAs.toLowerCase().equals("p")) {
+                    compression = SparkDataSet.getParquetCompression(compression);
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                             .mode(SaveMode.Append).parquet(location);
                 }
                 else if (storedAs.toLowerCase().equals("a")) {
-                    if (compression.equals("none")) {
-                        compression = "uncompressed";
-                    }
+                    compression = SparkDataSet.getAvroCompression(compression);
                     /*
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                             .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
                      */
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                            .mode(SaveMode.Append).format("avro").save(location);
+                            .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
                 }
                 else if (storedAs.toLowerCase().equals("o")) {
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
@@ -672,6 +688,15 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     SQLState.PIN_READ_FAILURE, e, e.getMessage());
         }
     }
+    private <V> DataSet<V> checkExistingOrEmpty( String location, OperationContext context ) throws StandardException, IOException {
+        FileInfo fileinfo = ImportUtils.getImportFileInfo(location);
+        if( !fileinfo.exists() )
+            throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
+        if ( fileinfo.isEmptyDirectory() ) // Handle Empty Directory
+            return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
+        else
+            return null;
+    }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
@@ -682,11 +707,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         assert baseColumnMap != null:"baseColumnMap Null";
         assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
-            if (!ExternalTableUtils.isExisting(location))
-                throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
-
-            if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
-                return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
+            DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
+            if( empty_ds != null ) return empty_ds;
 
             SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType(baseColumnMap));
             Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
@@ -887,8 +909,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public TableChecker getTableChecker(String schemaName, String tableName, DataSet table,
                                         KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix,
-                                        int[] baseColumnMap) {
-        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix, baseColumnMap);
+                                        int[] baseColumnMap, boolean isSystemTable) {
+        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix, baseColumnMap,
+                isSystemTable);
     }
 
     @Override

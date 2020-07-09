@@ -64,7 +64,7 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
     // The cache is a map from tablename to map of regionname to RegionLoad
     private static final AtomicReference<Map<String, Map<String,PartitionLoad>>> cache = new AtomicReference<>();
 
-    public static HBaseRegionLoads INSTANCE = new HBaseRegionLoads();
+    public static final HBaseRegionLoads INSTANCE = new HBaseRegionLoads();
 
     private HBaseRegionLoads(){}
 
@@ -81,7 +81,7 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
             Map<String,Map<String,PartitionLoad>> loads = fetchRegionLoads();
             cache.set(loads);
             if (LOG.isDebugEnabled()) {
-                LOG.debug(String.format("Region loads loaded in %dms:\n%s",
+                LOG.debug(String.format("Region loads loaded in %dms:%n%s",
                                            System.currentTimeMillis() - begin,
                                            loads.keySet()));
             }
@@ -234,6 +234,11 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
     public Collection<PartitionLoad> tableLoad(String tableName, boolean refresh){
         if (refresh) {
             Map<String, Map<String, PartitionLoad>> loads = cache.get();
+            if (loads == null) {
+                if (LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(LOG, "This should not happen");
+                return Collections.emptyList();
+            }
             Map<String, PartitionLoad> regions = getCostWhenNoCachedRegionLoadsFound(tableName);
             loads.put(HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration()).getTableInfo(tableName).getNameWithNamespaceInclAsString(),
                     regions

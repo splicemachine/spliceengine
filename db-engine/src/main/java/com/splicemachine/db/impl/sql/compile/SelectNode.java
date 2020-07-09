@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -460,9 +461,7 @@ public class SelectNode extends ResultSetNode{
     public void bindExpressions(FromList fromListParam) throws StandardException{
         int fromListParamSize=fromListParam.size();
         int fromListSize=fromList.size();
-        int numDistinctAggs;
 
-        assert fromList!=null: "FromList is unexepctedly null!";
         assert resultColumns!=null: "ResultColumns is unexpectedly null!";
 
         /* NOTE - a lot of this code would be common to bindTargetExpression(),
@@ -960,7 +959,7 @@ public class SelectNode extends ResultSetNode{
         if(wherePredicates!=null && !wherePredicates.isEmpty() && !fromList.isEmpty()){
             // Perform various forms of transitive closure on wherePredicates
             if(fromList.size()>1){
-                performTransitiveClosure(numTables);
+                performTransitiveClosure();
             }
 
             if(orderByList!=null){
@@ -1098,9 +1097,11 @@ public class SelectNode extends ResultSetNode{
         }
 
         /* Copy the referenced table map to the new tree top, if necessary */
+        /* the code that update newTop above has been commented out, so this code has become obselete
         if(newTop!=this){
             newTop.setReferencedTableMap((JBitSet)referencedTableMap.clone());
         }
+        */
 
 
         if(orderByList!=null){
@@ -1835,8 +1836,6 @@ public class SelectNode extends ResultSetNode{
              */
             leftResultSet=(ResultSetNode)fromList.elementAt(0);
 
-            getBaseTableNode(leftResultSet); //gets the left base table node. HAS SIDE-EFFECTS, do not remove
-
             leftRCList=leftResultSet.getResultColumns();
             leftResultSet.setResultColumns(leftRCList.copyListAndObjects());
             leftRCList.genVirtualColumnNodes(leftResultSet,leftResultSet.resultColumns);
@@ -1852,8 +1851,6 @@ public class SelectNode extends ResultSetNode{
              * (Right gets appended to left, so only right's ids need updating.)
              */
             rightResultSet=(ResultSetNode)fromList.elementAt(1);
-
-            getBaseTableNode(rightResultSet); //gets the right base table node. HAS SIDE-EFFECTS, do not remove
 
             rightRCList=rightResultSet.getResultColumns();
             rightResultSet.setResultColumns(rightRCList.copyListAndObjects());
@@ -2086,6 +2083,12 @@ public class SelectNode extends ResultSetNode{
      */
     void pushExpressionsIntoSelect(Predicate predicate) throws StandardException{
         wherePredicates.pullExpressions(referencedTableMap.size(),predicate.getAndNode());
+        Boolean disableTC = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+        if (disableTC == null || !disableTC) {
+            if (fromList.size() > 1) {
+                performTransitiveClosure();
+            }
+        }
         fromList.pushPredicates(wherePredicates);
     }
 
@@ -2366,15 +2369,14 @@ public class SelectNode extends ResultSetNode{
      * The 2 types are transitive closure on join clauses and on search clauses.
      * Join clauses will be processed first to maximize benefit for search clauses.
      *
-     * @param numTables The number of tables in the query
      * @throws StandardException Thrown on error
      */
-    private void performTransitiveClosure(int numTables) throws StandardException{
+    private void performTransitiveClosure() throws StandardException{
         // Join clauses
-        wherePredicates.joinClauseTransitiveClosure(numTables,fromList,getCompilerContext());
+        wherePredicates.joinClauseTransitiveClosure(fromList,getCompilerContext());
 
         // Search clauses
-        wherePredicates.searchClauseTransitiveClosure(numTables,fromList.hashJoinSpecified());
+        wherePredicates.searchClauseTransitiveClosure(fromList.hashJoinSpecified());
     }
 
     /**

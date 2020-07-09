@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TriggerBuilder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.FileUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SparkSession;
@@ -30,8 +31,9 @@ import java.io.File;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
+import java.sql.Statement;
 
+import static com.splicemachine.db.shared.common.reference.SQLState.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -40,6 +42,11 @@ import static org.junit.Assert.fail;
  * IT's for external table functionality
  *
  */
+@SuppressFBWarnings(value={ "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", // for File.mkdir and File.delete
+                            "VA_FORMAT_STRING_USES_NEWLINE", // should replace \n with %n when using String.format
+                            "OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE" // possible with a MultiAutoClose class, but long
+                          },
+                    justification = ".")
 public class ExternalTableIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = ExternalTableIT.class.getSimpleName().toUpperCase();
@@ -58,7 +65,7 @@ public class ExternalTableIT extends SpliceUnitTest {
     @BeforeClass
     public static void createTempDirectory() throws Exception
     {
-        tempDir = createOrWipeTestDirectory( SCHEMA_NAME );
+        tempDir = createTempDirectory(SCHEMA_NAME);
     }
 
     @AfterClass
@@ -448,13 +455,13 @@ public class ExternalTableIT extends SpliceUnitTest {
 
         File newFile = new File(tablePath);
         String[] files = newFile.list();
-        int count = files.length;
+        int count = files == null ? 0 : files.length;
 
         methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))" +
                 " PARTITIONED BY (\"partition1\") STORED AS PARQUET  LOCATION '%s'",tablePath));
 
         files = newFile.list();
-        int count2 = files.length;
+        int count2 = files == null ? 0 : files.length;
         Assert.assertEquals(String.format("File : %s have been modified and it shouldn't",tablePath),count, count2);
 
         ResultSet rs = methodWatcher.executeQuery("select * from table_to_existing_file order by 1");
@@ -470,20 +477,28 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void createParquetTableMergeSchema() throws  Exception{
-        String tablePath = getResourceDirectory()+"parquet_sample_one";
+        String tablePath = getTempCopyOfResourceDirectory(tempDir, "parquet_sample_one" );
+        try {
+            // check also that merging doesn't require writeable directory
+            new File(tablePath).setWritable(false);
 
-        methodWatcher.executeUpdate(String.format("create external table parquet_table_to_existing_file (\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))" +
-                " PARTITIONED BY (\"partition1\") STORED AS PARQUET  LOCATION '%s'",tablePath));
+            methodWatcher.executeUpdate(String.format("create external table parquet_table_to_existing_file (\"partition1\" varchar(24), \"column1\" varchar(24), \"column2\" varchar(24))" +
+                    " PARTITIONED BY (\"partition1\") STORED AS PARQUET  LOCATION '%s'", tablePath));
 
-        ResultSet rs = methodWatcher.executeQuery("select * from parquet_table_to_existing_file order by 1");
-        String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
-        String expected =
-                "partition1 | column1 | column2 |\n" +
-                        "--------------------------------\n" +
-                        "    AAA    |   AAA   |   AAA   |\n" +
-                        "    BBB    |   BBB   |   BBB   |\n" +
-                        "    CCC    |   CCC   |   CCC   |";
-        Assert.assertEquals(actual, expected, actual);
+            ResultSet rs = methodWatcher.executeQuery("select * from parquet_table_to_existing_file order by 1");
+            String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            String expected =
+                    "partition1 | column1 | column2 |\n" +
+                            "--------------------------------\n" +
+                            "    AAA    |   AAA   |   AAA   |\n" +
+                            "    BBB    |   BBB   |   BBB   |\n" +
+                            "    CCC    |   CCC   |   CCC   |";
+            Assert.assertEquals(actual, expected, actual);
+        }
+        finally {
+            // otherwise cleanup scripts can't delete this directory
+            new File(tablePath).setWritable(true);
+        }
     }
 
     @Test
@@ -509,13 +524,13 @@ public class ExternalTableIT extends SpliceUnitTest {
         String tablePath = getResourceDirectory()+"avro_simple_file_test";
         File newFile = new File(tablePath);
         String[] files = newFile.list();
-        int count = files.length;
+        int count = files == null ? 0 : files.length;
 
         methodWatcher.executeUpdate(String.format("create external table table_to_existing_file_avro (col1 int, col2 int, col3 int)" +
                 " STORED AS AVRO LOCATION '%s'",tablePath));
 
         files = newFile.list();
-        int count2 = files.length;
+        int count2 = files == null ? 0 : files.length;
         Assert.assertEquals(String.format("File : %s have been modified and it shouldn't",tablePath),count,count2);
 
         ResultSet rs = methodWatcher.executeQuery("select * from table_to_existing_file_avro order by 1");
@@ -603,11 +618,12 @@ public class ExternalTableIT extends SpliceUnitTest {
     @Test
     public void refreshRequireExternalTableNotFound() throws  Exception{
 
-        try {
-            PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE(?,?) ");
+        try (PreparedStatement ps
+                     = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE(?,?) "))
+        {
             ps.setString(1, "EXTERNALTABLEIT");
             ps.setString(2, "NOT_EXIST");
-            ResultSet rs = ps.executeQuery();
+            ps.executeQuery().close();
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","42X05",e.getSQLState());
@@ -619,10 +635,10 @@ public class ExternalTableIT extends SpliceUnitTest {
     @Test
     public void refreshRequireExternalTableWrongParameters() throws  Exception{
 
-        try {
-            PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE('arg1','arg2','arg3') ");
-
-            ResultSet rs = ps.executeQuery();
+        try ( PreparedStatement ps
+                      = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE('arg1','arg2','arg3') "))
+        {
+            ps.executeQuery().close();
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","42Y03",e.getSQLState());
@@ -978,6 +994,78 @@ public class ExternalTableIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testParquetErrorSuggestSchemaGiven() throws Exception {
+        // test schema suggestion on a given file
+
+        String file = getResourceDirectory() + "parquet_sample_one";
+        String suggested = " Suggested Schema is 'CREATE EXTERNAL TABLE T (column1 CHAR/VARCHAR(x), column2 CHAR/VARCHAR(x), partition1 CHAR/VARCHAR(x));'.";
+        try{
+            methodWatcher.executeUpdate("create external table testParquetErrorSuggestSchemaGiven" +
+                                         " (col1 INTEGER) STORED AS PARQUET LOCATION '" + file + "'");
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception", INCONSISTENT_NUMBER_OF_ATTRIBUTE, e.getSQLState());
+            Assert.assertEquals( "wrong exception message",
+                    "Only '1' attributes defined but '3' present in the external file : '" + file + "'." + suggested,
+                    e.getMessage() );
+        }
+
+        try{
+            methodWatcher.executeUpdate("create external table testParquetErrorSuggestSchemaGiven2" +
+                    " (decimal_col1 DECIMAL(7, 2), col2_int INTEGER, d DOUBLE) STORED AS PARQUET LOCATION '" + file + "'");
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            //Assert.assertEquals("Wrong Exception", INCONSISTENT_DATATYPE_ATTRIBUTES, e.getSQLState());
+            Assert.assertEquals( "wrong exception message",
+                    "The field 'DECIMAL_COL1':'DECIMAL(7,2)' defined in the table is not compatible with " +
+                    "the field 'column1':'CHAR/VARCHAR(x)' defined in the external file '" + file + "'." + suggested,
+                    e.getMessage() );
+        }
+    }
+
+    // this test checks that when using a wrong schema, the suggested CREATE TABLE statement is
+    // exactly as the actually used CREATE TABLE Statement
+    @Test
+    public void testWriteAllDataTypesCheckSuggest() throws Exception {
+        String file_types[] = {"ORC", "PARQUET"};
+        for( String file_type : file_types ) {
+            String name = "all_datatypes_" + file_type;
+
+            String file = getExternalResourceDirectory() + name;
+            // parquet currently can't use TIME, will be written (or infered) as TIMESTAMP
+            // see DB-9710
+
+            // we currently can't infere the length of CHAR/VARCHAR, so suggestion is CHAR/VARCHAR(x)
+            String nonCharTypes = "COL_DATE DATE, COL_TIMESTAMP TIMESTAMP, " +
+                    "COL_TINYINT TINYINT, COL_SMALLINT SMALLINT, COL_INTEGER INT, COL_BIGINT BIGINT, " +
+                    "COL_DECIMAL DECIMAL(7,2), COL_DOUBLE DOUBLE, COL_REAL REAL, COL_BOOLEAN BOOLEAN";
+            String schema = "COL_CHAR char(10), COL_VARCH varchar(24), " + nonCharTypes;
+            String suggestedTypes = "COL_CHAR CHAR/VARCHAR(x), COL_VARCH CHAR/VARCHAR(x), " + nonCharTypes;
+            String values = "'AAAA', 'AAAA', " +
+                    "'2017-7-27', '2013-03-23 09:45:00', " +
+                    "1, 1, 1, 1, " +
+                    "12.34, 1.5, 1.5, TRUE";
+
+            String externalTableOptions = " COMPRESSED WITH SNAPPY STORED AS PARQUET LOCATION '" + file + "'";
+            methodWatcher.executeUpdate("create external table " + name + " (" + schema + ")" + externalTableOptions);
+
+            int insertCount = methodWatcher.executeUpdate("insert into " + name + " values (" + values + ")");
+            Assert.assertEquals("insertCount is wrong", 1, insertCount);
+
+            try {
+                methodWatcher.executeUpdate("create external table all_datatypes_wrong ( i int )" + externalTableOptions);
+                Assert.fail("Exception not thrown");
+            } catch (SQLException e) {
+                Assert.assertEquals("Wrong Exception", INCONSISTENT_NUMBER_OF_ATTRIBUTE, e.getSQLState());
+                Assert.assertEquals("wrong exception message",
+                        "Only '1' attributes defined but '12' present in the external file : '" + file + "'. " +
+                                "Suggested Schema is 'CREATE EXTERNAL TABLE T (" + suggestedTypes + ");'.",
+                        e.getMessage());
+            }
+        }
+    }
+
+    @Test
     public void testWriteReadWithPreExistingAvro() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table avro_simple_file_table (col1 int, col2 int, col3 int)" +
                 "STORED AS AVRO LOCATION '%s'", getResourceDirectory()+"avro_simple_file_test"));
@@ -1009,35 +1097,42 @@ public class ExternalTableIT extends SpliceUnitTest {
                 "  2  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Test @Ignore
-    public void testWriteReadFromCompressedParquetExternalTable() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table compressed_parquet_test (col1 int, col2 varchar(24))" +
-                " COMPRESSED WITH SNAPPY STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"compressed_parquet_test"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_parquet_test values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from compressed_parquet_test");
-        Assert.assertEquals("COL2 |\n" +
-                "------\n" +
-                "AAAA |\n" +
-                "BBBB |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-    }
 
     @Test
-    public void testWriteReadFromCompressedAvroExternalTable() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table compressed_avro_test (col1 varchar(24))" +
-                " COMPRESSED WITH SNAPPY STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"compressed_avro_test"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_avro_test values ('XXXX')," +
-                "('YYYY')"));
-        Assert.assertEquals("insertCount is wrong",2,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from compressed_avro_test");
-        Assert.assertEquals("COL1 |\n" +
-                "------\n" +
-                "XXXX |\n" +
-                "YYYY |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-    }
+    public void testWriteReadFromExternalTable() throws Exception {
 
+        String[] compressionTypes = { "", // no compression
+                "COMPRESSED WITH SNAPPY",
+                "COMPRESSED WITH ZLIB"};
+        String[] storedAsArray = { "PARQUET", "ORC", "AVRO" };
+        for( String compression : compressionTypes )
+        {
+            for( String storedAs : storedAsArray )
+            {
+                String path = getExternalResourceDirectory() + "compressed_test";
+                String createSql = "create external table compressed_test (col1 int, col2 varchar(24)) "
+                        + compression + " STORED AS " + storedAs + " LOCATION '" + path + "'";
+                try {
+                    FileUtils.deleteDirectory(new File(path));
+                    methodWatcher.executeUpdate(createSql);
+                    int insertCount = methodWatcher.executeUpdate(String.format("insert into compressed_test values (1,'XXXX')," +
+                            "(2,'YYYY')"));
+                    Assert.assertEquals("insertCount is wrong for " + createSql, 2, insertCount);
+                    ResultSet rs = methodWatcher.executeQuery("select * from compressed_test");
+                    Assert.assertEquals("different output for " + createSql, "COL1 |COL2 |\n" +
+                            "------------\n" +
+                            "  1  |XXXX |\n" +
+                            "  2  |YYYY |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+                    rs.close();
+                    methodWatcher.execute("drop table compressed_test");
+                    FileUtils.deleteDirectory(new File(path));
+                } catch( Exception e )
+                {
+                    Assert.fail( "failed at " + createSql + " with exception:  \n" + e.toString()  );
+                }
+            }
+        }
+    }
 
     @Test
     public void testReadFailingNumberAttributeConstraint() throws Exception {
@@ -1121,13 +1216,16 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void testReadInCompatibleAttributeDataTypeAvro() throws Exception {
+        String filename = getResourceDirectory() + "avro_simple_file_test";
         try{
             methodWatcher.executeUpdate(String.format("create external table failing_data_type_attribute(col1 int, col2 varchar(24), col4 varchar(24))" +
-                    "STORED AS AVRO LOCATION '%s'", getResourceDirectory()+"avro_simple_file_test"));
-            ResultSet rs = methodWatcher.executeQuery("select COL2 from failing_data_type_attribute where col1=1");
+                    "STORED AS AVRO LOCATION '%s'", filename));
+            Assert.fail("Exception not thrown");
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception",
-                    "The field 'c1':'StringType' defined in the table is not compatible with the field 'c1':'IntegerType' defined in the external file '"+getResourceDirectory()+"avro_simple_file_test'",
+                                    "The field 'COL2':'CHAR/VARCHAR(x)' defined in the table is not compatible with " +
+                                    "the field 'c1':'INT' defined in the external file '" + filename + "'. " +
+                                    "Suggested Schema is 'CREATE EXTERNAL TABLE T (c0 INT, c1 INT, c2 INT);'.",
                     e.getMessage());
         }
     }
@@ -1249,7 +1347,7 @@ public class ExternalTableIT extends SpliceUnitTest {
     public void testPinExternalOrcTable() throws Exception {
         String path = getExternalResourceDirectory()+"orc_pin";
         methodWatcher.executeUpdate(String.format("create external table orc_pin (col1 int, col2 varchar(24))" +
-                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"orc_pin"));
+                " STORED AS ORC LOCATION '%s'", path));
         methodWatcher.executeUpdate("insert into orc_pin values (1,'test')");
 
         methodWatcher.executeUpdate("pin table orc_pin");
@@ -1263,7 +1361,6 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void testPinExternalParquetTable() throws Exception {
-        String path = getExternalResourceDirectory()+"parquet_pin";
         methodWatcher.executeUpdate(String.format("create external table parquet_pin (col1 int, col2 varchar(24))" +
                 " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"parquet_pin"));
         methodWatcher.executeUpdate("insert into parquet_pin values (1,'test')");
@@ -1277,7 +1374,6 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void testPinExternalAvroTable() throws Exception {
-        String path = getExternalResourceDirectory()+"avro_pin";
         methodWatcher.executeUpdate(String.format("create external table avro_pin (col1 int, col2 varchar(24))" +
                 " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"avro_pin"));
         methodWatcher.executeUpdate("insert into avro_pin values (1,'test')");
@@ -1291,7 +1387,6 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void testPinExternalTextTable() throws Exception {
-        String path = getExternalResourceDirectory()+"parquet_pin";
         methodWatcher.executeUpdate(String.format("create external table textfile_pin (col1 int, col2 varchar(24))" +
                 " STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"textfile_pin"));
         methodWatcher.executeUpdate("insert into textfile_pin values (1,'test')");
@@ -3069,8 +3164,8 @@ public class ExternalTableIT extends SpliceUnitTest {
         @Override
         public void run() {
 
-            try {
-                conn.createStatement().execute("select count(*) from concurrent_test");
+            try (Statement s = conn.createStatement()) {
+                s.execute("select count(*) from concurrent_test");
                 success = true;
             } catch (SQLException e) {
                 throw new RuntimeException(e);

@@ -19,8 +19,9 @@ package com.splicemachine.access.configuration;
 import org.spark_project.guava.base.Splitter;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Repository for holding configuration keys for Olap client/server.
@@ -82,6 +83,9 @@ public class OlapConfigurations implements ConfigurationDefault {
      */
     public static final String OLAP_SERVER_EXTERNAL = "splice.olap_server.external";
     private static final boolean DEFAULT_OLAP_SERVER_EXTERNAL = true;
+
+    public static final String OLAP_SERVER_MAX_RETRIES = "splice.olap_server.maxRetries";
+    public static final int DEFAULT_OLAP_SERVER_MAX_RETRIES = 30;
 
     public static final String OLAP_SERVER_SUBMIT_ATTEMPTS = "splice.olap_server.submitAttempts";
     private static final int DEFAULT_OLAP_SERVER_SUBMIT_ATTEMPTS = 50;
@@ -187,6 +191,7 @@ public class OlapConfigurations implements ConfigurationDefault {
         builder.olapServerBindPort  = configurationSource.getInt(OLAP_SERVER_BIND_PORT, DEFAULT_OLAP_SERVER_BIND_PORT);
         builder.olapServerStagingDir = configurationSource.getString(OLAP_SERVER_STAGING_DIR, DEFAULT_OLAP_SERVER_STAGING_DIR);
         builder.olapServerExternal  = configurationSource.getBoolean(OLAP_SERVER_EXTERNAL, DEFAULT_OLAP_SERVER_EXTERNAL);
+        builder.olapServerMaxRetries = configurationSource.getInt(OLAP_SERVER_MAX_RETRIES, DEFAULT_OLAP_SERVER_MAX_RETRIES);
         builder.olapClientWaitTime  = configurationSource.getInt(OLAP_CLIENT_WAIT_TIME, DEFAULT_OLAP_CLIENT_WAIT_TIME);
         builder.olapClientTickTime  = configurationSource.getInt(OLAP_CLIENT_TICK_TIME, DEFAULT_OLAP_CLIENT_TICK_TIME);
         builder.olapServerThreads = configurationSource.getInt(OLAP_SERVER_THREADS, DEFAULT_OLAP_SERVER_THREADS);
@@ -209,13 +214,18 @@ public class OlapConfigurations implements ConfigurationDefault {
                 .withKeyValueSeparator("=")
                 .split(isolatedRoles);
 
-        Map<String, String> queues = new HashMap();
-        for (String queue : builder.olapServerIsolatedRoles.values()) {
-            queues.put(queue, configurationSource.getString(OLAP_SERVER_YARN_QUEUES + queue, DEFAULT_OLAP_SERVER_YARN_DEFAULT_QUEUE));
-        }
-        builder.olapServerYarnQueues = queues;
         builder.olapServerIsolatedCompaction = configurationSource.getBoolean(OLAP_SERVER_ISOLATED_COMPACTION, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION);
         builder.olapServerIsolatedCompactionQueueName = configurationSource.getString(OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME);
+
+        // Set up mappings for Splice Queues to YARN queues, possible mappings are all defined in olapServerIsolatedRoles,
+        // the compaction queue name if enabled and the 'default' queue
+        Stream<String> queueNames = Stream.concat(builder.olapServerIsolatedRoles.values().stream(), Stream.of("default"));
+        if (builder.olapServerIsolatedCompaction)
+            queueNames = Stream.concat(queueNames, Stream.of(builder.olapServerIsolatedCompactionQueueName));
+        builder.olapServerYarnQueues = queueNames.collect(Collectors.toMap(
+                        Function.identity(),
+                        queue -> configurationSource.getString(OLAP_SERVER_YARN_QUEUES + queue, DEFAULT_OLAP_SERVER_YARN_DEFAULT_QUEUE)));
+
         builder.olapCompactionAutomaticallyPurgeDeletedRows = configurationSource.getBoolean(OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS, DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS);
 
         builder.sparkIoCompressionCodec = configurationSource.getString(SPARK_IO_COMPRESSION_CODEC, DEFAULT_SPARK_IO_COMPRESSION_CODEC);

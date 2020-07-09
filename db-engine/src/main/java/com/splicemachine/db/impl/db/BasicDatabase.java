@@ -56,7 +56,6 @@ import com.splicemachine.db.iapi.sql.LanguageFactory;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
-import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.FileInfoDescriptor;
@@ -65,11 +64,14 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.FileResource;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.util.DoubleProperties;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.io.StorageFile;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.InputStream;
 import java.io.Serializable;
@@ -130,6 +132,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
         return Monitor.isDesiredCreateType(startParams, getEngineType());
 	}
 
+	@SuppressFBWarnings(value="DLS_DEAD_LOCAL_STORE")
 	public void boot(boolean create, Properties startParams)
 		throws StandardException
 	{
@@ -231,7 +234,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 
 	public void stop() {
         // The data dictionary is not available if this database has the
-        // role as an active replication slave database.
+        // role as an active replication replica database.
         if (dd != null) {
             try {
                 // on orderly shutdown, try not to leak unused numbers from
@@ -289,6 +292,13 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 			tc = getConnectionTransaction(cm);
 		}
 
+		TransactionManager tm = (TransactionManager) tc;
+		Transaction transaction = tm.getRawStoreXact();
+		boolean isRestoreMode = transaction.isRestoreMode();
+		if (isRestoreMode) {
+			throw StandardException.newException(SQLState.CANNOT_CONNECT_DURING_RESTORE);
+		}
+
 		cm.setLocaleFinder(this);
 		pushDbContext(cm);
 
@@ -328,6 +338,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
         return dd;
     }
 
+    @SuppressFBWarnings(value="DLS_DEAD_LOCAL_STORE")
 	public void pushDbContext(ContextManager cm)
 	{
 		/* We cache the locale in the DatabaseContext
@@ -352,7 +363,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		return this.authenticationService;
 	}
 
-    public boolean isInSlaveMode() {
+    public boolean isInReplicaMode() {
         return false;
     }
 

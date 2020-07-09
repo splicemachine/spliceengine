@@ -48,6 +48,7 @@ public class TestKafkaCluster {
         props.put("broker.id","0");
         props.put("port","9092");
         props.put("offsets.topic.replication.factor", offsetsTopicReplicationFactor);  // helps splice standalone work on Kafka 2.2
+        props.put("log.dir", System.getProperty("java.io.tmpdir", "target/tmp") + "/kafka-logs");
         return new KafkaConfig(props);
     }
 

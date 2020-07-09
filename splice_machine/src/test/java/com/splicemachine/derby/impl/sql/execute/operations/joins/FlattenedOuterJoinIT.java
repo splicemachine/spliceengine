@@ -441,4 +441,25 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
         Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
+
+    @Test
+    public void testDB9593() throws Exception {
+        String sqlText = "select * from t1 --splice-properties useDefaultRowCount=25000\n" +
+                "left join t2 on a1=a2 and a1 in (select a3 from t3)";
+
+        rowContainsQuery(new int[]{3}, "explain " + sqlText, methodWatcher,
+                new String[]{"LeftOuterJoin", "preds=[is not null(subq=7),(A1[8:1] = A2[8:4])]"});
+
+        String expected = "A1 |B1 | C1  | A2  | B2  | C2  |\n" +
+                "--------------------------------\n" +
+                " 1 |10 |  1  |NULL |NULL |NULL |\n" +
+                " 2 |20 |  2  |NULL |NULL |NULL |\n" +
+                " 2 |20 |  2  |NULL |NULL |NULL |\n" +
+                " 3 |30 |  3  |  3  | 30  |  3  |\n" +
+                " 4 |40 |NULL |NULL |NULL |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
 }

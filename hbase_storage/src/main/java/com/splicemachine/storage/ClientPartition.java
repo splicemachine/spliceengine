@@ -179,12 +179,13 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     // stale entries, the returned region locations contains duplicate entries. The duplicate entry is a region that has
     // be split.
     private boolean outdated(List<HRegionLocation> tableLocations) {
-        Set<HRegionLocation> regionLocations = new HashSet<>();
+        Set<String> regionLocations = new HashSet<>();
         for (HRegionLocation regionLocation : tableLocations) {
-            if (regionLocations.contains(regionLocation))
+            String encodedName = regionLocation.getRegion().getEncodedName();
+            if (regionLocations.contains(encodedName))
                 return true;
             else
-                regionLocations.add(regionLocation);
+                regionLocations.add(encodedName);
         }
         return false;
     }

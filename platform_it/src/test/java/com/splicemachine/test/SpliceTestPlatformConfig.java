@@ -20,6 +20,11 @@ import static com.google.common.collect.Lists.transform;
 
 import java.util.List;
 
+import com.amazonaws.SdkClientException;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.splicemachine.access.configuration.OlapConfigurations;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
@@ -95,6 +100,33 @@ class SpliceTestPlatformConfig {
             SpliceHFileCleaner.class,
             TimeToLiveHFileCleaner.class);
 
+    public static void configureS3(Configuration config)
+    {
+        // AWS Credentials for test
+        splice.aws.com.amazonaws.auth.AWSCredentialsProvider credentialproviders[] = {
+                new splice.aws.com.amazonaws.auth.EnvironmentVariableCredentialsProvider(), // first try env AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+                new splice.aws.com.amazonaws.auth.profile.ProfileCredentialsProvider()              // second try from $HOME/.aws/credentials (aws cli store)
+        };
+        for( splice.aws.com.amazonaws.auth.AWSCredentialsProvider provider : credentialproviders )
+        {
+            try {
+                // can throw SdkClientException if env is not set or can't parse .aws/credentials
+                // or IllegalArgumentException if .aws/credentials is not there
+                splice.aws.com.amazonaws.auth.AWSCredentials cred = provider.getCredentials();
+                config.set("presto.s3.access-key", cred.getAWSAccessKeyId());
+                config.set("presto.s3.secret-key", cred.getAWSSecretKey());
+                config.set("fs.s3a.access.key", cred.getAWSAccessKeyId());
+                config.set("fs.s3a.secret.key", cred.getAWSSecretKey());
+                config.set("fs.s3a.awsAccessKeyId", cred.getAWSAccessKeyId());
+                config.set("fs.s3a.awsSecretAccessKey", cred.getAWSSecretKey());
+                break;
+            } catch( Exception e )
+            {
+                continue;
+            }
+        }
+        config.set("fs.s3a.impl", com.splicemachine.fs.s3.PrestoS3FileSystem.class.getCanonicalName() );
+    }
     /*
      * Create an HBase config object suitable for use in our test platform.
      */
@@ -215,6 +247,7 @@ class SpliceTestPlatformConfig {
         config.setLong("hbase.rpc.timeout", MINUTES.toMillis(5));
         config.setInt("hbase.client.max.perserver.tasks",50);
         config.setInt("hbase.client.ipc.pool.size",10);
+        config.setInt("hbase.client.retries.number", 35);
         config.setInt("hbase.rowlock.wait.duration",10);
 
         config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
@@ -275,13 +308,8 @@ class SpliceTestPlatformConfig {
         config.set("hbase.cluster.distributed", "true");  // don't start zookeeper for us
         config.set("hbase.master.distributed.log.splitting", "false"); // TODO: explain why we are setting this
 
-        //
-        // AWS Credentials for test...
-        //
+        configureS3( config );
 
-        //config.set("presto.s3.access-key","");
-        //config.set("presto.s3.secret-key","");
-        config.set("fs.s3a.impl",com.splicemachine.fs.s3.PrestoS3FileSystem.class.getCanonicalName());
         config.set("hive.exec.orc.split.strategy","BI");
         config.setInt("io.file.buffer.size",65536);
 

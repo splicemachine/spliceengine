@@ -19,7 +19,6 @@ import java.nio.file.{Files, Path}
 import java.sql.{Time, Timestamp}
 import java.util.Date
 
-import com.splicemachine.derby.vti.SpliceDatasetVTI
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
@@ -33,8 +32,12 @@ import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 import org.scalatest.junit.JUnitRunner
 import org.apache.spark.sql.functions._
 import java.sql.Connection
+import com.splicemachine.test.LongerThanTwoMinutes
+
+import org.junit.experimental.categories.Category
 
 @RunWith(classOf[JUnitRunner])
+@Category(Array(classOf[LongerThanTwoMinutes]))
 class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with Matchers {
   val rowCount = 10
   var sqlContext : SQLContext = _
@@ -113,9 +116,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     assert(newDF.count == 20)
   }
 
-  test("insertion with sampling") {  // DB-9395
-    val userDir: String = System.getProperty("user.dir")
-    val dataDir = userDir+"/src/test/data/lineitem.csv";
+  test("insertion with sampling") {
     val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
     conn.createStatement().execute("create table TestContext.T(id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), c1 double, c2 double, c3 double, primary key(id))")
     conn.createStatement().execute("insert into TestContext.T(c1,c2,c3) values (100, 100, 100), (200, 200, 200), (300, 300, 300), (400, 400, 400)");

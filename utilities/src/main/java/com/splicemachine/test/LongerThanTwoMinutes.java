@@ -12,22 +12,11 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.hbase;
-
-import org.apache.hadoop.hbase.HTableDescriptor;
+package com.splicemachine.test;
 
 /**
- *
- * Read Only HTable Descriptor for reading HBase from the filesystem.
- *
+ * Used together with JUnit's @Category to annotate tests which run for more than 2 minutes and can be
+ * excluded for quicker IT runs
  */
-public class ReadOnlyHTableDescriptor extends HTableDescriptor {
-    public ReadOnlyHTableDescriptor(HTableDescriptor desc) {
-            super(desc);
-    }
-
-    @Override
-    public boolean isReadOnly() {
-        return true;
-    }
+public interface LongerThanTwoMinutes {
 }

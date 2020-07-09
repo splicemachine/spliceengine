@@ -204,9 +204,9 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
             if (mode.equals(OlapServerMaster.Mode.KUBERNETES)) {
                 String root = conf.getSpliceRootPath() + HBaseConfiguration.OLAP_SERVER_PATH;
                 try {
-                    ZkUtils.safeCreate(root + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-                    ZkUtils.safeCreate(root + HBaseConfiguration.OLAP_SERVER_LEADER_ELECTION_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-                    ZkUtils.safeCreate(root + HBaseConfiguration.OLAP_SERVER_DIAGNOSTICS_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                    ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                    ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_LEADER_ELECTION_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                    ZkUtils.recursiveSafeCreate(root + HBaseConfiguration.OLAP_SERVER_DIAGNOSTICS_PATH, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
                 } catch (Exception e) {
                     throw new IOException(e);
                 }

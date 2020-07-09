@@ -72,4 +72,25 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     org.junit.Assert.assertEquals("Schema Changed!","List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])",rdd.collect().toList.toString)
   }
 
+  test("Test Create Table") {
+    val tableName = schema +"."+ getClass.getSimpleName + "_TestCreateTable"
+    
+    if( splicemachineContext.tableExists(tableName) ) {
+      splicemachineContext.dropTable(tableName)
+    }
+    org.junit.Assert.assertFalse( splicemachineContext.tableExists(tableName) )
+
+    import org.apache.spark.sql.types._
+
+    val schema_createTable = StructType(
+      StructField("NUMBER", IntegerType, false) :: 
+        StructField("MAKE", StringType, true) ::
+        StructField("MODEL", StringType, true) :: Nil)
+
+    splicemachineContext.createTable(tableName, schema_createTable, Seq("NUMBER"))
+
+    org.junit.Assert.assertTrue( splicemachineContext.tableExists(tableName) )
+
+    splicemachineContext.dropTable(tableName)
+  }
 }

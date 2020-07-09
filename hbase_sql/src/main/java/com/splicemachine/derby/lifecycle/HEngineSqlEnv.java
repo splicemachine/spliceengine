@@ -134,9 +134,8 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     private OlapClient initializeOlapClient(SConfiguration config,Clock clock) {
         int timeoutMillis = config.getOlapClientWaitTime();
         final int retries = config.getOlapClientRetries();
-        int maxRetries = config.getMaxRetries();
         HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
-        final OlapServerProvider osp = new OlapServerProviderImpl(config, maxRetries, clock, hbcf);
+        final OlapServerProvider osp = new OlapServerProviderImpl(config, clock, hbcf);
 
         Stream.Builder<String> queuesBuilder = Stream.builder();
         queuesBuilder.accept(SIConstants.OLAP_DEFAULT_QUEUE_NAME);
