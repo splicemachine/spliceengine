@@ -29,6 +29,7 @@ import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.CompactionContext;
 import com.splicemachine.si.impl.server.PurgeConfig;
+import com.splicemachine.si.impl.server.PurgeConfigBuilder;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -316,24 +317,24 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
                 if (needsSI(store.getTableName())) {
                     SIDriver driver=SIDriver.driver();
-                    double resolutionShare = HConfiguration.getConfiguration().getOlapCompactionResolutionShare();
-                    int bufferSize = HConfiguration.getConfiguration().getOlapCompactionResolutionBufferSize();
-                    boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
+                    SConfiguration config = HConfiguration.getConfiguration();
+                    double resolutionShare = config.getOlapCompactionResolutionShare();
+                    int bufferSize = config.getOlapCompactionResolutionBufferSize();
+                    boolean blocking = config.getOlapCompactionBlocking();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                             driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
-                    PurgeConfig purgeConfig;
-                    if (SpliceCompactionUtils.shouldPurge(store) && request.isMajor()) {
-                        purgeConfig = PurgeConfig.forcePurgeConfig();
-                    } else if (HConfiguration.getConfiguration().getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                        if (request.isMajor())
-                            purgeConfig = PurgeConfig.purgeDuringMajorCompactionConfig();
-                        else
-                            purgeConfig = PurgeConfig.purgeDuringMinorCompactionConfig();
+                    PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
+                    if (SpliceCompactionUtils.forcePurgeDeletes(store) && request.isMajor()) {
+                        purgeConfig.forcePurgeDeletes();
+                    } else if (config.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
+                        purgeConfig.purgeDeletesDuringCompaction(request.isMajor());
                     } else {
-                        purgeConfig = PurgeConfig.noPurgeConfig();
+                        purgeConfig.noPurgeDeletes();
                     }
+                    purgeConfig.purgeUpdates(config.getOlapCompactionAutomaticallyPurgeOldUpdates());
 
-                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, resolutionShare, bufferSize, context);
+                    SICompactionScanner siScanner = new SICompactionScanner(
+                            state, scanner, purgeConfig.build(), resolutionShare, bufferSize, context);
                     siScanner.start();
                     scanner = siScanner;
                 }

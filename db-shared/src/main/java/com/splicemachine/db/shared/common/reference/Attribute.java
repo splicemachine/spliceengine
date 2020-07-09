@@ -102,38 +102,38 @@ public interface Attribute {
     String BOOT_PASSWORD = "bootPassword";
 
     /**
-     * Attribute name to start replication master mode for a database.
-     * If used, REPLICATION_SLAVE_HOST is a required attribute.
+     * Attribute name to start replication primary mode for a database.
+     * If used, REPLICATION_REPLICA_HOST is a required attribute.
      */
-    String REPLICATION_START_MASTER = "startMaster";
+    String REPLICATION_START_PRIMARY = "startPrimary";
 
     /**
-     * Attribute name to stop replication master mode for a database.
+     * Attribute name to stop replication primary mode for a database.
      */
-    String REPLICATION_STOP_MASTER = "stopMaster";
+    String REPLICATION_STOP_PRIMARY = "stopPrimary";
 
     /**
-     * Attribute name to start replication slave mode for a database.
+     * Attribute name to start replication replica mode for a database.
      */
-    String REPLICATION_START_SLAVE = "startSlave";
+    String REPLICATION_START_REPLICA = "startReplica";
 
     /**
-     * Attribute name to stop replication slave mode for a database.
+     * Attribute name to stop replication replica mode for a database.
      */
-    String REPLICATION_STOP_SLAVE = "stopSlave";
+    String REPLICATION_STOP_REPLICA = "stopReplica";
 
     /**
-     * Attribute name to stop replication slave mode for a database.
+     * Attribute name to stop replication replica mode for a database.
      * Internal use only
      */
-    String REPLICATION_INTERNAL_SHUTDOWN_SLAVE = "internal_stopslave";
+    String REPLICATION_INTERNAL_SHUTDOWN_REPLICA = "internal_stopReplica";
 
     /**
-     * If startMaster is true, this attribute is used to specify the
-     * host name the master should connect to. This is a required
+     * If startPrimary is true, this attribute is used to specify the
+     * host name the primary should connect to. This is a required
      * attribute.
      */
-    String REPLICATION_SLAVE_HOST = "slaveHost";
+    String REPLICATION_REPLICA_HOST = "replicaHost";
 
     /**
      * Attribute name to start failover for a given database..
@@ -141,11 +141,11 @@ public interface Attribute {
     String REPLICATION_FAILOVER = "failover";
 
     /**
-     * If startMaster is true, this attribute is used to specify the
-     * port the master should connect to. This is an optional
+     * If startPrimary is true, this attribute is used to specify the
+     * port the primary should connect to. This is an optional
      * attribute.
      */
-    String REPLICATION_SLAVE_PORT = "slavePort";
+    String REPLICATION_REPLICA_PORT = "replicaPort";
 
     /**
      * The attribute that is used for the database name, from the JDBC notion of

@@ -426,4 +426,16 @@ public class OrderByIT extends SpliceUnitTest {
     public void testAliasNoLeftToRightReferal() throws Exception {
         SqlExpectException( methodWatcher, "select a1*2 as ALIAS1, ALIAS1+1 as ALIAS2 from t2 order by -ALIAS2", "42X04" );
     }
+
+    @Test
+    public void testOrderByOutOfRangeOrdinalPosition() throws Exception {
+        String sqlTexts[] =
+                {       "select a1 from t2 ORDER BY -1",
+                        "select a1 from t2 ORDER BY 0",
+                        "select a1 from t2 ORDER BY 2"
+                };
+        for( String sqlText : sqlTexts ) {
+            SqlExpectException( methodWatcher, sqlText, "42X77" );
+        }
+    }
 }
