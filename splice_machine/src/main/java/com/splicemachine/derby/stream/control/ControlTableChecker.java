@@ -14,7 +14,9 @@
 
 package com.splicemachine.derby.stream.control;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.function.KVPairFunction;
@@ -24,6 +26,7 @@ import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.config.WriteConfiguration;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -31,8 +34,8 @@ import org.spark_project.guava.collect.ArrayListMultimap;
 import org.spark_project.guava.collect.ListMultimap;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.storage.CheckTableJob.IndexFilter;
-import com.splicemachine.derby.impl.storage.CheckTableJob.LeadingIndexColumnInfo;
+import com.splicemachine.derby.impl.storage.CheckTableUtils.IndexFilter;
+import com.splicemachine.derby.impl.storage.CheckTableUtils.LeadingIndexColumnInfo;
 import com.splicemachine.derby.impl.storage.KeyByRowIdFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
@@ -41,7 +44,6 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.si.impl.driver.SIDriver;
 import scala.Tuple2;
 
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -68,6 +70,7 @@ public class ControlTableChecker implements TableChecker {
     private long conglomerate;
     private DDLMessage.TentativeIndex tentativeIndex;
     private int[] baseColumnMap;
+    private boolean isSystemTable;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ControlTableChecker (String schemaName,
@@ -77,7 +80,8 @@ public class ControlTableChecker implements TableChecker {
                                 ExecRow tableKey,
                                 TxnView txn,
                                 boolean fix,
-                                int[] baseColumnMap) {
+                                int[] baseColumnMap,
+                                boolean isSystemTable) {
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.baseTable = table;
@@ -87,6 +91,7 @@ public class ControlTableChecker implements TableChecker {
         this.txn = txn;
         this.fix = fix;
         this.baseColumnMap = baseColumnMap;
+        this.isSystemTable = isSystemTable;
     }
 
     @SuppressFBWarnings(value = "URF_UNREAD_FIELD",justification = "Intentional")
@@ -228,7 +233,7 @@ public class ControlTableChecker implements TableChecker {
                         messages.add("...");
                         return messages;
                     }
-                    messages.add(indexRow._2 + "=>" + baseRowId);
+                    messages.add(indexRow._2 + "@" + Bytes.toHex(indexRow._1) + "=>" + baseRowId);
                     num++;
                 }
             }
@@ -275,7 +280,7 @@ public class ControlTableChecker implements TableChecker {
                     messages.add("...");
                     return messages;
                 }
-                messages.add(indexRow._2 + "=>" + baseRowId);
+                messages.add(indexRow._2 + "@" + Bytes.toHex(indexRow._1) + "=>" + baseRowId);
                 i++;
             }
         }
@@ -324,9 +329,15 @@ public class ControlTableChecker implements TableChecker {
     }
 
     private void fixMissingIndexes(Map<String, ExecRow> result) throws StandardException {
+        List<Integer> baseColumnMapList = Lists.newArrayList();
+        for (int i = 0; i < baseColumnMap.length; ++i) {
+            if (baseColumnMap[i] >= 0) {
+                baseColumnMapList.add(i+1);
+            }
+        }
         DataSet<ExecRow> dataSet = new ControlDataSet<>(result.values().iterator());
         PairDataSet dsToWrite = dataSet
-                .map(new IndexTransformFunction(tentativeIndex), null, false, true, "Prepare Index")
+                .map(new IndexTransformFunction(tentativeIndex, baseColumnMapList, isSystemTable), null, false, true, "Prepare Index")
                 .index(new KVPairFunction(), false, true, "Add missing indexes");
         DataSetWriter writer = dsToWrite.directWriteData()
                 .destConglomerate(tentativeIndex.getIndex().getConglomerate())
@@ -341,7 +352,7 @@ public class ControlTableChecker implements TableChecker {
 
         int i = 0;
         if (fix) {
-            messages.add(String.format("Create index for the following %d rows from base table %s.%s:", result.size(),
+            messages.add(String.format("Created indexes for the following %d rows from base table %s.%s:", result.size(),
                     schemaName, tableName));
         }
         else {
@@ -357,7 +368,8 @@ public class ControlTableChecker implements TableChecker {
             if (tableKeyTemplate.nColumns() > 0) {
                 tableKeyDecoder.set(key, 0, key.length);
                 tableKeyDecoder.decode(tableKeyTemplate);
-                messages.add(tableKeyTemplate.getClone().toString());
+                ValueRow r = (ValueRow) tableKeyTemplate.getClone();
+                messages.add(r.toString());
             }
             else {
                 messages.add(entry.getKey());

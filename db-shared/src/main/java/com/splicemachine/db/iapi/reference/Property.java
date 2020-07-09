@@ -1467,6 +1467,7 @@ public interface Property {
      * True force Spark execution for this session; false forces Control execution for this connection
      */
     String CONNECTION_USE_SPARK = "useSpark";
+    String CONNECTION_USE_OLAP = "useOLAP";
 
     /**
      * True ignores statistics for this connection
@@ -1487,4 +1488,6 @@ public interface Property {
      * Create a read only connection at some fixed point in the past determined by this transaction id
      */
     String CONNECTION_SNAPSHOT = "snapshot";
+
+    String CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS = "disableAdvancedTC";
 }

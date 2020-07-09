@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.1959-SNAPSHOT</version>
+        <version>3.0.0.1964-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -33,6 +33,7 @@
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
         <argLine>-Xms64m -Xmx4g ${jacocoAgent}</argLine>
+        <tmpDir>${project.build.directory}/tmp</tmpDir>
     </properties>
     <dependencies>
         <dependency>
@@ -419,6 +420,11 @@
             </plugin>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <additionalClasspathElements>
+                        <additionalClasspathElement>${project.basedir}/target/hbase-site.xml</additionalClasspathElement>
+                    </additionalClasspathElements>
+                </configuration>
                 <executions>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
                     <execution>
@@ -430,7 +436,8 @@
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
                             <excludedGroups>
-                                ${excluded.categories}
+                                ${excluded.categories},
+                                ${excluded.longerthan}
                             </excludedGroups>
                             <argLine>-Xmx2g -Xms64m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
@@ -462,7 +469,8 @@
                             <excludedGroups>
                                 com.splicemachine.test.SerialTest,
                                 com.splicemachine.test.RestoreTest,
-                                ${excluded.categories}
+                                ${excluded.categories},
+                                ${excluded.longerthan}
                             </excludedGroups>
                             <parallel>classes</parallel>
                             <threadCount>1</threadCount>
@@ -551,6 +559,7 @@
                             <target name="StartSpliceServer" unless="${server.skip.start}">
                                 <taskdef resource="net/sf/antcontrib/antcontrib.properties"
                                          classpathref="maven.plugin.classpath"/>
+                                <mkdir dir="${tmpDir}"/>
                                 <if>
                                     <istrue value="${failTasksRandomly}"/>
                                     <!-- run with chaos monkey (default) -->
@@ -746,6 +755,7 @@
                                 </argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
+                                <argument>-Djava.io.tmpdir=${tmpDir}</argument>
                                 <argument>-Xmx1g</argument>
                                 <argument>-Xms64m</argument>
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
@@ -848,7 +858,6 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.4.0</version>
                         <executions>
                             <execution>
                                 <goals>
@@ -883,7 +892,6 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.4.0</version>
                         <executions>
                             <execution>
                                 <goals>
@@ -944,6 +952,7 @@
                                 <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
+                                <argument>-Djava.io.tmpdir=${tmpDir}</argument>
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
                                 <argument>
@@ -1111,7 +1120,10 @@
                                 <argument>-enableassertions</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
                                 <argument>-XX:+UseG1GC</argument>
-
+                                <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.port=10103</argument>
+                                <argument>-Djava.io.tmpdir=${tmpDir}</argument>
                                 <argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
                                 <argument>${project.build.directory}</argument>
                                 <argument>${memberNumber}</argument>
@@ -1441,6 +1453,7 @@
                                 <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
+                                <argument>-Djava.io.tmpdir=${tmpDir}</argument>
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
                                 <argument>

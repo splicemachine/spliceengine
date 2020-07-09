@@ -21,7 +21,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.1959-SNAPSHOT</version>
+        <version>3.0.0.1964-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -1608,6 +1608,7 @@
                                 <directory>common/src/main/resources/bin</directory>
                                 <includes>
                                   <include>sqlshell.sh</include>
+                                  <include>winsqlshell.cmd</include>
                                 </includes>
                             </resource>
                           </resources>

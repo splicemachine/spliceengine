@@ -18,7 +18,9 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -32,6 +34,7 @@ import static org.junit.Assert.assertTrue;
  * Created by tgildersleeve on 6/30/17.
  * SPLICE-1621
  */
+@Category(LongerThanTwoMinutes.class)
 public class ExternalTablePartitionIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = ExternalTablePartitionIT.class.getSimpleName().toUpperCase();
@@ -50,7 +53,7 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
     @BeforeClass
     public static void createTempDirectory() throws Exception
     {
-        tempDir = createOrWipeTestDirectory( SCHEMA_NAME );
+        tempDir = createTempDirectory(SCHEMA_NAME);
     }
 
     @AfterClass

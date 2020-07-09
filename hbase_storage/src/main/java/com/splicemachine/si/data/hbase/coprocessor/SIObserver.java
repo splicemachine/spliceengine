@@ -45,6 +45,7 @@ import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -82,7 +83,10 @@ import org.apache.hadoop.hbase.security.access.Permission;
 import org.apache.hadoop.hbase.security.access.TableAuthManager;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.hadoop.hbase.wal.WALEdit;
+import org.apache.hadoop.hbase.wal.WALFactory;
+import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
@@ -504,6 +508,27 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             if (in != null) {
                 in.close();
             }
+        }
+    }
+
+    @Override
+    public void preReplayWALs(ObserverContext<? extends RegionCoprocessorEnvironment> ctx, RegionInfo info, Path edits) throws IOException {
+        WAL.Reader reader = null;
+        Configuration conf = ctx.getEnvironment().getConfiguration();
+        FileSystem fs = FileSystem.get(edits.toUri(), conf);
+        try {
+            reader = WALFactory.createReader(fs, edits, conf);
+
+            WAL.Entry entry;
+            LOG.info("WAL replay");
+            while ((entry = reader.next()) != null) {
+                WALKey key = entry.getKey();
+                WALEdit val = entry.getEdit();
+
+                LOG.info(key + " -> " + val);
+            }
+        } finally {
+            reader.close();
         }
     }
 }

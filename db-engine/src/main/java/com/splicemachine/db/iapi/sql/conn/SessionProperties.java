@@ -42,13 +42,15 @@ import java.sql.SQLException;
 public interface SessionProperties {
     enum PROPERTYNAME{
         USESPARK(0),
+        USEOLAP(0), // alias for USESPARK
         DEFAULTSELECTIVITYFACTOR(1),
         SKIPSTATS(2),
         RECURSIVEQUERYITERATIONLIMIT(3),
         OLAPQUEUE(4),
-        SNAPSHOT_TIMESTAMP(5);
+        SNAPSHOT_TIMESTAMP(5),
+        DISABLE_TC_PUSHED_DOWN_INTO_VIEWS(6);
 
-        public static int COUNT = PROPERTYNAME.values().length;
+        public static final int COUNT = PROPERTYNAME.values().length;
 
         private int id;
 
@@ -78,7 +80,7 @@ public interface SessionProperties {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                    "useSpark, defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit");
+                    "useSpark, useOLAP, defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit");
         }
 
         String valString = pair.getSecond();
@@ -87,9 +89,11 @@ public interface SessionProperties {
 
         switch (property) {
             case USESPARK:
+            case USEOLAP:
             case SKIPSTATS:
+            case DISABLE_TC_PUSHED_DOWN_INTO_VIEWS:
                 try {
-                    boolean val = Boolean.parseBoolean(valString);
+                    Boolean.parseBoolean(valString);
                 } catch (Exception e) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "boolean or null");
                 }

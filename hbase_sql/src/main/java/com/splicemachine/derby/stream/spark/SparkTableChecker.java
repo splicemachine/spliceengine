@@ -3,11 +3,12 @@ package com.splicemachine.derby.stream.spark;
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.impl.storage.CheckTableJob.IndexFilter;
-import com.splicemachine.derby.impl.storage.CheckTableJob.LeadingIndexColumnInfo;
+import com.splicemachine.derby.impl.storage.CheckTableUtils.IndexFilter;
+import com.splicemachine.derby.impl.storage.CheckTableUtils.LeadingIndexColumnInfo;
 import com.splicemachine.derby.impl.storage.KeyByRowIdFunction;
 import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.function.KVPairFunction;
@@ -64,6 +65,7 @@ public class SparkTableChecker implements TableChecker {
     private long conglomerate;
     private DDLMessage.TentativeIndex tentativeIndex;
     private int[] baseColumnMap;
+    private boolean isSystemTable;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public SparkTableChecker(String schemaName,
@@ -73,7 +75,8 @@ public class SparkTableChecker implements TableChecker {
                              ExecRow tableKey,
                              TxnView txn,
                              boolean fix,
-                             int[] baseColumnMap) {
+                             int[] baseColumnMap,
+                             boolean isSystemTable) {
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.baseTable = table;
@@ -82,6 +85,7 @@ public class SparkTableChecker implements TableChecker {
         this.txn = txn;
         this.fix = fix;
         this.baseColumnMap = baseColumnMap;
+        this.isSystemTable = isSystemTable;
         maxCheckTableError = SIDriver.driver().getConfiguration().getMaxCheckTableErrors();
     }
 
@@ -179,7 +183,7 @@ public class SparkTableChecker implements TableChecker {
         while (it.hasNext()) {
             n++;
             Tuple2<String, Tuple2<byte[], ExecRow>> t = (Tuple2<String, Tuple2<byte[], ExecRow>>)it.next();
-            messages.add(t._2._2 + "=>" + t._1);
+            messages.add(t._2._2 + "@" + Bytes.toHex(t._2._1) + "=>" + t._1);
             if (!fix && n >= maxCheckTableError) {
                 messages.add("...");
                 break;
@@ -264,7 +268,7 @@ public class SparkTableChecker implements TableChecker {
                 break;
             }
             byte[] key = tuple._2._1;
-            messages.add(tuple._2._2 + "=>" + tuple._1);
+            messages.add(tuple._2._2 + "@" + Bytes.toHex(key) + "=>" + tuple._1);
             i++;
         }
 
@@ -308,9 +312,15 @@ public class SparkTableChecker implements TableChecker {
     private List<String> reportMissingIndexes(JavaPairRDD rdd, boolean fix) throws StandardException {
 
         if (fix) {
+            List<Integer> baseColumnMapList = Lists.newArrayList();
+            for (int i = 0; i < baseColumnMap.length; ++i) {
+                if (baseColumnMap[i] >= 0) {
+                    baseColumnMapList.add(i+1);
+                }
+            }
             PairDataSet dsToWrite =  new SparkPairDataSet(rdd)
                     .map(new AddKeyFunction())
-                    .map(new IndexTransformFunction(tentativeIndex), null, false, true, "Prepare Index")
+                    .map(new IndexTransformFunction(tentativeIndex, baseColumnMapList, isSystemTable), null, false, true, "Prepare Index")
                     .index(new KVPairFunction(), false, true, "Add missing indexes");
             DataSetWriter writer = dsToWrite.directWriteData()
                     .destConglomerate(tentativeIndex.getIndex().getConglomerate())
@@ -343,7 +353,8 @@ public class SparkTableChecker implements TableChecker {
                 byte[] key = Bytes.fromHex(tuple._1);
                 tableKeyDecoder.set(key, 0, key.length);
                 tableKeyDecoder.decode(tableKeyTemplate);
-                messages.add(tableKeyTemplate.getClone().toString());
+                ValueRow r = (ValueRow) tableKeyTemplate.getClone();
+                messages.add(r.toString());
             }
             else {
                 messages.add(tuple._1);
