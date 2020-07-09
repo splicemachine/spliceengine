@@ -31,7 +31,7 @@ import java.io.IOException;
  */
 public class SpliceCompactionUtils {
 
-    public static boolean shouldPurge(Store store) throws IOException {
+    public static boolean forcePurgeDeletes(Store store) throws IOException {
 
         boolean prepared = false;
         SpliceTransactionResourceImpl transactionResource = null;
