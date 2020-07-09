@@ -83,7 +83,7 @@ public class BaseMRIOTest extends SpliceUnitTest{
 		TableName spliceTableName = TableName.valueOf("splice", sqlUtil.getConglomID(tableName));
 		try (Admin admin = connection.getAdmin()) {
 			admin.split(spliceTableName);
-			while (admin.getRegions(spliceTableName).size() < 2) {
+			while (admin.getTableRegions(spliceTableName).size() < 2) {
 				Thread.sleep(1000); // wait for split to complete
 				try {
 					admin.split(spliceTableName); // just in case
@@ -106,7 +106,7 @@ public class BaseMRIOTest extends SpliceUnitTest{
 	protected static int getRegionCount(String tableName) throws SQLException, IOException, InterruptedException {
 		TableName spliceTableName = TableName.valueOf("splice", sqlUtil.getConglomID(tableName));
 		try (Admin admin = connection.getAdmin()) {
-			return admin.getRegions(spliceTableName).size();
+			return admin.getTableRegions(spliceTableName).size();
 		}
 	}
 
