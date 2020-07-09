@@ -171,17 +171,7 @@ public final class TransactionResourceImpl
         rdbIntTkn = info.getProperty(Attribute.RDBINTTKN_ATTR, null);
         ipAddress = info.getProperty(Property.IP_ADDRESS, null);
         defaultSchema = info.getProperty(Property.CONNECTION_SCHEMA, null);
-        String useSparkString = info.getProperty(Property.CONNECTION_USE_SPARK,null);
-        if (useSparkString != null) {
-            try {
-                useSpark = Boolean.parseBoolean(StringUtil.SQLToUpperCase(useSparkString))?
-                        DataSetProcessorType.SESSION_HINTED_SPARK:
-                        DataSetProcessorType.SESSION_HINTED_CONTROL;
-            } catch (Exception sparkE) {
-                throw new SQLException(StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,useSparkString));
-            }
-        } else
-            useSpark = DataSetProcessorType.DEFAULT_CONTROL;
+        useSpark = getDataSetProcessorType(info);
 
         String skipStatsString = info.getProperty(Property.CONNECTION_SKIP_STATS, null);
         if (skipStatsString != null) {
@@ -216,6 +206,27 @@ public final class TransactionResourceImpl
         // this context manager for the thread, each time a database
         // call is made.
         cm = csf.newContextManager();
+    }
+
+    /// we allow useOLAP and useSpark for backward-compatibility
+    private DataSetProcessorType getDataSetProcessorType(Properties info) throws SQLException
+    {
+        for( String propertyStr : new String[]{ Property.CONNECTION_USE_OLAP, Property.CONNECTION_USE_SPARK } )
+        {
+            String val = info.getProperty(propertyStr, null);
+            if (val != null) {
+                try {
+                    // return the first config found, useOLAP before useSpark
+                    return Boolean.parseBoolean(StringUtil.SQLToUpperCase(val)) ?
+                            DataSetProcessorType.SESSION_HINTED_SPARK :
+                            DataSetProcessorType.SESSION_HINTED_CONTROL;
+                } catch (Exception sparkE) {
+                    throw new SQLException(StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,
+                            propertyStr, val));
+                }
+            }
+        }
+        return DataSetProcessorType.DEFAULT_CONTROL; // no config found, return default.
     }
 
     /**

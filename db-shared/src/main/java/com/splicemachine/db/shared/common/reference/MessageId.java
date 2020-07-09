@@ -235,15 +235,15 @@ public interface MessageId {
      */
     String REPLICATION_ERROR_BEGIN                       = "R001";
     String REPLICATION_ERROR_END                         = "R002";
-    String REPLICATION_SLAVE_STARTED                     = "R003";
-    String REPLICATION_SLAVE_STOPPED                     = "R004";
+    String REPLICATION_REPLICA_STARTED                   = "R003";
+    String REPLICATION_REPLICA_STOPPED                   = "R004";
     String REPLICATION_FATAL_ERROR                       = "R005";
-    String REPLICATION_SLAVE_LOST_CONN                   = "R006";
-    String REPLICATION_MASTER_STARTED                    = "R007";
-    String REPLICATION_MASTER_STOPPED                    = "R008";
+    String REPLICATION_REPLICA_LOST_CONN                 = "R006";
+    String REPLICATION_PRIMARY_STARTED                   = "R007";
+    String REPLICATION_PRIMARY_STOPPED                   = "R008";
     String REPLICATION_LOGSHIPPER_EXCEPTION              = "R009";
-    String REPLICATION_MASTER_RECONN                     = "R010";
-    String REPLICATION_SLAVE_NETWORK_LISTEN              = "R011";    
+    String REPLICATION_PRIMARY_RECONN                    = "R010";
+    String REPLICATION_REPLICA_NETWORK_LISTEN            = "R011";
     String REPLICATION_INVALID_CONNECTION_HANDLE         = "R012";
     String REPLICATION_ONELINE_MSG_HEADER                = "R013";
     String REPLICATION_FAILOVER_SUCCESSFUL               = "R020";

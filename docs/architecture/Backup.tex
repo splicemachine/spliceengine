@@ -79,32 +79,32 @@ Display all versions of data in a data set.
 
 \subsection{Replication}
 
-\subsubsection{WAL Replication In Process Synchronous, Master-Slave}
+\subsubsection{WAL Replication In Process Synchronous, Primary-Replica}
 
 Write Ahead Logs shipped synchronously to another live cluster that adds WAL
 entries.
 
-\subsubsection{WAL Replication In Process Asynchronous, Master-Slave}
+\subsubsection{WAL Replication In Process Asynchronous, Primary-Replica}
 
 Write Ahead Logs shipped asynchronously to another live cluster that adds WAL
 entries.
 
-\subsubsection{WAL Replication Enqueued Asynchronous, Master-Slave}
+\subsubsection{WAL Replication Enqueued Asynchronous, Primary-Replica}
 
 Write Ahead Logs shipped synchronously to another live cluster via a scalable
 queue mechanism that adds WAL entries.
 
-\subsubsection{WAL Replication In Process Synchronous, Master-Master}
+\subsubsection{WAL Replication In Process Synchronous, Primary-Primary}
 
 Write Ahead Logs shipped synchronously to another live cluster in process that
 adds WAL entries and latest timestamp wins.
 
-\subsubsection{WAL Replication In Process Asynchronous, Master-Master}
+\subsubsection{WAL Replication In Process Asynchronous, Primary-Primary}
 
 Write Ahead Logs shipped asynchronously to another live cluster in process that
 adds WAL entries and latest timestamp wins.
 
-\subsubsection{WAL Replication Enqueued Asynchronous, Master-Master}
+\subsubsection{WAL Replication Enqueued Asynchronous, Primary-Primary}
 
 Write Ahead Logs shipped asynchronously to another live cluster via a scalable
 queue mechanism that adds WAL entries and latest timestamp wins.
