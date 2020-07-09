@@ -8,7 +8,6 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.CellType;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
-import com.sun.istack.NotNull;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.log4j.Logger;
@@ -20,10 +19,27 @@ import java.util.stream.Stream;
 
 
 class SICompactionStateMutate {
+    /**
+     * We consider the value length so that a tombstone and an anti tombstone
+     * with the same timestamp, same sequence id don't evaluate equally.
+     */
+    private static class CellComparatorWithValueLength implements Comparator<Cell> {
+        private Comparator<Cell> keyComparator = KeyValue.COMPARATOR;
+
+        @Override
+        public int compare(Cell o1, Cell o2) {
+            int keyComp = keyComparator.compare(o1, o2);
+            if (keyComp != 0)
+                return keyComp;
+            return Integer.compare(o2.getValueLength(), o1.getValueLength());
+        }
+    }
+
     private static final Logger LOG = Logger.getLogger(SICompactionStateMutate.class);
-    private SortedSet<Cell> dataToReturn = new TreeSet<>(KeyValue.COMPARATOR);
+    private SortedSet<Cell> dataToReturn = new TreeSet<>(new CellComparatorWithValueLength());
     private final PurgeConfig purgeConfig;
-    private long maxTombstoneTimestamp = 0;
+    private Cell maxTombstone = null;
+    private Cell lastSeenAntiTombstone = null;
     private long lowWatermarkTransaction;
     private boolean firstWriteToken = false;
     private long deleteRightAfterFirstWriteTimestamp = 0;
@@ -55,7 +71,7 @@ class SICompactionStateMutate {
     public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results) throws IOException {
         assert dataToReturn.isEmpty();
         assert results.isEmpty();
-        assert maxTombstoneTimestamp == 0;
+        assert maxTombstone == null;
         //assert isSorted(rawList): "CompactionStateMutate: rawList not sorted";
         assert rawList.size() == txns.size();
 
@@ -123,10 +139,24 @@ class SICompactionStateMutate {
         dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(commitTimestamp)));
         switch (cellType) {
             case TOMBSTONE:
-                if (beginTimestamp > maxTombstoneTimestamp &&
+                assert maxTombstone == null || maxTombstone.getTimestamp() >= beginTimestamp;
+                if (maxTombstone == null &&
                         (!purgeConfig.shouldRespectActiveTransactions() || commitTimestamp < lowWatermarkTransaction)) {
-                    maxTombstoneTimestamp = beginTimestamp;
+                    if (lastSeenAntiTombstone != null && lastSeenAntiTombstone.getTimestamp() == beginTimestamp) {
+                        maxTombstone = lastSeenAntiTombstone;
+                    } else {
+                        maxTombstone = element;
+                    }
                 }
+                break;
+            case ANTI_TOMBSTONE:
+                // Anti tombstones are only relevant if they share a timestamp with a tombstone.
+                // In that case, we cannot purge elements of that timestamp because we might purge
+                // elements that were inserted after the tombstone
+                if (maxTombstone != null && maxTombstone.getTimestamp() == beginTimestamp) {
+                    maxTombstone = element;
+                }
+                lastSeenAntiTombstone = element;
                 break;
             case FIRST_WRITE_TOKEN:
                 assert !firstWriteToken;
@@ -166,8 +196,7 @@ class SICompactionStateMutate {
     }
 
     private boolean shouldPurgeDeletes() {
-        return purgeConfig.shouldPurgeDeletes() &&
-                (!purgeConfig.shouldRespectActiveTransactions() || maxTombstoneTimestamp > 0);
+        return purgeConfig.shouldPurgeDeletes() && maxTombstone != null;
     }
 
     private boolean shouldPurgeUpdates() {
@@ -175,11 +204,12 @@ class SICompactionStateMutate {
     }
 
     private boolean shouldRemoveMostRecentTombstone() {
+        assert maxTombstone != null;
         switch (purgeConfig.getPurgeLatestTombstone()) {
             case ALWAYS:
                 return true;
             case IF_DELETE_FOLLOWS_FIRST_WRITE:
-                return firstWriteToken && deleteRightAfterFirstWriteTimestamp == maxTombstoneTimestamp;
+                return firstWriteToken && deleteRightAfterFirstWriteTimestamp == maxTombstone.getTimestamp();
             case IF_FIRST_WRITE_PRESENT:
                 return firstWriteToken;
         }
@@ -192,10 +222,14 @@ class SICompactionStateMutate {
     }
 
     private boolean purgeableDeletedRow(Cell element) {
-        long timestamp = element.getTimestamp();
-        if (timestamp == maxTombstoneTimestamp && shouldRemoveMostRecentTombstone())
+        if (maxTombstone == null) {
+            return false;
+        }
+        if (element.getTimestamp() == maxTombstone.getTimestamp() &&
+                CellUtils.getKeyValueType(maxTombstone) == CellType.TOMBSTONE &&
+                shouldRemoveMostRecentTombstone())
             return true;
-        return timestamp < maxTombstoneTimestamp;
+        return element.getTimestamp() < maxTombstone.getTimestamp();
     }
 
     private boolean purgeableOldUpdate(Cell element) {
