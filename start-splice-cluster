@@ -170,6 +170,9 @@ if [[ ${HBASE_PROFILE} == ${IN_MEM_PROFILE} ]]; then
   MEM_LOG="${RUN_DIR}/spliceMem.log"
   echo "Starting MEM. Log file is ${MEM_LOG}"
   (MAVEN_OPTS="${MAVEN_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=4000" ${MVN} -Pmem exec:java > ${MEM_LOG} 2>&1) &    ## IN MEMORY
+  echo -n "wait until ready . "
+  until nc -z localhost 1527 2> /dev/null; do echo -n ". " ; sleep 2; done
+  echo "MEM Started!"
   exit 0;
 fi
 
@@ -188,7 +191,7 @@ COUNT=65
 ZOO_UP=""
 until [ ${COUNT} -eq 0 ] || [ "${ZOO_UP}" == "imok" ]; do
     sleep 1
-    ZOO_UP="$(echo 'ruok' | nc localhost 2181)"
+    ZOO_UP="$(echo 'ruok' | nc localhost 2181 2> /dev/null)"
     let COUNT-=1
 done
 
@@ -231,7 +234,7 @@ else
 fi
 
 echo -n "  Waiting. "
-while ! echo exit | nc localhost 1527; do echo -n ". " ; sleep 2; done
+until nc -z localhost 1527 2> /dev/null; do echo -n ". " ; sleep 2; done
 echo
 
 if [[ ${MEMBERS} -gt 0 ]]; then
@@ -241,7 +244,7 @@ if [[ ${MEMBERS} -gt 0 ]]; then
     ## (region server, splice on 1528, 1529, ...)
     (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
     echo -n "  Waiting. "
-    while ! echo exit | nc localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 2; done
+    until nc -z localhost $(( 1527 + ${MEMBER} )) 2> /dev/null; do echo -n ". " ; sleep 2; done
     echo
   done
 fi
