@@ -826,12 +826,14 @@ public class utilMain implements java.security.PrivilegedAction {
 		logFileName = path;
 		File f = new File(logFileName);
 		f.createNewFile(); // no-op if file exists.
+		this.out.close();
 		this.out = new LocalizedOutput(new ForkOutputStream(new FileOutputStream(f)));
 	}
 
 	public void stopSpooling() {
 		doSpool = false;
 		this.out.flush();
+		this.out.close();
 		this.out = new LocalizedOutput(System.out);
 	}
 

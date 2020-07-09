@@ -55,7 +55,6 @@ public class ForkOutputStream extends OutputStream {
     }
 
     public void close() throws IOException {
-        l.close();
         r.close();
     }
 }
