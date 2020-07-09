@@ -72,4 +72,72 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     org.junit.Assert.assertEquals("Schema Changed!","List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])",rdd.collect().toList.toString)
   }
 
+  val carTableName = getClass.getSimpleName + "_TestCreateTable"
+  val carSchemaTableName = schema+"."+carTableName
+
+  private def createCarTable(): Unit = {
+    import org.apache.spark.sql.types._
+    splicemachineContext.createTable(
+      carSchemaTableName,
+      StructType(
+        StructField("NUMBER", IntegerType, false) ::
+          StructField("MAKE", StringType, true) ::
+          StructField("MODEL", StringType, true) :: Nil),
+      Seq("NUMBER")
+    )
+  }
+
+  private def dropCarTable(): Unit = splicemachineContext.dropTable(carSchemaTableName)
+
+  test("Test Create Table") {
+    if( splicemachineContext.tableExists(carSchemaTableName) ) {
+      splicemachineContext.dropTable(carSchemaTableName)
+    }
+    org.junit.Assert.assertFalse( splicemachineContext.tableExists(carSchemaTableName) )
+    createCarTable
+    org.junit.Assert.assertTrue( splicemachineContext.tableExists(carSchemaTableName) )
+    dropCarTable
+  }
+
+  test("Test Table Exists (One Param)") {
+    createCarTable
+    org.junit.Assert.assertTrue(
+      carSchemaTableName+" doesn't exist", 
+      splicemachineContext.tableExists(carSchemaTableName)
+    )
+    dropCarTable
+  }
+
+  test("Test Table Exists (Two Params)") {
+    createCarTable
+    org.junit.Assert.assertTrue(
+      carSchemaTableName+" doesn't exist",
+      splicemachineContext.tableExists(schema, carTableName)
+    )
+    dropCarTable
+  }
+
+  test("Test Table doesn't Exist (One Param)") {
+    val name = schema+".testNonexistentTable"
+    org.junit.Assert.assertFalse(
+      name+" exists",
+      splicemachineContext.tableExists(name)
+    )
+  }
+
+  test("Test Table doesn't Exist (One Param, No Schema)") {
+    val name = "testNonexistentTable"
+    org.junit.Assert.assertFalse(
+      name+" exists",
+      splicemachineContext.tableExists(name)
+    )
+  }
+
+  test("Test Table doesn't Exist (Two Params)") {
+    val name = "testNonexistentTable"
+    org.junit.Assert.assertFalse(
+      schema+"."+name+" exists",
+      splicemachineContext.tableExists(schema, name)
+    )
+  }
 }
