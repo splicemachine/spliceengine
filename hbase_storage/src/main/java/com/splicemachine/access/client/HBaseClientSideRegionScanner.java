@@ -20,7 +20,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
@@ -41,7 +41,7 @@ public class HBaseClientSideRegionScanner extends SkeletonClientSideRegionScanne
     public HBaseClientSideRegionScanner(Table table,
                                         Configuration jobConfig, FileSystem fs,
                                         Path rootDir,
-                                        HTableDescriptor htd,
+                                        TableDescriptor htd,
                                         HRegionInfo hri,
                                         Scan scan, String hostAndPort) throws IOException{
         super(jobConfig,fs,rootDir,htd,hri,scan,hostAndPort);

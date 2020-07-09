@@ -234,7 +234,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 
 	public void stop() {
         // The data dictionary is not available if this database has the
-        // role as an active replication slave database.
+        // role as an active replication replica database.
         if (dd != null) {
             try {
                 // on orderly shutdown, try not to leak unused numbers from
@@ -363,7 +363,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		return this.authenticationService;
 	}
 
-    public boolean isInSlaveMode() {
+    public boolean isInReplicaMode() {
         return false;
     }
 

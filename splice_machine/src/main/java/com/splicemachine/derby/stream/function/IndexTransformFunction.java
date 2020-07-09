@@ -16,11 +16,14 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.kvpair.KVPair;
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -32,15 +35,30 @@ import java.util.List;
  * Created by jyuan on 10/16/15.
  */
 public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,ExecRow,KVPair> {
+    private static Logger LOG = Logger.getLogger(IndexTransformFunction.class);
     private boolean initialized;
     private DDLMessage.TentativeIndex tentativeIndex;
     private int[] projectedMapping;
     private ExecRow indexRow;
+    private boolean isSystemTable;
 
     private transient IndexTransformer transformer;
 
     public IndexTransformFunction() {
         super();
+    }
+
+    public IndexTransformFunction(DDLMessage.TentativeIndex tentativeIndex,
+                                  List<Integer> baseColumnMapList,
+                                  boolean isSystemTable) {
+
+        this.tentativeIndex = tentativeIndex;
+        this.isSystemTable = isSystemTable;
+        List<Integer> actualList = tentativeIndex.getIndex().getIndexColsToMainColMapList();
+        projectedMapping = new int[actualList.size()];
+        for (int i =0; i<projectedMapping.length;i++) {
+            projectedMapping[i] = baseColumnMapList.indexOf(actualList.get(i));
+        }
     }
 
     public IndexTransformFunction(DDLMessage.TentativeIndex tentativeIndex) {
@@ -52,7 +70,6 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         for (int i =0; i<projectedMapping.length;i++) {
             projectedMapping[i] = sortedList.indexOf(actualList.get(i));
         }
-
     }
 
     @Override
@@ -63,14 +80,25 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         for (int i = 0; i<projectedMapping.length;i++) {
             indexRow.setColumn(i+1,misMatchedRow.getColumn(projectedMapping[i]+1));
         }
+        if (isSystemTable) {
+            indexRow.setColumn(indexRow.nColumns(), new HBaseRowLocation(misMatchedRow.getKey()));
+        }
+
         indexRow.setKey(misMatchedRow.getKey());
-        return transformer.writeDirectIndex(indexRow);
+        KVPair kvPair;
+        if (!isSystemTable) {
+            kvPair = transformer.writeDirectIndex(indexRow);
+        }
+        else {
+            kvPair = transformer.encodeSystemTableIndex(indexRow);
+        }
+        return kvPair;
     }
 
     private void init(ExecRow execRow) {
         transformer = new IndexTransformer(tentativeIndex);
         initialized = true;
-        indexRow = new ValueRow(projectedMapping.length);
+        indexRow = new ValueRow(!isSystemTable ? projectedMapping.length : projectedMapping.length+1);
     }
 
     @Override
@@ -79,6 +107,7 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         out.writeInt(message.length);
         out.write(message);
         ArrayUtil.writeIntArray(out,projectedMapping);
+        out.writeBoolean(isSystemTable);
     }
 
     @Override
@@ -88,6 +117,7 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         tentativeIndex = DDLMessage.TentativeIndex.parseFrom(message);
         projectedMapping= ArrayUtil.readIntArray(in);
         initialized = false;
+        isSystemTable = in.readBoolean();
     }
 
     public long getIndexConglomerateId() {

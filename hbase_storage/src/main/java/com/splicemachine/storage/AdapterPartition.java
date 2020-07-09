@@ -25,15 +25,15 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.client.metrics.ScanMetrics;
+import org.apache.hadoop.hbase.security.AccessDeniedException;
 import org.apache.hadoop.hbase.shaded.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.HBaseProtos;
-import org.apache.hadoop.hbase.security.AccessDeniedException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
@@ -46,19 +46,8 @@ import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.sql.Blob;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.sql.*;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -422,8 +411,7 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
                     byte[] bytes =  blob.getBytes(1, (int) blob.length());
                     HBaseProtos.TableSchema result = HBaseProtos.TableSchema.parseFrom(bytes);
                     TableDescriptor d = ProtobufUtil.toTableDescriptor(result);
-                    HTableDescriptor htd = new HTableDescriptor(d);
-                    return new HPartitionDescriptor(htd);
+                    return new HPartitionDescriptor(d);
                 }
             }
         } catch (SQLException e) {
