@@ -423,7 +423,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             }
         }
         if (type.isSessionHinted()) {
-            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USESPARK, type.isSpark());
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USEOLAP, type.isSpark());
         } else {
             assert type.isDefaultControl();
         }

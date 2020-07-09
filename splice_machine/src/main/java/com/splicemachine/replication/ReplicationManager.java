@@ -33,7 +33,7 @@ public interface ReplicationManager {
     void setReplicationRole(String role) throws StandardException;
     String getReplicationRole() throws StandardException;
     List<ReplicationPeerDescription> getReplicationPeers() throws StandardException;
-    void monitorReplication(String masterClusterKey, String slaveClusterKey) throws StandardException;
+    void monitorReplication(String primaryClusterKey, String replicaClusterKey) throws StandardException;
     default String getReplicatedWalPosition(String wal) throws StandardException{ return null;}
     default List<String> getReplicatedWalPositions(short peerId) throws StandardException{return null;}
     default long getReplicationProgress() throws StandardException {return -1;};

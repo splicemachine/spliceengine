@@ -178,12 +178,88 @@ public class CheckTableIT extends SpliceUnitTest {
         ps = spliceClassWatcher.prepareStatement("insert into CHECKTABLEIT2.F select * from B");
         ps.execute();
         deleteFirstIndexRegion(spliceClassWatcher, conn, "CHECKTABLEIT2", F, FI);
+
+        new TableCreator(conn)
+                .withCreate("create table G(i int)")
+                .withIndex("create index GI on G(I)")
+                .create();
+
     }
 
     @AfterClass
     public static void dropTables() throws Exception {
         spliceClassWatcher.execute("drop table CHECKTABLEIT2.E");
         spliceClassWatcher.execute("drop table CHECKTABLEIT2.F");
+    }
+
+    @Test
+    public void testSystemTable() throws Exception {
+        // delete one row from SYSCONGLOMERATES_INDEX2
+        ResultSet rs = spliceClassWatcher.executeQuery("select rowid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX2\n" +
+                "where conglomeratename='GI'");
+        rs.next();
+        String rowid = rs.getString(1);
+        rs = spliceClassWatcher.executeQuery("select conglomeratenumber from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX2\n" +
+                "where conglomeratename='SYSCONGLOMERATES_INDEX2'");
+        rs.next();
+        long index2 = rs.getLong(1);
+        rs.close();
+        spliceClassWatcher.execute(String.format("call syscs_util.syscs_dictionary_delete(%d, '%s')",
+               index2, rowid));
+
+        // delete one row from SYSCONGLOMERATES_INDEX1
+        rs = spliceClassWatcher.executeQuery("select conglomerateid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX1\n" +
+                "where conglomeratename='GI'");
+        rs.next();
+        String conglomerateId = rs.getString(1);
+        rs.close();
+
+        rs = spliceClassWatcher.executeQuery(String.format("select rowid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX1\n" +
+                "where conglomerateid='%s'", conglomerateId));
+        rs.next();
+        rowid = rs.getString(1);
+        rs.close();
+
+        rs = spliceClassWatcher.executeQuery("select conglomeratenumber from sys.sysconglomerates --splice-properties index=null\n" +
+                "where conglomeratename='SYSCONGLOMERATES_INDEX1'");
+        rs.next();
+        long index1 = rs.getLong(1);
+        rs.close();
+
+        spliceClassWatcher.execute(String.format("call syscs_util.syscs_dictionary_delete(%d, '%s')",
+                index1, rowid));
+
+        // Repair missing indexes
+        spliceClassWatcher.execute(String.format("call syscs_util.fix_table('SYS', 'SYSCONGLOMERATES', null, '%s/fix-conglomerates.out')", getResourceDirectory()));
+        String select =
+                "SELECT \"message\" " +
+                        "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
+                        "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
+                        "AS messages (\"message\" varchar(200)) order by 1";
+        rs = spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-conglomerates.out", getResourceDirectory())));
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        rs.close();
+
+        rs = spliceClassWatcher.executeQuery("select rowid from sys.sysconglomerates --splice-properties index=null\n" +
+                "where conglomeratename='GI'");
+        rs.next();
+        rowid = rs.getString(1);
+
+        String expected = String.format("message                                    |\n" +
+                "--------------------------------------------------------------------------------\n" +
+                "                               %s                                |\n" +
+                "                               %s                                |\n" +
+                "Created indexes for the following 1 rows from base table SYS.SYSCONGLOMERATES: |\n" +
+                "Created indexes for the following 1 rows from base table SYS.SYSCONGLOMERATES: |\n" +
+                "                           SYSCONGLOMERATES_INDEX1:                            |\n" +
+                "                           SYSCONGLOMERATES_INDEX2:                            |", rowid, rowid);
+
+        Assert.assertEquals(s, expected, s);
+        // Check the table again
+        rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('SYS', 'SYSCONGLOMERATES', null, 2, '%s/fix-conglomerates.out')", getResourceDirectory()));
+        rs.next();
+        s = rs.getString(1);
+        Assert.assertEquals(s, s, "No inconsistencies were found.");
     }
 
     @Test
@@ -211,18 +287,18 @@ public class CheckTableIT extends SpliceUnitTest {
                         "AS messages (\"message\" varchar(200)) order by 1";
         ResultSet rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-%s.out", getResourceDirectory(), A)));
         String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        String expected = "message                                |\n" +
-                "-----------------------------------------------------------------------\n" +
-                "Create index for the following 2 rows from base table CHECKTABLEIT.A: |\n" +
-                "                  Removed the following 1 indexes:                    |\n" +
-                "                The following 2 indexes are deleted:                  |\n" +
-                "                 { 1, 810081 }@8100C0C09090=>810081                   |\n" +
-                "                 { 2, 820082 }@8200C18090A0=>820082                   |\n" +
-                "                              { 4, 4 }                                |\n" +
-                "                              { 5, 5 }                                |\n" +
-                "                 { 7, 870087 }@8700C3C090F0=>870087                   |\n" +
-                "                                 AI:                                  |";
 
+        String expected = "message                                 |\n" +
+                "--------------------------------------------------------------------------\n" +
+                "Created indexes for the following 2 rows from base table CHECKTABLEIT.A: |\n" +
+                "                    Removed the following 1 indexes:                     |\n" +
+                "                  The following 2 indexes are deleted:                   |\n" +
+                "                   { 1, 810081 }@8100C0C09090=>810081                    |\n" +
+                "                   { 2, 820082 }@8200C18090A0=>820082                    |\n" +
+                "                                { 4, 4 }                                 |\n" +
+                "                                { 5, 5 }                                 |\n" +
+                "                   { 7, 870087 }@8700C3C090F0=>870087                    |\n" +
+                "                                   AI:                                   |";
         Assert.assertEquals(s, expected, s);
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
         rs.next();
@@ -281,12 +357,12 @@ public class CheckTableIT extends SpliceUnitTest {
                         "AS messages (\"message\" varchar(200)) order by 1";
         rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-%s.out", getResourceDirectory(), E)));
         s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        expected = "message                                |\n" +
-                "------------------------------------------------------------------------\n" +
-                "Create index for the following 2 rows from base table CHECKTABLEIT2.E: |\n" +
-                "                               { 1, 1 }                                |\n" +
-                "                               { 2, 2 }                                |\n" +
-                "                                  EI:                                  |";
+        expected = "message                                  |\n" +
+                "---------------------------------------------------------------------------\n" +
+                "Created indexes for the following 2 rows from base table CHECKTABLEIT2.E: |\n" +
+                "                                { 1, 1 }                                  |\n" +
+                "                                { 2, 2 }                                  |\n" +
+                "                                   EI:                                    |";
         Assert.assertEquals(s, expected, s);
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", "CHECKTABLEIT2", E, getResourceDirectory(), E));
         rs.next();

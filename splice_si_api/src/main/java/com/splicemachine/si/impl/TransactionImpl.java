@@ -346,6 +346,10 @@ public class TransactionImpl extends BaseTransaction {
         return txn!=null && txn.allowsWrites();
     }
 
+    @Override
+    public boolean isRestoreMode() {
+        return lifecycleManager != null && lifecycleManager.isRestoreMode();
+    }
     /*****************************************************************************************************************/
     /*private helper methods*/
     private Txn doElevate(byte[] writeTable,Txn currentTxn,TxnView elevatedParent) throws IOException{

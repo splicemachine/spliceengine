@@ -261,7 +261,6 @@ public class PrestoS3FileSystem
         }
 
         ObjectMetadata metadata = getS3ObjectMetadata(path);
-
         if (metadata == null) {
             // check if this path is a directory
             Iterator<LocatedFileStatus> iterator = listPrefix(path);
