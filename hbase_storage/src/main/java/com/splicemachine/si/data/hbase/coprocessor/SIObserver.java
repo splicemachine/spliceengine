@@ -25,6 +25,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.pipeline.AclCheckerService;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
+import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.server.PurgeConfigBuilder;
+import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -229,7 +233,7 @@ public class SIObserver extends BaseRegionObserver{
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,Delete delete,WALEdit edit,
                           Durability writeToWAL) throws IOException{
         checkAccess();
-        
+
         try {
             if(tableEnvMatch){
                 if(delete.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null){
@@ -255,13 +259,18 @@ public class SIObserver extends BaseRegionObserver{
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
             SConfiguration conf = driver.getConfiguration();
-            PurgeConfig purgeConfig;
+            PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
             if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                purgeConfig = PurgeConfig.purgeDuringFlushConfig();
+                purgeConfig.purgeDeletesDuringFlush();
             } else {
-                purgeConfig = PurgeConfig.noPurgeConfig();
+                purgeConfig.noPurgeDeletes();
             }
-            SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+            purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
+            // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
+            // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
+            SICompactionScanner siScanner = new SICompactionScanner(
+                    state, scanner, purgeConfig.build(), conf.getFlushResolutionShare(),
+                    conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
         }else {
@@ -280,17 +289,15 @@ public class SIObserver extends BaseRegionObserver{
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                         driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
-                PurgeConfig purgeConfig;
+                PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
                 if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                    if (compactionRequest.isMajor())
-                        purgeConfig = PurgeConfig.purgeDuringMajorCompactionConfig();
-                    else
-                        purgeConfig = PurgeConfig.purgeDuringMinorCompactionConfig();
+                    purgeConfig.purgeDeletesDuringCompaction(compactionRequest.isMajor());
                 } else {
-                    purgeConfig = PurgeConfig.noPurgeConfig();
+                    purgeConfig.noPurgeDeletes();
                 }
+                purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
                 SICompactionScanner siScanner = new SICompactionScanner(
-                        state, scanner, purgeConfig,
+                        state, scanner, purgeConfig.build(),
                         conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
@@ -392,7 +399,7 @@ public class SIObserver extends BaseRegionObserver{
     private void checkAccess() throws AccessDeniedException {
         if (!spliceTable)
             return;
-        
+
         if (!UserGroupInformation.isSecurityEnabled())
             return;
 
