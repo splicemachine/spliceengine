@@ -50,7 +50,7 @@ public class PackedTxnFilter implements TxnFilter, SIFilter{
             case COMMIT_TIMESTAMP:
                 return returnCode; // These are always skip...
             case USER_DATA:
-            return processUserData(keyValue,returnCode);
+                return processUserData(keyValue,returnCode);
             case TOMBSTONE:
             case ANTI_TOMBSTONE:
             case FOREIGN_KEY_COUNTER:
