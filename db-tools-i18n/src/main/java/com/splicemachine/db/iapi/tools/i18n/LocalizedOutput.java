@@ -34,11 +34,12 @@ import java.io.PrintWriter;
 import java.io.OutputStreamWriter;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 public class LocalizedOutput extends PrintWriter {
 	private OutputStream out;
 	public LocalizedOutput(OutputStream o){
-		super(new OutputStreamWriter(o), true);
+		super(new OutputStreamWriter(o, StandardCharsets.UTF_8), true);
 		out = o;
 	}
 	LocalizedOutput(OutputStream o, String enc) throws UnsupportedEncodingException {
