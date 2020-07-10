@@ -1469,6 +1469,8 @@ TOKEN [IGNORE_CASE] :
 |	<CP_DISCONNECT: "CP_disconnect">
 |	<WORK : "work">
 |   <JSON: "JSON">
+|   <PROMPT: "prompt">
+|   <CLOCK: "clock">
 }
 
 TOKEN :
@@ -1815,6 +1817,7 @@ throws SQLException
 |	r=CP_ConnectStatement()
 |	r=CP_GetConnectionStatement()
 |	r=CP_DisconnectStatement()
+|   r=Prompt()
 )? <EOF>
 	{
 		return r;
@@ -3110,7 +3113,7 @@ throws SQLException
 	Token on=null;
 }
 {
-	<AUTOCOMMIT> 
+	<AUTOCOMMIT>
 	( on=<ON>
 	| <OFF>
 	)
@@ -4040,6 +4043,18 @@ ijResult CP_DisconnectStatement() throws SQLException
 
 }
 
+ijResult Prompt() throws SQLException
+:
+{
+    Token clockOn=null;
+}
+{
+	<PROMPT> <CLOCK> ( clockOn=<ON> | <OFF> )
+	{
+		utilInstance.setPromptClock((clockOn == null ? false : true));
+		return null;
+	}
+}
 
 
 void attributeList(Properties properties) :
@@ -4222,6 +4237,8 @@ keyword() :
 |	tok = <CP_DISCONNECT>
 |	tok = <WORK>
 |   tok = <JSON>
+|   tok = <PROMPT>
+|   tok = <CLOCK>
 	)
 	{
 
