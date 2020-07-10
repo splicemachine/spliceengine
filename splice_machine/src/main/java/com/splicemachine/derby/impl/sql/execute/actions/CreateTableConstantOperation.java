@@ -342,16 +342,34 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
         if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
-            td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity,columnInfo.length,
-                    delimited,
-                    escaped,
-                    lines,
-                    storedAs,
-                    location,
-                    compression,
-                    false,
-                    false
-                    );
+            String version = getVersion(dd, tc);
+            if (version.equals("2")) {
+                SpliceLogUtils.info(LOG, "version = %s", version);
+                td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity,columnInfo.length,
+                        delimited,
+                        escaped,
+                        lines,
+                        storedAs,
+                        location,
+                        compression,
+                        false,
+                        false,
+                        "test"
+                );
+            }
+            else {
+                SpliceLogUtils.info(LOG, "version = %s", version);
+                td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity, columnInfo.length,
+                        delimited,
+                        escaped,
+                        lines,
+                        storedAs,
+                        location,
+                        compression,
+                        false,
+                        false
+                );
+            }
         } else {
             td = ddg.newTableDescriptor(tableName, sd, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnInfo.length);
             td.setUUID(dd.getUUIDFactory().createUUID());
@@ -571,6 +589,11 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         }
     }
 
+    private String getVersion(DataDictionary dd, TransactionController tc) throws StandardException{
+        SchemaDescriptor sd = dd.getSchemaDescriptor("SYS", tc, true);
+        TableDescriptor td = dd.getTableDescriptor(SYSTABLESRowFactory.TABLENAME_STRING, sd, tc);
+        return dd.getCatalogVersion(td.getHeapConglomerateId());
+    }
     private void checkSchema(StructType externalSchema, Activation activation) throws StandardException {
 
         ExecRow template = new ValueRow(columnInfo.length);

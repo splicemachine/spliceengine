@@ -168,6 +168,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     private boolean isPinned;
     private boolean purgeDeletedRows;
 
+    private String newColumn;
     /**
      * <p>
      * The id of the heap conglomerate for the table described by this
@@ -243,6 +244,24 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         this.onRollbackDeleteRows=onRollbackDeleteRows;
     }
 
+    public TableDescriptor(DataDictionary dataDictionary,
+                           String tableName,
+                           SchemaDescriptor schema,
+                           int tableType,
+                           char lockGranularity, int numberOfColumns,
+                           String delimited,
+                           String escaped,
+                           String lines,
+                           String storedAs,
+                           String location,
+                           String compression,
+                           boolean isPinned,
+                           boolean purgeDeletedRows,
+                           String newColumn) {
+        this(dataDictionary, tableName, schema, tableType, lockGranularity, numberOfColumns, delimited,
+                escaped, lines, storedAs, location, compression, isPinned, purgeDeletedRows);
+        this.newColumn = newColumn;
+    }
     /**
      * Constructor for a TableDescriptor.
      *
@@ -1483,5 +1502,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return getColumnDescriptor(columnNumber).getDefaultValue();
     }
 
+    public String getNewColumn() {
+        return newColumn;
+    }
 }
 

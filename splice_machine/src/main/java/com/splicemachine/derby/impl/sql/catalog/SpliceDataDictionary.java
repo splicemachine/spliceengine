@@ -725,14 +725,19 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
+    public void addNewColumnToSystables(TransactionController tc) throws StandardException {
+        DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.VARCHAR));
+        addNewColumToSystables(tc, SYSTABLESRowFactory.NEW_COLUMN, dtd);
+    }
     public void upgradeSystablesFor260(TransactionController tc) throws StandardException {
-        addNewColumToSystables(tc);
+        DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.BOOLEAN));
+        addNewColumToSystables(tc, SYSTABLESRowFactory.PURGE_DELETED_ROWS, dtd);
     }
 
-    private void addNewColumToSystables(TransactionController tc) throws StandardException {
+    private void addNewColumToSystables(TransactionController tc, String columnName, DataTypeDescriptor dtd) throws StandardException {
         SchemaDescriptor sd = getSystemSchemaDescriptor();
         TableDescriptor td = getTableDescriptor(SYSTABLESRowFactory.TABLENAME_STRING, sd, tc);
-        ColumnDescriptor cd = td.getColumnDescriptor(SYSTABLESRowFactory.PURGE_DELETED_ROWS);
+        ColumnDescriptor cd = td.getColumnDescriptor(columnName);
         if (cd == null)
         {
             tc.elevate("dictionary");
@@ -743,11 +748,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
             DataValueDescriptor storableDV = getDataValueFactory().getNullBoolean(null);
             int colNumber = td.getNumberOfColumns() + 1;
-            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor((Types.BOOLEAN));
+
             tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
             UUID uuid = getUUIDFactory().createUUID();
             ColumnDescriptor columnDescriptor = new ColumnDescriptor(
-                    SYSTABLESRowFactory.PURGE_DELETED_ROWS,
+                    columnName,
                     colNumber,
                     colNumber,
                     dtd,
@@ -765,7 +770,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             td.getColumnDescriptorList().add(columnDescriptor);
 
             updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
-            SpliceLogUtils.info(LOG, "SYS.SYSTABLES upgraded: added a new column %s.", SYSTABLESRowFactory.PURGE_DELETED_ROWS);
+            SpliceLogUtils.info(LOG, "SYS.SYSTABLES upgraded: added a new column %s.", columnName);
         }
     }
 
