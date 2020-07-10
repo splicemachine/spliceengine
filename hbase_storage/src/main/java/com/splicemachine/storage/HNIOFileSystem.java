@@ -21,6 +21,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.log4j.Logger;
 
@@ -30,6 +32,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.*;
+import java.util.*;
+import java.util.stream.Stream;
+
+import static com.google.common.collect.Iterables.toArray;
 
 /**
  * @author Scott Fines
@@ -156,8 +162,9 @@ public class HNIOFileSystem extends DistributedFileSystem{
 
     private class HFileInfo implements FileInfo{
         private org.apache.hadoop.fs.Path path;
-        FileStatus fileStatus;
-        private ContentSummary contentSummary = null; // calculate on demand
+        private FileStatus fileStatus;
+        private ContentSummary contentSummary;               // calculated on demand
+        private List<LocatedFileStatus> rootFileStatusList;  // calculated on demand
 
         public HFileInfo(org.apache.hadoop.fs.Path path) throws IOException{
             this.path=path;
@@ -170,45 +177,36 @@ public class HNIOFileSystem extends DistributedFileSystem{
         }
 
         // these two methods are to avoid having to re-calculate the list of files in the directory
-        // for isEmptyDirectory
-        // todo(martinrupp): replace with recursive listdir
-        private FileStatus rootFileStatusArr[];
-        private FileStatus[] listRoot() throws IOException {
-            if (rootFileStatusArr != null || !exists() || !fileStatus.isDirectory()) return rootFileStatusArr;
-            rootFileStatusArr = fs.listStatus(path);
-            return rootFileStatusArr;
+        // for isEmptyDirectory, size() and fileCount()
+        private List<LocatedFileStatus> listRoot() throws IOException {
+            if (rootFileStatusList != null) return rootFileStatusList;
+            rootFileStatusList = new ArrayList<>();
+            RemoteIterator<LocatedFileStatus> iterator = fs.listFiles(path, true); // recursive!
+            while (iterator.hasNext()) {
+                rootFileStatusList.add(iterator.next());
+            }
+            return rootFileStatusList;
         }
-        // note this is expensive for deeply nested directories. avoid calling fileCount, spaceConsumed and size
-        // partly copied FileSystem.getContentSummary , however with cached fileStatus and using (cached) listRoot for listing root.
+
         private ContentSummary getContentSummary() {
             if( contentSummary != null ) return contentSummary;
-            try {
+            try
+            {
+                long directories = 0, fileCount = 0, length = 0;
                 if (fileStatus.isFile()) {
                     // f is a file
-                    long length = fileStatus.getLen();
-                    contentSummary = new ContentSummary.Builder().length(length).
-                            fileCount(1).directoryCount(0).spaceConsumed(length).build();
+                    length      = fileStatus.getLen();
+                    fileCount   = 1;
+                    directories = 0;
                 }
                 else {
-                    // f is a directory
-                    long length = 0, fileCount = 0, dirCount = 1;
-                    for (FileStatus s : listRoot()) {
-                        if( s.isDirectory() ) {
-                            ContentSummary c = fs.getContentSummary(s.getPath());
-                            length += c.getLength();
-                            fileCount += c.getFileCount();
-                            dirCount += c.getDirectoryCount();
-                        }
-                        else {
-                            length += s.getLen();
-                            fileCount++;
-                        }
-                    }
-                    contentSummary = new ContentSummary.Builder().length(length).
-                            fileCount(fileCount).directoryCount(dirCount).
-                            spaceConsumed(length).build();
+                    length      = listRoot().stream().map( s -> s.getLen() ).reduce(Long::sum).orElse((long) 0);
+                    fileCount   = listRoot().stream().count();
+                    directories = listRoot().stream().map( s -> s.getPath().getParent() ).distinct().count();
                 }
-            } catch (IOException ioe) {
+                contentSummary = new ContentSummary(length, fileCount, directories);
+            }
+            catch (IOException ioe) {
                 LOG.error("Unexpected error getting content summary. We ignore it for now, but you should probably check it out:", ioe);
                 contentSummary = new ContentSummary(0L, 0L, 0L);
             }
@@ -236,6 +234,9 @@ public class HNIOFileSystem extends DistributedFileSystem{
             return getContentSummary().getFileCount();
         }
 
+        // Note: we need to be sure that the underlying filesystem can support recursive listdir efficiently.
+        // this is done for S3 and HDFS has this anyhow. If this is not the case, it would be better to not use
+        // (cached, but recursive) listRoot() here, but to just list the root (without recursive).
         @Override
         public boolean isEmptyDirectory() {
             if( !exists() ) return false;
