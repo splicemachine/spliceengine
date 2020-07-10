@@ -72,28 +72,16 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         return server;
     }
 
-    private int getSparkBatchesProperty(Activation activation, SConfiguration config, boolean hasLOBs) {
-        int streamingBatches;
+    private int getPropertyOrDefault(Activation activation, SessionProperties.PROPERTYNAME valueProperty, int defaultValue) {
+        int value;
         Integer batchesProperty = (Integer) activation.getLanguageConnectionContext().getSessionProperties()
-                .getProperty(SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES);
+                .getProperty(valueProperty);
         if (batchesProperty != null) {
-            streamingBatches = batchesProperty.intValue();
+            value = batchesProperty.intValue();
         } else {
-            streamingBatches = hasLOBs ? config.getSparkSlowResultStreamingBatches() : config.getSparkResultStreamingBatches();
+            value = defaultValue;
         }
-        return streamingBatches;
-    }
-
-    private int getSparkBatchSizeProperty(Activation activation, SConfiguration config, boolean hasLOBs) {
-        int streamingBatchSize;
-        Integer batchSizeProperty = (Integer) activation.getLanguageConnectionContext().getSessionProperties()
-                .getProperty(SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE);
-        if (batchSizeProperty != null) {
-            streamingBatchSize = batchSizeProperty.intValue();
-        } else {
-            streamingBatchSize = hasLOBs ? config.getSparkSlowResultStreamingBatchSize() : config.getSparkResultStreamingBatchSize();
-        }
-        return streamingBatchSize;
+        return value;
     }
 
     @Override
@@ -105,8 +93,10 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             updateLimitOffset();
             SConfiguration config = HConfiguration.getConfiguration();
             boolean hasLOBs = hasLOBs(root);
-            int streamingBatches = getSparkBatchesProperty(activation, config, hasLOBs);
-            int streamingBatchSize = getSparkBatchSizeProperty(activation, config, hasLOBs);
+            int streamingBatches = getPropertyOrDefault(activation, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES,
+                    hasLOBs ? config.getSparkSlowResultStreamingBatches() : config.getSparkResultStreamingBatches());
+            int streamingBatchSize = getPropertyOrDefault(activation, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE,
+                    hasLOBs ? config.getSparkSlowResultStreamingBatchSize() : config.getSparkResultStreamingBatchSize());
             streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize);
             StreamListenerServer server = getServer();
             server.register(streamListener);
