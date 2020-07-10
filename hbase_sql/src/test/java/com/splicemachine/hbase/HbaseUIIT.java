@@ -16,19 +16,15 @@
 package com.splicemachine.hbase;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
+import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -36,11 +32,8 @@ import org.junit.rules.TestRule;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Arrays;
-import java.util.Collections;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
@@ -157,14 +150,14 @@ public class HbaseUIIT extends SpliceUnitTest{
         try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
 
             TableName tn = TableName.valueOf("splice:" + conglomerates[0]);
-            HTableDescriptor baseTable = admin.getTableDescriptor(tn);
+            TableDescriptor baseTable = admin.getDescriptor(tn);
 
             assertEquals(CLASS_NAME, baseTable.getValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR));
             assertEquals(tableName, baseTable.getValue(SIConstants.TABLE_DISPLAY_NAME_ATTR));
 
 
             tn = TableName.valueOf("splice:" + conglomerates[1]);
-            HTableDescriptor indexTable = admin.getTableDescriptor(tn);
+            TableDescriptor indexTable = admin.getDescriptor(tn);
 
             assertEquals(CLASS_NAME, indexTable.getValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR));
             assertEquals(tableName, indexTable.getValue(SIConstants.TABLE_DISPLAY_NAME_ATTR));

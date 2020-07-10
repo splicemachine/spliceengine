@@ -217,10 +217,15 @@ public class PrestoS3FileSystem
     @Override
     public RemoteIterator<LocatedFileStatus> listLocatedStatus(Path path)
     {
+        return listFiles(path, false);
+    }
+
+    @Override
+    public RemoteIterator<LocatedFileStatus> listFiles(Path path, boolean recursive) {
         STATS.newListLocatedStatusCall();
         return new RemoteIterator<LocatedFileStatus>()
         {
-            private final Iterator<LocatedFileStatus> iterator = listPrefix(path);
+            private final Iterator<LocatedFileStatus> iterator = listPrefix(path, recursive, -1);
 
             @Override
             public boolean hasNext()
@@ -261,10 +266,9 @@ public class PrestoS3FileSystem
         }
 
         ObjectMetadata metadata = getS3ObjectMetadata(path);
-
         if (metadata == null) {
             // check if this path is a directory
-            Iterator<LocatedFileStatus> iterator = listPrefix(path);
+            Iterator<LocatedFileStatus> iterator = listPrefix(path, false, 3);
             if (iterator.hasNext()) {
                 return new FileStatus(0, true, 1, 0, 0, qualifiedPath(path));
             }
@@ -415,7 +419,7 @@ public class PrestoS3FileSystem
         return true;
     }
 
-    private Iterator<LocatedFileStatus> listPrefix(Path path)
+    private Iterator<LocatedFileStatus> listPrefix(Path path, boolean recursive, int maxKeys)
     {
         String key = keyFromPath(path);
         if (!key.isEmpty()) {
@@ -424,8 +428,11 @@ public class PrestoS3FileSystem
 
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName(uri.getHost())
-                .withPrefix(key)
-                .withDelimiter(PATH_SEPARATOR);
+                .withPrefix(key);
+        if( !recursive )
+            request = request.withDelimiter(PATH_SEPARATOR);
+        if( maxKeys > 0)
+            request = request.withMaxKeys(maxKeys);
 
         STATS.newListObjectsCall();
         Iterator<ObjectListing> listings = new AbstractSequentialIterator<ObjectListing>(s3.listObjects(request))

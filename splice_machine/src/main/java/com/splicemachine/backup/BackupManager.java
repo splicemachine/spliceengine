@@ -15,6 +15,7 @@
 package com.splicemachine.backup;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.backup.BackupMessage.BackupJobStatus;
 
 import java.util.List;
 
