@@ -43,7 +43,6 @@ import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -404,7 +403,7 @@ public class CoprocessorTxnStore implements TxnStore {
                         queryId, queryId,
                         Txn.State.COMMITTED, Iterators.emptyIterator(), System.currentTimeMillis(), null);
             }
-            else if (SIDriver.driver().lifecycleManager().getReplicationRole().compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0) {
+            else if (SIDriver.driver().lifecycleManager().getReplicationRole().compareToIgnoreCase(SIConstants.REPLICATION_ROLE_REPLICA) == 0) {
                 // return active mock transaction
                 return new InheritingTxnView(Txn.ROOT_TRANSACTION, queryId, queryId,
                         Txn.IsolationLevel.SNAPSHOT_ISOLATION,

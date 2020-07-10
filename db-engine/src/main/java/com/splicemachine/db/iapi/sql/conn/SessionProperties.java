@@ -49,8 +49,10 @@ public interface SessionProperties {
         OLAPQUEUE(4),
         SNAPSHOT_TIMESTAMP(5),
         DISABLE_TC_PUSHED_DOWN_INTO_VIEWS(6),
-        SPARK_RESULT_STREAMING_BATCHES(7),
-        SPARK_RESULT_STREAMING_BATCH_SIZE(8);
+        OLAPPARALLELPARTITIONS(7),
+        OLAPSHUFFLEPARTITIONS(8),
+        SPARK_RESULT_STREAMING_BATCHES(9),
+        SPARK_RESULT_STREAMING_BATCH_SIZE(10);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
@@ -114,6 +116,8 @@ public interface SessionProperties {
             case RECURSIVEQUERYITERATIONLIMIT:
             case SPARK_RESULT_STREAMING_BATCHES:
             case SPARK_RESULT_STREAMING_BATCH_SIZE:
+            case OLAPPARALLELPARTITIONS:
+            case OLAPSHUFFLEPARTITIONS:
                 int value;
                 try {
                     value = Integer.parseInt(valString);

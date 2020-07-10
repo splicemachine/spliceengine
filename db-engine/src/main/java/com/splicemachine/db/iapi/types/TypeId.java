@@ -874,6 +874,9 @@ public class TypeId{
                 isLongConcatableTypeId=true;
                 break;
 
+            default:
+                // for spotbugs
+                return;
         }
 
     }
@@ -1380,6 +1383,9 @@ public class TypeId{
      *
      * @return SQL null value for this type.
      */
+    // SpotBugs reports decimalImplementation is never written to,
+    // but is written DataValueFactoryImpl.java / J2SEDataValueFactory.java
+    @SuppressWarnings("UWF_UNWRITTEN_FIELD")
     public DataValueDescriptor getNull(){
         switch(formatId){
             case StoredFormatIds.BIT_TYPE_ID:
@@ -1477,6 +1483,9 @@ public class TypeId{
             case StoredFormatIds.BIT_TYPE_ID:
                 return new SQLBit(new byte[0]);
 
+            case StoredFormatIds.BOOLEAN_TYPE_ID:
+                return new SQLBoolean(false);
+
             case StoredFormatIds.CHAR_TYPE_ID:
                 return new SQLChar("");
 
@@ -1526,10 +1535,11 @@ public class TypeId{
 
             case StoredFormatIds.VARCHAR_TYPE_ID:
                 return new SQLVarchar("");
+
+            default:
+                throw new UnsupportedOperationException(
+                        StandardException.newException(SQLState.SPLICE_NOT_IMPLEMENTED,"Empty default for " + formatId) );
         }
-        throw new UnsupportedOperationException(
-                StandardException.newException(SQLState.SPLICE_NOT_IMPLEMENTED,"Empty default for " + formatId)
-        );
     }
 
     /**

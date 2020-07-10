@@ -17,6 +17,7 @@ package com.splicemachine.storage;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -33,6 +34,7 @@ import java.util.regex.Pattern;
  * @author Scott Fines
  *         Date: 1/18/16
  */
+@SuppressFBWarnings(value={ "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = ".")
 public class MemFileSystem extends DistributedFileSystem{
     private final FileSystemProvider localDelegate;
     private static Logger LOG=Logger.getLogger(MemFileSystem.class);
@@ -137,14 +139,6 @@ public class MemFileSystem extends DistributedFileSystem{
         localDelegate.copy(source,target,options);
     }
 
-    @Override
-    public void concat(Path target, Path... sources) throws IOException {
-        for (Path source : sources) {
-            localDelegate.copy(source, target);
-            localDelegate.delete(source);
-        }
-    }
-
     private static class PathInfo implements FileInfo{
         private final Path p;
 
@@ -168,6 +162,23 @@ public class MemFileSystem extends DistributedFileSystem{
         @Override
         public boolean isDirectory(){
             return Files.isDirectory(p);
+        }
+
+        @Override
+        public boolean isEmptyDirectory()
+        {
+            if(!isDirectory()) return false;
+            try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(p)) {
+                for (Path p : directoryStream) {
+                    if ( p == null || p.getFileName() == null ) continue;
+                    String name = p.getFileName().toString();
+                    if( name.equals("_SUCCESS") || name.equals("_SUCCESS.crc") ) continue;
+                    return false;
+                }
+                return true;
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
         }
 
         @Override
