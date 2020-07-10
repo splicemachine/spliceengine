@@ -26,11 +26,11 @@ public class CreateTableIT {
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     static int counter = 0;
-    private static String GenerateTableName() {
+    private static String generateTableName() {
         return "T" + counter++;
     }
 
-    private void ShouldContains(String tableName, List<List<Integer>> rows) throws SQLException {
+    private void shouldContain(String tableName, List<List<Integer>> rows) throws SQLException {
         ResultSet rs =  watcher.executeQuery("SELECT * FROM " + tableName + " ORDER BY c1 ASC");
         for(List<Integer> row : rows) {
             Assert.assertTrue(rs.next());
@@ -65,13 +65,13 @@ public class CreateTableIT {
 
     @Test
     public void createTableWithRedundantUniqueConstraintIsIgnored() throws Exception {
-        String tbl = GenerateTableName();
+        String tbl = generateTableName();
         String pkCon = tbl + "PK", uqCon = tbl + "UQ";
         watcher.executeUpdate("CREATE TABLE " + tbl + "(c1 INT, c2 INT, CONSTRAINT " + pkCon + " PRIMARY KEY(c1, c2), CONSTRAINT " + uqCon + " UNIQUE(c1, c2))");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES(1, 2), (3, 4)");
 
         // check that data exists
-        ShouldContains(tbl, Arrays.asList(Arrays.asList(1,2), Arrays.asList(3,4)));
+        shouldContain(tbl, Arrays.asList(Arrays.asList(1,2), Arrays.asList(3,4)));
 
         // check that the unique constraint is NOT created
         Assert.assertFalse(constraintsOf(tbl).contains(uqCon));
@@ -81,13 +81,13 @@ public class CreateTableIT {
 
     @Test
     public void createTableWithRedundantUniqueConstraintIsIgnoredDifferentColumnOrder() throws Exception {
-        String tbl = GenerateTableName();
+        String tbl = generateTableName();
         String pkCon = tbl + "PK", uqCon = tbl + "UQ";
         watcher.executeUpdate("CREATE TABLE " + tbl + "(c1 INT, c2 INT, CONSTRAINT " + pkCon + " PRIMARY KEY(c1, c2), CONSTRAINT " + uqCon + " UNIQUE(c2, c1))");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES(1, 2), (3, 4)");
 
         // check that data exists
-        ShouldContains(tbl, Arrays.asList(Arrays.asList(1,2), Arrays.asList(3,4)));
+        shouldContain(tbl, Arrays.asList(Arrays.asList(1,2), Arrays.asList(3,4)));
 
         // check that the unique constraint is NOT created
         Assert.assertFalse(constraintsOf(tbl).contains(uqCon));
@@ -97,7 +97,7 @@ public class CreateTableIT {
 
     @Test
     public void alterTableWithRedundantUniqueConstraintFails() throws Exception {
-        String tbl = GenerateTableName();
+        String tbl = generateTableName();
         String pkCon = tbl + "PK", uqCon = tbl + "UQ";
         watcher.executeUpdate("CREATE TABLE " + tbl + "(c1 INT, c2 INT, CONSTRAINT " + pkCon + " PRIMARY KEY(c1, c2))");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES(1, 2), (3, 4)");
