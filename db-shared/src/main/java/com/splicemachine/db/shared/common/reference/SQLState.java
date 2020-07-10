@@ -1741,7 +1741,7 @@ public interface SQLState {
     String AUTH_ENCRYPT_NOT_DB_OWNER                        = "08004.C.5";
     String AUTH_HARD_UPGRADE_NOT_DB_OWNER                   = "08004.C.6";
     //DERBY-1828: AUTH_x_NOT_DB_OWNER used to be "2850H/I/J.C";
-    String CANNOT_CONNECT_TO_DB_IN_SLAVE_MODE               = "08004.C.7";
+    String CANNOT_CONNECT_TO_DB_IN_REPLICA_MODE             = "08004.C.7";
     String AUTH_REPLICATION_NOT_DB_OWNER                    = "08004.C.8";
     //DERBY-2109: new state/msg (considered sql state 28101.C not appropriate)
     String AUTH_SHUTDOWN_MISSING_PERMISSION                 = "08004.C.9";
@@ -1935,15 +1935,15 @@ public interface SQLState {
     */
     String LOGMODULE_DOES_NOT_SUPPORT_REPLICATION                  = "XRE00";
     String REPLICATION_LOG_CORRUPTED                               = "XRE01";
-    String REPLICATION_MASTER_SLAVE_VERSION_MISMATCH               = "XRE02";
+    String REPLICATION_PRIMARY_REPLICA_VERSION_MISMATCH            = "XRE02";
     String REPLICATION_UNEXPECTED_EXCEPTION                        = "XRE03";
     String REPLICATION_CONNECTION_EXCEPTION                        = "XRE04.C.1";
     String REPLICATION_CONNECTION_LOST                             = "XRE04.C.2";
     String REPLICATION_LOG_OUT_OF_SYNCH                            = "XRE05.C";
     String REPLICATION_MASTER_TIMED_OUT                            = "XRE06";
     String REPLICATION_NOT_IN_MASTER_MODE                          = "XRE07";
-    String REPLICATION_SLAVE_STARTED_OK                            = "XRE08";
-    String CANNOT_START_SLAVE_ALREADY_BOOTED                       = "XRE09.C";
+    String REPLICATION_REPLICA_STARTED_OK                          = "XRE08";
+    String CANNOT_START_REPLICA_ALREADY_BOOTED                     = "XRE09.C";
     String REPLICATION_CONFLICTING_ATTRIBUTES                      = "XRE10";
     String REPLICATION_DB_NOT_BOOTED                               = "XRE11.C";
     String REPLICATION_UNEXPECTED_MESSAGEID                        = "XRE12";
@@ -1951,10 +1951,10 @@ public interface SQLState {
     String REPLICATION_FAILOVER_UNSUCCESSFUL                       = "XRE21.C";
     String REPLICATION_MASTER_ALREADY_BOOTED                       = "XRE22.C";
     String REPLICATION_UNLOGGED_OPERATIONS_IN_PROGRESS             = "XRE23";
-    String REPLICATION_NOT_IN_SLAVE_MODE                           = "XRE40";
-    String SLAVE_OPERATION_DENIED_WHILE_CONNECTED                  = "XRE41.C";
-    String REPLICATION_SLAVE_SHUTDOWN_OK                           = "XRE42.C";
-    String REPLICATION_STOPSLAVE_NOT_INITIATED                     = "XRE43";
+    String REPLICATION_NOT_IN_REPLICA_MODE                         = "XRE40";
+    String REPLICA_OPERATION_DENIED_WHILE_CONNECTED                = "XRE41.C";
+    String REPLICATION_REPLICA_SHUTDOWN_OK                         = "XRE42.C";
+    String REPLICATION_STOPREPLICA_NOT_INITIATED                   = "XRE43";
 
 	//Inherited DB2 error codes
     String LANG_CANCELLATION_EXCEPTION                             = "57014";
