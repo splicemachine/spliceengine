@@ -31,22 +31,26 @@
 
 package com.splicemachine.db.impl.tools.ij;
                 
-import com.splicemachine.db.tools.JDBCDisplayUtil;
-import com.splicemachine.db.iapi.tools.i18n.*;
-
 import com.splicemachine.db.iapi.services.info.ProductGenusNames;
+import com.splicemachine.db.iapi.tools.i18n.*;
+import com.splicemachine.db.tools.JDBCDisplayUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Stack;
-import java.util.Hashtable;
-
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.sql.PreparedStatement;
 
 /**
 	This class is utilities specific to the two ij Main's.
@@ -86,6 +90,8 @@ public class utilMain implements java.security.PrivilegedAction {
 		In the goodness of time, this could be an ij property
 	 */
 	public static final int BUFFEREDFILESIZE = 2048;
+
+	private static boolean showPromptClock = false;
 
 	/*
 	 * command can be redirected, so we stack up command
@@ -651,13 +657,17 @@ public class utilMain implements java.security.PrivilegedAction {
 	 * used at each carriage return to show that it is still "live"
 	 * when it is reading multi-line input.
 	 */
-	static void doPrompt(boolean newStatement, LocalizedOutput out, String tag) 
+	 static void doPrompt(boolean newStatement, LocalizedOutput out, String tag)
 	 {
+	 	final SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss");
+
+	 	String clock = showPromptClock ? " " + sdf.format(new Timestamp(System.currentTimeMillis())) : "";
+
 		if (newStatement) {
-	  		out.print("splice> ");
+	  		out.print("splice" + clock + "> ");
 		}
 		else {
-			out.print("> ");
+			out.print(clock + "> ");
 		}
 		out.flush();
 	}
@@ -851,5 +861,9 @@ public class utilMain implements java.security.PrivilegedAction {
 			PrintWriter pw = new PrintWriter(logFileName, "UTF-8");
 			pw.close();
 		}
+	}
+
+	public void setPromptClock(boolean showPromptClock) {
+		this.showPromptClock = showPromptClock;
 	}
 }
