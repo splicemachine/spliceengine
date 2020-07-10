@@ -38,14 +38,18 @@ public class ForkOutputStream extends OutputStream {
 
     private OutputStream l;
     private FileOutputStream r;
+    private boolean writeToOut;
 
     public ForkOutputStream(FileOutputStream r){
         this.l = System.out;
         this.r = r;
+        writeToOut = true;
     }
 
     public void write(int b) throws IOException {
-        l.write(b);
+        if(writeToOut) {
+            l.write(b);
+        }
         r.write(b);
     }
 
@@ -56,5 +60,9 @@ public class ForkOutputStream extends OutputStream {
 
     public void close() throws IOException {
         r.close();
+    }
+
+    public void setWriteToOut(boolean writeToOut) {
+        this.writeToOut = writeToOut;
     }
 }

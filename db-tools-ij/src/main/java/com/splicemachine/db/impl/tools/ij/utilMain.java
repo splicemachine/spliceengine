@@ -296,8 +296,16 @@ public class utilMain implements java.security.PrivilegedAction {
 				command = commandGrabber[currCE].nextStatement();
 
 				if(doSpool) {
-					out.println(command + ";");
-					out.flush();
+					assert out.getOutputStream() instanceof ForkOutputStream;
+					ForkOutputStream fos = (ForkOutputStream)(out.getOutputStream());
+					fos.setWriteToOut(false); // do not write the command twice to std output
+					try {
+						out.println(command + ";");
+						out.flush();
+					}
+					finally {
+						fos.setWriteToOut(true);
+					}
 				}
 
 				// if there is no next statement,

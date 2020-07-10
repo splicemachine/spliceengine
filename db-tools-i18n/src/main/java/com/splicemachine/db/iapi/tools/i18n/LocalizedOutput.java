@@ -53,4 +53,7 @@ public class LocalizedOutput extends PrintWriter {
 			super.close();
 		}
 	}
+	public OutputStream getOutputStream() {
+		return out;
+	}
 }
