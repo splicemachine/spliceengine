@@ -141,6 +141,8 @@ public class SynchronousReadResolver implements KeyedReadResolver{
         put.setAttribute(SIConstants.SI_EXEMPT,SIConstants.TRUE_BYTES);
         put.setAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
         put.setDurability(Durability.SKIP_WAL);
+        if (LOG.isDebugEnabled())
+            LOG.debug("Rolling forward data for committed transaction " + txnId + ": " + put);
         try{
             ((RegionPartition)region).unwrapDelegate().put(put);
         }catch(IOException e){
@@ -171,6 +173,8 @@ public class SynchronousReadResolver implements KeyedReadResolver{
                 .addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,txnId);
         delete.setDurability(Durability.SKIP_WAL);
         delete.setAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
+        if (LOG.isDebugEnabled())
+            LOG.debug("Deleting data from rolled back transaction " + txnId + ": " + delete);
         try{
             ((RegionPartition)region).unwrapDelegate().delete(delete);
         }catch(IOException ioe){
