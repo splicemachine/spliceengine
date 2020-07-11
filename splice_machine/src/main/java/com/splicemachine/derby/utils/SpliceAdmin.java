@@ -698,7 +698,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         // sys query for table conglomerate for in schema
         PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
         schemaName = EngineUtils.validateSchema(schemaName);
-        tableName = EngineUtils.validateTable(tableName);
+        tableName = tableName == null ? null : EngineUtils.validateTable(tableName);
         for (long conglomID : getConglomNumbers(getDefaultConn(), schemaName, tableName)) {
             try {
                 ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomID);
@@ -731,7 +731,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         // sys query for table conglomerate for in schema
         PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
         schemaName = EngineUtils.validateSchema(schemaName);
-        tableName = EngineUtils.validateTable(tableName);
+        tableName = tableName == null ? null : EngineUtils.validateTable(tableName);
         for(long conglomID : getConglomNumbers(getDefaultConn(),schemaName,tableName)){
             try(Partition partition=tableFactory.getTable(Long.toString(conglomID))){
                 partition.flush();
