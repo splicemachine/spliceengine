@@ -49,7 +49,7 @@ public class SimpleTxnFilter implements TxnFilter{
     private Long tombstonedTxnRow = null;
     private Long antiTombstonedTxnRow = null;
     private final ByteSlice rowKey=new ByteSlice();
-    private boolean isSlave;
+    private boolean isReplica;
 
     /*
      * The most common case for databases is insert-only--that is, that there
@@ -100,7 +100,7 @@ public class SimpleTxnFilter implements TxnFilter{
             this.transactionStore = new ActiveTxnCacheSupplier(baseSupplier, 128, 2048);
         } else {
             ignoreTxnSupplier = driver.getIgnoreTxnSupplier();
-            isSlave = driver.lifecycleManager().getReplicationRole().equals(SIConstants.REPLICATION_ROLE_SLAVE);
+            isReplica = driver.lifecycleManager().getReplicationRole().equals(SIConstants.REPLICATION_ROLE_REPLICA);
             int maxSize = driver.getConfiguration().getActiveTransactionMaxCacheSize();
             int initialSize = driver.getConfiguration().getActiveTransactionInitialCacheSize();
             this.transactionStore = new ActiveTxnCacheSupplier(baseSupplier, initialSize, maxSize);
@@ -258,7 +258,7 @@ public class SimpleTxnFilter implements TxnFilter{
 
         TxnView toCompare=fetchTransaction(txnId);
 
-        if (isSlave && toCompare != null) {
+        if (isReplica && toCompare != null) {
             long committedTs = toCompare.getCommitTimestamp();
             if (committedTs == -1 || myTxn.getBeginTimestamp() < committedTs){
                 return false;

@@ -136,9 +136,9 @@ public class SessionPropertyIT extends SpliceUnitTest {
 
         String sqlText = "values current session_property";
         ResultSet rs = conn.query(sqlText);
-        String expected = "1       |\n" +
-                "----------------\n" +
-                "USESPARK=true; |";
+        String expected = "1              |\n" +
+                "------------------------------\n" +
+                "USESPARK=true; USEOLAP=true; |";
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
 
@@ -149,9 +149,9 @@ public class SessionPropertyIT extends SpliceUnitTest {
         conn.execute("set session_property useSpark=false");
         sqlText = "values current session_property";
         rs = conn.query(sqlText);
-        expected = "1        |\n" +
-                "-----------------\n" +
-                "USESPARK=false; |";
+        expected = "1               |\n" +
+                "--------------------------------\n" +
+                "USESPARK=false; USEOLAP=false; |";
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
 

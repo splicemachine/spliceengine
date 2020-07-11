@@ -130,6 +130,9 @@ public class MetaDataAccessControlIT {
         adminConn.execute(format("CREATE SEQUENCE %s.s1 START WITH 100", SCHEMA_A));
         adminConn.execute(format("grant usage on SEQUENCE %s.s1 TO %s", SCHEMA_A, ROLE_F));
 
+        // create an alias
+        adminConn.execute(format("CREATE ALIAS %s.AS1 for %s.%s", SCHEMA_A, SCHEMA_A, TABLE1));
+
         // create user connections
         user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
 
@@ -198,13 +201,26 @@ public class MetaDataAccessControlIT {
     @Test
     public void testShowTableWithAccessControl() throws Exception {
         ResultSet rs = user1Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,null)");
-        /* expected 14 tables: 12 sysvw views, and 2 user tables t1, and t2 */
-        assertEquals("Expected to have 9 tables", 14, resultSetSize(rs));
+        /* expected 16 tables: 13 sysvw views, and 2 user tables t1, and t2, and 1 alias AS1 */
+        assertEquals("Expected to have 16 tables", 16, resultSetSize(rs));
         rs.close();
 
-        /* expected just 12 sysvw views */
+        /* expected just 13 sysvw views */
         rs = user2Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,null)");
-        assertEquals("Expected to have 12 tables", 12, resultSetSize(rs));
+        assertEquals("Expected to have 13 tables", 13, resultSetSize(rs));
+        rs.close();
+
+    }
+
+    @Test
+    public void testDescribeTableWithAccessControl() throws Exception {
+        String query = format("SELECT BASETABLE FROM SYSVW.SYSALIASTOTABLEVIEW where schemaname='%s' and alias='AS1'", SCHEMA_A);
+        ResultSet rs = user1Conn.query(query);
+        assertEquals("Expected to see 1 alias", 1, resultSetSize(rs));
+        rs.close();
+
+        rs = user2Conn.query(query);
+        assertEquals("Expected to see 0 aliases", 0, resultSetSize(rs));
         rs.close();
 
     }

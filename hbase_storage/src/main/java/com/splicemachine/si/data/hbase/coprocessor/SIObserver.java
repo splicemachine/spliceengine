@@ -40,11 +40,13 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.server.PurgeConfigBuilder;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -82,7 +84,10 @@ import org.apache.hadoop.hbase.security.access.Permission;
 import org.apache.hadoop.hbase.security.access.TableAuthManager;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.hadoop.hbase.wal.WALEdit;
+import org.apache.hadoop.hbase.wal.WALFactory;
+import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
@@ -195,15 +200,18 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
             SConfiguration conf = driver.getConfiguration();
-            PurgeConfig purgeConfig;
+            PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
             if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                purgeConfig = PurgeConfig.purgeDuringFlushConfig();
+                purgeConfig.purgeDeletesDuringFlush();
             } else {
-                purgeConfig = PurgeConfig.noPurgeConfig();
+                purgeConfig.noPurgeDeletes();
             }
+            purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
             // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
             // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
-            SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+            SICompactionScanner siScanner = new SICompactionScanner(
+                    state, scanner, purgeConfig.build(), conf.getFlushResolutionShare(),
+                    conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
         }else {
@@ -225,17 +233,15 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                         driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
-                PurgeConfig purgeConfig;
+                PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
                 if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                    if (request.isMajor())
-                        purgeConfig = PurgeConfig.purgeDuringMajorCompactionConfig();
-                    else
-                        purgeConfig = PurgeConfig.purgeDuringMinorCompactionConfig();
+                    purgeConfig.purgeDeletesDuringCompaction(request.isMajor());
                 } else {
-                    purgeConfig = PurgeConfig.noPurgeConfig();
+                    purgeConfig.noPurgeDeletes();
                 }
+                purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
                 SICompactionScanner siScanner = new SICompactionScanner(
-                        state, scanner, purgeConfig,
+                        state, scanner, purgeConfig.build(),
                         conf.getOlapCompactionResolutionShare(), conf.getLocalCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
@@ -504,6 +510,27 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             if (in != null) {
                 in.close();
             }
+        }
+    }
+
+    @Override
+    public void preReplayWALs(ObserverContext<? extends RegionCoprocessorEnvironment> ctx, RegionInfo info, Path edits) throws IOException {
+        WAL.Reader reader = null;
+        Configuration conf = ctx.getEnvironment().getConfiguration();
+        FileSystem fs = FileSystem.get(edits.toUri(), conf);
+        try {
+            reader = WALFactory.createReader(fs, edits, conf);
+
+            WAL.Entry entry;
+            LOG.info("WAL replay");
+            while ((entry = reader.next()) != null) {
+                WALKey key = entry.getKey();
+                WALEdit val = entry.getEdit();
+
+                LOG.info(key + " -> " + val);
+            }
+        } finally {
+            reader.close();
         }
     }
 }

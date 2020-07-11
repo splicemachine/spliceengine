@@ -1201,14 +1201,11 @@ class ij {
 			DatabaseMetaData dbmd = theConnection.getMetaData();
 
             //Check if it's a synonym table
-            String getSynonymAliasInfo = "SELECT ALIASINFO \n" +
+            String getSynonymAliasInfo = "SELECT BASETABLE \n" +
                     " FROM \n" +
-                    " SYS.SYSALIASES A, SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S \n" +
-                    " WHERE A.ALIASTYPE = 'S' AND \n" +
-                    " S.SCHEMAID = T.SCHEMAID AND \n" +
-                    " A.SCHEMAID = T.SCHEMAID AND \n" +
-                    " A.ALIAS = T.TABLENAME AND \n" +
-                    " (S.SCHEMANAME LIKE ?) AND (T.TABLENAME LIKE ?)";
+                    " SYSVW.SYSALIASTOTABLEVIEW V \n" +
+                    " WHERE \n" +
+                    " (V.SCHEMANAME LIKE ?) AND (V.ALIAS LIKE ?)";
 
             PreparedStatement s = theConnection.prepareStatement(getSynonymAliasInfo);
             s.setString(1, schema);

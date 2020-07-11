@@ -204,7 +204,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
 
     @Override
     public Txn elevateTransaction(Txn txn,byte[] destinationTable) throws IOException{
-        if (replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0 &&
+        if (replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_REPLICA) == 0 &&
                 Bytes.compareTo(destinationTable, "replication".getBytes(Charset.defaultCharset().name())) != 0) {
             throw new IOException(StandardException.newException(SQLState.READ_ONLY));
         }
@@ -261,7 +261,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                                           TxnView parentTxn,
                                           byte[] destinationTable,
                                           TaskId taskId) throws IOException{
-		if (restoreMode || replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0 &&
+		if (restoreMode || replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_REPLICA) == 0 &&
         Bytes.compareTo(destinationTable, "replication".getBytes(Charset.defaultCharset().name())) != 0) {
             throw new IOException(StandardException.newException(SQLState.READ_ONLY));
         }
@@ -318,7 +318,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
     private long getTimestamp() {
         if (isRestoreMode())
             return timestampSource.currentTimestamp();
-        else if (replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0)
+        else if (replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_REPLICA) == 0)
             return timestampSource.currentTimestamp();
         else
             return timestampSource.nextTimestamp();

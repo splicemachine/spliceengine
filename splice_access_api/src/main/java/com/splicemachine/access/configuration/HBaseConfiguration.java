@@ -46,8 +46,8 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String DEFAULT_REPLICATION_SOURCE_PATH = "/source";
     public static final String DEFAULT_REPLICATION_PEER_PATH = "/peerId";
 
-    public static final byte[] REPLICATION_MASTER = Bytes.toBytes("MASTER");
-    public static final byte[] REPLICATION_SLAVE = Bytes.toBytes("SLAVE");
+    public static final byte[] REPLICATION_PRIMARY = Bytes.toBytes("PRIMARY");
+    public static final byte[] REPLICATION_REPLICA = Bytes.toBytes("REPLICA");
     public static final byte[] REPLICATION_NONE = Bytes.toBytes("NONE");
 
     public static final byte[] BACKUP_IN_PROGRESS = Bytes.toBytes(false);
@@ -244,7 +244,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String IGNORE_TXN_TABLE_NAME = "SPLICE_IGNORE_TXN";
     public static final String DROPPED_CONGLOMERATES_TABLE_NAME = "DROPPED_CONGLOMERATES";
     public static final String MASTER_SNAPSHOTS_TABLE_NAME = "SPLICE_MASTER_SNAPSHOTS";
-    public static final String SLAVE_REPLICATION_PROGRESS_TABLE_NAME = "SPLICE_REPLICATION_PROGRESS";
+    public static final String REPLICA_REPLICATION_PROGRESS_TABLE_NAME = "SPLICE_REPLICATION_PROGRESS";
     public static final String REPLICATION_PROGRESS_ROWKEY = "ReplicationProgress";
     public static final byte[] REPLICATION_PROGRESS_ROWKEY_BYTES = Bytes.toBytes("ReplicationProgress");
     public static final byte[] REPLICATION_PROGRESS_TSCOL_BYTES = Bytes.toBytes("Timestamp");
