@@ -50,6 +50,10 @@ public class EntryDecoder implements Supplier<MultiFieldDecoder> {
         set(bytes);
     }
 
+    public EntryDecoder(byte[] bytes, int offset, int length) {
+        set(bytes, offset, length);
+    }
+
     public void set(byte[] bytes) {
         set(bytes, 0, bytes.length);
     }

@@ -19,8 +19,9 @@ package com.splicemachine.access.configuration;
 import org.spark_project.guava.base.Splitter;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Repository for holding configuration keys for Olap client/server.
@@ -148,10 +149,13 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME = "splice.olap_server.isolated.compaction.queue_name";
     public static final String DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME = "compaction";
 
-    // Whether we should purge deleted rows during compaction
+    // Whether we should purge deleted rows during flush & compaction
     public static final String OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS = "splice.olap.compaction.automaticallyPurgeDeletedRows";
     public static final boolean DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS = true;
 
+    // Whether we should purge old updates during flush & compaction
+    public static final String OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = "splice.olap.compaction.automaticallyPurgeOldUpdates";
+    public static final boolean DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = false;
 
     /* Map of Splice queues to YARN queues
 
@@ -205,14 +209,20 @@ public class OlapConfigurations implements ConfigurationDefault {
                 .withKeyValueSeparator("=")
                 .split(isolatedRoles);
 
-        Map<String, String> queues = new HashMap();
-        for (String queue : builder.olapServerIsolatedRoles.values()) {
-            queues.put(queue, configurationSource.getString(OLAP_SERVER_YARN_QUEUES + queue, DEFAULT_OLAP_SERVER_YARN_DEFAULT_QUEUE));
-        }
-        builder.olapServerYarnQueues = queues;
         builder.olapServerIsolatedCompaction = configurationSource.getBoolean(OLAP_SERVER_ISOLATED_COMPACTION, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION);
         builder.olapServerIsolatedCompactionQueueName = configurationSource.getString(OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME);
+
+        // Set up mappings for Splice Queues to YARN queues, possible mappings are all defined in olapServerIsolatedRoles,
+        // the compaction queue name if enabled and the 'default' queue
+        Stream<String> queueNames = Stream.concat(builder.olapServerIsolatedRoles.values().stream(), Stream.of("default"));
+        if (builder.olapServerIsolatedCompaction)
+            queueNames = Stream.concat(queueNames, Stream.of(builder.olapServerIsolatedCompactionQueueName));
+        builder.olapServerYarnQueues = queueNames.collect(Collectors.toMap(
+                        Function.identity(),
+                        queue -> configurationSource.getString(OLAP_SERVER_YARN_QUEUES + queue, DEFAULT_OLAP_SERVER_YARN_DEFAULT_QUEUE)));
+
         builder.olapCompactionAutomaticallyPurgeDeletedRows = configurationSource.getBoolean(OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS, DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS);
+        builder.olapCompactionAutomaticallyPurgeOldUpdates = configurationSource.getBoolean(OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES, DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES);
 
         builder.sparkIoCompressionCodec = configurationSource.getString(SPARK_IO_COMPRESSION_CODEC, DEFAULT_SPARK_IO_COMPRESSION_CODEC);
         builder.sparkResultStreamingBatches = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_RESULT_STREAMING_BATCHES);
