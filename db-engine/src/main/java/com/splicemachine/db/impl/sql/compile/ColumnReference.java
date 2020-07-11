@@ -1507,4 +1507,10 @@ public class ColumnReference extends ValueNode {
         return false;
     }
 
+    public boolean isSourceRowIdColumn() {
+        if (source != null && source instanceof ResultColumn && source.getExpression() instanceof CurrentRowLocationNode)
+            return true;
+
+        return false;
+    }
 }
