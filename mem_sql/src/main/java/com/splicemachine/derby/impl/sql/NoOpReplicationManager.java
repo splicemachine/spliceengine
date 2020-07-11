@@ -78,7 +78,7 @@ public class NoOpReplicationManager implements ReplicationManager {
     }
 
     @Override
-    public void monitorReplication(String masterClusterKey, String slaveClusterKey) throws StandardException {
+    public void monitorReplication(String primaryClusterKey, String replicaClusterKey) throws StandardException {
 
     }
 

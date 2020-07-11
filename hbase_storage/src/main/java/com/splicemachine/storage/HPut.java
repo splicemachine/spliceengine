@@ -143,4 +143,9 @@ public class HPut implements HMutation,DataPut{
     public Mutation unwrapHbaseMutation(){
         return put;
     }
+
+    @Override
+    public String toString() {
+        return put.toString();
+    }
 }

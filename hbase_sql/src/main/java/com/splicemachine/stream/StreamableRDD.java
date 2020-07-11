@@ -22,6 +22,7 @@ import org.apache.log4j.Logger;
 import org.apache.spark.SimpleFutureAction;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.sql.internal.SQLConf;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
 import scala.concurrent.Await;
@@ -43,7 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class StreamableRDD<T> {
     private static final Logger LOG = Logger.getLogger(StreamableRDD.class);
-    public static int PARALLEL_PARTITIONS = 4;
+    public static final int DEFAULT_PARALLEL_PARTITIONS = 4;
 
     private static final ClassTag<String> tag = scala.reflect.ClassTag$.MODULE$.apply(String.class);
     private final int port;
@@ -55,6 +56,7 @@ public class StreamableRDD<T> {
     private final int clientBatches;
     private final UUID uuid;
     private final OperationContext<?> context;
+    private final int parallelPartitions;
     private OlapStatus jobStatus;
 
 
@@ -63,12 +65,18 @@ public class StreamableRDD<T> {
     }
 
     public StreamableRDD(JavaRDD<T> rdd, OperationContext<?> context, UUID uuid, String clientHost, int clientPort, int batches, int batchSize) {
+        this(rdd, context, uuid, clientHost, clientPort, batches, batchSize, DEFAULT_PARALLEL_PARTITIONS);
+    }
+
+    public StreamableRDD(JavaRDD<T> rdd, OperationContext<?> context, UUID uuid, String clientHost, int clientPort,
+                         int batches, int batchSize, int parallelPartitions) {
         this.rdd = rdd;
         this.context = context;
         this.uuid = uuid;
         this.host = clientHost;
         this.port = clientPort;
-        this.executor = Executors.newFixedThreadPool(PARALLEL_PARTITIONS);
+        this.parallelPartitions = parallelPartitions % 2 == 0 ? parallelPartitions : parallelPartitions + 1;
+        this.executor = Executors.newFixedThreadPool(2);
         completionService = new ExecutorCompletionService<>(executor);
         this.clientBatchSize = batchSize;
         this.clientBatches = batches;
@@ -79,7 +87,7 @@ public class StreamableRDD<T> {
         try {
             final JavaRDD<String> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(context, uuid, host, port, rdd.getNumPartitions(), clientBatches, clientBatchSize), true);
             int numPartitions = streamed.getNumPartitions();
-            int partitionsBatchSize = PARALLEL_PARTITIONS / 2;
+            int partitionsBatchSize = parallelPartitions / 2;
             int partitionBatches = numPartitions / partitionsBatchSize;
             if (numPartitions % partitionsBatchSize > 0)
                 partitionBatches++;
