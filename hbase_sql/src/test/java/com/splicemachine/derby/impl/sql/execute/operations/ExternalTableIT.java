@@ -32,6 +32,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.*;
 import static org.junit.Assert.assertEquals;
@@ -156,243 +158,70 @@ public class ExternalTableIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testInvalidSyntaxParquet() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/foobar/foobar";
-            // Row Format not supported for Parquet
-            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int) partitioned by (col1) " +
-                    "row format delimited fields terminated by ',' escaped by '\\' " +
-                    "lines terminated by '\\n' STORED AS PARQUET LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT01",e.getSQLState());
+    public void testInvalidSyntax() throws Exception {
+        Map<String, String> errorFor = new HashMap<String, String>() { {
+            put("PARQUET", "EXT01");
+            put("ORC", "EXT02");
+            put("AVRO", "EXT36");
+        } };
+
+        for( String fileFormat : fileFormats) {
+            try {
+                String tablePath = getExternalResourceDirectory() + "/foobar/foobar";
+                // Row Format not supported for Parquet/ORC/AVRO
+                methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int) partitioned by (col1) " +
+                        "row format delimited fields terminated by ',' escaped by '\\' " +
+                        "lines terminated by '\\n' STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
+                Assert.fail("Exception not thrown");
+            } catch (SQLException e) {
+                Assert.assertEquals("Wrong Exception", errorFor.get(fileFormat), e.getSQLState());
+            }
+        }
+    }
+
+    void testCreateFails(String test, String tableStr, String exception) throws Exception {
+        String tablePath = getExternalResourceDirectory() + "/HUMPTY_DUMPTY_MOLITOR";
+        for( String fileFormat : fileFormats) {
+            assureFails(String.format("create external table foo " + tableStr +
+                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath), exception, test);
         }
     }
 
     @Test
-    public void testInvalidSyntaxAvro() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/foobar/foobar";
-            // Row Format not supported for Avro
-            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int) partitioned by (col1) " +
-                    "row format delimited fields terminated by ',' escaped by '\\' " +
-                    "lines terminated by '\\n' STORED AS AVRO LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT36",e.getSQLState());
-        }
+    public void testCreateTableErrors() throws Exception {
+        methodWatcher.executeUpdate("create table Cities (col1 int, col2 int, primary key (col1))");
+
+        testCreateFails( "NoPrimaryKeysOnExternalTables",
+                "(col1 int, col2 int, primary key (col1))", "EXT06");
+
+        testCreateFails( "NoCheckConstraintsOnExternalTables",
+                "(col1 int, col2 int, SALARY DECIMAL(9,2) CONSTRAINT SAL_CK CHECK (SALARY >= 10000))", "EXT07");
+
+        testCreateFails( "NoReferenceConstraintsOnExternalTables",
+                "(col1 int, col2 int, CITY_ID INT CONSTRAINT city_foreign_key REFERENCES Cities)", "EXT08");
+
+        testCreateFails( "NoUniqueConstraintsOnExternalTables",
+                "(col1 int, col2 int unique)", "EXT09");
+
+        testCreateFails( "NoGenerationClausesOnExternalTables",
+                "(col1 int, col2 varchar(24), col3 GENERATED ALWAYS AS ( UPPER(col2) ))", "EXT10");
+
+        testCreateFails( "cannotUsePartitionUndefined", "(col1 int, col2 varchar(24)) PARTITIONED BY (col3))", "EXT21");
+
     }
 
     @Test
-    public void testInvalidSyntaxORC() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/foobar/foobar";
-            // Row Format not supported for Parquet
-            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int) partitioned by (col1) " +
-                    "row format delimited fields terminated by ',' escaped by '\\' " +
-                    "lines terminated by '\\n' STORED AS ORC LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT02",e.getSQLState());
-        }
-    }
+    public void testCreateTableErrors2() throws Exception {
+        String tablePath = getExternalResourceDirectory() + "createTable2";
+        assureFails("create external table foo (col1 int, col2 int) LOCATION '" + tablePath + "'",
+                "EXT03", "StoredAsRequired");
 
+        for (String fileFormat : fileFormats) {
+            assureFails("create external table foo (col1 int, col2 int) STORED AS " + fileFormat,
+                    "EXT04", "locationMissing");
 
-    @Test
-    public void testStoredAsRequired() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/foobar/foobar";
-            // Location Required For Parquet
-            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int) LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT03",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testLocationRequired() throws Exception {
-        try {
-            methodWatcher.executeUpdate("create external table foo (col1 int, col2 int) STORED AS PARQUET");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT04",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testLocationRequiredAvro() throws Exception {
-        try {
-            methodWatcher.executeUpdate("create external table foo (col1 int, col2 int) STORED AS AVRO");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT04",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testCannotUsePartitionUndefined() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
-            methodWatcher.executeUpdate(String.format("create external  table table_without_defined_partition (col1 int, col2 varchar(24))" +
-                    " PARTITIONED BY (col3) STORED AS PARQUET LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT21",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testCannotUsePartitionUndefinedAvro() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
-            methodWatcher.executeUpdate(String.format("create external  table table_without_defined_partition (col1 int, col2 varchar(24))" +
-                    " PARTITIONED BY (col3) STORED AS AVRO LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT21",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testNoPrimaryKeysOnExternalTables() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
-            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int, primary key (col1)) STORED AS PARQUET LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT06",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testNoPrimaryKeysOnExternalTablesAvro() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
-            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int, primary key (col1)) STORED AS AVRO LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT06",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testNoCheckConstraintsOnExternalTables() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
-            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int, SALARY DECIMAL(9,2) CONSTRAINT SAL_CK CHECK (SALARY >= 10000)) STORED AS PARQUET LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT07",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testNoCheckConstraintsOnExternalTablesAvro() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
-            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int, SALARY DECIMAL(9,2) CONSTRAINT SAL_CK CHECK (SALARY >= 10000)) STORED AS AVRO LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT07",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testNoReferenceConstraintsOnExternalTables() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
-            methodWatcher.executeUpdate("create table Cities (col1 int, col2 int, primary key (col1))");
-            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int, CITY_ID INT CONSTRAINT city_foreign_key\n" +
-                    " REFERENCES Cities) STORED AS PARQUET LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT08",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testNoReferenceConstraintsOnExternalTablesAvro() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO_TEST";
-            methodWatcher.executeUpdate("create table Cities_avro (col1 int, col2 int, primary key (col1))");
-            methodWatcher.executeUpdate(String.format("create external table foo_avro (col1 int, col2 int, CITY_ID INT CONSTRAINT city_foreign_key\n" +
-                    " REFERENCES Cities_avro) STORED AS AVRO LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT08",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testNoUniqueConstraintsOnExternalTables() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
-            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int unique)" +
-                    " STORED AS PARQUET LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT09",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testNoUniqueConstraintsOnExternalTablesAvro() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
-            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 int unique)" +
-                    " STORED AS AVRO LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT09",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testNoGenerationClausesOnExternalTables() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
-            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 varchar(24), col3 GENERATED ALWAYS AS ( UPPER(col2) ))" +
-                    " STORED AS PARQUET LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT10",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testNoGenerationClausesOnExternalTablesAvro() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
-            methodWatcher.executeUpdate(String.format("create external table foo (col1 int, col2 varchar(24), col3 GENERATED ALWAYS AS ( UPPER(col2) ))" +
-                    " STORED AS AVRO LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT10",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testMissingExternal() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
-            methodWatcher.executeUpdate(String.format("create table foo (col1 int, col2 varchar(24))" +
-                    " STORED AS PARQUET LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT18",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testMissingExternalAvro() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
-            methodWatcher.executeUpdate(String.format("create table foo (col1 int, col2 varchar(24))" +
-                    " STORED AS AVRO LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT18",e.getSQLState());
+            assureFails(String.format("create table foo (col1 int, col2 varchar(24))" +
+                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath), "EXT18", "missingExternal");
         }
     }
 
