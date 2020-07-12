@@ -28,10 +28,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.io.File;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -419,82 +416,56 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     }
 
+    public void testWriteReadFromSimpleExternalTable(String fileFormat) throws Exception {
+        String name = "write_all_datatypes_" + fileFormat;
+        String file = getExternalResourceDirectory() + name;
+        int[] values = {1, 2, 3, 4, 0 /* = NULL */ };
+        int[] colTypes = CreateTableTypeHelper.getTypes(fileFormat);
+        CreateTableTypeHelper types = new CreateTableTypeHelper(colTypes, values);
 
-    @Test
-    public void testWriteReadNullValues() throws Exception {
+        String externalTableOptions = " COMPRESSED WITH SNAPPY STORED AS " + fileFormat + " LOCATION '"
+                + file + "'";
+        methodWatcher.executeUpdate("create external table " + name + " (" + types.getSchema() + ")" + externalTableOptions);
+        int insertCount = methodWatcher.executeUpdate( "insert into " + name + " values " + types.getInsertValues() + "");
+        Assert.assertEquals(fileFormat + ": insertCount is wrong", values.length, insertCount);
 
-        String tablePath = getExternalResourceDirectory()+"null_test_location";
-        methodWatcher.executeUpdate(String.format("create external table null_test (col1 int, col2 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s'",tablePath));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into null_test values (1,null)," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from null_test where col2 is null");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  1  |NULL |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs2 = methodWatcher.executeQuery("select * from null_test where col2 is not null");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  2  |YYYY |\n" +
-                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+        // test select *, result matches expectations (= inserted values)
+        ResultSet rs = methodWatcher.executeQuery("select * from " + name );
+        types.checkResultSetSelectAll(rs);
 
-        //Make sure empty file is created
-        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
+        // test NULLs
+        ResultSet rs2 = methodWatcher.executeQuery("select COL_VARCHAR from " + name + " where COL_VARCHAR is null");
+        Assert.assertEquals(fileFormat, "COL_VARCHAR |\n" +
+                "--------------\n" +
+                "    NULL     |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
+        if( !fileFormat.equals("ORC") ) { // this doesn't work for ORC?!
+            ResultSet rs3 = methodWatcher.executeQuery("select COL_VARCHAR from " + name + " where COL_VARCHAR is not null");
+            Assert.assertEquals(fileFormat, "COL_VARCHAR |\n" +
+                    "--------------\n" +
+                    "   AAAA 1    |\n" +
+                    "   AAAA 2    |\n" +
+                    "   AAAA 3    |\n" +
+                    "   AAAA 4    |", TestUtils.FormattedResult.ResultFactory.toString(rs3));
+        }
 
+        // test schema suggestion when we're using a wrong schema
+        try {
+            methodWatcher.executeUpdate("create external table all_datatypes_wrong ( i int )" + externalTableOptions);
+            Assert.fail( fileFormat + ": Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals(fileFormat + ": Wrong Exception", INCONSISTENT_NUMBER_OF_ATTRIBUTE, e.getSQLState());
+            Assert.assertEquals(fileFormat + ": wrong exception message",
+                    "Only '1' attributes defined but '" + colTypes.length + "' present in the external file : '" + file + "'. " +
+                            "Suggested Schema is 'CREATE EXTERNAL TABLE T (" + types.getSuggestedTypes() + ");'.",
+                    e.getMessage());
+        }
     }
 
+    // tests writing all columns types, null values, suggesting schema.
     @Test
-    public void testWriteReadNullValuesAvro() throws Exception {
-
-        String tablePath = getExternalResourceDirectory()+"null_test_location_avro";
-        methodWatcher.executeUpdate(String.format("create external table null_test_avro (col1 int, col2 varchar(24))" +
-                " STORED AS AVRO LOCATION '%s'",tablePath));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into null_test_avro values (1,null)," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from null_test_avro where col2 is null");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  1  |NULL |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs2 = methodWatcher.executeQuery("select * from null_test_avro where col2 is not null");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  2  |YYYY |\n" +
-                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-
-        //Make sure empty file is created
-        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
-
-    }
-
-
-    @Test
-    public void testWriteReadFromSimpleParquetExternalTable() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"simple_parquet";
-        methodWatcher.executeUpdate(String.format("create external table simple_parquet (col1 int, col2 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s'",tablePath));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_parquet values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from simple_parquet");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  1  |XXXX |\n" +
-                "  2  |YYYY |\n" +
-                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from simple_parquet");
-        Assert.assertEquals("COL1 |\n" +
-                "------\n" +
-                "  1  |\n" +
-                "  2  |\n" +
-                "  3  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-
-        //Make sure empty file is created
-        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
+    public void testWriteReadFromSimpleExternalTable() throws Exception {
+        for( String fileFormat : fileFormats )
+            testWriteReadFromSimpleExternalTable(fileFormat);
 
     }
 
@@ -533,34 +504,7 @@ public class ExternalTableIT extends SpliceUnitTest {
         Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Test
-    public void testWriteReadFromSimpleAvroExternalTable() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"simple_avro";
-        methodWatcher.executeUpdate(String.format("create external table simple_avro (col1 int, col2 varchar(24))" +
-                " STORED AS AVRO LOCATION '%s'",tablePath));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_avro values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from simple_avro");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  1  |XXXX |\n" +
-                "  2  |YYYY |\n" +
-                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from simple_avro");
-        Assert.assertEquals("COL1 |\n" +
-                "------\n" +
-                "  1  |\n" +
-                "  2  |\n" +
-                "  3  |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-
-        //Make sure empty file is created
-        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
-
-    }
-
-
+    // todo: move to testWriteReadFromSimpleExternalTablefor( String storedAs : fileFormats )
     @Test
     public void testWriteReadFromSimpleCsvExternalTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"dt_txt";
@@ -571,8 +515,6 @@ public class ExternalTableIT extends SpliceUnitTest {
         Assert.assertEquals("A     |\n" +
                 "------------\n" +
                 "2017-01-25 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-
-
     }
 
 
@@ -681,79 +623,26 @@ public class ExternalTableIT extends SpliceUnitTest {
 
 
     @Test
-    public void testWriteReadFromPartitionedParquetExternalTable() throws Exception {
-        String tablePath =  getExternalResourceDirectory()+"partitioned_parquet";
-                methodWatcher.executeUpdate(String.format("create external table partitioned_parquet (col1 int, col2 varchar(24))" +
-                "partitioned by (col2) STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"partitioned_parquet"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into partitioned_parquet values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from partitioned_parquet");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  1  |XXXX |\n" +
-                "  2  |YYYY |\n" +
-                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+    public void testWriteReadFromPartitionedExternalTable() throws Exception {
+        for( String fileFormat : fileFormats ) {
+            String name = "partitioned_" + fileFormat;
+            String tablePath = getExternalResourceDirectory() + name;
+            methodWatcher.executeUpdate(String.format("create external table " + name + " (col1 int, col2 varchar(24))" +
+                    "partitioned by (col2) STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
+            int insertCount = methodWatcher.executeUpdate(String.format("insert into " + name + " values (1,'XXXX')," +
+                    "(2,'YYYY')," +
+                    "(3,'ZZZZ')"));
+            Assert.assertEquals("insertCount is wrong", 3, insertCount);
+            ResultSet rs = methodWatcher.executeQuery("select * from " + name );
+            Assert.assertEquals("COL1 |COL2 |\n" +
+                    "------------\n" +
+                    "  1  |XXXX |\n" +
+                    "  2  |YYYY |\n" +
+                    "  3  |ZZZZ |", TestUtils.FormattedResult.ResultFactory.toString(rs));
 
-        //Make sure empty file is created
-        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
-    }
-
-    @Test
-    public void testWriteReadFromPartitionedAvroExternalTable() throws Exception {
-        String tablePath =  getExternalResourceDirectory()+"partitioned_avro";
-        methodWatcher.executeUpdate(String.format("create external table partitioned_avro (col1 int, col2 varchar(24))" +
-                "partitioned by (col2) STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"partitioned_avro"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into partitioned_avro values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from partitioned_avro");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  1  |XXXX |\n" +
-                "  2  |YYYY |\n" +
-                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-
-        //Make sure empty file is created
-        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
-    }
-
-    @Test
-    public void testWriteReadFromSimpleORCExternalTable() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table simple_orc (col1 int, col2 varchar(24), col3 NUMERIC)" +
-                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"simple_orc"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into simple_orc values (1,'XXXX',13691)," +
-                "(2,'YYYY',2345)," +
-                "(3,'ZZZZ',12345)"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from simple_orc");
-        Assert.assertEquals("COL1 |COL2 |COL3  |\n" +
-                "-------------------\n" +
-                "  1  |XXXX |13691 |\n" +
-                "  2  |YYYY |2345  |\n" +
-                "  3  |ZZZZ |12345 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-    }
-
-    @Test
-    public void testWriteReadFromPartitionedORCExternalTable() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table partitioned_orc (col1 int, col2 varchar(24))" +
-                "partitioned by (col2) STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"partitioned_orc"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into partitioned_orc values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from partitioned_orc");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  1  |XXXX |\n" +
-                "  2  |YYYY |\n" +
-                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet r2 = methodWatcher.executeQuery("select count(*) from partitioned_orc");
-        Assert.assertEquals("1 |\n" +
-                "----\n" +
-                " 3 |",TestUtils.FormattedResult.ResultFactory.toString(r2));
+            //Make sure empty file is created
+            Assert.assertTrue(String.format("Table %s hasn't been created", tablePath), new File(tablePath).exists());
+        }
     }
 
     @Test
@@ -877,14 +766,13 @@ public class ExternalTableIT extends SpliceUnitTest {
         String[] compressionTypes = { "", // no compression
                 "COMPRESSED WITH SNAPPY",
                 "COMPRESSED WITH ZLIB"};
-        String[] storedAsArray = { "PARQUET", "ORC", "AVRO" };
         for( String compression : compressionTypes )
         {
-            for( String storedAs : storedAsArray )
+            for( String fileFormat : fileFormats )
             {
                 String path = getExternalResourceDirectory() + "compressed_test";
                 String createSql = "create external table compressed_test (col1 int, col2 varchar(24)) "
-                        + compression + " STORED AS " + storedAs + " LOCATION '" + path + "'";
+                        + compression + " STORED AS " + fileFormat + " LOCATION '" + path + "'";
                 try {
                     FileUtils.deleteDirectory(new File(path));
                     methodWatcher.executeUpdate(createSql);
@@ -1056,15 +944,9 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void testWriteReadFromCompressedErrorTextExternalTable() throws Exception {
-        try{
-
-                methodWatcher.executeUpdate(String.format("create external table compressed_ignored_text (col1 int, col2 varchar(24))" +
-                        "COMPRESSED WITH SNAPPY STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"compressed_ignored_text"));
-
-                Assert.fail("Exception not thrown");
-            } catch (SQLException e) {
-                Assert.assertEquals("Wrong Exception","EXT17",e.getSQLState());
-            }
+        assureFails(String.format("create external table compressed_ignored_text (col1 int, col2 varchar(24))" +
+                        "COMPRESSED WITH SNAPPY STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"compressed_ignored_text"),
+                "EXT17", "");
     }
 
     @Test
@@ -1575,6 +1457,7 @@ public class ExternalTableIT extends SpliceUnitTest {
         }
     }
 
+    // rather slow test (20s). maybe combine with testWriteReadArrays?
     @Test
     public void testCollectStats() throws Exception {
         for( String fileFormat : new String[]{"ORC", "PARQUET", "AVRO", "TEXTFILE"}) {
@@ -1646,6 +1529,7 @@ public class ExternalTableIT extends SpliceUnitTest {
         }
     }
 
+    // rather slow test (20s)
     @Test
     public void testWriteReadArrays() throws Exception {
         for( String fileFormat : fileFormats) {
