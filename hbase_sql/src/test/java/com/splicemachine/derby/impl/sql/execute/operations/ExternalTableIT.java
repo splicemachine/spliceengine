@@ -397,59 +397,6 @@ public class ExternalTableIT extends SpliceUnitTest {
         }
     }
 
-
-    @Test
-    public void testCannotUpdateExternalTable() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
-            methodWatcher.executeUpdate(String.format("create external table update_foo (col1 int, col2 varchar(24))" +
-                    " STORED AS PARQUET LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("update update_foo set col1 = 4");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT05",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testCannotUpdateExternalTableAvro() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
-            methodWatcher.executeUpdate(String.format("create external table update_foo_avro (col1 int, col2 varchar(24))" +
-                    " STORED AS AVRO LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("update update_foo_avro set col1 = 4");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT05",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testCannotDeleteExternalTable() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
-            methodWatcher.executeUpdate(String.format("create external table delete_foo (col1 int, col2 varchar(24))" +
-                    " STORED AS PARQUET LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("delete from delete_foo where col1 = 4");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT05",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testCannotDeleteExternalTableAvro() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
-            methodWatcher.executeUpdate(String.format("create external table delete_foo_avro (col1 int, col2 varchar(24))" +
-                    " STORED AS AVRO LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("delete from delete_foo_avro where col1 = 4");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT05",e.getSQLState());
-        }
-    }
-
     @Test
     public void testFileExistingNotDeleted() throws  Exception{
         String tablePath = getResourceDirectory()+"parquet_sample_one";
@@ -545,75 +492,73 @@ public class ExternalTableIT extends SpliceUnitTest {
         Assert.assertEquals(actual, expected, actual);
     }
 
+
+    String[] fileFormats = { "PARQUET", "ORC", "AVRO" };
+
+    void assureFails(String query, String exceptionType, String test) throws Exception {
+        try {
+            methodWatcher.executeUpdate(query);
+            Assert.fail(test + ": Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals(test + ": Wrong Exception", exceptionType, e.getSQLState());
+        }
+    }
+
+    // tests that we can't UPDATE or DELETE values in external tables
+    // and correct exceptions are thrown
+    @Test
+    public void testCannotDeleteOrUpdateExternalTable() throws Exception {
+        for( String fileFormat : fileFormats) {
+            String name = "delete_foo" + fileFormat;
+            String tablePath = getExternalResourceDirectory() + "/" + name;
+            methodWatcher.executeUpdate(String.format("create external table " + name + " (col1 int, col2 varchar(24))" +
+                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
+
+            assureFails("delete from " + name + " where col1 = 4", "EXT05", "");
+            assureFails("update " + name + " set col1 = 4", "EXT05", "");
+        }
+    }
+
+    // tests we can create an external table in a empty directory
     @Test
     public void testEmptyDirectory() throws  Exception{
-        String tablePath = getExternalResourceDirectory()+"empty_directory";
-        new File(tablePath).mkdir();
+        for( String fileFormat : fileFormats) {
+            String tablePath = getExternalResourceDirectory() + "empty_directory" + fileFormat;
+            String name = "empty_directory" + fileFormat;
+            new File(tablePath).mkdir();
 
-        methodWatcher.executeUpdate(String.format("create external table empty_directory (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s'",tablePath));
-    }
-
-    @Test
-    public void testEmptyDirectoryAvro() throws  Exception{
-        String tablePath = getExternalResourceDirectory()+"empty_directory_avro";
-        new File(tablePath).mkdir();
-
-        methodWatcher.executeUpdate(String.format("create external table empty_directory_avro (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                " STORED AS AVRO LOCATION '%s'",tablePath));
-    }
-
-    @Test
-    public void testLocationCannotBeAFileAvro() throws  Exception{
-        File temp = File.createTempFile("temp-file-avro", ".tmp", tempDir);
-        try {
-            methodWatcher.executeUpdate(String.format("create external table table_to_existing_file_avro_temp (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                    " STORED AS AVRO LOCATION '%s'", temp.getAbsolutePath()));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException ee) {
-            Assert.assertEquals("Wrong Exception","EXT33" ,ee.getSQLState());
+            methodWatcher.executeUpdate(String.format("create external table " + name +
+                    " (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
+                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
         }
     }
 
     @Test
     public void testLocationCannotBeAFile() throws  Exception{
         File temp = File.createTempFile("temp-file", ".tmp", tempDir);
-
-        try {
-            methodWatcher.executeUpdate(String.format("create external table table_to_existing_file (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                    " STORED AS PARQUET LOCATION '%s'",temp.getAbsolutePath()));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT33",e.getSQLState());
+        for( String fileFormat : fileFormats) {
+            assureFails(String.format("create external table table_to_existing_file " +
+                            "(col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
+                            " STORED AS " + fileFormat + " LOCATION '%s'", temp.getAbsolutePath()),
+                    "EXT33", "");
         }
+        temp.delete();
     }
 
     @Test
     public void refreshRequireExternalTable() throws  Exception{
-        String tablePath = getExternalResourceDirectory()+"external_table_refresh";
+        for( String fileFormat : fileFormats) {
+            String name = "XT_REFRESH_" + fileFormat;
+            String tablePath = getExternalResourceDirectory() + name;
 
-        methodWatcher.executeUpdate(String.format("create external table external_table_refresh (col1 int, col2 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s'",tablePath));
+            methodWatcher.executeUpdate(String.format("create external table " + name + " (col1 int, col2 varchar(24))" +
+                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
 
-        PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE(?,?) ");
-        ps.setString(1, "EXTERNALTABLEIT");
-        ps.setString(2, "EXTERNAL_TABLE_REFRESH");
-        ps.execute();
-
-    }
-
-    @Test
-    public void refreshRequireExternalTableAvro() throws  Exception{
-        String tablePath = getExternalResourceDirectory()+"external_table_refresh_avro";
-
-        methodWatcher.executeUpdate(String.format("create external table external_table_refresh_avro (col1 int, col2 varchar(24))" +
-                " STORED AS AVRO LOCATION '%s'",tablePath));
-
-        PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE(?,?) ");
-        ps.setString(1, "EXTERNALTABLEIT");
-        ps.setString(2, "EXTERNAL_TABLE_REFRESH_AVRO");
-        ps.execute();
-
+            PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.SYSCS_REFRESH_EXTERNAL_TABLE(?,?) ");
+            ps.setString(1, "EXTERNALTABLEIT");
+            ps.setString(2, name);
+            ps.execute();
+        }
     }
 
     @Test
@@ -629,7 +574,6 @@ public class ExternalTableIT extends SpliceUnitTest {
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","42X05",e.getSQLState());
         }
-
     }
 
     //SPLICE-1387
