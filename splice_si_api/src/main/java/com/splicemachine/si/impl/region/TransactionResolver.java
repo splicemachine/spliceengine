@@ -193,7 +193,7 @@ public class TransactionResolver{
     private void resolveTimeOut(TxnPartition txnPartition,TxnMessage.Txn txn) {
         if (SIDriver.driver() != null) {
             String role = SIDriver.driver().lifecycleManager().getReplicationRole();
-            if (role != null && role.equals("SLAVE"))
+            if (role != null && role.equals("REPLICA"))
                 return;
         }
         long txnId = txn.getInfo().getTxnId();

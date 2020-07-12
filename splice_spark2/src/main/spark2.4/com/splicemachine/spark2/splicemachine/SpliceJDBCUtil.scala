@@ -83,6 +83,18 @@ object SpliceJDBCUtil {
       )
     )
 
+  def retrieveTableInfo(options: JdbcOptionsInWrite): Array[Seq[String]] =
+    retrieveMetaData(
+      options,
+      (conn,schema,tablename) => conn.getMetaData.getTables(null, schema.toUpperCase, tablename.toUpperCase, null),
+      (conn,tablename) => conn.getMetaData.getTables(null, null, tablename.toUpperCase, null),
+      rs => Seq(
+        rs.getString("TABLE_SCHEM"),
+        rs.getString("TABLE_NAME"),
+        rs.getString("TABLE_TYPE")
+      )
+    )
+
   private def retrieveMetaData(
     options: JdbcOptionsInWrite,
     getWithSchemaTablename: (Connection,String,String) => ResultSet,

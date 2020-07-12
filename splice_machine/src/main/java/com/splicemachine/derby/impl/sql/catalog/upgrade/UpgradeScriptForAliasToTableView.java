@@ -11,23 +11,26 @@
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
  */
+package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
-package com.splicemachine.hbase;
-
-import org.apache.hadoop.hbase.HTableDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
- *
- * Read Only HTable Descriptor for reading HBase from the filesystem.
- *
+ * Created by yxia on 6/4/20.
  */
-public class ReadOnlyHTableDescriptor extends HTableDescriptor {
-    public ReadOnlyHTableDescriptor(HTableDescriptor desc) {
-            super(desc);
+public class UpgradeScriptForAliasToTableView extends UpgradeScriptBase {
+    public UpgradeScriptForAliasToTableView(SpliceDataDictionary sdd, TransactionController tc) {
+        super(sdd, tc);
     }
 
     @Override
-    public boolean isReadOnly() {
-        return true;
+    protected void upgradeSystemTables() throws StandardException {
+        sdd.createAliasToTableSystemView(tc);
+
+        SpliceLogUtils.info(LOG, "Catalog upgraded: added system view SYSALIASTOTABLEVIEW");
+
     }
 }
