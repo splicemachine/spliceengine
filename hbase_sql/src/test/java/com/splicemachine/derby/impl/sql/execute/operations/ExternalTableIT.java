@@ -1749,299 +1749,109 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void testCollectStats() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table t1_orc (col1 int, col2 char(24))" +
-                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"t1_orc_test"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into t1_orc values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from t1_orc");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  1  |XXXX |\n" +
-                "  2  |YYYY |\n" +
-                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        for( String fileFormat : new String[]{"ORC", "PARQUET", "AVRO", "TEXTFILE"}) {
+            String name = "TEST_COLLECT_STATS_" + fileFormat;
+            String filename = getExternalResourceDirectory() + name;
+            methodWatcher.executeUpdate(String.format("create external table " + name + " (col1 int, col2 char(24))" +
+                    " STORED AS ORC LOCATION '%s'", filename));
+            int insertCount = methodWatcher.executeUpdate(String.format("insert into " + name + " values (1,'XXXX')," +
+                    "(2,'YYYY')," +
+                    "(3,'ZZZZ')"));
+            Assert.assertEquals("insertCount is wrong",3,insertCount);
+            ResultSet rs = methodWatcher.executeQuery("select * from " + name);
+            Assert.assertEquals("COL1 |COL2 |\n" +
+                    "------------\n" +
+                    "  1  |XXXX |\n" +
+                    "  2  |YYYY |\n" +
+                    "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
 
-        // collect table level stats
-        PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?) ");
-        ps.setString(1, "EXTERNALTABLEIT");
-        ps.setString(2, "T1_ORC");
-        ps.setBoolean(3, true);
-        rs = ps.executeQuery();
-        rs.next();
-        Assert.assertEquals("Error with COLLECT_TABLE_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
-        rs.close();
+            // collect table level stats
+            PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?) ");
+            ps.setString(1, "EXTERNALTABLEIT");
+            ps.setString(2, name);
+            ps.setBoolean(3, true);
+            rs = ps.executeQuery();
+            rs.next();
+            Assert.assertEquals("Error with COLLECT_TABLE_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
+            rs.close();
 
-        ResultSet rs2 = methodWatcher.executeQuery("select total_row_count from sysvw.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'T1_ORC'");
-        String expected = "TOTAL_ROW_COUNT |\n" +
-                "------------------\n" +
-                "        3        |";
-        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
-        rs2.close();
+            ResultSet rs2 = methodWatcher.executeQuery("select total_row_count from sysvw.systablestatistics where " +
+                    "schemaname = 'EXTERNALTABLEIT' and tablename = '" + name + "'");
+            String expected = "TOTAL_ROW_COUNT |\n" +
+                    "------------------\n" +
+                    "        3        |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+            rs2.close();
 
-        // drop stats using table
-        spliceClassWatcher.executeUpdate("CALL  SYSCS_UTIL.DROP_TABLE_STATISTICS ('EXTERNALTABLEIT', 'T1_ORC')");
+            // drop stats using table
+            spliceClassWatcher.executeUpdate("CALL  SYSCS_UTIL.DROP_TABLE_STATISTICS ('EXTERNALTABLEIT', '" + name + "')");
 
-        // make sure it is clean
-        rs2 = methodWatcher.executeQuery("select total_row_count from sysvw.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'T1_ORC' ");
-        Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs2));
-        rs2.close();
+            // make sure it is clean
+            rs2 = methodWatcher.executeQuery("select total_row_count from sysvw.systablestatistics where " +
+                    "schemaname = 'EXTERNALTABLEIT' and tablename = '" + name + "' ");
+            Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs2));
+            rs2.close();
 
-        // Now, collect schema level stats
-        ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?) ");
-        ps.setString(1, "EXTERNALTABLEIT");
-        ps.setBoolean(2, false);
-        rs = ps.executeQuery();
-        rs.next();
-        Assert.assertEquals("Error with COLLECT_SCHEMA_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
-        rs.close();
+            // Now, collect schema level stats
+            ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?) ");
+            ps.setString(1, "EXTERNALTABLEIT");
+            ps.setBoolean(2, false);
+            rs = ps.executeQuery();
+            rs.next();
+            Assert.assertEquals("Error with COLLECT_SCHEMA_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
+            rs.close();
 
-        // check the stats again
-        rs2 = methodWatcher.executeQuery("select total_row_count from sysvw.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'T1_ORC' ");
-        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
-        rs2.close();
+            // check the stats again
+            rs2 = methodWatcher.executeQuery("select total_row_count from sysvw.systablestatistics where " +
+                    "schemaname = 'EXTERNALTABLEIT' and tablename = '" + name + "' ");
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+            rs2.close();
 
-        // drop stats using schema
-        spliceClassWatcher.executeUpdate("CALL  SYSCS_UTIL.DROP_SCHEMA_STATISTICS ('EXTERNALTABLEIT')");
+            // drop stats using schema
+            spliceClassWatcher.executeUpdate("CALL  SYSCS_UTIL.DROP_SCHEMA_STATISTICS ('EXTERNALTABLEIT')");
 
-        // make sure it is clean
-        rs2 = methodWatcher.executeQuery("select total_row_count from sysvw.systablestatistics where schemaname = 'EXTERNALTABLEIT' ");
-        Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs2));
-        rs2.close();
+            // make sure it is clean
+            rs2 = methodWatcher.executeQuery("select total_row_count from sysvw.systablestatistics where schemaname = 'EXTERNALTABLEIT' ");
+            Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs2));
+            rs2.close();
+        }
     }
 
     @Test
-     public void testCollectStatsText() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table t1_csv (col1 int, col2 char(24))" +
-                " STORED AS TEXTFILE LOCATION '%s'", getExternalResourceDirectory()+"t1_csv_test"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into t1_csv values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
+    public void testWriteReadArrays() throws Exception {
+        for( String fileFormat : fileFormats) {
+            String name = "TEST_ARRAY_" + fileFormat;
+            String tablePath = getExternalResourceDirectory() + name;
+            methodWatcher.executeUpdate(String.format("create external table " + name + " (col1 int array, col2 varchar(24))" +
+                    " STORED AS PARQUET LOCATION '%s'", tablePath));
+            int insertCount = methodWatcher.executeUpdate(String.format("insert into " + name + " values ([1,1,1],'XXXX')," +
+                    "([2,2,2],'YYYY')," +
+                    "([3,3,3],'ZZZZ')"));
+            Assert.assertEquals("insertCount is wrong", 3, insertCount);
 
-        ResultSet rs;
-        // collect table level stats
-        PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?) ");
-        ps.setString(1, "EXTERNALTABLEIT");
-        ps.setString(2, "T1_CSV");
-        ps.setBoolean(3, true);
-        rs = ps.executeQuery();
-        rs.next();
-        Assert.assertEquals("Error with COLLECT_TABLE_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
-        rs.close();
+            // execute the following once without and once with analyze table
+            for( int i=0; i<2; i++) {
+                if( i == 1 )
+                    methodWatcher.executeQuery("analyze table " + name);
 
-        ResultSet rs2 = methodWatcher.executeQuery("select total_row_count from sysvw.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'T1_CSV'");
-        String expected = "TOTAL_ROW_COUNT |\n" +
-                "------------------\n" +
-                "        3        |";
-        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
-        rs2.close();
-    }
+                ResultSet rs = methodWatcher.executeQuery("select * from " + name);
+                Assert.assertEquals("COL1    |COL2 |\n" +
+                        "-----------------\n" +
+                        "[1, 1, 1] |XXXX |\n" +
+                        "[2, 2, 2] |YYYY |\n" +
+                        "[3, 3, 3] |ZZZZ |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+                ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from " + name);
+                Assert.assertEquals("COL1    |\n" +
+                        "-----------\n" +
+                        "[1, 1, 1] |\n" +
+                        "[2, 2, 2] |\n" +
+                        "[3, 3, 3] |", TestUtils.FormattedResult.ResultFactory.toString(rs2));
 
-    @Test
-    public void testCollectStatsParquet() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table t1_parq (col1 int, col2 char(24))" +
-                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"t1_parq_test"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into t1_parq values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-
-        ResultSet rs;
-        // collect table level stats
-        PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?) ");
-        ps.setString(1, "EXTERNALTABLEIT");
-        ps.setString(2, "T1_PARQ");
-        ps.setBoolean(3, true);
-        rs = ps.executeQuery();
-        rs.next();
-        Assert.assertEquals("Error with COLLECT_TABLE_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
-        rs.close();
-
-        ResultSet rs2 = methodWatcher.executeQuery("select total_row_count from sysvw.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'T1_PARQ'");
-        String expected = "TOTAL_ROW_COUNT |\n" +
-                "------------------\n" +
-                "        3        |";
-        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
-        rs2.close();
-    }
-
-    @Test
-    public void testCollectStatsAvro() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table t1_avro (col1 int, col2 char(24))" +
-                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"t1_avro_test"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into t1_avro values (1,'XXXX')," +
-                "(2,'YYYY')," +
-                "(3,'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-
-        ResultSet rs;
-        // collect table level stats
-        PreparedStatement ps = spliceClassWatcher.prepareCall("CALL  SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?) ");
-        ps.setString(1, "EXTERNALTABLEIT");
-        ps.setString(2, "T1_AVRO");
-        ps.setBoolean(3, true);
-        rs = ps.executeQuery();
-        rs.next();
-        Assert.assertEquals("Error with COLLECT_TABLE_STATISTICS for external table","EXTERNALTABLEIT",  rs.getString(1));
-        rs.close();
-
-        ResultSet rs2 = methodWatcher.executeQuery("select total_row_count from sysvw.systablestatistics where schemaname = 'EXTERNALTABLEIT' and tablename = 'T1_AVRO'");
-        String expected = "TOTAL_ROW_COUNT |\n" +
-                "------------------\n" +
-                "        3        |";
-        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
-        rs2.close();
-
-        ResultSet rs3 = methodWatcher.executeQuery("select * from t1_avro");
-        Assert.assertEquals("COL1 |COL2 |\n" +
-                "------------\n" +
-                "  1  |XXXX |\n" +
-                "  2  |YYYY |\n" +
-                "  3  |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs3));
-        rs3.close();
-    }
-
-    @Test
-    public void testWriteReadArraysParquet() throws Exception {
-
-        String tablePath = getExternalResourceDirectory()+"parquet_array";
-        methodWatcher.executeUpdate(String.format("create external table parquet_array (col1 int array, col2 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s'",tablePath));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into parquet_array values ([1,1,1],'XXXX')," +
-                "([2,2,2],'YYYY')," +
-                "([3,3,3],'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from parquet_array");
-        Assert.assertEquals("COL1    |COL2 |\n" +
-                "-----------------\n" +
-                "[1, 1, 1] |XXXX |\n" +
-                "[2, 2, 2] |YYYY |\n" +
-                "[3, 3, 3] |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from parquet_array");
-        Assert.assertEquals("COL1    |\n" +
-                "-----------\n" +
-                "[1, 1, 1] |\n" +
-                "[2, 2, 2] |\n" +
-                "[3, 3, 3] |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-
-        //Make sure empty file is created
-        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
-    }
-
-    @Test
-    public void testWriteReadArraysAvro() throws Exception {
-
-        String tablePath = getExternalResourceDirectory()+"avro_array";
-        methodWatcher.executeUpdate(String.format("create external table avro_array (col1 int array, col2 varchar(24))" +
-                " STORED AS AVRO LOCATION '%s'",tablePath));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into avro_array values ([1,1,1],'XXXX')," +
-                "([2,2,2],'YYYY')," +
-                "([3,3,3],'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from avro_array");
-        Assert.assertEquals("COL1    |COL2 |\n" +
-                "-----------------\n" +
-                "[1, 1, 1] |XXXX |\n" +
-                "[2, 2, 2] |YYYY |\n" +
-                "[3, 3, 3] |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from avro_array");
-        Assert.assertEquals("COL1    |\n" +
-                "-----------\n" +
-                "[1, 1, 1] |\n" +
-                "[2, 2, 2] |\n" +
-                "[3, 3, 3] |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-
-        //Make sure empty file is created
-        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
-    }
-
-    @Test
-    public void testWriteReadArraysWithStatsParquet() throws Exception {
-
-        String tablePath = getExternalResourceDirectory()+"parquet_array_stats";
-        methodWatcher.executeUpdate(String.format("create external table parquet_array_stats (col1 int array, col2 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s'",tablePath));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into parquet_array_stats values ([1,1,1],'XXXX')," +
-                "([2,2,2],'YYYY')," +
-                "([3,3,3],'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        methodWatcher.executeQuery("analyze table parquet_array_stats");
-
-        ResultSet rs = methodWatcher.executeQuery("select * from parquet_array_stats");
-        Assert.assertEquals("COL1    |COL2 |\n" +
-                "-----------------\n" +
-                "[1, 1, 1] |XXXX |\n" +
-                "[2, 2, 2] |YYYY |\n" +
-                "[3, 3, 3] |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from parquet_array_stats");
-        Assert.assertEquals("COL1    |\n" +
-                "-----------\n" +
-                "[1, 1, 1] |\n" +
-                "[2, 2, 2] |\n" +
-                "[3, 3, 3] |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-
-        //Make sure empty file is created
-        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
-    }
-
-    @Test
-    public void testWriteReadArraysWithStatsAvro() throws Exception {
-
-        String tablePath = getExternalResourceDirectory()+"avro_array_stats";
-        methodWatcher.executeUpdate(String.format("create external table avro_array_stats (col1 int array, col2 varchar(24))" +
-                " STORED AS AVRO LOCATION '%s'",tablePath));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into avro_array_stats values ([1,1,1],'XXXX')," +
-                "([2,2,2],'YYYY')," +
-                "([3,3,3],'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        methodWatcher.executeQuery("analyze table avro_array_stats");
-
-        ResultSet rs = methodWatcher.executeQuery("select * from avro_array_stats");
-        Assert.assertEquals("COL1    |COL2 |\n" +
-                "-----------------\n" +
-                "[1, 1, 1] |XXXX |\n" +
-                "[2, 2, 2] |YYYY |\n" +
-                "[3, 3, 3] |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from avro_array_stats");
-        Assert.assertEquals("COL1    |\n" +
-                "-----------\n" +
-                "[1, 1, 1] |\n" +
-                "[2, 2, 2] |\n" +
-                "[3, 3, 3] |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-
-        //Make sure empty file is created
-        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
-    }
-
-
-    @Test
-    public void testWriteReadArraysORC() throws Exception {
-
-        String tablePath = getExternalResourceDirectory()+"orc_array";
-        methodWatcher.executeUpdate(String.format("create external table orc_array (col1 int array, col2 varchar(24))" +
-                " STORED AS ORC LOCATION '%s'",tablePath));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into orc_array values ([1,1,1],'XXXX')," +
-                "([2,2,2],'YYYY')," +
-                "([3,3,3],'ZZZZ')"));
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        ResultSet rs = methodWatcher.executeQuery("select * from orc_array");
-        Assert.assertEquals("COL1    |COL2 |\n" +
-                "-----------------\n" +
-                "[1, 1, 1] |XXXX |\n" +
-                "[2, 2, 2] |YYYY |\n" +
-                "[3, 3, 3] |ZZZZ |",TestUtils.FormattedResult.ResultFactory.toString(rs));
-        ResultSet rs2 = methodWatcher.executeQuery("select distinct col1 from orc_array");
-        Assert.assertEquals("COL1    |\n" +
-                "-----------\n" +
-                "[1, 1, 1] |\n" +
-                "[2, 2, 2] |\n" +
-                "[3, 3, 3] |",TestUtils.FormattedResult.ResultFactory.toString(rs2));
-
-        //Make sure empty file is created
-        Assert.assertTrue(String.format("Table %s hasn't been created",tablePath), new File(tablePath).exists());
-
+                //Make sure empty file is created
+                Assert.assertTrue(String.format("Table %s hasn't been created", tablePath), new File(tablePath).exists());
+            }
+        }
     }
 
 
