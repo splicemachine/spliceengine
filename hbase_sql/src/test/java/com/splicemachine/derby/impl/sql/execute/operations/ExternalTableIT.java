@@ -1602,80 +1602,22 @@ public class ExternalTableIT extends SpliceUnitTest {
                 " 12  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-
     @Test
-    public void testCannotAlterExternalTable() throws Exception {
-        try {
+    public void testModifyExtTableFails() throws Exception {
+        for( String fileFormat : fileFormats) {
             String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
-            methodWatcher.executeUpdate(String.format("create external table alter_foo (col1 int, col2 varchar(24))" +
+            String name = "ALTER_TABLE_" + fileFormat;
+            methodWatcher.executeUpdate(String.format("create external table " + name + " (col1 int, col2 varchar(24))" +
                     " STORED AS PARQUET LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("alter table alter_foo add column col3 int");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT12",e.getSQLState());
+            assureFails("alter table " + name + " add column col3 int", "EXT12",
+                    fileFormat + ": cannotAlterExternalTable");
+            assureFails("create index add_index_foo_ix on " + name + " (col2)", "EXT13",
+                    fileFormat + ": cannotAddIndexToExternalTable");
+
+            verifyTriggerCreateFails(tb.on(name).named("trig").before().delete().row().then("select * from sys.systables"),
+                    "Cannot add triggers to external table '" + name + "'.");
         }
     }
-
-    @Test
-    public void testCannotAlterExternalTableAvro() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
-            methodWatcher.executeUpdate(String.format("create external table alter_foo_avro (col1 int, col2 varchar(24))" +
-                    " STORED AS AVRO LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("alter table alter_foo_avro add column col3 int");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT12",e.getSQLState());
-        }
-    }
-
-
-    @Test
-    public void testCannotAddIndexToExternalTable() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
-            methodWatcher.executeUpdate(String.format("create external table add_index_foo (col1 int, col2 varchar(24))" +
-                    " STORED AS PARQUET LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("create index add_index_foo_ix on add_index_foo (col2)");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT13",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testCannotAddIndexToExternalTableAvro() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
-            methodWatcher.executeUpdate(String.format("create external table add_index_foo_avro (col1 int, col2 varchar(24))" +
-                    " STORED AS AVRO LOCATION '%s'",tablePath));
-            methodWatcher.executeUpdate("create index add_index_foo_ix on add_index_foo_avro (col2)");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT13",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testCannotAddTriggerToExternalTable() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_MOLITOR";
-        methodWatcher.executeUpdate(String.format("create external table add_trigger_foo (col1 int, col2 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s'",tablePath));
-
-        verifyTriggerCreateFails(tb.on("add_trigger_foo").named("trig").before().delete().row().then("select * from sys.systables"),
-                "Cannot add triggers to external table 'ADD_TRIGGER_FOO'.");
-    }
-
-    @Test
-    public void testCannotAddTriggerToExternalTableAvro() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"/HUMPTY_DUMPTY_AVRO";
-        methodWatcher.executeUpdate(String.format("create external table add_trigger_foo_avro (col1 int, col2 varchar(24))" +
-                " STORED AS AVRO LOCATION '%s'",tablePath));
-
-        verifyTriggerCreateFails(tb.on("add_trigger_foo_avro").named("trig").before().delete().row().then("select * from sys.systables"),
-                "Cannot add triggers to external table 'ADD_TRIGGER_FOO_AVRO'.");
-    }
-
-
-
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
