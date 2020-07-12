@@ -2297,15 +2297,9 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void testFaultyCompressionAvro() throws Exception {
-        try {
-            String tablePath = getExternalResourceDirectory()+"/compression";
-            methodWatcher.executeUpdate(String.format("CREATE EXTERNAL TABLE bad_compression_avro (col1 int) " +
-                    "COMPRESSED WITH TURD " +
-                    "STORED AS AVRO LOCATION '%s'",tablePath));
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","42X01",e.getSQLState());
-        }
+        assureFails(String.format("CREATE EXTERNAL TABLE bad_compression_avro (col1 int) " +
+                        "COMPRESSED WITH TURD STORED AS AVRO LOCATION '%s'",
+                getExternalResourceDirectory()+"/compression"), "42X01", "");
     }
 
     // tests for avro support of date type:
@@ -2413,6 +2407,7 @@ public class ExternalTableIT extends SpliceUnitTest {
         rs3.close();
     }
 
+    @Test
     public void testBroadcastJoinOrcTablesOnSpark() throws Exception {
         methodWatcher.executeUpdate(String.format("create external table l (col1 int)" +
                 " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"left"));
@@ -2703,42 +2698,27 @@ public class ExternalTableIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testShowCreateTableOrcExternalTable() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"show_orc";
-        methodWatcher.execute(String.format("CREATE EXTERNAL TABLE myOrcTable\n" +
-                "                    (col1 INT, col2 VARCHAR(24))\n" +
-                "                    PARTITIONED BY (col1)\n" +
-                "                    STORED AS ORC\n" +
-                "                    LOCATION '%s'", tablePath));
-        ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE('EXTERNALTABLEIT','MYORCTABLE')");
-        rs.next();
-        Assert.assertEquals("CREATE EXTERNAL TABLE \"EXTERNALTABLEIT\".\"MYORCTABLE\" (\n" +
-                "\"COL1\" INTEGER\n" +
-                ",\"COL2\" VARCHAR(24)\n" +
-                ") \n" +
-                "PARTITIONED BY (COL1)\n" +
-                "STORED AS ORC\n" +
-                "LOCATION '" + tablePath + "';" , rs.getString(1));
+    public void testShowCreateTableExternalTable() throws Exception {
+        for( String fileFormat : new String[]{"ORC", "PARQUET", "AVRO", "TEXTFILE"}) {
+            String name = "TEST_SHOW_TABLE_" + fileFormat;
+            String tablePath = getExternalResourceDirectory() + name;
 
-    }
+            methodWatcher.execute(String.format("CREATE EXTERNAL TABLE " + name + "\n" +
+                    "                    (col1 INT, col2 VARCHAR(24))\n" +
+                    "                    PARTITIONED BY (col1)\n" +
+                    "                    STORED AS " + fileFormat + "\n" +
+                    "                    LOCATION '%s'", tablePath));
+            ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE('EXTERNALTABLEIT','" + name + "')");
+            rs.next();
+            Assert.assertEquals("CREATE EXTERNAL TABLE \"EXTERNALTABLEIT\".\"" + name + "\" (\n" +
+                    "\"COL1\" INTEGER\n" +
+                    ",\"COL2\" VARCHAR(24)\n" +
+                    ") \n" +
+                    "PARTITIONED BY (COL1)\n" +
+                    "STORED AS " + fileFormat  + "\n" +
+                    "LOCATION '" + tablePath + "';", rs.getString(1));
+        }
 
-    @Test
-    public void testShowCreateTableParquetExternalTable() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"show_parquet";
-        methodWatcher.execute(String.format("CREATE EXTERNAL TABLE myParquetTable\n" +
-                "                    (col1 INT, col2 VARCHAR(24))\n" +
-                "                    PARTITIONED BY (col2)\n" +
-                "                    STORED AS PARQUET\n" +
-                "                    LOCATION '%s'" , tablePath));
-        ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE('EXTERNALTABLEIT','MYPARQUETTABLE')");
-        rs.next();
-        Assert.assertEquals("CREATE EXTERNAL TABLE \"EXTERNALTABLEIT\".\"MYPARQUETTABLE\" (\n" +
-                "\"COL1\" INTEGER\n" +
-                ",\"COL2\" VARCHAR(24)\n" +
-                ") \n" +
-                "PARTITIONED BY (COL2)\n" +
-                "STORED AS PARQUET\n" +
-                "LOCATION '" + tablePath + "';", rs.getString(1));
     }
 
     @Test
@@ -2762,25 +2742,6 @@ public class ExternalTableIT extends SpliceUnitTest {
                 "STORED AS PARQUET\n" +
                 "LOCATION '" + tablePath + "';", rs.getString(1));
 
-    }
-
-    @Test
-    public void testShowCreateTableAvroExternalTable() throws Exception {
-        String tablePath = getExternalResourceDirectory()+"show_avro";
-        methodWatcher.execute(String.format("CREATE EXTERNAL TABLE myAvroTable\n" +
-                "                    (col1 INT, col2 VARCHAR(24))\n" +
-                "                    PARTITIONED BY (col1)\n" +
-                "                    STORED AS AVRO\n" +
-                "                    LOCATION '%s'", tablePath));
-        ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE('EXTERNALTABLEIT','MYAVROTABLE')");
-        rs.next();
-        Assert.assertEquals("CREATE EXTERNAL TABLE \"EXTERNALTABLEIT\".\"MYAVROTABLE\" (\n" +
-                "\"COL1\" INTEGER\n" +
-                ",\"COL2\" VARCHAR(24)\n" +
-                ") \n" +
-                "PARTITIONED BY (COL1)\n" +
-                "STORED AS AVRO\n" +
-                "LOCATION '" + tablePath + "';", rs.getString(1));
     }
 
     @Test
