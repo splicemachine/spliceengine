@@ -1638,93 +1638,56 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void testWriteToWrongPartitionedParquetExternalTable() throws Exception {
-        try {
-            methodWatcher.executeUpdate(String.format("create external table w_partitioned_parquet (col1 int, col2 varchar(24))" +
-                    "partitioned by (col1) STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory() + "w_partitioned_parquet"));
-            methodWatcher.executeUpdate(String.format("insert into w_partitioned_parquet values (1,'XXXX')," +
-                    "(2,'YYYY')," +
-                    "(3,'ZZZZ')"));
-            methodWatcher.executeUpdate(String.format("create external table w_partitioned_parquet_2 (col1 int, col2 varchar(24))" +
-                    "partitioned by (col2) STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory() + "w_partitioned_parquet"));
-            methodWatcher.executeUpdate(String.format("insert into w_partitioned_parquet_2 values (1,'XXXX')," +
-                    "(2,'YYYY')," +
-                    "(3,'ZZZZ')"));
+        for( String fileFormat : fileFormats) {
+            try {
+                String name = "w_partitioned_" + fileFormat;
+                String tablePath = getExternalResourceDirectory() + name;
+                methodWatcher.executeUpdate(String.format("create external table " + name + " (col1 int, col2 varchar(24))" +
+                        "partitioned by (col1) STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
+                methodWatcher.executeUpdate(String.format("insert into " + name + " values (1,'XXXX')," +
+                        "(2,'YYYY')," +
+                        "(3,'ZZZZ')"));
+                methodWatcher.executeUpdate(String.format("create external table " + name + "2 (col1 int, col2 varchar(24))" +
+                        "partitioned by (col2) STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory() + "w_partitioned_parquet"));
+                methodWatcher.executeUpdate(String.format("insert into " + name + "2 values (1,'XXXX')," +
+                        "(2,'YYYY')," +
+                        "(3,'ZZZZ')"));
+                Assert.fail("Exception not thrown");
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+            } catch (Exception e) {
 
-    @Test
-    public void testWriteToWrongPartitionedAvroExternalTable() throws Exception {
-        try {
-            methodWatcher.executeUpdate(String.format("create external table w_partitioned_avro (col1 int, col2 varchar(24))" +
-                    "partitioned by (col1) STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory() + "w_partitioned_avro"));
-            methodWatcher.executeUpdate(String.format("insert into w_partitioned_avro values (1,'XXXX')," +
-                    "(2,'YYYY')," +
-                    "(3,'ZZZZ')"));
-            methodWatcher.executeUpdate(String.format("create external table w_partitioned_avro_2 (col1 int, col2 varchar(24))" +
-                    "partitioned by (col2) STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory() + "w_partitioned_avro"));
-            methodWatcher.executeUpdate(String.format("insert into w_partitioned_avro_2 values (1,'XXXX')," +
-                    "(2,'YYYY')," +
-                    "(3,'ZZZZ')"));
-
-        } catch (Exception e) {
-            e.printStackTrace();
+            }
         }
     }
 
     @Test
     public void testWriteToNotPermittedLocation() throws Exception{
+        for( String fileFormat : fileFormats) {
+            String name = "NO_PERMISSION_" + fileFormat;
+            String filename = getExternalResourceDirectory() + name;
+            methodWatcher.executeUpdate(String.format("create external table " + name + " (col1 int, col2 varchar(24), col3 boolean)" +
+                    " STORED AS " + fileFormat + " LOCATION '%s'", filename));
 
+            File file = new File(filename);
 
-        methodWatcher.executeUpdate(String.format("create external table PARQUET_NO_PERMISSION (col1 int, col2 varchar(24), col3 boolean)" +
-                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"PARQUET_NO_PERMISSION"));
+            // this should be fine
+            methodWatcher.executeUpdate(String.format("insert into " + name + " values (1,'XXXX',true), " +
+                    "(2,'YYYY',false), (3,'ZZZZ', true)"));
+            try {
+                file.setWritable(false);
+                methodWatcher.executeUpdate(String.format("insert into " + name + " values (1,'XXXX',true), " +
+                        "(2,'YYYY',false), (3,'ZZZZ', true)"));
 
-        File file = new File(String.valueOf(getExternalResourceDirectory()+"PARQUET_NO_PERMISSION"));
-
-        try{
-
-            methodWatcher.executeUpdate(String.format("insert into PARQUET_NO_PERMISSION values (1,'XXXX',true), (2,'YYYY',false), (3,'ZZZZ', true)"));
-            file.setWritable(false);
-            methodWatcher.executeUpdate(String.format("insert into  PARQUET_NO_PERMISSION values (1,'XXXX',true), (2,'YYYY',false), (3,'ZZZZ', true)"));
-
-            // we don't want to have a unwritable file in the folder, clean it up
-            file.setWritable(true);
-            file.delete();
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            // we don't want to have a unwritable file in the folder, clean it up
-            file.setWritable(true);
-            file.delete();
-            Assert.assertEquals("Wrong Exception","SE010",e.getSQLState());
-        }
-    }
-
-    @Test
-    public void testWriteToNotPermittedLocationAvro() throws Exception{
-
-
-        methodWatcher.executeUpdate(String.format("create external table AVRO_NO_PERMISSION (col1 int, col2 varchar(24), col3 boolean)" +
-                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"AVRO_NO_PERMISSION"));
-
-        File file = new File(String.valueOf(getExternalResourceDirectory()+"AVRO_NO_PERMISSION"));
-
-        try{
-
-            methodWatcher.executeUpdate(String.format("insert into AVRO_NO_PERMISSION values (1,'XXXX',true), (2,'YYYY',false), (3,'ZZZZ', true)"));
-            file.setWritable(false);
-            methodWatcher.executeUpdate(String.format("insert into  AVRO_NO_PERMISSION values (1,'XXXX',true), (2,'YYYY',false), (3,'ZZZZ', true)"));
-
-            // we don't want to have a unwritable file in the folder, clean it up
-            file.setWritable(true);
-            file.delete();
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            // we don't want to have a unwritable file in the folder, clean it up
-            file.setWritable(true);
-            file.delete();
-            Assert.assertEquals("Wrong Exception","SE010",e.getSQLState());
+                // we don't want to have a unwritable file in the folder, clean it up
+                file.setWritable(true);
+                file.delete();
+                Assert.fail("Exception not thrown");
+            } catch (SQLException e) {
+                // we don't want to have a unwritable file in the folder, clean it up
+                file.setWritable(true);
+                file.delete();
+                Assert.assertEquals("Wrong Exception", "SE010", e.getSQLState());
+            }
         }
     }
 
