@@ -713,6 +713,16 @@ public abstract class TableOperatorNode extends FromTable{
     }
 
     /**
+     * Return true if the node references temporary tables no matter under which schema
+     *
+     * @return true if references temporary tables, else false
+     */
+    @Override
+    public boolean referencesTemporaryTable() {
+        return leftResultSet.referencesTemporaryTable() || rightResultSet.referencesTemporaryTable();
+    }
+
+    /**
      * Optimize a source result set to this table operator.
      *
      * @throws StandardException Thrown on error

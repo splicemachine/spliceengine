@@ -209,7 +209,7 @@ public class TableElementList extends QueryTreeNodeVector {
 			if (tableElement instanceof ColumnDefinitionNode)
 			{
 				ColumnDefinitionNode cdn = (ColumnDefinitionNode) elementAt(index);
-				if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE &&
+				if (tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE &&
 					(cdn.getType().getTypeId().isLongConcatableTypeId() ||
 					cdn.getType().getTypeId().isUserDefinedTypeId()))
 				{

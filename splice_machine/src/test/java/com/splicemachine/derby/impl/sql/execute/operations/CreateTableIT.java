@@ -169,13 +169,18 @@ public class CreateTableIT extends SpliceUnitTest {
     }
 
     private void testCreateTableIfNotExists(String tableType) throws Exception {
-        String tableName = String.format("TEST_CREATE_%s_TABLE_IF_NOT_EXISTS_07061143", tableType.replaceAll(" ", "_").toUpperCase());
+        String tableName = String.format("TESTCREATE%sTABLEIFNOTEXISTS07061143", tableType.replaceAll(" ", "").toUpperCase());
+        String tableNamePattern = tableName;
+
+        if (tableType.equals("local temporary") || tableType.equals("global temporary")) {
+            tableNamePattern += "____________________%";
+        }
 
         try {
             methodWatcher.executeUpdate(String.format("drop table if exists %s.%s", schema.schemaName, tableName));
             methodWatcher.executeUpdate(appendStorage(String.format("create %s table if not exists %s.%s (c int)", tableType, schema.schemaName, tableName), tableType));
 
-            ResultSet rs = methodWatcher.executeQuery(String.format("select tablename from sys.systables where tablename = '%s'", tableName));
+            ResultSet rs = methodWatcher.executeQuery(String.format("select tablename from sys.systables where tablename like '%s'", tableNamePattern));
             String s = TestUtils.FormattedResult.ResultFactory.toString(rs);
             Assert.assertTrue(tableName + " has not been created", s.contains(tableName));
 

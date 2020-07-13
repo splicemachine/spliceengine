@@ -55,7 +55,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ReuseFactory;
-import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.vti.DeferModification;
 
 import java.lang.reflect.Modifier;
@@ -450,11 +449,22 @@ public class DeleteNode extends DMLModStatementNode
      *
      * @exception StandardException        Thrown on error
      */
+    @Override
     public boolean referencesSessionSchema()
         throws StandardException
     {
         //If delete table is on a SESSION schema table, then return true.
         return resultSet.referencesSessionSchema();
+    }
+
+    /**
+     * Return true if the node references temporary tables no matter under which schema
+     *
+     * @return true if references temporary tables, else false
+     */
+    @Override
+    public boolean referencesTemporaryTable() {
+        return resultSet.referencesTemporaryTable();
     }
 
     /**

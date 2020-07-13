@@ -134,11 +134,22 @@ public class DropPinNode extends DDLStatementNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
+	@Override
 	public boolean referencesSessionSchema()
 		throws StandardException
 	{
 		//If table being dropped is in SESSION schema, then return true. 
 		return isSessionSchema(td.getSchemaDescriptor());
+	}
+
+	/**
+	 * Return true if the node references temporary tables no matter under which schema
+	 *
+	 * @return true if references temporary tables, else false
+	 */
+	@Override
+	public boolean referencesTemporaryTable() {
+		return td.isTemporary();
 	}
 
 	// inherit generate() method from DDLStatementNode
@@ -154,9 +165,7 @@ public class DropPinNode extends DDLStatementNode
 		return	getGenericConstantActionFactory().getDropPinConstantAction(
 			getFullName(),
 			getRelativeName(),
-			getSchemaDescriptor(td.getTableType() !=
-								TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE,
-								true),
+			getSchemaDescriptor(!td.isTemporary(), true),
 			conglomerateNumber,
 			td.getUUID(),
 			dropBehavior);

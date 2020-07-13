@@ -178,7 +178,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                     lockGranularity != TableDescriptor.ROW_LOCK_GRANULARITY) {
                 SanityManager.THROWASSERT("Unexpected value for lockGranularity = " + lockGranularity);
             }
-            if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE && !onRollbackDeleteRows) {
+            if (tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE && !onRollbackDeleteRows) {
                 SanityManager.THROWASSERT("Unexpected value for onRollbackDeleteRows = false");
             }
             SanityManager.ASSERT(schemaName != null, "SchemaName is null");
@@ -187,7 +187,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
     @Override
     public String toString() {
-        if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
+        if (tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE)
             return constructToString("DECLARE GLOBAL TEMPORARY TABLE ", tableName);
         else
             return constructToString("CREATE TABLE ", tableName);
@@ -320,14 +320,14 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 columnOrdering, //column sort order - not required for heap
                 collation_ids,
                 properties, // properties
-                tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ?
+                tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
                         (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
                         TransactionController.IS_DEFAULT,
                 splitKeys);
         SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
 
         try {
-            if (tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
+            if (tableType != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
                 if (dd.databaseReplicationEnabled() || dd.schemaReplicationEnabled(schemaName)) {
                     PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
                     admin.enableTableReplication(Long.toString(conglomId));
@@ -341,7 +341,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         //
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
-        if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
+        if ( tableType != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
             td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity,columnInfo.length,
                     delimited,
                     escaped,
@@ -353,7 +353,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                     false
                     );
         } else {
-            td = ddg.newTableDescriptor(tableName, sd, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnInfo.length);
+            td = ddg.newTableDescriptor(lcc.mangleTableName(tableName), sd, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnInfo.length);
             td.setUUID(dd.getUUIDFactory().createUUID());
         }
 
@@ -485,7 +485,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         // The table itself can depend on the user defined types of its columns.
         adjustUDTDependencies(activation, columnInfo, false );
 
-        if ( tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
+        if ( tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
             lcc.addDeclaredGlobalTempTable(td);
         }
 
