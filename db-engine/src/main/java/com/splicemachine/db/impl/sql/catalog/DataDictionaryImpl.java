@@ -1508,6 +1508,79 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     /**
+     * Get a list of TableDescriptors whose table names are in a given range within the given schema.
+     *
+     * @param tableNameStart Starting table name, inclusive.
+     * @param tableNameEnd Ending table name, exclusive.
+     * @param schema The descriptor for the schema the table lives in.
+     *               If null, use the system schema.
+     * @return A list of TableDescriptors whose table names are in range of [tableNameStart, tableNameEnd) in given schema.
+     * @throws StandardException
+     */
+    @Override
+    public List<TableDescriptor> getTableDescriptors(String tableNameStart,String tableNameEnd,
+                                                     SchemaDescriptor schema)
+        throws StandardException
+    {
+        SchemaDescriptor sd=(schema==null)?getSystemSchemaDescriptor():schema;
+
+        UUID schemaUUID=sd.getUUID();
+        if (schemaUUID == null)
+            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, sd.getSchemaName());
+
+        return getTableDescriptorsIndex1Scan(tableNameStart,tableNameEnd,schemaUUID.toString());
+    }
+
+    /**
+     * A ranged scan on systables_index1 (tablename, schemaid).
+     *
+     * @param tableNameStart Starting table name, inclusive.
+     * @param tableNameEnd Ending table name, exclusive.
+     * @param schemaUUID Schema UUID.
+     * @return A list of TableDescriptors whose table names are in range of [tableNameStart, tableNameEnd) in given schema.
+     * @throws StandardException
+     */
+    private List<TableDescriptor> getTableDescriptorsIndex1Scan(String tableNameStart, String tableNameEnd, String schemaUUID)
+            throws StandardException {
+        List<TableDescriptor> tds = new ArrayList<>();
+
+        DataValueDescriptor schemaIDOrderable;
+        DataValueDescriptor tableNameStartOrderable;
+        DataValueDescriptor tableNameEndOrderable;
+        TabInfoImpl ti=coreInfo[SYSTABLES_CORE_NUM];
+
+        tableNameStartOrderable=new SQLVarchar(tableNameStart);
+        tableNameEndOrderable=new SQLVarchar(tableNameEnd);
+        schemaIDOrderable=new SQLChar(schemaUUID);
+
+        /* Set up the start position for the scan */
+        ExecIndexRow startKeyRow=exFactory.getIndexableRow(2);
+        startKeyRow.setColumn(1,tableNameStartOrderable);
+        startKeyRow.setColumn(2,schemaIDOrderable);
+
+        /* Set up the stop position for the scan */
+        ExecIndexRow endKeyRow=exFactory.getIndexableRow(2);
+        endKeyRow.setColumn(1,tableNameEndOrderable);
+        endKeyRow.setColumn(2,schemaIDOrderable);
+
+        getDescriptorsViaIndex(
+                SYSTABLESRowFactory.SYSTABLES_INDEX1_ID,
+                startKeyRow,
+                endKeyRow,
+                null,
+                ti,
+                null,
+                tds,
+                false);
+
+        for (int i = 0; i < tds.size(); i++) {
+            tds.set(i, finishTableDescriptor(tds.get(i)));
+        }
+
+        return tds;
+    }
+
+    /**
      * This method can get called from the DataDictionary cache.
      *
      * @param tableId The UUID of the table
@@ -7382,6 +7455,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return getDescriptorViaIndexMinion(
                 indexId,
                 keyRow,
+                keyRow,
                 scanQualifiers,
                 ti,
                 parentTupleDescriptor,
@@ -7431,6 +7505,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         return getDescriptorViaIndexMinion(indexId,
                 keyRow,
+                keyRow,
                 scanQualifiers,
                 ti,
                 parentTupleDescriptor,
@@ -7440,9 +7515,34 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 tc);
     }
 
+    public final void getDescriptorsViaIndex(int indexId,
+                                                        ExecIndexRow startKeyRow,
+                                                        ExecIndexRow endKeyRow,
+                                                        ScanQualifier[][] scanQualifiers,
+                                                        TabInfoImpl ti,
+                                                        TupleDescriptor parentTupleDescriptor,
+                                                        List list,
+                                                        boolean forUpdate) throws StandardException{
+        // Get the current transaction controller
+        TransactionController tc=getTransactionCompile();
+
+        getDescriptorViaIndexMinion(
+            indexId,
+            startKeyRow,
+            endKeyRow,
+            scanQualifiers,
+            ti,
+            parentTupleDescriptor,
+            list,
+            forUpdate,
+            TransactionController.ISOLATION_REPEATABLE_READ,
+            tc);
+    }
+
 
     public final <T extends TupleDescriptor> T getDescriptorViaIndexMinion(int indexId,
-                                                                           ExecIndexRow keyRow,
+                                                                           ExecIndexRow startKeyRow,
+                                                                           ExecIndexRow endKeyRow,
                                                                            ScanQualifier[][] scanQualifiers,
                                                                            TabInfoImpl ti,
                                                                            TupleDescriptor parentTupleDescriptor,
@@ -7474,10 +7574,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 TransactionController.MODE_RECORD,
                 isolationLevel,
                 null,         // all fields as objects
-                keyRow.getRowArray(),   // start position - first row
+                startKeyRow.getRowArray(),   // start position - first row
                 ScanController.GE,      // startSearchOperation
                 scanQualifiers,         //scanQualifier,
-                keyRow.getRowArray(),   // stop position - through last row
+                endKeyRow.getRowArray(),   // stop position - through last row
                 ScanController.GT);     // stopSearchOperation
         List<RowLocation> rowLocations = new ArrayList();
 

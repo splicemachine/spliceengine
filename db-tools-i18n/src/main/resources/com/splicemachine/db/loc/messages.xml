@@ -1665,7 +1665,7 @@ Guide.
 
             <msg>
                 <name>42995</name>
-                <text>The requested function does not apply to global temporary tables.</text>
+                <text>The requested function does not apply to temporary tables.</text>
             </msg>
 
             <msg>
@@ -3215,6 +3215,19 @@ Guide.
                 <text>Using both useSpark=true and useSpark=false at the same level ('{0}') is illegal</text>
                 <!-- todo(Spark->OLAP) -->
                 <arg>level</arg>
+            </msg>
+
+            <msg>
+                <name>42ZD3</name>
+                <text>INTERNAL ERROR: Invalid internal local temporary table name: '{0}'</text>
+                <arg>tableName</arg>
+            </msg>
+
+            <msg>
+                <name>42ZD4</name>
+                <text>Table '{0}'.'{1}' exists as a local temporary table in another session</text>
+                <arg>schemaName</arg>
+                <arg>tableName</arg>
             </msg>
 
             <msg>

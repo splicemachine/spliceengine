@@ -2017,6 +2017,18 @@ public class SelectNode extends ResultSetNode{
     }
 
     /**
+     * Return true if the node references temporary tables no matter under which schema
+     *
+     * @return true if references temporary tables, else false
+     */
+    @Override
+    public boolean referencesTemporaryTable() {
+        return fromList.referencesTemporaryTable()
+                || (selectSubquerys!=null && selectSubquerys.referencesTemporaryTable())
+                || (whereSubquerys!=null && whereSubquerys.referencesTemporaryTable());
+    }
+
+    /**
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor

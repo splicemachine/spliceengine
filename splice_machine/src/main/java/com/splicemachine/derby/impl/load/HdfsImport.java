@@ -36,6 +36,7 @@ import com.splicemachine.db.impl.load.ColumnInfo;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
@@ -660,6 +661,14 @@ public class HdfsImport {
                 skipSampling = "false";
 
             LanguageConnectionContext lcc = ((EmbedConnection)conn).getLanguageConnection();
+
+            try {
+                TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, schemaName, tableName);
+                tableName = td.getName();
+            }
+            catch (StandardException e) {
+                throw new SQLException(e);
+            }
 
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList);
             String selectList = generateColumnList(lcc,schemaName,tableName,insertColumnList, true, null);

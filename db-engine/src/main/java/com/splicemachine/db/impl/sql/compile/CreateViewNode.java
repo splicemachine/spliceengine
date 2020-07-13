@@ -471,6 +471,16 @@ public class CreateViewNode extends DDLStatementNode
 	}
 
 	/**
+	 * Return true if the node references temporary tables no matter under which schema
+	 *
+	 * @return true if references temporary tables, else false
+	 */
+	@Override
+	public boolean referencesTemporaryTable() {
+		return queryExpression.referencesTemporaryTable();
+	}
+
+	/**
 	 * Create the Constant information that will drive the guts of Execution.
 	 *
 	 * @exception StandardException		Thrown on failure

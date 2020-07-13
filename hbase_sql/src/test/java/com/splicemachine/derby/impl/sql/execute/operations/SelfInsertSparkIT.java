@@ -14,33 +14,27 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTestUtils;
 import com.splicemachine.test.SerialTest;
+import com.splicemachine.test.SlowTest;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test.SlowTest;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 import static org.junit.Assert.assertTrue;
 
@@ -74,12 +68,12 @@ public class SelfInsertSparkIT {
     public SpliceWatcher methodWatcher=new SpliceWatcher(CLASS_NAME);
 
     @BeforeClass
-    public void setup() throws Exception {
+    public static void setup() throws Exception {
         connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate());
     }
 
     @AfterClass
-    public void tearDown() throws Exception {
+    public static void tearDown() throws Exception {
         connection.close();
     }
 
