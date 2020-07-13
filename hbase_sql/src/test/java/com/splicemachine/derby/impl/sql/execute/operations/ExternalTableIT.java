@@ -1350,7 +1350,6 @@ public class ExternalTableIT extends SpliceUnitTest {
     @Test
     public void testWriteToWrongPartitionedParquetExternalTable() throws Exception {
         for( String fileFormat : fileFormats) {
-            try {
                 String name = "w_partitioned_" + fileFormat;
                 String tablePath = getExternalResourceDirectory() + name;
                 methodWatcher.executeUpdate(String.format("create external table " + name + " (col1 int, col2 varchar(24))" +
@@ -1358,16 +1357,8 @@ public class ExternalTableIT extends SpliceUnitTest {
                 methodWatcher.executeUpdate(String.format("insert into " + name + " values (1,'XXXX')," +
                         "(2,'YYYY')," +
                         "(3,'ZZZZ')"));
-                methodWatcher.executeUpdate(String.format("create external table " + name + "2 (col1 int, col2 varchar(24))" +
-                        "partitioned by (col2) STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory() + "w_partitioned_parquet"));
-                methodWatcher.executeUpdate(String.format("insert into " + name + "2 values (1,'XXXX')," +
-                        "(2,'YYYY')," +
-                        "(3,'ZZZZ')"));
-                Assert.fail("Exception not thrown");
-
-            } catch (Exception e) {
-
-            }
+                assureFails(String.format("create external table " + name + "2 (col1 int, col2 varchar(24))" +
+                        "partitioned by (col2) STORED AS " + fileFormat + " LOCATION '%s'", tablePath), "EXT24", "");
         }
     }
 
