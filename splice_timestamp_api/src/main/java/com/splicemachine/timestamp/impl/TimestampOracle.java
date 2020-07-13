@@ -78,7 +78,7 @@ public class TimestampOracle implements TimestampOracleStatistics{
     private void initialize() throws TimestampIOException {
             synchronized(this) {
                 _maxReservedTimestamp = timestampBlockManager.initialize();
-                _timestampCounter.set(_maxReservedTimestamp + TIMESTAMP_INCREMENT);
+                _timestampCounter.updateAndGet(oldTS -> Math.max(oldTS, _maxReservedTimestamp + TIMESTAMP_INCREMENT));
             }
             try {
                 registerJMX();
@@ -91,18 +91,17 @@ public class TimestampOracle implements TimestampOracleStatistics{
         return _timestampCounter.get();
     }
 
-    public synchronized void bumpTimestamp(long timestamp) throws TimestampIOException {
-        if (timestamp > _timestampCounter.get()) {
-            timestampBlockManager.reserveNextBlock(timestamp);
-            _maxReservedTimestamp = timestamp;
-            _timestampCounter.set(timestamp);
+    public synchronized void bumpTimestamp(long newTimestamp) throws TimestampIOException {
+        if (newTimestamp > _timestampCounter.get()) {
+            timestampBlockManager.reserveNextBlock(newTimestamp);
+            _maxReservedTimestamp = newTimestamp;
+            _timestampCounter.updateAndGet(oldTS -> Math.max(oldTS, newTimestamp));
         }
     }
 
     public long getNextTimestamp() throws TimestampIOException {
         long nextTS = _timestampCounter.addAndGet(TIMESTAMP_INCREMENT);
-        long maxTS = _maxReservedTimestamp; // avoid the double volatile read
-        if (nextTS > maxTS) {
+        if (nextTS > _maxReservedTimestamp) {
             reserveNextBlock(nextTS);
         }
         _numTimestampsCreated.incrementAndGet(); // JMX metric
@@ -111,10 +110,12 @@ public class TimestampOracle implements TimestampOracleStatistics{
 
     private synchronized void reserveNextBlock(long nextTS) throws TimestampIOException {
         while (nextTS > _maxReservedTimestamp) {
-            long nextMax = _maxReservedTimestamp + blockSize;
+            long blockCount = (_maxReservedTimestamp - nextTS) / blockSize + 1;
+            long nextMax = _maxReservedTimestamp + blockSize * blockCount;
             timestampBlockManager.reserveNextBlock(nextMax);
             _maxReservedTimestamp = nextMax;
-            _numBlocksReserved.incrementAndGet(); // JMX metric
+            for (int i = 0; i < blockCount; ++i)
+                _numBlocksReserved.incrementAndGet(); // JMX metric
             SpliceLogUtils.debug(LOG, "Next timestamp block reserved with max = %s", _maxReservedTimestamp);
         }
     }

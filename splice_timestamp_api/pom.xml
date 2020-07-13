@@ -25,7 +25,7 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_encoding</artifactId>
-            <version>3.0.0.1962-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
@@ -43,7 +43,7 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_protocol</artifactId>
-            <version>3.0.0.1962-SNAPSHOT</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
