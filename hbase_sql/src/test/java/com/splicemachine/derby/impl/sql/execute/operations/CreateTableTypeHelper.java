@@ -84,7 +84,7 @@ public class CreateTableTypeHelper {
         return new int[]{
                 Types.VARCHAR, Types.CHAR,
                 // Types.DATE, Types.TIME // not supported
-                Types.TIMESTAMP,
+                // Types.TIMESTAMP, // Will be written as BIGINT, not working in 2.8
                 //Types.TINYINT, Types.SMALLINT, // not supported
                 Types.INTEGER, Types.BIGINT,
                 Types.DOUBLE, Types.REAL,
