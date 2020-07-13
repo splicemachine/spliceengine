@@ -224,7 +224,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 					tabSType = "V";
 					break;		
 
-			    case TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE:
+			    case TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE:
 					tabSType = "X";
 					break;		
 
@@ -475,7 +475,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 				tableTypeEnum = TableDescriptor.SYNONYM_TYPE;
 				break;
 			case 'X' :
-				tableTypeEnum = TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE;
+				tableTypeEnum = TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE;
 				break;
 			case 'E' :
 				tableTypeEnum = TableDescriptor.EXTERNAL_TYPE;
@@ -494,7 +494,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		schema = dd.getSchemaDescriptor(schemaUUID, isolationLevel, null);
 
         // If table is temp table, (SESSION) schema will be null
-        if (schema == null && (tableTypeEnum == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)) {
+        if (schema == null && (tableTypeEnum == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE)) {
             schema = dd.getDeclaredGlobalTemporaryTablesSchemaDescriptor();
         }
 

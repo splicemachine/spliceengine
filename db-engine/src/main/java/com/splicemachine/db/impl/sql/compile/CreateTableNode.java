@@ -222,7 +222,7 @@ public class CreateTableNode extends DDLStatementNode
 		throws StandardException
 	{
 		this.createBehavior = ((Integer) createBehavior).intValue();
-		tableType = TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE;
+		tableType = TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE;
 		lockGranularity = TableDescriptor.DEFAULT_LOCK_GRANULARITY;
 		implicitCreateSchema = true;
 
@@ -297,7 +297,7 @@ public class CreateTableNode extends DDLStatementNode
 		if (SanityManager.DEBUG)
 		{
 			String tempString = "";
-			if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
+			if (tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE)
 			{
 				tempString = tempString + "onCommitDeleteRows: " + "\n" + onCommitDeleteRows + "\n";
 				tempString = tempString + "onRollbackDeleteRows: " + "\n" + onRollbackDeleteRows + "\n";
@@ -330,7 +330,7 @@ public class CreateTableNode extends DDLStatementNode
 
 	public String statementToString()
 	{
-		if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
+		if (tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE)
 			return "DECLARE GLOBAL TEMPORARY TABLE";
 		else
 			return "CREATE TABLE";
@@ -357,7 +357,7 @@ public class CreateTableNode extends DDLStatementNode
         int numGenerationClauses = 0;
 
         SchemaDescriptor sd = getSchemaDescriptor
-            ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE, true);
+            ( tableType != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE, true);
 
         TableDescriptor td = getTableDescriptor( objectName.tableName, sd );
         if (td != null && createBehavior == StatementType.CREATE_IF_NOT_EXISTS)
@@ -499,7 +499,7 @@ public class CreateTableNode extends DDLStatementNode
 			//EMPNAME having the default collation of UCS_BASIC
 			tableElementList.setCollationTypesOnCharacterStringColumns(
 				getSchemaDescriptor(
-					tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE,
+					tableType != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE,
 					true));
 		}
 
@@ -550,9 +550,9 @@ public class CreateTableNode extends DDLStatementNode
 
 
 		//temp tables can't have foreign key constraints defined on them
-		if ((tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) &&
+		if ((tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) &&
 			(numReferenceConstraints > 0))
-				throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_DECLARED_GLOBAL_TEMP_TABLE);
+				throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_TEMP_TABLE);
 
 		//each of these constraints have a backing index in the back. We need to make sure that a table never has more
 		//more than 32767 indexes on it and that is why this check.
@@ -598,14 +598,26 @@ public class CreateTableNode extends DDLStatementNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
+	@Override
 	public boolean referencesSessionSchema()
 		throws StandardException
 	{
 		//If table being created/declared is in SESSION schema, then return true.
 		return isSessionSchema(
 			getSchemaDescriptor(
-				tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE,
+				tableType != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE,
 				true));
+	}
+
+	/**
+	 * Return true if the node references temporary tables no matter under which schema
+	 *
+	 * @return true if references temporary tables, else false
+	 */
+	@Override
+	public boolean referencesTemporaryTable()
+	{
+		return tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE;
 	}
 
 	/**
@@ -625,7 +637,7 @@ public class CreateTableNode extends DDLStatementNode
 		/* If we've seen a constraint, then build a constraint list */
 		ConstantAction[] conActions = null;
 
-		SchemaDescriptor sd = getSchemaDescriptor(tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE,true);
+		SchemaDescriptor sd = getSchemaDescriptor(tableType != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE,true);
 		
 		if (numConstraints > 0) {
 			conActions = getGenericConstantActionFactory().createConstraintConstantActionArray(numConstraints);
