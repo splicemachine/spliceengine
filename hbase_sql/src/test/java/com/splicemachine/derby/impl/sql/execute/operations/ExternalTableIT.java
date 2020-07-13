@@ -327,7 +327,16 @@ public class ExternalTableIT extends SpliceUnitTest {
             methodWatcher.executeUpdate(query);
             Assert.fail(test + ": Exception not thrown");
         } catch (SQLException e) {
-            Assert.assertEquals(test + ": Wrong Exception", exceptionType, e.getSQLState());
+            Assert.assertEquals(test + ": Wrong Exception (" + e.getMessage() + ")", exceptionType, e.getSQLState());
+        }
+    }
+
+    void assureQueryFails(String query, String exceptionType, String test) throws Exception {
+        try {
+            methodWatcher.executeQuery(query);
+            Assert.fail(test + ": Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals(test + ": Wrong Exception (" + e.getMessage() + ")", exceptionType, e.getSQLState());
         }
     }
 
@@ -343,20 +352,6 @@ public class ExternalTableIT extends SpliceUnitTest {
 
             assureFails("delete from " + name + " where col1 = 4", "EXT05", "");
             assureFails("update " + name + " set col1 = 4", "EXT05", "");
-        }
-    }
-
-    // tests we can create an external table in a empty directory
-    @Test
-    public void testEmptyDirectory() throws  Exception{
-        for( String fileFormat : fileFormats) {
-            String tablePath = getExternalResourceDirectory() + "empty_directory" + fileFormat;
-            String name = "empty_directory" + fileFormat;
-            new File(tablePath).mkdir();
-
-            methodWatcher.executeUpdate(String.format("create external table " + name +
-                    " (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
         }
     }
 
@@ -2214,35 +2209,24 @@ public class ExternalTableIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testPureEmptyDirectory() throws  Exception{
-        String tablePath = getExternalResourceDirectory()+"pure_empty_directory";
-        File path =  new File(tablePath);
-        path.mkdir();
-        methodWatcher.executeUpdate(String.format("create external table pure_empty_directory (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                    " STORED AS PARQUET LOCATION '%s'",tablePath));
-        FileUtils.cleanDirectory(path);
-
-        ResultSet rs = methodWatcher.executeQuery("select * from pure_empty_directory");
-        String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
-        String expected = "";
-        Assert.assertEquals(actual, expected, actual);
-    }
-
-    @Test
-    public void testNotExistDirectory() throws  Exception{
-        try {
-            String tablePath = getExternalResourceDirectory()+"empty_directory_not_exist";
+    public void testNotExistAndEmptyDirectory() throws Exception {
+        for( String fileFormat : new String[]{"PARQUET", "ORC",  "AVRO", "TEXTFILE"})
+        {
+            String name = "empty_directory_not_exist_" + fileFormat;
+            String tablePath = getExternalResourceDirectory() + name;
             File path =  new File(tablePath);
             path.mkdir();
-            methodWatcher.executeUpdate(String.format("create external table empty_directory_not_exist (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                    " STORED AS PARQUET LOCATION '%s'",tablePath));
+            methodWatcher.executeUpdate(String.format("create external table " + name + " (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
+                    " STORED AS " + fileFormat + " LOCATION '%s'",tablePath));
             FileUtils.deleteDirectory(path);
+            assureQueryFails("select * from " + name, "EXT11", fileFormat + ": testNotExistDir");
 
-            methodWatcher.executeQuery("select * from empty_directory_not_exist");
-            Assert.fail("Exception not thrown");
-        }
-        catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","EXT11",e.getSQLState());
+            path.mkdir();
+            ResultSet rs = methodWatcher.executeQuery("select count(*) from " + name);
+            String expected = "1 |\n----\n 0 |";
+            String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals(expected, resultString);
+            rs.close();
         }
     }
 

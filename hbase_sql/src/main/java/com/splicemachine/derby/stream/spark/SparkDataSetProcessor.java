@@ -344,23 +344,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                           double sampleFraction) throws StandardException {
         try {
             Dataset<Row> table = null;
+            ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
 
             try {
-                DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
-                if( empty_ds != null ) return empty_ds;
-
-                ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
-
                 table = SpliceSpark.getSession()
                         .read()
                         .schema(tableSchema)
                         .parquet(location);
-
-                ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
-
             } catch (Exception e) {
-                return handleExceptionInCaseOfEmptySet(e,location);
+                return handleExceptionSparkRead(e, location, false);
             }
+            ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
             table = processExternalDataset(execRow, table, baseColumnMap, qualifiers, probeValue);
 
             if (useSample) {
@@ -384,33 +378,34 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                        boolean useSample, double sampleFraction) throws StandardException {
         try {
             Dataset<Row> table = null;
+            StructType copy = new StructType(Arrays.copyOf(tableSchema.fields(), tableSchema.fields().length));
+
+            // Infer schema from external files
+            // todo: this is slow on bigger directories, as it's calling getExternalFileSchema,
+            // which will do a spark.read() before doing the spark.read() here ...
+            StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "a");
+            if(dataSchema == null)
+                return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
+
             try {
-                DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
-                if( empty_ds != null ) return empty_ds;
-
-                StructType copy = new StructType(Arrays.copyOf(tableSchema.fields(), tableSchema.fields().length));
-
-                // Infer schema from external files\
-                StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "a");
-
                 SparkSession spark = SpliceSpark.getSession();
                 // Creates a DataFrame from a specified file
                 table = spark.read().schema(dataSchema).format("com.databricks.spark.avro").load(location);
-
-                int i = 0;
-                for (StructField sf : copy.fields()) {
-                    if (sf.dataType().sameType(DataTypes.DateType)) {
-                        String colName = table.schema().fields()[i].name();
-                        table = table.withColumn(colName, table.col(colName).cast(DataTypes.DateType));
-                    }
-                    i++;
-                }
-
-                ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
-
             } catch (Exception e) {
-                return handleExceptionInCaseOfEmptySet(e,location);
+                return handleExceptionSparkRead(e, location, false);
             }
+
+            // todo: find out what this is doing and comment it
+            int i = 0;
+            for (StructField sf : copy.fields()) {
+                if (sf.dataType().sameType(DataTypes.DateType)) {
+                    String colName = table.schema().fields()[i].name();
+                    table = table.withColumn(colName, table.col(colName).cast(DataTypes.DateType));
+                }
+                i++;
+            }
+
+            ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
             table = processExternalDataset(execRow, table,baseColumnMap,qualifiers,probeValue);
 
             if (useSample) {
@@ -435,7 +430,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
      * @return
      * @throws Exception
      */
-    private <V> DataSet<V> handleExceptionInCaseOfEmptySet(Exception e, String location) throws Exception {
+    private <V> DataSet<V> handleExceptionInferSchema(Exception e, String location) throws Exception {
         // Cannot Infer Schema, Argh
         if ((e instanceof AnalysisException || e instanceof FileNotFoundException) && e.getMessage() != null &&
                 (e.getMessage().startsWith("Unable to infer schema") || e.getMessage().startsWith("No Avro files found"))) {
@@ -444,6 +439,19 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 return getEmpty();
         }
         throw e;
+    }
+
+    private <V> DataSet<V> handleExceptionSparkRead(Exception e, String location, boolean checkEmpty) throws Exception {
+        // Cannot Infer Schema, Argh
+        if( e instanceof org.apache.spark.sql.AnalysisException )
+        {
+            if( e.getMessage().startsWith("Path does not exist"))
+                throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
+            if( checkEmpty && e.getMessage().startsWith("Unable to infer schema") && ExternalTableUtils.isEmptyDirectory(location))
+                return getEmpty();
+
+        }
+        throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
     }
 
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH",justification = "Intentional")
@@ -529,7 +537,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     schema = dataset.schema();
                 }
             } catch (Exception e) {
-                handleExceptionInCaseOfEmptySet(e, location);
+                handleExceptionInferSchema(e, location);
             } finally {
                 if (!mergeSchema && fs != null && temp!= null && fs.exists(temp)){
                     fs.delete(temp, true);
@@ -708,6 +716,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         assert baseColumnMap != null:"baseColumnMap Null";
         assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
+            // todo: check why we're using our own reader here.
+            // this has some drawbacks e.g. we have to do this empty check before reading since our reader is doing reading
+            // later, also as filter() will be done SparkScanSetBuilder, and then only fails when doing
+            // sparkDataSet.rdd.rdd().getNumPartitions() in QueryJob.
             DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
             if( empty_ds != null ) return empty_ds;
 
@@ -720,13 +732,19 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             if (statsjob)
                 configuration.set(SpliceOrcNewInputFormat.SPLICE_COLLECTSTATS, "true");
 
-            JavaRDD<Row> rows = SpliceSpark.getContext().newAPIHadoopFile(
-                    location,
-                    SpliceOrcNewInputFormat.class,
-                    NullWritable.class,
-                    Row.class,
-                    configuration)
-                            .values();
+            JavaRDD<Row> rows;
+            try {
+                rows = SpliceSpark.getContext().newAPIHadoopFile(
+                        location,
+                        SpliceOrcNewInputFormat.class,
+                        NullWritable.class,
+                        Row.class,
+                        configuration)
+                        .values();
+            }
+            catch (Exception e) {
+                return handleExceptionSparkRead(e, location, false);
+            }
 
             if (useSample) {
                 return new SparkDataSet(rows.sample(false,sampleFraction).map(new RowToLocatedRowFunction(context, execRow)));
@@ -795,7 +813,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
 
             } catch (Exception e) {
-                return handleExceptionInCaseOfEmptySet(e,location);
+                return handleExceptionSparkRead(e, location, true);
             }
             table = processExternalDataset(execRow, table,baseColumnMap,qualifiers,probeValue);
 
