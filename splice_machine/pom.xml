@@ -165,6 +165,12 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>scala_util</artifactId>
+            <version>${project.version}</version>
+            <classifier>cdh6.3.0-2.4.0-cdh6.3.0_2.11</classifier>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

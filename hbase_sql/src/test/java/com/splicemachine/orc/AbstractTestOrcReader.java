@@ -17,27 +17,53 @@ import com.google.common.base.Strings;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.splicemachine.access.api.DistributedFileSystem;
+import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.derby.stream.spark.SparkUtils;
+import com.splicemachine.derby.stream.utils.ExternalTableUtils;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.spark.splicemachine.SplicePartitioningUtils;
+import com.splicemachine.storage.HNIOFileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.TestFileSystem;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaHiveCharObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaHiveDecimalObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.DecimalTypeInfo;
+import org.apache.spark.sql.execution.datasources.PartitionPath;
+import org.apache.spark.sql.execution.datasources.PartitionSpec;
+import org.apache.spark.sql.execution.datasources.PartitioningUtils;
 import org.apache.spark.sql.types.*;
 import org.joda.time.DateTimeZone;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.weakref.jmx.internal.guava.collect.ContiguousSet;
 import org.weakref.jmx.internal.guava.collect.DiscreteDomain;
 import org.weakref.jmx.internal.guava.collect.Range;
+import scala.Option;
+import scala.Predef;
+import scala.Some;
+import scala.Tuple2;
+import scala.collection.JavaConversions;
+import scala.collection.JavaConverters;
+import scala.collection.immutable.Set;
+import scala.collection.mutable.Seq;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
+import java.net.URISyntaxException;
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.stream.Collectors;
+
 import static com.splicemachine.orc.OrcTester.HIVE_STORAGE_TIME_ZONE;
 import static com.google.common.collect.Iterables.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.nCopies;
 import static java.util.stream.Collectors.toList;
+import static org.apache.hadoop.hive.common.FileUtils.unescapePathName;
 import static org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory.*;
 import static org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory.getCharTypeInfo;
 import static org.junit.Assert.assertEquals;
@@ -238,6 +264,39 @@ public abstract class AbstractTestOrcReader
             throws Exception
     {
         tester.testRoundTrip(javaStringObjectInspector, limit(cycle(ImmutableList.of("apple", "apple pie", "apple\uD835\uDC03", "apple\uFFFD")), 30_000), DataTypes.StringType);
+    }
+
+    // todo: add error test for
+    // "hdfs://host:123/partition_test/web_sales5/ws_sold_date_sk=2450817/c=3.14/part-01434.c000.snappy.parquet",
+    // "hdfs://host:123/partition_test/web_sales5/ws_sold_date_sk=2450817/c=3.14/part-01434.c000.snappy.parquet",
+    // -> Conflicting partition column names detected
+    // todo: add test for more types (date, decimal, string etc.)
+    @Test
+    public void testParsePartitionsFromFiles() throws IOException, URISyntaxException {
+        String[] spaths = {
+                "hdfs://host:123/partition_test/web_sales5/.DS_Store",
+                "hdfs://host:123/partition_test/web_sales5/c=3.14/ws_sold_date_sk=__HIVE_DEFAULT_PARTITION__/part-00042.c000.snappy.parquet",
+                "hdfs://host:123/partition_test/web_sales5/_SUCCESS",
+                "hdfs://host:123/partition_test/web_sales5/c=3.14/ws_sold_date_sk=2450817/part-01434.c000.snappy.parquet",
+                "hdfs://host:123/partition_test/web_sales5/c=3.14/ws_sold_date_sk=2450816/part-00026.c000.snappy.parquet",
+                "hdfs://host:123/partition_test/web_sales5/c=3.14/ws_sold_date_sk=2450818/part-00780.c000.snappy.parquet",
+                "hdfs://host:123/partition_test/web_sales5/c=3.14/ws_sold_date_sk=2450818/part-00780.c001.snappy.parquet",
+                "hdfs://host:123/partition_test/web_sales5/c=3.14/ws_sold_date_sk=2450818/part-00780.c002.snappy.parquet"
+        };
+        Path basePath = new Path( "hdfs://host:123/partition_test/web_sales5/" );
+        HashSet<Path> basePaths = new HashSet<>(); basePaths.add(basePath);
+
+        List<Path> files = Arrays.stream(spaths).map(Path::new).collect(toList());
+
+        com.splicemachine.spark.splicemachine.PartitionSpec ps = ExternalTableUtils.parsePartitionsFromFiles(
+                files, true, basePaths, null,
+            null );
+        Assert.assertEquals(ps.partitions().size(), 4);
+        Assert.assertEquals(ps.partitionColumns().fields().length, 2);
+        Assert.assertEquals(ps.partitionColumns().fields()[0].toString(), "StructField(c,DoubleType,true)");
+        Assert.assertEquals(ps.partitionColumns().fields()[1].toString(), "StructField(ws_sold_date_sk,IntegerType,true)");
+        Assert.assertEquals(ps.partitions().toList().last().toString(),
+                "PartitionPath([3.14,2450818],hdfs://host:123/partition_test/web_sales5/c=3.14/ws_sold_date_sk=2450818)");
     }
 
     @Test

@@ -31,17 +31,24 @@ import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.spark.splicemachine.PartitionSpec;
+import com.splicemachine.spark.splicemachine.SplicePartitioningUtils;
+import org.apache.hadoop.fs.Path;
+import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import scala.Option;
+import scala.collection.JavaConverters;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.net.URISyntaxException;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * Created by tgildersleeve on 8/2/17.
@@ -135,8 +142,68 @@ public class ExternalTableUtils {
         }
         else return datatype.sql();
     }
+
+    // todo(martinrupp): docu
+    public static PartitionSpec parsePartitions(List<Path> directories,
+                                                boolean typeInference,
+                                                java.util.Set<org.apache.hadoop.fs.Path> basePaths,
+                                                Map<String, DataType> userSpecifiedDataTypes,
+                                                TimeZone timeZone) {
+
+        scala.collection.Seq<Path> scala_directories =
+                scala.collection.JavaConverters.collectionAsScalaIterableConverter(directories).asScala().toList();
+        scala.collection.immutable.Set<Path> scala_basePaths =
+                JavaConverters.collectionAsScalaIterableConverter(basePaths).asScala().toSet();
+
+        // todo: user defined types
+//        scala.collection.immutable.Map<String, DataType> scala_userSpecifiedDataTypes = userSpecifiedDataTypes == null
+//                        ? new scala.collection.immutable.HashMap<String, DataType>()
+//                        : JavaConverters.mapAsScalaMapConverter(userSpecifiedDataTypes).asScala().toMap(Predef.<Tuple2<String, DataType>>conforms());
+        Option<StructType> scala_userSpecifiedDataTypes = scala.Option.apply((StructType) null);
+        if (timeZone == null) timeZone = TimeZone.getDefault();
+        boolean caseSensitive = true;
+        return SplicePartitioningUtils.parsePartitions(scala_directories, typeInference, scala_basePaths, scala_userSpecifiedDataTypes, caseSensitive, timeZone);
+    }
+
+    // todo(martinrupp): docu
+    public static List<Path> getDistinctSubdirectoriesOf(List<Path> files, java.util.Set<org.apache.hadoop.fs.Path> basePaths)
+    {
+        return files.stream()
+                .map( s -> s.getParent() ).distinct()
+                .filter( s -> !basePaths.contains(s) ).collect(toList());
+    }
+
+    // todo(martinrupp): docu
+    public static PartitionSpec parsePartitionsFromFiles(List<Path> files,
+                                                         boolean typeInference,
+                                                         java.util.Set<org.apache.hadoop.fs.Path> basePaths,
+                                                         Map<String, DataType> userSpecifiedDataTypes,
+                                                         TimeZone timeZone) {
+        List<Path> directories = getDistinctSubdirectoriesOf(files, basePaths);
+        return parsePartitions( directories, typeInference, basePaths, userSpecifiedDataTypes, timeZone);
+    }
+//
+    public static String getSuggestedSchema(StructType externalSchema, String location) {
+        try {
+            DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
+            return getSuggestedSchema(externalSchema, fileSystem.getInfo(location));
+        } catch (IOException | URISyntaxException e) {
+            return getSuggestedSchema(externalSchema, (FileInfo) null);
+        }
+    }
+
     /// returns a suggested schema for this schema, e.g. `CREATE EXTERNAL TABLE T (a_float REAL, a_double DOUBLE);`
-    public static String getSuggestedSchema(StructType externalSchema) {
+    public static String getSuggestedSchema(StructType externalSchema, FileInfo fileInfo) {
+        StructType partition_schema = null;
+        if( fileInfo != null ) {
+            FileInfo[] fileInfos = fileInfo.listRecursive();
+            List<Path> files = java.util.Arrays.stream(fileInfos).map(s -> new Path(s.fullPath())).collect(Collectors.toList());
+            Set<Path> basePaths = Collections.singleton(new Path(fileInfo.fullPath()));
+            PartitionSpec partitionSpec = parsePartitionsFromFiles(files, true, basePaths,
+                    null, null);
+            partition_schema = partitionSpec.partitionColumns();
+        }
+
         StringBuilder sb = new StringBuilder();
         sb.append( "CREATE EXTERNAL TABLE T (" );
         for( int i =0 ; i < externalSchema.fields().length; i++)
@@ -148,7 +215,22 @@ public class ExternalTableUtils {
             if( !f.nullable() )
                 sb.append(" NOT NULL");
         }
-        sb.append( ");" );
+        sb.append( ")" );
+        if( partition_schema.size() > 0 )
+        {
+            sb.append( " PARTITIONED BY(" );
+            for( int i =0 ; i < partition_schema.fields().length; i++)
+            {
+                if( i > 0 ) sb.append( ", " );
+                sb.append( partition_schema.fields()[i].name() + " ");
+            }
+            sb.append( ")" );
+        }
+        sb.append( ";" );
+        if( fileInfo == null )
+        {
+            sb.append(" (note: could not check path, so no PARTITIONED BY information available)");
+        }
         return sb.toString();
     }
 
@@ -163,7 +245,7 @@ public class ExternalTableUtils {
 
         if (tableFields.length != externalFields.length) {
             throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE,
-                    tableFields.length, externalFields.length, location, getSuggestedSchema(externalSchema) );
+                    tableFields.length, externalFields.length, location, getSuggestedSchema(externalSchema, location) );
         }
 
         StructField[] partitionedTableFields = new StructField[tableSchema.fields().length];
@@ -186,7 +268,7 @@ public class ExternalTableUtils {
                 throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES,
                         tableFields[i].name(), getSqlTypeName(tableFields[i].dataType()),
                         externalFields[i].name(), getSqlTypeName(externalFields[i].dataType()),
-                        location, getSuggestedSchema(externalSchema) );
+                        location, getSuggestedSchema(externalSchema, location) );
             }
         }
     }

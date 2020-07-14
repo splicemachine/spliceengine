@@ -18,6 +18,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -47,9 +48,11 @@ import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.spark.splicemachine.PartitionSpec;
 import com.splicemachine.utils.IndentedString;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.sun.tools.doclets.internal.toolkit.util.Extern;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -80,6 +83,7 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Spark-based DataSetProcessor.
@@ -458,53 +462,24 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException {
         StructType schema = null;
+        StructType partition_schema = null;
+
         Configuration conf = HConfiguration.unwrapDelegate();
-        FileSystem fs = null;
-        Path temp = null;
         // normalize location string
         location = new Path(location).toString();
         try {
-
             if (!mergeSchema) {
-                fs = FileSystem.get(URI.create(location), conf);
+                // get one file out of the directory tree
+                FileSystem fs = FileSystem.get(URI.create(location), conf);
                 String fileName = getFile(fs, location);
-                boolean canWrite = true;
-                if( (fileName == null || (fs.getFileStatus(new Path(location)).getPermission().toShort() & 0222) == 0 )) {
-                    canWrite = false;
-                }
-                else {
-                    temp = new Path(location, TEMP_DIR_PREFIX + "_" + UUID.randomUUID().toString().replaceAll("-", ""));
-
-                    try {
-                        fs.mkdirs(temp);
-                    } catch (IOException e) {
-                        canWrite = false;
-                        temp = null;
-                    }
-                }
-
-                if( canWrite )
-                {
-                    SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
-                    // Copy a data file to temp directory
-                    int index = fileName.indexOf(location);
-                    if (index != -1) {
-                        String s = fileName.substring(index + location.length() + 1);
-                        Path destDir = new Path(temp, s);
-                        try {
-                            FileUtil.copy(fs, new Path(fileName), fs, destDir, false, conf);
-                            location = temp.toString();
-                        } catch (IOException e) {
-                            canWrite = false;
-                        }
-                    }
-                }
-
-                if( !canWrite )
-                {
-                    SpliceLogUtils.info(LOG, "couldn't create temporary directory %s, " +
-                            "will read schema from whole directory", temp);
-                }
+                // analyze the directory partitions
+                List<Path> files = Collections.singletonList( new Path(fileName) );
+                Set<Path> basePaths = Collections.singleton( new Path(location) );
+                PartitionSpec partitionSpec = ExternalTableUtils.parsePartitionsFromFiles(files,
+                        true, basePaths, null, null);
+                partition_schema = partitionSpec.partitionColumns();
+                // use Spark to only analyze this one file
+                location = fileName;
             }
             try {
                 Dataset dataset = null;
@@ -534,15 +509,23 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                         throw new UnsupportedOperationException("Unsupported storedAs " + storedAs);
                     }
                     dataset.printSchema();
-                    schema = dataset.schema();
+
+                    if( partition_schema != null )
+                    {
+                        // add directory-partitioning to the end just like spark does
+                        StructType table_schema = dataset.schema();
+                        schema = new StructType( table_schema.fields() );
+                        for( StructField f : partition_schema.fields() ) {
+                            schema = schema.add(f);
+                        }
+                    }
+                    else
+                    {
+                        schema = dataset.schema();
+                    }
                 }
             } catch (Exception e) {
                 handleExceptionInferSchema(e, location);
-            } finally {
-                if (!mergeSchema && fs != null && temp!= null && fs.exists(temp)){
-                    fs.delete(temp, true);
-                    SpliceLogUtils.info(LOG, "deleted temporary directory %s", temp);
-                }
             }
         }catch (Exception e) {
             throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
