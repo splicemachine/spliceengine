@@ -511,6 +511,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createReplicationTables(tc);
 
         createTableColumnViewInSysIBM(tc);
+        
+        createAliasToTableSystemView(tc);
     }
 
     @Override
@@ -1580,5 +1582,21 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
             SpliceLogUtils.info(LOG, "Dropped index %s", "SYSFILES_INDEX3");
         }
+    }
+
+    public void createAliasToTableSystemView(TransactionController tc) throws StandardException {
+        tc.elevate("dictionary");
+        //Add the SYSVW schema if it does not exists
+        if (getSchemaDescriptor(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, tc, false) == null) {
+            SpliceLogUtils.info(LOG, "SYSVW does not exist, system views for permission tables are not created!");
+            return;
+        }
+
+        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
+
+        // create sysaliastotableview
+        createOneSystemView(tc, SYSALIASES_CATALOG_NUM, "SYSALIASTOTABLEVIEW", 0, sysVWSchema, SYSALIASESRowFactory.SYSALIAS_TO_TABLE_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "System View SYSALIASTOTABLEVIEW created in SYSVW!");
     }
 }

@@ -251,11 +251,11 @@ public abstract class EmbedConnection implements EngineConnection
 												isEncryptionBoot(info));
 			boolean isTwoPhaseUpgradeBoot = (!createBoot &&
 											 isHardUpgradeBoot(info));
-			boolean isStartSlaveBoot = isStartReplicationSlaveBoot(info);
-            // Set to true if startSlave command is attempted on an
+			boolean isStartReplicaBoot = isStartReplicationReplicaBoot(info);
+            // Set to true if startReplica command is attempted on an
             // already booted database. Will raise an exception when
             // credentials have been verified
-            boolean slaveDBAlreadyBooted = false;
+            boolean replicaDBAlreadyBooted = false;
 
             boolean isFailoverMasterBoot = false;
             final boolean dropDatabase = isDropDatabase(info);
@@ -330,10 +330,10 @@ public abstract class EmbedConnection implements EngineConnection
             try {
                 checkUserCredentials( false, tr.getDBName(), info );
             } catch (SQLException sqle) {
-                if (isStartSlaveBoot && !slaveDBAlreadyBooted) {
+                if (isStartReplicaBoot && !replicaDBAlreadyBooted) {
                     // Failing credentials check on a previously
                     // unbooted db should not leave the db booted
-                    // for startSlave command.
+                    // for startReplica command.
 
                     // tr.startTransaction is needed to get the
                     // Database context. Without this context,
@@ -576,14 +576,14 @@ public abstract class EmbedConnection implements EngineConnection
                 p.getProperty(Attribute.UPGRADE_ATTR));
 	}
 
-    private boolean isStartReplicationSlaveBoot(Properties p) {
+    private boolean isStartReplicationReplicaBoot(Properties p) {
         return ((Boolean.valueOf(
-                p.getProperty(Attribute.REPLICATION_START_SLAVE))));
+                p.getProperty(Attribute.REPLICATION_START_REPLICA))));
     }
 
-    private boolean isStartReplicationMasterBoot(Properties p) {
+    private boolean isStartReplicationPrimaryBoot(Properties p) {
         return ((Boolean.valueOf(
-                p.getProperty(Attribute.REPLICATION_START_MASTER))));
+                p.getProperty(Attribute.REPLICATION_START_PRIMARY))));
     }
     
     /**
@@ -600,20 +600,20 @@ public abstract class EmbedConnection implements EngineConnection
 
     private boolean isStopReplicationMasterBoot(Properties p) {
         return ((Boolean.valueOf(
-                p.getProperty(Attribute.REPLICATION_STOP_MASTER))));
+                p.getProperty(Attribute.REPLICATION_STOP_PRIMARY))));
     }
     
     /**
      * Examine the boot properties and determine if a boot with the
-     * given attributes should stop slave replication mode.
+     * given attributes should stop replica replication mode.
      * 
      * @param p The attribute set.
-     * @return true if the stopSlave attribute has been set, false
+     * @return true if the stopReplica attribute has been set, false
      * otherwise.
      */
-    private boolean isStopReplicationSlaveBoot(Properties p) {
+    private boolean isStopReplicationReplicaBoot(Properties p) {
         return Boolean.valueOf(
-                p.getProperty(Attribute.REPLICATION_STOP_SLAVE));
+                p.getProperty(Attribute.REPLICATION_STOP_REPLICA));
     }
 
  	/**
