@@ -537,7 +537,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
     }
 
-    protected void processRowIdReferenceInFromBaseTableChild() throws StandardException {
+    private void processRowIdReferenceInFromBaseTableChild() throws StandardException {
         if (childResult instanceof FromBaseTable && ((FromBaseTable) childResult).getRowIdColumn() != null && restrictionList != null) {
             // check if the restriction list contains any rowid reference, then add another level of PR and unmap it
             CollectNodesVisitor nodesVisitor = new CollectNodesVisitor(ColumnReference.class, null);

@@ -576,7 +576,7 @@ forever: for (;;) {
 	 * @param parent parent context manager
 	 * @param stream error stream for reporting errors
 	 */
-	protected ContextManager(ContextManager parent, HeaderPrintWriter stream)
+	ContextManager(ContextManager parent, HeaderPrintWriter stream)
 	{
 		this.parent = parent;
 		errorStream = stream;
