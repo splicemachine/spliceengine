@@ -41,13 +41,15 @@ import java.sql.SQLException;
  */
 public interface SessionProperties {
     enum PROPERTYNAME{
-        USESPARK(0),
+        USEOLAP(0),
         DEFAULTSELECTIVITYFACTOR(1),
         SKIPSTATS(2),
         RECURSIVEQUERYITERATIONLIMIT(3),
         OLAPQUEUE(4),
         SNAPSHOT_TIMESTAMP(5),
-        DISABLE_TC_PUSHED_DOWN_INTO_VIEWS(6);
+        DISABLE_TC_PUSHED_DOWN_INTO_VIEWS(6),
+        OLAPPARALLELPARTITIONS(7),
+        OLAPSHUFFLEPARTITIONS(8);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
@@ -75,11 +77,13 @@ public interface SessionProperties {
     static Pair<PROPERTYNAME, String> validatePropertyAndValue(Pair<String, String> pair) throws StandardException {
         String propertyNameString = pair.getFirst();
         SessionProperties.PROPERTYNAME property;
+        if( propertyNameString.equalsIgnoreCase("useSpark" ) )
+            propertyNameString = "USEOLAP";
         try {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                    "useSpark, defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit");
+                    "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit");
         }
 
         String valString = pair.getSecond();
@@ -87,7 +91,7 @@ public interface SessionProperties {
             return new Pair(property, "null");
 
         switch (property) {
-            case USESPARK:
+            case USEOLAP:
             case SKIPSTATS:
             case DISABLE_TC_PUSHED_DOWN_INTO_VIEWS:
                 try {
@@ -108,13 +112,15 @@ public interface SessionProperties {
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value in the range(0,1] or null");
                 break;
             case RECURSIVEQUERYITERATIONLIMIT:
-                int recursivequeryIterationLimit;
+            case OLAPPARALLELPARTITIONS:
+            case OLAPSHUFFLEPARTITIONS:
+                int value;
                 try {
-                    recursivequeryIterationLimit = Integer.parseInt(valString);
+                    value = Integer.parseInt(valString);
                 } catch (Exception parseIntE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive integer or null");
                 }
-                if (recursivequeryIterationLimit <= 0)
+                if (value <= 0)
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive integer or null");
                 break;
             case SNAPSHOT_TIMESTAMP:

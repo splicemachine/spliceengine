@@ -299,21 +299,21 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @Test
     public void testUseSpark() throws Exception {
-        String sql = format("explain select * from %s.%s --SPLICE-PROPERTIES useSpark=false", CLASS_NAME, TABLE_NAME);
+        String sql = format("explain select * from %s.%s --SPLICE-PROPERTIES useOLAP=false", CLASS_NAME, TABLE_NAME);
         ResultSet rs  = methodWatcher.executeQuery(sql);
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=OLTP"));
+        Assert.assertTrue("expect explain plan contains engine=OLTP", rs.getString(1).contains("engine=OLTP"));
 
         sql = format("explain select * from %s.%s", CLASS_NAME, TABLE_NAME);
         rs  = methodWatcher.executeQuery(sql);
         Assert.assertTrue(rs.next());
-        Assert.assertTrue("expect explain plan contains useSpark=true", rs.getString(1).contains("engine=OLAP"));
+        Assert.assertTrue("expect explain plan contains engine=OLAP", rs.getString(1).contains("engine=OLAP"));
 
     }
 
     @Test
     public void testSparkConnection() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
+        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useOLAP=true";
         try( ConnectionStatementWrapper s = new ConnectionStatementWrapper(DriverManager.getConnection(url, new Properties()), CLASS_NAME.toUpperCase()) )
         {
             ResultSet rs = s.executeQuery("explain select * from A");
@@ -324,12 +324,16 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @Test
     public void testControlConnection() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=false";
-        try( ConnectionStatementWrapper s = new ConnectionStatementWrapper(DriverManager.getConnection(url, new Properties()), CLASS_NAME.toUpperCase()) )
-        {
-            ResultSet rs = s.executeQuery("explain select * from A");
-            Assert.assertTrue(rs.next());
-            Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=OLTP"));
+        String types[] = { "useSpark", "useOLAP" };
+        for( String type : types ) {
+            String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;" + type + "=false";
+            try( ConnectionStatementWrapper s = new ConnectionStatementWrapper(
+                 DriverManager.getConnection(url, new Properties()), CLASS_NAME.toUpperCase()) )
+            {
+                ResultSet rs = s.executeQuery("explain select * from A");
+                Assert.assertTrue(rs.next());
+                Assert.assertTrue("expect explain plan contains useSpark=false", rs.getString(1).contains("engine=OLTP"));
+            }
         }
     }
 
@@ -353,7 +357,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
                 "left join t2 b on a.c1=b.c1\n" +
                 "left join t2 c on b.c2=c.c2\n" +
                 "where a.c2 not in (1, 2, 3) and c.c1 > 0";
-        
+
         // Make sure predicate on a.c2 is pushed down to the base table scan
         String predicate = "preds=[(A.C2[0:2] <> 1),(A.C2[0:2] <> 2),(A.C2[0:2] <> 3)]";
         ResultSet rs  = methodWatcher.executeQuery(query);

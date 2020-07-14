@@ -49,9 +49,9 @@ public class SessionPropertiesImpl implements SessionProperties {
         }
 
         switch (property) {
-            case USESPARK:
-                boolean useSparkVal = Boolean.valueOf(valString);
-                properties[USESPARK.getId()] = useSparkVal;
+            case USEOLAP:
+                boolean useOlapVal = Boolean.valueOf(valString);
+                properties[USEOLAP.getId()] = useOlapVal;
                 break;
             case DEFAULTSELECTIVITYFACTOR:
                 double defaultSelectivityFactor = Double.parseDouble(valString);
@@ -67,6 +67,14 @@ public class SessionPropertiesImpl implements SessionProperties {
             case RECURSIVEQUERYITERATIONLIMIT:
                 int recursiveQueryIterationLimit = Integer.parseInt(valString);
                 properties[RECURSIVEQUERYITERATIONLIMIT.getId()] = recursiveQueryIterationLimit;
+                break;
+            case OLAPPARALLELPARTITIONS:
+                int parallelPartitions = Integer.parseInt(valString);
+                properties[OLAPPARALLELPARTITIONS.getId()] = parallelPartitions;
+                break;
+            case OLAPSHUFFLEPARTITIONS:
+                int shufflePartitions = Integer.parseInt(valString);
+                properties[OLAPSHUFFLEPARTITIONS.getId()] = shufflePartitions;
                 break;
             case SNAPSHOT_TIMESTAMP:
                 long timestamp = Long.parseLong(valString);

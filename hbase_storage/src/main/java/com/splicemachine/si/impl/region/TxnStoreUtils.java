@@ -31,7 +31,7 @@ public class TxnStoreUtils{
                                                   long keepAliveTimeoutMs){
         if (SIDriver.driver() != null) {
             String role = SIDriver.driver().lifecycleManager().getReplicationRole();
-            if (role != null && role.equals("SLAVE"))
+            if (role != null && role.equals("REPLICA"))
                 return currentState;
         }
 
