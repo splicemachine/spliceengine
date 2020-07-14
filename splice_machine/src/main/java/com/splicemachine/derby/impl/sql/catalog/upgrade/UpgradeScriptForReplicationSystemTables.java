@@ -25,7 +25,7 @@ import org.apache.log4j.Logger;
  */
 public class UpgradeScriptForReplicationSystemTables extends UpgradeScriptBase {
 
-    private static final Logger LOG = Logger.getLogger(UpgradeScriptForDroppedConglomerates.class);
+    private static final Logger LOG = Logger.getLogger(UpgradeScriptForReplicationSystemTables.class);
     public UpgradeScriptForReplicationSystemTables(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }
