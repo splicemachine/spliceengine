@@ -176,6 +176,27 @@ public class HNIOFileSystem extends DistributedFileSystem{
             }
         }
 
+        public HFileInfo(FileStatus fileStatus) {
+            this.fileStatus = fileStatus;
+            this.path = fileStatus.getPath();
+        }
+
+        @Override
+        public FileInfo[] listRecursive() {
+            if( !exists() ) return new FileInfo[] {};
+            if( !isDirectory() ) return new FileInfo[] { this };
+            try {
+                listRoot();
+            } catch (IOException e) {
+                return new FileInfo[] {};
+            }
+            FileInfo[] res = new FileInfo[rootFileStatusList.size()];
+            for( int i=0; i < rootFileStatusList.size(); i++ ) {
+                res[i] = new HFileInfo(rootFileStatusList.get(i));
+            }
+            return res;
+        }
+
         // these two methods are to avoid having to re-calculate the list of files in the directory
         // for isEmptyDirectory, size() and fileCount()
         private List<LocatedFileStatus> listRoot() throws IOException {
