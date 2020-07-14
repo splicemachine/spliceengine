@@ -35,14 +35,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 
-import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.List;
 
@@ -80,31 +76,14 @@ public final class ToInstantOperatorNode extends UnaryOperatorNode {
         assert timestampTypeId != null;
         setType(new DataTypeDescriptor(timestampTypeId, operand.getTypeServices().isNullable()));
         setOperator("to_instant");
+        setMethodName("ToInstant");
         return this;
     }
 
     @Override
-    public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb)
-            throws StandardException {
+    public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
         operand.generateExpression(acb, mb);
         mb.upCast(ClassName.DataValueDescriptor);
-        mb.callMethod(VMOpcode.INVOKESTATIC, "com.splicemachine.db.iapi.util.RowIdUtil", "toInstant", ClassName.DateTimeDataValue, 1);
+        mb.callMethod(VMOpcode.INVOKESTATIC, ClassName.RowIdUtil, "toInstant", ClassName.DateTimeDataValue, 1);
     }
-
-    /**
-     * Bind a prepared parameter operand of the TO_INSTANT function.
-     */
-//    void bindParameter() throws StandardException
-//    {
-//        operand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(parameterType, true, parameterWidth));
-//    }
-
-
-
-//    /**
-//     * Since
-//     */
-//    public String getReceiverInterfaceName() {
-//        return ClassName.ConcatableDataValue;
-//    }
 }
