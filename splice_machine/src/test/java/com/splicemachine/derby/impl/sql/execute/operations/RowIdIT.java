@@ -15,6 +15,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DateTimeDataValue;
+import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.util.RowIdUtil;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import org.junit.*;
@@ -22,10 +25,9 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.PreparedStatement;
-import java.sql.RowId;
+import java.sql.*;
+
+import static org.junit.Assert.fail;
 
 /**
  * Created by jyuan on 9/28/14.
@@ -40,6 +42,7 @@ public class RowIdIT extends SpliceUnitTest {
     public static final String TABLE4_NAME = "D";
     public static final String TABLE5_NAME = "E";
     public static final String TABLE6_NAME = "F";
+    public static final String TABLE7_NAME = "G";
 
     protected final static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -53,6 +56,7 @@ public class RowIdIT extends SpliceUnitTest {
     protected final static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE4_NAME,CLASS_NAME, tableDef3);
     protected final static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE5_NAME,CLASS_NAME, tableDef3);
     protected final static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE6_NAME,CLASS_NAME, tableDef4);
+    protected final static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE7_NAME,CLASS_NAME, tableDef);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -150,7 +154,20 @@ public class RowIdIT extends SpliceUnitTest {
                         throw new RuntimeException(e);
                     }
                 }
-            });
+            })
+            .around(spliceTableWatcher7).around(new SpliceDataWatcher() {
+                 @Override
+                 protected void starting(Description description) {
+                     PreparedStatement ps;
+                     try {
+                         ps = spliceClassWatcher.prepareStatement(String.format("insert into %s (I) values (?)", spliceTableWatcher7));
+                         ps.setInt(1, 100);
+                         ps.execute();
+                     }  catch (Exception e) {
+                         throw new RuntimeException(e);
+                     }
+                 }
+             });
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -378,7 +395,7 @@ public class RowIdIT extends SpliceUnitTest {
         String sqlText = String.format("select min(rowid) from %s", spliceTableWatcher4);
         try {
             methodWatcher.executeQuery(sqlText);
-            Assert.fail("An exception is expected to be thrown");
+            fail("An exception is expected to be thrown");
         }
         catch (Exception e) {
             Assert.assertTrue(e.getLocalizedMessage().contains("A REF column cannot be aggregated"));
@@ -398,5 +415,39 @@ public class RowIdIT extends SpliceUnitTest {
         Assert.assertEquals(41, resultSet.getInt(1));
         Assert.assertEquals(42, resultSet.getInt(2));
         Assert.assertEquals(43, resultSet.getInt(3));
+    }
+
+    @Test
+    public void testRowIdToInstantFunction() throws Exception {
+        ResultSet resultSet  = methodWatcher.executeQuery(String.format("select cast(rowid as varchar(30)) from %s {limit 1}",
+                this.getTableReference(TABLE7_NAME)));
+        Assert.assertTrue(resultSet.next());
+        String rowId = resultSet.getString(1);
+        Assert.assertFalse(resultSet.next());
+        DateTimeDataValue result = RowIdUtil.toInstant(new SQLChar(rowId));
+        Timestamp t = result.getTimestamp(null);
+        Timestamp before = new Timestamp(t.getTime() - 10000);
+
+        resultSet = methodWatcher.executeQuery(String.format("select cast(rowid as varchar(30)), to_instant(rowid) from %s where to_instant(rowid) >= '%s'",
+                this.getTableReference(TABLE7_NAME), t.toString()));
+        Assert.assertTrue(resultSet.next());
+        Assert.assertEquals(rowId, resultSet.getString(1));
+        Assert.assertEquals(t, resultSet.getTimestamp(2));
+
+        resultSet = methodWatcher.executeQuery(String.format("select cast(rowid as varchar(30)), to_instant(rowid) from %s where to_instant(rowid) < '%s'",
+                this.getTableReference(TABLE7_NAME), before.toString()));
+        Assert.assertFalse(resultSet.next());
+    }
+
+    @Test
+    public void testRowIdToInstantFunctionInvalidInput() {
+        try {
+            methodWatcher.executeQuery("values to_instant('3344556')");
+            fail("Expected: java.sql.SQLException: ERROR 22008: '3344556' is an invalid argument to the TO_INSTANT function.");
+        } catch (SQLException e) {
+            Assert.assertEquals("22008", e.getSQLState());
+            return;
+        }
+        fail("Expected: java.sql.SQLException: ERROR 22008: '33445567' is an invalid argument to the TO_INSTANT function.");
     }
 }
