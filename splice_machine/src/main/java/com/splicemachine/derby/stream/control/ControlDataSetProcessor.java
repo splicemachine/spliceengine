@@ -30,6 +30,7 @@ import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnSupplier;
@@ -385,9 +386,12 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema, CsvOptions csvOptions) throws StandardException {
+    public GetSchemaExternalResult getExternalFileSchema(String storedAs, String location, boolean mergeSchema,
+                                                         CsvOptions csvOptions, StructType nonPartitionColumns,
+                                                         StructType partitionColumns) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return proc.getExternalFileSchema(storedAs,location,mergeSchema, csvOptions);
+        return proc.getExternalFileSchema(storedAs,location,mergeSchema, csvOptions,
+                nonPartitionColumns, partitionColumns);
     }
 
     @Override

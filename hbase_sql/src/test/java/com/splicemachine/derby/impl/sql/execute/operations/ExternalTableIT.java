@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import splice.com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TriggerBuilder;
@@ -33,10 +34,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.*;
 import static org.junit.Assert.assertEquals;
@@ -337,6 +335,16 @@ public class ExternalTableIT extends SpliceUnitTest {
             Assert.assertEquals(test + ": Wrong Exception (" + e.getMessage() + ")", exceptionType, e.getSQLState());
         }
     }
+    void assureFailsMsg(String query, String exceptionType, String test, String msg) throws Exception {
+        try {
+            methodWatcher.executeUpdate(query);
+            Assert.fail(test + ": Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals(test + ": Wrong Exception (" + e.getMessage() + ")", exceptionType, e.getSQLState());
+            Assert.assertEquals(test + ": Wrong Message", msg, e.getMessage());
+
+        }
+    }
 
     void assureQueryFails(String query, String exceptionType, String test) throws Exception {
         try {
@@ -582,6 +590,7 @@ public class ExternalTableIT extends SpliceUnitTest {
     public void testPartitionThirdSecond() throws Exception {
         for (String fileFormat : fileFormatsText) {
             ExternalTablePartitionIT.checkPartitionInsertSelect(  methodWatcher, getExternalResourceDirectory(),
+                    "(col1 int, col2 int, col3 varchar(10))",
                     "partition_third_second", fileFormat, "col3, col2");
         }
     }
@@ -742,7 +751,8 @@ public class ExternalTableIT extends SpliceUnitTest {
         // test schema suggestion on a given file
 
         String file = getResourceDirectory() + "parquet_sample_one";
-        String suggested = " Suggested Schema is 'CREATE EXTERNAL TABLE T (column1 CHAR/VARCHAR(x), column2 CHAR/VARCHAR(x), partition1 CHAR/VARCHAR(x));'.";
+        String suggested = " Suggested Schema is 'CREATE EXTERNAL TABLE T (column1 CHAR/VARCHAR(x), " +
+                "column2 CHAR/VARCHAR(x), partition1 CHAR/VARCHAR(x)) PARTITIONED BY(partition1 );'.";
         try{
             methodWatcher.executeUpdate("create external table testParquetErrorSuggestSchemaGiven" +
                                          " (col1 INTEGER) STORED AS PARQUET LOCATION '" + file + "'");
@@ -937,7 +947,7 @@ public class ExternalTableIT extends SpliceUnitTest {
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
 
-            Assert.assertEquals("Wrong Exception","EXT24",e.getSQLState());
+            Assert.assertEquals("Wrong Exception",SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, e.getSQLState());
         }
     }
 
@@ -953,7 +963,7 @@ public class ExternalTableIT extends SpliceUnitTest {
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
 
-            Assert.assertEquals("Wrong Exception","EXT24",e.getSQLState());
+            Assert.assertEquals("Wrong Exception",SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, e.getSQLState());
         }
     }
 
@@ -1453,7 +1463,8 @@ public class ExternalTableIT extends SpliceUnitTest {
                         "(2,'YYYY')," +
                         "(3,'ZZZZ')"));
                 assureFails(String.format("create external table " + name + "2 (col1 int, col2 varchar(24))" +
-                        "partitioned by (col2) STORED AS " + fileFormat + " LOCATION '%s'", tablePath), "EXT24", "");
+                        "partitioned by (col2) STORED AS " + fileFormat + " LOCATION '%s'", tablePath),
+                        SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, "");
         }
     }
 
@@ -2665,6 +2676,46 @@ public class ExternalTableIT extends SpliceUnitTest {
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+
+    @Test
+    public void testStringIntPartitionParsing() throws Exception {
+        String path = getExternalResourceDirectory() + "string_int_partitioning";
+        String create = "create external table sipartitioning (COLUMN_ONE INT, COLUMN_TWO %s) " +
+                "PARTITIONED BY (COLUMN_TWO) STORED AS PARQUET LOCATION '%s'";
+        methodWatcher.executeUpdate( String.format(create, "VARCHAR(20)", path) );
+        methodWatcher.executeUpdate("INSERT INTO sipartitioning VALUES (1, '1'), (2, '2')");
+
+        String[] files = new File(path).list();
+        if( files != null ) {
+            Arrays.sort(files);
+            Assert.assertEquals("[._SUCCESS.crc, COLUMN_TWO=1, COLUMN_TWO=2, _SUCCESS]", Arrays.toString(files));
+            String drop = "drop table sipartitioning";
+            methodWatcher.executeUpdate(drop);
+
+            // shouldn't fail, even though the directory partitions might be infered as integer (since 1 = '1')
+            methodWatcher.executeUpdate(String.format(create, "VARCHAR(20)", path));
+            methodWatcher.executeUpdate(drop);
+
+            // we can also read the directory partitioned with INT (since it's just 1, 2)
+            methodWatcher.executeUpdate(String.format(create, "INT", path));
+            methodWatcher.executeUpdate(drop);
+
+            // we can also read the directory partitioned with DOUBLE
+            methodWatcher.executeUpdate(String.format(create, "DOUBLE", path));
+            methodWatcher.executeUpdate(drop);
+
+            String expectedError = "The field 'COLUMN_TWO':'%s' defined in the table is not compatible with the field " +
+                    "'COLUMN_TWO':'INT' defined in the external file '%s'. " +
+                    "Suggested Schema is 'CREATE EXTERNAL TABLE T (COLUMN_ONE INT, COLUMN_TWO INT) PARTITIONED BY(COLUMN_TWO );'.";
+            assureFailsMsg(String.format(create, "DATE", path), SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, "date",
+                    String.format(expectedError, "DATE", path));
+            assureFailsMsg(String.format(create, "BOOLEAN", path), SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, "boolean",
+                    String.format(expectedError, "BOOLEAN", path));
+        }
+        else {
+            Assert.fail("can't list " + path);
         }
     }
 }
