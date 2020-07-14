@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.impl.sql;
 
-import com.splicemachine.backup.BackupJobStatus;
+import com.splicemachine.backup.BackupMessage.BackupJobStatus;
 import com.splicemachine.backup.BackupManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
