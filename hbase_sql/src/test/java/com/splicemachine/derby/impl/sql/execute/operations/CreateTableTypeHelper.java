@@ -8,7 +8,12 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
+import java.util.function.IntFunction;
+import java.util.stream.Collectors;
 
 /// a helper class to define column types, and then create external tables and insert data into them
 /// to make writing tests for all column types easier.
@@ -20,25 +25,15 @@ public class CreateTableTypeHelper {
     /// e.g. mostly if the int values increase, the corresponding e.g. date value also increases.
     public CreateTableTypeHelper(int[] types, int[] ivalues)
     {
-        for( int i = 0; i < types.length; i++ )
-        {
-            String comma = i > 0 ? ", " : "";
-            int t = types[i];
-            schema = schema + comma + getTypesName(t);
-            suggestedTypes = suggestedTypes + comma + getTypesNameInfered(t);
-        }
+        schema = Arrays.stream(types).mapToObj(this::getTypesName).collect(Collectors.joining(","));
+        suggestedTypes = Arrays.stream(types).mapToObj(this::getTypesNameInfered).collect(Collectors.joining(","));
 
-        for( int i = 0; i < ivalues.length; i++ ) {
-            insertValues = insertValues + (i > 0 ? ", " : "") + "(";
-            StringBuilder sb = new StringBuilder();
-            for (int j = 0; j < types.length; j++) {
-                sb.append( j > 0 ? ", " : "");
-                sb.append( getTypeValue(types[j], ivalues[i]) );
-            }
-            values2.add( sb.toString() );
-            insertValues = insertValues + sb.toString() + ")";
-        }
-        values2.sort(String::compareTo);
+        IntFunction<String> iValueStringFunc = ivalue -> Arrays.stream(types)
+                .mapToObj(type -> getTypeValue(type, ivalue))
+                .collect(Collectors.joining(","));
+
+        values2 = Arrays.stream(ivalues).mapToObj(iValueStringFunc).sorted().collect(Collectors.toList());
+        insertValues = Arrays.stream(ivalues).mapToObj(iValueStringFunc).map(s -> "(" + s + ")").collect(Collectors.joining(","));
     }
 
     public String getInsertValues() {
@@ -108,7 +103,6 @@ public class CreateTableTypeHelper {
     public void checkResultSetSelectAll(ResultSet rs) throws SQLException {
         ArrayList<String> results = new ArrayList<>();
         int nCols = rs.getMetaData().getColumnCount();
-        int rows = 0;
         while (rs.next()) {
             StringBuilder sb = new StringBuilder();
             for (int i = 1; i <= nCols; i++) {
@@ -208,9 +202,9 @@ public class CreateTableTypeHelper {
                 && val == 0 ) { return "NULL"; }
         switch (type) {
             case Types.CHAR:
-                return "'" + padSpaces("AAAA " + Integer.toString(val), 10) + "'";
+                return "'" + padSpaces("AAAA " + val, 10) + "'";
             case Types.VARCHAR:
-                return "'AAAA " + Integer.toString(val) + "'";
+                return "'AAAA " + val + "'";
             case Types.TIME:
                 return "'" + getTime(val) + "'";
             case Types.DATE:
@@ -221,12 +215,12 @@ public class CreateTableTypeHelper {
             case Types.SMALLINT:
             case Types.INTEGER:
             case Types.BIGINT:
-                return "'" + Integer.toString(val) + "'";
+                return "'" + val + "'";
             case Types.DOUBLE:
             case Types.REAL:
-                return "'" + Double.toString(val * 0.001 + 1.5) + "'";
+                return "'" + (val * 0.001 + 1.5) + "'";
             case Types.DECIMAL:
-                return "'" + Double.toString((val % 10000) * 0.01 + 1.5) + "'";
+                return "'" + ((val % 10000) * 0.01 + 1.5) + "'";
             case Types.BOOLEAN:
                 return val % 2 == 0 ? "'true'" : "'false'";
             default:
@@ -235,13 +229,15 @@ public class CreateTableTypeHelper {
     }
 
     private String padSpaces(String s, int i) {
-        while( s.length() < i ) s = s + " ";
+        StringBuilder sBuilder = new StringBuilder(s);
+        while( sBuilder.length() < i ) sBuilder.append(" ");
+        s = sBuilder.toString();
         return s;
     }
 
     DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH);
-    private ArrayList<String> values2= new ArrayList<>();
-    private String schema = "";
-    private String suggestedTypes = "";
-    private String insertValues = "";
+    private final List<String> values2;
+    private final String schema;
+    private final String suggestedTypes;
+    private final String insertValues;
 }
