@@ -286,4 +286,19 @@ public class SelectTimeTravelIT {
         }
         fail("Expected: java.sql.SQLException: ERROR 42ZD2: Using time travel clause with external tables is not allowed");
     }
+
+    @Test
+    public void testTimeTravelWithCommonTableExpressionIsNotAllowed() throws Exception {
+        String someTable = GenerateTableName();
+        watcher.executeUpdate("CREATE TABLE " + someTable + "(a INT)");
+
+        try {
+            watcher.executeQuery("WITH cte AS (SELECT * FROM " + someTable + ") SELECT * FROM cte AS OF 1234");
+            fail("Expected: java.sql.SQLException: ERROR 42ZD2: Using time travel clause with common table expressions is not allowed");
+        } catch (SQLException e) {
+            Assert.assertEquals("42ZD2", e.getSQLState());
+            return;
+        }
+        fail("Expected: java.sql.SQLException: ERROR 42ZD2: Using time travel clause with common table expressions is not allowed");
+    }
 }

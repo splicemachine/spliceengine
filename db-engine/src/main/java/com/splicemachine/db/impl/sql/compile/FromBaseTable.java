@@ -1047,6 +1047,9 @@ public class FromBaseTable extends FromTable {
             else if(tableType==TableDescriptor.EXTERNAL_TYPE) {
                 throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "external tables");
             }
+            else if(tableType==TableDescriptor.WITH_TYPE) {
+                throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "common table expressions");
+            }
         }
 
         if(tableDescriptor.getTableType()==TableDescriptor.VTI_TYPE){
@@ -3420,7 +3423,7 @@ public class FromBaseTable extends FromTable {
     private String getClassName(String niceIndexName) throws StandardException {
         String cName = "";
         if(niceIndexName!=null){
-            cName = "IndexScan["+niceIndexName+"]";
+            cName = "IndexScan["+niceIndexName;
         }else{
             cName = "TableScan["+getPrettyTableName();
             if(pastTxId >= 0){
