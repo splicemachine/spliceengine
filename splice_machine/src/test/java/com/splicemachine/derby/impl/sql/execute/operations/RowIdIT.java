@@ -32,24 +32,27 @@ import java.sql.RowId;
  */
 public class RowIdIT extends SpliceUnitTest {
     public static final String CLASS_NAME = RowIdIT.class.getSimpleName().toUpperCase();
-    public static int nRows = 3;
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    public final static int nRows = 3;
+    protected final static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String TABLE1_NAME = "A";
     public static final String TABLE2_NAME = "B";
     public static final String TABLE3_NAME = "C";
     public static final String TABLE4_NAME = "D";
     public static final String TABLE5_NAME = "E";
+    public static final String TABLE6_NAME = "F";
 
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected final static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static String tableDef = "(I INT)";
     private static String tableDef2 = "(I INT, J INT)";
     private static String tableDef3 = "(I INT, J INT, primary key(i))";
-    protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE1_NAME,CLASS_NAME, tableDef);
-    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2_NAME,CLASS_NAME, tableDef);
-    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE3_NAME,CLASS_NAME, tableDef2);
-    protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE4_NAME,CLASS_NAME, tableDef3);
-    protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE5_NAME,CLASS_NAME, tableDef3);
+    private static String tableDef4 = "(A1 INT, B1 INT, C1 INT)";
+    protected final static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE1_NAME,CLASS_NAME, tableDef);
+    protected final static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2_NAME,CLASS_NAME, tableDef);
+    protected final static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE3_NAME,CLASS_NAME, tableDef2);
+    protected final static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE4_NAME,CLASS_NAME, tableDef3);
+    protected final static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE5_NAME,CLASS_NAME, tableDef3);
+    protected final static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE6_NAME,CLASS_NAME, tableDef4);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -128,6 +131,24 @@ public class RowIdIT extends SpliceUnitTest {
                 protected void starting(Description description) {
                     populateTable(spliceTableWatcher4);
                     populateTable(spliceTableWatcher5);
+                }
+            })
+            .around(spliceTableWatcher6).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    PreparedStatement ps;
+                    try {
+                        ps = spliceClassWatcher.prepareStatement(
+                                String.format("insert into %s (A1, B1, C1) values (?,?,?)", spliceTableWatcher6));
+                        for (int i = 0; i < nRows; i++) {
+                            ps.setInt(1, 41);
+                            ps.setInt(2, 42);
+                            ps.setInt(3, 43);
+                            ps.execute();
+                        }
+                    }  catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             });
 
@@ -303,7 +324,11 @@ public class RowIdIT extends SpliceUnitTest {
         PreparedStatement ps = spliceClassWatcher.prepareStatement(
                 String.format("select i, rowid from %s where rowid = ?", spliceTableWatcher1));
         ps.setRowId(1, rowId);
-        rs = ps.executeQuery();
+        try {
+            rs = ps.executeQuery();
+        } finally {
+            ps.close();
+        }
 
         while (rs.next()) {
             rId = rs.getRowId(2);
@@ -316,19 +341,19 @@ public class RowIdIT extends SpliceUnitTest {
     @Ignore("DB-3169")
     public void testCoveringIndex() throws Exception {
         ResultSet rs  = methodWatcher.executeQuery(
-                String.format("select rowid, i, j from %s --SPLICE-PROPERTIES index=ti \n where i=1", this.getTableReference(TABLE3_NAME)));
+                String.format("select rowid, i, j from %s --SPLICE-PROPERTIES index=ti %n where i=1", this.getTableReference(TABLE3_NAME)));
         Assert.assertTrue(rs.next());
         RowId rowId1 = rs.getRowId(1);
 
         rs  = methodWatcher.executeQuery(
-                String.format("select rowid, i from %s --SPLICE-PROPERTIES index=ti \n where i=1", this.getTableReference(TABLE3_NAME)));
+                String.format("select rowid, i from %s --SPLICE-PROPERTIES index=ti %n where i=1", this.getTableReference(TABLE3_NAME)));
         Assert.assertTrue(rs.next());
         RowId rowId2 = rs.getRowId(1);
 
         Assert.assertEquals(rowId1.toString(), rowId2.toString());
 
         rs  = methodWatcher.executeQuery(
-                String.format("select rowid, i from %s --SPLICE-PROPERTIES index=null \n where i=1", this.getTableReference(TABLE3_NAME)));
+                String.format("select rowid, i from %s --SPLICE-PROPERTIES index=null %n where i=1", this.getTableReference(TABLE3_NAME)));
         Assert.assertTrue(rs.next());
         RowId rowId3 = rs.getRowId(1);
 
@@ -353,10 +378,25 @@ public class RowIdIT extends SpliceUnitTest {
         String sqlText = String.format("select min(rowid) from %s", spliceTableWatcher4);
         try {
             methodWatcher.executeQuery(sqlText);
-            Assert.assertTrue("An exception is expected to be thrown", false);
+            Assert.fail("An exception is expected to be thrown");
         }
         catch (Exception e) {
             Assert.assertTrue(e.getLocalizedMessage().contains("A REF column cannot be aggregated"));
         }
+    }
+
+    @Test
+    public void testRowIdInWhereClausePredicate() throws Exception {
+        ResultSet resultSet  = methodWatcher.executeQuery(String.format("select cast(rowid as varchar(30)) from %s {limit 1}",
+                this.getTableReference(TABLE6_NAME)));
+        Assert.assertTrue(resultSet.next());
+        String rowId = resultSet.getString(1);
+        Assert.assertFalse(resultSet.next());
+        resultSet = methodWatcher.executeQuery(String.format("select * from %s where cast(rowid as varchar(30))='%s'",
+                this.getTableReference(TABLE6_NAME), rowId));
+        Assert.assertTrue(resultSet.next());
+        Assert.assertEquals(41, resultSet.getInt(1));
+        Assert.assertEquals(42, resultSet.getInt(2));
+        Assert.assertEquals(43, resultSet.getInt(3));
     }
 }
