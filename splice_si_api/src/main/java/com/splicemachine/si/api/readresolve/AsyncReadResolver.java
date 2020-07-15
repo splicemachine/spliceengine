@@ -97,7 +97,6 @@ public class AsyncReadResolver{
         Partition region;
         long txnId;
         ByteSlice rowKey=new ByteSlice();
-        RollForward rollForward;
     }
 
     private static class ResolveEventFactory implements EventFactory<ResolveEvent>{
@@ -129,7 +128,6 @@ public class AsyncReadResolver{
         }
     }
 
-    @SuppressFBWarnings(value = "UUF_UNUSED_FIELD", justification = "DB-9844")
     private class PartitionReadResolver implements ReadResolver{
         private final Partition region;
         private final RollForward rollForward;
