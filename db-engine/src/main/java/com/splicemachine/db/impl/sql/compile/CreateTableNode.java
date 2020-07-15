@@ -409,7 +409,7 @@ public class CreateTableNode extends DDLStatementNode
 			
 			for (int index = 0; index < qeRCL.size(); index++)
 			{
-				ResultColumn rc = (ResultColumn) qeRCL.elementAt(index);
+				ResultColumn rc = qeRCL.elementAt(index);
 				if (rc.isGenerated()) 
 				{
 					continue;
@@ -429,6 +429,13 @@ public class CreateTableNode extends DDLStatementNode
 							dtd.getFullSQLTypeName(),
 							rc.getName());
 				}
+				else if (dtd == null)
+				{
+					throw StandardException.newException(
+							SQLState.LANG_INVALID_COLUMN_TYPE_CREATE_TABLE,
+							"<UNKNOWN>",
+							rc.getName());
+				}
 				//DERBY-2879  CREATE TABLE AS <subquery> does not maintain the 
 				//collation for character types. 
 				//eg for a territory based collation database
@@ -440,7 +447,8 @@ public class CreateTableNode extends DDLStatementNode
 				//have collation of UCS_BASIC but the containing schema of t
 				//has collation of territory based. This is not supported and
 				//hence we will throw an exception below for the query above in
-				//a territory based database. 
+				//a territory based database.
+
 				if (dtd.getTypeId().isStringTypeId() && 
 						dtd.getCollationType() != schemaCollationType)
 				{
@@ -688,5 +696,16 @@ public class CreateTableNode extends DDLStatementNode
 			tableElementList.accept(v, this);
 		}
 	}
-    
+
+	@Override
+	public void optimizeStatement() throws StandardException {
+    	for(int i=tableElementList.size()-1; i>=0; --i) {
+    		Object element = tableElementList.elementAt(i);
+			if(element instanceof ConstraintDefinitionNode) {
+				if(((ConstraintDefinitionNode)element).canBeIgnored()) {
+					tableElementList.removeElementAt(i);
+				}
+			}
+		}
+	}
 }
