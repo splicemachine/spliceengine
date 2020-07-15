@@ -70,9 +70,8 @@ public class NetSqlca extends Sqlca {
         sqlWarnBytes_ = sqlWarnBytes;
     }
 
-    protected void setSqlerrmcBytes(byte[] sqlErrmcBytes, int sqlErrmcCcsid) {
+    protected void setSqlerrmcBytes(byte[] sqlErrmcBytes, int ignored) {
         sqlErrmcBytes_ = sqlErrmcBytes;
-        sqlErrmcCcsid_ = sqlErrmcCcsid;
     }
 
     public long getRowCount(Typdef typdef) throws com.splicemachine.db.client.am.DisconnectException {
