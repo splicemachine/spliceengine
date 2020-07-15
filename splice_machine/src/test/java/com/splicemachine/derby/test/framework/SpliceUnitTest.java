@@ -19,7 +19,7 @@ import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.runner.Description;
-import org.spark_project.guava.base.Joiner;
+import com.google.common.base.Joiner;
 
 import java.io.*;
 import java.net.URL;

@@ -64,7 +64,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.collect.Lists;
 import org.supercsv.prefs.CsvPreference;
 
 import java.io.IOException;

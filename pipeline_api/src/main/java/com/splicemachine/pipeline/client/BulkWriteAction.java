@@ -33,7 +33,7 @@ import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.collect.Lists;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;

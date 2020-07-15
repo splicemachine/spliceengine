@@ -15,8 +15,8 @@
 package com.splicemachine.derby.impl.store.access.base;
 
 import com.carrotsearch.hppc.BitSet;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;

@@ -32,7 +32,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Splitter;
+import com.google.common.base.Splitter;
 
 import java.io.BufferedReader;
 import java.io.IOException;

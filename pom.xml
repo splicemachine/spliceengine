@@ -92,6 +92,7 @@
         <netty-all.version>4.1.17.Final</netty-all.version>
         <spark.warehouse>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</spark.warehouse>
         <hbase.rootdir>-Dhbase.rootdir=${project.build.directory}/hbase</hbase.rootdir>
+        <guava.version>14.0.1</guava.version>
     </properties>
     <scm>
         <connection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</connection>
@@ -211,7 +212,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>12.0.1</version>
+                <version>${guava.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.googlecode.concurrentlinkedhashmap</groupId>

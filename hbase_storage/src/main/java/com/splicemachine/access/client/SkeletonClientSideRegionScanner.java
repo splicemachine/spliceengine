@@ -45,7 +45,7 @@ import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.spark_project.guava.base.Throwables;
+import com.google.common.base.Throwables;
 
 /**
  * 

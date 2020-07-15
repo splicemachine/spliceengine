@@ -15,7 +15,7 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.collect.Lists;
 
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.pipeline.Exceptions;

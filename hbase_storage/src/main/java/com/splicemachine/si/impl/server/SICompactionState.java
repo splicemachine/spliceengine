@@ -15,7 +15,7 @@
 package com.splicemachine.si.impl.server;
 
 import com.splicemachine.hbase.TransactionsWatcher;
-import org.spark_project.guava.util.concurrent.Futures;
+import com.google.common.util.concurrent.Futures;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TransactionMissing;

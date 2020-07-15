@@ -68,8 +68,8 @@ import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
 import org.apache.commons.lang3.SystemUtils;
-import org.spark_project.guava.base.Predicates;
-import org.spark_project.guava.base.Strings;
+import com.google.common.base.Predicates;
+import com.google.common.base.Strings;
 
 import java.sql.Types;
 import java.util.*;

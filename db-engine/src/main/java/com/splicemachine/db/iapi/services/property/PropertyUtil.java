@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.iapi.services.property;
 
-import org.spark_project.guava.base.Optional;
+import com.google.common.base.Optional;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.EngineType;

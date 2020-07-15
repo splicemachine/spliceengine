@@ -53,9 +53,9 @@ import org.apache.hadoop.hbase.security.access.UserPermission;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.AdminProtos;
 import org.apache.hadoop.hbase.util.HBaseFsckRepair;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
+import com.google.common.base.Function;
 import org.apache.hadoop.hbase.*;
-import org.spark_project.guava.collect.Collections2;
+import com.google.common.collect.Collections2;
 
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;

@@ -39,7 +39,7 @@ import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.EmbedConnectionMaker;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.SQLException;
