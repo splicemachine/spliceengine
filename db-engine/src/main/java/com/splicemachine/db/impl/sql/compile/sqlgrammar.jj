@@ -3099,6 +3099,7 @@ TOKEN [IGNORE_CASE] :
 |    <WHEN: "when">
 |   <MERGE: "merge">
 |   <TO_INSTANT: "to_instant">
+|   <TO_HBASE_ESCAPED: "to_hbase_escaped">
 }
 
 /*
@@ -8353,7 +8354,8 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == XMLEXISTS ||
                 getToken(1).kind == XMLQUERY ||
                 getToken(1).kind == GROUPING ||
-                getToken(1).kind == TO_INSTANT ) &&
+                getToken(1).kind == TO_INSTANT ||
+                getToken(1).kind == TO_HBASE_ESCAPED ) &&
                 getToken(2).kind == LEFT_PAREN
               )
     } )
@@ -8492,6 +8494,14 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
     {
         return (ValueNode) nodeFactory.getNode(
                                     C_NodeTypes.TO_INSTANT_NODE,
+                                    value,
+                                    getContextManager());
+    }
+|
+    <TO_HBASE_ESCAPED> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                    C_NodeTypes.TO_HBASE_ESCAPED_NODE,
                                     value,
                                     getContextManager());
     }
