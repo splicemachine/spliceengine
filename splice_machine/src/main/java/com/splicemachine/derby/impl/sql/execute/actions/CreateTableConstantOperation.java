@@ -19,7 +19,7 @@ import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
@@ -309,10 +309,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             throw StandardException.plainWrapException(e);
         }
         /* create the conglomerate to hold the table's rows
-		 * RESOLVE - If we ever have a conglomerate creator
-		 * that lets us specify the conglomerate number then
-		 * we will need to handle it here.
-		 */
+         * RESOLVE - If we ever have a conglomerate creator
+         * that lets us specify the conglomerate number then
+         * we will need to handle it here.
+         */
         long conglomId = tc.createConglomerate(storedAs!=null,
                 "heap", // we're requesting a heap conglomerate
                 template.getRowArray(), // row template
@@ -356,14 +356,14 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         // Save the TableDescriptor off in the Activation
         activation.setDDLTableDescriptor(td);
 
-				/*
-				 * NOTE: We must write the columns out to the system
-				 * tables before any of the conglomerates, including
-				 * the heap, since we read the columns before the
-				 * conglomerates when building a TableDescriptor.
-				 * This will hopefully reduce the probability of
-				 * a deadlock involving those system tables.
-				 */
+        /*
+         * NOTE: We must write the columns out to the system
+         * tables before any of the conglomerates, including
+         * the heap, since we read the columns before the
+         * conglomerates when building a TableDescriptor.
+         * This will hopefully reduce the probability of
+         * a deadlock involving those system tables.
+         */
 
         // for each column, stuff system.column
         int index = 1;
@@ -371,10 +371,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnInfo.length];
         for (int ix = 0; ix < columnInfo.length; ix++) {
             UUID defaultUUID = columnInfo[ix].newDefaultUUID;
-						/*
-						 * Generate a UUID for the default, if one exists
-						 * and there is no default id yet.
-						 */
+            /*
+             * Generate a UUID for the default, if one exists
+             * and there is no default id yet.
+             */
             if (columnInfo[ix].defaultInfo != null && defaultUUID == null) {
                 defaultUUID = dd.getUUIDFactory().createUUID();
             }
@@ -570,8 +570,11 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
         //Make sure we have the same amount of attributes in the definition compared to the external file
         if (externalSchema.fields().length != template.length()) {
-            throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE, template.length(), externalSchema.fields().length, location);
+            throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE,
+                    template.length(), externalSchema.fields().length,
+                    location, ExternalTableUtils.getSuggestedSchema(externalSchema));
         }
+
 
         int nPartitionColumns = 0;
         for (ColumnInfo column:columnInfo) {
@@ -580,17 +583,23 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         }
 
         ExecRow nonPartitionColumns = new ValueRow(template.nColumns()-nPartitionColumns);
-        DataValueDescriptor[] dvds1 = nonPartitionColumns.getRowArray();
+        DataValueDescriptor[] dvds_nonpart = nonPartitionColumns.getRowArray();
+        String[] name_nonpart = new String[template.nColumns()-nPartitionColumns];
+
         ExecRow partitionColumns = new ValueRow(nPartitionColumns);
-        DataValueDescriptor[] dvds2 = partitionColumns.getRowArray();
+        DataValueDescriptor[] dvds_part = partitionColumns.getRowArray();
+        String[] name_part = new String[nPartitionColumns];
 
         int index1 = 0;
         for(int i = 0; i < columnInfo.length; ++i) {
             if (columnInfo[i].partitionPosition >=0) {
-                dvds2[columnInfo[i].partitionPosition] = dvds[i];
+                dvds_part[columnInfo[i].partitionPosition] = dvds[i];
+                name_part[columnInfo[i].partitionPosition] = columnInfo[i].name;
             }
             else {
-                dvds1[index1++] = dvds[i];
+                dvds_nonpart[index1] = dvds[i];
+                name_nonpart[index1] = columnInfo[i].name;
+                index1++;
             }
         }
 
@@ -601,8 +610,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             StructField definedField = nonPartitionColumns.schema().fields()[i];
             if (!definedField.dataType().equals(externalField.dataType())) {
                 if (!supportAvroDateToString(storedAs,externalField,definedField)) {
-                    throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, definedField.name(),definedField.dataType().toString(),
-                            externalField.name(), externalField.dataType().toString(),location);
+                    throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES,
+                            name_nonpart[i], ExternalTableUtils.getSqlTypeName(definedField.dataType()),
+                            externalField.name(), ExternalTableUtils.getSqlTypeName(externalField.dataType() ),
+                            location, ExternalTableUtils.getSuggestedSchema(externalSchema));
                 }
             }
         }
@@ -613,8 +624,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             StructField definedField = partitionColumns.schema().fields()[i];
             if (!definedField.dataType().equals(externalField.dataType())) {
                 if (!supportAvroDateToString(storedAs,externalField,definedField)) {
-                    Object[] objects = new Object[]{definedField.name(),definedField.dataType().toString(),
-                            externalField.name(), externalField.dataType().toString(),location};
+                    Object[] objects = new Object[]{
+                            name_part[i], ExternalTableUtils.getSqlTypeName(definedField.dataType()),
+                            externalField.name(), ExternalTableUtils.getSqlTypeName(externalField.dataType()),
+                            location, ExternalTableUtils.getSuggestedSchema(externalSchema) };
                     SQLWarning warning = StandardException.newWarning(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, objects);
                     activation.addWarning(warning);
                 }

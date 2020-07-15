@@ -62,6 +62,7 @@ public class SpliceSpark {
 
     static JavaSparkContext ctx;
     static SparkSession session;
+    static ThreadLocal<SparkSession> sessions = new ThreadLocal<>();
     static boolean initialized = false;
     static boolean spliceStaticComponentsSetup = false;
 
@@ -70,6 +71,10 @@ public class SpliceSpark {
     private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
     private static final String OLD_SCOPE_OVERRIDE = "spark.rdd.scope.noOverride.old";
 
+    public static void resetSession() {
+        sessions.remove();
+    }
+
     // Sets both ctx and session
     public static synchronized SparkSession getSession() {
         String threadName = Thread.currentThread().getName();
@@ -77,7 +82,12 @@ public class SpliceSpark {
              // Not running on the Olap Server... raise exception. Use getSessionUnsafe() if you know what you are doing.
             throw new RuntimeException("Trying to get a SparkSession from outside the OlapServer");
         }
-        return getSessionUnsafe();
+        SparkSession result = sessions.get();
+        if (result == null) {
+            result = getSessionUnsafe().newSession();
+            sessions.set(result);
+        }
+        return result;
     }
 
     /** This method is unsafe, it should only be used on tests are as a convenience when trying to
@@ -106,7 +116,7 @@ public class SpliceSpark {
     }
 
     public static synchronized JavaSparkContext getContext() {
-        SparkSession s = getSession();
+        getSession();
         return ctx;
     }
 
@@ -114,7 +124,7 @@ public class SpliceSpark {
      * get a local Spark Context, it should never be used when implementing Splice operations or functions
      */
     public static synchronized JavaSparkContext getContextUnsafe() {
-        SparkSession s = getSessionUnsafe();
+        getSessionUnsafe();
         return ctx;
     }
 
@@ -244,8 +254,6 @@ public class SpliceSpark {
                 conf.set("spark.yarn.keytab", HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file"));
             }
         }
-        String user = System.getProperty("splice.spark.yarn.principal");
-        String keytab = System.getProperty("splice.spark.yarn.keytab");
 
         // set all spark props that start with "splice.".  overrides are set below.
         for (Object sysPropertyKey : System.getProperties().keySet()) {
@@ -352,6 +360,7 @@ public class SpliceSpark {
     
     public synchronized static void setContext(JavaSparkContext sparkContext) {
         session = SparkSession.builder().config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
+        sessions.set(session);
         ctx = sparkContext;
         initialized = true;
     }
