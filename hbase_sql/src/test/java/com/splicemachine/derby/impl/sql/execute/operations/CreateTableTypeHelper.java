@@ -15,14 +15,18 @@ import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 
-/// a helper class to define column types, and then create external tables and insert data into them
-/// to make writing tests for all column types easier.
-
+/**
+ * a helper class to define column types, and then create external tables and insert data into them
+ * to make writing tests for all column types easier.
+ */
 public class CreateTableTypeHelper {
-    /// @param types: an array of Types that should be used
-    /// @param ivalues: an array of values to use. 0 is NULL value, all other values will
-    /// generate corresponding entries that are somewhat associated with the integer val
-    /// e.g. mostly if the int values increase, the corresponding e.g. date value also increases.
+    /**
+     *
+     * @param types     an array of Types that should be used
+     * @param ivalues   an array of values to use. 0 is NULL value, all other values will
+     * generate corresponding entries that are somewhat associated with the integer val
+     * e.g. mostly if the int values increase, the corresponding e.g. date value also increases.
+     */
     public CreateTableTypeHelper(int[] types, int[] ivalues)
     {
         schema = Arrays.stream(types).mapToObj(this::getTypesName).collect(Collectors.joining(", "));
@@ -40,19 +44,28 @@ public class CreateTableTypeHelper {
         return insertValues;
     }
 
-    /// @return schema as to be used in `create external table <NAME> ( <SCHEMA> ) ...`
+
+
+    /**
+     * @return schema as to be used in `create external table <NAME> ( <SCHEMA> ) ...`
+     */
     public String getSchema()
     {
         return schema;
     }
 
-    /// @return schema that will be returned when suggesting a schema to the user.
+    /**
+     *
+     * @return schema that will be returned when suggesting a schema to the user.
+     */
     public String getSuggestedTypes() {
         return suggestedTypes;
     }
 
 
-    /// @return types that are supported by Parquet
+    /**
+     * @return types that are supported by Parquet
+     */
     static public int[] getParquetTypes() {
         return new int[]{
                 Types.VARCHAR, Types.CHAR,
@@ -63,7 +76,9 @@ public class CreateTableTypeHelper {
         };
     }
 
-    /// @return types that are supported by ORC
+    /**
+     * @return types that are supported by ORC
+     */
     static public int[] getORCTypes() {
         return new int[]{
                 Types.VARCHAR, Types.CHAR,
@@ -74,7 +89,10 @@ public class CreateTableTypeHelper {
         };
     }
 
-    /// @return types that are supported by Avro
+    /**
+     *
+     * @return types that are supported by Avro
+     */
     static public int[] getAvroTypes() {
         return new int[]{
                 Types.VARCHAR, Types.CHAR,
@@ -88,7 +106,12 @@ public class CreateTableTypeHelper {
         };
     }
 
-    /// @return supported types by fileFormat PARQUET, ORC or AVRO
+    ///
+
+    /**
+     * @param fileFormat "PARQUET", "ORC" or "AVRO"
+     * @return supported types by fileFormat PARQUET, ORC or AVRO
+     */
     static public int[] getTypes(String fileFormat) {
         if(fileFormat.equalsIgnoreCase("PARQUET"))
             return getParquetTypes();
@@ -99,7 +122,11 @@ public class CreateTableTypeHelper {
         throw new RuntimeException("unsupported fileformat " + fileFormat);
     }
 
-    /// compare that result in ResultSet rs is the same as from the generated insert values.
+    /**
+     * compare that result in ResultSet rs is the same as from the generated insert values.
+     * @param rs ResultSet from a select *.
+     * @throws SQLException
+     */
     public void checkResultSetSelectAll(ResultSet rs) throws SQLException {
         ArrayList<String> results = new ArrayList<>();
         int nCols = rs.getMetaData().getColumnCount();

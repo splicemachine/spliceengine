@@ -73,7 +73,9 @@ public class ExternalTableIT extends SpliceUnitTest {
         deleteTempDirectory(tempDir);
     }
 
-    /// this will return the temp directory, that is created on demand once for each test
+    /**
+     * @return this will return the temp directory, that is created on demand once for each test
+     */
     public String getExternalResourceDirectory() throws Exception
     {
         return tempDir.toString() + "/";
