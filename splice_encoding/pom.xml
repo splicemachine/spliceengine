@@ -42,15 +42,13 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <!-- org.spark_project.guava -->
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-common_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>annotations</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>annotations</artifactId>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

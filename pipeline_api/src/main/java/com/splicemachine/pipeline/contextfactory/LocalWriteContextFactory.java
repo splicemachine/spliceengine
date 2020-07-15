@@ -21,9 +21,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.spark_project.guava.base.Function;
+import com.google.common.base.Function;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.collect.Lists;
 
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.ServerControl;

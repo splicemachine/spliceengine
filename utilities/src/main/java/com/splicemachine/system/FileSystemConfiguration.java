@@ -14,9 +14,9 @@
 
 package com.splicemachine.system;
 
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.nio.file.FileStore;

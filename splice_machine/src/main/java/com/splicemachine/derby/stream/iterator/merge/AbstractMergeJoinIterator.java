@@ -21,7 +21,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.PeekingIterator;
+import com.google.common.collect.PeekingIterator;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;

@@ -7,7 +7,7 @@ import com.splicemachine.db.jdbc.ClientDriver;
 import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import javax.sql.DataSource;
 import java.beans.PropertyVetoException;

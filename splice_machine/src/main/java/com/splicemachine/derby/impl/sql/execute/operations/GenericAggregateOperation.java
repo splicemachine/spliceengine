@@ -29,7 +29,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGener
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Strings;
+import com.google.common.base.Strings;
 
 import java.io.IOException;
 import java.io.ObjectInput;

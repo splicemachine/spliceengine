@@ -18,7 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinition;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
-import org.spark_project.guava.collect.PeekingIterator;
+import com.google.common.collect.PeekingIterator;
 import java.io.IOException;
 
 /**

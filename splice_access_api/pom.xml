@@ -41,12 +41,9 @@
             <artifactId>db-shared</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
-            <!-- org.spark_project.guava -->
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-common_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

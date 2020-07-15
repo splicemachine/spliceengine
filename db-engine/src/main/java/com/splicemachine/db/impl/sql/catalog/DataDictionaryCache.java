@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import org.spark_project.guava.base.Optional;
+import com.google.common.base.Optional;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
@@ -48,9 +48,9 @@ import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.cache.CacheBuilder;
-import org.spark_project.guava.cache.RemovalListener;
-import org.spark_project.guava.cache.RemovalNotification;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanServer;

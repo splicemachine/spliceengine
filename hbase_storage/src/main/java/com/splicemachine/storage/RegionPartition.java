@@ -15,11 +15,11 @@
 package com.splicemachine.storage;
 
 import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
-import org.spark_project.guava.base.Function;
+import com.google.common.base.Function;
 import com.splicemachine.si.impl.HRegionTooBusy;
 
 import org.apache.hadoop.hbase.DroppedSnapshotException;
-import org.spark_project.guava.collect.Iterators;
+import com.google.common.collect.Iterators;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;

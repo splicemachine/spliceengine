@@ -19,7 +19,7 @@ import com.splicemachine.derby.stream.function.IteratorUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.spark.InterruptibleIterator;
 import org.apache.spark.TaskContext;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;

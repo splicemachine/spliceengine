@@ -33,7 +33,7 @@ import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
 import com.splicemachine.db.impl.sql.catalog.TotalManagedCache;
 import com.splicemachine.hbase.JMXThreadPool;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.collect.Lists;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;

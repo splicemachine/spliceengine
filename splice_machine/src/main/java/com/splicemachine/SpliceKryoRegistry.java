@@ -88,7 +88,7 @@ import com.splicemachine.utils.kryo.KryoPool;
 import de.javakaffee.kryoserializers.ArraysAsListSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import org.apache.commons.lang3.mutable.MutableDouble;
-import org.spark_project.guava.base.Optional;
+import com.google.common.base.Optional;
 
 import java.io.IOException;
 import java.math.BigDecimal;

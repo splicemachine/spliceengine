@@ -14,12 +14,12 @@
 
 package com.splicemachine.derby.stream.function;
 
-import org.spark_project.guava.base.Function;
+import com.google.common.base.Function;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.PeekingIterator;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;

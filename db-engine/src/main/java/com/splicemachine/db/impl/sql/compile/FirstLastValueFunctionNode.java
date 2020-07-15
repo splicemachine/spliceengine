@@ -36,7 +36,7 @@ import java.util.List;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.collect.Lists;
 
 /**
  * Class that represents a call to the FIRST_VALUE() and LAST_VALUE() window functions.

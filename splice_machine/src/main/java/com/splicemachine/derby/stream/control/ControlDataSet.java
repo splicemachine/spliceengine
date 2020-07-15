@@ -67,12 +67,12 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.Sets;
-import org.spark_project.guava.io.Closeables;
-import org.spark_project.guava.util.concurrent.Futures;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
+import com.google.common.io.Closeables;
+import com.google.common.util.concurrent.Futures;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;

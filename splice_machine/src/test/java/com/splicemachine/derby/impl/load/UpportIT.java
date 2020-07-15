@@ -21,8 +21,8 @@ import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.primitives.Ints;
+import com.google.common.collect.Lists;
+import com.google.common.primitives.Ints;
 
 import java.io.File;
 import java.sql.*;

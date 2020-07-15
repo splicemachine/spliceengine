@@ -46,7 +46,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
-import org.spark_project.guava.base.Charsets;
+import com.google.common.base.Charsets;
 import scala.Tuple2;
 
 import javax.annotation.Nonnull;
