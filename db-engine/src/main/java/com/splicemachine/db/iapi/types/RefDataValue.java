@@ -31,10 +31,6 @@
 
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.error.StandardException;
-
-import java.sql.Timestamp;
-
 public interface RefDataValue extends DataValueDescriptor
 {
 
@@ -46,5 +42,4 @@ public interface RefDataValue extends DataValueDescriptor
 	 */
 	void setValue(RowLocation theValue);
 
-	DateTimeDataValue getInstant(DateTimeDataValue in) throws StandardException;
 }
