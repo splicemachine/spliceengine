@@ -58,9 +58,9 @@ public class RSUtils {
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
     public static final Function<ResultSetNode, Integer> rsNum = new Function<ResultSetNode, Integer>() {
         @Override
+        @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
         public Integer apply(ResultSetNode rsn) {
             return rsn.getResultSetNumber();
         }
@@ -100,9 +100,9 @@ public class RSUtils {
                     Predicates.instanceOf(IndexToBaseRowNode.class));
 
 
-    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
     public final static com.google.common.base.Predicate<ResultSetNode> isSinkingNode = new com.google.common.base.Predicate<ResultSetNode>() {
         @Override
+        @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
         public boolean apply(ResultSetNode rsn) {
             return sinkers.contains(rsn.getClass()) &&
                     (!(rsn instanceof JoinNode) || RSUtils.isSinkingJoin(RSUtils.ap((JoinNode) rsn)) ||

@@ -130,9 +130,9 @@ public class CorrelatedPushDown extends AbstractSpliceVisitor {
         return subq;
     }
 
-    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
     public static final Function<Predicate,List<ValueNode>> binaryOperands = new Function<Predicate, List<ValueNode>>() {
         @Override
+        @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
         public List<ValueNode> apply(Predicate pred) {
             ValueNode operator = pred.getAndNode().getLeftOperand();
             if (operator instanceof BinaryRelationalOperatorNode) {
