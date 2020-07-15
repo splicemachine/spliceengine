@@ -258,4 +258,8 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
     public String getStatusDirectory() {
         return statusDirectory;
     }
+
+    public void reset() {
+        numberOfBadRecords = 0;
+    }
 }
