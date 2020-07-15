@@ -123,7 +123,6 @@ public class JMXUtils {
     }
     public static List<ManagedCacheMBean> getTotalManagedCache(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
         List<ManagedCacheMBean> managedCache = new ArrayList<>();
-        List<ManagedCache> mc = new ArrayList<>();
         for (Pair<String,JMXConnector> mbsc: mbscArray) {
             managedCache.add(getNewMBeanProxy(mbsc.getSecond(),TOTAL_MANAGED_CACHE, ManagedCacheMBean.class));
         }

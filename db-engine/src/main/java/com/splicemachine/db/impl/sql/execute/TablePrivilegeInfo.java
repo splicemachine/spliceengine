@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 
@@ -46,11 +47,11 @@ public class TablePrivilegeInfo extends BasicPrivilegeInfo
 {
 
 	private TableDescriptor td;
-	protected SchemaDescriptor sd;
-	
+
 	/**
 	 * @param actionAllowed actionAllowed[action] is true if action is in the privilege set.
 	 */
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "DB-9844")
 	public TablePrivilegeInfo( TableDescriptor td,
 							   boolean[] actionAllowed,
 							   FormatableBitSet[] columnBitSets,

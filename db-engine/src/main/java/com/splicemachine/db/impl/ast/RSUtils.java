@@ -59,6 +59,9 @@ public class RSUtils {
     public static final Function<ResultSetNode, Integer> rsNum = new Function<ResultSetNode, Integer>() {
         @Override
         public Integer apply(ResultSetNode rsn) {
+            if (null == rsn) {
+                throw new NullPointerException();
+            }
             return rsn.getResultSetNumber();
         }
     };
@@ -100,6 +103,9 @@ public class RSUtils {
     public final static com.google.common.base.Predicate<ResultSetNode> isSinkingNode = new com.google.common.base.Predicate<ResultSetNode>() {
         @Override
         public boolean apply(ResultSetNode rsn) {
+            if (null == rsn) {
+                throw new NullPointerException();
+            }
             return sinkers.contains(rsn.getClass()) &&
                     (!(rsn instanceof JoinNode) || RSUtils.isSinkingJoin(RSUtils.ap((JoinNode) rsn)) ||
                             RSUtils.leftHasIndexLookup(rsn));
@@ -137,7 +143,7 @@ public class RSUtils {
             FromBaseTable.class,
             RowResultSetNode.class);
 
-    public static Map<Class<?>, String> sinkingNames =
+    public static final Map<Class<?>, String> sinkingNames =
             ImmutableMap.<Class<?>, String>builder()
                     .put(JoinNode.class, "join")
                     .put(HalfOuterJoinNode.class, "join")

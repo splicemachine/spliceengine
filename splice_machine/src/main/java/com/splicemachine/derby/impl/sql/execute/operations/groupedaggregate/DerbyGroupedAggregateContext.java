@@ -174,6 +174,7 @@ public class DerbyGroupedAggregateContext implements GroupedAggregateContext {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9844")
     public SQLBit[] getGroupingIdVals() {
         return groupingIdVals;
     }

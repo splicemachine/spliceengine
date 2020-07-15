@@ -29,6 +29,7 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.stat.MultivariateStatisticalSummary;
@@ -51,6 +52,7 @@ public class SparkStatistics {
     };
 
 
+    @SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE", justification = "DB-9844")
     public static void getStatementStatistics(String statement, ResultSet[] resultSets) throws SQLException {
         try {
             // Run sql statement

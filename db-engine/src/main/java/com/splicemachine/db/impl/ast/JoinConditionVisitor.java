@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.impl.sql.compile.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 import com.google.common.base.Function;
@@ -129,6 +130,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
     // Machinery for pulling up predicates (for hash-based joins)
 
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH", justification = "DB-9844")
     private JoinNode pullUpPreds(JoinNode j, AccessPath ap) throws StandardException {
         List<Predicate> toPullUp = new LinkedList<>();
 
@@ -377,6 +379,9 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                         new Function<ColumnReference, Integer>() {
                             @Override
                             public Integer apply(ColumnReference cr) {
+                                if (null == cr) {
+                                    throw new NullPointerException();
+                                }
                                 // ColumnReference pointing to a subquery may have source set to null
                                 return (int) ((cr.getSource()==null)?-1:cr.getSource().getCoordinates() >> 32);
                             }

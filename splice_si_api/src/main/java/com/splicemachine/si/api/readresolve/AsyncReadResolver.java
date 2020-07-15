@@ -154,7 +154,6 @@ public class AsyncReadResolver{
                 event.region=region;
                 event.txnId=txnId;
                 event.rowKey.set(rowKey.getByteCopy());
-                event.rollForward=rollForward;
             }finally{
                 ringBuffer.publish(sequence);
             }

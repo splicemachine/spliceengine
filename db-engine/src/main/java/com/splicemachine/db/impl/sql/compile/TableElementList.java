@@ -107,7 +107,6 @@ public class TableElementList extends QueryTreeNodeVector {
         throws StandardException
     {
 		int			size = size();
-		int collationType = sd.getCollationType();
 		for (int index = 0; index < size; index++)
 		{
 			TableElementNode tableElement = (TableElementNode) elementAt(index);

@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.util.List;
@@ -278,6 +279,7 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 		return true;
 	}
 
+	@SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "DB-9844")
     private static class ColumnDescriptorNameFunction implements Function<ColumnDescriptor, String> {
 
         private TableDescriptor tableDescriptor;

@@ -37,6 +37,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -227,6 +228,7 @@ public class StoreCostControllerImpl implements StoreCostController {
     }
 
     @Override
+    @SuppressFBWarnings(value = "ICAST_IDIV_CAST_TO_DOUBLE", justification = "DB-9844")
     public double rowCount() {
         double rowCnt = tableStatistics.rowCount();
         if (isSampleStats)
@@ -240,6 +242,7 @@ public class StoreCostControllerImpl implements StoreCostController {
     }
 
     @Override
+    @SuppressFBWarnings(value = "ICAST_IDIV_CAST_TO_DOUBLE", justification = "DB-9844")
     public double nonNullCount(int columnNumber) {
         double notNullCount = tableStatistics.notNullCount(columnNumber - 1);
         if (isSampleStats)
@@ -362,6 +365,7 @@ public class StoreCostControllerImpl implements StoreCostController {
         }
     }
 
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_EXCEPTION", justification = "DB-9844")
     public static int getPartitions(byte[] table, List<Partition> partitions, boolean refresh) throws StandardException {
         Partition root = null;
         try {
@@ -383,6 +387,7 @@ public class StoreCostControllerImpl implements StoreCostController {
         return getPartitions(table,partitions,false);
     }
 
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_EXCEPTION", justification = "DB-9844")
     public static int getPartitions(String table, List<Partition> partitions, boolean refresh) throws StandardException {
         Partition root = null;
         try {

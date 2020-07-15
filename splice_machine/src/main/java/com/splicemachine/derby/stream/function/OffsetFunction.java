@@ -20,6 +20,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -61,6 +62,7 @@ public class OffsetFunction<Op extends SpliceOperation,V> extends SpliceFlatMapF
     }
 
     @Override
+    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
     public Iterator<V> call(Iterator<Tuple2<V, Long>> in) throws Exception {
         final PeekingIterator<Tuple2<V, Long>> peeking = Iterators.peekingIterator(in);
         while(peeking.hasNext()) {

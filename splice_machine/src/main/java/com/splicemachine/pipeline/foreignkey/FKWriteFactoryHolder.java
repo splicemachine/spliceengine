@@ -166,7 +166,6 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
         if (fks.isEmpty()) {
             return;
         }
-        ColumnDescriptorList backingIndexColDescriptors = cDescriptor.getColumnDescriptors();
         String parentTableName = cDescriptor.getTableDescriptor().getName();
         List<Long> backingIndexConglomIds = Lists.newArrayList();
         List<DDLMessage.FKConstraintInfo> fkConstraintInfos = Lists.newArrayList();

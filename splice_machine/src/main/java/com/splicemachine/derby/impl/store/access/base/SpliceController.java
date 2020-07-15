@@ -51,7 +51,7 @@ import java.util.List;
 import java.util.Properties;
 
 public abstract class SpliceController implements ConglomerateController{
-    protected static Logger LOG=Logger.getLogger(SpliceController.class);
+    protected static final Logger LOG=Logger.getLogger(SpliceController.class);
     protected OpenSpliceConglomerate openSpliceConglomerate;
     private PartitionFactory partitionFactory;
     protected BaseSpliceTransaction trans;

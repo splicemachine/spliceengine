@@ -133,6 +133,9 @@ public class CorrelatedPushDown extends AbstractSpliceVisitor {
     public static final Function<Predicate,List<ValueNode>> binaryOperands = new Function<Predicate, List<ValueNode>>() {
         @Override
         public List<ValueNode> apply(Predicate pred) {
+            if (null == pred) {
+                throw new NullPointerException();
+            }
             ValueNode operator = pred.getAndNode().getLeftOperand();
             if (operator instanceof BinaryRelationalOperatorNode) {
                 BinaryRelationalOperatorNode boperator = (BinaryRelationalOperatorNode) operator;

@@ -557,6 +557,7 @@ public class ControlDataSet<V> implements DataSet<V> {
      * @return
      */
     @Override
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "DB-9844")
     public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location, String compression, OperationContext context) {
 
         try {
