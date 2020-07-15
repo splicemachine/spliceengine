@@ -510,12 +510,9 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
     @Override
     public void preReplayWALs(ObserverContext<? extends RegionCoprocessorEnvironment> ctx, RegionInfo info, Path edits) throws IOException {
-        WAL.Reader reader = null;
         Configuration conf = ctx.getEnvironment().getConfiguration();
         FileSystem fs = FileSystem.get(edits.toUri(), conf);
-        try {
-            reader = WALFactory.createReader(fs, edits, conf);
-
+        try (WAL.Reader reader = WALFactory.createReader(fs, edits, conf)) {
             WAL.Entry entry;
             LOG.info("WAL replay");
             while ((entry = reader.next()) != null) {
@@ -524,8 +521,6 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
                 LOG.info(key + " -> " + val);
             }
-        } finally {
-            reader.close();
         }
     }
 }
