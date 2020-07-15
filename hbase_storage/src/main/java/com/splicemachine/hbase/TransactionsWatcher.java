@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class TransactionsWatcher {
     private static final Logger LOG = Logger.getLogger(TransactionsWatcher.class);
     private static final AtomicBoolean started = new AtomicBoolean(false);
-    private static AtomicLong lowWatermarkTransaction = new AtomicLong(Long.MAX_VALUE);
+    private static AtomicLong lowWatermarkTransaction = new AtomicLong(-1);
 
     public static TransactionsWatcher INSTANCE = new TransactionsWatcher();
 
@@ -110,6 +110,7 @@ public class TransactionsWatcher {
     }
 
     public static long getLowWatermarkTransaction() {
+        assert lowWatermarkTransaction.get() != Long.MAX_VALUE;
         return lowWatermarkTransaction.get();
     }
 }
