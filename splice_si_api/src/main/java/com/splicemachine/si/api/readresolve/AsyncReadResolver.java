@@ -24,6 +24,7 @@ import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.TrafficControl;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -128,6 +129,7 @@ public class AsyncReadResolver{
         }
     }
 
+    @SuppressFBWarnings(value = "UUF_UNUSED_FIELD", justification = "DB-9844")
     private class PartitionReadResolver implements ReadResolver{
         private final Partition region;
         private final RollForward rollForward;

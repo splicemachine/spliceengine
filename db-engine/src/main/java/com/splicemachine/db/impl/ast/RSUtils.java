@@ -37,6 +37,8 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.google.common.base.Predicates;
 import com.google.common.collect.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -56,12 +58,10 @@ public class RSUtils {
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
     public static final Function<ResultSetNode, Integer> rsNum = new Function<ResultSetNode, Integer>() {
         @Override
         public Integer apply(ResultSetNode rsn) {
-            if (null == rsn) {
-                throw new NullPointerException();
-            }
             return rsn.getResultSetNumber();
         }
     };
@@ -100,12 +100,10 @@ public class RSUtils {
                     Predicates.instanceOf(IndexToBaseRowNode.class));
 
 
+    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
     public final static com.google.common.base.Predicate<ResultSetNode> isSinkingNode = new com.google.common.base.Predicate<ResultSetNode>() {
         @Override
         public boolean apply(ResultSetNode rsn) {
-            if (null == rsn) {
-                throw new NullPointerException();
-            }
             return sinkers.contains(rsn.getClass()) &&
                     (!(rsn instanceof JoinNode) || RSUtils.isSinkingJoin(RSUtils.ap((JoinNode) rsn)) ||
                             RSUtils.leftHasIndexLookup(rsn));

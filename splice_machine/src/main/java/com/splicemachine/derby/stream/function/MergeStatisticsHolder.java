@@ -165,7 +165,6 @@ public class MergeStatisticsHolder implements Externalizable {
         return tableMergedStatistics;
     }
 
-    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
     public Iterator<ExecRow> toList() throws StandardException {
         long rowCount = tableMergedStatistics.getColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT).getLong();
         long avgRowWidth = tableMergedStatistics.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getLong();
@@ -174,6 +173,7 @@ public class MergeStatisticsHolder implements Externalizable {
                 FluentIterable.from(columnStatisticsMergeHashMap.entrySet()).transform(new Function<Map.Entry<Integer, ColumnStatisticsMerge>, ExecRow>() {
                     @Nullable
                     @Override
+                    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
                     public ExecRow apply(@Nullable Map.Entry<Integer, ColumnStatisticsMerge> entry) {
                         return  entry.getValue().toExecRow(entry.getKey());
                     }

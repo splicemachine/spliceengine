@@ -373,15 +373,13 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     /**
      * Return the set of ResultSetNode numbers referred to by column references in p
      */
+    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
     public static Set<Integer> resultSetRefs(Predicate p) throws StandardException {
         return Sets.newHashSet(
                 Iterables.filter(Lists.transform(RSUtils.collectNodes(p, ColumnReference.class),
                         new Function<ColumnReference, Integer>() {
                             @Override
                             public Integer apply(ColumnReference cr) {
-                                if (null == cr) {
-                                    throw new NullPointerException();
-                                }
                                 // ColumnReference pointing to a subquery may have source set to null
                                 return (int) ((cr.getSource()==null)?-1:cr.getSource().getCoordinates() >> 32);
                             }

@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
@@ -129,13 +130,10 @@ public class CorrelatedPushDown extends AbstractSpliceVisitor {
         return subq;
     }
 
-
+    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
     public static final Function<Predicate,List<ValueNode>> binaryOperands = new Function<Predicate, List<ValueNode>>() {
         @Override
         public List<ValueNode> apply(Predicate pred) {
-            if (null == pred) {
-                throw new NullPointerException();
-            }
             ValueNode operator = pred.getAndNode().getLeftOperand();
             if (operator instanceof BinaryRelationalOperatorNode) {
                 BinaryRelationalOperatorNode boperator = (BinaryRelationalOperatorNode) operator;
