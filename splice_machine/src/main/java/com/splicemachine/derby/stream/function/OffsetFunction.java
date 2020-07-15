@@ -62,7 +62,6 @@ public class OffsetFunction<Op extends SpliceOperation,V> extends SpliceFlatMapF
     }
 
     @Override
-    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
     public Iterator<V> call(Iterator<Tuple2<V, Long>> in) throws Exception {
         final PeekingIterator<Tuple2<V, Long>> peeking = Iterators.peekingIterator(in);
         while(peeking.hasNext()) {
@@ -92,6 +91,7 @@ public class OffsetFunction<Op extends SpliceOperation,V> extends SpliceFlatMapF
             return Iterables.transform(result, new Function<Tuple2<V, Long>, V>() {
                 @Nullable
                 @Override
+                @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
                 public V apply(@Nullable Tuple2<V, Long> tuple) {
                     return tuple._1();
                 }

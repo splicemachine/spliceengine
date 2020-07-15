@@ -85,9 +85,9 @@ public class FileSystemConfiguration implements SystemConfiguration{
         return count;
     }
 
-    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
     private static final Function<Path,String> pathNameFunction = new Function<Path, String>() {
         @Override
+        @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
         public String apply(Path input) {
             return input.toAbsolutePath().toString();
         }
