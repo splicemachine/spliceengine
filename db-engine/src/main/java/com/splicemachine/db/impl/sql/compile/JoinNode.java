@@ -2005,6 +2005,11 @@ public class JoinNode extends TableOperatorNode{
         // Is the right from SSQ
         mb.push(rightResultSet.getFromSSQ());
 
+        if (isCrossJoin()) {
+            mb.push(((Optimizable)rightResultSet).getTrulyTheBestAccessPath().getJoinStrategy().getBroadcastRight(rightResultSet.getFinalCostEstimate(true).getBase()));
+            numArgs++;
+        }
+
         // estimated row count
         mb.push(costEstimate.rowCount());
 
