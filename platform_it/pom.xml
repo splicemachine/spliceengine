@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.1963-SNAPSHOT</version>
+        <version>3.0.0.1965-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -420,6 +420,11 @@
             </plugin>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <additionalClasspathElements>
+                        <additionalClasspathElement>${project.basedir}/target/hbase-site.xml</additionalClasspathElement>
+                    </additionalClasspathElements>
+                </configuration>
                 <executions>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
                     <execution>

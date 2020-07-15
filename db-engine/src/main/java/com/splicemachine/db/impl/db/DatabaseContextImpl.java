@@ -74,7 +74,7 @@ final class DatabaseContextImpl extends ContextImpl implements DatabaseContext
             // shut down. On certain platforms, this results in database
             // files that can't be deleted until the VM exits.
             DataDictionary dd = db.getDataDictionary();
-            // dd is null if the db is an active slave db (replication)
+            // dd is null if the db is an active replica db (replication)
         }
 
         if (se.getSeverity() == ExceptionSeverity.DATABASE_SEVERITY) {
