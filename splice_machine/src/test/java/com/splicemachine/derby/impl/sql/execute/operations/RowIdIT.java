@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
 import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.util.RowIdUtil;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
@@ -419,7 +420,7 @@ public class RowIdIT extends SpliceUnitTest {
 
     @Test
     public void testRowIdToInstantFunction() throws Exception {
-        ResultSet resultSet  = methodWatcher.executeQuery(String.format("select cast(rowid as varchar(30)) from %s {limit 1}",
+        ResultSet resultSet  = methodWatcher.executeQuery(String.format("select cast(rowid as varchar(30)) from %s",
                 this.getTableReference(TABLE7_NAME)));
         Assert.assertTrue(resultSet.next());
         String rowId = resultSet.getString(1);
@@ -449,5 +450,31 @@ public class RowIdIT extends SpliceUnitTest {
             return;
         }
         fail("Expected: java.sql.SQLException: ERROR 22008: '33445567' is an invalid argument to the TO_INSTANT function.");
+    }
+
+    @Test
+    public void testRowIdToHbaseEscapedFunction() throws Exception {
+        ResultSet resultSet  = methodWatcher.executeQuery(String.format("select cast(rowid as varchar(30)) from %s",
+                this.getTableReference(TABLE7_NAME)));
+        Assert.assertTrue(resultSet.next());
+        String rowId = resultSet.getString(1);
+        Assert.assertFalse(resultSet.next());
+        StringDataValue result = RowIdUtil.toHBaseEscaped(new SQLChar(rowId));
+        resultSet = methodWatcher.executeQuery(String.format("select to_hbase_escaped(rowid) from %s", this.getTableReference(TABLE7_NAME)));
+        Assert.assertTrue(resultSet.next());
+        Assert.assertEquals(result.getString(), resultSet.getString(1));
+        Assert.assertFalse(resultSet.next());
+    }
+
+    @Test
+    public void testRowIdToHbaseEscapedFunctionInvalidInput() {
+        try {
+            methodWatcher.executeQuery("values to_hbase_escaped('334')");
+            fail("Expected: java.sql.SQLException: ERROR 22008: '334' is an invalid argument to the TO_HBASE_ESCAPED function.");
+        } catch (SQLException e) {
+            Assert.assertEquals("22008", e.getSQLState());
+            return;
+        }
+        fail("Expected: java.sql.SQLException: ERROR 22008: '334' is an invalid argument to the TO_HBASE_ESCAPED function.");
     }
 }

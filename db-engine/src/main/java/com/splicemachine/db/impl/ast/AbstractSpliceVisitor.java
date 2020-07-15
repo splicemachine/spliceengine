@@ -925,4 +925,9 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     public Visitable visit(ToInstantOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
+
+    @Override
+    public Visitable visit(ToHbaseEscapedOperatorNode node) throws StandardException {
+        return defaultVisit(node);
+    }
 }
