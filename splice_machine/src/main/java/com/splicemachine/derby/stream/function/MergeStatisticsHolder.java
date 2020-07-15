@@ -32,6 +32,7 @@ import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.annotation.Nullable;
 import java.io.Externalizable;
@@ -67,6 +68,7 @@ public class MergeStatisticsHolder implements Externalizable {
         tableMergedStatistics = (ExecRow) in.readObject();
     }
 
+    @SuppressFBWarnings(value = "DM_NUMBER_CTOR", justification = "DB-9844")
     public void merge(ExecRow nextRow) throws StandardException {
         if (nextRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
             // process columnstats row
@@ -163,6 +165,7 @@ public class MergeStatisticsHolder implements Externalizable {
         return tableMergedStatistics;
     }
 
+    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
     public Iterator<ExecRow> toList() throws StandardException {
         long rowCount = tableMergedStatistics.getColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT).getLong();
         long avgRowWidth = tableMergedStatistics.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getLong();

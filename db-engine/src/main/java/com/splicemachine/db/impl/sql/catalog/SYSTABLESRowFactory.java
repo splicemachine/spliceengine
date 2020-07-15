@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.ArrayList;
@@ -140,6 +141,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	 * @exception   StandardException thrown on failure
 	 */
 
+	@SuppressFBWarnings(value = "BC_UNCONFIRMED_CAST", justification = "DB-9844")
 	public ExecRow makeRow(TupleDescriptor td,
 						   TupleDescriptor	parent)
 					throws StandardException
@@ -298,6 +300,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	 * @return corresponding empty index row
 	 * @exception   StandardException thrown on failure
 	 */
+	@SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "DB-9844")
 	ExecIndexRow	buildEmptyIndexRow( int indexNumber,
 											RowLocation rowLocation)
 			throws StandardException

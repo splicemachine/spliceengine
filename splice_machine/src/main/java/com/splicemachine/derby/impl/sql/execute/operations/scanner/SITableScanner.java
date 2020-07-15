@@ -54,7 +54,7 @@ import java.util.List;
  * Date: 4/4/14
  */
 public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoCloseable{
-    public static ThreadLocal<String> regionId = new ThreadLocal<String>(){
+    public static final ThreadLocal<String> regionId = new ThreadLocal<String>(){
         @Override
         protected String initialValue(){
             return "--";

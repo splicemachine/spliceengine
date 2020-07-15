@@ -47,6 +47,7 @@ import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
@@ -86,6 +87,7 @@ public class DataDictionaryCache {
     private ManagedCache<ByteSlice,TokenDescriptor> tokenCache;
     private ManagedCache<String, Optional<String>> propertyCache;
     private DataDictionary dd;
+    @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "DB-9844")
     public static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
             "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
             "tokenCache", "propertyCache", "conglomerateDescriptorCache", "oldSchemaCache"};
@@ -292,6 +294,7 @@ public class DataDictionaryCache {
 
     }
 
+    @SuppressFBWarnings(value = "NP_OPTIONAL_RETURN_NULL", justification = "DB-9844")
     public Optional<PermissionsDescriptor> permissionCacheFind(PermissionsDescriptor desc) throws StandardException {
         if (!dd.canReadCache(null))
             return null;
@@ -527,6 +530,7 @@ public class DataDictionaryCache {
         roleCache.put(roleName,optional);
     }
 
+    @SuppressFBWarnings(value = "NP_OPTIONAL_RETURN_NULL", justification = "DB-9844")
     public Optional<RoleGrantDescriptor> roleCacheFind(String roleName) throws StandardException {
         if (!dd.canReadCache(null))
             return null;
@@ -577,6 +581,7 @@ public class DataDictionaryCache {
         roleGrantCache.put(key,optional);
     }
 
+    @SuppressFBWarnings(value = "NP_OPTIONAL_RETURN_NULL", justification = "DB-9844")
     public Optional<RoleGrantDescriptor> roleGrantCacheFind(Pair<String, String> key) throws StandardException {
         if (!dd.canReadCache(null))
             return null;

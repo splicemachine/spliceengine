@@ -75,6 +75,9 @@ public class UnsupportedFormsDetector extends AbstractSpliceVisitor {
         List<String> sinkingOps = Lists.transform(rsns, new Function<ResultSetNode, String>() {
             @Override
             public String apply(ResultSetNode input) {
+                if (null == input) {
+                    throw new NullPointerException();
+                }
                 return RSUtils.sinkingNames.get(input.getClass());
             }
         });

@@ -32,6 +32,7 @@ import java.util.List;
 /**
  * Created by jyuan on 9/15/14.
  */
+@SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", justification = "DB-9844")
 abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     protected final long frameStart;
     protected final long frameEnd;

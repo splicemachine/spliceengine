@@ -37,10 +37,12 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Class that represents a call to the LEAD() and LAG() window functions.
  */
+@SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE", justification = "DB-9844")
 public final class LeadLagFunctionNode extends WindowFunctionNode {
 
     private int offset = 1;

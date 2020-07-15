@@ -17,6 +17,7 @@ package com.splicemachine.system;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.nio.file.FileStore;
@@ -84,6 +85,7 @@ public class FileSystemConfiguration implements SystemConfiguration{
         return count;
     }
 
+    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
     private static final Function<Path,String> pathNameFunction = new Function<Path, String>() {
         @Override
         public String apply(Path input) {

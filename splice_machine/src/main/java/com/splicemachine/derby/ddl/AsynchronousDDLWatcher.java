@@ -63,7 +63,6 @@ public class AsynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
                                   DDLWatchChecker ddlWatchChecker,
                                   SqlExceptionFactory exceptionFactory,
                                   TxnSupplier txnSupplier){
-        long maxDdlWait = config.getMaxDdlWait() << 1;
         this.refreshWaitMs = config.getDdlRefreshInterval();
         this.checker = ddlWatchChecker;
         this.refresher = new DDLWatchRefresher(checker,

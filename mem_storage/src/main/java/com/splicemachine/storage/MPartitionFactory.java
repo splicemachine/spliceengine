@@ -63,7 +63,6 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
     private class Creator implements PartitionCreator{
         private String name;
-        private long txnId;
 
         @Override
         public PartitionCreator withName(String name){

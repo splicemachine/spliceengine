@@ -20,6 +20,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.google.common.collect.PeekingIterator;
 import java.io.Closeable;
@@ -86,6 +87,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
         hashKeySortOrders = ((MergeJoinOperation)mergeJoinOperation).getRightHashKeySortOrders();
     }
 
+    @SuppressFBWarnings(value = "RV_NEGATING_RESULT_OF_COMPARETO", justification = "DB-9844")
     private int compare(ExecRow left, ExecRow right) throws StandardException {
         for (int i = 0, s = joinKeys.length; i < s; i = i + 2) {
             int result = left.getColumn(joinKeys[i])
@@ -204,6 +206,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
     }
 
 
+    @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "DB-9844")
     public class RightsForLeftsIterator implements Iterator<ExecRow>{
         private ExecRow leftRow;
         private PeekingIterator<ExecRow> rightRS;
