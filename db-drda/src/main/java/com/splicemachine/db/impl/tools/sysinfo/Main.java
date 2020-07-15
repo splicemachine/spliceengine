@@ -31,20 +31,15 @@
 
 package com.splicemachine.db.impl.tools.sysinfo;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Locale;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.io.InputStream;
 import java.util.Properties;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.StringTokenizer;
-import java.io.File;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipEntry;
-import java.io.FileInputStream;
 import java.util.Vector;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -202,7 +197,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
     try {
 
       System.out.print (Main.getTextMessage ("SIF01.C"));
-      BufferedReader br = new BufferedReader (new InputStreamReader (System.in));
+      BufferedReader br = new BufferedReader (new InputStreamReader (System.in, StandardCharsets.UTF_8));
       br.readLine ();
     }
     catch (IOException ioe) {
@@ -220,7 +215,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
   private static void reportDerby (java.io.PrintWriter localAW) {
 
-	  String classpath = null;
+	  String classpath;
 
       try {
           classpath = (String) AccessController.doPrivileged( new PrivilegedAction()
@@ -240,21 +235,13 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
       ZipInfoProperties zip[]= Main.getAllInfo (classpath);
 
-    if (zip != null) {
+      for (ZipInfoProperties zipInfoProperties : zip) {
 
-      for (int i = 0; i < zip.length; i++) {
+          String thisInfo = "[" + zipInfoProperties.getLocation() + "] " +
+                  zipInfoProperties.getVersionBuildInfo();
 
-        String thisInfo = "[" + zip[i].getLocation () + "] " +
-                                zip[i].getVersionBuildInfo ();
-
-        localAW.println (thisInfo);
+          localAW.println(thisInfo);
       }
-    }
-
-    else {
-
-      localAW.println (Main.getTextMessage ("SIF01.D"));
-    }
 
 
   } // end of reportDerby
@@ -547,7 +534,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
 
 	    if (localPW == null)
 	    {
-	        localPW = new java.io.PrintWriter(System.out);
+	        localPW = new java.io.PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
 	    }
 
 
@@ -822,7 +809,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
         {
             zips = new ZipInfoProperties[1];
             ZipInfoProperties zip = new ZipInfoProperties(ProductVersionHolder.getProductVersionHolderFromMyEnv(com.splicemachine.db.tools.sysinfo.TOOLS));
-            zip.setLocation(getFileWhichLoadedClass(new Main().getClass()));
+            zip.setLocation(getFileWhichLoadedClass(Main.class));
             zips[0] = zip;
         }
 
@@ -888,7 +875,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
             InputStream is = (InputStream) AccessController.doPrivileged
             (new PrivilegedAction() {
                 public Object run() {
-                    return new Main().getClass().getResourceAsStream(resource);
+                    return Main.class.getResourceAsStream(resource);
                     }
                 }
             );         
@@ -902,7 +889,7 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
                         URL locUrl = (URL) AccessController.doPrivileged
                         (new PrivilegedAction() {
                             public Object run() {
-                                return new Main().getClass().getResource(resource);
+                                return Main.class.getResource(resource);
                             }
                         });
 
@@ -1027,52 +1014,41 @@ public static void getMainInfo (java.io.PrintWriter aw, boolean pause) {
     /**
      * Check inside a jar file for the presence of a Derby info properties file.
      * 
-     * @param filename
-     *            the jar file to check
+     * @param filename the jar file to check
      * @return ZipInfoProperties with the jar file set as the location or null
-     *         if not found.
+     *  if not found, or an IOException occurs.
      */
     private static ZipInfoProperties checkFile(String filename)
     {
-        // try to create a ZipFile from it
-        try
+        // try to create a ZipFile from the file name
+        try(ZipFile zf = new ZipFile(filename))
         {
-            ZipFile zf = new ZipFile(filename);
             // try to get a ZipEntry from the ZipFile
-
             ZipEntry thisEntry = null;
-
-            for (int i =0; i < infoNames.length; i++)
-            {
-                thisEntry = zf.getEntry(infoNames[i]);
-                if (thisEntry != null)
-                {
+            for (String infoName : infoNames) {
+                thisEntry = zf.getEntry(infoName);
+                if (thisEntry != null) {
                     break;
                 }
             }
-
             if (thisEntry == null)
             {
                 return null;
             }
 
-            InputStream bis = zf.getInputStream(thisEntry);
-            if (bis == null)
+            ZipInfoProperties zip;
+            try(InputStream bis = zf.getInputStream(thisEntry))
             {
-                return null;
+                zip = new ZipInfoProperties(ProductVersionHolder.getProductVersionHolderFromMyEnv(bis));
+                zip.setLocation(getCanonicalPath(new File(filename)).replace('/', File.separatorChar));
             }
-
-            ZipInfoProperties zip = new ZipInfoProperties(ProductVersionHolder.getProductVersionHolderFromMyEnv(bis));
-            zip.setLocation(getCanonicalPath(new File(filename)).replace('/', File.separatorChar));
-            return zip;
-
+            return zip; // can be null
         }
         catch (IOException ioe)
         {
             //guess not
             return null;
         }
-
     }
 
 	/*
