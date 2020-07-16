@@ -280,8 +280,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
         operationContext.pushScope();
         try {
             DataSet<ExecRow> ds = sourceSet.map(new ScrollInsensitiveFunction(operationContext), true);
-            handleSparkExplain(ds, sourceSet, dsp);
-            return ds;
+            handleSparkExplain(ds, sourceSet, dsp);            return ds;
         } finally {
             operationContext.popScope();
         }
