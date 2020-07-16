@@ -71,6 +71,7 @@ import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import scala.Array;
 import scala.Tuple2;
 
 import java.io.Externalizable;
@@ -335,6 +336,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public Partitioner getPartitioner(DataSet<ExecRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys) {
         return new HBasePartitioner(dataSet, template, keyDecodingMap, keyOrder, rightHashKeys);
     }
+    static HashMap<String, StructField[]> dataSetHashMap2 = new HashMap<>();
 
     @Override
     public <V> DataSet<V> readParquetFile(StructType tableSchema, int[] baseColumnMap, int[] partitionColumnMap,
@@ -346,10 +348,27 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
 
             try {
-                table = SpliceSpark.getSession()
-                        .read()
-                        .schema(tableSchema)
-                        .parquet(location);
+                if( dataSetHashMap.containsKey(location) ) {
+                    table = dataSetHashMap.get(location);
+                    if( dataSetHashMap2.containsKey(location) ) {
+                        StructField[] src = dataSetHashMap2.get(location);
+                        for( int i = 0; i < src.length; i++ )
+                            table.schema().fields()[i] = src[i];
+                    } else
+                    {
+                        StructField[] s = new StructField[table.schema().fields().length];
+                        for( int i = 0; i < s.length; i++ )
+                            s[i] = table.schema().fields()[i];
+
+                        dataSetHashMap2.put(location, s);
+                    }
+                }
+                else {
+                    table = SpliceSpark.getSession()
+                            .read()
+                            .schema(tableSchema)
+                            .parquet(location);
+                }
             } catch (Exception e) {
                 return handleExceptionSparkRead(e, location, false);
             }
@@ -434,6 +453,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
     }
 
+    static HashMap<String, Dataset<Row>> dataSetHashMap = new HashMap<>();
+
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH",justification = "Intentional")
     @Override
     public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException {
@@ -444,9 +465,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         // normalize location string
         location = new Path(location).toString();
         try {
-
-            if (!mergeSchema) {
+            if (false && !mergeSchema) {
+                // get one file out of the directory tree
                 fs = FileSystem.get(URI.create(location), conf);
+
                 String fileName = getFile(fs, location);
                 boolean canWrite = true;
                 if( (fileName == null || (fs.getFileStatus(new Path(location)).getPermission().toShort() & 0222) == 0 )) {
@@ -491,10 +513,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 String mergeSchemaOption = mergeSchema ? "true" : "false";
                 if (storedAs != null) {
                     if (storedAs.toLowerCase().equals("p")) {
-                        dataset = SpliceSpark.getSession()
+                        Dataset<Row> dataset1 = SpliceSpark.getSession()
                                 .read()
                                 .option("mergeSchema", mergeSchemaOption)
                                 .parquet(location);
+                        dataSetHashMap.put(location, dataset1);
+                        dataset = dataset1;
                     } else if (storedAs.toLowerCase().equals("a")) {
                         // spark does not support schema merging for avro
                         dataset = SpliceSpark.getSession()
