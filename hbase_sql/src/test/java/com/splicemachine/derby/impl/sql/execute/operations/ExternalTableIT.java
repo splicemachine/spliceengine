@@ -2469,7 +2469,7 @@ public class ExternalTableIT extends SpliceUnitTest {
                 "\"COL1\" INTEGER\n" +
                 ",\"COL2\" VARCHAR(24)\n" +
                 ") \n" +
-                "PARTITIONED BY (COL1)\n" +
+                "PARTITIONED BY (\"COL1\")\n" +
                 "ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' ESCAPED BY '\\\\' LINES TERMINATED BY '\\\\n'\n" +
                 "STORED AS TEXTFILE\n" +
                 "LOCATION '" + tablePath + "';", rs.getString(1));
@@ -2493,7 +2493,7 @@ public class ExternalTableIT extends SpliceUnitTest {
                     "\"COL1\" INTEGER\n" +
                     ",\"COL2\" VARCHAR(24)\n" +
                     ") \n" +
-                    "PARTITIONED BY (COL1)\n" +
+                    "PARTITIONED BY (\"COL1\")\n" +
                     "STORED AS " + fileFormat  + "\n" +
                     "LOCATION '" + tablePath + "';", rs.getString(1));
         }
@@ -2517,7 +2517,7 @@ public class ExternalTableIT extends SpliceUnitTest {
                 ",\"COL3\" INTEGER\n" +
                 ") \n" +
                 "COMPRESSED WITH snappy\n" +
-                "PARTITIONED BY (COL2,COL3)\n" +
+                "PARTITIONED BY (\"COL2\",\"COL3\")\n" +
                 "STORED AS PARQUET\n" +
                 "LOCATION '" + tablePath + "';", rs.getString(1));
 
