@@ -704,6 +704,19 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
          */
         predicateList.categorize();
 
+        // When left outer join is flattend, its ON clause condition could be released to the WHERE clause but
+        // with an outerJoinLevel > 0. These predicates cannot be pushed to tables whose outerJoinLevel does not match.
+        // As a simplification, we don't push predicates down whoe OuterJoinLevel is greater than 0.
+        PredicateList levelZeroPredicateList = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        for (int i = predicateList.size()-1; i >= 0 ; i--) {
+            Predicate pred = predicateList.elementAt(i);
+            if (pred.getOuterJoinLevel() == 0) {
+                levelZeroPredicateList.addOptPredicate(pred);
+                predicateList.removeOptPredicate(i);
+            }
+        }
+
+
         int size=size();
         for(int index=0;index<size;index++){
             FromTable fromTable=(FromTable)elementAt(index);
@@ -712,8 +725,15 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             // ON clause condition) to right of outer join for now, it can be enhanced in the future
             if (fromTable.getOuterJoinLevel() > 0)
                 continue;
-            fromTable.pushExpressions(predicateList);
+            fromTable.pushExpressions(levelZeroPredicateList);
         }
+
+        // append the predicates that are not pushed down back to the original predicatelist
+        for ( int i=0; i < levelZeroPredicateList.size(); i++) {
+            predicateList.addOptPredicate(levelZeroPredicateList.elementAt(i));
+        }
+        levelZeroPredicateList.removeAllPredicates();
+
     }
 
 
