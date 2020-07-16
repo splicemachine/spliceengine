@@ -659,7 +659,7 @@ public class utilMain implements java.security.PrivilegedAction {
 	 */
 	 static void doPrompt(boolean newStatement, LocalizedOutput out, String tag)
 	 {
-	 	final SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss");
+	 	final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZZZZ");
 
 	 	String clock = showPromptClock ? " " + sdf.format(new Timestamp(System.currentTimeMillis())) : "";
 
@@ -863,7 +863,7 @@ public class utilMain implements java.security.PrivilegedAction {
 		}
 	}
 
-	public void setPromptClock(boolean showPromptClock) {
-		this.showPromptClock = showPromptClock;
+	public static void setPromptClock(boolean showPromptClock) {
+		utilMain.showPromptClock = showPromptClock;
 	}
 }
