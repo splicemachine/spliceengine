@@ -88,7 +88,7 @@ public class MemDatabase{
         DatabaseLifecycleManager manager=DatabaseLifecycleManager.manager();
         manager.registerEngineService(els);
         manager.registerNetworkService(new NetworkLifecycleService(config));
-        manager.start();
+        manager.start(null);
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable(){
             @Override
             public void run(){
