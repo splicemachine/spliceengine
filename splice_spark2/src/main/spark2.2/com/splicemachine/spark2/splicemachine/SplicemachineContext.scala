@@ -614,7 +614,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     ).map(i => {
       val colName = i(0)
       val sqlType = i(1)
-      val size = if(sqlType.equals("VARCHAR")) { s"(${i(2)})" } else {""}
+      val size = sqlType match {
+        case "VARCHAR" => s"(${i(2)})"
+        case "DECIMAL" | "NUMERIC" => s"(${i(2)},${i(3)})"
+        case _ => ""
+      }
       s"$colName $sqlType$size"
     }).mkString(", ")
   
