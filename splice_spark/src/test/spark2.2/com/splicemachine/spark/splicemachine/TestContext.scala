@@ -14,20 +14,26 @@
 package com.splicemachine.spark.splicemachine
 
 import java.math.BigDecimal
-import java.sql.{Time, Timestamp}
+import java.sql.{Connection, Time, Timestamp}
 import java.util.Date
 
 import com.splicemachine.derby.impl.SpliceSpark
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.apache.spark.sql.types._
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 trait TestContext extends BeforeAndAfterAll { self: Suite =>
   var sc: SparkContext = null
-  var splicemachineContext: SplicemachineContext = null
+  var spark: SparkSession = _
+  var splicemachineContext: SplicemachineContext = _
+  var internalTNDF: Dataset[Row] = _
   val table = "test"
   val externalTable = "testExternal"
-  val schema = "TestContext"
+  val module = "splice_spark"
+  val schema = s"${module}_TestContext_SplicemachineContext_schema"
   val internalTN = schema+"."+table
   val externalTN = schema+"."+externalTable
 
@@ -46,6 +52,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c10_time time, " +
     "c11_timestamp timestamp, " +
     "c12_varchar varchar(56), " +
+    "c13_decimal decimal(4,1), " +
     "primary key (c6_int, c7_bigint)" +
      ")"
   val allTypesCreateStringWithoutPrimaryKey = "(" +
@@ -60,9 +67,30 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c9_smallint smallint, " +
     "c10_time time, " +
     "c11_timestamp timestamp, " +
-    "c12_varchar varchar(56)" +
+    "c12_varchar varchar(56)," +
+    "c13_decimal decimal(4,1) " +
     ")"
+  
+  def allTypesSchema(withPrimaryKey: Boolean): StructType = {
+    val c6 = StructField("C6_INT", IntegerType, ! withPrimaryKey)
+    val c7 = StructField("C7_BIGINT", LongType, ! withPrimaryKey)
 
+    StructType(
+      StructField("C1_BOOLEAN", BooleanType, true) ::
+      StructField("C2_CHAR", StringType, true) ::
+      StructField("C3_DATE", DateType, true) ::
+      StructField("C4_DECIMAL", DecimalType(15,2), true) ::
+      StructField("C5_DOUBLE", DoubleType, true) ::
+      c6 :: c7 ::
+      StructField("C8_FLOAT", DoubleType, true) ::
+      StructField("C9_SMALLINT", ShortType, true) ::
+      StructField("C10_TIME", TimestampType, true) ::
+      StructField("C11_TIMESTAMP", TimestampType, true) ::
+      StructField("C12_VARCHAR", StringType, true) ::
+      StructField("C13_DECIMAL", DecimalType(4,1), true) ::
+      Nil)
+  }
+  
   val primaryKeys = Seq("c6_int","c7_bigint")
 
   val allTypesInsertString = "(" +
@@ -77,9 +105,10 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c9_smallint, " +
     "c10_time, " +
     "c11_timestamp, " +
-    "c12_varchar " +
+    "c12_varchar, " +
+    "c13_decimal " +
     ") "
-  val allTypesInsertStringValues = "values (?,?,?,?,?,?,?,?,?,?,?,?)"
+  val allTypesInsertStringValues = "values (?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
   val primaryKeyDelete = "where c6_int = ? and c7_bigint = ?"
 
@@ -114,19 +143,41 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     setAppName("test").
     set("spark.ui.enabled", "false").
     set("spark.app.id", appID)
+  
+  val testRow = List(false, "abcde", java.sql.Date.valueOf("2014-03-11"),
+    new BigDecimal(4.44, new java.math.MathContext(15)).setScale(2),
+    5.5, 0, 0L, 8.8, new java.lang.Short("9"), new java.sql.Timestamp(1000), new java.sql.Timestamp(11),
+    "Varchar C12",
+    new BigDecimal(13.3, new java.math.MathContext(4)).setScale(1) )
 
   override def beforeAll() {
     sc = new SparkContext(conf)
     SpliceSpark.setContext(sc)
+    spark = SparkSession.builder.config(conf).getOrCreate
     splicemachineContext = new SplicemachineContext(defaultJDBCURL)
+    internalTNDF = dataframe(
+      rdd( Seq( Row.fromSeq( testRow ) ) ),
+      allTypesSchema(true)
+    )
   }
 
   override def afterAll() {
+    dropInternalTable
+    dropSchema(schema)
+    if (spark != null) spark.stop()
     if (sc != null) sc.stop()
   }
 
+  def rdd(rows: Seq[Row]): RDD[Row] = {
+    spark.sparkContext.parallelize(rows)
+  }
+
+  def dataframe(rdd: RDD[Row], schema: StructType): Dataset[Row] = spark.createDataFrame( rdd , schema )
+
+  def getConnection(): Connection = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
+
   def deleteInternalRow(key: Int): Unit = {
-    val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
+    val conn = getConnection()
     try {
       val ps = conn.prepareStatement(primaryKeyDelete)
       ps.setInt(1,key)
@@ -137,6 +188,48 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     }
   }
 
+  def execute(sql: String): Unit = {
+    val conn = getConnection()
+    try {
+      conn.createStatement().execute(sql)
+    }
+    finally {
+      conn.close()
+    }
+  }
+
+  def createInternalTable(): Unit =
+    if (!splicemachineContext.tableExists(internalTN))
+      execute("create table "+internalTN + this.allTypesCreateStringWithPrimaryKey)
+
+  def dropInternalTable(): Unit =
+    if (splicemachineContext.tableExists(internalTN))
+      execute("drop table "+internalTN )
+
+  def dropSchema(schemaToDrop: String): Unit = execute(s"drop schema $schemaToDrop restrict")
+
+  def executeQuery(sql: String, processResultSet: java.sql.ResultSet => Any): Any = {
+    val conn = getConnection()
+    var rs: java.sql.ResultSet = null
+    try {
+      rs = conn.createStatement().executeQuery(sql)
+      processResultSet(rs)
+    }
+    finally {
+      rs.close
+      conn.close
+    }
+  }
+
+  def rowCount(table: String): Int =
+    executeQuery(
+      s"select count(*) from $table",
+      rs => {
+        rs.next
+        rs.getInt(1)
+      }
+    ).asInstanceOf[Int]
+
   /**
     *
     * Insert Splice Machine Row
@@ -145,16 +238,15 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     * @return
     */
   def insertInternalRows(rowCount: Integer): Unit = {
-      val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
-      if (!splicemachineContext.tableExists(internalTN))
-        conn.createStatement().execute("create table "+internalTN + this.allTypesCreateStringWithPrimaryKey)
+      val conn = getConnection()
+      createInternalTable()
       try {
         Range(0, rowCount).map { i =>
           val ps = conn.prepareStatement("insert into " + internalTN + allTypesInsertString + allTypesInsertStringValues)
           ps.setBoolean(1, i % 2==0)
           ps.setString(2, if (i < 8)"" + i else null)
           ps.setDate(3, if (i % 2==0) java.sql.Date.valueOf("2013-09-04") else java.sql.Date.valueOf("2013-09-05"))
-          ps.setBigDecimal(4, new BigDecimal("" + i))
+          ps.setBigDecimal(4, new BigDecimal(i, new java.math.MathContext(15)).setScale(2) )
           ps.setDouble(5, i)
           ps.setInt(6, i)
           ps.setInt(7, i)
@@ -163,6 +255,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
           ps.setTime(10, new Time(i))
           ps.setTimestamp(11, new Timestamp(i))
           ps.setString(12, if (i < 8) "sometestinfo" + i else null)
+          ps.setBigDecimal(13, new BigDecimal(i, new java.math.MathContext(4)).setScale(1) )
           ps.execute()
         }
       }finally {
