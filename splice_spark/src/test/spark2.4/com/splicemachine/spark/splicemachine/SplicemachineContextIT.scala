@@ -16,15 +16,13 @@
  */
 package com.splicemachine.spark.splicemachine
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
-import org.apache.spark.sql.SQLContext
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{ FunSuite, Matchers}
+import org.scalatest.{FunSuite, Matchers}
 
 @RunWith(classOf[JUnitRunner])
 class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
-  val rowCount = 10
 
   private def serialize(value: Any): Array[Byte] = {
     val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
@@ -53,24 +51,18 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
   }
 
   test("Test Get Schema") {
-    if (splicemachineContext.tableExists(internalTN)) {
-      splicemachineContext.dropTable(internalTN)
-    }
-    insertInternalRows(rowCount)
-    val sqlContext = new SQLContext(sc)
+    dropInternalTable
+    createInternalTable
     val schema = splicemachineContext.getSchema(internalTN)
     // SPARK-22002 removed metadata from StructFields in JdbcUtils.getSchema() (since Spark 2.3)
-    org.junit.Assert.assertEquals("Schema Changed!",schema.json,"{\"type\":\"struct\",\"fields\":[{\"name\":\"C1_BOOLEAN\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C2_CHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C3_DATE\",\"type\":\"date\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C4_DECIMAL\",\"type\":\"decimal(15,2)\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C5_DOUBLE\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C6_INT\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C7_BIGINT\",\"type\":\"long\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C8_FLOAT\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C9_SMALLINT\",\"type\":\"short\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C10_TIME\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C11_TIMESTAMP\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C12_VARCHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}}]}")
+    org.junit.Assert.assertEquals("Schema Changed!",schema.json,"""{"type":"struct","fields":[{"name":"C1_BOOLEAN","type":"boolean","nullable":true,"metadata":{}},{"name":"C2_CHAR","type":"string","nullable":true,"metadata":{}},{"name":"C3_DATE","type":"date","nullable":true,"metadata":{}},{"name":"C4_DECIMAL","type":"decimal(15,2)","nullable":true,"metadata":{}},{"name":"C5_DOUBLE","type":"double","nullable":true,"metadata":{}},{"name":"C6_INT","type":"integer","nullable":true,"metadata":{}},{"name":"C7_BIGINT","type":"long","nullable":true,"metadata":{}},{"name":"C8_FLOAT","type":"double","nullable":true,"metadata":{}},{"name":"C9_SMALLINT","type":"short","nullable":true,"metadata":{}},{"name":"C10_TIME","type":"timestamp","nullable":true,"metadata":{}},{"name":"C11_TIMESTAMP","type":"timestamp","nullable":true,"metadata":{}},{"name":"C12_VARCHAR","type":"string","nullable":true,"metadata":{}},{"name":"C13_DECIMAL","type":"decimal(4,1)","nullable":true,"metadata":{}}]}""")
   }
 
   test("Test Get RDD") {
-    if (splicemachineContext.tableExists(internalTN)) {
-      splicemachineContext.dropTable(internalTN)
-    }
-    insertInternalRows(rowCount)
-    val sqlContext = new SQLContext(sc)
+    dropInternalTable
+    insertInternalRows(10)
     val rdd = splicemachineContext.rdd(internalTN,Seq("C2_CHAR","C7_BIGINT"))
-    org.junit.Assert.assertEquals("Schema Changed!","List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])",rdd.collect().toList.toString)
+    org.junit.Assert.assertEquals("RDD Changed!","List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])",rdd.collect().toList.toString)
   }
 
   val carTableName = getClass.getSimpleName + "_TestCreateTable"
@@ -103,7 +95,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
   test("Test Table Exists (One Param)") {
     createCarTable
     org.junit.Assert.assertTrue(
-      carSchemaTableName+" doesn't exist", 
+      carSchemaTableName+" doesn't exist",
       splicemachineContext.tableExists(carSchemaTableName)
     )
     dropCarTable
@@ -139,6 +131,85 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     org.junit.Assert.assertFalse(
       schema+"."+name+" exists",
       splicemachineContext.tableExists(schema, name)
+    )
+  }
+
+  test("Test Insert") {
+    dropInternalTable
+    createInternalTable
+
+    splicemachineContext.insert(internalTNDF, internalTN)
+    
+    org.junit.Assert.assertEquals("Insert Failed!", 1, rowCount(internalTN))
+  }
+
+  test("Test Insert Duplicate") {
+    dropInternalTable
+    createInternalTable
+
+    splicemachineContext.insert(internalTNDF, internalTN)
+    var msg = ""
+    try {
+      splicemachineContext.insert(internalTNDF, internalTN)
+    } catch {
+      case e: Exception => msg = e.toString
+    }
+
+    org.junit.Assert.assertTrue( msg.contains("duplicate key value") )
+  }
+
+  test("Test Bulk Import") {
+    dropInternalTable
+    createInternalTable
+
+    val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+"/splice_spark2-SplicemachineContextIT/bulkImport" )
+    bulkImportDirectory.mkdirs()
+
+    splicemachineContext.bulkImportHFile(internalTNDF, internalTN,
+      collection.mutable.Map("bulkImportDirectory" -> bulkImportDirectory.getAbsolutePath)
+    )
+
+    org.junit.Assert.assertEquals("Bulk Import Failed!", 1, rowCount(internalTN))
+  }
+
+  test("Test SplitAndInsert") {
+    dropInternalTable
+    createInternalTable
+
+    splicemachineContext.splitAndInsert(internalTNDF, internalTN, 0.5)
+
+    org.junit.Assert.assertEquals("SplitAndInsert Failed!", 1, rowCount(internalTN))
+  }
+
+  test("Test Update") {
+    dropInternalTable
+    insertInternalRows(1)
+    
+    splicemachineContext.update(internalTNDF, internalTN)
+
+    org.junit.Assert.assertEquals("Update Failed!",
+      (testRow.slice(0,9) ::: new java.sql.Time(1000) :: testRow.slice(10,14)).mkString(", "),
+      executeQuery(
+        s"select * from $internalTN",
+        rs => {
+          rs.next
+          List(
+            rs.getBoolean(1),
+            rs.getString(2),
+            rs.getDate(3),
+            rs.getBigDecimal(4),
+            rs.getDouble(5),
+            rs.getInt(6),
+            rs.getInt(7),
+            rs.getFloat(8),
+            rs.getShort(9),
+            rs.getTime(10),
+            rs.getTimestamp(11),
+            rs.getString(12),
+            rs.getBigDecimal(13)
+          ).mkString(", ")
+        }
+      ).asInstanceOf[String]
     )
   }
 }
