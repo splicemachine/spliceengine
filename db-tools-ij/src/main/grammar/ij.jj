@@ -59,8 +59,6 @@ import java.io.IOException;
 import java.util.Vector;
 import java.util.Enumeration;
 import java.util.Locale;
-import java.util.List;
-import java.util.ArrayList;
 import javax.transaction.xa.XAResource;
 
 /**
@@ -1471,6 +1469,9 @@ TOKEN [IGNORE_CASE] :
 |   <JSON: "JSON">
 |   <PROMPT: "prompt">
 |   <CLOCK: "clock">
+|   <SPOOL: "SPOOL">
+|   <STOP: "STOP">
+|   <CLEAR: "CLEAR">
 }
 
 TOKEN :
@@ -1753,7 +1754,7 @@ TOKEN :
 
 ijResult
 ijStatement() 
-throws SQLException
+throws SQLException, IOException
 :
 {
 	ijResult r = null;
@@ -1818,6 +1819,7 @@ throws SQLException
 |	r=CP_GetConnectionStatement()
 |	r=CP_DisconnectStatement()
 |   r=Prompt()
+|   r=Spool()
 )? <EOF>
 	{
 		return r;
@@ -3370,7 +3372,7 @@ HelpStatement() :
 	{
 		Vector v = new Vector();
 
-                StringTokenizer st = new StringTokenizer(LocalizedResource.getMessage("IJ_HelpText"), "\n");
+        StringTokenizer st = new StringTokenizer(LocalizedResource.getMessage("IJ_HelpText"), "\n");
 		while (st.hasMoreTokens()) {
 		    v.addElement(st.nextToken());
 		}
@@ -3391,6 +3393,19 @@ identifier() :
 		// ij doesn't recognize any use of delimited identifiers in its syntax.
 		return (t.image.toUpperCase(Locale.ENGLISH));
 	}
+}
+
+
+String
+path() :
+{
+    Token t;
+}
+{
+    t=<STRING>
+    {
+        return (stringValue(t.image));
+    }
 }
 
 /**
@@ -4056,6 +4071,40 @@ ijResult Prompt() throws SQLException
 	}
 }
 
+ijResult Spool() throws IOException
+:
+{}
+{
+    <SPOOL>
+    {
+        return HandleSpool();
+    }
+}
+
+ijResult HandleSpool() throws IOException
+:
+{
+    String n = null;
+}
+{
+    n=path()
+    {
+        utilInstance.startSpooling(n);
+        return null;
+    }
+|
+    <STOP>
+    {
+        utilInstance.stopSpooling();
+        return null;
+    }
+|
+    <CLEAR>
+    {
+        utilInstance.clearSpooling();
+        return null;
+    }
+}
 
 void attributeList(Properties properties) :
 {
@@ -4239,7 +4288,10 @@ keyword() :
 |   tok = <JSON>
 |   tok = <PROMPT>
 |   tok = <CLOCK>
-	)
+|   tok = <SPOOL>
+|   tok = <STOP>
+|   tok = <CLEAR>
+)
 	{
 
 		return tok.image;

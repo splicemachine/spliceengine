@@ -37,11 +37,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionServerObserver;
-import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.log4j.Logger;
 
@@ -125,8 +123,12 @@ public class RegionServerLifecycleObserver implements RegionServerCoprocessor, R
             //register the network boot service
             manager.registerNetworkService(new NetworkLifecycleService(config));
 
-            manager.start();
-            SIDriver.driver().getExecutorService().submit(new SetReplicationRoleTask());
+            String replicationPath = ReplicationUtils.getReplicationPath();
+
+            byte[] status = ZkUtils.getRecoverableZooKeeper().exists(replicationPath, false) != null
+                    ? ZkUtils.getData(replicationPath) : null;
+            manager.start(status);
+
             return manager;
         }catch(Exception e1){
             LOG.error("Unexpected exception registering boot service", e1);
