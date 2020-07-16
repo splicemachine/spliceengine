@@ -335,6 +335,36 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public Partitioner getPartitioner(DataSet<ExecRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys) {
         return new HBasePartitioner(dataSet, template, keyDecodingMap, keyOrder, rightHashKeys);
     }
+    static HashMap<String, StructField[]> dataSetHashMap2 = new HashMap<>();
+
+    String normalizePath(String path)
+    {
+        while(path.endsWith("/"))
+            path = path.substring(0, path.length()-1);
+        return path;
+    }
+    Dataset<Row> getCachedDataSet(String location)
+    {
+        location = normalizePath(location);
+        if( dataSetHashMap.containsKey(location) ) {
+//            SpliceLogUtils.info(LOG, "reusing DataFrame of location %s", location);
+            try { String name = ""; java.io.FileOutputStream fos = new java.io.FileOutputStream("/tmp/log.txt", true);
+                fos.write("reusing DataFrame of location " + location); fos.close(); } catch( Exception e) {}
+            return dataSetHashMap.get(location);
+
+        }
+        else
+            return null;
+    }
+
+    void addDataSetToCache(String location, Dataset<Row> df)
+    {
+//        SpliceLogUtils.info(LOG, "adding new DataFrame to Cache for location %s", location);
+        try { String name = ""; java.io.FileOutputStream fos = new java.io.FileOutputStream("/tmp/log.txt", true);
+            fos.write("adding new DataFrame to Cache for location " + location); fos.close(); } catch( Exception e) {}
+        location = normalizePath(location);
+        dataSetHashMap.put(location, df);
+    }
 
     @Override
     public <V> DataSet<V> readParquetFile(StructType tableSchema, int[] baseColumnMap, int[] partitionColumnMap,
@@ -346,12 +376,32 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
 
             try {
-                table = SpliceSpark.getSession()
-                        .read()
-                        .schema(tableSchema)
-                        .parquet(location);
+                table = getCachedDataSet(location);
+                if( table == null ) {
+                    table = SpliceSpark.getSession()
+                            .read()
+                            .schema(tableSchema)
+                            .parquet(location);
+
+                    addDataSetToCache(location, table);
+                }
             } catch (Exception e) {
                 return handleExceptionSparkRead(e, location, false);
+            }
+
+            if( dataSetHashMap2.containsKey(location) ) {
+                SpliceLogUtils.info(LOG, "reusing StructField of location %s", location);
+                StructField[] src = dataSetHashMap2.get(location);
+                for( int i = 0; i < src.length; i++ )
+                    table.schema().fields()[i] = src[i];
+            } else
+            {
+                SpliceLogUtils.info(LOG, "creating new StructField for location %s", location);
+                StructField[] s = new StructField[table.schema().fields().length];
+                for( int i = 0; i < s.length; i++ )
+                    s[i] = table.schema().fields()[i];
+
+                dataSetHashMap2.put(location, s);
             }
 
             checkNumColumns(location, baseColumnMap, table);
@@ -434,6 +484,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
     }
 
+    static HashMap<String, Dataset<Row>> dataSetHashMap = new HashMap<>();
+
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH",justification = "Intentional")
     @Override
     public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException {
@@ -444,9 +496,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         // normalize location string
         location = new Path(location).toString();
         try {
-
-            if (!mergeSchema) {
+            if (false && !mergeSchema) {
+                // get one file out of the directory tree
                 fs = FileSystem.get(URI.create(location), conf);
+
                 String fileName = getFile(fs, location);
                 boolean canWrite = true;
                 if( (fileName == null || (fs.getFileStatus(new Path(location)).getPermission().toShort() & 0222) == 0 )) {
@@ -491,10 +544,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 String mergeSchemaOption = mergeSchema ? "true" : "false";
                 if (storedAs != null) {
                     if (storedAs.toLowerCase().equals("p")) {
-                        dataset = SpliceSpark.getSession()
+                        Dataset<Row> dataset1 = SpliceSpark.getSession()
                                 .read()
                                 .option("mergeSchema", mergeSchemaOption)
                                 .parquet(location);
+                        addDataSetToCache(location, dataset1);;
+                        dataset = dataset1;
                     } else if (storedAs.toLowerCase().equals("a")) {
                         // spark does not support schema merging for avro
                         dataset = SpliceSpark.getSession()
