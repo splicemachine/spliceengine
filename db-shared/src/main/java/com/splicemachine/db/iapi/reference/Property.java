@@ -1489,5 +1489,16 @@ public interface Property {
      */
     String CONNECTION_SNAPSHOT = "snapshot";
 
+    /**
+     * How many partitions to fetch in parallel from Spark. It can increase memory consumption on RegionServer if fetching
+     * too much data
+     */
+    String OLAP_PARALLEL_PARTITIONS = "olapParallelPartitions";
+
+    /**
+     * Shuffle size to use for Spark shuffles. When dealing with big intermediate result sets it has to be larger, when
+     * dealing with smaller datasets too many partitions cause a lot of overhead
+     */
+    String OLAP_SHUFFLE_PARTITIONS = "olapShufflePartitions";
     String CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS = "disableAdvancedTC";
 }
