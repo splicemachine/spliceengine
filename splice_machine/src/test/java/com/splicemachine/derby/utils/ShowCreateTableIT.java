@@ -40,6 +40,7 @@ import org.junit.experimental.categories.Category;
 import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -94,6 +95,12 @@ public class ShowCreateTableIT extends SpliceUnitTest
         new TableCreator(conn)
                 .withCreate("CREATE TABLE T12 (A12 INT, B2 INT, A2 INT,CONSTRAINT T12_FK_1 FOREIGN KEY (A2, B2) REFERENCES T2 ON UPDATE NO ACTION ON DELETE NO ACTION)")
                 .create();
+        new TableCreator(conn)
+                .withCreate("CREATE TABLE T13 (\"a13\" INT, \"b13\" INT, \"c13\" INT, \"d13\" INT default -1, CONSTRAINT U_T13_1 UNIQUE (\"d13\"),constraint PK_T13 PRIMARY KEY (\"c13\",\"a13\"))")
+                .create();
+        new TableCreator(conn)
+                .withCreate("CREATE TABLE T14 (A14 INT, B14 INT, C14 INT, D14 INT, CONSTRAINT T14_FK_1 FOREIGN KEY (C14, a14) REFERENCES T13(\"c13\", \"a13\") ON UPDATE NO ACTION ON DELETE NO ACTION)")
+                .create();
     }
 
     @AfterClass
@@ -138,7 +145,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 ",\"B1\" INTEGER\n" +
                 ",\"C1\" INTEGER\n" +
                 ",\"D1\" VARCHAR(10)\n" +
-                ", CONSTRAINT " + csName +" PRIMARY KEY(A1)) ;", ddl);
+                ", CONSTRAINT " + csName +" PRIMARY KEY(\"A1\")) ;", ddl);
     }
 
     @Test
@@ -155,7 +162,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
         Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T2\" (\n" +
                 "\"A2\" INTEGER NOT NULL\n" +
                 ",\"B2\" INTEGER NOT NULL\n" +
-                ", CONSTRAINT " + csName + " PRIMARY KEY(A2,B2)) ;", ddl);
+                ", CONSTRAINT " + csName + " PRIMARY KEY(\"A2\",\"B2\")) ;", ddl);
     }
 
     @Test
@@ -172,7 +179,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
         Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T9\" (\n" +
                 "\"A9\" INTEGER NOT NULL\n" +
                 ",\"B9\" INTEGER NOT NULL\n" +
-                ", CONSTRAINT " + csName + " PRIMARY KEY(B9,A9)) ;", ddl);
+                ", CONSTRAINT " + csName + " PRIMARY KEY(\"B9\",\"A9\")) ;", ddl);
     }
     @Test
     public void testSingleForeignKey() throws Exception
@@ -183,7 +190,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A3\" INTEGER\n" +
                 ",\"A2\" INTEGER\n" +
                 ",\"B2\" INTEGER\n" +
-                ",CONSTRAINT T3_FK_1 FOREIGN KEY (A2,B2) REFERENCES T2(A2,B2) ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
+                ",CONSTRAINT T3_FK_1 FOREIGN KEY (\"A2\",\"B2\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
     }
 
     @Test
@@ -196,7 +203,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 ",\"B2\" INTEGER\n" +
                 ",\"A2\" INTEGER\n" +
                 ",\"A1\" INTEGER\n" +
-                ",CONSTRAINT T4_FK_2 FOREIGN KEY (A1) REFERENCES T1(A1) ON UPDATE NO ACTION ON DELETE NO ACTION,CONSTRAINT T4_FK_1 FOREIGN KEY (A2,B2) REFERENCES T2(A2,B2) ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
+                ",CONSTRAINT T4_FK_1 FOREIGN KEY (\"A2\",\"B2\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE NO ACTION ON DELETE NO ACTION,CONSTRAINT T4_FK_2 FOREIGN KEY (\"A1\") REFERENCES \"SHOWCREATETABLEIT\".\"T1\"(\"A1\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
     }
 
     @Test
@@ -208,7 +215,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A5\" INTEGER\n" +
                 ",\"B5F\" INTEGER\n" +
                 ",\"A5F\" INTEGER\n" +
-                ",CONSTRAINT T5_FK_1 FOREIGN KEY (A5F,B5F) REFERENCES T2(A2,B2) ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
+                ",CONSTRAINT T5_FK_1 FOREIGN KEY (\"A5F\",\"B5F\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
     }
 
     @Test
@@ -220,7 +227,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A11\" INTEGER\n" +
                 ",\"B2\" INTEGER\n" +
                 ",\"A2\" INTEGER\n" +
-                ",CONSTRAINT T11_FK_1 FOREIGN KEY (A2,B2) REFERENCES T2(A2,B2) ON UPDATE RESTRICT ON DELETE RESTRICT) ;", rs.getString(1));
+                ",CONSTRAINT T11_FK_1 FOREIGN KEY (\"A2\",\"B2\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE RESTRICT ON DELETE RESTRICT) ;", rs.getString(1));
     }
 
     @Test
@@ -232,7 +239,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A12\" INTEGER\n" +
                 ",\"B2\" INTEGER\n" +
                 ",\"A2\" INTEGER\n" +
-                ",CONSTRAINT T12_FK_1 FOREIGN KEY (A2,B2) REFERENCES T2(A2,B2) ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
+                ",CONSTRAINT T12_FK_1 FOREIGN KEY (\"A2\",\"B2\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
     }
 
     @Test
@@ -251,7 +258,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 ",\"B6\" INTEGER\n" +
                 ",\"C6\" INTEGER\n" +
                 ",\"D6\" INTEGER\n" +
-                ", CONSTRAINT " + csName + " UNIQUE (D6), CONSTRAINT U_T6_1 UNIQUE (A6), CONSTRAINT U_T6_2 UNIQUE (B6,C6)) ;", ddl);
+                ", CONSTRAINT " + csName + " UNIQUE (\"D6\"), CONSTRAINT U_T6_1 UNIQUE (\"A6\"), CONSTRAINT U_T6_2 UNIQUE (\"B6\",\"C6\")) ;", ddl);
     }
 
     @Test
@@ -311,15 +318,15 @@ public class ShowCreateTableIT extends SpliceUnitTest
     @Test
     public void testDateColumnHavingDefaultValue() throws Exception
     {
-        String DDL = "CREATE TABLE \"SHOWCREATETABLEIT\".\"T13\"\n" +
+        String DDL = "CREATE TABLE \"SHOWCREATETABLEIT\".\"T19\"\n" +
                 "(\n" +
                 "\"I\" DATE DEFAULT '2019-01-01'\n" +
                 ",\"J\" DATE DEFAULT CURRENT_DATE\n" +
                 ")";
         methodWatcher.executeUpdate(DDL);
-        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T13')");
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T19')");
         rs.next();
-        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T13\" (\n" +
+        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T19\" (\n" +
                 "\"I\" DATE DEFAULT '2019-01-01'\n" +
                 ",\"J\" DATE DEFAULT CURRENT_DATE\n" +
                 ") ;", rs.getString(1));
@@ -329,15 +336,15 @@ public class ShowCreateTableIT extends SpliceUnitTest
     @Test
     public void testTimeColumnHavingDefaultValue() throws Exception
     {
-        String DDL = "CREATE TABLE \"SHOWCREATETABLEIT\".\"T14\"\n" +
+        String DDL = "CREATE TABLE \"SHOWCREATETABLEIT\".\"T18\"\n" +
                 "(\n" +
                 "\"I\" TIME DEFAULT '18:18:18'\n" +
                 ",\"J\" TIME DEFAULT CURRENT_TIME\n" +
                 ")";
         methodWatcher.executeUpdate(DDL);
-        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T14')");
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T18')");
         rs.next();
-        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T14\" (\n" +
+        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T18\" (\n" +
                 "\"I\" TIME DEFAULT '18:18:18'\n" +
                 ",\"J\" TIME DEFAULT CURRENT_TIME\n" +
                 ") ;", rs.getString(1));
@@ -436,7 +443,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"COL1\" INTEGER\n" +
                 ",\"COL2\" VARCHAR(24)\n" +
                 ") \n" +
-                "PARTITIONED BY (COL1)\n" +
+                "PARTITIONED BY (\"COL1\")\n" +
                 "STORED AS PARQUET\n" +
                 "LOCATION '"+getExternalResourceDirectory()+"testParquet';", rs.getString(1));
     }
@@ -455,7 +462,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 ",\"COL2\" VARCHAR(24)\n" +
                 ") \n" +
                 "COMPRESSED WITH snappy\n" +
-                "PARTITIONED BY (COL2)\n" +
+                "PARTITIONED BY (\"COL2\")\n" +
                 "STORED AS ORC\n" +
                 "LOCATION '"+getExternalResourceDirectory()+"testOrcSnappy';", rs.getString(1));
     }
@@ -489,4 +496,71 @@ public class ShowCreateTableIT extends SpliceUnitTest
         }
     }
 
+    @Test
+    public void testTableWithCaseSensitiveColumnNames() throws Exception
+    {
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T13')");
+        rs.next();
+        String ddl = rs.getString(1);
+        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T13\" (\n" +
+                "\"a13\" INTEGER NOT NULL\n" +
+                ",\"b13\" INTEGER\n" +
+                ",\"c13\" INTEGER NOT NULL\n" +
+                ",\"d13\" INTEGER DEFAULT -1\n" +
+                ", CONSTRAINT U_T13_1 UNIQUE (\"d13\"), CONSTRAINT PK_T13 PRIMARY KEY(\"c13\",\"a13\")) ;", ddl);
+    }
+
+    @Test
+    public void testTableWithColumnDropped() throws Exception
+    {
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        boolean oldAutoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try (Statement statement = conn.createStatement()) {
+            ResultSet rs = statement.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T14')");
+            rs.next();
+            String ddl = rs.getString(1);
+            Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T14\" (\n" +
+                    "\"A14\" INTEGER\n" +
+                    ",\"B14\" INTEGER\n" +
+                    ",\"C14\" INTEGER\n" +
+                    ",\"D14\" INTEGER\n" +
+                    ",CONSTRAINT T14_FK_1 FOREIGN KEY (\"C14\",\"A14\") REFERENCES \"SHOWCREATETABLEIT\".\"T13\"(\"c13\",\"a13\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", ddl);
+            rs.close();
+
+            /*drop a middle column abd add a new column*/
+            statement.execute("alter table SHOWCREATETABLEIt.T13 drop column \"b13\"");
+            statement.execute("alter table SHOWCREATETABLEIt.T14 drop column B14");
+            statement.execute("alter table SHOWCREATETABLEIt.T13 add column \"e13\" int");
+            statement.execute("alter table SHOWCREATETABLEIt.T14 add column E14 int");
+
+            rs = statement.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T13')");
+            rs.next();
+            ddl = rs.getString(1);
+            Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T13\" (\n" +
+                    "\"a13\" INTEGER NOT NULL\n" +
+                    ",\"c13\" INTEGER NOT NULL\n" +
+                    ",\"d13\" INTEGER DEFAULT -1\n" +
+                    ",\"e13\" INTEGER\n" +
+                    ", CONSTRAINT U_T13_1 UNIQUE (\"d13\"), CONSTRAINT PK_T13 PRIMARY KEY(\"c13\",\"a13\")) ;", ddl);
+            rs.close();
+
+            rs = statement.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T14')");
+            rs.next();
+            ddl = rs.getString(1);
+            Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T14\" (\n" +
+                    "\"A14\" INTEGER\n" +
+                    ",\"C14\" INTEGER\n" +
+                    ",\"D14\" INTEGER\n" +
+                    ",\"E14\" INTEGER\n" +
+                    ",CONSTRAINT T14_FK_1 FOREIGN KEY (\"C14\",\"A14\") REFERENCES \"SHOWCREATETABLEIT\".\"T13\"(\"c13\",\"a13\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", ddl);
+            rs.close();
+
+        } finally {
+            conn.rollback();
+            conn.setAutoCommit(oldAutoCommit);
+        }
+
+
+    }
 }
