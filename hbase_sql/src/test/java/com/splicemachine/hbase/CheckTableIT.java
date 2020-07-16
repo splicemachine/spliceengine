@@ -37,11 +37,15 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Created by jyuan on 2/15/18.
@@ -184,6 +188,10 @@ public class CheckTableIT extends SpliceUnitTest {
                 .withIndex("create index GI on G(I)")
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table H(i int)")
+                .withIndex("create unique index HI on H(I)")
+                .create();
     }
 
     @AfterClass
@@ -254,12 +262,12 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                           SYSCONGLOMERATES_INDEX1:                            |\n" +
                 "                           SYSCONGLOMERATES_INDEX2:                            |", rowid, rowid);
 
-        Assert.assertEquals(s, expected, s);
+        assertEquals(s, expected, s);
         // Check the table again
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('SYS', 'SYSCONGLOMERATES', null, 2, '%s/fix-conglomerates.out')", getResourceDirectory()));
         rs.next();
         s = rs.getString(1);
-        Assert.assertEquals(s, s, "No inconsistencies were found.");
+        assertEquals(s, s, "No inconsistencies were found.");
     }
 
     @Test
@@ -299,11 +307,11 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                                { 5, 5 }                                 |\n" +
                 "                   { 7, 870087 }@8700C3C090F0=>870087                    |\n" +
                 "                                   AI:                                   |";
-        Assert.assertEquals(s, expected, s);
+        assertEquals(s, expected, s);
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
         rs.next();
         s = rs.getString(1);
-        Assert.assertEquals(s, s, "No inconsistencies were found.");
+        assertEquals(s, s, "No inconsistencies were found.");
     }
 
     @Test
@@ -322,13 +330,13 @@ public class CheckTableIT extends SpliceUnitTest {
                 "count = 99904 |\n" +
                 "     F:       |\n" +
                 "     FI:      |";
-        Assert.assertEquals(s, expected, s);
+        assertEquals(s, expected, s);
 
         spliceClassWatcher.execute(String.format("call syscs_util.fix_table('%s', '%s', null, '%s/check-%s2.out')", "CHECKTABLEIT2", F, getResourceDirectory(), F));
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 1, '%s/check-%s2.out')", "CHECKTABLEIT2", F, getResourceDirectory(), F));
         rs.next();
         s = rs.getString(1);
-        Assert.assertEquals(s, s, "No inconsistencies were found.");
+        assertEquals(s, s, "No inconsistencies were found.");
     }
 
     @Test
@@ -347,7 +355,7 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                              { 1, 1 }                                |\n" +
                 "                              { 2, 2 }                                |\n" +
                 "                                 EI:                                  |";
-        Assert.assertEquals(s, expected, s);
+        assertEquals(s, expected, s);
 
         spliceClassWatcher.execute(String.format("call syscs_util.fix_table('%s', '%s', null, '%s/fix-%s.out')", "CHECKTABLEIT2", E, getResourceDirectory(), E));
         select =
@@ -363,18 +371,18 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                                { 1, 1 }                                  |\n" +
                 "                                { 2, 2 }                                  |\n" +
                 "                                   EI:                                    |";
-        Assert.assertEquals(s, expected, s);
+        assertEquals(s, expected, s);
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", "CHECKTABLEIT2", E, getResourceDirectory(), E));
         rs.next();
         s = rs.getString(1);
-        Assert.assertEquals(s, s, "No inconsistencies were found.");
+        assertEquals(s, s, "No inconsistencies were found.");
     }
     @Test
     public void checkTableWithSkippedNullValues() throws Exception {
         ResultSet rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, D, getResourceDirectory(), D));
         rs.next();
         String s = rs.getString(1);
-        Assert.assertEquals(s, s, "No inconsistencies were found.");
+        assertEquals(s, s, "No inconsistencies were found.");
     }
 
     public void testChekSchema() throws Exception {
@@ -415,7 +423,7 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                                                                      T2:                                                                      |\n" +
                 "                                                                      T3:                                                                      |";
 
-        Assert.assertEquals(s, expected, s);
+        assertEquals(s, expected, s);
 
         spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', null, null, 2, '%s/check-%s2.out')", SCHEMA_NAME, getResourceDirectory(), SCHEMA_NAME));
         select =
@@ -446,7 +454,7 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                                 AI:                                 |\n" +
                 "                                 BI:                                 |";
 
-        Assert.assertEquals(s, expected, s);
+        assertEquals(s, expected, s);
     }
 
     @Test
@@ -471,12 +479,34 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                                                                      C2:                                                                      |\n" +
                 "                                                                      C3:                                                                      |\n" +
                 "                                                                      C:                                                                       |";
-        Assert.assertEquals(s, s, expected);
+        assertEquals(s, s, expected);
 
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, C, getResourceDirectory(), C));
         rs.next();
         s = rs.getString(1);
-        Assert.assertEquals(s, s, "No inconsistencies were found.");
+        assertEquals(s, s, "No inconsistencies were found.");
+    }
+
+    @Test
+    public void testDB_9863() throws Exception {
+        try (Connection c = spliceClassWatcher.createConnection();
+            Statement st = c.createStatement()) {
+            c.setAutoCommit(false);
+
+            st.executeUpdate("insert into H values 1");
+            st.executeUpdate("delete from H");
+            st.executeUpdate("insert into H values 1");
+
+            c.rollback();
+
+            st.executeUpdate("insert into H values 1");
+            c.commit();
+
+            try (ResultSet rs = st.executeQuery(String.format("call syscs_util.check_table('%s', 'H', null, 2, '%s/check-H.out')", SCHEMA_NAME, getResourceDirectory()))) {
+                assertTrue(rs.next());
+                assertEquals("No inconsistencies were found.", rs.getString(1));
+            }
+        }
     }
 
     @Test
@@ -485,43 +515,43 @@ public class CheckTableIT extends SpliceUnitTest {
 
         try {
             spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 1, null)", SCHEMA_NAME, A, getResourceDirectory(), A));
-            Assert.assertTrue("Should fail!", false);
+            fail("Should fail!");
         }
         catch (SQLException e) {
-            Assert.assertEquals(e.getSQLState(), "TS008");
+            assertEquals(e.getSQLState(), "TS008");
         }
 
         try {
             spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 1, ' ')", SCHEMA_NAME, A, getResourceDirectory(), A));
-            Assert.assertTrue("Should fail!", false);
+            fail("Should fail!");
         }
 
         catch (SQLException e) {
-            Assert.assertEquals(e.getSQLState(), "TS008");
+            assertEquals(e.getSQLState(), "TS008");
         }
 
         try {
             spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 3, '%s/check-%s.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
-            Assert.assertTrue("Should fail!", false);
+            fail("Should fail!");
         }
         catch (SQLException e) {
-            Assert.assertEquals(e.getSQLState(), "TS007");
+            assertEquals(e.getSQLState(), "TS007");
         }
 
         try {
             spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', 'XY', 2, '%s/check-%s.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
-            Assert.assertTrue("Should fail!", false);
+            fail("Should fail!");
         }
         catch (SQLException e) {
-            Assert.assertEquals(e.getSQLState(), "42X65");
+            assertEquals(e.getSQLState(), "42X65");
         }
 
         try {
             spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', null, 'AI', 2, '%s/check-%s.out')", SCHEMA_NAME, getResourceDirectory(), A));
-            Assert.assertTrue("Should fail!", false);
+            fail("Should fail!");
         }
         catch (SQLException e) {
-            Assert.assertEquals(e.getSQLState(), "TS008");
+            assertEquals(e.getSQLState(), "TS008");
         }
     }
 
@@ -548,7 +578,7 @@ public class CheckTableIT extends SpliceUnitTest {
                 expectedRowIds.get(2) +
                 "                                 %s:                                 |", tableName, indexName);
 
-        Assert.assertEquals(s, s, expected);
+        assertEquals(s, s, expected);
     }
 
     private static void splitTable(String schemaName, String tableName, String indexName) throws Exception {
