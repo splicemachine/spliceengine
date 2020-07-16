@@ -46,7 +46,7 @@ public abstract class SpliceJoinFlatMapFunction<Op extends SpliceOperation, From
             numberOfColumns = op.getLeftNumCols()+op.getRightNumCols();
             executionFactory = op.getExecutionFactory();
             forSSQ = op.rightFromSSQ;
-            isSemiJoin = op.isOneRowRightSide();
+            isSemiJoin = op.isInclusionJoin();
             initialized = true;
         }
     }
