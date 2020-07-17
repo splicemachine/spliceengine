@@ -30,31 +30,39 @@
  */
 package com.splicemachine.db.iapi.tools.i18n;
 
-import java.io.PrintWriter;
-import java.io.OutputStreamWriter;
+import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 
-public class LocalizedOutput extends PrintWriter {
-	private OutputStream out;
-	public LocalizedOutput(OutputStream o){
-		super(new OutputStreamWriter(o, StandardCharsets.UTF_8), true);
-		out = o;
-	}
-	LocalizedOutput(OutputStream o, String enc) throws UnsupportedEncodingException {
-		super(new OutputStreamWriter(o, enc), true);
-		out = o;
-	}
-	public boolean isStandardOutput(){
-		return (out == System.out);
-	}
-	public void close() {
-		if (!isStandardOutput()) {
-			super.close();
-		}
-	}
-	public OutputStream getOutputStream() {
-		return out;
-	}
+public class ForkOutputStream extends OutputStream {
+
+    private OutputStream l;
+    private FileOutputStream r;
+    private boolean writeToOut;
+
+    public ForkOutputStream(FileOutputStream r){
+        this.l = System.out;
+        this.r = r;
+        writeToOut = true;
+    }
+
+    public void write(int b) throws IOException {
+        if(writeToOut) {
+            l.write(b);
+        }
+        r.write(b);
+    }
+
+    public void flush() throws IOException {
+        l.flush();
+        r.flush();
+    }
+
+    public void close() throws IOException {
+        r.close();
+    }
+
+    public void setWriteToOut(boolean writeToOut) {
+        this.writeToOut = writeToOut;
+    }
 }
