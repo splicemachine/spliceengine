@@ -353,22 +353,15 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             } catch (Exception e) {
                 return handleExceptionSparkRead(e, location, false);
             }
-            ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
-            table = processExternalDataset(execRow, table, baseColumnMap, qualifiers, probeValue);
 
-            if (useSample) {
-                return new NativeSparkDataSet(table
-                        .sample(false, sampleFraction), context);
-            } else {
-                return new NativeSparkDataSet(table, context);
-            }
+            ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
+            return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
+                    execRow, useSample, sampleFraction, table);
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
-
-
 
     @Override
     public <V> DataSet<V> readAvroFile(StructType tableSchema, int[] baseColumnMap, int[] partitionColumnMap,
@@ -377,7 +370,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                        boolean useSample, double sampleFraction) throws StandardException {
         try {
             Dataset<Row> table = null;
-            StructType copy = new StructType(Arrays.copyOf(tableSchema.fields(), tableSchema.fields().length));
+            StructType tableSchemaCopy =
+                    new StructType(Arrays.copyOf(tableSchema.fields(), tableSchema.fields().length));
 
             // Infer schema from external files
             // todo: this is slow on bigger directories, as it's calling getExternalFileSchema,
@@ -394,25 +388,11 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 return handleExceptionSparkRead(e, location, false);
             }
 
-            // todo: find out what this is doing and comment it
-            int i = 0;
-            for (StructField sf : copy.fields()) {
-                if (sf.dataType().sameType(DataTypes.DateType)) {
-                    String colName = table.schema().fields()[i].name();
-                    table = table.withColumn(colName, table.col(colName).cast(DataTypes.DateType));
-                }
-                i++;
-            }
-
+            table = ExternalTableUtils.castDateTypeInAvroDataSet(table, tableSchemaCopy);
             ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
-            table = processExternalDataset(execRow, table,baseColumnMap,qualifiers,probeValue);
 
-            if (useSample) {
-                return new NativeSparkDataSet(table
-                        .sample(false, sampleFraction), context);
-            } else {
-                return new NativeSparkDataSet(table, context);
-            }
+            return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
+                    execRow, useSample, sampleFraction, table);
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
@@ -680,6 +660,20 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     }
 
+    private <V> DataSet<V> externalTablesPostProcess(int[] baseColumnMap, OperationContext context,
+                                                     Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
+                                                     boolean useSample, double sampleFraction, Dataset<Row> table) throws StandardException {
+
+        table = processExternalDataset(execRow, table, baseColumnMap, qualifiers, probeValue);
+
+        if (useSample) {
+            return new NativeSparkDataSet(table
+                    .sample(false, sampleFraction), context);
+        } else {
+            return new NativeSparkDataSet(table, context);
+        }
+    }
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public <V> DataSet<V> readPinnedTable(
@@ -715,10 +709,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         assert baseColumnMap != null:"baseColumnMap Null";
         assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
-            // todo: check why we're using our own reader here.
-            // this has some drawbacks e.g. we have to do this empty check before reading since our reader is doing reading
-            // later, also as filter() will be done SparkScanSetBuilder, and then only fails when doing
-            // sparkDataSet.rdd.rdd().getNumPartitions() in QueryJob.
             DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
             if( empty_ds != null ) return empty_ds;
 
@@ -814,14 +804,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             } catch (Exception e) {
                 return handleExceptionSparkRead(e, location, true);
             }
-            table = processExternalDataset(execRow, table,baseColumnMap,qualifiers,probeValue);
 
-            if (useSample) {
-                return new NativeSparkDataSet(table
-                        .sample(false, sampleFraction), context);
-            } else {
-                return new NativeSparkDataSet(table, context);
-            }
+            return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
+                    execRow, useSample, sampleFraction, table);
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
