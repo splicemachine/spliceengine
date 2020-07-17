@@ -23,7 +23,7 @@ import java.io.OutputStream;
 import java.nio.file.StandardOpenOption;
 
 import org.apache.log4j.Logger;
-import org.spark_project.guava.io.Closeables;
+import com.google.common.io.Closeables;
 
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;

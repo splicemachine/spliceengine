@@ -21,8 +21,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinitio
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.PeekingIterator;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,6 +32,7 @@ import java.util.List;
 /**
  * Created by jyuan on 9/15/14.
  */
+@SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", justification = "DB-9844")
 abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     protected final long frameStart;
     protected final long frameEnd;

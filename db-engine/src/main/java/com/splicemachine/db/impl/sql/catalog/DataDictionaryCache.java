@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import org.spark_project.guava.base.Optional;
+import com.google.common.base.Optional;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
@@ -47,10 +47,11 @@ import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.cache.CacheBuilder;
-import org.spark_project.guava.cache.RemovalListener;
-import org.spark_project.guava.cache.RemovalNotification;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanServer;
@@ -86,6 +87,7 @@ public class DataDictionaryCache {
     private ManagedCache<ByteSlice,TokenDescriptor> tokenCache;
     private ManagedCache<String, Optional<String>> propertyCache;
     private DataDictionary dd;
+    @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "DB-9844")
     public static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
             "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
             "tokenCache", "propertyCache", "conglomerateDescriptorCache", "oldSchemaCache"};
@@ -292,6 +294,7 @@ public class DataDictionaryCache {
 
     }
 
+    @SuppressFBWarnings(value = "NP_OPTIONAL_RETURN_NULL", justification = "DB-9844")
     public Optional<PermissionsDescriptor> permissionCacheFind(PermissionsDescriptor desc) throws StandardException {
         if (!dd.canReadCache(null))
             return null;
@@ -527,6 +530,7 @@ public class DataDictionaryCache {
         roleCache.put(roleName,optional);
     }
 
+    @SuppressFBWarnings(value = "NP_OPTIONAL_RETURN_NULL", justification = "DB-9844")
     public Optional<RoleGrantDescriptor> roleCacheFind(String roleName) throws StandardException {
         if (!dd.canReadCache(null))
             return null;
@@ -577,6 +581,7 @@ public class DataDictionaryCache {
         roleGrantCache.put(key,optional);
     }
 
+    @SuppressFBWarnings(value = "NP_OPTIONAL_RETURN_NULL", justification = "DB-9844")
     public Optional<RoleGrantDescriptor> roleGrantCacheFind(Pair<String, String> key) throws StandardException {
         if (!dd.canReadCache(null))
             return null;

@@ -39,8 +39,9 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.EngineUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Strings;
+import com.google.common.base.Strings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -102,6 +103,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		        return "true";
         }
 
+		@SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9844")
 		public String[] getExpressions() {
 		    return expressions;
         }
@@ -109,6 +111,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		@SuppressWarnings("UnusedDeclaration")
 		public ProjectRestrictOperation() { super(); }
 
+		@SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "DB-9844")
 		public ProjectRestrictOperation(SpliceOperation source,
                                         Activation activation,
                                         GeneratedMethod restriction,
@@ -240,6 +243,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				return source;
 		}
 
+		@SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", justification = "DB-9844")
 		public ExecRow doProjection(ExecRow sourceRow) throws StandardException {
 			if (reuseResult && projRow != null)
 				return projRow;

@@ -24,7 +24,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.collect.Lists;
 
 import java.util.Arrays;
 import java.util.Collection;

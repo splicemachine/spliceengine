@@ -14,8 +14,8 @@
 
 package com.splicemachine.storage;
 
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.Iterables;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.splicemachine.access.api.*;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
@@ -63,7 +63,6 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
     private class Creator implements PartitionCreator{
         private String name;
-        private long txnId;
 
         @Override
         public PartitionCreator withName(String name){

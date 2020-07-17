@@ -30,7 +30,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.procedures.ProcedureUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.collect.Lists;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;

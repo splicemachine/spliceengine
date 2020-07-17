@@ -34,9 +34,9 @@ import io.netty.handler.codec.protobuf.ProtobufEncoder;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.util.concurrent.ExecutionList;
-import org.spark_project.guava.util.concurrent.ListenableFuture;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import com.google.common.util.concurrent.ExecutionList;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;

@@ -25,7 +25,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.sql.*;
