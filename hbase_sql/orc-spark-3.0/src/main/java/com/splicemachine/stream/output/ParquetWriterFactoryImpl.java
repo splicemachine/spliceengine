@@ -82,6 +82,6 @@ public class ParquetWriterFactoryImpl implements ParquetWriterFactory{
 
     @Override
     public InternalRow encodeToRow(StructType tableSchema, ValueRow valueRow, ExpressionEncoder<Row> encoder) {
-        return encoder.createSerializer().apply(vr);
+        return encoder.createSerializer().apply(valueRow);
     }
 }
