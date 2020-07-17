@@ -42,45 +42,31 @@ public class TimeTravelTest {
 
         @Override
         public Pair<Long, Long> find(byte bucket, byte[] begin, boolean reverse) throws IOException {
+            SortedMap<Long, Long> m = txnTimeline.get(bucket);
+            if(m.size() == 0) {
+                return null;
+            }
             if(begin == null) {
-                SortedMap<Long, Long> m = txnTimeline.get(bucket);
                 if(reverse) {
-                    if(m.size() == 0) {
-                        return null;
-                    }
                     return new Pair<>(m.lastKey(), m.get(m.lastKey()));
-                }
-                else {
-                    if(m.size() == 0) {
-                        return null;
-                    }
+                } else {
                     return new Pair<>(m.firstKey(), m.get(m.firstKey()));
                 }
             } else {
                 long txnId = Bytes.toLong(Bytes.slice(begin, 1, begin.length-1));
-                SortedMap<Long, Long> m = txnTimeline.get(bucket);
                 if(reverse) {
-                    if(m.size() == 0) {
-                        return null;
-                    } else {
-                        long prev = -1;
-                        for(long k : m.keySet()) {
-                            if(k <= txnId) {
-                                prev = k;
-                            } else {
-                                return new Pair<>(prev, m.get(prev));
-                            }
+                    long prev = -1;
+                    for(long k : m.keySet()) {
+                        if(k <= txnId) {
+                            prev = k;
+                        } else {
+                            return new Pair<>(prev, m.get(prev));
                         }
                     }
-                }
-                else {
-                    if(m.size() == 0) {
-                        return null;
-                    } else {
-                        for(long k : m.keySet()) {
-                            if (k > txnId) {
-                                return new Pair<>(k, m.get(k));
-                            }
+                } else {
+                    for(long k : m.keySet()) {
+                        if (k > txnId) {
+                            return new Pair<>(k, m.get(k));
                         }
                     }
                 }
