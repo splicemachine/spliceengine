@@ -90,6 +90,11 @@
         <spark.version>2.4.3</spark.version>
         <scala.version>2.11.6</scala.version>
         <netty-all.version>4.1.17.Final</netty-all.version>
+        <akka.version>2.4.8</akka.version>
+        <scalatest.version>2.2.4</scalatest.version>
+        <scalamock.version>3.1.4</scalamock.version>
+        <commons.lang3.version>3.3.2</commons.lang3.version>
+        <splice.spark.master>yarn-client</splice.spark.master>
         <spark.warehouse>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</spark.warehouse>
         <hbase.rootdir>-Dhbase.rootdir=${project.build.directory}/hbase</hbase.rootdir>
         <guava.version>14.0.1</guava.version>
@@ -303,7 +308,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.3.2</version>
+                <version>${commons.lang3.version}</version>
             </dependency>
             <dependency>
                 <groupId>javax.servlet</groupId>
@@ -932,6 +937,47 @@
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>orc-spark-2.4</parquet.version>
                 <netty-all.version>4.1.17.Final</netty-all.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>standalone</module>
+                <module>platform_it</module>
+                <module>spark_sql</module>
+                <module>splice_spark</module>
+                <module>splice_spark2</module>
+                <module>scala_util</module>
+                <module>assembly</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>spark_3.0</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>spark_3.0</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>6.3.0</cdh.parcel.version>
+                <envClassifier>spark_3.0</envClassifier>
+                <envHbase>hbase2.1.4</envHbase>
+                <hadoop.version>3.0.0-cdh6.3.0</hadoop.version>
+                <hbase.version>2.1.0-cdh6.3.0</hbase.version>
+                <hive.version>2.1.1-cdh6.3.0</hive.version>
+                <zookeeper.version>3.4.5-cdh6.3.0</zookeeper.version>
+                <spark.version>3.0.0</spark.version>
+                <spark.major.version>spark3.0</spark.major.version>
+                <kafka.version>2.2.1-cdh6.3.0</kafka.version>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
+                <parquet.version>orc-spark-3.0</parquet.version>
+                <netty-all.version>4.1.17.Final</netty-all.version>
+                <akka.version>2.4.12</akka.version>
+                <scalatest.version>3.0.0</scalatest.version>
+                <scalamock.version>3.4.1</scalamock.version>
+                <commons.lang3.version>3.9</commons.lang3.version>
+                <splice.spark.master>yarn</splice.spark.master>
             </properties>
             <modules>
                 <module>hbase_storage</module>
