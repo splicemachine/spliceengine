@@ -23,8 +23,8 @@ public class TxnTimeTraveler {
     /// @return Pair<closest tx id, closest tx's ts>
     private Pair<Long, Long> bsearch(long needleTS, byte bucket, byte[] begin, long beginTS,
                                      byte[] end, long endTS) throws IOException {
-        if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"enter bsearch in for range: [%s (TS: %s), %s (TS: %s)]",
+        if(LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"enter bsearch in for range: [%s (TS: %s), %s (TS: %s)]",
                     TxnUtils.rowKeytoHbaseEscaped(begin), new Timestamp(beginTS).toString(),
                     TxnUtils.rowKeytoHbaseEscaped(end), new Timestamp(endTS).toString());
         byte[] left = begin, right = end, middle;
@@ -43,8 +43,8 @@ public class TxnTimeTraveler {
             Pair<Long, Long> middleTx;
             middleTx = txnFinder.find(bucket, middle, reversed);
             reversed = false;
-            if(LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG,"middle of range: [%s (TS: %s) id %s, %s (TS: %s)] id %s is %s (TS: %s) id %s",
+            if(LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG,"middle of range: [%s (TS: %s) id %s, %s (TS: %s)] id %s is %s (TS: %s) id %s",
                         TxnUtils.rowKeytoHbaseEscaped(left), new Timestamp(leftTS).toString(), txOf(left),
                         TxnUtils.rowKeytoHbaseEscaped(right), new Timestamp(rightTS).toString(), txOf(right),
                         TxnUtils.rowKeytoHbaseEscaped(middle), new Timestamp(middleTx.getSecond()).toString(), middleTx.getFirst().toString());
@@ -118,8 +118,8 @@ public class TxnTimeTraveler {
                 continue; // region is empty, or the earliest tx in there happened after 'ts'
             }
             if(before.getSecond() > ts) {
-                if(LOG.isTraceEnabled())
-                    SpliceLogUtils.trace(LOG,"in bucket %d the first txn [%s (TS: %s), id %s] happened after the needle (%s) exiting!",
+                if(LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(LOG,"in bucket %d the first txn [%s (TS: %s), id %s] happened after the needle (%s) exiting!",
                             (int)i,
                             TxnUtils.rowKeytoHbaseEscaped(toRowKeyWithBucket(before.getFirst(), i)),
                             new Timestamp(before.getSecond()).toString(),
@@ -129,8 +129,8 @@ public class TxnTimeTraveler {
             }
             after = last(i);
             if(after.getSecond() < ts) {
-                if(LOG.isTraceEnabled())
-                    SpliceLogUtils.trace(LOG,"in bucket %d the last txn [%s (TS: %s), id %s] happened before the needle (%s) exiting!",
+                if(LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(LOG,"in bucket %d the last txn [%s (TS: %s), id %s] happened before the needle (%s) exiting!",
                             (int)i,
                             TxnUtils.rowKeytoHbaseEscaped(toRowKeyWithBucket(after.getFirst(), i)),
                             new Timestamp(after.getSecond()).toString(),

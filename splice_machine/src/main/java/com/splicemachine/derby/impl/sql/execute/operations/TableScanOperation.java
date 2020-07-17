@@ -40,11 +40,11 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.apache.spark.sql.catalyst.plans.logical.Generate;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -191,18 +191,18 @@ public class TableScanOperation extends ScanOperation{
         this.indexName=indexName;
         init();
         if(pastTxFunctor != null) {
-            this.pastTx = MapToTxId((DataValueDescriptor)pastTxFunctor.invoke(activation));
-            if(pastTx == -1) {
-                pastTx = 0; // force going back to oldest transaction instead of ignoring it.
+            this.pastTx = mapToTxId((DataValueDescriptor)pastTxFunctor.invoke(activation));
+            if(pastTx == -1){
+                pastTx = SIConstants.OLDEST_TIME_TRAVEL_TX; // force going back to the oldest transaction instead of ignoring it.
             }
         } else {
-            this.pastTx = -1; // nothing is set, go ahead and use latest transaction.
+            this.pastTx = -1; // nothing is set, go ahead and use the latest transaction.
         }
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
     }
 
-    private long MapToTxId(DataValueDescriptor dataValue) throws StandardException {
+    private long mapToTxId(DataValueDescriptor dataValue) throws StandardException {
         if(dataValue instanceof SQLTimestamp) {
             Timestamp ts = ((SQLTimestamp)dataValue).getTimestamp(null);
             SpliceLogUtils.trace(LOG,"time travel ts=%s", ts.toString());
