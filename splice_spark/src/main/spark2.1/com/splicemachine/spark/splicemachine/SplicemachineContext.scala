@@ -41,6 +41,8 @@ import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
+import scala.collection.JavaConverters._
+
 @SerialVersionUID(20200513211L)
 object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
@@ -505,6 +507,24 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     executeUpd(combinedText)
   }
 
+  /**
+   * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)
+   *
+   * @param dataFrame input data
+   * @param schemaTableName
+   * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   */
+  def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
+                      options: java.util.Map[String, String]): Unit =
+    bulkImportHFile(dataFrame, schemaTableName, options.asScala)
+
+  /**
+    * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)
+    *
+    * @param dataFrame input data
+    * @param schemaTableName
+    * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+    */
   def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
                       options: scala.collection.mutable.Map[String, String]): Unit = {
 
@@ -526,6 +546,13 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     executeUpd(sqlText)
   }
 
+  /**
+    * Bulk Import HFile from a RDD into a schemaTableName(schema.table)
+    *
+    * @param rdd input data
+    * @param schemaTableName
+    * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+    */
   def bulkImportHFile(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String,
                       options: scala.collection.mutable.Map[String, String]): Unit = {
 
