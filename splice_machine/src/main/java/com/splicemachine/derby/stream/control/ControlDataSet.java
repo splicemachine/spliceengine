@@ -591,7 +591,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                     ValueRow vr = (ValueRow) iterator.next();
                     context.recordWrite();
 
-                    rw.write(null, encoder.toRow(vr));
+                    rw.write(null, ParquetWriterService.getFactory().encodeToRow(tableSchema, vr, encoder));
                 }
             } finally {
                 rw.close(null);
