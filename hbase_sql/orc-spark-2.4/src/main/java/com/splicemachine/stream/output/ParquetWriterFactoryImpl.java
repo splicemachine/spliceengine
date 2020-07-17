@@ -16,6 +16,7 @@
 package com.splicemachine.stream.output;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.control.output.ParquetWriterFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -23,6 +24,9 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.parquet.hadoop.ParquetOutputFormat;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.execution.datasources.parquet.ParquetWriteSupport;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.types.StructType;
@@ -74,5 +78,10 @@ public class ParquetWriterFactoryImpl implements ParquetWriterFactory{
                 return getRecordWriter(conf, file, codec);
             }
         }.getRecordWriter(null);
+    }
+
+    @Override
+    public InternalRow encodeToRow(StructType tableSchema, ValueRow valueRow, ExpressionEncoder<Row> encoder) {
+        return encoder.toRow(valueRow);
     }
 }
