@@ -23,7 +23,6 @@ import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.lifecycle.MasterLifecycle;
 import com.splicemachine.olap.OlapServer;
-import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.olap.OlapServerMaster;
 import com.splicemachine.olap.OlapServerSubmitter;
 import com.splicemachine.pipeline.InitializationCompleted;
@@ -48,7 +47,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
 import javax.management.MBeanServer;
@@ -180,8 +178,6 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
                                     HConfiguration.getConfiguration().getReplicationMonitorInterval());
                     choreService.scheduleChore(replicationMonitorChore);
                 }
-                // TODO fix race condition here DB-9405
-                SIDriver.driver().getExecutorService().submit(new SetReplicationRoleTask());
             }
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
@@ -270,7 +266,7 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
             try {
                 MasterLifecycle distributedStartupSequence = new MasterLifecycle();
                 manager.registerEngineService(new EngineLifecycleService(distributedStartupSequence, config, true));
-                manager.start();
+                manager.start(null);
             } catch (Exception e1) {
                 LOG.error("Unexpected exception registering boot service", e1);
                 throw new DoNotRetryIOException(e1);

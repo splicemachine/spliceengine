@@ -85,7 +85,6 @@ public class Main {
 		Main me;
 		String file;
 		String inputResourceName;
-		boolean gotProp;
 
 		LocalizedResource langUtil = LocalizedResource.getInstance();
 		LocalizedOutput out = langUtil.getNewOutput(System.out);
@@ -97,7 +96,7 @@ public class Main {
 		}
 
 		// load the property file if specified
-		gotProp = util.getPropertyArg(args);
+		util.getPropertyArg(args);
 
 		// readjust output to db.ui.locale and db.ui.codeset if
                 // they were loaded from a property file.
@@ -157,7 +156,7 @@ public class Main {
 
 			if (out == null)
 			   oldOut.println(langUtil.getTextMessage("IJ_IjErroUnabTo",outFile));
-	
+
 		}
 
 		// the old property name is deprecated...
@@ -184,7 +183,12 @@ public class Main {
 
 		/* Let the processing begin! */
 		me.go(in, out);
-		in.close(); out.close();
+		if(in != null) {
+			in.close();
+		}
+		if(out != null) {
+			out.close();
+		}
 	}
 
 	/**
