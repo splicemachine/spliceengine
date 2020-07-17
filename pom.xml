@@ -395,7 +395,7 @@
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.module</groupId>
-                <artifactId>jackson-module-scala_2.11</artifactId>
+                <artifactId>jackson-module-scala_${scala.binary.version}</artifactId>
                 <version>2.9.9</version>
             </dependency>
             <dependency>
@@ -967,6 +967,8 @@
                 <hbase.version>2.1.0-cdh6.3.0</hbase.version>
                 <hive.version>2.1.1-cdh6.3.0</hive.version>
                 <zookeeper.version>3.4.5-cdh6.3.0</zookeeper.version>
+                <scala.binary.version>2.12</scala.binary.version>
+                <scala.version>2.12.10</scala.version>
                 <spark.version>3.0.0</spark.version>
                 <spark.major.version>spark3.0</spark.major.version>
                 <kafka.version>2.2.1-cdh6.3.0</kafka.version>
