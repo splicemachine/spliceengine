@@ -682,6 +682,8 @@ public enum ErrorState{
 
         @Override
         public StandardException newException(Throwable rootCause){
+            if(!(rootCause instanceof ForeignKeyViolation))
+                return super.newException(rootCause);
             ForeignKeyViolation fkV=(ForeignKeyViolation)rootCause;
             ConstraintContext context=fkV.getContext();
             return StandardException.newException(getSqlState(),context.getMessages());
@@ -1086,6 +1088,8 @@ public enum ErrorState{
     LANG_WINDOW_FUNCTION_CONTEXT_ERROR("42ZC2"),
 
     LANG_INVALID_SPARK_AND_CONTROL("42ZD1"),
+
+    LANG_ILLEGAL_TIME_TRAVEL("42ZD2"),
 
     //following 3 matches the DB2 sql states
     LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA("428EK"),
@@ -1988,6 +1992,8 @@ public enum ErrorState{
 
         @Override
         public StandardException newException(Throwable rootCause){
+            if(!(rootCause instanceof CannotCommitException))
+                return super.newException(rootCause);
             CannotCommitException cce=(CannotCommitException)rootCause;
             return StandardException.newException(getSqlState(),cce.getTxnId());
         }
