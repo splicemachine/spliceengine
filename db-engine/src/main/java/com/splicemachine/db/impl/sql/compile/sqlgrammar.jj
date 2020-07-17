@@ -4231,7 +4231,7 @@ deleteBody() throws StandardException :
                                                 FromBaseTable.DELETE),
                                         null,
                                         isBulkDelete,
-                                        -1L,
+                                        null,
                                         getContextManager());
 
 

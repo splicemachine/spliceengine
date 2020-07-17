@@ -269,10 +269,10 @@ public class CoprocessorTxnStore implements TxnStore {
     @Override
     public long getTxnAt(long ts) throws IOException {
         final TxnMessage.TxnAtRequest request=TxnMessage.TxnAtRequest.newBuilder().setTs(ts).build();
-        try(TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
+        try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()) {
             TxnMessage.TxnAtResponse result = table.getTxnAt(request);
             return result.getTxnId();
-        }catch(Throwable throwable){
+        } catch(Throwable throwable) {
             throw new IOException(throwable);
         }
     }
