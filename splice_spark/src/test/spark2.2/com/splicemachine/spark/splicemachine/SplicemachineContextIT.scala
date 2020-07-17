@@ -73,43 +73,90 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     org.junit.Assert.assertEquals("RDD Changed!","List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])",rdd.collect().toList.toString)
   }
 
-  test("Test Create Table") {
-    val tableName = schema +"."+ getClass.getSimpleName + "_TestCreateTable"
-    
-    if( splicemachineContext.tableExists(tableName) ) {
-      splicemachineContext.dropTable(tableName)
-    }
-    org.junit.Assert.assertFalse( splicemachineContext.tableExists(tableName) )
-
-    import org.apache.spark.sql.types._
-
-    val schema_createTable = StructType(
-      StructField("NUMBER", IntegerType, false) :: 
-        StructField("MAKE", StringType, true) ::
-        StructField("MODEL", StringType, true) :: Nil)
-
-    splicemachineContext.createTable(tableName, schema_createTable, Seq("NUMBER"))
-
-    org.junit.Assert.assertTrue( splicemachineContext.tableExists(tableName) )
-
-    splicemachineContext.dropTable(tableName)
-  }
-
   test("Test Bulk Import") {
-    if( splicemachineContext.tableExists(internalTN) ) {
+    if (splicemachineContext.tableExists(internalTN)) {
       splicemachineContext.dropTable(internalTN)
     }
     insertInternalRows(0)
 
-    val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+"/splice_spark-SplicemachineContextIT/bulkImport" )
+    val bulkImportDirectory = new File(System.getProperty("java.io.tmpdir") + "/splice_spark-SplicemachineContextIT/bulkImport")
     bulkImportDirectory.mkdirs()
 
     splicemachineContext.bulkImportHFile(internalTNDF, internalTN,
       collection.mutable.Map("bulkImportDirectory" -> bulkImportDirectory.getAbsolutePath)
     )
 
-    val rs = getConnection.createStatement.executeQuery("select count(*) from "+internalTN)
+    val rs = getConnection.createStatement.executeQuery("select count(*) from " + internalTN)
     rs.next
     org.junit.Assert.assertEquals("Bulk Import Failed!", 1, rs.getInt(1))
+  }
+  
+  val carTableName = getClass.getSimpleName + "_TestCreateTable"
+  val carSchemaTableName = schema+"."+carTableName
+
+  private def createCarTable(): Unit = {
+    import org.apache.spark.sql.types._
+    splicemachineContext.createTable(
+      carSchemaTableName,
+      StructType(
+        StructField("NUMBER", IntegerType, false) ::
+          StructField("MAKE", StringType, true) ::
+          StructField("MODEL", StringType, true) :: Nil),
+      Seq("NUMBER")
+    )
+  }
+
+  private def dropCarTable(): Unit = splicemachineContext.dropTable(carSchemaTableName)
+
+  test("Test Create Table") {
+    if( splicemachineContext.tableExists(carSchemaTableName) ) {
+      splicemachineContext.dropTable(carSchemaTableName)
+    }
+    org.junit.Assert.assertFalse( splicemachineContext.tableExists(carSchemaTableName) )
+    createCarTable
+    org.junit.Assert.assertTrue( splicemachineContext.tableExists(carSchemaTableName) )
+    dropCarTable
+  }
+
+  test("Test Table Exists (One Param)") {
+    createCarTable
+    org.junit.Assert.assertTrue(
+      carSchemaTableName+" doesn't exist", 
+      splicemachineContext.tableExists(carSchemaTableName)
+    )
+    dropCarTable
+  }
+
+  test("Test Table Exists (Two Params)") {
+    createCarTable
+    org.junit.Assert.assertTrue(
+      carSchemaTableName+" doesn't exist",
+      splicemachineContext.tableExists(schema, carTableName)
+    )
+    dropCarTable
+  }
+
+  test("Test Table doesn't Exist (One Param)") {
+    val name = schema+".testNonexistentTable"
+    org.junit.Assert.assertFalse(
+      name+" exists",
+      splicemachineContext.tableExists(name)
+    )
+  }
+
+  test("Test Table doesn't Exist (One Param, No Schema)") {
+    val name = "testNonexistentTable"
+    org.junit.Assert.assertFalse(
+      name+" exists",
+      splicemachineContext.tableExists(name)
+    )
+  }
+
+  test("Test Table doesn't Exist (Two Params)") {
+    val name = "testNonexistentTable"
+    org.junit.Assert.assertFalse(
+      schema+"."+name+" exists",
+      splicemachineContext.tableExists(schema, name)
+    )
   }
 }

@@ -44,6 +44,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 
 import static java.lang.String.format;
@@ -136,11 +137,11 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
 
             List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), this.splits, tableSize);
             //check if split count changed in-between
-            List<Partition>  newSplits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), true);
-            if (splits.size() != newSplits.size()) {
+
+            if (isRefreshNeeded(lss, s.getStartRow(), s.getStopRow())) {
                 // retry
                 refresh = true;
-                LOG.warn("mismatched splits: earlier [" + splits.size() + "], later [" + newSplits.size() + "] for region " + clientPartition);
+                LOG.warn("mismatched splits for region " + clientPartition + ", refresh of splits is needed");
                 retryCounter++;
                 if (retryCounter > MAX_RETRIES) {
                     throw new RuntimeException("MAX_RETRIES exceeded during getSplits");
@@ -150,6 +151,66 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                return lss;
             }
         }
+    }
+
+    private int compareRows(byte[] left, byte[] right) {
+        return org.apache.hadoop.hbase.util.Bytes.compareTo(left, right);
+    }
+
+    private boolean splitContainsScan(SMSplit split, byte[] scanStartRow, byte[] scanStopRow) {
+        if (scanStartRow.length == 0 && scanStopRow.length == 0) {
+            return compareRows(split.split.getStartRow(), scanStartRow) == 0 &&
+                    compareRows(split.split.getEndRow(), scanStopRow) == 0;
+        } else {
+            if (compareRows(split.split.getStartRow(), scanStartRow) < 1) {
+                if (split.split.getEndRow().length == 0 || compareRows(split.split.getEndRow(), scanStopRow) >= 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Checks the sequence of split rows. If any gap between splits is found or start/stop row of scan does not
+     * correspond to the generated splits, the splitting has to be recalculated again.
+     *
+     * @param inputSplits generated splits
+     * @param scanStartRow
+     * @param scanStopRow
+     * @return
+     */
+    protected boolean isRefreshNeeded(List<InputSplit> inputSplits, byte[] scanStartRow, byte[] scanStopRow) {
+        assert inputSplits.stream().allMatch(is -> (is instanceof SMSplit)) : "items expected to be instanceof SMSplit";
+
+        if (inputSplits.size() < 2) {
+            return !splitContainsScan((SMSplit) inputSplits.get(0), scanStartRow, scanStopRow);
+        } else {
+            inputSplits.sort(new Comparator<InputSplit>() {
+                @Override
+                public int compare(InputSplit o1, InputSplit o2) {
+                    SMSplit smSplit1 = (SMSplit) o1;
+                    SMSplit smSplit2 = (SMSplit) o2;
+
+                    return compareRows(smSplit1.split.getStartRow(), smSplit2.split.getStartRow());
+                }
+            });
+
+            for (int i = 1; i < inputSplits.size(); i++) {
+                byte currentStartRow[] = ((SMSplit) inputSplits.get(i)).split.getStartRow();
+                byte prevEndRow[] = ((SMSplit) inputSplits.get(i - 1)).split.getEndRow();
+                if (compareRows(currentStartRow, prevEndRow) != 0) {
+                    LOG.warn("The gap in splits is found: current split [" + inputSplits.get(i) + "], previous split [" + inputSplits.get(i - 1) + "]");
+                    return true;
+                }
+            }
+            SMSplit firstSplit = (SMSplit) inputSplits.get(0);
+            SMSplit lastSplit = (SMSplit) inputSplits.get(inputSplits.size() - 1);
+            if (compareRows(firstSplit.split.getStartRow(), scanStartRow) > 0 || (lastSplit.split.getEndRow().length != 0 && compareRows(lastSplit.split.getEndRow(), scanStopRow) < 0)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

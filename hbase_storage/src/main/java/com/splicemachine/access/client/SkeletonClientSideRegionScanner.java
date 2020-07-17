@@ -47,51 +47,51 @@ import java.util.List;
 public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     private boolean isClosed = false;
     private static final Logger LOG = Logger.getLogger(SkeletonClientSideRegionScanner.class);
-	private HRegion region;
-	private RegionScanner scanner;
-	private Configuration conf;
-	private FileSystem fs;
-	private Path rootDir;
-	private HTableDescriptor htd;
-	private HRegionInfo hri;
-	private Scan scan;
+    private HRegion region;
+    private RegionScanner scanner;
+    private Configuration conf;
+    private FileSystem fs;
+    private Path rootDir;
+    private HTableDescriptor htd;
+    private HRegionInfo hri;
+    private Scan scan;
     private String hostAndPort;
-	private Cell topCell;
-	private List<KeyValueScanner>	memScannerList = new ArrayList<>(1);
-	private boolean flushed;
-	private long numberOfRows = 0;
+    private Cell topCell;
+    private List<KeyValueScanner>    memScannerList = new ArrayList<>(1);
+    private boolean flushed;
+    private long numberOfRows = 0;
     private FileSystem customFilesystem;
-    private List<Cell> rowBuffer;
+    private List<Cell> rowBuffer = null;
     private boolean noMoreRecords = false;
 
 
-	public SkeletonClientSideRegionScanner(Configuration conf,
+    public SkeletonClientSideRegionScanner(Configuration conf,
                                            FileSystem fs,
                                            Path rootDir,
                                            HTableDescriptor htd,
                                            HRegionInfo hri,
                                            Scan scan, String hostAndPort) throws IOException {
-		if (LOG.isDebugEnabled())
-			SpliceLogUtils.debug(LOG, "init for regionInfo=%s, scan=%s", hri,scan);
-		scan.setIsolationLevel(IsolationLevel.READ_UNCOMMITTED);
-		this.conf = conf;
-		this.fs = fs;
-		this.rootDir = rootDir;
-		this.htd = htd;
-		this.hri = new SpliceHRegionInfo(hri);
-		this.scan = scan;
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "init for regionInfo=%s, scan=%s", hri,scan);
+        scan.setIsolationLevel(IsolationLevel.READ_UNCOMMITTED);
+        this.conf = conf;
+        this.fs = fs;
+        this.rootDir = rootDir;
+        this.htd = htd;
+        this.hri = new SpliceHRegionInfo(hri);
+        this.scan = scan;
         this.hostAndPort = hostAndPort;
-	}
+    }
 
     @Override
-	public void close() throws IOException {
+    public void close() throws IOException {
         if (isClosed)
             return;
-		if (LOG.isDebugEnabled())
-			SpliceLogUtils.debug(LOG, "close");
-		if (scanner != null)
-			scanner.close();
-		memScannerList.get(0).close();
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "close");
+        if (scanner != null)
+            scanner.close();
+        memScannerList.get(0).close();
         region.close();
         if (customFilesystem != null)
             customFilesystem.close();
@@ -99,19 +99,19 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     }
 
     @Override
-	public HRegionInfo getRegionInfo() {
-		return scanner.getRegionInfo();
-	}
+    public HRegionInfo getRegionInfo() {
+        return scanner.getRegionInfo();
+    }
 
     @Override
-	public boolean reseek(byte[] row) throws IOException {
-		return scanner.reseek(row);
-	}
+    public boolean reseek(byte[] row) throws IOException {
+        return scanner.reseek(row);
+    }
 
     @Override
-	public long getMvccReadPoint() {
-		return scanner.getMvccReadPoint();
-	}
+    public long getMvccReadPoint() {
+        return scanner.getMvccReadPoint();
+    }
 
     public boolean next(List<Cell> result,int limit) throws IOException{
         return nextRaw(result,limit);
@@ -136,52 +136,86 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         return scanner.isFilterDone();
     }
 
+    private void fetchNextAndGiveBuffer(List<Cell> result) throws IOException {
+        assert result.isEmpty();
+        List<Cell> nextResult = new ArrayList<>();
+        boolean response = nextMerged(nextResult);
+        if (matchingFamily(nextResult, ClientRegionConstants.FLUSH)) {
+            // A flush should be returned before a potential partial result in the buffer
+            result.addAll(nextResult);
+        } else {
+            result.addAll(rowBuffer);
+            rowBuffer = nextResult;
+            if (!response) {
+                noMoreRecords = true;
+            }
+        }
+    }
+
     @Override
-	public boolean nextRaw(List<Cell> result) throws IOException {
-    	boolean res = nextMerged(result);
-        boolean returnValue = updateTopCell(res,result);
+    public boolean nextRaw(List<Cell> result) throws IOException {
+        boolean firstCall = rowBuffer == null;
+        boolean response;
+        if (firstCall) {
+            rowBuffer = new ArrayList<>();
+            response = nextMerged(rowBuffer);
+            if (!response) {
+                result.addAll(rowBuffer);
+                rowBuffer = null;
+            } else {
+                fetchNextAndGiveBuffer(result);
+            }
+        } else if (noMoreRecords) {
+            result.addAll(rowBuffer);
+            rowBuffer = null;
+            response = false;
+        } else {
+            fetchNextAndGiveBuffer(result);
+            response = true;
+        }
+        boolean returnValue = updateTopCell(response, result);
         if (returnValue)
             numberOfRows++;
-		return returnValue;
-	}
+        return returnValue;
+    }
 
 
-	/**
-	 * refresh underlying RegionScanner we call this when new store file gets
-	 * created by MemStore flushes or current scanner fails due to compaction
-	 */
-	public void updateScanner() throws IOException {
-            if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG,
-                        "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",
-                        hri, htd.getNameAsString(), rootDir, scan);
+    /**
+     * refresh underlying RegionScanner we call this when new store file gets
+     * created by MemStore flushes or current scanner fails due to compaction
+     */
+    void updateScanner() throws IOException {
+        if (LOG.isDebugEnabled()) {
+            SpliceLogUtils.debug(LOG,
+                    "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",
+                    hri, htd.getNameAsString(), rootDir, scan);
+        }
+        if (flushed) {
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "Flush occurred");
+            byte[] restartRow = null;
+            if (rowBuffer != null && !rowBuffer.isEmpty()) {
+                restartRow = CellUtil.cloneRow(rowBuffer.get(0));
+                rowBuffer = null;
+            } else if (this.topCell != null) {
+                restartRow = Bytes.add(CellUtil.cloneRow(topCell), new byte[]{0});
             }
-            if (flushed) {
+            if (restartRow != null) {
                 if (LOG.isDebugEnabled())
-                    SpliceLogUtils.debug(LOG, "Flush occurred");
-                byte[] restartRow = null;
-                if (rowBuffer != null && !rowBuffer.isEmpty()) {
-                    restartRow = CellUtil.cloneRow(rowBuffer.get(0));
-                    rowBuffer = null;
-                } else if (this.topCell != null) {
-                    restartRow = Bytes.add(CellUtil.cloneRow(topCell), new byte[]{0});
-                }
-                if (restartRow != null) {
-                    if (LOG.isDebugEnabled())
-                        SpliceLogUtils.debug(LOG, "setting start row to %s", Hex.encodeHexString(restartRow));
-                    //noinspection deprecation
-                    scan.setStartRow(restartRow);
-                }
+                    SpliceLogUtils.debug(LOG, "setting start row to %s", Hex.encodeHexString(restartRow));
+                //noinspection deprecation
+                scan.setStartRow(restartRow);
             }
-            memScannerList.add(getMemStoreScanner());
-            this.region = openHRegion();
-            RegionScanner regionScanner = new CountingRegionScanner(BaseHRegionUtil.getScanner(region, scan, memScannerList), region, scan);
-            if (flushed) {
-                if (scanner != null)
-                    scanner.close();
-            }
-            scanner = regionScanner;
-	}
+        }
+        memScannerList.add(getMemStoreScanner());
+        this.region = openHRegion();
+        RegionScanner regionScanner = new CountingRegionScanner(BaseHRegionUtil.getScanner(region, scan, memScannerList), region, scan);
+        if (flushed) {
+            if (scanner != null)
+                scanner.close();
+        }
+        scanner = regionScanner;
+    }
 
     public HRegion getRegion(){
         return region;
@@ -199,7 +233,8 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
             flushed = false;
             results.clear();
             return nextRaw(results);
-        } else if (response && !results.isEmpty())
+        } else
+        if (response)
             topCell = results.get(results.size() - 1);
         return response;
     }
@@ -209,60 +244,26 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     }
 
     private boolean nextMerged(List<Cell> result) throws IOException {
-        try {
-            if (LOG.isTraceEnabled())
-                LOG.trace(String.format("nextMerged called, rowBuffer=%s, noMoreRecords=%s", rowBuffer, noMoreRecords));
-            assert result.isEmpty();
-            if (noMoreRecords) {
-                if (rowBuffer != null) {
-                    result.addAll(rowBuffer);
-                    rowBuffer = null;
+        boolean res = scanner.nextRaw(result);
+        // Drain HoldTimestamps
+        if (matchingFamily(result,ClientRegionConstants.HOLD)) {
+            // Second Hold, null out scanner
+            if (result.get(0).getTimestamp()== HConstants.LATEST_TIMESTAMP) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Second hold, close scanner");
                 }
+                result.clear();
                 return false;
             }
-
-            List<Cell> nextResult = new ArrayList<>();
-            boolean res = scanner.nextRaw(nextResult);
-            if (LOG.isTraceEnabled())
-                LOG.trace(String.format("nextMerged just called nextRaw, res=%s, nextResult=%s", res, nextResult));
-            if (matchingFamily(nextResult, ClientRegionConstants.HOLD)) {
-                // Second Hold, null out scanner
-                if (nextResult.get(0).getTimestamp() == HConstants.LATEST_TIMESTAMP) {
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("Second hold, close scanner");
-                    }
-                    noMoreRecords = true;
-                    if (rowBuffer != null) {
-                        result.addAll(rowBuffer);
-                        rowBuffer = null;
-                    }
-                    return true;
-                } else { // First Hold, traverse to real records.
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("First hold, skip to real records");
-                    }
-                    return nextMerged(result);
+            else { // First Hold, traverse to real records.
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("First hold, skip to real records");
                 }
-            } else if (matchingFamily(nextResult, ClientRegionConstants.FLUSH)) {
-                // A flush should be returned before a potential partial result in the buffer
-                result.addAll(nextResult);
-                return true;
-            }
-            if (rowBuffer == null) {
-                // First time we fetch real data for this scanner. Store it in the buffer and fetch again
-                rowBuffer = nextResult;
+                result.clear();
                 return nextMerged(result);
             }
-            result.addAll(rowBuffer);
-            rowBuffer.clear();
-            rowBuffer.addAll(nextResult);
-            if (!res)
-                noMoreRecords = true;
-            return true;
-        } finally {
-            if (LOG.isTraceEnabled())
-                LOG.trace(String.format("nextMerged returning, result=%s", result));
         }
+        return res;
     }
 
     private HRegion openHRegion() throws IOException {

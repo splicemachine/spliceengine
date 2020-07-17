@@ -459,7 +459,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
         rowContainsQuery(4,
                 "explain select * from a, b where (a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)",
-                "preds=[(A.J[4:5] = B.J[4:2]),(A.I[4:4] = B.I[4:1])]", methodWatcher);
+                "preds=[(A.I[4:4] = B.I[4:1]),(A.J[4:5] = B.J[4:2])]", methodWatcher);
 
         rowContainsQuery(5,
                 "explain select * from a, b where (a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)",
@@ -549,7 +549,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
         rowContainsQuery(3,
                 "explain select * from a, b where ((a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)) and b.k=3",
-                "preds=[(A.J[4:2] = B.J[4:5]),(A.I[4:1] = B.I[4:4])]", methodWatcher);
+                "preds=[(A.I[4:1] = B.I[4:4]),(A.J[4:2] = B.J[4:5])]", methodWatcher);
 
         rowContainsQuery(5,
                 "explain select * from a, b where ((a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)) and b.k=3",
