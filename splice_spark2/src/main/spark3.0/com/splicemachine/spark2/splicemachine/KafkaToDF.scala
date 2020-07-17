@@ -29,8 +29,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 import scala.collection.JavaConverters._
 
-@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL"), justification = "Fields 'row' and 'records' aren't always null, and null checks didn't eliminate Spotbugs error; see DB-9580.")
-@SuppressFBWarnings(value = Array("SE_BAD_FIELD"), justification = "This class isn't serializable, and there's no field named 'outer'.")
+@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL","SE_BAD_FIELD"), justification = "Fields 'row' and 'records' aren't always null, and null checks didn't eliminate Spotbugs error; see DB-9580.|This class isn't serializable, and there's no field named 'outer'.")
 class KafkaToDF(kafkaServers: String, pollTimeout: Long, querySchema: StructType) {
   val timeout = java.time.Duration.ofMillis(pollTimeout)
   val shortTimeout = if( pollTimeout <= 1000L ) timeout else java.time.Duration.ofMillis(1000L)
