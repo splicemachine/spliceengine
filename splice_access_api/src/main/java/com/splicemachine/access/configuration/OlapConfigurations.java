@@ -148,7 +148,7 @@ public class OlapConfigurations implements ConfigurationDefault {
     // Whether we should purge old updates during flush & compaction
     public static final String OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = "splice.olap.compaction.automaticallyPurgeOldUpdates";
     public static final boolean DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = false;
-    
+
     /* Map of Splice queues to YARN queues
 
     Examples:
