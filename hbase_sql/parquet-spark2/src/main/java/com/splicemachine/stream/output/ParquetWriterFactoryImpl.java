@@ -75,4 +75,9 @@ public class ParquetWriterFactoryImpl implements ParquetWriterFactory{
             }
         }.getRecordWriter(null);
     }
+
+    @Override
+    public InternalRow encodeToRow(StructType tableSchema, ValueRow valueRow, ExpressionEncoder<Row> encoder) {
+        return encoder.toRow(valueRow);
+    }
 }
