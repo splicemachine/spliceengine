@@ -334,7 +334,7 @@
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.binary.version}</artifactId>
-            <version>2.2.4</version>
+            <version>${scalatest.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -1002,7 +1002,7 @@
                                 <argument>-Dsplice.spark.kryoserializer.buffer=4m</argument>
                                 <argument>-Dsplice.spark.locality.wait=60s</argument>
                                 <argument>-Dsplice.spark.logConf=true</argument>
-                                <argument>-Dsplice.spark.master=yarn-client</argument>
+                                <argument>-Dsplice.spark.master=${splice.spark.master}</argument>
                                 <argument>
                                     -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
                                 </argument>
@@ -1501,7 +1501,7 @@
                                 <argument>-Dsplice.spark.kryoserializer.buffer=4m</argument>
                                 <argument>-Dsplice.spark.locality.wait=60s</argument>
                                 <argument>-Dsplice.spark.logConf=true</argument>
-                                <argument>-Dsplice.spark.master=yarn-client</argument>
+                                <argument>-Dsplice.spark.master=${splice.spark.master}</argument>
                                 <argument>
                                     -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
                                 </argument>
