@@ -72,7 +72,6 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     val c6 = StructField("C6_INT", IntegerType, ! withPrimaryKey)
     val c7 = StructField("C7_BIGINT", LongType, ! withPrimaryKey)
 
-
     StructType(
       StructField("C1_BOOLEAN", BooleanType, true) ::
         StructField("C2_CHAR", StringType, true) ::
@@ -80,7 +79,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
         StructField("C4_DECIMAL", DecimalType(15,2), true) ::
         StructField("C5_DOUBLE", DoubleType, true) ::
         c6 :: c7 ::
-        StructField("C8_FLOAT", DoubleType, true) ::
+        StructField("C8_FLOAT", FloatType, true) ::
         StructField("C9_SMALLINT", ShortType, true) ::
         StructField("C10_TIME", TimestampType, true) ::
         StructField("C11_TIMESTAMP", TimestampType, true) ::
@@ -121,7 +120,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   )
 
   val statOptions = Map(
-    JDBCOptions.JDBC_TABLE_NAME -> "SYS.SYSTABLESTATISTICS",
+    JDBCOptions.JDBC_TABLE_NAME -> "SYSVW.SYSTABLESTATISTICS",
     JDBCOptions.JDBC_URL -> defaultJDBCURL
   )
 

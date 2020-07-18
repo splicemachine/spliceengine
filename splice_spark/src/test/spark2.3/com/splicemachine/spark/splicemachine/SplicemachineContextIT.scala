@@ -16,12 +16,13 @@
  */
 package com.splicemachine.spark.splicemachine
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream}
+
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{ FunSuite, Matchers}
+import org.scalatest.{FunSuite, Matchers}
 
 @RunWith(classOf[JUnitRunner])
 class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
@@ -132,6 +133,24 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     )
   }
 
+  test("Test Bulk Import") {
+    if (splicemachineContext.tableExists(internalTN)) {
+      splicemachineContext.dropTable(internalTN)
+    }
+    insertInternalRows(0)
+
+    val bulkImportDirectory = new File(System.getProperty("java.io.tmpdir") + "/splice_spark-SplicemachineContextIT/bulkImport")
+    bulkImportDirectory.mkdirs()
+
+    splicemachineContext.bulkImportHFile(internalTNDF, internalTN,
+      collection.mutable.Map("bulkImportDirectory" -> bulkImportDirectory.getAbsolutePath)
+    )
+
+    val rs = getConnection.createStatement.executeQuery("select count(*) from " + internalTN)
+    rs.next
+    org.junit.Assert.assertEquals("Bulk Import Failed!", 1, rs.getInt(1))
+  }
+  
   val carTableName = getClass.getSimpleName + "_TestCreateTable"
   val carSchemaTableName = schema+"."+carTableName
 

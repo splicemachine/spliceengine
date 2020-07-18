@@ -95,5 +95,10 @@
         <Class name="com.splicemachine.constants.SpliceConstants"/>
         <Bug pattern="MS_MUTABLE_ARRAY"/>
     </Match>
+    <!-- Wrapper used for refactoring -->
+    <Match>
+        <Class name="com.splicemachine.db.iapi.reference.SQLState"/>
+        <Bug pattern="NM_SAME_SIMPLE_NAME_AS_INTERFACE"/>
+    </Match>
 
 </FindBugsFilter>
