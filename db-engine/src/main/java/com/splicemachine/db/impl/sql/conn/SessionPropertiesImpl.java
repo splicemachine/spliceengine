@@ -84,6 +84,14 @@ public class SessionPropertiesImpl implements SessionProperties {
                 boolean disabled = Boolean.valueOf(valString);
                 properties[DISABLE_TC_PUSHED_DOWN_INTO_VIEWS.getId()] = disabled;
                 break;
+            case SPARK_RESULT_STREAMING_BATCHES:
+                int sparkResultStreamingBatches = Integer.parseInt(valString);
+                properties[SPARK_RESULT_STREAMING_BATCHES.getId()] = sparkResultStreamingBatches;
+                break;
+            case SPARK_RESULT_STREAMING_BATCH_SIZE:
+                int sparkResultStreamingBatchSize = Integer.parseInt(valString);
+                properties[SPARK_RESULT_STREAMING_BATCH_SIZE.getId()] = sparkResultStreamingBatchSize;
+                break;
             default:
                 break;
         }
