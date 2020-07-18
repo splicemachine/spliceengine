@@ -16,12 +16,13 @@
  */
 package com.splicemachine.spark.splicemachine
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream}
+
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{ FunSuite, Matchers}
+import org.scalatest.{FunSuite, Matchers}
 
 @RunWith(classOf[JUnitRunner])
 class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
@@ -207,8 +208,8 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     createInternalTable
 
     val insDf = dataframe(
-      rdd( Seq(
-        Row.fromSeq( Seq(
+      rdd(Seq(
+        Row.fromSeq(Seq(
           null, null, null, null, null,
           106, 107L,
           null, null, null, null, null
@@ -219,7 +220,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
 
     splicemachineContext.insert(insDf, internalTN)
 
-    val rs = getConnection.createStatement.executeQuery("select * from "+internalTN)
+    val rs = getConnection.createStatement.executeQuery("select * from " + internalTN)
     rs.next
     val res = List(
       rs.getBoolean(1),
@@ -241,6 +242,24 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     org.junit.Assert.assertEquals(
       "Insert Failed!",
       "false, null, null, null, 0.0, 106, 107, 0.0, 0, null, null, null",
-      res )
+      res)
+  }
+  
+  test("Test Bulk Import") {
+    if( splicemachineContext.tableExists(internalTN) ) {
+      splicemachineContext.dropTable(internalTN)
+    }
+    insertInternalRows(0)
+
+    val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+"/splice_spark-SplicemachineContextIT/bulkImport" )
+    bulkImportDirectory.mkdirs()
+
+    splicemachineContext.bulkImportHFile(internalTNDF, internalTN,
+      collection.mutable.Map("bulkImportDirectory" -> bulkImportDirectory.getAbsolutePath)
+    )
+
+    val rs = getConnection.createStatement.executeQuery("select count(*) from "+internalTN)
+    rs.next
+    org.junit.Assert.assertEquals("Bulk Import Failed!", 1, rs.getInt(1))
   }
 }

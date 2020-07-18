@@ -14,38 +14,38 @@
 
 package com.splicemachine.access.client;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Sets;
 import com.splicemachine.coprocessor.SpliceMessage;
-import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.SkeletonHBaseClientPartition;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.IsolationLevel;
-import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcUtils;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
-import org.apache.hadoop.hbase.regionserver.*;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
+import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
-import org.apache.hadoop.hdfs.ProxiedFilesystem;
-import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.security.AccessControlException;
 import org.apache.log4j.Logger;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.spark_project.guava.base.Throwables;
+
+import java.io.IOException;
+import java.util.*;
 
 /**
  * 
@@ -68,6 +68,8 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     private boolean flushed;
     private long numberOfRows = 0;
     private FileSystem customFilesystem;
+    private List<Cell> rowBuffer = null;
+    private boolean noMoreRecords = false;
 
 
     public SkeletonClientSideRegionScanner(Configuration conf,
@@ -141,10 +143,44 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         return scanner.isFilterDone();
     }
 
+    private void fetchNextAndGiveBuffer(List<Cell> result) throws IOException {
+        assert result.isEmpty();
+        List<Cell> nextResult = new ArrayList<>();
+        boolean response = nextMerged(nextResult);
+        if (matchingFamily(nextResult, ClientRegionConstants.FLUSH)) {
+            // A flush should be returned before a potential partial result in the buffer
+            result.addAll(nextResult);
+        } else {
+            result.addAll(rowBuffer);
+            rowBuffer = nextResult;
+            if (!response) {
+                noMoreRecords = true;
+            }
+        }
+    }
+
     @Override
     public boolean nextRaw(List<Cell> result) throws IOException {
-        boolean res = nextMerged(result);
-        boolean returnValue = updateTopCell(res,result);
+        boolean firstCall = rowBuffer == null;
+        boolean response;
+        if (firstCall) {
+            rowBuffer = new ArrayList<>();
+            response = nextMerged(rowBuffer);
+            if (!response) {
+                result.addAll(rowBuffer);
+                rowBuffer = null;
+            } else {
+                fetchNextAndGiveBuffer(result);
+            }
+        } else if (noMoreRecords) {
+            result.addAll(rowBuffer);
+            rowBuffer = null;
+            response = false;
+        } else {
+            fetchNextAndGiveBuffer(result);
+            response = true;
+        }
+        boolean returnValue = updateTopCell(response, result);
         if (returnValue)
             numberOfRows++;
         return returnValue;
@@ -155,7 +191,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
      * refresh underlying RegionScanner we call this when new store file gets
      * created by MemStore flushes or current scanner fails due to compaction
      */
-    public void updateScanner() throws IOException {
+    void updateScanner() throws IOException {
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG,
                         "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",
@@ -164,11 +200,18 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
             if (flushed) {
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG, "Flush occurred");
-                if (this.topCell != null) {
+                byte[] restartRow = null;
+                if (rowBuffer != null && !rowBuffer.isEmpty()) {
+                    restartRow = CellUtil.cloneRow(rowBuffer.get(0));
+                    rowBuffer = null;
+                } else if (this.topCell != null) {
+                    restartRow = Bytes.add(CellUtil.cloneRow(topCell), new byte[]{0});
+                }
+                if (restartRow != null) {
                     if (LOG.isDebugEnabled())
-                        SpliceLogUtils.debug(LOG, "setting start row to %s", topCell);
+                        SpliceLogUtils.debug(LOG, "setting start row to %s", Hex.encodeHexString(restartRow));
                     //noinspection deprecation
-                    scan.setStartRow(Bytes.add(CellUtil.cloneRow(topCell), new byte[]{0}));
+                    scan.setStartRow(restartRow);
                 }
             }
             memScannerList.add(getMemStoreScanner());
@@ -189,8 +232,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     /*private helper methods*/
 
     private boolean updateTopCell(boolean response, List<Cell> results) throws IOException {
-        if (!results.isEmpty() &&
-                CellUtil.matchingFamily(results.get(0),ClientRegionConstants.FLUSH)){
+        if (matchingFamily(results, ClientRegionConstants.FLUSH)) {
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"received flush message " + results.get(0));
             flushed = true;
@@ -205,7 +247,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     }
 
     private boolean matchingFamily(List<Cell> result, byte[] family) {
-        return result.isEmpty()?false:CellUtil.matchingFamily(result.get(0),family);
+        return !result.isEmpty() && CellUtil.matchingFamily(result.get(0), family);
     }
 
     private boolean nextMerged(List<Cell> result) throws IOException {

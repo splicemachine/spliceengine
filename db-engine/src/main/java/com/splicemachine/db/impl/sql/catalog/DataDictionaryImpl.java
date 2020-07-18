@@ -1570,11 +1570,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return finishTableDescriptor(td);
     }
 
-    private void markSystemTablesAsVersion1(TableDescriptor td) {
-        ConglomerateDescriptor[] conglomerateDescriptors = td.getConglomerateDescriptors();
-        if (conglomerateDescriptors.length > 0 &&
-        conglomerateDescriptors[0].getConglomerateNumber() < DataDictionary.FIRST_USER_TABLE_NUMBER)
+    protected void markSystemTablesAsVersion1(TableDescriptor td) {
+        if(td.getSchemaName() != null && td.getSchemaName().equals(SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME)) {
             td.setVersion(SYSTABLESRowFactory.ORIGINAL_TABLE_VERSION);
+        }
     }
 
     /**
