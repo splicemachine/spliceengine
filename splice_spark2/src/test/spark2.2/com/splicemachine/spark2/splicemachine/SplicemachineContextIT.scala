@@ -89,11 +89,11 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     )
   }
   
-  val rddAllCol5Row = """false, 1    , 2013-09-05, 1, 1.0, 1, 1, 1.0, 1, 18:00:00.0, 1969-12-31 18:00:00.001, sometestinfo1
-                        |false, 3    , 2013-09-05, 3, 3.0, 3, 3, 3.0, 3, 18:00:00.0, 1969-12-31 18:00:00.003, sometestinfo3
-                        |false, 5    , 2013-09-05, 5, 5.0, 5, 5, 5.0, 5, 18:00:00.0, 1969-12-31 18:00:00.005, sometestinfo5
-                        |false, 7    , 2013-09-05, 7, 7.0, 7, 7, 7.0, 7, 18:00:00.0, 1969-12-31 18:00:00.007, sometestinfo7
-                        |false, null, 2013-09-05, 9, 9.0, 9, 9, 9.0, 9, 18:00:00.0, 1969-12-31 18:00:00.009, null""".stripMargin
+  val rddAllCol5Row = """false, 1    , 2013-09-05, 1, 1.0, 1, 1, 1.0, 1, 00:00:01.0, 1970-01-01 00:00:00.001, sometestinfo1
+                        |false, 3    , 2013-09-05, 3, 3.0, 3, 3, 3.0, 3, 00:00:03.0, 1970-01-01 00:00:00.003, sometestinfo3
+                        |false, 5    , 2013-09-05, 5, 5.0, 5, 5, 5.0, 5, 00:00:05.0, 1970-01-01 00:00:00.005, sometestinfo5
+                        |false, 7    , 2013-09-05, 7, 7.0, 7, 7, 7.0, 7, 00:00:07.0, 1970-01-01 00:00:00.007, sometestinfo7
+                        |false, null, 2013-09-05, 9, 9.0, 9, 9, 9.0, 9, 00:00:09.0, 1970-01-01 00:00:00.009, null""".stripMargin
 
   test("Test Get RDD with Default Columns") {
     dropInternalTable

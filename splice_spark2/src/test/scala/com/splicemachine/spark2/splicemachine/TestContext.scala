@@ -18,7 +18,7 @@ import java.sql.{Connection, Time, Timestamp}
 import java.util.Date
 
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.SparkConf
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import org.apache.spark.sql.types._
 import org.apache.spark.rdd.RDD
@@ -187,6 +187,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   def insertInternalRows(rowCount: Integer): Unit = {
       val conn = getConnection()
       createInternalTable()
+      val offset = java.util.TimeZone.getDefault.getRawOffset
       try {
         Range(0, rowCount).map { i =>
           val ps = conn.prepareStatement("insert into " + internalTN + allTypesInsertString + allTypesInsertStringValues)
@@ -199,8 +200,8 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
           ps.setInt(7, i)
           ps.setFloat(8, i)
           ps.setShort(9, i.toShort)
-          ps.setTime(10, new Time(i))
-          ps.setTimestamp(11, new Timestamp(i))
+          ps.setTime(10, new Time((1000*i)-offset))
+          ps.setTimestamp(11, new Timestamp(i-offset))
           ps.setString(12, if (i < 8) "sometestinfo" + i else null)
           ps.execute()
         }
