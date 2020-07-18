@@ -490,12 +490,13 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
       sqlContext.sql(s"""SELECT c9_smallint FROM $table where c9_smallint < 5""").collectAsList().toString)
   }
   test("table scan with projection and predicate timestamp") {
-    val ts0 = new Timestamp(0)
-    val ts1 = new Timestamp(1)
-    val ts2 = new Timestamp(2)
-    val ts3 = new Timestamp(3)
-    val ts4 = new Timestamp(4)
-    val ts5 = new Timestamp(5)
+    val offset = java.util.TimeZone.getDefault.getRawOffset
+    val ts0 = new Timestamp(0-offset)
+    val ts1 = new Timestamp(1-offset)
+    val ts2 = new Timestamp(2-offset)
+    val ts3 = new Timestamp(3-offset)
+    val ts4 = new Timestamp(4-offset)
+    val ts5 = new Timestamp(5-offset)
 
     val results = String.format("[[%s], [%s], [%s], [%s], [%s]]", ts0, ts1, ts2, ts3, ts4)
     assertEquals(results,
