@@ -10,6 +10,7 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
+ *
  */
 package com.splicemachine.spark.splicemachine
 
@@ -18,16 +19,16 @@ import java.sql.{Connection, Time, Timestamp}
 import java.util.Date
 
 import com.splicemachine.derby.impl.SpliceSpark
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, Suite}
-import org.apache.spark.sql.types._
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 trait TestContext extends BeforeAndAfterAll { self: Suite =>
-  var sc: SparkContext = null
   var spark: SparkSession = _
+  var sc: SparkContext = null
   var splicemachineContext: SplicemachineContext = _
   var internalTNDF: Dataset[Row] = _
   val table = "test"
@@ -72,7 +73,6 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     val c6 = StructField("C6_INT", IntegerType, ! withPrimaryKey)
     val c7 = StructField("C7_BIGINT", LongType, ! withPrimaryKey)
 
-
     StructType(
       StructField("C1_BOOLEAN", BooleanType, true) ::
         StructField("C2_CHAR", StringType, true) ::
@@ -80,14 +80,14 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
         StructField("C4_DECIMAL", DecimalType(15,2), true) ::
         StructField("C5_DOUBLE", DoubleType, true) ::
         c6 :: c7 ::
-        StructField("C8_FLOAT", DoubleType, true) ::
+        StructField("C8_FLOAT", FloatType, true) ::
         StructField("C9_SMALLINT", ShortType, true) ::
         StructField("C10_TIME", TimestampType, true) ::
         StructField("C11_TIMESTAMP", TimestampType, true) ::
         StructField("C12_VARCHAR", StringType, true) ::
         Nil)
   }
-  
+
   val primaryKeys = Seq("c6_int","c7_bigint")
 
   val allTypesInsertString = "(" +
