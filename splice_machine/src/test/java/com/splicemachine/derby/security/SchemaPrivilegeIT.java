@@ -115,8 +115,6 @@ public class SchemaPrivilegeIT {
     private String dropTableQuery   = format("drop table %s.%s", SCHEMA1, TABLE2);
     private String modifyTableQuery = format("alter table %s.%s add column col4 int", SCHEMA1, TABLE2);
     private String truncateTableQuery = format("truncate table %s.%s", SCHEMA1, TABLE2);
-    private String pinTableQuery    = format("pin table %s.%s", SCHEMA1, TABLE);
-    private String unpinTableQuery    = format("unpin table %s.%s", SCHEMA1, TABLE);
     private String renameColumnQuery = format("rename column %s.%s.c to c_new", SCHEMA1, TABLE2);
     private String renameTableQuery = format("rename table %s.%s to %s_NEW", SCHEMA1, TABLE2, TABLE2);
     // according to doc, rename index can only be performed under the current schema
@@ -199,12 +197,6 @@ public class SchemaPrivilegeIT {
         //truncate table
         assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //pin table
-        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //unpin table
-        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         //rename column
         assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
@@ -257,12 +249,6 @@ public class SchemaPrivilegeIT {
         //truncate table
         assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //pin table
-        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //unpin table
-        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         //rename column
         assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
@@ -316,12 +302,6 @@ public class SchemaPrivilegeIT {
         //truncate table
         assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //pin table
-        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //unpin table
-        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         //rename column
         assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
@@ -375,12 +355,6 @@ public class SchemaPrivilegeIT {
         //truncate table
         assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //pin table
-        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //unpin table
-        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         //rename column
         assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
@@ -433,12 +407,6 @@ public class SchemaPrivilegeIT {
         //truncate table
         assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //pin table
-        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //unpin table
-        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         //rename column
         assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
@@ -484,9 +452,6 @@ public class SchemaPrivilegeIT {
         //alter table
         user1Conn.prepareStatement(format("alter table %s.FOO add column added_col4 int", SCHEMA1)).execute();
 
-        // pin table
-        user1Conn.prepareStatement(format("PIN table %s.FOO", SCHEMA1)).execute();
-
         // rename column
         user1Conn.prepareStatement(format("rename column %s.FOO.col1 to col1_new", SCHEMA1)).execute();
 
@@ -507,9 +472,6 @@ public class SchemaPrivilegeIT {
         rs = ps.executeQuery();
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
-
-        // unpin table
-        user1Conn.prepareStatement(format("unpin table %s.FOO_new", SCHEMA1)).execute();
 
         // truncate table
         user1Conn.prepareStatement(format("truncate table %s.FOO_new", SCHEMA1)).execute();
@@ -545,12 +507,6 @@ public class SchemaPrivilegeIT {
         //truncate table
         assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //pin table
-        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //unpin table
-        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         //rename column
         assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
@@ -944,9 +900,6 @@ public class SchemaPrivilegeIT {
         //alter table
         user1Conn.prepareStatement(format("alter table %s.FOO add column added_col4 int", SCHEMA1)).execute();
 
-        // pin table
-        user1Conn.prepareStatement(format("PIN table %s.FOO", SCHEMA1)).execute();
-
         // rename column
         user1Conn.prepareStatement(format("rename column %s.FOO.col1 to col1_new", SCHEMA1)).execute();
 
@@ -967,9 +920,6 @@ public class SchemaPrivilegeIT {
         rs = ps.executeQuery();
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
-
-        // unpin table
-        user1Conn.prepareStatement(format("unpin table %s.FOO_new", SCHEMA1)).execute();
 
         // truncate table
         user1Conn.prepareStatement(format("truncate table %s.FOO_new", SCHEMA1)).execute();
@@ -1011,12 +961,6 @@ public class SchemaPrivilegeIT {
         //truncate table
         assertFailed(user1Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, truncateTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //pin table
-        assertFailed(user1Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, pinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        //unpin table
-        assertFailed(user1Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
-        assertFailed(user2Conn, unpinTableQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         //rename column
         assertFailed(user1Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
         assertFailed(user2Conn, renameColumnQuery, SQLState.AUTH_NO_ACCESS_NOT_OWNER);
@@ -1088,9 +1032,6 @@ public class SchemaPrivilegeIT {
         //alter table
         user1Conn.prepareStatement(format("alter table %s.FOO add column added_col4 int", USER3)).execute();
 
-        // pin table
-        user1Conn.prepareStatement(format("PIN table %s.FOO", USER3)).execute();
-
         // rename column
         user1Conn.prepareStatement(format("rename column %s.FOO.col1 to col1_new", USER3)).execute();
 
@@ -1111,9 +1052,6 @@ public class SchemaPrivilegeIT {
         rs = ps.executeQuery();
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
-
-        // unpin table
-        user1Conn.prepareStatement(format("unpin table %s.FOO_new", USER3)).execute();
 
         // truncate table
         user1Conn.prepareStatement(format("truncate table %s.FOO_new", USER3)).execute();
@@ -1180,9 +1118,6 @@ public class SchemaPrivilegeIT {
         //alter table
         user1Conn.prepareStatement(format("alter table %s.FOO add column added_col4 int", USER3)).execute();
 
-        // pin table
-        user1Conn.prepareStatement(format("PIN table %s.FOO", USER3)).execute();
-
         // rename column
         user1Conn.prepareStatement(format("rename column %s.FOO.col1 to col1_new", USER3)).execute();
 
@@ -1203,9 +1138,6 @@ public class SchemaPrivilegeIT {
         rs = ps.executeQuery();
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
-
-        // unpin table
-        user1Conn.prepareStatement(format("unpin table %s.FOO_new", USER3)).execute();
 
         // truncate table
         user1Conn.prepareStatement(format("truncate table %s.FOO_new", USER3)).execute();
