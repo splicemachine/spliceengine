@@ -210,8 +210,6 @@ public interface ISpliceVisitor {
     Visitable visit(ExportNode node) throws StandardException;
     Visitable visit(BinaryExportNode node) throws StandardException;
     Visitable visit(KafkaExportNode node) throws StandardException;
-    Visitable visit(CreatePinNode node) throws StandardException;
-    Visitable visit(DropPinNode node) throws StandardException;
     Visitable visit(ArrayOperatorNode node) throws StandardException;
     Visitable visit(ArrayConstantNode node) throws StandardException;
     Visitable visit(SetSessionPropertyNode node) throws StandardException;

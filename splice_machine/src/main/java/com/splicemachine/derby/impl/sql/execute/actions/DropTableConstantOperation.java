@@ -20,9 +20,6 @@ import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.TableKey;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.sql.execute.pin.DistributedIsCachedJob;
-import com.splicemachine.derby.impl.sql.execute.pin.GetIsCachedResult;
-import com.splicemachine.derby.impl.sql.execute.pin.RemoteDropPinJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -178,16 +175,6 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
             /* Drop the store element at last, to prevent dangling reference for open cursor, beetle 4393. */
             tc.dropConglomerate(heapId);
-
-            /* is the table pinned ? , if yes we need to drop it */
-            try {
-                GetIsCachedResult isCachedResult = EngineDriver.driver().getOlapClient().execute(new DistributedIsCachedJob(heapId));
-                if(isCachedResult.isCached()) {
-                    EngineDriver.driver().getOlapClient().execute(new RemoteDropPinJob(heapId));
-                }
-            } catch (Exception e) {
-                throw StandardException.plainWrapException(e);
-            }
 
         } catch (Exception e) {
             // If dropping table fails, it could happen that the table object in cache has been modified.

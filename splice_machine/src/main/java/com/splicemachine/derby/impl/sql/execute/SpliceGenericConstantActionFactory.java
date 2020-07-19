@@ -495,12 +495,6 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     }
 
     @Override
-    public ConstantAction getDropPinConstantAction(String fullTableName, String tableName, SchemaDescriptor sd, long conglomerateNumber, UUID tableId, int behavior) {
-        SpliceLogUtils.trace(LOG,"getDropPinConstantAction for {%s.%s}",(sd==null?"none":sd.getSchemaName()),tableName);
-        return new DropPinConstantOperation(fullTableName, tableName, sd, conglomerateNumber, tableId, behavior);
-    }
-
-    @Override
     public ConstantAction getGrantConstantAction(PrivilegeInfo privileges,List grantees){
         SpliceLogUtils.trace(LOG,"getGrantConstantAction for privileges {%s}",privileges);
         return new GrantRevokeConstantOperation(true,privileges,grantees);
@@ -522,11 +516,5 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     public ConstantAction getRevokeRoleConstantAction(List roleNames,List grantees){
         SpliceLogUtils.trace(LOG,"getRevokeRoleConstantAction for roles {%s} and grantees {%s}",roleNames,grantees);
         return new RevokeRoleConstantOperation(roleNames,grantees);
-    }
-
-
-    @Override
-    public ConstantAction getPinTableConstantAction(String schemaName, String tableName) {
-        return new CreatePinConstantOperation(schemaName,tableName);
     }
 }
