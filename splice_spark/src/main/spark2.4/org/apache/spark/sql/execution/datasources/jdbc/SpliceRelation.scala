@@ -12,7 +12,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
   * Created by jleach on 4/7/17.
   */
 
-@SuppressFBWarnings(value = Array("SE_NO_SERIALVERSIONID","SE_TRANSIENT_FIELD_NOT_RESTORED"), justification = "DB-9846")
+@SuppressFBWarnings(value = Array("SE_NO_SERIALVERSIONID","SE_TRANSIENT_FIELD_NOT_RESTORED", "NP_ALWAYS_NULL"), justification = "DB-9846")
 case class SpliceRelation(jdbcOptions: JDBCOptions)(@transient val sqlContext: SQLContext, @transient var userSchema: Option[StructType]) extends BaseRelation
   with PrunedFilteredScan
   with InsertableRelation {
@@ -23,7 +23,6 @@ case class SpliceRelation(jdbcOptions: JDBCOptions)(@transient val sqlContext: S
   override val needConversion: Boolean = true
 
   // Check if JDBCRDD.compileFilter can accept input filters
-  @SuppressFBWarnings(value = Array("NP_ALWAYS_NULL"), justification = "DB-9846")
   override def unhandledFilters(filters: Array[Filter]): Array[Filter] = {
     filters.filter(JDBCRDD.compileFilter(_, JdbcDialects.get(jdbcOptions.url)).isEmpty)
   }
