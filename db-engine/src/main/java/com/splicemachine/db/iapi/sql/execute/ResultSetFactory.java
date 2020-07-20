@@ -970,6 +970,7 @@ public interface ResultSetFactory {
 		@param optimizerEstimatedRowCount	Estimated total # of rows by
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
+		@param pastTxId                     The ID of a past transaction for time-travel queries
 
 		@return the table scan operation as a result set.
 		@exception StandardException thrown when unable to create the
@@ -1012,7 +1013,8 @@ public interface ResultSetFactory {
 								String location,
 								int partitionByRefItem,
 								GeneratedMethod defaultRowFunc,
-								int defaultValueMapItem
+								int defaultValueMapItem,
+								long pastTxId
 								)
 			throws StandardException;
 
@@ -1072,7 +1074,8 @@ public interface ResultSetFactory {
 								String location,
 								int partitionByRefItem,
 								GeneratedMethod defaultRowFunc,
-								int defaultValueMapItem
+								int defaultValueMapItem,
+								long pastTxId
 								)
 			throws StandardException;
     /**
