@@ -16,7 +16,6 @@ package com.splicemachine.derby.lifecycle;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.utils.DatabasePropertyManagementImpl;
-import com.sun.xml.internal.bind.v2.TODO;
 
 import javax.management.MBeanServer;
 
