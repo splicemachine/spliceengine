@@ -7,9 +7,11 @@ import com.splicemachine.derby.stream.spark.ExternalizableDeserializer
 import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.IntegerDeserializer
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 import scala.collection.JavaConverters._
 
+@SuppressFBWarnings(value = Array("SE_BAD_FIELD"), justification = "DB-9846")
 object KafkaUtils {
   def messageCount(bootstrapServers: String, topicName: String): Long = {
     val props = new Properties
