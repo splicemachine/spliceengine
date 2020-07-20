@@ -81,7 +81,7 @@ public class SMStorageHandler extends DefaultStorageHandler
         jobProperties.put(MRConstants.SPLICE_JDBC_STR, connStr);
     }
 
-    @SuppressFBWarnings(value={"OBL_UNSATISFIED_OBLIGATION","ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"}, justification="DB-9846")
+    @SuppressFBWarnings(value={"OBL_UNSATISFIED_OBLIGATION","ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD","ODR_OPEN_DATABASE_RESOURCE"}, justification="DB-9846")
     public String startWriteJobParentTxn(String connStr, String tableName) {
 
         if (sqlUtil == null)
