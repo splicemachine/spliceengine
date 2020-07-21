@@ -545,7 +545,7 @@ public class OlapServerSubmitter implements Runnable {
         if (SystemUtils.IS_OS_WINDOWS) {
             return quoteForBatchScript("-XX:OnOutOfMemoryError=taskkill /F /PID %%%%p");
         } else {
-            return "-XX:OnOutOfMemoryError='kill %p'";
+            return "-XX:OnOutOfMemoryError='kill %p' -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp";
         }
     }
 
