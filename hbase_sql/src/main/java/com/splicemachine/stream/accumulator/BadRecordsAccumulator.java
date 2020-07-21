@@ -42,7 +42,12 @@ public class BadRecordsAccumulator extends AccumulatorV2<String, BadRecordsRecor
 
     @Override
     public AccumulatorV2<String, BadRecordsRecorder> copy() {
-        return new BadRecordsAccumulator(badRecordsRecorder);
+        BadRecordsRecorder copyBadRecordsRecorder = new BadRecordsRecorder(
+                badRecordsRecorder.getStatusDirectory(),
+                badRecordsRecorder.getInputFilePath(),
+                badRecordsRecorder.getBadRecordTolerance());
+
+        return new BadRecordsAccumulator(copyBadRecordsRecorder);
     }
 
     @Override
