@@ -3217,6 +3217,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42ZD2</name>
+                <text>Using time travel clause with {0} is not allowed</text>
+                <arg>artifactName</arg>
+            </msg>
+
+            <msg>
                 <name>43001</name>
                 <text>The truncate function was provided a null operand.</text>
             </msg>
