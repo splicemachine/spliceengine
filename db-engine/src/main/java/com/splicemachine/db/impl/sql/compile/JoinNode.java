@@ -1315,7 +1315,7 @@ public class JoinNode extends TableOperatorNode{
 
     protected void oneRowRightSide(ActivationClassBuilder acb,MethodBuilder mb) throws StandardException{
         mb.push(rightResultSet.isOneRowResultSet());
-        mb.push(rightResultSet.isNotExists());  //join is for NOT EXISTS
+        mb.push(((FromTable)rightResultSet).getSemiJoinType());  //join is for inclusion or exclusion join
     }
 
     /**
