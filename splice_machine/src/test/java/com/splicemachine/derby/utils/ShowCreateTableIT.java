@@ -31,7 +31,10 @@
 
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -43,6 +46,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 /**
@@ -198,7 +203,8 @@ public class ShowCreateTableIT extends SpliceUnitTest
     {
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T4')");
         rs.next();
-        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T4\" (\n" +
+
+        checkEqualIgnoreConstraintOrder("CREATE TABLE \"SHOWCREATETABLEIT\".\"T4\" (\n" +
                 "\"A4\" INTEGER\n" +
                 ",\"B2\" INTEGER\n" +
                 ",\"A2\" INTEGER\n" +
@@ -253,12 +259,14 @@ public class ShowCreateTableIT extends SpliceUnitTest
         String csName = null;
         while (m1.find())
             csName = m1.group();
-        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T6\" (\n" +
+
+        String expectedDDL = "CREATE TABLE \"SHOWCREATETABLEIT\".\"T6\" (\n" +
                 "\"A6\" INTEGER\n" +
                 ",\"B6\" INTEGER\n" +
                 ",\"C6\" INTEGER\n" +
                 ",\"D6\" INTEGER\n" +
-                ", CONSTRAINT " + csName + " UNIQUE (\"D6\"), CONSTRAINT U_T6_1 UNIQUE (\"A6\"), CONSTRAINT U_T6_2 UNIQUE (\"B6\",\"C6\")) ;", ddl);
+                ", CONSTRAINT " + csName + " UNIQUE (\"D6\"), CONSTRAINT U_T6_1 UNIQUE (\"A6\"), CONSTRAINT U_T6_2 UNIQUE (\"B6\",\"C6\")) ;";
+        checkEqualIgnoreConstraintOrder(expectedDDL, ddl);
     }
 
     @Test
@@ -266,7 +274,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
     {
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T7')");
         rs.next();
-        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T7\" (\n" +
+        checkEqualIgnoreConstraintOrder("CREATE TABLE \"SHOWCREATETABLEIT\".\"T7\" (\n" +
                 "\"A7\" INTEGER\n" +
                 ",\"B7\" INTEGER\n" +
                 ",\"C7\" CHAR(1)\n" +
@@ -502,7 +510,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
         ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T13')");
         rs.next();
         String ddl = rs.getString(1);
-        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T13\" (\n" +
+        checkEqualIgnoreConstraintOrder("CREATE TABLE \"SHOWCREATETABLEIT\".\"T13\" (\n" +
                 "\"a13\" INTEGER NOT NULL\n" +
                 ",\"b13\" INTEGER\n" +
                 ",\"c13\" INTEGER NOT NULL\n" +
@@ -537,7 +545,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
             rs = statement.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T13')");
             rs.next();
             ddl = rs.getString(1);
-            Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T13\" (\n" +
+            checkEqualIgnoreConstraintOrder("CREATE TABLE \"SHOWCREATETABLEIT\".\"T13\" (\n" +
                     "\"a13\" INTEGER NOT NULL\n" +
                     ",\"c13\" INTEGER NOT NULL\n" +
                     ",\"d13\" INTEGER DEFAULT -1\n" +
@@ -548,7 +556,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
             rs = statement.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T14')");
             rs.next();
             ddl = rs.getString(1);
-            Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T14\" (\n" +
+            checkEqualIgnoreConstraintOrder("CREATE TABLE \"SHOWCREATETABLEIT\".\"T14\" (\n" +
                     "\"A14\" INTEGER\n" +
                     ",\"C14\" INTEGER\n" +
                     ",\"D14\" INTEGER\n" +
@@ -560,7 +568,12 @@ public class ShowCreateTableIT extends SpliceUnitTest
             conn.rollback();
             conn.setAutoCommit(oldAutoCommit);
         }
+    }
 
+    private static void  checkEqualIgnoreConstraintOrder(String expected, String actual) {
+        String result = Stream.of(actual.split("CONSTRAINT ")).map(str -> str.substring(0, str.length() - 2)).sorted().collect(Collectors.joining(", "));
 
+        String expectedResult = Stream.of(expected.split("CONSTRAINT ")).map(str -> str.substring(0, str.length() - 2)).sorted().collect(Collectors.joining(", "));
+        Assert.assertEquals(expectedResult, result);
     }
 }
