@@ -50,7 +50,9 @@ public interface SessionProperties {
         SNAPSHOT_TIMESTAMP(5),
         DISABLE_TC_PUSHED_DOWN_INTO_VIEWS(6),
         OLAPPARALLELPARTITIONS(7),
-        OLAPSHUFFLEPARTITIONS(8);
+        OLAPSHUFFLEPARTITIONS(8),
+        SPARK_RESULT_STREAMING_BATCHES(9),
+        SPARK_RESULT_STREAMING_BATCH_SIZE(10);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
@@ -112,6 +114,8 @@ public interface SessionProperties {
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value in the range(0,1] or null");
                 break;
             case RECURSIVEQUERYITERATIONLIMIT:
+            case SPARK_RESULT_STREAMING_BATCHES:
+            case SPARK_RESULT_STREAMING_BATCH_SIZE:
             case OLAPPARALLELPARTITIONS:
             case OLAPSHUFFLEPARTITIONS:
                 int value;
