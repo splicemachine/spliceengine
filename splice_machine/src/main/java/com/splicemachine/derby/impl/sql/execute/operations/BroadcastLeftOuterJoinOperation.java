@@ -48,15 +48,15 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 			int resultSetNumber,
 			GeneratedMethod rightEmptyRowFun,
 			boolean wasRightOuterJoin,
-		    boolean oneRowRightSide,
-		    boolean notExistsRightSide,
+			boolean oneRowRightSide,
+			byte semiJoinType,
 			boolean rightFromSSQ,
-			    double optimizerEstimatedRowCount,
+			double optimizerEstimatedRowCount,
 			double optimizerEstimatedCost,
 			String userSuppliedOptimizerOverrides,
 			String sparkExpressionTreeAsString) throws StandardException {
                 super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
-                        activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ,
+                        activation, restriction, resultSetNumber, oneRowRightSide, semiJoinType, rightFromSSQ,
                         optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
                         sparkExpressionTreeAsString);
                 SpliceLogUtils.trace(LOG, "instantiate");
