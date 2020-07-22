@@ -44,6 +44,8 @@ import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
+import scala.collection.JavaConverters._
+
 @SerialVersionUID(20200513231L)
 private object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
@@ -721,6 +723,17 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val combinedText = sqlText + whereClause + ")"
     executeUpd(combinedText)
   }
+
+  /**
+   * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)
+   *
+   * @param dataFrame input data
+   * @param schemaTableName
+   * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   */
+  def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
+                      options: java.util.Map[String, String]): Unit =
+    bulkImportHFile(dataFrame, schemaTableName, options.asScala)
 
   /**
     * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)

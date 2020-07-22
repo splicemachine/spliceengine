@@ -80,6 +80,7 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        ColumnInfo[] columnInfos,
                                                        ConstantAction[] constantActions,
                                                        Properties properties,
+                                                       int createBehavior,
                                                        char lockGranularity,
                                                        boolean onCommitDeleteRows,
                                                        boolean onRollbackDeleteRows,
@@ -103,7 +104,7 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
         SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
             schemaName, tableName, Arrays.toString(columnInfos),Arrays.toString(constantActions));
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfos,
-            constantActions,properties,lockGranularity,
+            constantActions,properties,createBehavior,lockGranularity,
             onCommitDeleteRows,onRollbackDeleteRows,withDataQueryString, isExternal,
                 delimited,escaped,lines,storedAs,location, compression, mergeSchema,presplit,isLogicalKey,splitKeyPath,
                 columnDelimiter,characterDelimiter,timestampFormat,dateFormat,timeFormat);
