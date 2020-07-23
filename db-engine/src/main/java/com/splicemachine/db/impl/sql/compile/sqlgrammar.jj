@@ -2290,7 +2290,8 @@ public class SQLParser
      */
     private StatementNode verifySyntaxAndCreate(Object[] declareTableClauses,
                                                 TableName tableName,
-                                                TableElementList tableElementList) throws StandardException {
+                                                TableElementList tableElementList,
+                                                Integer createBehavior) throws StandardException {
         // NOT LOGGED is allways true
         // if ON COMMIT behavior not explicitly specified in DECLARE command, default to ON COMMIT PRESERVE ROWS
         if (declareTableClauses[1] == null) {
@@ -2310,6 +2311,7 @@ public class SQLParser
         return (StatementNode) nodeFactory.getNode(
                                 C_NodeTypes.CREATE_TABLE_NODE,
                                 tableName,
+                                createBehavior,
                                 tableElementList,
                                 (Properties)null,
                                 (Boolean) declareTableClauses[1],
@@ -4787,13 +4789,19 @@ declareTemporaryTableDeclaration() throws StandardException :
     TableName            tableName;
     TableElementList tableElementList;
     Object[] declareTableClauses = new Object[3];
+    Token ifTok = null;
+    Token ifTok2 = null;
 }
 {
-    <DECLARE> <GLOBAL> <TEMPORARY> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+    <DECLARE> <GLOBAL> <TEMPORARY> <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
         tableElementList = tableElementList()
         ( declareTableClause(declareTableClauses) ) *
     {
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList);
+        boolean ifNotExists = ifTok != null || ifTok2 != null;
+
+        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList,
+                                     (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
+                                                    new Integer(StatementType.CREATE_DEFAULT)));
     }
 }
 
@@ -4813,13 +4821,19 @@ createTemporaryTableDeclaration() throws StandardException :
     TableName            tableName;
     TableElementList tableElementList;
     Object[] declareTableClauses = new Object[3];
+    Token ifTok = null;
+    Token ifTok2 = null;
 }
 {
-    ( <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+    ( <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
         tableElementList = tableElementList()
         ( declareTableClause(declareTableClauses) ) *
     {
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList);
+        boolean ifNotExists = ifTok != null || ifTok2 != null;
+
+        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList,
+                                     (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
+                                                    new Integer(StatementType.CREATE_DEFAULT)));
     }
 }
 
@@ -12626,10 +12640,12 @@ tableDefinition() throws StandardException :
     ValueNode   timestampFormat = null;
     ValueNode   dateFormat = null;
     ValueNode   timeFormat = null;
+    Token ifTok = null;
+    Token ifTok2 = null;
 }
 {
     [ isExternal = isExternal() ]
-    <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+    <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
             // Lookahead needed to choose between
             // tableElementList and tableColumnList
     (        LOOKAHEAD({getToken(1).kind == LEFT_PAREN &&
@@ -12648,9 +12664,14 @@ tableDefinition() throws StandardException :
               {
                       validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
                                 linesTerminatedByChar, location,compression, partitionedResultColumns, tableElementList);
+
+                      boolean ifNotExists = ifTok != null || ifTok2 != null;
+
                           return (StatementNode) nodeFactory.getNode(
                                               C_NodeTypes.CREATE_TABLE_NODE,
                                               tableName,
+                                              (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
+                                                             new Integer(StatementType.CREATE_DEFAULT)),
                                               tableElementList,
                                               properties,
                                               new Character(lockGranularity),
@@ -12684,9 +12705,14 @@ tableDefinition() throws StandardException :
             {
             validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
                         linesTerminatedByChar, location,compression, partitionedResultColumns, tableElementList);
+
+            ifNotExists = ifTok != null || ifTok2 != null;
+
                 return (StatementNode) nodeFactory.getNode(
                                         C_NodeTypes.CREATE_TABLE_NODE,
                                         tableName,
+                                        (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
+                                                       new Integer(StatementType.CREATE_DEFAULT)),
                                         tableElementList,
                                         properties,
                                         new Character(lockGranularity),
@@ -12743,9 +12769,14 @@ tableDefinition() throws StandardException :
                 }
                 validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
                 linesTerminatedByChar, location, compression, partitionedResultColumns, tableElementList);
+
+                boolean ifNotExists = ifTok != null || ifTok2 != null;
+
                 StatementNode node = (StatementNode)nodeFactory.getNode(
                                         C_NodeTypes.CREATE_TABLE_NODE,
                                         tableName,
+                                        (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
+                                                       new Integer(StatementType.CREATE_DEFAULT)),
                                         resultColumns,
                                         queryExpression,
                                         isExternal,

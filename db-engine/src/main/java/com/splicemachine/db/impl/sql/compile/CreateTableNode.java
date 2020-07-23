@@ -31,12 +31,14 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.depend.ProviderList;
@@ -60,6 +62,7 @@ import java.util.Properties;
 
 public class CreateTableNode extends DDLStatementNode
 {
+	private int                 createBehavior;
 	private char				lockGranularity;
 	private boolean				onCommitDeleteRows; //If true, on commit delete rows else on commit preserve rows of temporary table.
 	private boolean				onRollbackDeleteRows; //If true, on rollback delete rows from temp table if it was logically modified in that UOW. true is the only supported value
@@ -102,6 +105,7 @@ public class CreateTableNode extends DDLStatementNode
 
 	public void init(
 			Object newObjectName,
+			Object createBehavior,
 			Object tableElementList,
 			Object properties,
 			Object lockGranularity,
@@ -115,6 +119,7 @@ public class CreateTableNode extends DDLStatementNode
 			Object compression,
 			Object mergeSchema) throws StandardException
 	{
+		this.createBehavior = ((Integer) createBehavior).intValue();
 		this.isExternal = (Boolean) isExternal;
 		if (this.isExternal)
 			tableType = TableDescriptor.EXTERNAL_TYPE;
@@ -147,6 +152,7 @@ public class CreateTableNode extends DDLStatementNode
 
 	public void init(
 			Object newObjectName,
+			Object createBehavior,
 			Object tableElementList,
 			Object properties,
 			Object lockGranularity,
@@ -161,6 +167,7 @@ public class CreateTableNode extends DDLStatementNode
 		)
 		throws StandardException
 	{
+		this.createBehavior = ((Integer) createBehavior).intValue();
 		this.isExternal = (Boolean) isExternal;
 		if (this.isExternal)
 			tableType = TableDescriptor.EXTERNAL_TYPE;
@@ -207,12 +214,14 @@ public class CreateTableNode extends DDLStatementNode
 
 	public void init(
 			Object newObjectName,
+			Object createBehavior,
 			Object tableElementList,
 			Object properties,
 			Object onCommitDeleteRows,
 			Object onRollbackDeleteRows)
 		throws StandardException
 	{
+		this.createBehavior = ((Integer) createBehavior).intValue();
 		tableType = TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE;
 		lockGranularity = TableDescriptor.DEFAULT_LOCK_GRANULARITY;
 		implicitCreateSchema = true;
@@ -244,6 +253,7 @@ public class CreateTableNode extends DDLStatementNode
 	 */
 	public void init(
 			Object newObjectName,
+			Object createBehavior,
 			Object resultColumns,
 			Object queryExpression,
 			Object isExternal,
@@ -255,6 +265,7 @@ public class CreateTableNode extends DDLStatementNode
 			Object location)
 		throws StandardException
 	{
+		this.createBehavior = ((Integer) createBehavior).intValue();
 		tableType = TableDescriptor.BASE_TABLE_TYPE;
 		lockGranularity = TableDescriptor.DEFAULT_LOCK_GRANULARITY;
 		implicitCreateSchema = true;
@@ -348,6 +359,15 @@ public class CreateTableNode extends DDLStatementNode
         SchemaDescriptor sd = getSchemaDescriptor
             ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE, true);
 
+        TableDescriptor td = getTableDescriptor( objectName.tableName, sd );
+        if (td != null && createBehavior == StatementType.CREATE_IF_NOT_EXISTS)
+        {
+        	StandardException e = StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
+					"table", objectName.tableName, "schema", sd.getSchemaName());
+        	e.setSeverity(ExceptionSeverity.WARNING_SEVERITY);
+        	throw e;
+        }
+
 		if (queryExpression != null)
 		{
 			FromList fromList = (FromList) getNodeFactory().getNode(
@@ -409,7 +429,7 @@ public class CreateTableNode extends DDLStatementNode
 			
 			for (int index = 0; index < qeRCL.size(); index++)
 			{
-				ResultColumn rc = (ResultColumn) qeRCL.elementAt(index);
+				ResultColumn rc = qeRCL.elementAt(index);
 				if (rc.isGenerated()) 
 				{
 					continue;
@@ -429,6 +449,13 @@ public class CreateTableNode extends DDLStatementNode
 							dtd.getFullSQLTypeName(),
 							rc.getName());
 				}
+				else if (dtd == null)
+				{
+					throw StandardException.newException(
+							SQLState.LANG_INVALID_COLUMN_TYPE_CREATE_TABLE,
+							"<UNKNOWN>",
+							rc.getName());
+				}
 				//DERBY-2879  CREATE TABLE AS <subquery> does not maintain the 
 				//collation for character types. 
 				//eg for a territory based collation database
@@ -441,7 +468,7 @@ public class CreateTableNode extends DDLStatementNode
 				//has collation of territory based. This is not supported and
 				//hence we will throw an exception below for the query above in
 				//a territory based database. 
-				if (dtd.getTypeId().isStringTypeId() && 
+				if (dtd.getTypeId().isStringTypeId() &&
 						dtd.getCollationType() != schemaCollationType)
 				{
 					throw StandardException.newException(
@@ -651,6 +678,7 @@ public class CreateTableNode extends DDLStatementNode
                     colInfos,
                     conActions,
                     properties,
+                    createBehavior,
                     lockGranularity,
                     onCommitDeleteRows,
                     onRollbackDeleteRows,
@@ -688,5 +716,16 @@ public class CreateTableNode extends DDLStatementNode
 			tableElementList.accept(v, this);
 		}
 	}
-    
+
+	@Override
+	public void optimizeStatement() throws StandardException {
+    	for(int i=tableElementList.size()-1; i>=0; --i) {
+    		Object element = tableElementList.elementAt(i);
+			if(element instanceof ConstraintDefinitionNode) {
+				if(((ConstraintDefinitionNode)element).canBeIgnored()) {
+					tableElementList.removeElementAt(i);
+				}
+			}
+		}
+	}
 }

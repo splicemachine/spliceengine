@@ -87,7 +87,6 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1964), new UpgradeScriptForAliasToTableView(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1965), new UpgradeScriptToInvalidateStoredStatement(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1966), new UpgradeScriptToInvalidateStoredStatement(sdd,tc));
-
     }
     public void run() throws StandardException{
 

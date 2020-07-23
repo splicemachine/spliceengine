@@ -189,6 +189,7 @@ public class TableScanOperation extends ScanOperation{
         this.tableNameBytes=Bytes.toBytes(this.tableName);
         this.indexColItem=indexColItem;
         this.indexName=indexName;
+        this.pastTx = pastTx;
         init();
         if(pastTxFunctor != null) {
             this.pastTx = mapToTxId((DataValueDescriptor)pastTxFunctor.invoke(activation));

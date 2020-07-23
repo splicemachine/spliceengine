@@ -1182,29 +1182,29 @@ public interface ResultSetFactory {
 		to be used when there are no join predicates to be passed down
 		to the join to limit its scope on the right ResultSet.
 
-		@param leftResultSet	Outer ResultSet for join.
-		@param leftNumCols		Number of columns in the leftResultSet
-		@param rightResultSet	Inner ResultSet for join.
-		@param rightNumCols		Number of columns in the rightResultSet
-		@param joinClause a reference to a method in the activation
-			that is applied to the activation's "current row" field
-			to determine whether the joinClause is satisfied or not.
-			The signature of this method is
-			<verbatim>
-				Boolean joinClause() throws StandardException;
-			</verbatim>
-		@param resultSetNumber	The resultSetNumber for the ResultSet
-		@param oneRowRightSide	boolean, whether or not the right side returns
-								a single row.  (No need to do 2nd next() if it does.)
-		@param notExistsRightSide	boolean, whether or not the right side resides a
-									NOT EXISTS base table
-		@param optimizerEstimatedRowCount	Estimated total # of rows by
-											optimizer
-		@param optimizerEstimatedCost		Estimated total cost by optimizer
-		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
-		@return the nested loop join operation as a result set.
+	 @return the nested loop join operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
+		 * @param leftResultSet    Outer ResultSet for join.
+	 * @param leftNumCols        Number of columns in the leftResultSet
+	 * @param rightResultSet    Inner ResultSet for join.
+	 * @param rightNumCols        Number of columns in the rightResultSet
+	 * @param joinClause a reference to a method in the activation
+    that is applied to the activation's "current row" field
+    to determine whether the joinClause is satisfied or not.
+    The signature of this method is
+    <verbatim>
+        Boolean joinClause() throws StandardException;
+    </verbatim>
+	 * @param resultSetNumber    The resultSetNumber for the ResultSet
+	 * @param oneRowRightSide    boolean, whether or not the right side returns
+                        a single row.  (No need to do 2nd next() if it does.)
+	 * @param semiJoinType    boolean, whether or not the right side resides a
+                            NOT EXISTS base table
+	 * @param optimizerEstimatedRowCount    Estimated total # of rows by
+                                    optimizer
+	 * @param optimizerEstimatedCost        Estimated total cost by optimizer
+	 * @param userSuppliedOptimizerOverrides        Overrides specified by the user on the sql
 	 */
 	NoPutResultSet getNestedLoopJoinResultSet(NoPutResultSet leftResultSet,
 											  int leftNumCols,
@@ -1213,7 +1213,7 @@ public interface ResultSetFactory {
 											  GeneratedMethod joinClause,
 											  int resultSetNumber,
 											  boolean oneRowRightSide,
-											  boolean notExistsRightSide,
+											  byte semiJoinType,
 											  boolean rightFromSSQ,
 											  double optimizerEstimatedRowCount,
 											  double optimizerEstimatedCost,
@@ -1223,21 +1223,21 @@ public interface ResultSetFactory {
 			throws StandardException;
 
 	NoPutResultSet getCrossJoinResultSet(NoPutResultSet leftResultSet,
-											  int leftNumCols,
-											  NoPutResultSet rightResultSet,
-											  int rightNumCols,
-                                              int leftHashKeyItem,
-                                              int rightHashKeyItem,
-											  GeneratedMethod joinClause,
-											  int resultSetNumber,
-											  boolean oneRowRightSide,
-											  boolean notExistsRightSide,
-											  boolean rightFromSSQ,
-											  double optimizerEstimatedRowCount,
-											  double optimizerEstimatedCost,
-											  String userSuppliedOptimizerOverrides,
-											  String explainPlan,
-											  String sparkExpressionTreeAsString)
+										 int leftNumCols,
+										 NoPutResultSet rightResultSet,
+										 int rightNumCols,
+										 int leftHashKeyItem,
+										 int rightHashKeyItem,
+										 GeneratedMethod joinClause,
+										 int resultSetNumber,
+										 boolean oneRowRightSide,
+										 byte semiJoinType,
+										 boolean rightFromSSQ,
+										 double optimizerEstimatedRowCount,
+										 double optimizerEstimatedCost,
+										 String userSuppliedOptimizerOverrides,
+										 String explainPlan,
+										 String sparkExpressionTreeAsString)
 			throws StandardException;
 
 	NoPutResultSet getMergeSortJoinResultSet(NoPutResultSet leftResultSet,
@@ -1249,7 +1249,7 @@ public interface ResultSetFactory {
 											 GeneratedMethod joinClause,
 											 int resultSetNumber,
 											 boolean oneRowRightSide,
-											 boolean notExistsRightSide,
+											 byte semiJoinType,
 											 boolean rightFromSSQ,
 											 double optimizerEstimatedRowCount,
 											 double optimizerEstimatedCost,
@@ -1267,7 +1267,7 @@ public interface ResultSetFactory {
 												 GeneratedMethod joinClause,
 												 int resultSetNumber,
 												 boolean oneRowRightSide,
-												 boolean notExistsRightSide,
+												 byte semiJoinType,
 												 boolean rightFromSSQ,
 												 double optimizerEstimatedRowCount,
 												 double optimizerEstimatedCost,
@@ -1287,7 +1287,7 @@ public interface ResultSetFactory {
 										 GeneratedMethod joinClause,
 										 int resultSetNumber,
 										 boolean oneRowRightSide,
-										 boolean notExistsRightSide,
+										 byte semiJoinType,
 										 boolean rightFromSSQ,
 										 double optimizerEstimatedRowCount,
 										 double optimizerEstimatedCost,
@@ -1305,13 +1305,13 @@ public interface ResultSetFactory {
 											 GeneratedMethod joinClause,
 											 int resultSetNumber,
 											 boolean oneRowRightSide,
-											 boolean notExistsRightSide,
+											 byte semiJoinType,
 											 boolean rightFromSSQ,
 											 double optimizerEstimatedRowCount,
 											 double optimizerEstimatedCost,
 											 String userSuppliedOptimizerOverrides,
 											 String explainPlan,
-					                                                 String sparkExpressionTreeAsString)
+											 String sparkExpressionTreeAsString)
 			           throws StandardException;
 
 	/**
@@ -1324,32 +1324,32 @@ public interface ResultSetFactory {
 		to be used when there are no join predicates to be passed down
 		to the join to limit its scope on the right ResultSet.
 
-		@param leftResultSet	Outer ResultSet for join.
-		@param leftNumCols		Number of columns in the leftResultSet
-		@param rightResultSet	Inner ResultSet for join.
-		@param rightNumCols		Number of columns in the rightResultSet
-		@param joinClause a reference to a method in the activation
-			that is applied to the activation's "current row" field
-			to determine whether the joinClause is satisfied or not.
-			The signature of this method is
-			<verbatim>
-				Boolean joinClause() throws StandardException;
-			</verbatim>
-		@param resultSetNumber	The resultSetNumber for the ResultSet
-		@param emptyRowFun a reference to a method in the activation
-							that is called if the right child returns no rows
-		@param wasRightOuterJoin	Whether or not this was originally a right outer join
-		@param oneRowRightSide	boolean, whether or not the right side returns
-								a single row.  (No need to do 2nd next() if it does.)
-		@param notExistsRightSide	boolean, whether or not the right side resides a
-									NOT EXISTS base table
-		@param optimizerEstimatedRowCount	Estimated total # of rows by
-											optimizer
-		@param optimizerEstimatedCost		Estimated total cost by optimizer
-		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
-		@return the nested loop join operation as a result set.
+	 @return the nested loop join operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
+		 * @param leftResultSet    Outer ResultSet for join.
+	 * @param leftNumCols        Number of columns in the leftResultSet
+	 * @param rightResultSet    Inner ResultSet for join.
+	 * @param rightNumCols        Number of columns in the rightResultSet
+	 * @param joinClause a reference to a method in the activation
+    that is applied to the activation's "current row" field
+    to determine whether the joinClause is satisfied or not.
+    The signature of this method is
+    <verbatim>
+        Boolean joinClause() throws StandardException;
+    </verbatim>
+	 * @param resultSetNumber    The resultSetNumber for the ResultSet
+	 * @param emptyRowFun a reference to a method in the activation
+                    that is called if the right child returns no rows
+	 * @param wasRightOuterJoin    Whether or not this was originally a right outer join
+	 * @param oneRowRightSide    boolean, whether or not the right side returns
+                        a single row.  (No need to do 2nd next() if it does.)
+	 * @param semiJoinType    boolean, whether or not the right side resides a
+                            NOT EXISTS base table
+	 * @param optimizerEstimatedRowCount    Estimated total # of rows by
+                                    optimizer
+	 * @param optimizerEstimatedCost        Estimated total cost by optimizer
+	 * @param userSuppliedOptimizerOverrides        Overrides specified by the user on the sql
 	 */
 	NoPutResultSet getNestedLoopLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
 													   int leftNumCols,
@@ -1360,7 +1360,7 @@ public interface ResultSetFactory {
 													   GeneratedMethod emptyRowFun,
 													   boolean wasRightOuterJoin,
 													   boolean oneRowRightSide,
-													   boolean notExistsRightSide,
+													   byte semiJoinType,
 													   boolean rightFromSSQ,
 													   double optimizerEstimatedRowCount,
 													   double optimizerEstimatedCost,
@@ -1372,32 +1372,32 @@ public interface ResultSetFactory {
 	/**
 		A left outer join using a hash join.
 
-		@param leftResultSet	Outer ResultSet for join.
-		@param leftNumCols		Number of columns in the leftResultSet
-		@param rightResultSet	Inner ResultSet for join.
-		@param rightNumCols		Number of columns in the rightResultSet
-		@param joinClause a reference to a method in the activation
-			that is applied to the activation's "current row" field
-			to determine whether the joinClause is satisfied or not.
-			The signature of this method is
-			<verbatim>
-				Boolean joinClause() throws StandardException;
-			</verbatim>
-		@param resultSetNumber	The resultSetNumber for the ResultSet
-		@param emptyRowFun a reference to a method in the activation
-							that is called if the right child returns no rows
-		@param wasRightOuterJoin	Whether or not this was originally a right outer join
-		@param oneRowRightSide	boolean, whether or not the right side returns
-								a single row.  (No need to do 2nd next() if it does.)
-		@param notExistsRightSide	boolean, whether or not the right side resides a
-									NOT EXISTS base table
-		@param optimizerEstimatedRowCount	Estimated total # of rows by
-											optimizer
-		@param optimizerEstimatedCost		Estimated total cost by optimizer
-		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
-		@return the nested loop join operation as a result set.
+	 @return the hash join operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
+		 * @param leftResultSet    Outer ResultSet for join.
+	 * @param leftNumCols        Number of columns in the leftResultSet
+	 * @param rightResultSet    Inner ResultSet for join.
+	 * @param rightNumCols        Number of columns in the rightResultSet
+	 * @param joinClause a reference to a method in the activation
+    that is applied to the activation's "current row" field
+    to determine whether the joinClause is satisfied or not.
+    The signature of this method is
+    <verbatim>
+        Boolean joinClause() throws StandardException;
+    </verbatim>
+	 * @param resultSetNumber    The resultSetNumber for the ResultSet
+	 * @param emptyRowFun a reference to a method in the activation
+                    that is called if the right child returns no rows
+	 * @param wasRightOuterJoin    Whether or not this was originally a right outer join
+	 * @param oneRowRightSide    boolean, whether or not the right side returns
+                        a single row.  (No need to do 2nd next() if it does.)
+	 * @param semiJoinType    boolean, whether or not the right side resides a
+                            NOT EXISTS base table
+	 * @param optimizerEstimatedRowCount    Estimated total # of rows by
+                                    optimizer
+	 * @param optimizerEstimatedCost        Estimated total cost by optimizer
+	 * @param userSuppliedOptimizerOverrides        Overrides specified by the user on the sql
 	 */
 	NoPutResultSet getHashLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
 												 int leftNumCols,
@@ -1410,7 +1410,7 @@ public interface ResultSetFactory {
 												 GeneratedMethod emptyRowFun,
 												 boolean wasRightOuterJoin,
 												 boolean oneRowRightSide,
-												 boolean notExistsRightSide,
+												 byte semiJoinType,
 												 boolean rightFromSSQ,
 												 double optimizerEstimatedRowCount,
 												 double optimizerEstimatedCost,
@@ -1465,36 +1465,35 @@ public interface ResultSetFactory {
 											double optimizerEstimatedCost,
 											String explainPlan) 
 		throws StandardException;
-	/**
-	 A left outer join using a sort merge join.
 
-	@param leftResultSet	Outer ResultSet for join.
-	@param leftNumCols		Number of columns in the leftResultSet
-	@param rightResultSet	Inner ResultSet for join.
-	@param rightNumCols		Number of columns in the rightResultSet
-	@param joinClause a reference to a method in the activation
-		that is applied to the activation's "current row" field
-		to determine whether the joinClause is staisfied or not.
-		The signature of this method is
-		<verbatim>
-			Boolean joinClause() throws StandardException;
-		</verbatim>
-	@param resultSetNumber	The resultSetNumber for the ResultSet
-	@param emptyRowFun a reference to a method in the activation
-		that is called if the right child returns no rows
-	@param wasRightOuterJoin	Whether or not this was originally a right outer join
-	@param oneRowRightSide	boolean, whether or not the right side returns
-		a single row. (No need to do 2nd next() if it does.)
-	@param noExistsRightSide	boolean, whether or not the right side resides a
-		NOT EXISTS base table
-	@param optimizerEstimatedRowCount	Estimated total # of rows by
-		optimizer
-	@param optimizerEstimatedCost	Estimated total cost by optimizer
-	@param userSuppliedOptimizerOverrides	Overrides specified by the user on the sql
-	@return the nested loop join operation as a result set.
-	@exception StandardException thrown when unable to create the 
-		result set
-	*/
+	/**
+	 * A left outer join using a sort merge join.
+	 *
+	 * @param resultSetNumber                The resultSetNumber for the ResultSet
+	 * @param leftResultSet                  Outer ResultSet for join.
+	 * @param leftNumCols                    Number of columns in the leftResultSet
+	 * @param rightResultSet                 Inner ResultSet for join.
+	 * @param rightNumCols                   Number of columns in the rightResultSet
+	 * @param joinClause                     a reference to a method in the activation
+	 *                                       that is applied to the activation's "current row" field
+	 *                                       to determine whether the joinClause is staisfied or not.
+	 *                                       The signature of this method is
+	 *                                       <verbatim>
+	 *                                       Boolean joinClause() throws StandardException;
+	 *                                       </verbatim>
+	 * @param emptyRowFun                    a reference to a method in the activation
+	 *                                       that is called if the right child returns no rows
+	 * @param wasRightOuterJoin              Whether or not this was originally a right outer join
+	 * @param oneRowRightSide                boolean, whether or not the right side returns
+	 *                                       a single row. (No need to do 2nd next() if it does.)
+	 * @param semiJoinType
+	 * @param optimizerEstimatedRowCount     Estimated total # of rows by
+	 *                                       optimizer
+	 * @param optimizerEstimatedCost         Estimated total cost by optimizer
+	 * @param userSuppliedOptimizerOverrides Overrides specified by the user on the sql
+	 * @return the sortmerge join operation as a result set.
+	 * @throws StandardException thrown when unable to create the result set
+	 */
 	NoPutResultSet getMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
 													  int leftNumCols,
 													  NoPutResultSet rightResultSet,
@@ -1506,7 +1505,7 @@ public interface ResultSetFactory {
 													  GeneratedMethod emptyRowFun,
 													  boolean wasRightOuterJoin,
 													  boolean oneRowRightSide,
-													  boolean noExistsRightSide,
+													  byte semiJoinType,
 													  boolean rightFromSSQ,
 													  double optimizerEstimatedRowCount,
 													  double optimizerEstimatedCost,
@@ -1526,7 +1525,7 @@ public interface ResultSetFactory {
 														  GeneratedMethod emptyRowFun,
 														  boolean wasRightOuterJoin,
 														  boolean oneRowRightSide,
-														  boolean noExistsRightSide,
+														  byte semiJoinType,
 														  boolean rightFromSSQ,
 														  double optimizerEstimatedRowCount,
 														  double optimizerEstimatedCost,
@@ -1548,7 +1547,7 @@ public interface ResultSetFactory {
 												  GeneratedMethod emptyRowFun,
 												  boolean wasRightOuterJoin,
 												  boolean oneRowRightSide,
-												  boolean noExistsRightSide,
+												  byte semiJoinType,
 												  boolean rightFromSSQ,
 												  double optimizerEstimatedRowCount,
 												  double optimizerEstimatedCost,
@@ -1568,7 +1567,7 @@ public interface ResultSetFactory {
 													  GeneratedMethod emptyRowFun,
 													  boolean wasRightOuterJoin,
 													  boolean oneRowRightSide,
-													  boolean noExistsRightSide,
+													  byte semiJoinType,
 													  boolean rightFromSSQ,
 													  double optimizerEstimatedRowCount,
 													  double optimizerEstimatedCost,
@@ -1589,7 +1588,7 @@ public interface ResultSetFactory {
 											  GeneratedMethod joinClause,
 											  int resultSetNumber,
 											  boolean oneRowRightSide,
-											  boolean notExistsRightSide,
+											  byte semiJoinType,
 											  boolean rightFromSSQ,
 											  double optimizerEstimatedRowCount,
 											  double optimizerEstimatedCost,
@@ -1598,20 +1597,20 @@ public interface ResultSetFactory {
 			throws StandardException;
 
 	NoPutResultSet getCrossJoinResultSet(NoPutResultSet leftResultSet,
-											  int leftNumCols,
-											  NoPutResultSet rightResultSet,
-											  int rightNumCols,
-                                              int leftHashKeyItem,
-                                              int rightHashKeyItem,
-											  GeneratedMethod joinClause,
-											  int resultSetNumber,
-											  boolean oneRowRightSide,
-											  boolean notExistsRightSide,
-											  boolean rightFromSSQ,
-											  double optimizerEstimatedRowCount,
-											  double optimizerEstimatedCost,
-											  String userSuppliedOptimizerOverrides,
-											  String explainPlan)
+										 int leftNumCols,
+										 NoPutResultSet rightResultSet,
+										 int rightNumCols,
+										 int leftHashKeyItem,
+										 int rightHashKeyItem,
+										 GeneratedMethod joinClause,
+										 int resultSetNumber,
+										 boolean oneRowRightSide,
+										 byte semiJoinType,
+										 boolean rightFromSSQ,
+										 double optimizerEstimatedRowCount,
+										 double optimizerEstimatedCost,
+										 String userSuppliedOptimizerOverrides,
+										 String explainPlan)
 			throws StandardException;
 
 	NoPutResultSet getMergeSortJoinResultSet(NoPutResultSet leftResultSet,
@@ -1623,7 +1622,7 @@ public interface ResultSetFactory {
 											 GeneratedMethod joinClause,
 											 int resultSetNumber,
 											 boolean oneRowRightSide,
-											 boolean notExistsRightSide,
+											 byte semiJoinType,
 											 boolean rightFromSSQ,
 											 double optimizerEstimatedRowCount,
 											 double optimizerEstimatedCost,
@@ -1643,7 +1642,7 @@ public interface ResultSetFactory {
 										 GeneratedMethod joinClause,
 										 int resultSetNumber,
 										 boolean oneRowRightSide,
-										 boolean notExistsRightSide,
+										 byte semiJoinType,
 										 boolean rightFromSSQ,
 										 double optimizerEstimatedRowCount,
 										 double optimizerEstimatedCost,
@@ -1660,7 +1659,7 @@ public interface ResultSetFactory {
 											 GeneratedMethod joinClause,
 											 int resultSetNumber,
 											 boolean oneRowRightSide,
-											 boolean notExistsRightSide,
+											 byte semiJoinType,
 											 boolean rightFromSSQ,
 											 double optimizerEstimatedRowCount,
 											 double optimizerEstimatedCost,
@@ -1678,7 +1677,7 @@ public interface ResultSetFactory {
 													   GeneratedMethod emptyRowFun,
 													   boolean wasRightOuterJoin,
 													   boolean oneRowRightSide,
-													   boolean notExistsRightSide,
+													   byte semiJoinType,
 													   boolean rightFromSSQ,
 													   double optimizerEstimatedRowCount,
 													   double optimizerEstimatedCost,
@@ -1697,7 +1696,7 @@ public interface ResultSetFactory {
 													  GeneratedMethod emptyRowFun,
 													  boolean wasRightOuterJoin,
 													  boolean oneRowRightSide,
-													  boolean noExistsRightSide,
+													  byte semiJoinType,
 													  boolean rightFromSSQ,
 													  double optimizerEstimatedRowCount,
 													  double optimizerEstimatedCost,
@@ -1718,7 +1717,7 @@ public interface ResultSetFactory {
 												  GeneratedMethod emptyRowFun,
 												  boolean wasRightOuterJoin,
 												  boolean oneRowRightSide,
-												  boolean noExistsRightSide,
+												  byte semiJoinType,
 												  boolean rightFromSSQ,
 												  double optimizerEstimatedRowCount,
 												  double optimizerEstimatedCost,
@@ -1737,7 +1736,7 @@ public interface ResultSetFactory {
 													  GeneratedMethod emptyRowFun,
 													  boolean wasRightOuterJoin,
 													  boolean oneRowRightSide,
-													  boolean noExistsRightSide,
+													  byte semiJoinType,
 													  boolean rightFromSSQ,
 													  double optimizerEstimatedRowCount,
 													  double optimizerEstimatedCost,
@@ -1752,7 +1751,7 @@ public interface ResultSetFactory {
 			GeneratedMethod joinClause, int resultSetNumber,
 			GeneratedMethod leftEmptyRowFun, GeneratedMethod rightEmptyRowFun,
 			boolean wasRightOuterJoin,
-			boolean oneRowRightSide, boolean notExistsRightSide,
+			boolean oneRowRightSide, byte semiJoinType,
 			boolean rightFromSSQ,
 			double optimizerEstimatedRowCount, double optimizerEstimatedCost,
 			String userSuppliedOptimizerOverrides,
@@ -1765,7 +1764,7 @@ public interface ResultSetFactory {
 			GeneratedMethod joinClause, int resultSetNumber,
 			GeneratedMethod leftEmptyRowFun, GeneratedMethod rightEmptyRowFun,
 			boolean wasRightOuterJoin,
-			boolean oneRowRightSide, boolean notExistsRightSide,
+			boolean oneRowRightSide, byte semiJoinType,
 			boolean rightFromSSQ,
 			double optimizerEstimatedRowCount, double optimizerEstimatedCost,
 			String userSuppliedOptimizerOverrides,
@@ -1784,7 +1783,7 @@ public interface ResultSetFactory {
 													  GeneratedMethod rightEmptyRowFun,
 													  boolean wasRightOuterJoin,
 													  boolean oneRowRightSide,
-													  boolean noExistsRightSide,
+													  byte semiJoinType,
 													  boolean rightFromSSQ,
 													  double optimizerEstimatedRowCount,
 													  double optimizerEstimatedCost,
@@ -1805,7 +1804,7 @@ public interface ResultSetFactory {
 													  GeneratedMethod rightEmptyRowFun,
 													  boolean wasRightOuterJoin,
 													  boolean oneRowRightSide,
-													  boolean noExistsRightSide,
+													  byte semiJoinType,
 													  boolean rightFromSSQ,
 													  double optimizerEstimatedRowCount,
 													  double optimizerEstimatedCost,

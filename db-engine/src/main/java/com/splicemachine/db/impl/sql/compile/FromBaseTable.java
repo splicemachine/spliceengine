@@ -3444,7 +3444,7 @@ public class FromBaseTable extends FromTable {
     private String getClassName(String niceIndexName) throws StandardException {
         String cName = "";
         if(niceIndexName!=null){
-            cName = "IndexScan["+niceIndexName;
+            cName = "IndexScan["+niceIndexName+"]";
         }else{
             cName = "TableScan["+getPrettyTableName()+"]";
         }
