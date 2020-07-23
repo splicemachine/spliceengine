@@ -150,7 +150,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         // insert row into catalog and all its indices
-        ti.insertRow(row,tc);
+        int insertRetCode = ti.insertRow(row,tc);
+        if(insertRetCode != TabInfoImpl.ROWNOTDUPLICATE) {
+            throw duplicateDescriptorException(descriptor, null);
+        }
     }
 
     public void createTokenTable(TransactionController tc) throws StandardException {
