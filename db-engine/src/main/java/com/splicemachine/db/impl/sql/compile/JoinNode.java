@@ -1937,6 +1937,12 @@ public class JoinNode extends TableOperatorNode{
                 numArgs++;
             }
 
+            if (isBroadcastJoin()) {
+                boolean noCacheBroadcastJoinRight = ((Optimizable)rightResultSet).hasJoinPredicatePushedDownFromOuter();
+                mb.push(noCacheBroadcastJoinRight);
+                numArgs++;
+            }
+
         }
         // Get our final cost estimate based on child estimates.
         costEstimate=getFinalCostEstimate(false);
@@ -2067,6 +2073,15 @@ public class JoinNode extends TableOperatorNode{
         if (rightResultSet instanceof Optimizable) {
             Optimizable nodeOpt=(Optimizable)rightResultSet;
             result=nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy().getJoinStrategyType() == JoinStrategy.JoinStrategyType.MERGE;
+        }
+        return result;
+    }
+
+    public boolean isBroadcastJoin() {
+        boolean result = false;
+        if (rightResultSet instanceof Optimizable) {
+            Optimizable nodeOpt=(Optimizable)rightResultSet;
+            result=nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy().getJoinStrategyType() == JoinStrategy.JoinStrategyType.BROADCAST;
         }
         return result;
     }
