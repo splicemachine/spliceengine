@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.spark_project.guava.collect.Lists;
 
 import java.sql.Types;
@@ -142,6 +143,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
      * @exception   StandardException thrown on failure
      */
 
+    @SuppressFBWarnings(value = "BC_UNCONFIRMED_CAST",justification = "Intentional")
     public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException{
         ExecRow    				row;
 
@@ -249,7 +251,6 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         //user asked for restart with a new value, so don't change increment by and original start
             //with values in the SYSCOLUMNS table. Just record the RESTART WITH value as the
             //next value to be generated in the SYSCOLUMNS table
-            ColumnDescriptor  column = (ColumnDescriptor)td;
             row.setColumn(SYSCOLUMNS_AUTOINCREMENTVALUE, new SQLLongint(autoincStart));
             row.setColumn(SYSCOLUMNS_AUTOINCREMENTSTART, new SQLLongint(autoincStart));
             row.setColumn(SYSCOLUMNS_AUTOINCREMENTINC, new SQLLongint(autoincInc));
@@ -302,8 +303,6 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         UUID				uuid;
         UUIDFactory			uuidFactory = getUUIDFactory();
         long autoincStart, autoincInc, autoincValue;
-
-        DataDescriptorGenerator	ddg = dd.getDataDescriptorGenerator();
 
 
 		    /*
