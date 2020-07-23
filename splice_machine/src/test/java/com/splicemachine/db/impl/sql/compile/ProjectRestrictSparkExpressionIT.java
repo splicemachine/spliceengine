@@ -944,4 +944,16 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
                 testQuery(format(query[i], useSpark), expected[i], methodWatcher);
         }
     }
+
+    // DB-9333
+    @Test
+    public void testDivision() throws Exception {
+        String expected =
+                "1 |\n" +
+                "----\n" +
+                " 1 |";
+
+        String query = "select sum(b)/sum(a) from t3_case --splice-properties useSpark=%s";
+        testQuery(format(query, useSpark), expected, methodWatcher);
+    }
 }
