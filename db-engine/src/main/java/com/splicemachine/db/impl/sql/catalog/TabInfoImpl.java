@@ -64,7 +64,7 @@ public class TabInfoImpl
      * this value, then it refers to the row
      * that is a duplicate.
      */
-    static  final   int     ROWNOTDUPLICATE = -1;
+    public static final   int     ROWNOTDUPLICATE = -1;
 
     private IndexInfoImpl[]				indexes;
     private long						heapConglomerate;
