@@ -1939,4 +1939,11 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         return childResult.isOneRowResultSet();
     }
 
+    @Override
+    public boolean hasJoinPredicatePushedDownFromOuter() {
+        if (!hasTrulyTheBestAccessPath)
+            return ((FromTable)childResult).hasJoinPredicatePushedDownFromOuter();
+
+        return hasJoinPredicatePushedDownFromOuter;
+    }
 }
