@@ -1183,14 +1183,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void addColumnStatistics(ExecRow row,
                               TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSCOLUMNSTATS_CATALOG_NUM);
-        ti.insertRow(row,tc);
+        int insertRetCode = ti.insertRow(row,tc);
+        if (insertRetCode != TabInfoImpl.ROWNOTDUPLICATE)
+            throw StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,
+                    "SYSCOLUMNSTATISTICS_INDEX1", SYSCOLUMNSTATISTICSRowFactory.TABLENAME_STRING);
     }
 
     @Override
     public void addTableStatistics(ExecRow row,
                                     TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSTABLESTATS_CATALOG_NUM);
-        ti.insertRow(row,tc);
+        int insertRetCode = ti.insertRow(row,tc);
+        if (insertRetCode != TabInfoImpl.ROWNOTDUPLICATE)
+            throw StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,
+                    "SYSTABLESTATS_INDEX1", SYSTABLESTATISTICSRowFactory.TABLENAME_STRING);
     }
 
 
@@ -1217,7 +1223,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
     }
 
-    private StandardException duplicateDescriptorException(TupleDescriptor tuple,TupleDescriptor parent){
+    protected StandardException duplicateDescriptorException(TupleDescriptor tuple,TupleDescriptor parent){
         if(parent!=null)
             return StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
                     tuple.getDescriptorType(),
@@ -3222,6 +3228,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
             // insert row into catalog and all its indices
             insertRetCode=ti.insertRow(row,tc);
+
         }
 
         // Throw an exception duplicate table descriptor
@@ -7790,6 +7797,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TabInfoImpl    ti = getNonCoreTI(SYSDUMMY1_CATALOG_NUM);
         ExecRow row = ti.getCatalogRowFactory().makeRow(null, null);
 
+        // ignore return value because sysdummy1 does not have indexes
         ti.insertRow(row, tc);
     }
 
@@ -10609,7 +10617,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void addBackup(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
         TabInfoImpl ti=getNonCoreTI(SYSBACKUP_CATALOG_NUM);
         ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
-        ti.insertRow(row,tc);
+        int insertRetCode = ti.insertRow(row,tc);
+        if(insertRetCode!=TabInfoImpl.ROWNOTDUPLICATE) {
+            throw duplicateDescriptorException(descriptor, null);
+        }
     }
 
     @Override
@@ -10710,7 +10721,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             rows[i] = ti.getCatalogRowFactory().makeRow(descriptor[i], null);
         }
 
-        ti.insertRowList(rows,tc);
+        int insertRetCode = ti.insertRowList(rows,tc);
+        if (insertRetCode != TabInfoImpl.ROWNOTDUPLICATE)
+            throw StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,
+                    "SYSBACKUPITEMS_INDEX2", SYSBACKUPITEMSRowFactory.TABLENAME_STRING);
+
     }
 
     @Override
@@ -10726,7 +10741,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     {
         TabInfoImpl ti=getNonCoreTI(SYSSNAPSHOT_NUM);
         ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
-        ti.insertRow(row,tc);
+        int insertRetCode = ti.insertRow(row,tc);
+        if(insertRetCode!=TabInfoImpl.ROWNOTDUPLICATE) {
+            throw duplicateDescriptorException(descriptor, null);
+        }
     }
 
     @Override
@@ -10803,7 +10821,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void addToken(TokenDescriptor descriptor, TransactionController tc) throws StandardException {
         TabInfoImpl ti=getNonCoreTI(SYSTOKENS_NUM);
         ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
-        ti.insertRow(row,tc);
+        int insertRetCode = ti.insertRow(row,tc);
+        if(insertRetCode != TabInfoImpl.ROWNOTDUPLICATE) {
+            throw duplicateDescriptorException(descriptor, null);
+        }
         dataDictionaryCache.tokenCacheAdd(descriptor.getToken(), descriptor);
     }
 
