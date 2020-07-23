@@ -27,9 +27,7 @@ import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.JoinTable;
-import com.splicemachine.derby.impl.sql.execute.operations.BroadcastJoinCache;
-import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.stream.function.InnerJoinNullFilterFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -215,6 +213,12 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
                 }));
             };
             ExecRow leftTemplate = leftOperation.getExecRowDefinition();
+
+            if (true) {
+                BroadcastJoinNoCacheLoader loader = new BroadcastJoinNoCacheLoader(sequenceId, rightHashKeys, leftHashKeys, leftTemplate, rhsLoader);
+                return loader.call().newTable();
+            }
+
             return broadcastJoinCache.get(sequenceId, rhsLoader, rightHashKeys, leftHashKeys, leftTemplate).newTable();
         });
     }
