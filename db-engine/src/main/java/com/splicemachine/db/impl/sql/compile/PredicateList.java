@@ -2767,6 +2767,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             /* Walk list backwards since we can delete while
            * traversing the list.
              */
+        boolean hasNestedLoopJoinPredicatePushedFromOuter = false;
         for(int index=size()-1;index>=0;index--){
             predicate=elementAt(index);
 
@@ -2783,7 +2784,12 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             // single table conditions, however, they would contain table number from tables from the outer block,
             // so use joinedTableSet to mask out those table numbers
             JBitSet maskedReferencedSet = (JBitSet)predicate.getReferencedSet().clone();
+            int numBitsSet = maskedReferencedSet.cardinality();
             maskedReferencedSet.and(joinedTableSet);
+            int maskedNumBitsSet = maskedReferencedSet.cardinality();
+            if (maskedNumBitsSet < numBitsSet) {
+                hasNestedLoopJoinPredicatePushedFromOuter = true;
+            }
 
             // may not be fully covered by the current joined table set, however,
             if(referencedTableMap.contains(maskedReferencedSet)){
@@ -2804,6 +2810,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 removeElementAt(index);
             }
         }
+
+        if (hasNestedLoopJoinPredicatePushedFromOuter)
+            table.setHasJoinPredicatePushedDownFromOuter(true);
 
         // order the useful predicates on the other list
         AccessPath ap=table.getTrulyTheBestAccessPath();
