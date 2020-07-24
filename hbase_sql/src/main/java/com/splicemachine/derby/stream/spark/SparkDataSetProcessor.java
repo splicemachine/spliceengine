@@ -638,14 +638,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 Column col = new Column(allCols[i]);
                 DataValueDescriptor dvd = execRow.getColumn(baseColumnMap[i] + 1);
 
-                if (dvd instanceof SQLChar &&
-                    !(dvd instanceof SQLVarchar)) {
-                    SQLChar sc = (SQLChar) dvd;
-                    if (sc.getSqlCharSize() > 0) {
-                        Column adapted = functions.rpad(col, sc.getSqlCharSize(), " ");
-                        col = adapted.as(allCols[i]);
-                    }
-                }
+                if ( dvd instanceof SQLChar || dvd instanceof SQLVarchar )
+                    col = convertSparkStringColToCharVarchar(col, dvd, allCols[i]);
+
                 cols.add(col);
             }
         }
@@ -674,6 +669,37 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         } else {
             return new NativeSparkDataSet(table, context);
         }
+    }
+
+    /**
+     * since spark has only strings, not CHAR/VARCHAR,
+     * we need to "create" CHAR/VARCHAR column out of string columns
+     * - for CHAR, we need to right-pad strings
+     * - for CHAR/VARCHAR, we need to make sure we're considering the maximum string length
+     *   note that we will use Java/Scala String length, which is measured in
+     *   UTF-16 characters, which is NOT the byte length and also NOT necessarily the character length.
+     *   e.g. the single character U+1F602 (https://www.fileformat.info/info/unicode/char/1f602/index.htm)
+     *   is encoded as 0xD83D 0xDE02 and therefore has length 2.
+     */
+    private Column convertSparkStringColToCharVarchar(Column col, DataValueDescriptor dvd, String name) {
+        //
+        if (dvd instanceof SQLChar &&
+                !(dvd instanceof SQLVarchar)) {
+            SQLChar sc = (SQLChar) dvd;
+            if (sc.getSqlCharSize() > 0) {
+                Column adapted = functions.rpad(col, sc.getSqlCharSize(), " ");
+                col = adapted.as(name);
+            }
+        }
+        else if ( dvd instanceof SQLChar) {
+            // rpad will already cut strings
+            SQLChar sc = (SQLChar) dvd;
+            if (sc.getSqlCharSize() > 0) {
+                Column adapted = functions.substring(col, 0, sc.getSqlCharSize() );
+                col = adapted.as(name);
+            }
+        }
+        return col;
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -818,7 +844,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     /// check that we don't access a column that's not there with baseColumnMap
-    private void checkNumColumns(String location, int[] baseColumnMap, Dataset<Row> table) throws StandardException {
+    private static void checkNumColumns(String location, int[] baseColumnMap, Dataset<Row> table) throws StandardException {
         if( baseColumnMap.length > table.schema().fields().length) {
             throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE,
                     baseColumnMap.length, table.schema().fields().length,

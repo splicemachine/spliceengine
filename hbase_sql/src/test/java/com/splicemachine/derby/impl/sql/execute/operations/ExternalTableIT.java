@@ -29,6 +29,7 @@ import org.junit.rules.TestRule;
 
 import java.io.File;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -493,6 +494,45 @@ public class ExternalTableIT extends SpliceUnitTest {
         for( String fileFormat : fileFormats )
             testWriteReadFromSimpleExternalTable(fileFormat);
 
+    }
+
+    @Test
+    public void testWriteReadCharVarcharTruncation() throws Exception {
+        for( String fileFormat : fileFormats ){
+            // we're using our internal ORC reader which doesn't support CHAR padding or CHAR/VARCHAR truncation
+            // see DB-9911 for reevalutation of this
+            if( fileFormat.equals("ORC")) {
+                continue;
+            }
+            String name = "char_varchar_" + fileFormat;
+
+            String file = getExternalResourceDirectory() + name;
+            methodWatcher.executeUpdate("create external table " + name +
+                    " ( col1 varchar(100), col2 varchar(100), col3 varchar(100) ) " +
+                    "STORED AS " + fileFormat + " LOCATION '" + file + "'");
+
+            int insertCount = methodWatcher.executeUpdate("insert into " + name + " values " +
+                    "( '123456789', '123456789', '12345')");
+            Assert.assertEquals("insertCount is wrong", 1, insertCount);
+
+            ResultSet rs1 = methodWatcher.executeQuery("select * from " + name);
+            ArrayList<String> res1 = CreateTableTypeHelper.getArrayListResult(rs1);
+            Assert.assertEquals(1, res1.size());
+            Assert.assertEquals("'123456789', '123456789', '12345'", res1.get(0));
+
+            methodWatcher.execute("drop table " + name );
+
+            // create table in same location, but with shorter strings
+            methodWatcher.executeUpdate("create external table " + name + " ( col1 VARCHAR(5), col2 CHAR(5), col3 CHAR(10) ) " +
+                    "STORED AS " + fileFormat + " LOCATION '" + file + "'");
+
+            ResultSet rs2 = methodWatcher.executeQuery("select * from " + name);
+            ArrayList<String> res2 = CreateTableTypeHelper.getArrayListResult(rs2);
+            Assert.assertEquals(1, res2.size());
+            Assert.assertEquals("'12345', '12345', '12345     '", res2.get(0));
+
+            methodWatcher.execute("drop table " + name );
+        }
     }
 
     @Test
