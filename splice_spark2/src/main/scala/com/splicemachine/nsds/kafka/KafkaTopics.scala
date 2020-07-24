@@ -10,24 +10,25 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
+ *
  */
 
-package com.splicemachine.derby.impl.sql.catalog.upgrade;
+package com.splicemachine.nsds.kafka
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
+import com.splicemachine.primitives.Bytes
+import java.security.SecureRandom
 
-/**
- * Created by yxia on 3/21/18.
- */
-public class UpgradeScriptToCleanSysRoutinePerms extends UpgradeScriptBase {
-    public UpgradeScriptToCleanSysRoutinePerms(SpliceDataDictionary sdd, TransactionController tc) {
-        super(sdd, tc);
-    }
+@SerialVersionUID(20200518241L)
+class KafkaTopics(kafkaServers: String) extends Serializable {
+  val unneeded = collection.mutable.HashSet[String]()
 
-    @Override
-    protected void upgradeSystemTables() throws StandardException {
-        sdd.cleanSysRoutinePerms(tc);
-    }
+  def create(): String = {
+    val name = new Array[Byte](32)
+    new SecureRandom().nextBytes(name)
+    Bytes.toHex(name)+"-"+System.nanoTime()
+  }
+  
+  def delete(topicName: String): Unit = unneeded += topicName
+  
+  def cleanup(timeoutMs: Long = 0): Unit = new KafkaAdmin(kafkaServers).deleteTopics(unneeded, timeoutMs)
 }

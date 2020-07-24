@@ -222,5 +222,7 @@ public interface ISpliceVisitor {
     Visitable visit(SetNode node) throws StandardException;
     Visitable visit(FullOuterJoinNode node) throws StandardException;
     Visitable visit(StringAggregateNode node) throws StandardException;
+    Visitable visit(ToInstantOperatorNode node) throws StandardException;
+    Visitable visit(ToHbaseEscapedOperatorNode node) throws StandardException;
 
 }
