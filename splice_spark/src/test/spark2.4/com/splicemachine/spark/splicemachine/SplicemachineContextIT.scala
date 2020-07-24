@@ -74,24 +74,6 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     org.junit.Assert.assertEquals("RDD Changed!","List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])",rdd.collect().toList.toString)
   }
 
-  test("Test Bulk Import") {
-    if (splicemachineContext.tableExists(internalTN)) {
-      splicemachineContext.dropTable(internalTN)
-    }
-    insertInternalRows(0)
-
-    val bulkImportDirectory = new File(System.getProperty("java.io.tmpdir") + "/splice_spark-SplicemachineContextIT/bulkImport")
-    bulkImportDirectory.mkdirs()
-
-    splicemachineContext.bulkImportHFile(internalTNDF, internalTN,
-      collection.mutable.Map("bulkImportDirectory" -> bulkImportDirectory.getAbsolutePath)
-    )
-
-    val rs = getConnection.createStatement.executeQuery("select count(*) from " + internalTN)
-    rs.next
-    org.junit.Assert.assertEquals("Bulk Import Failed!", 1, rs.getInt(1))
-  }
-  
   val carTableName = getClass.getSimpleName + "_TestCreateTable"
   val carSchemaTableName = schema+"."+carTableName
 

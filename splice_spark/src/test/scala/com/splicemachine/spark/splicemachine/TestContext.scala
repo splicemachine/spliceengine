@@ -141,7 +141,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   )
 
   val statOptions = Map(
-    JDBCOptions.JDBC_TABLE_NAME -> "SYS.SYSTABLESTATISTICS",
+    JDBCOptions.JDBC_TABLE_NAME -> "SYSVW.SYSTABLESTATISTICS",
     JDBCOptions.JDBC_URL -> defaultJDBCURL
   )
 
