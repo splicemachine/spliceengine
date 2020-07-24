@@ -23,21 +23,21 @@ import java.util.*;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.hbase.SICompactionScanner;
+import com.splicemachine.hbase.ZkUtils;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.AclCheckerService;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
-import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.PurgeConfigBuilder;
 import com.splicemachine.si.impl.server.SICompactionState;
-import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
+import com.splicemachine.storage.*;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Append;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
@@ -59,6 +59,7 @@ import org.apache.hadoop.hbase.ipc.RpcServer;
 import org.apache.hadoop.hbase.ipc.RpcUtils;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
+import org.apache.hadoop.hbase.regionserver.wal.HLogKey;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.security.AccessDeniedException;
 import org.apache.hadoop.hbase.security.User;
@@ -66,6 +67,7 @@ import org.apache.hadoop.hbase.security.access.Permission;
 import org.apache.hadoop.hbase.security.access.TableAuthManager;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
@@ -75,9 +77,6 @@ import org.spark_project.guava.collect.Maps;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
-import com.splicemachine.hbase.SICompactionScanner;
-import com.splicemachine.hbase.ZkUtils;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionalFilter;
@@ -90,13 +89,6 @@ import com.splicemachine.si.impl.SIFilterPacked;
 import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.TxnRegion;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.server.SICompactionState;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.HMutationStatus;
-import com.splicemachine.storage.MutationStatus;
-import com.splicemachine.storage.Partition;
-import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -568,6 +560,26 @@ public class SIObserver extends BaseRegionObserver{
         finally {
             if (in != null) {
                 in.close();
+            }
+        }
+    }
+
+    public void preWALRestore(ObserverContext<? extends RegionCoprocessorEnvironment> env, HRegionInfo info, WALKey logKey, WALEdit logEdit) throws IOException {
+        // DB-9895: HBase may replay a WAL edits that has been persisted in HFile. It could happen that a row with
+        // FIRST_WRITE_TOKE has already been persisted in an HFile. If the row is replayed to memstore and deleted,
+        // the row will be purged during flush. However, the row that already persisted in HFile is still visible.
+        // Remove FIRST_WRITE_TOKE during wal replay to prevent this from happening.
+        SConfiguration config = HConfiguration.getConfiguration();
+        String namespace = logKey.getTablename().getNamespaceAsString();
+        if (namespace.equals(config.getNamespace())) {
+            ArrayList<Cell> cells = logEdit.getCells();
+            Iterator<Cell> it = cells.iterator();
+            while (it.hasNext()) {
+                Cell cell = it.next();
+                CellType cellType = CellUtils.getKeyValueType(cell);
+                if (cellType == CellType.FIRST_WRITE_TOKEN) {
+                    it.remove();
+                }
             }
         }
     }
