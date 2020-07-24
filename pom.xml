@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>3.0.0.1965-SNAPSHOT</version>
+    <version>3.0.0.1966-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -601,6 +601,9 @@
                     <groupId>com.github.spotbugs</groupId>
                     <artifactId>spotbugs-maven-plugin</artifactId>
                     <version>3.1.12.2</version>
+                    <configuration>
+                        <excludeFilterFile>${session.executionRootDirectory}/findbugs-exclude-filter.xml</excludeFilterFile>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -1255,6 +1258,9 @@
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
                 <version>3.1.12.2</version>
+                <configuration>
+                    <excludeFilterFile>${session.executionRootDirectory}/findbugs-exclude-filter.xml</excludeFilterFile>
+                </configuration>
             </plugin>
         </plugins>
     </reporting>
