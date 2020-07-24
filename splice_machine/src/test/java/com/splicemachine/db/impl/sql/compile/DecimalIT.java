@@ -134,6 +134,13 @@ public class DecimalIT  extends SpliceUnitTest {
         new TableCreator(conn)
                 .withCreate("create table preparedDecimal (a dec(38,5))")
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table DB_9425_TBL (quantity decimal (22,4), units decimal (19,9), price decimal(19,9), factor decimal(19,9))")
+                .withInsert("insert into DB_9425_TBL values (?, ?, ?, ?)")
+                .withRows(rows(
+                        row(1333333333.1111, 1, 150000.555555, 15.5555555)))
+                .create();
     }
 
     @BeforeClass
@@ -675,6 +682,19 @@ public class DecimalIT  extends SpliceUnitTest {
                 "A    |\n" +
                 "----------\n" +
                 "14.51000 |";
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    // DB-9425
+    @Test
+    public void testReduceFractionalDigitsForIntegralPart() throws Exception {
+        String sqlText = String.format("select cast(COALESCE(((quantity/units) * ( price / units)* cast(factor AS decimal(10,2)) ),0 ) AS NUMERIC(31,10))\n" +
+                "from DB_9425_TBL --splice-properties useSpark=%s", useSpark);
+
+        String expected = "1              |\n" +
+                "-----------------------------\n" +
+                "3112011525395705.4789182174 |";
+
         testQuery(sqlText, expected, methodWatcher);
     }
 }
