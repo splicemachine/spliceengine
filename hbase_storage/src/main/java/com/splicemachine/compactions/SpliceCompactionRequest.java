@@ -15,6 +15,7 @@
 package com.splicemachine.compactions;
 
 import com.splicemachine.access.client.MemstoreAware;
+import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
@@ -31,6 +32,9 @@ public class SpliceCompactionRequest extends CompactionRequest {
     private static final Logger LOG = Logger.getLogger(SpliceCompactionRequest.class);
     private AtomicReference<MemstoreAware> memstoreAware;
     private HRegion region;
+
+    private PurgeConfig purgeConfig = null;
+
 
     public void preStorefilesRename() throws IOException {
         assert memstoreAware != null;
@@ -76,5 +80,37 @@ public class SpliceCompactionRequest extends CompactionRequest {
 
     public void setRegion(HRegion region) {
         this.region = region;
+    }
+
+    @Override
+    public void setOffPeak(boolean value) {
+        // We hijack setOffPeak because it is only called twice:
+        // 1. set to true in SpliceDefaultCompactionPolicy before compaction happens
+        // 2. set to false in HStore.finishCompactionRequest (hbase code)
+        // At those points, the value passed is irrelevant and is "only" used for logging
+        // purpose, so we can hijack it.
+        super.setOffPeak(value);
+        if (!value) {
+            afterExecute();
+        }
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return super.equals(obj);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    public PurgeConfig getPurgeConfig() {
+        assert purgeConfig != null;
+        return purgeConfig;
+    }
+
+    public void setPurgeConfig(PurgeConfig purgeConfig) {
+        this.purgeConfig = purgeConfig;
     }
 }
