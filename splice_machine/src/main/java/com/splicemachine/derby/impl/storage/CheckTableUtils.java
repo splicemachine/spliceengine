@@ -30,6 +30,7 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.IntArrays;
@@ -373,6 +374,8 @@ public class CheckTableUtils {
     }
     private static DataScan createScan (TxnView txn) {
         DataScan scan= SIDriver.driver().getOperationFactory().newDataScan(txn);
+        //exclude this from SI treatment, since we're doing it internally
+        scan.addAttribute(SIConstants.SI_NEEDED,null);
         scan.returnAllVersions(); //make sure that we read all versions of the data
         return scan.startKey(new byte[0]).stopKey(new byte[0]);
     }
