@@ -21,6 +21,9 @@ import java.net.URI;
 import java.util.*;
 
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.compactions.SpliceCompactionRequest;
+import com.splicemachine.concurrent.SystemClock;
+import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.hbase.CellUtils;
@@ -280,6 +283,7 @@ public class SIObserver extends BaseRegionObserver{
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                         driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
+
                 PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
                 if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
                     purgeConfig.purgeDeletesDuringCompaction(compactionRequest.isMajor());
@@ -288,7 +292,7 @@ public class SIObserver extends BaseRegionObserver{
                 }
                 purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
                 SICompactionScanner siScanner = new SICompactionScanner(
-                        state, scanner, purgeConfig.build(),
+                        state, scanner, ((SpliceCompactionRequest) compactionRequest).getPurgeConfig(),
                         conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
@@ -564,6 +568,7 @@ public class SIObserver extends BaseRegionObserver{
         }
     }
 
+    @Override
     public void preWALRestore(ObserverContext<? extends RegionCoprocessorEnvironment> env, HRegionInfo info, WALKey logKey, WALEdit logEdit) throws IOException {
         // DB-9895: HBase may replay a WAL edits that has been persisted in HFile. It could happen that a row with
         // FIRST_WRITE_TOKE has already been persisted in an HFile. If the row is replayed to memstore and deleted,
