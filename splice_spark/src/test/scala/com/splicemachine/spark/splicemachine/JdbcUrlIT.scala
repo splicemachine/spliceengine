@@ -13,15 +13,35 @@
  */
 package com.splicemachine.spark.splicemachine
 
+import java.util.Date
+
+import org.apache.spark.SparkConf
+import org.apache.spark.sql.SparkSession
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 @RunWith(classOf[JUnitRunner])
-class JdbcUrlIT extends FunSuite with Matchers {
+class JdbcUrlIT extends FunSuite with Matchers with BeforeAndAfterAll {
+  var spark: SparkSession = _
 
   val defaultJDBCURL = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin"
   val success = "*** SUCCESS ***"
+
+  val appID = new Date().toString + math.floor(math.random * 10E4).toLong.toString
+  val conf = new SparkConf().
+    setMaster("local[*]").
+    setAppName("spark_jdbcurl_test").
+    set("spark.ui.enabled", "false").
+    set("spark.app.id", appID)
+
+  override def beforeAll() {
+    spark = SparkSession.builder.config(conf).getOrCreate
+  }
+
+  override def afterAll() {
+    if (spark != null) spark.stop()
+  }
   
   private def testJdbcUrl(url: String): String =
     try {
