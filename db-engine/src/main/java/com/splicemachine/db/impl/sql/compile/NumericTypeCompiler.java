@@ -367,6 +367,8 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 				/* DB-9425
 				 * Make sure we still have enough digits for the integral part.
 				 * Reduce scale when necessary, or leave it when not possible.
+				 * Rules follow SQL Server 2019:
+				 * https://docs.microsoft.com/en-us/sql/t-sql/data-types/precision-scale-and-length-transact-sql?view=sql-server-ver15
 				 */
 				{
 					int lprec = leftType.getPrecision();
@@ -376,7 +378,7 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 					int integralNumDigits;
 
 					switch (operator) {
-						case TypeCompiler.SUM_OP:
+						case TypeCompiler.PLUS_OP:
 						case TypeCompiler.MINUS_OP:
 							boolean addOne = (lprec != maxPrecision && rprec != maxPrecision);
 							integralNumDigits = Math.max(lprec - lscale, rprec - rscale) + (addOne ? 1 : 0);
@@ -385,24 +387,26 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 							}
 							break;
 						case TypeCompiler.TIMES_OP: {
-							int fullScale = lscale + rscale;
-							int fullPrec = lprec + rprec + 1;
-							integralNumDigits = fullPrec - fullScale;
-							if (integralNumDigits <= precision &&
-								integralNumDigits + scale > precision && scale > MIN_DECIMAL_DIVIDE_SCALE &&
-							    precision - integralNumDigits >= MIN_DECIMAL_DIVIDE_SCALE) {
-								scale = precision - integralNumDigits;
+							integralNumDigits = lprec + rprec + 1 - lscale - rscale;
+							/* In SQL Server, MIN_DECIMAL_DIVIDE_SCALE = 6. In splice, it's 4.
+							 * We have to use 6 in multiplication case, otherwise TPC-H results would be
+							 * off too much because we round intermediate results too early.
+							 */
+							if (integralNumDigits < maxPrecision - MIN_DECIMAL_MULTIPLICATION_SCALE) {
+								scale = Math.min(scale, maxPrecision - integralNumDigits);
+							}
+							else if (scale > MIN_DECIMAL_MULTIPLICATION_SCALE) {
+								scale = MIN_DECIMAL_MULTIPLICATION_SCALE;
 							}
 							break;
 						}
 						case TypeCompiler.DIVIDE_OP: {
-							if (rightTypeId.isDecimalTypeId()) {
-								integralNumDigits = lprec - lscale + rprec;
-								if (integralNumDigits <= precision &&
-									integralNumDigits + scale > precision && scale > MIN_DECIMAL_DIVIDE_SCALE &&
-									precision - integralNumDigits >= MIN_DECIMAL_DIVIDE_SCALE) {
-									scale = precision - integralNumDigits;
-								}
+							integralNumDigits = lprec - lscale + rscale;
+							if (integralNumDigits < maxPrecision - MIN_DECIMAL_DIVIDE_SCALE) {
+								scale = Math.min(scale, maxPrecision - integralNumDigits);
+							}
+							else if (scale > MIN_DECIMAL_DIVIDE_SCALE) {
+								scale = MIN_DECIMAL_DIVIDE_SCALE;
 							}
 							break;
 						}
@@ -574,7 +578,7 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 		else if (operator.equals(TypeCompiler.DIVIDE_OP))
 		{
 			val = Math.min(maxPrecision,
-						   this.getScale(operator, leftType, rightType) + lprec - lscale + rprec);
+					this.getScale(operator, leftType, rightType) + lprec - lscale + rscale);
 		}
 		/*
 		** AVG, -, +
@@ -650,10 +654,9 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 		{
 			/*
 			** Take max left scale + right precision - right scale + 1, 
-			** or 4, whichever is biggest 
+			** or 4, whichever is biggest
 			*/
-			// Scale: 38 - left precision + left scale - right scale
-				val = Math.max(maxPrecision - lprec + lscale - rscale,
+			val = Math.max(lscale + rprec - rscale + 1,
 						MIN_DECIMAL_DIVIDE_SCALE);
 		}
 		else if (TypeCompiler.AVG_OP.equals(operator))
