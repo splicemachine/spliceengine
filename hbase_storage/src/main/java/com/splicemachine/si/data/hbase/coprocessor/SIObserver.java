@@ -22,6 +22,7 @@ import java.util.*;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.compactions.SpliceCompactionRequest;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -49,12 +50,7 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Durability;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -210,6 +206,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
     @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner, ScanType scanType, CompactionLifeCycleTracker tracker, CompactionRequest request) throws IOException {
+        assert request instanceof SpliceCompactionRequest;
         try {
             if(tableEnvMatch && scanner != null){
                 SIDriver driver=SIDriver.driver();
@@ -218,15 +215,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                         driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
-                PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
-                if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                    purgeConfig.purgeDeletesDuringCompaction(request.isMajor());
-                } else {
-                    purgeConfig.noPurgeDeletes();
-                }
-                purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
                 SICompactionScanner siScanner = new SICompactionScanner(
-                        state, scanner, purgeConfig.build(),
+                        state, scanner, ((SpliceCompactionRequest) request).getPurgeConfig(),
                         conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
@@ -499,7 +489,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
         }
     }
 
-    public void preWALRestore(ObserverContext<? extends RegionCoprocessorEnvironment> env, HRegionInfo info, WALKey logKey, WALEdit logEdit) throws IOException {
+   @Override
+    public void preWALRestore(ObserverContext<? extends RegionCoprocessorEnvironment> env, RegionInfo info, WALKey logKey, WALEdit logEdit) throws IOException {
         // DB-9895: HBase may replay a WAL edits that has been persisted in HFile. It could happen that a row with
         // FIRST_WRITE_TOKE has already been persisted in an HFile. If the row is replayed to memstore and deleted,
         // the row will be purged during flush. However, the row that already persisted in HFile is still visible.
