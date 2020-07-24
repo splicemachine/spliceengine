@@ -62,6 +62,11 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
 
     @Override
     public List<Path> compact(CompactionRequest request, CompactionThroughputController throughputController, User user) throws IOException {
+
+        assert request instanceof SpliceCompactionRequest;
+        // Used if we cannot compact in Spark
+        ((SpliceCompactionRequest) request).setPurgeConfig(buildPurgeConfig(request));
+
         if(!allowSpark || store.getRegionInfo().isSystemTable())
             return super.compact(request, throughputController, user);
         if (LOG.isTraceEnabled())
@@ -186,18 +191,9 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                     boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                             driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
-                    PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
-                    if (SpliceCompactionUtils.forcePurgeDeletes(store) && request.isMajor()) {
-                        purgeConfig.forcePurgeDeletes();
-                    } else if (config.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                        purgeConfig.purgeDeletesDuringCompaction(request.isMajor());
-                    } else {
-                        purgeConfig.noPurgeDeletes();
-                    }
-                    purgeConfig.purgeUpdates(config.getOlapCompactionAutomaticallyPurgeOldUpdates());
 
                     SICompactionScanner siScanner = new SICompactionScanner(
-                            state, scanner, purgeConfig.build(), resolutionShare, bufferSize, context);
+                            state, scanner, buildPurgeConfig(request), resolutionShare, bufferSize, context);
                     siScanner.start();
                     scanner = siScanner;
                 }
@@ -405,5 +401,18 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                 .withFileContext(hFileContext)
                 .build();
         return w;
+    }
+    private PurgeConfig buildPurgeConfig(CompactionRequest request) throws IOException {
+        SConfiguration config = HConfiguration.getConfiguration();
+        PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
+        if (SpliceCompactionUtils.forcePurgeDeletes(store) && request.isMajor()) {
+            purgeConfig.forcePurgeDeletes();
+        } else if (config.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
+            purgeConfig.purgeDeletesDuringCompaction(request.isMajor());
+        } else {
+            purgeConfig.noPurgeDeletes();
+        }
+        purgeConfig.purgeUpdates(config.getOlapCompactionAutomaticallyPurgeOldUpdates());
+        return purgeConfig.build();
     }
 }
