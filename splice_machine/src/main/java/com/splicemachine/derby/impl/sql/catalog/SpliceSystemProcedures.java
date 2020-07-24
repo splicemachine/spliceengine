@@ -28,6 +28,7 @@ import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
 import com.splicemachine.derby.impl.load.HdfsImport;
+import com.splicemachine.derby.impl.sql.catalog.upgrade.OnlineUpgradeSystemProcedures;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.utils.*;
@@ -1524,6 +1525,17 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
                             .build();
                     procedures.add(replicationEnabled);
+
+                    Procedure rollingRestart =  Procedure.newBuilder().name("ROLLING_RESTART")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .varchar("hostnameAndPort", 32672)
+                            .varchar("cluster", 32672)
+                            .varchar("user", 32672)
+                            .varchar("password", 32672)
+                            .ownerClass(OnlineUpgradeSystemProcedures.class.getCanonicalName())
+                            .build();
+                    procedures.add(rollingRestart);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

@@ -24,6 +24,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.ColPermsDescriptor;
 import com.splicemachine.db.impl.jdbc.authentication.AuthenticationServiceBase;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.derby.impl.sql.catalog.upgrade.OnlineUpgradeManager;
 import com.splicemachine.encryption.EncryptionManager;
 import com.splicemachine.management.Manager;
 import com.splicemachine.replication.ReplicationManager;
@@ -99,5 +100,10 @@ public class NoOpManager implements Manager {
     @Override
     public boolean isEnabled() {
         return enterpriseEnabled;
+    }
+
+    @Override
+    public OnlineUpgradeManager getOnlineUpgradeManager() throws StandardException {
+        return null;
     }
 }

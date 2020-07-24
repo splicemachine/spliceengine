@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.ServiceLoader;
 
+import com.splicemachine.derby.impl.sql.catalog.upgrade.OnlineUpgradeManager;
 import com.splicemachine.replication.ReplicationManager;
 import org.apache.log4j.Logger;
 
@@ -115,6 +116,11 @@ public class ManagerLoader {
         @Override
         public boolean isEnabled() {
             return false;
+        }
+
+        @Override
+        public OnlineUpgradeManager getOnlineUpgradeManager() throws StandardException {
+            throw StandardException.newException(SQLState.MANAGER_DISABLED);
         }
 
     }

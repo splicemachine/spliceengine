@@ -21,6 +21,7 @@ import com.splicemachine.colperms.ColPermsManager;
 import com.splicemachine.db.authentication.UserAuthenticator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.jdbc.authentication.AuthenticationServiceBase;
+import com.splicemachine.derby.impl.sql.catalog.upgrade.OnlineUpgradeManager;
 import com.splicemachine.encryption.EncryptionManager;
 import com.splicemachine.replication.ReplicationManager;
 
@@ -40,6 +41,8 @@ public interface Manager {
     EncryptionManager getEncryptionManager() throws StandardException;
 
     ReplicationManager getReplicationManager() throws StandardException;
+
+    OnlineUpgradeManager getOnlineUpgradeManager() throws StandardException;
 
     boolean isEnabled();
 }
