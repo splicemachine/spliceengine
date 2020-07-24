@@ -15,11 +15,10 @@
 package com.splicemachine.compactions;
 
 import com.splicemachine.access.client.MemstoreAware;
+import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HStoreFile;
-import org.apache.hadoop.hbase.regionserver.Store;
-import org.apache.hadoop.hbase.regionserver.compactions.CompactionLifeCycleTracker;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
 import org.apache.log4j.Logger;
 
@@ -36,6 +35,8 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
     private AtomicReference<MemstoreAware> memstoreAware;
     private HRegion region;
     private boolean compactionCountIncremented = false;
+
+    private PurgeConfig purgeConfig = null;
 
     public SpliceCompactionRequest(Collection<HStoreFile> files) {
         super(files);
@@ -123,5 +124,14 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
     @Override
     public int hashCode() {
         return super.hashCode();
+    }
+
+    public PurgeConfig getPurgeConfig() {
+        assert purgeConfig != null;
+        return purgeConfig;
+    }
+
+    public void setPurgeConfig(PurgeConfig purgeConfig) {
+        this.purgeConfig = purgeConfig;
     }
 }

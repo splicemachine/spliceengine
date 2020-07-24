@@ -368,7 +368,11 @@ public interface C_NodeNames
 
     String STATEMENT_LIST_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StatementListNode";
 
-    // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
+    String TO_INSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ToInstantOperatorNode";
+
+	String TO_HBASE_ESCAPED_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ToHbaseEscapedOperatorNode";
+
+	// WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
     // THEM TO tools/jar/DBMSnodes.properties
 
 }
