@@ -22,6 +22,7 @@ import java.util.*;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.compactions.SpliceCompactionRequest;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -217,6 +218,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
     @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner, ScanType scanType, CompactionLifeCycleTracker tracker, CompactionRequest request) throws IOException {
+        assert request instanceof SpliceCompactionRequest;
         try {
             // We can't return null, there's a check in org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost.preCompact
             // return a dummy implementation instead
@@ -229,15 +231,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                         driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
-                PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
-                if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                    purgeConfig.purgeDeletesDuringCompaction(request.isMajor());
-                } else {
-                    purgeConfig.noPurgeDeletes();
-                }
-                purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
                 SICompactionScanner siScanner = new SICompactionScanner(
-                        state, scanner, purgeConfig.build(),
+                        state, scanner, ((SpliceCompactionRequest) request).getPurgeConfig(),
                         conf.getOlapCompactionResolutionShare(), conf.getLocalCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
