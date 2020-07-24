@@ -20,6 +20,7 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputSt
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FunSuite, Matchers}
+import org.apache.spark.sql.Row
 
 @RunWith(classOf[JUnitRunner])
 class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
@@ -45,11 +46,6 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     }
   }
 
-  private def dropInternalTable(): Unit =
-    if (splicemachineContext.tableExists(internalTN)) {
-      splicemachineContext.dropTable(internalTN)
-    }
-
   test("Test SplicemachineContext serialization") {
     val serialized = serialize(splicemachineContext)
     val deserialized = deserialize(serialized).asInstanceOf[SplicemachineContext]
@@ -61,7 +57,11 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     insertInternalRows(rowCount)
     val schema = splicemachineContext.getSchema(internalTN)
     // SPARK-22002 removed metadata from StructFields in JdbcUtils.getSchema() (since Spark 2.3)
-    org.junit.Assert.assertEquals("Schema Changed!",schema.json,"{\"type\":\"struct\",\"fields\":[{\"name\":\"C1_BOOLEAN\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C2_CHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C3_DATE\",\"type\":\"date\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C4_DECIMAL\",\"type\":\"decimal(15,2)\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C5_DOUBLE\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C6_INT\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{}},{\"name\":\"C7_BIGINT\",\"type\":\"long\",\"nullable\":false,\"metadata\":{}},{\"name\":\"C8_FLOAT\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C9_SMALLINT\",\"type\":\"short\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C10_TIME\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C11_TIMESTAMP\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{}},{\"name\":\"C12_VARCHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}}]}")
+    org.junit.Assert.assertEquals(
+      "Schema Changed!",
+      """{"type":"struct","fields":[{"name":"C1_BOOLEAN","type":"boolean","nullable":true,"metadata":{}},{"name":"C2_CHAR","type":"string","nullable":true,"metadata":{}},{"name":"C3_DATE","type":"date","nullable":true,"metadata":{}},{"name":"C4_NUMERIC","type":"decimal(15,2)","nullable":true,"metadata":{}},{"name":"C5_DOUBLE","type":"double","nullable":true,"metadata":{}},{"name":"C6_INT","type":"integer","nullable":false,"metadata":{}},{"name":"C7_BIGINT","type":"long","nullable":false,"metadata":{}},{"name":"C8_FLOAT","type":"double","nullable":true,"metadata":{}},{"name":"C9_SMALLINT","type":"short","nullable":true,"metadata":{}},{"name":"C10_TIME","type":"timestamp","nullable":true,"metadata":{}},{"name":"C11_TIMESTAMP","type":"timestamp","nullable":true,"metadata":{}},{"name":"C12_VARCHAR","type":"string","nullable":true,"metadata":{}},{"name":"C13_DECIMAL","type":"decimal(4,1)","nullable":true,"metadata":{}},{"name":"C14_BIGINT","type":"long","nullable":true,"metadata":{}},{"name":"C15_LONGVARCHAR","type":"string","nullable":true,"metadata":{}},{"name":"C16_REAL","type":"float","nullable":true,"metadata":{}},{"name":"C17_INT","type":"integer","nullable":true,"metadata":{}}]}""",
+      schema.json
+    )
   }
 
   test("Test Get RDD") {
@@ -145,7 +145,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     createInternalTable
 
     splicemachineContext.insert(internalTNDF, internalTN)
-    
+
     val rs = getConnection.createStatement.executeQuery("select count(*) from "+internalTN)
     rs.next
     org.junit.Assert.assertEquals("Insert Failed!", 1, rs.getInt(1))
@@ -170,7 +170,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     dropInternalTable
     createInternalTable
 
-    val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+"/splice_spark2-SplicemachineContextIT/bulkImport" )
+    val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+s"/${module}-SplicemachineContextIT/bulkImport" )
     bulkImportDirectory.mkdirs()
 
     splicemachineContext.bulkImportHFile(internalTNDF, internalTN,
@@ -191,5 +191,58 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     val rs = getConnection.createStatement.executeQuery("select count(*) from "+internalTN)
     rs.next
     org.junit.Assert.assertEquals("SplitAndInsert Failed!", 1, rs.getInt(1))
+  }
+
+  test("Test Inserting Null") {
+    dropInternalTable
+    createInternalTable
+
+    val insDf = dataframe(
+      rdd( Seq(
+        Row.fromSeq( Seq(
+          null, null, null, null, null,
+          106, 107L,
+          null, null, null, null, null,
+          null, null, null, null, null
+        ))
+      )),
+      allTypesSchema(true)
+    )
+
+    splicemachineContext.insert(insDf, internalTN)
+
+    val rs = getConnection.createStatement.executeQuery("select * from "+internalTN)
+    rs.next
+
+    val nonNull = collection.mutable.ListBuffer[String]()
+    def check(i: Int, getResult: Int => Any): Unit = {
+      var v = getResult(i)
+      if( ! rs.wasNull ) nonNull += s"C$i == $v"
+    }
+
+    check(1, rs.getBoolean)
+    check(2, rs.getString)
+    check(3, rs.getDate)
+    check(4, rs.getBigDecimal)
+    check(5, rs.getDouble)
+    // primary keys will not be null, skip 6 & 7
+    check(8, rs.getFloat)
+    check(9, rs.getShort)
+    check(10, rs.getTime)
+    check(11, rs.getTimestamp)
+    check(12, rs.getString)
+    check(13, rs.getBigDecimal)
+    check(14, rs.getInt)
+    check(15, rs.getString)
+    check(16, rs.getFloat)
+    check(17, rs.getInt)
+
+    rs.close
+
+    org.junit.Assert.assertEquals(
+      "Not All Null",
+      "\n\n",
+      nonNull.mkString("\n","\n","\n")
+    )
   }
 }
