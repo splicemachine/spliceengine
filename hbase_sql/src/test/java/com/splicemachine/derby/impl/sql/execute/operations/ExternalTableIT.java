@@ -347,16 +347,30 @@ public class ExternalTableIT extends SpliceUnitTest {
     }
 
     // tests we can create an external table in a empty directory
+    // also test if we can create a schema automatically
     @Test
-    public void testEmptyDirectory() throws  Exception{
+    public void testEmptyDirectoryAndSchemaCreate() throws  Exception{
         for( String fileFormat : fileFormats) {
             String tablePath = getExternalResourceDirectory() + "empty_directory" + fileFormat;
-            String name = "empty_directory" + fileFormat;
+            String name = "AUTO_SCHEMA_XT.AAA";
             new File(tablePath).mkdir();
 
-            methodWatcher.executeUpdate(String.format("create external table " + name +
-                    " (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
+            try {
+                methodWatcher.executeUpdate(String.format("create external table " + name +
+                        " (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
+                        " STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
+
+                ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME = 'AUTO_SCHEMA_XT'");
+                String expected = "SCHEMANAME   |\n" +
+                        "----------------\n" +
+                        "AUTO_SCHEMA_XT |";
+                assertEquals("list of schemas does not match", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                rs.close();
+            }
+            finally {
+                methodWatcher.execute("DROP TABLE " + name);
+                methodWatcher.execute("DROP SCHEMA AUTO_SCHEMA_XT RESTRICT");
+            }
         }
     }
 
