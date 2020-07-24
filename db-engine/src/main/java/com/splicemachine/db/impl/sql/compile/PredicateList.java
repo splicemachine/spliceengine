@@ -2787,12 +2787,13 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             int numBitsSet = maskedReferencedSet.cardinality();
             maskedReferencedSet.and(joinedTableSet);
             int maskedNumBitsSet = maskedReferencedSet.cardinality();
-            if (maskedNumBitsSet < numBitsSet) {
-                hasNestedLoopJoinPredicatePushedFromOuter = true;
-            }
 
             // may not be fully covered by the current joined table set, however,
             if(referencedTableMap.contains(maskedReferencedSet)){
+                if (maskedNumBitsSet < numBitsSet) {
+                    hasNestedLoopJoinPredicatePushedFromOuter = true;
+                }
+                
                 // We need to keep the counters up to date when removing a predicate
                 if(predicate.isStartKey())
                     numberOfStartPredicates--;

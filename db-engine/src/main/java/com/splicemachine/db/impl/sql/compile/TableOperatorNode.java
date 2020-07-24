@@ -664,7 +664,7 @@ public abstract class TableOperatorNode extends FromTable{
                     leftResultSet=leftResultSet.modifyAccessPaths(
                             setOp.getLeftOptPredicateList());
                 }else
-                    leftResultSet=leftResultSet.modifyAccessPaths(null);
+                    leftResultSet=leftResultSet.modifyAccessPaths();
             }
         }
         if(!rightModifyAccessPathsDone){
