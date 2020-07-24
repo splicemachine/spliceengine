@@ -790,7 +790,11 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "---------------\n" +
             "10000000000.7 |\n" +
             "10000000000.9 |",
-            "The resulting value is outside the range for the data type DECIMAL/NUMERIC(38,28).",
+            "1       |\n" +
+            "----------------\n" +
+            "153333333328.7 |\n" +
+            "153333333331.8 |\n" +
+            "153333333331.8 |",
             "The resulting value is outside the range for the data type DOUBLE.",
             "1      |\n" +
             "-------------\n" +
@@ -814,7 +818,7 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
         };
 
         boolean Fail[] = {
-            false, false, true, true, false, true, true, true, true, true, true, true, true, false, false, true, true
+            false, false, false, true, false, true, true, true, true, true, true, true, true, false, false, true, true
         };
 
         String query[] = {
@@ -893,7 +897,11 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "---------------\n" +
             "10000000000.7 |\n" +
             "10000000000.9 |",
-            "The resulting value is outside the range for the data type DECIMAL/NUMERIC(38,28).",
+            "A      |\n" +
+            "--------------\n" +
+            "9999999999.7 |\n" +
+            "9999999999.9 |\n" +
+            "9999999999.9 |",
             "The resulting value is outside the range for the data type DOUBLE.",
             "A      |\n" +
             "-------------\n" +
@@ -908,7 +916,7 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
         };
 
         boolean Fail[] = {
-        false, false, true, true, false, true, true, true, true, false, true, true, true, false, false, true, true
+        false, false, false, true, false, true, true, true, true, false, true, true, true, false, false, true, true
         };
 
         String query[] = {
