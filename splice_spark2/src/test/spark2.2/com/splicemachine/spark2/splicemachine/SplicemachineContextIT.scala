@@ -74,7 +74,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
 
   test("Test Get Internal RDD") {
     dropInternalTable
-    insertInternalRows(rowCount)
+    insertInternalRows(10)
     val rdd = splicemachineContext.internalRdd(internalTN,Seq("C2_CHAR","C7_BIGINT"))
     org.junit.Assert.assertEquals(
       "RDD Changed!",
@@ -83,15 +83,15 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     )
   }
   
-  val rddAllCol5Row = """false, 1    , 2013-09-05, 1, 1.0, 1, 1, 1.0, 1, 00:00:01.0, 1970-01-01 00:00:00.001, sometestinfo1
-                        |false, 3    , 2013-09-05, 3, 3.0, 3, 3, 3.0, 3, 00:00:03.0, 1970-01-01 00:00:00.003, sometestinfo3
-                        |false, 5    , 2013-09-05, 5, 5.0, 5, 5, 5.0, 5, 00:00:05.0, 1970-01-01 00:00:00.005, sometestinfo5
-                        |false, 7    , 2013-09-05, 7, 7.0, 7, 7, 7.0, 7, 00:00:07.0, 1970-01-01 00:00:00.007, sometestinfo7
-                        |false, null, 2013-09-05, 9, 9.0, 9, 9, 9.0, 9, 00:00:09.0, 1970-01-01 00:00:00.009, null""".stripMargin
+  val rddAllCol5Row = """false, 1    , 2013-09-05, 1, 1.0, 1, 1, 1.0, 1, 00:00:01.0, 1970-01-01 00:00:00.001, sometestinfo1, 1
+                        |false, 3    , 2013-09-05, 3, 3.0, 3, 3, 3.0, 3, 00:00:03.0, 1970-01-01 00:00:00.003, sometestinfo3, 3
+                        |false, 5    , 2013-09-05, 5, 5.0, 5, 5, 5.0, 5, 00:00:05.0, 1970-01-01 00:00:00.005, sometestinfo5, 5
+                        |false, 7    , 2013-09-05, 7, 7.0, 7, 7, 7.0, 7, 00:00:07.0, 1970-01-01 00:00:00.007, sometestinfo7, 7
+                        |false, null, 2013-09-05, 9, 9.0, 9, 9, 9.0, 9, 00:00:09.0, 1970-01-01 00:00:00.009, null, 9""".stripMargin
 
   test("Test Get RDD with Default Columns") {
     dropInternalTable
-    insertInternalRows(rowCount)
+    insertInternalRows(10)
     val rdd = splicemachineContext.rdd(internalTN)
     org.junit.Assert.assertEquals(
       "RDD Changed!",
@@ -106,7 +106,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
 
   test("Test Get Internal RDD with Default Columns") {
     dropInternalTable
-    insertInternalRows(rowCount)
+    insertInternalRows(10)
     val rdd = splicemachineContext.internalRdd(internalTN)
     org.junit.Assert.assertEquals(
       "RDD Changed!",
@@ -206,7 +206,8 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
         Row.fromSeq( Seq(
           null, null, null, null, null,
           106, 107L,
-          null, null, null, null, null
+          null, null, null, null, null,
+          null
         ))
       )),
       allTypesSchema(true)
@@ -228,14 +229,15 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
       rs.getShort(9),
       rs.getTime(10),
       rs.getTimestamp(11),
-      rs.getString(12)
+      rs.getString(12),
+      rs.getBigDecimal(13)
     ).mkString(", ")
 
     rs.close
 
     org.junit.Assert.assertEquals(
       "Insert Failed!",
-      "false, null, null, null, 0.0, 106, 107, 0.0, 0, null, null, null",
+      "false, null, null, null, 0.0, 106, 107, 0.0, 0, null, null, null, null",
       res )
   }
 
