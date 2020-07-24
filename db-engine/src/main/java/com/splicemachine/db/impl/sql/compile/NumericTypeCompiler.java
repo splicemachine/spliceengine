@@ -364,6 +364,53 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 			}
 			else if (typeId.isDecimalTypeId())
 			{
+				/* DB-9425
+				 * Make sure we still have enough digits for the integral part.
+				 * Reduce scale when necessary, or leave it when not possible.
+				 */
+				{
+					int lprec = leftType.getPrecision();
+					int lscale = leftType.getScale();
+					int rprec = rightType.getPrecision();
+					int rscale = rightType.getScale();
+					int integralNumDigits;
+
+					switch (operator) {
+						case TypeCompiler.SUM_OP:
+						case TypeCompiler.MINUS_OP:
+							boolean addOne = (lprec != maxPrecision && rprec != maxPrecision);
+							integralNumDigits = Math.max(lprec - lscale, rprec - rscale) + (addOne ? 1 : 0);
+							if (integralNumDigits <= precision && integralNumDigits + scale > precision) {
+								scale = precision - integralNumDigits;
+							}
+							break;
+						case TypeCompiler.TIMES_OP: {
+							int fullScale = lscale + rscale;
+							int fullPrec = lprec + rprec + 1;
+							integralNumDigits = fullPrec - fullScale;
+							if (integralNumDigits <= precision &&
+								integralNumDigits + scale > precision && scale > MIN_DECIMAL_DIVIDE_SCALE &&
+							    precision - integralNumDigits >= MIN_DECIMAL_DIVIDE_SCALE) {
+								scale = precision - integralNumDigits;
+							}
+							break;
+						}
+						case TypeCompiler.DIVIDE_OP: {
+							if (rightTypeId.isDecimalTypeId()) {
+								integralNumDigits = lprec - lscale + rprec;
+								if (integralNumDigits <= precision &&
+									integralNumDigits + scale > precision && scale > MIN_DECIMAL_DIVIDE_SCALE &&
+									precision - integralNumDigits >= MIN_DECIMAL_DIVIDE_SCALE) {
+									scale = precision - integralNumDigits;
+								}
+							}
+							break;
+						}
+						default:
+							break;
+					}
+				}
+
 				// Use high precision for decimals, so we don't overflow.
 				// But don't use max precision to leave room for 4 digits to
 				// the right of the decimal place for operations like AVG.
@@ -512,7 +559,7 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 		*/
 		if (operator == null)
 		{
-			val = this.getScale(operator, leftType, rightType) +
+			val = this.getScale(null, leftType, rightType) +
 					Math.max(lprec - lscale, rprec - rscale);
 		}
 		else if (operator.equals(TypeCompiler.TIMES_OP))
