@@ -30,7 +30,8 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   var internalTNDF: Dataset[Row] = _
   val table = "test"
   val externalTable = "testExternal"
-  val schema = "TestContext"
+  val module = "splice_spark2"
+  val schema = s"${module}_TestContext_SplicemachineContext_schema"
   val internalTN = schema+"."+table
   val externalTN = schema+"."+externalTable
 
@@ -40,7 +41,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c1_boolean boolean, " +
     "c2_char char(5), " +
     "c3_date date, " +
-    "c4_decimal numeric(15,2), " +
+    "c4_numeric numeric(15,2), " +
     "c5_double double, " +
     "c6_int int, " +
     "c7_bigint bigint, " +
@@ -49,13 +50,18 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c10_time time, " +
     "c11_timestamp timestamp, " +
     "c12_varchar varchar(56), " +
+    "c13_decimal decimal(4,1), " +
+    "c14_bigint bigint, " +
+    "c15_longvarchar long varchar, " +
+    "c16_real real, " +
+    "c17_int int, " +
     "primary key (c6_int, c7_bigint)" +
      ")"
   val allTypesCreateStringWithoutPrimaryKey = "(" +
     "c1_boolean boolean, " +
     "c2_char char(5), " +
     "c3_date date, " +
-    "c4_decimal numeric(15,2), " +
+    "c4_numeric numeric(15,2), " +
     "c5_double double, " +
     "c6_int int, " +
     "c7_bigint bigint, " +
@@ -63,25 +69,35 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c9_smallint smallint, " +
     "c10_time time, " +
     "c11_timestamp timestamp, " +
-    "c12_varchar varchar(56)" +
+    "c12_varchar varchar(56)," +
+    "c13_decimal decimal(4,1), " +
+    "c14_bigint bigint, " +
+    "c15_longvarchar long varchar, " +
+    "c16_real real, " +
+    "c17_int int " +
     ")"
   
   def allTypesSchema(withPrimaryKey: Boolean): StructType = {
-    val c6 = StructField("c6_int", IntegerType, ! withPrimaryKey)
-    val c7 = StructField("c7_bigint", LongType, ! withPrimaryKey)
+    val c6 = StructField("C6_INT", IntegerType, ! withPrimaryKey)
+    val c7 = StructField("C7_BIGINT", LongType, ! withPrimaryKey)
 
     StructType(
-      StructField("c1_boolean", BooleanType, true) ::
-      StructField("c2_char", StringType, true) ::
-      StructField("c3_date", DateType, true) ::
-      StructField("c4_decimal", DecimalType(15,2), true) ::
-      StructField("c5_double", DoubleType, true) ::
+      StructField("C1_BOOLEAN", BooleanType, true) ::
+      StructField("C2_CHAR", StringType, true) ::
+      StructField("C3_DATE", DateType, true) ::
+      StructField("C4_NUMERIC", DecimalType(15,2), true) ::
+      StructField("C5_DOUBLE", DoubleType, true) ::
       c6 :: c7 ::
-      StructField("c8_float", FloatType, true) ::
-      StructField("c9_smallint", ShortType, true) ::
-      StructField("c10_time", TimestampType, true) ::
-      StructField("c11_timestamp", TimestampType, true) ::
-      StructField("c12_varchar", StringType, true) ::
+      StructField("C8_FLOAT", FloatType, true) ::
+      StructField("C9_SMALLINT", ShortType, true) ::
+      StructField("C10_TIME", TimestampType, true) ::
+      StructField("C11_TIMESTAMP", TimestampType, true) ::
+      StructField("C12_VARCHAR", StringType, true) ::
+      StructField("C13_DECIMAL", DecimalType(4,1), true) ::
+      StructField("C14_BIGINT", LongType, true) ::
+      StructField("C15_LONGVARCHAR", StringType, true) ::
+      StructField("C16_REAL", FloatType, true) ::
+      StructField("C17_INT", IntegerType, true) ::
       Nil)
   }
   
@@ -91,7 +107,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c1_boolean, " +
     "c2_char, " +
     "c3_date, " +
-    "c4_decimal, " +
+    "c4_numeric, " +
     "c5_double, " +
     "c6_int, " +
     "c7_bigint, " +
@@ -99,9 +115,14 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c9_smallint, " +
     "c10_time, " +
     "c11_timestamp, " +
-    "c12_varchar " +
+    "c12_varchar, " +
+    "c13_decimal, " +
+    "c14_bigint, " +
+    "c15_longvarchar, " +
+    "c16_real, " +
+    "c17_int " +
     ") "
-  val allTypesInsertStringValues = "values (?,?,?,?,?,?,?,?,?,?,?,?)"
+  val allTypesInsertStringValues = "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
   val primaryKeyDelete = "where c6_int = ? and c7_bigint = ?"
 
@@ -137,14 +158,19 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     set("spark.ui.enabled", "false").
     set("spark.app.id", appID)
 
+  val testRow = List(false, "abcde", java.sql.Date.valueOf("2014-03-11"),
+    new BigDecimal(4.44, new java.math.MathContext(15)).setScale(2),
+    5.5, 0, 0L, 8.8f, new java.lang.Short("9"), new java.sql.Timestamp(1000), new java.sql.Timestamp(11),
+    "Varchar C12",
+    new BigDecimal(13.3, new java.math.MathContext(4)).setScale(1),
+    14L, "Long Varchar C15", 16.6f, 17
+  )
+
   override def beforeAll() {
     spark = SparkSession.builder.config(conf).getOrCreate
     splicemachineContext = new SplicemachineContext(defaultJDBCURL)
     internalTNDF = dataframe(
-      rdd(Seq(
-        Row.fromSeq( Seq(true, "abcde", java.sql.Date.valueOf("2013-09-04"), new BigDecimal("" + 4), 1.5, 6,
-          7L, 1.8f, new java.lang.Short("9"), new java.sql.Timestamp(10), new java.sql.Timestamp(11), "Varchar C12") )
-      )),
+      rdd( Seq( Row.fromSeq( testRow ) ) ),
       allTypesSchema(true)
     )
   }
@@ -177,6 +203,10 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     if (!splicemachineContext.tableExists(internalTN))
       getConnection.createStatement().execute("create table "+internalTN + this.allTypesCreateStringWithPrimaryKey)
 
+  def dropInternalTable(): Unit =
+    if (splicemachineContext.tableExists(internalTN))
+      splicemachineContext.dropTable(internalTN)
+
   /**
     *
     * Insert Splice Machine Row
@@ -193,7 +223,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
           ps.setBoolean(1, i % 2==0)
           ps.setString(2, if (i < 8)"" + i else null)
           ps.setDate(3, if (i % 2==0) java.sql.Date.valueOf("2013-09-04") else java.sql.Date.valueOf("2013-09-05"))
-          ps.setBigDecimal(4, new BigDecimal("" + i))
+          ps.setBigDecimal(4, new BigDecimal(i, new java.math.MathContext(15)).setScale(2) )
           ps.setDouble(5, i)
           ps.setInt(6, i)
           ps.setInt(7, i)
@@ -202,6 +232,11 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
           ps.setTime(10, new Time(i))
           ps.setTimestamp(11, new Timestamp(i))
           ps.setString(12, if (i < 8) "sometestinfo" + i else null)
+          ps.setBigDecimal(13, new BigDecimal(i, new java.math.MathContext(4)).setScale(1) )
+          ps.setInt(14, i)
+          ps.setString(15, if (i < 8) "long varchar sometestinfo" + i else null)
+          ps.setFloat(16, i)
+          ps.setInt(17, i)
           ps.execute()
         }
       }finally {
