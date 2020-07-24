@@ -355,6 +355,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 return handleExceptionSparkRead(e, location, false);
             }
 
+            checkNumColumns(location, baseColumnMap, table);
             ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
             return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
                     execRow, useSample, sampleFraction, table);
@@ -388,7 +389,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             } catch (Exception e) {
                 return handleExceptionSparkRead(e, location, false);
             }
-
+            checkNumColumns(location, baseColumnMap, table);
             table = ExternalTableUtils.castDateTypeInAvroDataSet(table, tableSchemaCopy);
             ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
 
@@ -784,6 +785,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 if (table.schema().fields().length == 0)
                     return getEmpty();
 
+                checkNumColumns(location, baseColumnMap, table);
+
                 if (op == null) {
                     // stats collection scan
                     for(int index = 0; index < execRow.schema().fields().length; index++) {
@@ -814,7 +817,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
     }
 
-    private static Column createFilterCondition(Dataset dataset,String[] allColIdInSpark, Qualifier[][] qual_list, int[] baseColumnMap, DataValueDescriptor probeValue) throws StandardException {
+    /// check that we don't access a column that's not there with baseColumnMap
+    private void checkNumColumns(String location, int[] baseColumnMap, Dataset<Row> table) throws StandardException {
+        if( baseColumnMap.length > table.schema().fields().length) {
+            throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE,
+                    baseColumnMap.length, table.schema().fields().length,
+                    location, ExternalTableUtils.getSuggestedSchema(table.schema()));
+        }
+    }
+
+    private static Column createFilterCondition(Dataset dataset,String[] allColIdInSpark, Qualifier[][] qual_list,
+                                                int[] baseColumnMap, DataValueDescriptor probeValue) throws StandardException {
         assert qual_list!=null:"qualifier[][] passed in is null";
         boolean     row_qualifies = true;
         Column andCols = null;
