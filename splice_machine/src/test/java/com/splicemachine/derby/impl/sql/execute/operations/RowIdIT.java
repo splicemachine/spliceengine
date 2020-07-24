@@ -344,14 +344,13 @@ public class RowIdIT extends SpliceUnitTest {
         ps.setRowId(1, rowId);
         try {
             rs = ps.executeQuery();
+            while (rs.next()) {
+                rId = rs.getRowId(2);
+                String s = rs.getString(2);
+                Assert.assertTrue(s.compareToIgnoreCase(rId.toString()) == 0);
+            }
         } finally {
             ps.close();
-        }
-
-        while (rs.next()) {
-            rId = rs.getRowId(2);
-            String s = rs.getString(2);
-            Assert.assertTrue(s.compareToIgnoreCase(rId.toString()) == 0);
         }
     }
 
