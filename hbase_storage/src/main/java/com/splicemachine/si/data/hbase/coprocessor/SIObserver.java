@@ -27,6 +27,7 @@ import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
@@ -520,6 +521,27 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 WALEdit val = entry.getEdit();
 
                 LOG.info(key + " -> " + val);
+            }
+        }
+    }
+
+    @Override
+    public void preWALRestore(ObserverContext<? extends RegionCoprocessorEnvironment> ctx, RegionInfo info, WALKey logKey, WALEdit logEdit) throws IOException {
+        // DB-9895: HBase may replay a WAL edits that has been persisted in HFile. It could happen that a row with
+        // FIRST_WRITE_TOKE has already been persisted in an HFile. If the row is replayed to memstore and deleted,
+        // the row will be purged during flush. However, the row that already persisted in HFile is still visible.
+        // Remove FIRST_WRITE_TOKE during wal replay to prevent this from happening.
+        SConfiguration config = HConfiguration.getConfiguration();
+        String namespace = logKey.getTableName().getNamespaceAsString();
+        if (namespace.equals(config.getNamespace())) {
+            ArrayList<Cell> cells = logEdit.getCells();
+            Iterator<Cell> it = cells.iterator();
+            while (it.hasNext()) {
+                Cell cell = it.next();
+                CellType cellType = CellUtils.getKeyValueType(cell);
+                if (cellType == CellType.FIRST_WRITE_TOKEN) {
+                    it.remove();
+                }
             }
         }
     }
