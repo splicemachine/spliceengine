@@ -151,9 +151,13 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     new BigDecimal(13.3, new java.math.MathContext(4)).setScale(1) )
 
   override def beforeAll() {
-    sc = new SparkContext(conf)
-    SpliceSpark.setContext(sc)
-    spark = SparkSession.builder.config(conf).getOrCreate
+    spark = SpliceSpark.getSessionUnsafe
+    spark.conf.set("spark.master", "local[*]")
+    spark.conf.set("spark.app.name", "test")
+    spark.conf.set("spark.ui.enabled", "false")
+    spark.conf.set("spark.app.id", appID)
+    sc = spark.sparkContext
+
     splicemachineContext = new SplicemachineContext(defaultJDBCURL)
     internalTNDF = dataframe(
       rdd( Seq( Row.fromSeq( testRow ) ) ),

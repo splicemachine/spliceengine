@@ -32,15 +32,16 @@ import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 import org.scalatest.junit.JUnitRunner
 import org.apache.spark.sql.functions._
 import java.sql.Connection
-import com.splicemachine.test.LongerThanTwoMinutes
 
+import com.splicemachine.derby.impl.SpliceSpark
+import com.splicemachine.test.LongerThanTwoMinutes
 import org.junit.experimental.categories.Category
 
 @RunWith(classOf[JUnitRunner])
 @Category(Array(classOf[LongerThanTwoMinutes]))
 class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with Matchers {
   val rowCount = 10
-  var sqlContext : SQLContext = _
+  var sqlContext : SQLContext = SpliceSpark.getSessionUnsafe.sqlContext
   var rows : IndexedSeq[(Int, Int, String, Long)] = _
 
   before {

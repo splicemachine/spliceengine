@@ -35,20 +35,20 @@ import scala.collection.mutable.Queue
 @RunWith(classOf[JUnitRunner])
 class SparkStreamingIT extends FunSuite with TestStreamingContext with BeforeAndAfter with Matchers {
   val rowCount = 10
-  var sqlContext : SQLContext = _
+  var session : SparkSession = SpliceSpark.getSessionUnsafe
+  var sqlContext : SQLContext = session.sqlContext
   var rows : IndexedSeq[(Int, Int, String, Long)] = _
-  var session : SparkSession = _
 
   before {
     val rowCount = 10
 
-    ssc = new StreamingContext(conf, Milliseconds(50))
+    session.conf.set("spark.master", "local[*]")
+    session.conf.set("spark.app.name", "test")
+    session.conf.set("spark.app.id", appID)
+    ssc = new StreamingContext(session.sparkContext, Milliseconds(50))
 
-    SpliceSpark.setContext(ssc.sparkContext)
-    session = SpliceSpark.getSessionUnsafe
     splicemachineContext = new SplicemachineContext(defaultJDBCURL)
-    
-    sqlContext = SpliceSpark.getSessionUnsafe.sqlContext
+
     if (splicemachineContext.tableExists(internalTN)) {
       splicemachineContext.dropTable(internalTN)
     }

@@ -257,13 +257,14 @@ class SpliceTestPlatformConfig {
         config.setInt("hbase.hconnection.threads.max", 128);
         config.setInt("hbase.hconnection.threads.core", 8);
         config.setLong("hbase.hconnection.threads.keepalivetime", 300);
-        config.setLong("hbase.regionserver.msginterval", 1000);
+        config.setLong("hbase.regionserver.msginterval", 15000);  // msirek-temp
         config.setLong("hbase.regionserver.optionalcacheflushinterval", 0); // disable automatic flush, meaningless since our timestamps are arbitrary
         config.setLong("hbase.master.event.waiting.time", 20);
         config.setLong("hbase.master.lease.thread.wakefrequency", SECONDS.toMillis(3));
 //        config.setBoolean("hbase.master.loadbalance.bytable",true);
-        config.setInt("hbase.balancer.period",5000);
         config.setInt("hbase.hfile.compaction.discharger.interval", 20*1000);
+        config.setInt("hbase.balancer.period",3000000);  // msirek-temp
+        config.setInt("hbase.balancer.statusPeriod",3000000);  // msirek-temp
 
         config.setLong("hbase.server.thread.wakefrequency", SECONDS.toMillis(1));
         config.setLong("hbase.client.pause", 100);
