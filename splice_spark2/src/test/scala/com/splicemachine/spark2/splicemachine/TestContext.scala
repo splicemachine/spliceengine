@@ -88,7 +88,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
       StructField("C4_NUMERIC", DecimalType(15,2), true) ::
       StructField("C5_DOUBLE", DoubleType, true) ::
       c6 :: c7 ::
-      StructField("C8_FLOAT", FloatType, true) ::
+      StructField("C8_FLOAT", DoubleType, true) ::
       StructField("C9_SMALLINT", ShortType, true) ::
       StructField("C10_TIME", TimestampType, true) ::
       StructField("C11_TIMESTAMP", TimestampType, true) ::
@@ -160,7 +160,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
 
   val testRow = List(false, "abcde", java.sql.Date.valueOf("2014-03-11"),
     new BigDecimal(4.44, new java.math.MathContext(15)).setScale(2),
-    5.5, 0, 0L, 8.8f, new java.lang.Short("9"), new java.sql.Timestamp(1000), new java.sql.Timestamp(11),
+    5.5, 0, 0L, 8.8, new java.lang.Short("9"), new java.sql.Timestamp(1000), new java.sql.Timestamp(11),
     "Varchar C12",
     new BigDecimal(13.3, new java.math.MathContext(4)).setScale(1),
     14L, "Long Varchar C15", 16.6f, 17
@@ -176,6 +176,8 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   }
 
   override def afterAll() {
+    dropInternalTable
+    dropSchema(schema)
     if (spark != null) spark.stop()
   }
 
@@ -198,14 +200,48 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
       conn.close()
     }
   }
-  
+
+  def execute(sql: String): Unit = {
+    val conn = getConnection()
+    try {
+      conn.createStatement().execute(sql)
+    }
+    finally {
+      conn.close()
+    }
+  }
+
   def createInternalTable(): Unit =
     if (!splicemachineContext.tableExists(internalTN))
-      getConnection.createStatement().execute("create table "+internalTN + this.allTypesCreateStringWithPrimaryKey)
+      execute("create table "+internalTN + this.allTypesCreateStringWithPrimaryKey)
 
   def dropInternalTable(): Unit =
     if (splicemachineContext.tableExists(internalTN))
-      splicemachineContext.dropTable(internalTN)
+      execute("drop table "+internalTN )
+
+  def dropSchema(schemaToDrop: String): Unit = execute(s"drop schema $schemaToDrop restrict")
+
+  def executeQuery(sql: String, processResultSet: java.sql.ResultSet => Any): Any = {
+    val conn = getConnection()
+    var rs: java.sql.ResultSet = null
+    try {
+      rs = conn.createStatement().executeQuery(sql)
+      processResultSet(rs)
+    }
+    finally {
+      rs.close
+      conn.close
+    }
+  }
+
+  def rowCount(table: String): Int =
+    executeQuery(
+      s"select count(*) from $table",
+      rs => {
+        rs.next
+        rs.getInt(1)
+      }
+    ).asInstanceOf[Int]
 
   /**
     *

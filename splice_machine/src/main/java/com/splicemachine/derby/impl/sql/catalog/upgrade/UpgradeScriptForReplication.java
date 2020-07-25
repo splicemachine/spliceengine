@@ -28,7 +28,7 @@ import java.io.IOException;
  * Created by jyuan on 2/12/19.
  */
 public class UpgradeScriptForReplication extends UpgradeScriptBase {
-    private static final Logger LOG = Logger.getLogger(UpgradeScriptForDroppedConglomerates.class);
+    private static final Logger LOG = Logger.getLogger(UpgradeScriptForReplication.class);
     public UpgradeScriptForReplication(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }

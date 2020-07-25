@@ -18,14 +18,13 @@ package com.splicemachine.spark.splicemachine
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream}
 
-import org.apache.spark.sql.{Row, SQLContext}
+import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FunSuite, Matchers}
 
 @RunWith(classOf[JUnitRunner])
 class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
-  val rowCount = 10
 
   private def serialize(value: Any): Array[Byte] = {
     val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
@@ -55,8 +54,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
 
   test("Test Get Schema") {
     dropInternalTable
-    insertInternalRows(rowCount)
-    val sqlContext = new SQLContext(sc)
+    createInternalTable
     val schema = splicemachineContext.getSchema(internalTN)
     // SPARK-22002 removed metadata from StructFields in JdbcUtils.getSchema() (since Spark 2.3)
     org.junit.Assert.assertEquals(
@@ -68,8 +66,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
 
   test("Test Get RDD") {
     dropInternalTable
-    insertInternalRows(rowCount)
-    val sqlContext = new SQLContext(sc)
+    insertInternalRows(10)
     val rdd = splicemachineContext.rdd(internalTN,Seq("C2_CHAR","C7_BIGINT"))
     org.junit.Assert.assertEquals("RDD Changed!","List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])",rdd.collect().toList.toString)
   }
@@ -148,10 +145,8 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     createInternalTable
 
     splicemachineContext.insert(internalTNDF, internalTN)
-
-    val rs = getConnection.createStatement.executeQuery("select count(*) from "+internalTN)
-    rs.next
-    org.junit.Assert.assertEquals("Insert Failed!", 1, rs.getInt(1))
+    
+    org.junit.Assert.assertEquals("Insert Failed!", 1, rowCount(internalTN))
   }
 
   test("Test Insert Duplicate") {
@@ -173,16 +168,14 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     dropInternalTable
     createInternalTable
 
-    val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+s"/${module}-SplicemachineContextIT/bulkImport" )
+    val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+s"/$module-SplicemachineContextIT/bulkImport" )
     bulkImportDirectory.mkdirs()
 
     splicemachineContext.bulkImportHFile(internalTNDF, internalTN,
       collection.mutable.Map("bulkImportDirectory" -> bulkImportDirectory.getAbsolutePath)
     )
 
-    val rs = getConnection.createStatement.executeQuery("select count(*) from "+internalTN)
-    rs.next
-    org.junit.Assert.assertEquals("Bulk Import Failed!", 1, rs.getInt(1))
+    org.junit.Assert.assertEquals("Bulk Import Failed!", 1, rowCount(internalTN))
   }
 
   test("Test SplitAndInsert") {
@@ -191,9 +184,43 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
 
     splicemachineContext.splitAndInsert(internalTNDF, internalTN, 0.5)
 
-    val rs = getConnection.createStatement.executeQuery("select count(*) from "+internalTN)
-    rs.next
-    org.junit.Assert.assertEquals("SplitAndInsert Failed!", 1, rs.getInt(1))
+    org.junit.Assert.assertEquals("SplitAndInsert Failed!", 1, rowCount(internalTN))
+  }
+
+  test("Test Update") {
+    dropInternalTable
+    insertInternalRows(1)
+    
+    splicemachineContext.update(internalTNDF, internalTN)
+
+    org.junit.Assert.assertEquals("Update Failed!",
+      (testRow.slice(0,9) ::: new java.sql.Time(1000) :: testRow.slice(10,18)).mkString(", "),
+      executeQuery(
+        s"select * from $internalTN",
+        rs => {
+          rs.next
+          List(
+            rs.getBoolean(1),
+            rs.getString(2),
+            rs.getDate(3),
+            rs.getBigDecimal(4),
+            rs.getDouble(5),
+            rs.getInt(6),
+            rs.getInt(7),
+            rs.getFloat(8),
+            rs.getShort(9),
+            rs.getTime(10),
+            rs.getTimestamp(11),
+            rs.getString(12),
+            rs.getBigDecimal(13),
+            rs.getInt(14),
+            rs.getString(15),
+            rs.getFloat(16),
+            rs.getInt(17)
+          ).mkString(", ")
+        }
+      ).asInstanceOf[String]
+    )
   }
 
   test("Test Inserting Null") {

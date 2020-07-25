@@ -60,6 +60,21 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     splicemachineContext.getConnection().commit()
     sqlContext.read.options(internalOptions).splicemachine.createOrReplaceTempView(table)
   }
+  
+  after {
+    if (splicemachineContext.tableExists(internalTN)) {
+      splicemachineContext.dropTable(internalTN)
+    }
+    if (splicemachineContext.tableExists(externalTN)) {
+      splicemachineContext.dropTable(externalTN)
+    }
+    if (splicemachineContext.tableExists(schema+"."+"T")) {
+      splicemachineContext.dropTable(schema+"."+"T")
+    }
+    if (splicemachineContext.tableExists(schema+"."+"T2")) {
+      splicemachineContext.dropTable(schema+"."+"T2")
+    }
+  }
 
   test("read from datasource api") {
     val df = sqlContext.read.options(internalOptions).splicemachine
@@ -85,7 +100,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
       ps.setBoolean(1, false)
       ps.setString(2, "\n")
       ps.setDate(3, java.sql.Date.valueOf("2013-09-05"))
-      ps.setBigDecimal(4, new BigDecimal("11"))
+      ps.setBigDecimal(4, new BigDecimal(11, new java.math.MathContext(15)).setScale(2))
       ps.setDouble(5, 11)
       ps.setInt(6, 11)
       ps.setInt(7, 11)
