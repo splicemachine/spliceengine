@@ -44,6 +44,7 @@ class SICompactionStateMutate {
     private long lowWatermarkTransaction;
     private boolean firstWriteToken = false;
     private long deleteRightAfterFirstWriteTimestamp = 0;
+    private boolean bypassPurge = false;
     private Map<Integer, Long> columnUpdateLatestTimestamp = new HashMap<>();
     private Set<Long> updatesToPurgeTimestamps = new HashSet<>();
     private boolean firstUpdateCell = true;
@@ -160,11 +161,20 @@ class SICompactionStateMutate {
                 lastSeenAntiTombstone = element;
                 break;
             case FIRST_WRITE_TOKEN:
-                assert !firstWriteToken;
+                // Assertions are only thrown in standalone builds.
+                // Avoid the purge instead of using an assertion to prevent corruption.
+                if (firstWriteToken) {
+                    bypassPurge = true;
+                    LOG.warn("Skipping tombstone purge.  Duplicate FIRST_WRITE_TOKEN.  commitTimestamp = " + commitTimestamp + ", beginTimestamp = " + beginTimestamp);
+                }
                 firstWriteToken = true;
                 break;
             case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
-                assert deleteRightAfterFirstWriteTimestamp == 0;
+                if (deleteRightAfterFirstWriteTimestamp != 0)
+                {
+                    bypassPurge = true;
+                    LOG.warn("Skipping tombstone purge.  More that one DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN.  commitTimestamp = " + commitTimestamp + ", beginTimestamp = " + beginTimestamp);
+                }
                 deleteRightAfterFirstWriteTimestamp = beginTimestamp;
                 break;
             case USER_DATA: {
@@ -212,9 +222,9 @@ class SICompactionStateMutate {
             case ALWAYS:
                 return true;
             case IF_DELETE_FOLLOWS_FIRST_WRITE:
-                return firstWriteToken && deleteRightAfterFirstWriteTimestamp == maxTombstone.getTimestamp();
+                return firstWriteToken && !bypassPurge && deleteRightAfterFirstWriteTimestamp == maxTombstone.getTimestamp();
             case IF_FIRST_WRITE_PRESENT:
-                return firstWriteToken;
+                return firstWriteToken && !bypassPurge;
         }
         assert false;
         return false;

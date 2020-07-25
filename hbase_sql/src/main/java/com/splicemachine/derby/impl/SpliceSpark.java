@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.NoSuchElementException;
 
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
@@ -84,10 +85,8 @@ public class SpliceSpark {
             throw new RuntimeException("Trying to get a SparkSession from outside the OlapServer");
         }
         SparkSession result = sessions.get();
-        if (result == null) {
+        if (result == null)
             result = getSessionUnsafe().newSession();
-            sessions.set(result);
-        }
         return result;
     }
 
@@ -95,12 +94,16 @@ public class SpliceSpark {
      * get a local Spark Context, it should never be used when implementing Splice operations or functions
      */
     public static synchronized SparkSession getSessionUnsafe() {
+        SparkSession sessionToUse = sessions.get();
+        boolean isOlapWorker = Thread.currentThread().getName().startsWith("olap-worker-");
+        boolean needsReinitialization = !isOlapWorker &&
+                (sessionToUse == null || sessionToUse.sparkContext().isStopped()) &&
+                (session != null && !session.sparkContext().isStopped());
         if (!initialized) {
-            session = initializeSparkSession();
+            sessionToUse = session = initializeSparkSession();
             ctx =  new JavaSparkContext(session.sparkContext());
             initialized = true;
-        } else if (session.sparkContext().isStopped() && !SpliceClient.isClient()) {
-            // Try to reinitialize the SparkContext, unless this is SpliceClient, in that case let the user handle the SparkContext
+        } else if (!needsReinitialization && session.sparkContext().isStopped()) {
             LOG.warn("SparkContext is stopped, reinitializing...");
             try {
                 if (UserGroupInformation.isSecurityEnabled() && UserGroupInformation.isLoginKeytabBased()) {
@@ -109,11 +112,30 @@ public class SpliceSpark {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            System.exit(0);
-            session = initializeSparkSession();
+            if (isOlapWorker)
+                System.exit(0);
+            sessionToUse = session = initializeSparkSession();
             ctx =  new JavaSparkContext(session.sparkContext());
         }
-        return session;
+        else {
+            if (sessionToUse == null || needsReinitialization) {
+                String allowMultipleContextsString = null;
+                try {
+                    allowMultipleContextsString = session.conf().get("spark.driver.allowMultipleContexts");
+                }
+                catch (NoSuchElementException e) {
+                }
+                boolean allowMultipleContexts =
+                        allowMultipleContextsString != null &&
+                        allowMultipleContextsString.equals("true");
+                if (session != null && !allowMultipleContexts)
+                    sessionToUse = session.newSession();
+                else
+                    sessionToUse = initializeSparkSession();
+            }
+        }
+        sessions.set(sessionToUse);
+        return sessionToUse;
     }
 
     public static synchronized JavaSparkContext getContext() {

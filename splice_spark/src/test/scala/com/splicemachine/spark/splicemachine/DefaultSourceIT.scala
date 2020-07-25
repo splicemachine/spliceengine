@@ -16,31 +16,31 @@ package com.splicemachine.spark.splicemachine
 import java.io.File
 import java.math.BigDecimal
 import java.nio.file.{Files, Path}
-import java.sql.{Time, Timestamp}
+import java.sql.{Connection, Time, Timestamp}
 import java.util.Date
 
+import com.splicemachine.test.LongerThanTwoMinutes
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
-import org.apache.spark.sql.jdbc.JdbcDialects
-
-import scala.collection.immutable.IndexedSeq
 import org.apache.spark.sql._
-import org.junit.runner.RunWith
+import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
+import org.apache.spark.sql.functions._
 import org.junit.Assert._
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
+import org.junit.experimental.categories.Category
+import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.apache.spark.sql.functions._
 import java.sql.Connection
+import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 
 import com.splicemachine.test.{LongerThanFiveMinutes, LongerThanTwoMinutes}
 import org.junit.experimental.categories.Category
+import scala.collection.immutable.IndexedSeq
 
 @RunWith(classOf[JUnitRunner])
 @Category(Array(classOf[LongerThanTwoMinutes], classOf[LongerThanFiveMinutes]))
 class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with Matchers {
   val rowCount = 10
-  var sqlContext : SQLContext = _
   var rows : IndexedSeq[(Int, Int, String, Long)] = _
 
   before {
