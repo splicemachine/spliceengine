@@ -24,7 +24,6 @@ import org.apache.spark.sql.Row
 
 @RunWith(classOf[JUnitRunner])
 class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
-  val rowCount = 10
 
   private def serialize(value: Any): Array[Byte] = {
     val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
@@ -54,18 +53,19 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
 
   test("Test Get Schema") {
     dropInternalTable
-    insertInternalRows(rowCount)
+    createInternalTable
     val schema = splicemachineContext.getSchema(internalTN)
+
     org.junit.Assert.assertEquals(
       "Schema Changed!",
-      "{\"type\":\"struct\",\"fields\":[{\"name\":\"C1_BOOLEAN\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{\"name\":\"C1_BOOLEAN\",\"scale\":0}},{\"name\":\"C2_CHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{\"name\":\"C2_CHAR\",\"scale\":0}},{\"name\":\"C3_DATE\",\"type\":\"date\",\"nullable\":true,\"metadata\":{\"name\":\"C3_DATE\",\"scale\":0}},{\"name\":\"C4_NUMERIC\",\"type\":\"decimal(15,2)\",\"nullable\":true,\"metadata\":{\"name\":\"C4_DECIMAL\",\"scale\":2}},{\"name\":\"C5_DOUBLE\",\"type\":\"double\",\"nullable\":true,\"metadata\":{\"name\":\"C5_DOUBLE\",\"scale\":0}},{\"name\":\"C6_INT\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{\"name\":\"C6_INT\",\"scale\":0}},{\"name\":\"C7_BIGINT\",\"type\":\"long\",\"nullable\":false,\"metadata\":{\"name\":\"C7_BIGINT\",\"scale\":0}},{\"name\":\"C8_FLOAT\",\"type\":\"double\",\"nullable\":true,\"metadata\":{\"name\":\"C8_FLOAT\",\"scale\":0}},{\"name\":\"C9_SMALLINT\",\"type\":\"short\",\"nullable\":true,\"metadata\":{\"name\":\"C9_SMALLINT\",\"scale\":0}},{\"name\":\"C10_TIME\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{\"name\":\"C10_TIME\",\"scale\":0}},{\"name\":\"C11_TIMESTAMP\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{\"name\":\"C11_TIMESTAMP\",\"scale\":9}},{\"name\":\"C12_VARCHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{\"name\":\"C12_VARCHAR\",\"scale\":0}},{\"name\":\"C13_DECIMAL\",\"type\":\"decimal(4,1)\",\"nullable\":true,\"metadata\":{\"name\":\"C13_DECIMAL\",\"scale\":1}},{\"name\":\"C14_BIGINT\",\"type\":\"long\",\"nullable\":true,\"metadata\":{\"name\":\"C14_BIGINT\",\"scale\":0}},{\"name\":\"C15_LONGVARCHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{\"name\":\"C15_LONGVARCHAR\",\"scale\":0}},{\"name\":\"C16_REAL\",\"type\":\"float\",\"nullable\":true,\"metadata\":{\"name\":\"C16_REAL\",\"scale\":0}},{\"name\":\"C17_INT\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{\"name\":\"C17_INT\",\"scale\":0}}]}",
+      "{\"type\":\"struct\",\"fields\":[{\"name\":\"C1_BOOLEAN\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{\"name\":\"C1_BOOLEAN\",\"scale\":0}},{\"name\":\"C2_CHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{\"name\":\"C2_CHAR\",\"scale\":0}},{\"name\":\"C3_DATE\",\"type\":\"date\",\"nullable\":true,\"metadata\":{\"name\":\"C3_DATE\",\"scale\":0}},{\"name\":\"C4_NUMERIC\",\"type\":\"decimal(15,2)\",\"nullable\":true,\"metadata\":{\"name\":\"C4_NUMERIC\",\"scale\":2}},{\"name\":\"C5_DOUBLE\",\"type\":\"double\",\"nullable\":true,\"metadata\":{\"name\":\"C5_DOUBLE\",\"scale\":0}},{\"name\":\"C6_INT\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{\"name\":\"C6_INT\",\"scale\":0}},{\"name\":\"C7_BIGINT\",\"type\":\"long\",\"nullable\":false,\"metadata\":{\"name\":\"C7_BIGINT\",\"scale\":0}},{\"name\":\"C8_FLOAT\",\"type\":\"double\",\"nullable\":true,\"metadata\":{\"name\":\"C8_FLOAT\",\"scale\":0}},{\"name\":\"C9_SMALLINT\",\"type\":\"short\",\"nullable\":true,\"metadata\":{\"name\":\"C9_SMALLINT\",\"scale\":0}},{\"name\":\"C10_TIME\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{\"name\":\"C10_TIME\",\"scale\":0}},{\"name\":\"C11_TIMESTAMP\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{\"name\":\"C11_TIMESTAMP\",\"scale\":9}},{\"name\":\"C12_VARCHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{\"name\":\"C12_VARCHAR\",\"scale\":0}},{\"name\":\"C13_DECIMAL\",\"type\":\"decimal(4,1)\",\"nullable\":true,\"metadata\":{\"name\":\"C13_DECIMAL\",\"scale\":1}},{\"name\":\"C14_BIGINT\",\"type\":\"long\",\"nullable\":true,\"metadata\":{\"name\":\"C14_BIGINT\",\"scale\":0}},{\"name\":\"C15_LONGVARCHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{\"name\":\"C15_LONGVARCHAR\",\"scale\":0}},{\"name\":\"C16_REAL\",\"type\":\"float\",\"nullable\":true,\"metadata\":{\"name\":\"C16_REAL\",\"scale\":0}},{\"name\":\"C17_INT\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{\"name\":\"C17_INT\",\"scale\":0}}]}",
       schema.json
     )
   }
 
   test("Test Get RDD") {
     dropInternalTable
-    insertInternalRows(rowCount)
+    insertInternalRows(10)
     val rdd = splicemachineContext.rdd(internalTN,Seq("C2_CHAR","C7_BIGINT"))
     org.junit.Assert.assertEquals("RDD Changed!","List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])",rdd.collect.toList.map(r => s"[${r(0)},${r(1)}]").toString)
   }
@@ -145,9 +145,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
 
     splicemachineContext.insert(internalTNDF, internalTN)
 
-    val rs = getConnection.createStatement.executeQuery("select count(*) from "+internalTN)
-    rs.next
-    org.junit.Assert.assertEquals("Insert Failed!", 1, rs.getInt(1))
+    org.junit.Assert.assertEquals("Insert Failed!", 1, rowCount(internalTN))
   }
 
   test("Test Insert Duplicate") {
@@ -176,9 +174,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
       collection.mutable.Map("bulkImportDirectory" -> bulkImportDirectory.getAbsolutePath)
     )
 
-    val rs = getConnection.createStatement.executeQuery("select count(*) from "+internalTN)
-    rs.next
-    org.junit.Assert.assertEquals("Bulk Import Failed!", 1, rs.getInt(1))
+    org.junit.Assert.assertEquals("Bulk Import Failed!", 1, rowCount(internalTN))
   }
 
   test("Test SplitAndInsert") {
@@ -187,9 +183,43 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
 
     splicemachineContext.splitAndInsert(internalTNDF, internalTN, 0.5)
 
-    val rs = getConnection.createStatement.executeQuery("select count(*) from "+internalTN)
-    rs.next
-    org.junit.Assert.assertEquals("SplitAndInsert Failed!", 1, rs.getInt(1))
+    org.junit.Assert.assertEquals("SplitAndInsert Failed!", 1, rowCount(internalTN))
+  }
+
+  test("Test Update") {
+    dropInternalTable
+    insertInternalRows(1)
+    
+    splicemachineContext.update(internalTNDF, internalTN)
+
+    org.junit.Assert.assertEquals("Update Failed!",
+      (testRow.slice(0,9) ::: new java.sql.Time(1000) :: testRow.slice(10,18)).mkString(", "),
+      executeQuery(
+        s"select * from $internalTN",
+        rs => {
+          rs.next
+          List(
+            rs.getBoolean(1),
+            rs.getString(2),
+            rs.getDate(3),
+            rs.getBigDecimal(4),
+            rs.getDouble(5),
+            rs.getInt(6),
+            rs.getInt(7),
+            rs.getFloat(8),
+            rs.getShort(9),
+            rs.getTime(10),
+            rs.getTimestamp(11),
+            rs.getString(12),
+            rs.getBigDecimal(13),
+            rs.getInt(14),
+            rs.getString(15),
+            rs.getFloat(16),
+            rs.getInt(17)
+          ).mkString(", ")
+        }
+      ).asInstanceOf[String]
+    )
   }
 
   test("Test Inserting Null") {

@@ -27,6 +27,8 @@ import org.apache.hadoop.hbase.client.*;
 import org.junit.*;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Arrays;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -59,17 +61,22 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
                 .create();
     }
 
+    private void assertPurgeDeletedRowsFlag(boolean expected) throws SQLException {
+        String sql = "select purge_deleted_rows from sys.systables t, sys.sysschemas s where tablename='A' and " +
+                "schemaname='PHYSICALDELETIONIT' and t.schemaid=s.schemaid";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        boolean isValid = rs.next();
+        Assert.assertTrue(isValid);
+        boolean purgeDeletedRows = rs.getBoolean(1);
+        Assert.assertEquals(expected, purgeDeletedRows);
+    }
+
     @Test
     public void testPhysicalDelete() throws Exception {
 
         TestConnection conn = classWatcher.getOrCreateConnection();
 
-        String sql = "select purge_deleted_rows from sys.systables t, sys.sysschemas s where tablename='A' and " +
-                "schemaname='PHYSICALDELETIONIT' and t.schemaid=s.schemaid";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assert rs.next();
-        boolean purgeDeletedRows = rs.getBoolean(1);
-        Assert.assertTrue(!purgeDeletedRows);
+        assertPurgeDeletedRowsFlag(false);
 
         methodWatcher.executeUpdate("delete from A");
         methodWatcher.executeUpdate("insert into a values(1,1), (2,2)");
@@ -77,27 +84,23 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
         Thread.sleep(2000); // wait for commit markers to be written
 
         try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
-            long[] conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA, "A");
-            TableName hTableName = TableName.valueOf("splice:" + Long.toString(conglomId[0]));
             methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_FLUSH_TABLE('PHYSICALDELETIONIT','A')");
             methodWatcher.execute("CALL SYSCS_UTIL.SET_PURGE_DELETED_ROWS('PHYSICALDELETIONIT','A',true)");
             methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('PHYSICALDELETIONIT','A')");
 
-            Table table = connection.getTable(hTableName);
+            assertPurgeDeletedRowsFlag(true);
 
             Scan s = new Scan();
+            long[] conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA, "A");
+            TableName hTableName = TableName.valueOf("splice:" + conglomId[0]);
+            Table table = connection.getTable(hTableName);
             ResultScanner scanner = table.getScanner(s);
             int count = 0;
-
-            rs = methodWatcher.executeQuery(sql);
-            assert rs.next();
-            purgeDeletedRows = rs.getBoolean(1);
-            Assert.assertTrue(purgeDeletedRows);
-
             for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
+                System.out.println("RAW CELLS: " + Arrays.toString(rr.rawCells()));
                 count++;
             }
-            Assert.assertTrue(count == 2);
+            Assert.assertEquals(2, count);
         }
     }
 }

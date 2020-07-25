@@ -22,10 +22,12 @@ import java.util.*;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.compactions.SpliceCompactionRequest;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
@@ -221,6 +223,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
     @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner, ScanType scanType, CompactionLifeCycleTracker tracker, CompactionRequest request) throws IOException {
+        assert request instanceof SpliceCompactionRequest;
         try {
             // We can't return null, there's a check in org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost.preCompact
             // return a dummy implementation instead
@@ -233,15 +236,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                         driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
-                PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
-                if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                    purgeConfig.purgeDeletesDuringCompaction(request.isMajor());
-                } else {
-                    purgeConfig.noPurgeDeletes();
-                }
-                purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
                 SICompactionScanner siScanner = new SICompactionScanner(
-                        state, scanner, purgeConfig.build(),
+                        state, scanner, ((SpliceCompactionRequest) request).getPurgeConfig(),
                         conf.getOlapCompactionResolutionShare(), conf.getLocalCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
@@ -515,12 +511,9 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
     @Override
     public void preReplayWALs(ObserverContext<? extends RegionCoprocessorEnvironment> ctx, RegionInfo info, Path edits) throws IOException {
-        WAL.Reader reader = null;
         Configuration conf = ctx.getEnvironment().getConfiguration();
         FileSystem fs = FileSystem.get(edits.toUri(), conf);
-        try {
-            reader = WALFactory.createReader(fs, edits, conf);
-
+        try (WAL.Reader reader = WALFactory.createReader(fs, edits, conf)) {
             WAL.Entry entry;
             LOG.info("WAL replay");
             while ((entry = reader.next()) != null) {
@@ -529,8 +522,27 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
                 LOG.info(key + " -> " + val);
             }
-        } finally {
-            reader.close();
+        }
+    }
+
+    @Override
+    public void preWALRestore(ObserverContext<? extends RegionCoprocessorEnvironment> ctx, RegionInfo info, WALKey logKey, WALEdit logEdit) throws IOException {
+        // DB-9895: HBase may replay a WAL edits that has been persisted in HFile. It could happen that a row with
+        // FIRST_WRITE_TOKE has already been persisted in an HFile. If the row is replayed to memstore and deleted,
+        // the row will be purged during flush. However, the row that already persisted in HFile is still visible.
+        // Remove FIRST_WRITE_TOKE during wal replay to prevent this from happening.
+        SConfiguration config = HConfiguration.getConfiguration();
+        String namespace = logKey.getTableName().getNamespaceAsString();
+        if (namespace.equals(config.getNamespace())) {
+            ArrayList<Cell> cells = logEdit.getCells();
+            Iterator<Cell> it = cells.iterator();
+            while (it.hasNext()) {
+                Cell cell = it.next();
+                CellType cellType = CellUtils.getKeyValueType(cell);
+                if (cellType == CellType.FIRST_WRITE_TOKEN) {
+                    it.remove();
+                }
+            }
         }
     }
 }
