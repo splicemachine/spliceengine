@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Integer, ExecRow> {
     private String topicName;
@@ -74,26 +75,45 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
 
         return new Iterator<ExecRow>() {
             Iterator<ConsumerRecord<Integer, Externalizable>> it = null;
+            
+            Predicate<ConsumerRecords<Integer, Externalizable>> noRecords = records ->
+                records == null || records.isEmpty();
+            
+            private ConsumerRecords<Integer, Externalizable> kafkaRecords(int maxAttempts) throws TaskKilledException {
+                int attempt = 1;
+                ConsumerRecords<Integer, Externalizable> records = null;
+                do {
+                    records = consumer.poll(java.time.Duration.ofMillis(1000));
+                    if (TaskContext.get().isInterrupted()) {
+                        consumer.close();
+                        throw new TaskKilledException();
+                    }
+                } while( noRecords.test(records) && attempt++ < maxAttempts );
+                
+                return records;
+            }
+            
+            private boolean hasMoreRecords(int maxAttempts) throws TaskKilledException {
+                ConsumerRecords<Integer, Externalizable> records = kafkaRecords(maxAttempts);
+                if( noRecords.test(records) ) {
+                    consumer.close();
+                    return false;
+                } else {
+                    it = records.iterator();
+                    return it.hasNext();
+                }
+            }
 
             @Override
             public boolean hasNext() {
                 if (it == null) {
-                    ConsumerRecords<Integer, Externalizable> records = null;
-                    while (records == null || records.isEmpty()) {
-                        records = consumer.poll( java.time.Duration.ofMillis(1000) );
-                        if (TaskContext.get().isInterrupted()) {
-                            consumer.close();
-                            throw new TaskKilledException();
-                        }
-                    }
-                    it = records.iterator();
+                    return hasMoreRecords(60);
                 }
                 if (it.hasNext()) {
                     return true;
                 }
                 else {
-                    consumer.close();
-                    return false;
+                    return hasMoreRecords(1);
                 }
             }
 

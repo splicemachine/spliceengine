@@ -60,6 +60,21 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     splicemachineContext.getConnection().commit()
     sqlContext.read.options(internalOptions).splicemachine.createOrReplaceTempView(table)
   }
+  
+  after {
+    if (splicemachineContext.tableExists(internalTN)) {
+      splicemachineContext.dropTable(internalTN)
+    }
+    if (splicemachineContext.tableExists(externalTN)) {
+      splicemachineContext.dropTable(externalTN)
+    }
+    if (splicemachineContext.tableExists(schema+"."+"T")) {
+      splicemachineContext.dropTable(schema+"."+"T")
+    }
+    if (splicemachineContext.tableExists(schema+"."+"T2")) {
+      splicemachineContext.dropTable(schema+"."+"T2")
+    }
+  }
 
   test("read from datasource api") {
     val df = sqlContext.read.options(internalOptions).splicemachine
@@ -85,7 +100,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
       ps.setBoolean(1, false)
       ps.setString(2, "\n")
       ps.setDate(3, java.sql.Date.valueOf("2013-09-05"))
-      ps.setBigDecimal(4, new BigDecimal("11"))
+      ps.setBigDecimal(4, new BigDecimal(11, new java.math.MathContext(15)).setScale(2))
       ps.setDouble(5, 11)
       ps.setInt(6, 11)
       ps.setInt(7, 11)
@@ -94,6 +109,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
       ps.setTime(10, new Time(11))
       ps.setTimestamp(11, new Timestamp(11))
       ps.setString(12, "somet\nestinfo" + 11)
+      ps.setBigDecimal(13, new BigDecimal(11, new java.math.MathContext(4)).setScale(1) )
       ps.execute()
     }finally {
       conn.close()
@@ -118,12 +134,12 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
 
   test("insertion with sampling") {
     val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
-    conn.createStatement().execute("create table TestContext.T(id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), c1 double, c2 double, c3 double, primary key(id))")
-    conn.createStatement().execute("insert into TestContext.T(c1,c2,c3) values (100, 100, 100), (200, 200, 200), (300, 300, 300), (400, 400, 400)");
+    conn.createStatement().execute(s"create table $schema.T(id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), c1 double, c2 double, c3 double, primary key(id))")
+    conn.createStatement().execute(s"insert into $schema.T(c1,c2,c3) values (100, 100, 100), (200, 200, 200), (300, 300, 300), (400, 400, 400)");
     for (i <- 0 to 20) {
-      conn.createStatement().execute("insert into TestContext.T(c1,c2,c3) select c1,c2,c3 from TestContext.t")
+      conn.createStatement().execute(s"insert into $schema.T(c1,c2,c3) select c1,c2,c3 from $schema.t")
     }
-    conn.createStatement().execute("create table TestContext.T2(id int, c1 double, c2 double, c3 double, primary key(id))")
+    conn.createStatement().execute(s"create table $schema.T2(id int, c1 double, c2 double, c3 double, primary key(id))")
     val options = Map(
       JDBCOptions.JDBC_TABLE_NAME -> (schema+"."+"T"),
       JDBCOptions.JDBC_URL -> defaultJDBCURL

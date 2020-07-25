@@ -79,7 +79,8 @@ object SpliceJDBCUtil {
       rs => Seq(
         rs.getString("COLUMN_NAME"),
         rs.getString("TYPE_NAME"),
-        rs.getString("COLUMN_SIZE")
+        rs.getString("COLUMN_SIZE"),
+        rs.getString("DECIMAL_DIGITS")
       )
     )
 

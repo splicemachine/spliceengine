@@ -1,24 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 package com.splicemachine.spark.splicemachine
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream}
 
-import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -26,7 +22,6 @@ import org.scalatest.{FunSuite, Matchers}
 
 @RunWith(classOf[JUnitRunner])
 class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
-  val rowCount = 10
 
   private def serialize(value: Any): Array[Byte] = {
     val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
@@ -55,22 +50,17 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
   }
 
   test("Test Get Schema") {
-    if (splicemachineContext.tableExists(internalTN)) {
-      splicemachineContext.dropTable(internalTN)
-    }
-    insertInternalRows(rowCount)
-    val sqlContext = new SQLContext(sc)
+    dropInternalTable
+    createInternalTable
     val schema = splicemachineContext.getSchema(internalTN)
-    org.junit.Assert.assertEquals("Schema Changed!",schema.json,"{\"type\":\"struct\",\"fields\":[{\"name\":\"C1_BOOLEAN\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{\"name\":\"C1_BOOLEAN\",\"scale\":0}},{\"name\":\"C2_CHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{\"name\":\"C2_CHAR\",\"scale\":0}},{\"name\":\"C3_DATE\",\"type\":\"date\",\"nullable\":true,\"metadata\":{\"name\":\"C3_DATE\",\"scale\":0}},{\"name\":\"C4_DECIMAL\",\"type\":\"decimal(15,2)\",\"nullable\":true,\"metadata\":{\"name\":\"C4_DECIMAL\",\"scale\":2}},{\"name\":\"C5_DOUBLE\",\"type\":\"double\",\"nullable\":true,\"metadata\":{\"name\":\"C5_DOUBLE\",\"scale\":0}},{\"name\":\"C6_INT\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{\"name\":\"C6_INT\",\"scale\":0}},{\"name\":\"C7_BIGINT\",\"type\":\"long\",\"nullable\":false,\"metadata\":{\"name\":\"C7_BIGINT\",\"scale\":0}},{\"name\":\"C8_FLOAT\",\"type\":\"double\",\"nullable\":true,\"metadata\":{\"name\":\"C8_FLOAT\",\"scale\":0}},{\"name\":\"C9_SMALLINT\",\"type\":\"short\",\"nullable\":true,\"metadata\":{\"name\":\"C9_SMALLINT\",\"scale\":0}},{\"name\":\"C10_TIME\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{\"name\":\"C10_TIME\",\"scale\":0}},{\"name\":\"C11_TIMESTAMP\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{\"name\":\"C11_TIMESTAMP\",\"scale\":9}},{\"name\":\"C12_VARCHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{\"name\":\"C12_VARCHAR\",\"scale\":0}}]}")
+    org.junit.Assert.assertEquals("Schema Changed!",schema.json,"{\"type\":\"struct\",\"fields\":[{\"name\":\"C1_BOOLEAN\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{\"name\":\"C1_BOOLEAN\",\"scale\":0}},{\"name\":\"C2_CHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{\"name\":\"C2_CHAR\",\"scale\":0}},{\"name\":\"C3_DATE\",\"type\":\"date\",\"nullable\":true,\"metadata\":{\"name\":\"C3_DATE\",\"scale\":0}},{\"name\":\"C4_DECIMAL\",\"type\":\"decimal(15,2)\",\"nullable\":true,\"metadata\":{\"name\":\"C4_DECIMAL\",\"scale\":2}},{\"name\":\"C5_DOUBLE\",\"type\":\"double\",\"nullable\":true,\"metadata\":{\"name\":\"C5_DOUBLE\",\"scale\":0}},{\"name\":\"C6_INT\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{\"name\":\"C6_INT\",\"scale\":0}},{\"name\":\"C7_BIGINT\",\"type\":\"long\",\"nullable\":false,\"metadata\":{\"name\":\"C7_BIGINT\",\"scale\":0}},{\"name\":\"C8_FLOAT\",\"type\":\"double\",\"nullable\":true,\"metadata\":{\"name\":\"C8_FLOAT\",\"scale\":0}},{\"name\":\"C9_SMALLINT\",\"type\":\"short\",\"nullable\":true,\"metadata\":{\"name\":\"C9_SMALLINT\",\"scale\":0}},{\"name\":\"C10_TIME\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{\"name\":\"C10_TIME\",\"scale\":0}},{\"name\":\"C11_TIMESTAMP\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{\"name\":\"C11_TIMESTAMP\",\"scale\":9}},{\"name\":\"C12_VARCHAR\",\"type\":\"string\",\"nullable\":true,\"metadata\":{\"name\":\"C12_VARCHAR\",\"scale\":0}},{\"name\":\"C13_DECIMAL\",\"type\":\"decimal(4,1)\",\"nullable\":true,\"metadata\":{\"name\":\"C13_DECIMAL\",\"scale\":1}}]}")
   }
   
   val rdd2Col = "List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])"
 
   test("Test Get RDD") {
-    if (splicemachineContext.tableExists(internalTN)) {
-      splicemachineContext.dropTable(internalTN)
-    }
-    insertInternalRows(rowCount)
+    dropInternalTable
+    insertInternalRows(10)
     val rdd = splicemachineContext.rdd(internalTN,Seq("C2_CHAR","C7_BIGINT"))
     org.junit.Assert.assertEquals(
       "RDD Changed!",
@@ -80,10 +70,8 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
   }
 
   test("Test Get Internal RDD") {
-    if (splicemachineContext.tableExists(internalTN)) {
-      splicemachineContext.dropTable(internalTN)
-    }
-    insertInternalRows(rowCount)
+    dropInternalTable
+    insertInternalRows(10)
     val rdd = splicemachineContext.internalRdd(internalTN,Seq("C2_CHAR","C7_BIGINT"))
     org.junit.Assert.assertEquals(
       "RDD Changed!",
@@ -92,17 +80,15 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     )
   }
 
-  val rddAllCol5Row = """false, 1    , 2013-09-05, 1.00, 1.0, 1, 1, 1.0, 1, 00:00:01.0, 1970-01-01 00:00:00.001, sometestinfo1
-                        |false, 3    , 2013-09-05, 3.00, 3.0, 3, 3, 3.0, 3, 00:00:03.0, 1970-01-01 00:00:00.003, sometestinfo3
-                        |false, 5    , 2013-09-05, 5.00, 5.0, 5, 5, 5.0, 5, 00:00:05.0, 1970-01-01 00:00:00.005, sometestinfo5
-                        |false, 7    , 2013-09-05, 7.00, 7.0, 7, 7, 7.0, 7, 00:00:07.0, 1970-01-01 00:00:00.007, sometestinfo7
-                        |false, null, 2013-09-05, 9.00, 9.0, 9, 9, 9.0, 9, 00:00:09.0, 1970-01-01 00:00:00.009, null""".stripMargin
+  val rddAllCol5Row = """false, 1    , 2013-09-05, 1.00, 1.0, 1, 1, 1.0, 1, 00:00:01.0, 1970-01-01 00:00:00.001, sometestinfo1, 1.0
+                        |false, 3    , 2013-09-05, 3.00, 3.0, 3, 3, 3.0, 3, 00:00:03.0, 1970-01-01 00:00:00.003, sometestinfo3, 3.0
+                        |false, 5    , 2013-09-05, 5.00, 5.0, 5, 5, 5.0, 5, 00:00:05.0, 1970-01-01 00:00:00.005, sometestinfo5, 5.0
+                        |false, 7    , 2013-09-05, 7.00, 7.0, 7, 7, 7.0, 7, 00:00:07.0, 1970-01-01 00:00:00.007, sometestinfo7, 7.0
+                        |false, null, 2013-09-05, 9.00, 9.0, 9, 9, 9.0, 9, 00:00:09.0, 1970-01-01 00:00:00.009, null, 9.0""".stripMargin
 
   test("Test Get RDD with Default Columns") {
-    if (splicemachineContext.tableExists(internalTN)) {
-      splicemachineContext.dropTable(internalTN)
-    }
-    insertInternalRows(rowCount)
+    dropInternalTable
+    insertInternalRows(10)
     val rdd = splicemachineContext.rdd(internalTN)
     org.junit.Assert.assertEquals(
       "RDD Changed!",
@@ -116,10 +102,8 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
   }
 
   test("Test Get Internal RDD with Default Columns") {
-    if (splicemachineContext.tableExists(internalTN)) {
-      splicemachineContext.dropTable(internalTN)
-    }
-    insertInternalRows(rowCount)
+    dropInternalTable
+    insertInternalRows(10)
     val rdd = splicemachineContext.internalRdd(internalTN)
     org.junit.Assert.assertEquals(
       "RDD Changed!",
@@ -162,7 +146,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
   test("Test Table Exists (One Param)") {
     createCarTable
     org.junit.Assert.assertTrue(
-      carSchemaTableName+" doesn't exist", 
+      carSchemaTableName+" doesn't exist",
       splicemachineContext.tableExists(carSchemaTableName)
     )
     dropCarTable
@@ -202,9 +186,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
   }
 
   test("Test Insert Nulls") {
-    if (splicemachineContext.tableExists(internalTN)) {
-      splicemachineContext.dropTable(internalTN)
-    }
+    dropInternalTable
     createInternalTable
 
     val insDf = dataframe(
@@ -212,7 +194,8 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
         Row.fromSeq(Seq(
           null, null, null, null, null,
           106, 107L,
-          null, null, null, null, null
+          null, null, null, null, null,
+          null
         ))
       )),
       allTypesSchema(true)
@@ -234,32 +217,94 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
       rs.getShort(9),
       rs.getTime(10),
       rs.getTimestamp(11),
-      rs.getString(12)
+      rs.getString(12),
+      rs.getBigDecimal(13)
     ).mkString(", ")
 
     rs.close
 
     org.junit.Assert.assertEquals(
       "Insert Failed!",
-      "false, null, null, null, 0.0, 106, 107, 0.0, 0, null, null, null",
+      "false, null, null, null, 0.0, 106, 107, 0.0, 0, null, null, null, null",
       res)
   }
   
-  test("Test Bulk Import") {
-    if( splicemachineContext.tableExists(internalTN) ) {
-      splicemachineContext.dropTable(internalTN)
-    }
-    insertInternalRows(0)
+  test("Test Insert") {
+    dropInternalTable
+    createInternalTable
 
-    val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+"/splice_spark-SplicemachineContextIT/bulkImport" )
+    splicemachineContext.insert(internalTNDF, internalTN)
+    
+    org.junit.Assert.assertEquals("Insert Failed!", 1, rowCount(internalTN))
+  }
+
+  test("Test Insert Duplicate") {
+    dropInternalTable
+    createInternalTable
+
+    splicemachineContext.insert(internalTNDF, internalTN)
+    var msg = ""
+    try {
+      splicemachineContext.insert(internalTNDF, internalTN)
+    } catch {
+      case e: Exception => msg = e.toString
+    }
+
+    org.junit.Assert.assertTrue( msg.contains("duplicate key value") )
+  }
+
+  test("Test Bulk Import") {
+    dropInternalTable
+    createInternalTable
+
+    val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+s"/$module-SplicemachineContextIT/bulkImport" )
     bulkImportDirectory.mkdirs()
 
     splicemachineContext.bulkImportHFile(internalTNDF, internalTN,
       collection.mutable.Map("bulkImportDirectory" -> bulkImportDirectory.getAbsolutePath)
     )
 
-    val rs = getConnection.createStatement.executeQuery("select count(*) from "+internalTN)
-    rs.next
-    org.junit.Assert.assertEquals("Bulk Import Failed!", 1, rs.getInt(1))
+    org.junit.Assert.assertEquals("Bulk Import Failed!", 1, rowCount(internalTN))
+  }
+
+  test("Test SplitAndInsert") {
+    dropInternalTable
+    createInternalTable
+
+    splicemachineContext.splitAndInsert(internalTNDF, internalTN, 0.5)
+
+    org.junit.Assert.assertEquals("SplitAndInsert Failed!", 1, rowCount(internalTN))
+  }
+
+  test("Test Update") {
+    dropInternalTable
+    insertInternalRows(1)
+    
+    splicemachineContext.update(internalTNDF, internalTN)
+
+    org.junit.Assert.assertEquals("Update Failed!",
+      (testRow.slice(0,9) ::: new java.sql.Time(1000) :: testRow.slice(10,14)).mkString(", "),
+      executeQuery(
+        s"select * from $internalTN",
+        rs => {
+          rs.next
+          List(
+            rs.getBoolean(1),
+            rs.getString(2),
+            rs.getDate(3),
+            rs.getBigDecimal(4),
+            rs.getDouble(5),
+            rs.getInt(6),
+            rs.getInt(7),
+            rs.getFloat(8),
+            rs.getShort(9),
+            rs.getTime(10),
+            rs.getTimestamp(11),
+            rs.getString(12),
+            rs.getBigDecimal(13)
+          ).mkString(", ")
+        }
+      ).asInstanceOf[String]
+    )
   }
 }
