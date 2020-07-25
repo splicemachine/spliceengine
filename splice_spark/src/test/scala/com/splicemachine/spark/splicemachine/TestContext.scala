@@ -23,12 +23,13 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import org.apache.spark.sql.types._
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.sql.{Dataset, Row, SQLContext, SparkSession}
 
 trait TestContext extends BeforeAndAfterAll { self: Suite =>
   var sc: SparkContext = null
   var spark: SparkSession = _
   var splicemachineContext: SplicemachineContext = _
+  var sqlContext : SQLContext = _
   var internalTNDF: Dataset[Row] = _
   val table = "test"
   val externalTable = "testExternal"
@@ -169,9 +170,14 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   )
 
   override def beforeAll() {
-    sc = new SparkContext(conf)
-    SpliceSpark.setContext(sc)
-    spark = SparkSession.builder.config(conf).getOrCreate
+    spark = SpliceSpark.getSessionUnsafe
+    sqlContext = spark.sqlContext
+    spark.conf.set("spark.master", "local[*]")
+    spark.conf.set("spark.app.name", "test")
+    spark.conf.set("spark.ui.enabled", "false")
+    spark.conf.set("spark.app.id", appID)
+    sc = spark.sparkContext
+
     splicemachineContext = new SplicemachineContext(defaultJDBCURL)
     internalTNDF = dataframe(
       rdd( Seq( Row.fromSeq( testRow ) ) ),
