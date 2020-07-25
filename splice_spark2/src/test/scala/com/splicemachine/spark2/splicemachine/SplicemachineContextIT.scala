@@ -16,11 +16,12 @@
  */
 package com.splicemachine.spark2.splicemachine
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream}
+import java.io._
+
+import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FunSuite, Matchers}
-import org.apache.spark.sql.Row
 
 @RunWith(classOf[JUnitRunner])
 class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
@@ -55,10 +56,9 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     dropInternalTable
     createInternalTable
     val schema = splicemachineContext.getSchema(internalTN)
-    // SPARK-22002 removed metadata from StructFields in JdbcUtils.getSchema() (since Spark 2.3)
     org.junit.Assert.assertEquals(
       "Schema Changed!",
-      """{"type":"struct","fields":[{"name":"C1_BOOLEAN","type":"boolean","nullable":true,"metadata":{}},{"name":"C2_CHAR","type":"string","nullable":true,"metadata":{}},{"name":"C3_DATE","type":"date","nullable":true,"metadata":{}},{"name":"C4_NUMERIC","type":"decimal(15,2)","nullable":true,"metadata":{}},{"name":"C5_DOUBLE","type":"double","nullable":true,"metadata":{}},{"name":"C6_INT","type":"integer","nullable":false,"metadata":{}},{"name":"C7_BIGINT","type":"long","nullable":false,"metadata":{}},{"name":"C8_FLOAT","type":"double","nullable":true,"metadata":{}},{"name":"C9_SMALLINT","type":"short","nullable":true,"metadata":{}},{"name":"C10_TIME","type":"timestamp","nullable":true,"metadata":{}},{"name":"C11_TIMESTAMP","type":"timestamp","nullable":true,"metadata":{}},{"name":"C12_VARCHAR","type":"string","nullable":true,"metadata":{}},{"name":"C13_DECIMAL","type":"decimal(4,1)","nullable":true,"metadata":{}},{"name":"C14_BIGINT","type":"long","nullable":true,"metadata":{}},{"name":"C15_LONGVARCHAR","type":"string","nullable":true,"metadata":{}},{"name":"C16_REAL","type":"float","nullable":true,"metadata":{}},{"name":"C17_INT","type":"integer","nullable":true,"metadata":{}}]}""",
+      ThisVersionSpecificItems.schema,
       schema.json
     )
   }
