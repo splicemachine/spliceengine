@@ -1467,6 +1467,8 @@ TOKEN [IGNORE_CASE] :
 |	<CP_DISCONNECT: "CP_disconnect">
 |	<WORK : "work">
 |   <JSON: "JSON">
+|   <PROMPT: "prompt">
+|   <CLOCK: "clock">
 |   <SPOOL: "SPOOL">
 |   <STOP: "STOP">
 |   <CLEAR: "CLEAR">
@@ -1816,6 +1818,7 @@ throws SQLException, IOException
 |	r=CP_ConnectStatement()
 |	r=CP_GetConnectionStatement()
 |	r=CP_DisconnectStatement()
+|   r=Prompt()
 |   r=Spool()
 )? <EOF>
 	{
@@ -3112,7 +3115,7 @@ throws SQLException
 	Token on=null;
 }
 {
-	<AUTOCOMMIT> 
+	<AUTOCOMMIT>
 	( on=<ON>
 	| <OFF>
 	)
@@ -4055,6 +4058,19 @@ ijResult CP_DisconnectStatement() throws SQLException
 
 }
 
+ijResult Prompt() throws SQLException
+:
+{
+    Token clockOn=null;
+}
+{
+	<PROMPT> <CLOCK> ( clockOn=<ON> | <OFF> )
+	{
+		utilInstance.setPromptClock((clockOn == null ? false : true));
+		return null;
+	}
+}
+
 ijResult Spool() throws IOException
 :
 {}
@@ -4270,10 +4286,12 @@ keyword() :
 |	tok = <CP_DISCONNECT>
 |	tok = <WORK>
 |   tok = <JSON>
+|   tok = <PROMPT>
+|   tok = <CLOCK>
 |   tok = <SPOOL>
 |   tok = <STOP>
 |   tok = <CLEAR>
-	)
+)
 	{
 
 		return tok.image;

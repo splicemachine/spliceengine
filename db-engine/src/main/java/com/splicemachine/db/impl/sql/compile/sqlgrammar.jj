@@ -221,10 +221,11 @@ public class SQLParser
     private static final int    USING_CLAUSE = 1;
 
     // Defines for optional table clauses
-    private static final int    OPTIONAL_TABLE_CLAUSES_SIZE = 3;
+    private static final int    OPTIONAL_TABLE_CLAUSES_SIZE = 4;
     private static final int    OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES = 0;
     private static final int    OPTIONAL_TABLE_CLAUSES_DERIVED_RCL = 1;
     private static final int    OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME = 2;
+    private static final int    OPTIONAL_TABLE_CLAUSES_TXN_ID = 3;
 
     // Define for UTF8 max
     private static final int    MAX_UTF8_LENGTH = 65535;
@@ -3097,6 +3098,8 @@ TOKEN [IGNORE_CASE] :
 |    <WEEKDAYNAME: "weekdayname">
 |    <WHEN: "when">
 |   <MERGE: "merge">
+|   <TO_INSTANT: "to_instant">
+|   <TO_HBASE_ESCAPED: "to_hbase_escaped">
 }
 
 /*
@@ -4249,6 +4252,7 @@ deleteBody() throws StandardException :
                                                 FromBaseTable.DELETE),
                                         null,
                                         isBulkDelete,
+                                        -1L,
                                         getContextManager());
 
 
@@ -8349,7 +8353,9 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == XMLSERIALIZE ||
                 getToken(1).kind == XMLEXISTS ||
                 getToken(1).kind == XMLQUERY ||
-                getToken(1).kind == GROUPING) &&
+                getToken(1).kind == GROUPING ||
+                getToken(1).kind == TO_INSTANT ||
+                getToken(1).kind == TO_HBASE_ESCAPED ) &&
                 getToken(2).kind == LEFT_PAREN
               )
     } )
@@ -8482,6 +8488,22 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
     value = xmlFunction()
     {
         return value;
+    }
+|
+    <TO_INSTANT> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                    C_NodeTypes.TO_INSTANT_NODE,
+                                    value,
+                                    getContextManager());
+    }
+|
+    <TO_HBASE_ESCAPED> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                    C_NodeTypes.TO_HBASE_ESCAPED_NODE,
+                                    value,
+                                    getContextManager());
     }
 }
 
@@ -10766,13 +10788,13 @@ existsExpression() throws StandardException :
 ResultSetNode
 tableExpression(ResultColumnList selectList) throws StandardException :
 {
-    SelectNode    selectNode;
-    FromList    fromList;
-    ValueNode    whereClause = null;
-    GroupByList    groupByList = null;
+    SelectNode   selectNode;
+    FromList     fromList;
+    ValueNode    whereClause  = null;
+    GroupByList  groupByList  = null;
     ValueNode    havingClause = null;
     Token        whereToken;
-    WindowList  windows = null;
+    WindowList   windows      = null;
 }
 {
     fromList = fromClause()
@@ -10928,21 +10950,25 @@ tableReferenceTypes(boolean nestedInParens) throws StandardException :
 Object[]
 optionalTableClauses() throws StandardException :
 {
-    Object[]             otc = null;
-    Properties            tableProperties = null;
-    ResultColumnList    derivedRCL = null;
-    String                correlationName = null;
+    Object[]         otc = null;
+    Properties       tableProperties = null;
+    ResultColumnList derivedRCL = null;
+    String           correlationName = null;
+    Long             txnId = -1L;
 }
 {
     otc = optionalTableProperties()
     {
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
         return otc;
     }
 |
+    LOOKAHEAD( { getToken(1).kind != AS || getToken(2).kind != OF })
     [ [ <AS> ]
         correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
+        [txnId = asOfClause()]
         [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
         [tableProperties = propertyList(true) <CHECK_PROPERTIES>] ]
     {
@@ -10950,6 +10976,19 @@ optionalTableClauses() throws StandardException :
         otc[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] = tableProperties;
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
+        return otc;
+    }
+|
+    txnId = asOfClause()
+    [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
+    [tableProperties = propertyList(true) <CHECK_PROPERTIES>]
+    {
+        otc = new Object[OPTIONAL_TABLE_CLAUSES_SIZE];
+        otc[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] = tableProperties;
+        otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
+        otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
         return otc;
     }
 }
@@ -11037,9 +11076,11 @@ FromTable tableFactor() throws StandardException :
         fromTable = (FromTable) nodeFactory.getNode(
                                             C_NodeTypes.FROM_BASE_TABLE,
                                             tableName,
-                                                (String) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME],
-                                                (ResultColumnList) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL],
-                                                (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES],
+                                            (String) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME],
+                                            (ResultColumnList) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL],
+                                            (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES],
+                                            false,
+                                            (Long) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TXN_ID],
                                             getContextManager());
         return fromTable;
     }
@@ -12287,6 +12328,18 @@ windowDefinition(WindowList wl) throws StandardException :
                 getContextManager()));
 
         return wl;
+    }
+}
+
+Long
+asOfClause() throws StandardException :
+{
+    Long txId = null;
+}
+{
+    <AS> <OF> txId = exactNumber()
+    {
+        return txId;
     }
 }
 
