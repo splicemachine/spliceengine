@@ -116,7 +116,7 @@ public class SpliceSpark {
             ctx =  new JavaSparkContext(session.sparkContext());
         }
         else {
-            if (needsReinitialization) {
+            if (sessionToUse == null || needsReinitialization) {
                 String allowMultipleContextsString = null;
                 try {
                     allowMultipleContextsString = session.conf().get("spark.driver.allowMultipleContexts");

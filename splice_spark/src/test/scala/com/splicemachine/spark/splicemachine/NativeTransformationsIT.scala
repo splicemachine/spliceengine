@@ -14,7 +14,6 @@
  */
 package com.splicemachine.spark.splicemachine
 
-import com.splicemachine.derby.impl.SpliceSpark
 import org.apache.spark.sql._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -25,7 +24,7 @@ import scala.collection.immutable.IndexedSeq
 @RunWith(classOf[JUnitRunner])
 class NativeTransformationsIT extends FunSuite with TestContext with BeforeAndAfter with Matchers {
   val rowCount = 10
-  var sqlContext : SQLContext = SpliceSpark.getSessionUnsafe.sqlContext
+  var sqlContext : SQLContext = _
   var rows : IndexedSeq[(Int, Int, String, Long)] = _
 
   before {
