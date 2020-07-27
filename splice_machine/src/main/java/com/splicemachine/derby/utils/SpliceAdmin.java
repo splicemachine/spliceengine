@@ -2151,20 +2151,20 @@ public class SpliceAdmin extends BaseAdminProcedures{
         try {
             TableDescriptor td = EngineUtils.verifyTableExists(connection, schemaName, tableName);
 
-            //External Table
-            String isExternal = "";
+            String tableTypeString = "";
             StringBuilder extTblString = new StringBuilder("");
 
             ColumnDescriptorList cdl = td.getColumnDescriptorList();
             //Process external table definition
             if (td.isExternal()) {
+                tableTypeString = "EXTERNAL ";
+
                 List<ColumnDescriptor> partitionColumns = cdl.stream()
                         .filter(columnDescriptor -> columnDescriptor.getPartitionPosition() > -1)
                         .collect(Collectors.toList());
                 partitionColumns.sort(Comparator.comparing(columnDescriptor -> columnDescriptor.getPartitionPosition()));
 
                 String tmpStr;
-                isExternal = "EXTERNAL ";
                 tmpStr = td.getCompression();
                 if (tmpStr != null && !tmpStr.equals("none"))
                     extTblString.append("\nCOMPRESSED WITH " + tmpStr);
@@ -2220,7 +2220,10 @@ public class SpliceAdmin extends BaseAdminProcedures{
             } else if (td.getTableType() == TableDescriptor.SYSTEM_TABLE_TYPE) {
                 //Target table is a system table
                 throw ErrorState.LANG_NO_USER_DDL_IN_SYSTEM_SCHEMA.newException("SHOW CREATE TABLE", schemaName);
+            } else if (td.getTableType() == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
+                tableTypeString = "GLOBAL TEMPORARY ";
             }
+
             // Get column list, and write DDL for each column.
             StringBuilder colStringBuilder = new StringBuilder("");
             String createColString = "";
@@ -2234,7 +2237,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
 
             colStringBuilder.append(createConstraint(td, schemaName, tableName));
-            String DDL = "CREATE " + isExternal + "TABLE \"" + schemaName + "\".\"" + tableName + "\" (\n" + colStringBuilder.toString() + ") ";
+            String DDL = "CREATE " + tableTypeString + "TABLE \"" + schemaName + "\".\"" + tableName + "\" (\n" + colStringBuilder.toString() + ") ";
             StringBuilder sb = new StringBuilder("SELECT * FROM (VALUES '");
             sb.append(DDL);
             String extStr = extTblString.toString();

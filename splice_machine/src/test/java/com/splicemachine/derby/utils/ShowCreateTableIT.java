@@ -570,7 +570,27 @@ public class ShowCreateTableIT extends SpliceUnitTest
         }
     }
 
+    @Test
+    public void testTempTable() throws Exception
+    {
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        conn.execute("create global temporary table t_temp(a1 int, b1 int, c1 int)");
+        ResultSet rs = conn.query("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T_TEMP')");
+        rs.next();
+        String ddl = rs.getString(1);
+        Assert.assertEquals("CREATE GLOBAL TEMPORARY TABLE \"SHOWCREATETABLEIT\".\"T_TEMP\" (\n" +
+                "\"A1\" INTEGER\n" +
+                ",\"B1\" INTEGER\n" +
+                ",\"C1\" INTEGER\n" +
+                ") ;", ddl);
+        rs.close();
+        conn.close();
+    }
+
     private static void  checkEqualIgnoreConstraintOrder(String expected, String actual) {
+        // remove the semi column at the end
+        expected = expected.substring(0, expected.length()-1);
+        actual = actual.substring(0, actual.length()-1);
         String result = Stream.of(actual.split("CONSTRAINT ")).map(str -> str.substring(0, str.length() - 2)).sorted().collect(Collectors.joining(", "));
 
         String expectedResult = Stream.of(expected.split("CONSTRAINT ")).map(str -> str.substring(0, str.length() - 2)).sorted().collect(Collectors.joining(", "));
