@@ -44,6 +44,8 @@ import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
+import scala.collection.JavaConverters._
+
 @SerialVersionUID(20200513231L)
 private object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
@@ -70,6 +72,21 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   def this(url: String) {
     this(Map(JDBCOptions.JDBC_URL -> url));
   }
+  
+  // Check url validity, throws exception during instantiation if url is invalid
+  try {
+    if( url.isEmpty ) throw new Exception("JDBC Url is an empty string.")
+    JdbcUtils.createConnectionFactory(new JDBCOptions(Map(
+      JDBCOptions.JDBC_URL -> url,
+      JDBCOptions.JDBC_TABLE_NAME -> "placeholder"
+    )))()
+  } catch {
+    case e: Exception => throw new Exception(
+      "Problem connecting to the DB. Verify that the input JDBC Url is correct."
+      + "\n"
+      + e.toString
+    )
+  }
 
   @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
   JdbcDialects.registerDialect(new SplicemachineDialect)
@@ -85,7 +102,14 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val dbProperties = new Properties
     dbProperties.put("useSpark", "true")
     dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true")
-    maker.createNew(dbProperties)
+    maker.createNew(
+      if( url.contains("/") ) {  // url = jdbc:splice://localhost:1527/splicedb;user=userid;password=pwd
+        val urlparts = url.split("/")
+        urlparts(0) + urlparts(urlparts.length - 1)  // jdbc:splice:splicedb;user=userid;password=pwd
+      } else
+        url ,
+      dbProperties
+    )
   }
 
   /**
@@ -452,7 +476,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val sqlText = s"SELECT $columnList FROM ${schemaTableName}"
     df(sqlText).rdd
   }
-
+  
   private[this] def executeUpd(sql: String): Unit = {
     val st = internalConnection.createStatement()
     try {
@@ -502,6 +526,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       "as SpliceDatasetVTI (" + schemaString + ")"
     executeUpd(sqlText)
   }
+
+
   /**
     * Insert a RDD into a table (schema.table).  The schema is required since RDD's do not have schema.
     *
@@ -721,6 +747,17 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val combinedText = sqlText + whereClause + ")"
     executeUpd(combinedText)
   }
+
+  /**
+   * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)
+   *
+   * @param dataFrame input data
+   * @param schemaTableName
+   * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   */
+  def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
+                      options: java.util.Map[String, String]): Unit =
+    bulkImportHFile(dataFrame, schemaTableName, options.asScala)
 
   /**
     * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)

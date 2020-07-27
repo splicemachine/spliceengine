@@ -1476,7 +1476,7 @@ public class Trigger_When_Clause_IT extends SpliceUnitTest {
     public void testSignal() throws Exception {
         try (Statement s = conn.createStatement()) {
             s.execute("create table t1 (a int, b char(11))");
-            s.execute("create table t2 (a int, b int)");
+            s.execute("create table t2 (a int, b char(11))");
             s.execute("insert into t1 values(1,1)");
             s.execute("insert into t2 values(1,1)");
             s.execute("INSERT INTO t1 values(2,'hello')");
