@@ -53,6 +53,7 @@ import org.spark_project.guava.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
@@ -535,6 +536,45 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             }
         }
     }
+
+    private void processRowIdReferenceInFromBaseTableChild() throws StandardException {
+        if (childResult instanceof FromBaseTable && ((FromBaseTable) childResult).getRowIdColumn() != null && restrictionList != null) {
+            // check if the restriction list contains any rowid reference, then add another level of PR and unmap it
+            CollectNodesVisitor nodesVisitor = new CollectNodesVisitor(ColumnReference.class, null);
+            restrictionList.accept(nodesVisitor);
+            List<ColumnReference> list = Collections.list(nodesVisitor.getList().elements());
+            List<ColumnReference> rowIdReferenceList = list
+                    .stream()
+                    .filter(node -> node.isSourceRowIdColumn())
+                    .collect(Collectors.toList());
+
+            if (rowIdReferenceList.size() > 0) {
+                // add another level of PR in-between to project/hold the rowid field
+                ResultColumnList newPrRCList = resultColumns.copyListAndObjects();
+
+                ResultSetNode newPRNode = (ResultSetNode) getNodeFactory().getNode(
+                        C_NodeTypes.PROJECT_RESTRICT_NODE,
+                        childResult,
+                        newPrRCList,
+                        null,    /* Restriction */
+                        null,   /* Restriction as PredicateList */
+                        null,    /* Project subquery list */
+                        null,    /* Restrict subquery list */
+                        null,
+                        getContextManager());
+
+                resultColumns.genVirtualColumnNodes(newPRNode, newPrRCList, false);
+
+                for (ColumnReference cr: rowIdReferenceList) {
+                    VirtualColumnNode virtualColumNode = (VirtualColumnNode)cr.getSource().getExpression();
+                    cr.setSource(virtualColumNode.getSourceResultColumn() );
+                }
+
+                childResult = newPRNode;
+            }
+        }
+    }
+
     @Override
     public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException{
         boolean origChildOptimizable=true;
@@ -653,6 +693,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         ** its column list to match that of the index.
         */
         if(origChildOptimizable){
+            processRowIdReferenceInFromBaseTableChild();
             childResult=childResult.changeAccessPath();
         }
         accessPathModified=true;
