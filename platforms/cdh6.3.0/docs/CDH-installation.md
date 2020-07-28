@@ -569,6 +569,11 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
 
 6. Click the `Save Changes` button.
 
+### Configure Kafka Maintenance
+
+See the [splice_spark2 README](../../../splice_spark2/README.md) for instructions for setting up the Kafka Maintenance 
+process in a bare metal installation.
+
 ## Optional Configuration Modifications
 
 There are a few configuration modifications you might want to make:

@@ -296,7 +296,7 @@ public class SITransactor implements Transactor{
                  */
                 //todo -sf remove the Row key copy here
                 possibleConflicts=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
-                if(possibleConflicts!=null){
+                if(possibleConflicts!=null && !possibleConflicts.isEmpty()){
                     //we need to check for write conflicts
                     try {
                         conflictResults = ensureNoWriteConflict(transaction, writeType, possibleConflicts, rollForwardQueue, supplier);
@@ -324,7 +324,7 @@ public class SITransactor implements Transactor{
 
             conflictingChildren[i] = conflictResults.getChildConflicts();
             boolean addFirstOccurrenceToken = false;
-            if (possibleConflicts == null) {
+            if (possibleConflicts == null || possibleConflicts.isEmpty()) {
                 // First write
                 addFirstOccurrenceToken = true;
             } else if (KVPair.Type.DELETE.equals(writeType) && possibleConflicts.firstWriteToken() != null) {
@@ -356,7 +356,7 @@ public class SITransactor implements Transactor{
          */
         if(constraintChecker==null) return false;
 
-        if(row==null || row.size()<=0) return false;
+        if(row==null || row.isEmpty()) return false;
         //must reset the filter here to avoid contaminating multiple rows with tombstones and stuff
         constraintStateFilter.reset();
 

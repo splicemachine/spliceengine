@@ -173,7 +173,7 @@ public class MPartition implements Partition{
         lock.lock();
         try{
             DataResult latest=getLatest(key,family,null);
-            if(latest!=null&& latest.size()>0){
+            if(latest!=null && !latest.isEmpty()){
                 DataCell dc = latest.latestCell(family,qualifier);
                 if(dc!=null){
                     if(ByteComparisons.comparator().compare(dc.valueArray(),dc.valueOffset(),dc.valueLength(),expectedValue,0,expectedValue.length)==0){
@@ -223,7 +223,7 @@ public class MPartition implements Partition{
         try{
             DataResult r=getLatest(rowKey,family,null);
             long v = amount;
-            if(r!=null && r.size()>0){
+            if(r!=null && !r.isEmpty()){
                 final DataCell dataCell=r.latestCell(family,qualifier);
                 if(dataCell!=null)
                     v += Bytes.toLong(dataCell.value());
