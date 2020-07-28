@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#
 ##################################################################################
 # Start Zookeeper and the Splice HBase master server and region servers and yarn
 #
