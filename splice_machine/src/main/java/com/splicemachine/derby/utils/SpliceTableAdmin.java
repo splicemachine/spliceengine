@@ -416,7 +416,7 @@ public class SpliceTableAdmin {
         boolean distributed = false;
         if (useSpark == null) {
             for (PartitionLoad load : partitionLoadCollection) {
-                if (load.getMemStoreSizeMB() > 1 || load.getStorefileSizeMB() > 1)
+                if (load.getMemStoreSize() > 1 * MB || load.getStorefileSize() > 1 * MB)
                     distributed = true;
             }
         } else {
