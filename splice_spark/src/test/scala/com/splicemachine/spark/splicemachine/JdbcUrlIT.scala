@@ -33,7 +33,8 @@ class JdbcUrlIT extends FunSuite with Matchers with BeforeAndAfterAll {
     setMaster("local[*]").
     setAppName("spark_jdbcurl_test").
     set("spark.ui.enabled", "false").
-    set("spark.app.id", appID)
+    set("spark.app.id", appID).
+    set("spark.driver.allowMultipleContexts", "true")
 
   override def beforeAll() {
     spark = SparkSession.builder.config(conf).getOrCreate

@@ -24,7 +24,6 @@ import scala.collection.immutable.IndexedSeq
 @RunWith(classOf[JUnitRunner])
 class NativeTransformationsIT extends FunSuite with TestContext with BeforeAndAfter with Matchers {
   val rowCount = 10
-  var sqlContext : SQLContext = _
   var rows : IndexedSeq[(Int, Int, String, Long)] = _
 
   before {
