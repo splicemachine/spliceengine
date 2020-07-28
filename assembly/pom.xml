@@ -197,7 +197,8 @@
                                 <configuration>
                                     <includeArtifactIds>
                                         ${commonArtifacts},
-                                        splice_sentry
+                                        splice_sentry,
+                                        guava
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
