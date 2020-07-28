@@ -94,7 +94,6 @@
         <scalatest.version>2.2.4</scalatest.version>
         <scalamock.version>3.1.4</scalamock.version>
         <commons.lang3.version>3.3.2</commons.lang3.version>
-        <splice.spark.master>yarn-client</splice.spark.master>
         <spark.warehouse>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</spark.warehouse>
         <hbase.rootdir>-Dhbase.rootdir=${project.build.directory}/hbase</hbase.rootdir>
     </properties>
@@ -437,6 +436,11 @@
                 <groupId>org.glassfish</groupId>
                 <artifactId>javax.el</artifactId>
                 <version>3.0.1-b11</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest_${scala.binary.version}</artifactId>
+                <version>${scalatest.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -978,7 +982,6 @@
                 <scalatest.version>3.0.0</scalatest.version>
                 <scalamock.version>3.4.1</scalamock.version>
                 <commons.lang3.version>3.9</commons.lang3.version>
-                <splice.spark.master>yarn</splice.spark.master>
             </properties>
             <modules>
                 <module>hbase_storage</module>
