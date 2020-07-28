@@ -43,7 +43,7 @@ import java.sql.Types;
 
 public class SYSBACKUPITEMSRowFactory extends CatalogRowFactory {
 
-    private static final String TABLENAME_STRING = "SYSBACKUPITEMS";
+    public static final String TABLENAME_STRING = "SYSBACKUPITEMS";
     private static final int BACKUPITEMS_COLUMN_COUNT = 4;
 
     private static final int BACKUP_ID = 1;
