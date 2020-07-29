@@ -112,11 +112,6 @@ public class HResult implements DataResult{
     }
 
     @Override
-    public boolean isEmpty() {
-        return result == null || result.isEmpty();
-    }
-
-    @Override
     public DataCell latestCell(byte[] family,byte[] qualifier){
         if(result==null) return null;
         Cell columnLatestCell=result.getColumnLatestCell(family,qualifier);

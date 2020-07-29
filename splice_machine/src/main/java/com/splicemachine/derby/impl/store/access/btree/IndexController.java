@@ -96,7 +96,7 @@ public class IndexController extends SpliceController{
             Iterator<DataResult> results = htable.batchGet(get, rowKeys);
             while (results.hasNext()) {
                 DataResult result = results.next();
-                if(result != null && !result.isEmpty()) {
+                if(result!=null && result.size()>0) {
                     return ConglomerateController.ROWISDUPLICATE;
                 }
             }
