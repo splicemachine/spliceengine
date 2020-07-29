@@ -263,8 +263,8 @@ class SpliceTestPlatformConfig {
         config.setLong("hbase.master.lease.thread.wakefrequency", SECONDS.toMillis(3));
 //        config.setBoolean("hbase.master.loadbalance.bytable",true);
         config.setInt("hbase.hfile.compaction.discharger.interval", 20*1000);
-        config.setInt("hbase.balancer.period",300000);
-        config.setInt("hbase.balancer.statusPeriod",300000);
+        config.setInt("hbase.balancer.period",300000000); // 5000 minutes
+        config.setInt("hbase.balancer.statusPeriod",300000000); // 5000 minutes
 
         config.setLong("hbase.server.thread.wakefrequency", SECONDS.toMillis(1));
         config.setLong("hbase.client.pause", 100);
