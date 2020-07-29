@@ -36,8 +36,6 @@ public interface DataResult extends Iterable<DataCell>{
 
     int size();
 
-    boolean isEmpty();
-
     DataCell latestCell(byte[] family,byte[] qualifier);
 
     Iterable<DataCell> columnCells(byte[] family,byte[] qualifier);
