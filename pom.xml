@@ -1506,7 +1506,7 @@
                 <maprfs.version>6.1.0-mapr</maprfs.version>
                 <spark.version>2.3.2.4-mapr-1901</spark.version>
                 <spark.major.version>spark2.3</spark.major.version>
-                <spark.minor.version>spark-2.3.2.4</spark.minor.version>
+                <spark.minor.version>spark-2.3.2</spark.minor.version>
                 <assembly.spark>1.1.8-mapr-1901</assembly.spark>
                 <kafka.version>1.1.1-mapr-1901</kafka.version>
                 <netty-all.version>4.1.17.Final</netty-all.version>
