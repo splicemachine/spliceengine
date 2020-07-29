@@ -30,7 +30,7 @@
 # export HBASE_CLASSPATH=
 
 SPLICELIBDIR="/opt/splice/default/lib"
-SPARKLIBDIR="/opt/mapr/spark/spark-##SPARKVERSION##/jars"
+SPARKLIBDIR="/opt/mapr/spark/##SPARKVERSION##/jars"
 HADOOPTOOLSDIR="/opt/mapr/hadoop/hadoop-2.7.0/share/hadoop/tools/lib"
 PREPENDSTRING="$SPLICELIBDIR:$SPARKLIBDIR:$HADOOPTOOLSDIR"
 export HBASE_CLASSPATH="${PREPENDSTRING}:${HBASE_CLASSPATH}"
@@ -90,10 +90,10 @@ SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.yarn.am.waitT
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.yarn.executor.memoryOverhead=2048"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraLibraryPath=/opt/mapr/hadoop/hadoop-2.7.0/lib/native"
-SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraClassPath=/opt/mapr/hbase/##HBASEVERSION##-splice/conf:/opt/splice/default/lib/*:/opt/mapr/hbase/##HBASEVERSION##-splice/lib/*"
+SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraClassPath=/opt/mapr/hbase/##HBASEVERSION##-splice/conf/*:/opt/splice/default/lib/*:${SPLICELIBDIR}/*:/opt/mapr/hbase/##HBASEVERSION##-splice/lib/*"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraLibraryPath=/opt/mapr/hadoop/hadoop-2.7.0/lib/native"
-SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraClassPath=/opt/mapr/hbase/##HBASEVERSION##-splice/conf:/opt/splice/default/lib/*:/opt/mapr/hbase/##HBASEVERSION##-splice/lib/*"
+SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraClassPath=/opt/mapr/hbase/##HBASEVERSION##-splice/conf/*:/opt/splice/default/lib/*:${SPLICELIBDIR}/*:/opt/mapr/hbase/##HBASEVERSION##-splice/lib/*"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.retainedJobs=100"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.retainedStages=100"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.worker.ui.retainedExecutors=100"
@@ -116,7 +116,7 @@ SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.trustStor
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.trustStorePassword=mapr123"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.protocol=TLSv1.2"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ssl.enabledAlgorithms=TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA"
-SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.yarn.jars=${SPLICELIBDIR}/*"
+SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.yarn.jars=local:##SPLICEPATCHEDJAR##"
 # SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -enableassertions"
 
 ### Java Configuration Options for HBase RegionServer

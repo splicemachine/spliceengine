@@ -768,7 +768,10 @@
                                             <include name="hbase-env.sh"/>
                                             <include name="hbase-env.secure.sh"/>
                                         </replace>
-                                        
+                                        <replace token="##SPLICEPATCHEDJAR##" value="/opt/splice/default/lib/spark-yarn_2.11-${spark.version}-patched.jar" dir="mapr/src/main/resources/scripts/splice/">
+                                            <include name="hbase-env.sh"/>
+                                            <include name="hbase-env.secure.sh"/>
+                                        </replace>
                                     </target>
                                 </configuration>
                                 <goals>
