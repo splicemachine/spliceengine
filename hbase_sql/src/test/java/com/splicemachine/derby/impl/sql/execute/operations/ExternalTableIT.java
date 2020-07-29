@@ -31,6 +31,7 @@ import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.*;
@@ -516,7 +517,7 @@ public class ExternalTableIT extends SpliceUnitTest {
             Assert.assertEquals("insertCount is wrong", 1, insertCount);
 
             ResultSet rs1 = methodWatcher.executeQuery("select * from " + name);
-            ArrayList<String> res1 = CreateTableTypeHelper.getArrayListResult(rs1);
+            List<String> res1 = CreateTableTypeHelper.getListResult(rs1);
             Assert.assertEquals(1, res1.size());
             Assert.assertEquals("'123456789', '123456789', '12345'", res1.get(0));
 
@@ -527,7 +528,7 @@ public class ExternalTableIT extends SpliceUnitTest {
                     "STORED AS " + fileFormat + " LOCATION '" + file + "'");
 
             ResultSet rs2 = methodWatcher.executeQuery("select * from " + name);
-            ArrayList<String> res2 = CreateTableTypeHelper.getArrayListResult(rs2);
+            List<String> res2 = CreateTableTypeHelper.getListResult(rs2);
             Assert.assertEquals(1, res2.size());
             Assert.assertEquals("'12345', '12345', '12345     '", res2.get(0));
 

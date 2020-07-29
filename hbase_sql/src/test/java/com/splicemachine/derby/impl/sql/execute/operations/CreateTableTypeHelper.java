@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 
@@ -122,8 +121,8 @@ public class CreateTableTypeHelper {
         throw new RuntimeException("unsupported fileformat " + fileFormat);
     }
 
-    public static ArrayList<String> getArrayListResult(ResultSet rs) throws SQLException {
-        ArrayList<String> results = new ArrayList<>();
+    public static List<String> getListResult(ResultSet rs) throws SQLException {
+        List<String> results = new ArrayList<>();
         int nCols = rs.getMetaData().getColumnCount();
         while (rs.next()) {
             StringBuilder sb = new StringBuilder();
@@ -154,7 +153,7 @@ public class CreateTableTypeHelper {
      * @throws SQLException
      */
     public void checkResultSetSelectAll(ResultSet rs) throws SQLException {
-        ArrayList<String> results = getArrayListResult(rs);
+        List<String> results = getListResult(rs);
         Assert.assertEquals( values2.size(), results.size() );
         for( int i = 0; i < results.size(); i++ ) {
             Assert.assertEquals( values2.get(i), results.get(i) );
