@@ -793,33 +793,30 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     options.put("sep", columnDelimiter);
 
                 table = SpliceSpark.getSession().read().options(options).csv(location);
-
                 if (table.schema().fields().length == 0)
                     return getEmpty();
-
-                checkNumColumns(location, baseColumnMap, table);
-
-                if (op == null) {
-                    // stats collection scan
-                    for(int index = 0; index < execRow.schema().fields().length; index++) {
-                        StructField ft = table.schema().fields()[index];
-                        Column cl = new Column(ft.name()).cast(execRow.schema().fields()[index].dataType());
-                        table = table.withColumn(ft.name(), cl);
-                    }
-                } else {
-                    for( int index = 0; index< baseColumnMap.length; index++) {
-                        if (baseColumnMap[index] != -1) {
-                            StructField ft = table.schema().fields()[index];
-                            Column cl = new Column(ft.name()).cast(execRow.schema().fields()[baseColumnMap[index]].dataType());
-                            table = table.withColumn(ft.name(), cl);
-                        }
-                    }
-                }
-
-
             } catch (Exception e) {
                 return handleExceptionSparkRead(e, location, true);
             }
+
+            checkNumColumns(location, baseColumnMap, table);
+            if (op == null) {
+                // stats collection scan
+                for(int index = 0; index < execRow.schema().fields().length; index++) {
+                    StructField ft = table.schema().fields()[index];
+                    Column cl = new Column(ft.name()).cast(execRow.schema().fields()[index].dataType());
+                    table = table.withColumn(ft.name(), cl);
+                }
+            } else {
+                for( int index = 0; index< baseColumnMap.length; index++) {
+                    if (baseColumnMap[index] != -1) {
+                        StructField ft = table.schema().fields()[index];
+                        Column cl = new Column(ft.name()).cast(execRow.schema().fields()[baseColumnMap[index]].dataType());
+                        table = table.withColumn(ft.name(), cl);
+                    }
+                }
+            }
+
 
             return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
                     execRow, useSample, sampleFraction, table);
