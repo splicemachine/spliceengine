@@ -249,7 +249,7 @@ public class DecimalIT  extends SpliceUnitTest {
         testQuery(sqlText, expected, methodWatcher);
 
         sqlText = format("select sum(a*a) from ts_decimal --splice-properties useSpark=%s", useSpark);
-        // DECIMAL(38,5) * DECIMAL(38,5), result scale is reduced to MIN_DECIMAL_DIVIDE_SCALE from 10
+        // DECIMAL(38,5) * DECIMAL(38,5), result scale is reduced to MIN_DECIMAL_MULTIPLICATION_SCALE from 10
 
         expected =
                 "1              |\n" +
