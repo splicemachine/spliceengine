@@ -149,9 +149,9 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         if (SanityManager.DEBUG) {
             if (hashKeyColumns == null) {
                 if (skipKeyCheck)
-                    tracer.trace(OptimizerFlag.HJ_NO_EQUIJOIN_COLUMNS, 0, 0, 0.0, hashKeyColumns);
+                    tracer.trace(OptimizerFlag.HJ_NO_EQUIJOIN_COLUMNS, 0, 0, 0.0, null);
                 else
-                    tracer.trace(OptimizerFlag.HJ_SKIP_NO_JOIN_COLUMNS, 0, 0, 0.0, hashKeyColumns);
+                    tracer.trace(OptimizerFlag.HJ_SKIP_NO_JOIN_COLUMNS, 0, 0, 0.0, null);
             } else {
                 tracer.trace(OptimizerFlag.HJ_HASH_KEY_COLUMNS, 0, 0, 0.0, hashKeyColumns);
             }

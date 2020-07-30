@@ -174,9 +174,11 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             }else
                 throw new IllegalArgumentException("Programmer error: unable to find proper class for pulling predicates: "+ rsn);
 
-            for (Predicate p:c) {
-                if (!toPullUp.contains(p))
-                    toPullUp.addAll(c);
+            if (c != null) {
+                for (Predicate p : c) {
+                    if (!toPullUp.contains(p))
+                        toPullUp.addAll(c);
+                }
             }
             parent = rsn;
         }
@@ -378,7 +380,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                             @Override
                             public Integer apply(ColumnReference cr) {
                                 // ColumnReference pointing to a subquery may have source set to null
-                                return (int) ((cr.getSource()==null)?-1:cr.getSource().getCoordinates() >> 32);
+                                return (int) ((cr == null || cr.getSource()==null)?-1:cr.getSource().getCoordinates() >> 32);
                             }
                         }), (rsnNumber -> rsnNumber >= 0)));
     }

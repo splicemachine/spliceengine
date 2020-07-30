@@ -31,12 +31,13 @@
 
 package com.splicemachine.db.impl.ast;
 
-import org.spark_project.guava.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.*;
+import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Predicates;
 import org.spark_project.guava.collect.*;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -55,11 +56,10 @@ public class RSUtils {
     // functions
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     public static final Function<ResultSetNode, Integer> rsNum = new Function<ResultSetNode, Integer>() {
         @Override
         public Integer apply(ResultSetNode rsn) {
-            return rsn.getResultSetNumber();
+            return rsn == null? -1 : rsn.getResultSetNumber();
         }
     };
 
@@ -100,7 +100,7 @@ public class RSUtils {
     public final static org.spark_project.guava.base.Predicate<ResultSetNode> isSinkingNode = new org.spark_project.guava.base.Predicate<ResultSetNode>() {
         @Override
         public boolean apply(ResultSetNode rsn) {
-            return sinkers.contains(rsn.getClass()) &&
+            return rsn != null && sinkers.contains(rsn.getClass()) &&
                     (!(rsn instanceof JoinNode) || RSUtils.isSinkingJoin(RSUtils.ap((JoinNode) rsn)) ||
                             RSUtils.leftHasIndexLookup(rsn));
         }
@@ -140,7 +140,7 @@ public class RSUtils {
             FromBaseTable.class,
             RowResultSetNode.class);
 
-    public static Map<Class<?>, String> sinkingNames =
+    public static final Map<Class<?>, String> sinkingNames =
             ImmutableMap.<Class<?>, String>builder()
                     .put(JoinNode.class, "join")
                     .put(HalfOuterJoinNode.class, "join")
