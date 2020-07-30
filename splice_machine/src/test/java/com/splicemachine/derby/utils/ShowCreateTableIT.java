@@ -588,12 +588,12 @@ public class ShowCreateTableIT extends SpliceUnitTest
     }
 
     private static void  checkEqualIgnoreConstraintOrder(String expected, String actual) {
-        // remove the semi column at the end
-        expected = expected.substring(0, expected.length()-1);
-        actual = actual.substring(0, actual.length()-1);
-        String result = Stream.of(actual.split("CONSTRAINT ")).map(str -> str.substring(0, str.length() - 2)).sorted().collect(Collectors.joining(", "));
+        // remove the semi column and space at the end
+        expected = expected.substring(0, expected.length()-2);
+        actual = actual.substring(0, actual.length()-2);
+        String result = Stream.of(actual.split("CONSTRAINT ")).map(str -> str.substring(0, str.length() - 1)).sorted().collect(Collectors.joining(", "));
 
-        String expectedResult = Stream.of(expected.split("CONSTRAINT ")).map(str -> str.substring(0, str.length() - 2)).sorted().collect(Collectors.joining(", "));
+        String expectedResult = Stream.of(expected.split("CONSTRAINT ")).map(str -> str.substring(0, str.length() - 1)).sorted().collect(Collectors.joining(", "));
         Assert.assertEquals(expectedResult, result);
     }
 }
