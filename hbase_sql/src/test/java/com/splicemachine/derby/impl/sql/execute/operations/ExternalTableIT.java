@@ -29,7 +29,9 @@ import org.junit.rules.TestRule;
 
 import java.io.File;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.*;
@@ -482,7 +484,7 @@ public class ExternalTableIT extends SpliceUnitTest {
         } catch (SQLException e) {
             Assert.assertEquals(fileFormat + ": Wrong Exception", INCONSISTENT_NUMBER_OF_ATTRIBUTE, e.getSQLState());
             Assert.assertEquals(fileFormat + ": wrong exception message",
-                    "Only '1' attributes defined but '" + colTypes.length + "' present in the external file : '" + file + "'. " +
+                    "1 attribute(s) defined but " + colTypes.length + " present in the external file : '" + file + "'. " +
                             "Suggested Schema is 'CREATE EXTERNAL TABLE T (" + types.getSuggestedTypes() + ");'.",
                     e.getMessage());
         }
@@ -494,6 +496,45 @@ public class ExternalTableIT extends SpliceUnitTest {
         for( String fileFormat : fileFormats )
             testWriteReadFromSimpleExternalTable(fileFormat);
 
+    }
+
+    @Test
+    public void testWriteReadCharVarcharTruncation() throws Exception {
+        for( String fileFormat : fileFormats ){
+            // we're using our internal ORC reader which doesn't support CHAR padding or CHAR/VARCHAR truncation
+            // see DB-9911 for reevalutation of this
+            if( fileFormat.equals("ORC")) {
+                continue;
+            }
+            String name = "char_varchar_" + fileFormat;
+
+            String file = getExternalResourceDirectory() + name;
+            methodWatcher.executeUpdate("create external table " + name +
+                    " ( col1 varchar(100), col2 varchar(100), col3 varchar(100) ) " +
+                    "STORED AS " + fileFormat + " LOCATION '" + file + "'");
+
+            int insertCount = methodWatcher.executeUpdate("insert into " + name + " values " +
+                    "( '123456789', '123456789', '12345')");
+            Assert.assertEquals("insertCount is wrong", 1, insertCount);
+
+            ResultSet rs1 = methodWatcher.executeQuery("select * from " + name);
+            List<String> res1 = CreateTableTypeHelper.getListResult(rs1);
+            Assert.assertEquals(1, res1.size());
+            Assert.assertEquals("'123456789', '123456789', '12345'", res1.get(0));
+
+            methodWatcher.execute("drop table " + name );
+
+            // create table in same location, but with shorter strings
+            methodWatcher.executeUpdate("create external table " + name + " ( col1 VARCHAR(5), col2 CHAR(5), col3 CHAR(10) ) " +
+                    "STORED AS " + fileFormat + " LOCATION '" + file + "'");
+
+            ResultSet rs2 = methodWatcher.executeQuery("select * from " + name);
+            List<String> res2 = CreateTableTypeHelper.getListResult(rs2);
+            Assert.assertEquals(1, res2.size());
+            Assert.assertEquals("'12345', '12345', '12345     '", res2.get(0));
+
+            methodWatcher.execute("drop table " + name );
+        }
     }
 
     @Test
@@ -695,7 +736,7 @@ public class ExternalTableIT extends SpliceUnitTest {
         } catch (SQLException e) {
             Assert.assertEquals("Wrong Exception", INCONSISTENT_NUMBER_OF_ATTRIBUTE, e.getSQLState());
             Assert.assertEquals( "wrong exception message",
-                    "Only '1' attributes defined but '3' present in the external file : '" + file + "'." + suggested,
+                    "1 attribute(s) defined but 3 present in the external file : '" + file + "'." + suggested,
                     e.getMessage() );
         }
 
@@ -747,7 +788,7 @@ public class ExternalTableIT extends SpliceUnitTest {
             } catch (SQLException e) {
                 Assert.assertEquals("Wrong Exception", INCONSISTENT_NUMBER_OF_ATTRIBUTE, e.getSQLState());
                 Assert.assertEquals("wrong exception message",
-                        "Only '1' attributes defined but '12' present in the external file : '" + file + "'. " +
+                        "1 attribute(s) defined but 12 present in the external file : '" + file + "'. " +
                                 "Suggested Schema is 'CREATE EXTERNAL TABLE T (" + suggestedTypes + ");'.",
                         e.getMessage());
             }
@@ -952,6 +993,24 @@ public class ExternalTableIT extends SpliceUnitTest {
                 "  2  |MACHINE |2015-09-02 |" ,TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
+    @Test // DB-9682
+    public void testReadTextMismatchSchema() throws Exception {
+        String file = getResourceDirectory() + "test_external_text";
+        methodWatcher.executeUpdate(String.format("create external table external_t2 (col1 int, col2 varchar(20), col3 date, col4 date)" +
+                "ROW FORMAT DELIMITED FIELDS TERMINATED BY '|' ESCAPED BY '\\\\' LINES TERMINATED BY '\\n'" +
+                " STORED AS TEXTFILE LOCATION '%s'", file));
+        try {
+            methodWatcher.executeQuery("select * from external_t2");
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception (" + e.getMessage() + ")", EXTERNAL_TABLES_READ_FAILURE, e.getSQLState());
+            Assert.assertEquals( "wrong exception message",
+                    "External Table read failed with exception '4 attribute(s) defined but 3 present " +
+                            "in the external file : '" + file + "'. Suggested Schema is 'CREATE EXTERNAL TABLE T " +
+                            "(_c0 CHAR/VARCHAR(x), _c1 CHAR/VARCHAR(x), _c2 CHAR/VARCHAR(x));'.'",
+                    e.getMessage() );
+        }
+    }
 
     @Test
     public void testWriteReadFromSimpleTextExternalTable() throws Exception {

@@ -346,6 +346,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 return handleExceptionSparkRead(e, location, false);
             }
 
+            checkNumColumns(location, baseColumnMap, table);
             ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
             return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
                     execRow, useSample, sampleFraction, table);
@@ -379,7 +380,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             } catch (Exception e) {
                 return handleExceptionSparkRead(e, location, false);
             }
-
+            checkNumColumns(location, baseColumnMap, table);
             table = ExternalTableUtils.castDateTypeInAvroDataSet(table, tableSchemaCopy);
             ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
 
@@ -623,14 +624,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 Column col = new Column(allCols[i]);
                 DataValueDescriptor dvd = execRow.getColumn(baseColumnMap[i] + 1);
 
-                if (dvd instanceof SQLChar &&
-                    !(dvd instanceof SQLVarchar)) {
-                    SQLChar sc = (SQLChar) dvd;
-                    if (sc.getSqlCharSize() > 0) {
-                        Column adapted = functions.rpad(col, sc.getSqlCharSize(), " ");
-                        col = adapted.as(allCols[i]);
-                    }
-                }
+                if ( dvd instanceof SQLChar || dvd instanceof SQLVarchar )
+                    col = convertSparkStringColToCharVarchar(col, dvd, allCols[i]);
+
                 cols.add(col);
             }
         }
@@ -659,6 +655,37 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         } else {
             return new NativeSparkDataSet(table, context);
         }
+    }
+
+    /**
+     * since spark has only strings, not CHAR/VARCHAR,
+     * we need to "create" CHAR/VARCHAR column out of string columns
+     * - for CHAR, we need to right-pad strings
+     * - for CHAR/VARCHAR, we need to make sure we're considering the maximum string length
+     *   note that we will use Java/Scala String length, which is measured in
+     *   UTF-16 characters, which is NOT the byte length and also NOT necessarily the character length.
+     *   e.g. the single character U+1F602 (https://www.fileformat.info/info/unicode/char/1f602/index.htm)
+     *   is encoded as 0xD83D 0xDE02 and therefore has length 2.
+     */
+    private Column convertSparkStringColToCharVarchar(Column col, DataValueDescriptor dvd, String name) {
+        //
+        if (dvd instanceof SQLChar &&
+                !(dvd instanceof SQLVarchar)) {
+            SQLChar sc = (SQLChar) dvd;
+            if (sc.getSqlCharSize() > 0) {
+                Column adapted = functions.rpad(col, sc.getSqlCharSize(), " ");
+                col = adapted.as(name);
+            }
+        }
+        else if ( dvd instanceof SQLChar) {
+            // rpad will already cut strings
+            SQLChar sc = (SQLChar) dvd;
+            if (sc.getSqlCharSize() > 0) {
+                Column adapted = functions.substring(col, 0, sc.getSqlCharSize() );
+                col = adapted.as(name);
+            }
+        }
+        return col;
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -766,31 +793,30 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     options.put("sep", columnDelimiter);
 
                 table = SpliceSpark.getSession().read().options(options).csv(location);
-
                 if (table.schema().fields().length == 0)
                     return getEmpty();
-
-                if (op == null) {
-                    // stats collection scan
-                    for(int index = 0; index < execRow.schema().fields().length; index++) {
-                        StructField ft = table.schema().fields()[index];
-                        Column cl = new Column(ft.name()).cast(execRow.schema().fields()[index].dataType());
-                        table = table.withColumn(ft.name(), cl);
-                    }
-                } else {
-                    for( int index = 0; index< baseColumnMap.length; index++) {
-                        if (baseColumnMap[index] != -1) {
-                            StructField ft = table.schema().fields()[index];
-                            Column cl = new Column(ft.name()).cast(execRow.schema().fields()[baseColumnMap[index]].dataType());
-                            table = table.withColumn(ft.name(), cl);
-                        }
-                    }
-                }
-
-
             } catch (Exception e) {
                 return handleExceptionSparkRead(e, location, true);
             }
+
+            checkNumColumns(location, baseColumnMap, table);
+            if (op == null) {
+                // stats collection scan
+                for(int index = 0; index < execRow.schema().fields().length; index++) {
+                    StructField ft = table.schema().fields()[index];
+                    Column cl = new Column(ft.name()).cast(execRow.schema().fields()[index].dataType());
+                    table = table.withColumn(ft.name(), cl);
+                }
+            } else {
+                for( int index = 0; index< baseColumnMap.length; index++) {
+                    if (baseColumnMap[index] != -1) {
+                        StructField ft = table.schema().fields()[index];
+                        Column cl = new Column(ft.name()).cast(execRow.schema().fields()[baseColumnMap[index]].dataType());
+                        table = table.withColumn(ft.name(), cl);
+                    }
+                }
+            }
+
 
             return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
                     execRow, useSample, sampleFraction, table);
@@ -800,7 +826,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
     }
 
-    private static Column createFilterCondition(Dataset dataset,String[] allColIdInSpark, Qualifier[][] qual_list, int[] baseColumnMap, DataValueDescriptor probeValue) throws StandardException {
+    /// check that we don't access a column that's not there with baseColumnMap
+    private static void checkNumColumns(String location, int[] baseColumnMap, Dataset<Row> table) throws StandardException {
+        if( baseColumnMap.length > table.schema().fields().length) {
+            throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE,
+                    baseColumnMap.length, table.schema().fields().length,
+                    location, ExternalTableUtils.getSuggestedSchema(table.schema()));
+        }
+    }
+
+    private static Column createFilterCondition(Dataset dataset,String[] allColIdInSpark, Qualifier[][] qual_list,
+                                                int[] baseColumnMap, DataValueDescriptor probeValue) throws StandardException {
         assert qual_list!=null:"qualifier[][] passed in is null";
         boolean     row_qualifies = true;
         Column andCols = null;
