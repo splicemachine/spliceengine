@@ -16,7 +16,7 @@
  */
 package com.splicemachine.spark2.splicemachine
 
-import java.io._
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream}
 
 import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
@@ -62,12 +62,65 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
       schema.json
     )
   }
+  
+  val rdd2Col = "List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])"
 
   test("Test Get RDD") {
     dropInternalTable
     insertInternalRows(10)
     val rdd = splicemachineContext.rdd(internalTN,Seq("C2_CHAR","C7_BIGINT"))
-    org.junit.Assert.assertEquals("RDD Changed!","List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])",rdd.collect.toList.map(r => s"[${r(0)},${r(1)}]").toString)
+    org.junit.Assert.assertEquals(
+      "RDD Changed!",
+      rdd2Col,
+      rdd.collect.toList.map(r => s"[${r(0)},${r(1)}]").toString
+    )
+  }
+
+  test("Test Get Internal RDD") {
+    dropInternalTable
+    insertInternalRows(10)
+    val rdd = splicemachineContext.internalRdd(internalTN,Seq("C2_CHAR","C7_BIGINT"))
+    org.junit.Assert.assertEquals(
+      "RDD Changed!",
+      rdd2Col,
+      rdd.collect.toList.map(r => s"[${r(0)},${r(1)}]").toString
+    )
+  }
+
+  val rddAllCol5Row = """false, 1    , 2013-09-05, 1, 1.0, 1, 1, 1.0, 1, 00:00:01.0, 1970-01-01 00:00:00.001, sometestinfo1, 1, 1, long varchar sometestinfo1, 1.0, 1
+                        |false, 3    , 2013-09-05, 3, 3.0, 3, 3, 3.0, 3, 00:00:03.0, 1970-01-01 00:00:00.003, sometestinfo3, 3, 3, long varchar sometestinfo3, 3.0, 3
+                        |false, 5    , 2013-09-05, 5, 5.0, 5, 5, 5.0, 5, 00:00:05.0, 1970-01-01 00:00:00.005, sometestinfo5, 5, 5, long varchar sometestinfo5, 5.0, 5
+                        |false, 7    , 2013-09-05, 7, 7.0, 7, 7, 7.0, 7, 00:00:07.0, 1970-01-01 00:00:00.007, sometestinfo7, 7, 7, long varchar sometestinfo7, 7.0, 7
+                        |false, null, 2013-09-05, 9, 9.0, 9, 9, 9.0, 9, 00:00:09.0, 1970-01-01 00:00:00.009, null, 9, 9, null, 9.0, 9""".stripMargin
+
+  test("Test Get RDD with Default Columns") {
+    dropInternalTable
+    insertInternalRows(10)
+    val rdd = splicemachineContext.rdd(internalTN)
+    org.junit.Assert.assertEquals(
+      "RDD Changed!",
+      rddAllCol5Row,
+      rdd.map(_.toSeq)  // remove current date from field 9 to avoid hard-coding current date in rddAllCol5Row
+        .map(sq => (sq.slice(0,9) :+ sq(9).toString.split(" ")(1)) ++ sq.slice(10,18))
+        .map(_.mkString(", "))
+        .takeOrdered(5)
+        .reduce(_+"\n"+_)
+    )
+  }
+
+  test("Test Get Internal RDD with Default Columns") {
+    dropInternalTable
+    insertInternalRows(10)
+    val rdd = splicemachineContext.internalRdd(internalTN)
+    org.junit.Assert.assertEquals(
+      "RDD Changed!",
+      rddAllCol5Row,
+      rdd.map(_.toSeq)  // remove current date from field 9 to avoid hard-coding current date in rddAllCol5Row
+        .map(sq => (sq.slice(0,9) :+ sq(9).toString.split(" ")(1)) ++ sq.slice(10,18))
+        .map(_.mkString(", "))
+        .takeOrdered(5)
+        .reduce(_+"\n"+_)
+    )
   }
 
   val carTableName = getClass.getSimpleName + "_TestCreateTable"
