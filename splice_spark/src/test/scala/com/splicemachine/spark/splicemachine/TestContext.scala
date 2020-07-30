@@ -18,17 +18,17 @@ import java.sql.{Connection, Time, Timestamp}
 import java.util.Date
 
 import com.splicemachine.derby.impl.SpliceSpark
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
-import org.apache.spark.sql.types._
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.apache.spark.sql.types._
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 trait TestContext extends BeforeAndAfterAll { self: Suite =>
-  var spark: SparkSession = _
   var sc: SparkContext = null
-  var splicemachineContext: SplicemachineContext = null
+  var spark: SparkSession = _
+  var splicemachineContext: SplicemachineContext = _
   var internalTNDF: Dataset[Row] = _
   val table = "test"
   val externalTable = "testExternal"
@@ -102,7 +102,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
       StructField("C17_INT", IntegerType, true) ::
       Nil)
   }
-
+  
   val primaryKeys = Seq("c6_int","c7_bigint")
 
   val allTypesInsertString = "(" +
@@ -171,8 +171,8 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   override def beforeAll() {
     sc = new SparkContext(conf)
     SpliceSpark.setContext(sc)
-    splicemachineContext = new SplicemachineContext(defaultJDBCURL)
     spark = SparkSession.builder.config(conf).getOrCreate
+    splicemachineContext = new SplicemachineContext(defaultJDBCURL)
     internalTNDF = dataframe(
       rdd( Seq( Row.fromSeq( testRow ) ) ),
       allTypesSchema(true)
@@ -180,8 +180,10 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   }
 
   override def afterAll() {
-    if (sc != null) sc.stop()
+    dropInternalTable
+    dropSchema(schema)
     if (spark != null) spark.stop()
+    if (sc != null) sc.stop()
   }
 
   def rdd(rows: Seq[Row]): RDD[Row] = {
@@ -203,14 +205,48 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
       conn.close()
     }
   }
-  
+
+  def execute(sql: String): Unit = {
+    val conn = getConnection()
+    try {
+      conn.createStatement().execute(sql)
+    }
+    finally {
+      conn.close()
+    }
+  }
+
   def createInternalTable(): Unit =
     if (!splicemachineContext.tableExists(internalTN))
-      getConnection.createStatement().execute("create table "+internalTN + this.allTypesCreateStringWithPrimaryKey)
+      execute("create table "+internalTN + this.allTypesCreateStringWithPrimaryKey)
 
   def dropInternalTable(): Unit =
     if (splicemachineContext.tableExists(internalTN))
-      splicemachineContext.dropTable(internalTN)
+      execute("drop table "+internalTN )
+
+  def dropSchema(schemaToDrop: String): Unit = execute(s"drop schema $schemaToDrop restrict")
+
+  def executeQuery(sql: String, processResultSet: java.sql.ResultSet => Any): Any = {
+    val conn = getConnection()
+    var rs: java.sql.ResultSet = null
+    try {
+      rs = conn.createStatement().executeQuery(sql)
+      processResultSet(rs)
+    }
+    finally {
+      rs.close
+      conn.close
+    }
+  }
+
+  def rowCount(table: String): Int =
+    executeQuery(
+      s"select count(*) from $table",
+      rs => {
+        rs.next
+        rs.getInt(1)
+      }
+    ).asInstanceOf[Int]
 
   /**
     *
@@ -222,6 +258,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   def insertInternalRows(rowCount: Integer): Unit = {
       val conn = getConnection()
       createInternalTable()
+      val offset = java.util.TimeZone.getDefault.getRawOffset
       try {
         Range(0, rowCount).map { i =>
           val ps = conn.prepareStatement("insert into " + internalTN + allTypesInsertString + allTypesInsertStringValues)
@@ -234,8 +271,8 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
           ps.setInt(7, i)
           ps.setFloat(8, i)
           ps.setShort(9, i.toShort)
-          ps.setTime(10, new Time(i))
-          ps.setTimestamp(11, new Timestamp(i))
+          ps.setTime(10, new Time((1000*i)-offset))
+          ps.setTimestamp(11, new Timestamp(i-offset))
           ps.setString(12, if (i < 8) "sometestinfo" + i else null)
           ps.setBigDecimal(13, new BigDecimal(i, new java.math.MathContext(4)).setScale(1) )
           ps.setInt(14, i)
