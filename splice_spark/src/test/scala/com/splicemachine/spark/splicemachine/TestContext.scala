@@ -18,17 +18,17 @@ import java.sql.{Connection, Time, Timestamp}
 import java.util.Date
 
 import com.splicemachine.derby.impl.SpliceSpark
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
-import org.apache.spark.sql.types._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.apache.spark.sql.types._
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 trait TestContext extends BeforeAndAfterAll { self: Suite =>
-  var spark: SparkSession = _
   var sc: SparkContext = null
-  var splicemachineContext: SplicemachineContext = null
+  var spark: SparkSession = _
+  var splicemachineContext: SplicemachineContext = _
   var internalTNDF: Dataset[Row] = _
   val table = "test"
   val externalTable = "testExternal"
@@ -86,7 +86,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
         StructField("C12_VARCHAR", StringType, true) ::
         Nil)
   }
-
+  
   val primaryKeys = Seq("c6_int","c7_bigint")
 
   val allTypesInsertString = "(" +
@@ -120,7 +120,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   )
 
   val statOptions = Map(
-    JDBCOptions.JDBC_TABLE_NAME -> "SYS.SYSTABLESTATISTICS",
+    JDBCOptions.JDBC_TABLE_NAME -> "SYSVW.SYSTABLESTATISTICS",
     JDBCOptions.JDBC_URL -> defaultJDBCURL
   )
 
@@ -142,8 +142,8 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   override def beforeAll() {
     sc = new SparkContext(conf)
     SpliceSpark.setContext(sc)
-    splicemachineContext = new SplicemachineContext(defaultJDBCURL)
     spark = SparkSession.builder.config(conf).getOrCreate
+    splicemachineContext = new SplicemachineContext(defaultJDBCURL)
     internalTNDF = dataframe(
       rdd(Seq(
         Row.fromSeq( Seq(true, "abcde", java.sql.Date.valueOf("2013-09-04"), new BigDecimal("" + 4), 1.5, 6,
@@ -154,8 +154,8 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   }
 
   override def afterAll() {
-    if (sc != null) sc.stop()
     if (spark != null) spark.stop()
+    if (sc != null) sc.stop()
   }
 
   def rdd(rows: Seq[Row]): RDD[Row] = {
@@ -167,7 +167,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
   def getConnection(): Connection = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
 
   def deleteInternalRow(key: Int): Unit = {
-    val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
+    val conn = getConnection()
     try {
       val ps = conn.prepareStatement(primaryKeyDelete)
       ps.setInt(1,key)
@@ -177,6 +177,10 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
       conn.close()
     }
   }
+  
+  def createInternalTable(): Unit =
+    if (!splicemachineContext.tableExists(internalTN))
+      getConnection.createStatement().execute("create table "+internalTN + this.allTypesCreateStringWithPrimaryKey)
 
   /**
     *
@@ -186,9 +190,9 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     * @return
     */
   def insertInternalRows(rowCount: Integer): Unit = {
-      val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
-      if (!splicemachineContext.tableExists(internalTN))
-        conn.createStatement().execute("create table "+internalTN + this.allTypesCreateStringWithPrimaryKey)
+      val conn = getConnection()
+      createInternalTable()
+      val offset = java.util.TimeZone.getDefault.getRawOffset
       try {
         Range(0, rowCount).map { i =>
           val ps = conn.prepareStatement("insert into " + internalTN + allTypesInsertString + allTypesInsertStringValues)
@@ -201,8 +205,8 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
           ps.setInt(7, i)
           ps.setFloat(8, i)
           ps.setShort(9, i.toShort)
-          ps.setTime(10, new Time(i))
-          ps.setTimestamp(11, new Timestamp(i))
+          ps.setTime(10, new Time((1000*i)-offset))
+          ps.setTimestamp(11, new Timestamp(i-offset))
           ps.setString(12, if (i < 8) "sometestinfo" + i else null)
           ps.execute()
         }
