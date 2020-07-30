@@ -1,22 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 package com.splicemachine.spark.splicemachine
 
-import java.io._
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream}
 
 import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
@@ -62,12 +59,65 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
       schema.json
     )
   }
+  
+  val rdd2Col = "List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])"
 
   test("Test Get RDD") {
     dropInternalTable
     insertInternalRows(10)
     val rdd = splicemachineContext.rdd(internalTN,Seq("C2_CHAR","C7_BIGINT"))
-    org.junit.Assert.assertEquals("RDD Changed!","List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])",rdd.collect().toList.toString)
+    org.junit.Assert.assertEquals(
+      "RDD Changed!",
+      rdd2Col,
+      rdd.collect.toList.map(r => s"[${r(0)},${r(1)}]").toString
+    )
+  }
+
+  test("Test Get Internal RDD") {
+    dropInternalTable
+    insertInternalRows(10)
+    val rdd = splicemachineContext.internalRdd(internalTN,Seq("C2_CHAR","C7_BIGINT"))
+    org.junit.Assert.assertEquals(
+      "RDD Changed!",
+      rdd2Col,
+      rdd.collect.toList.map(r => s"[${r(0)},${r(1)}]").toString
+    )
+  }
+
+  val rddAllCol5Row = """false, 1    , 2013-09-05, 1.00, 1.0, 1, 1, 1.0, 1, 00:00:01.0, 1970-01-01 00:00:00.001, sometestinfo1, 1.0, 1, long varchar sometestinfo1, 1.0, 1
+                        |false, 3    , 2013-09-05, 3.00, 3.0, 3, 3, 3.0, 3, 00:00:03.0, 1970-01-01 00:00:00.003, sometestinfo3, 3.0, 3, long varchar sometestinfo3, 3.0, 3
+                        |false, 5    , 2013-09-05, 5.00, 5.0, 5, 5, 5.0, 5, 00:00:05.0, 1970-01-01 00:00:00.005, sometestinfo5, 5.0, 5, long varchar sometestinfo5, 5.0, 5
+                        |false, 7    , 2013-09-05, 7.00, 7.0, 7, 7, 7.0, 7, 00:00:07.0, 1970-01-01 00:00:00.007, sometestinfo7, 7.0, 7, long varchar sometestinfo7, 7.0, 7
+                        |false, null, 2013-09-05, 9.00, 9.0, 9, 9, 9.0, 9, 00:00:09.0, 1970-01-01 00:00:00.009, null, 9.0, 9, null, 9.0, 9""".stripMargin
+
+  test("Test Get RDD with Default Columns") {
+    dropInternalTable
+    insertInternalRows(10)
+    val rdd = splicemachineContext.rdd(internalTN)
+    org.junit.Assert.assertEquals(
+      "RDD Changed!",
+      rddAllCol5Row,
+      rdd.map(_.toSeq)  // remove current date from field 9 to avoid hard-coding current date in rddAllCol5Row
+        .map(sq => (sq.slice(0,9) :+ sq(9).toString.split(" ")(1)) ++ sq.slice(10,18))
+        .map(_.mkString(", "))
+        .takeOrdered(5)
+        .reduce(_+"\n"+_)
+    )
+  }
+
+  test("Test Get Internal RDD with Default Columns") {
+    dropInternalTable
+    insertInternalRows(10)
+    val rdd = splicemachineContext.internalRdd(internalTN)
+    org.junit.Assert.assertEquals(
+      "RDD Changed!",
+      rddAllCol5Row,
+      rdd.map(_.toSeq)
+        .map(sq => (sq.slice(0,9) :+ sq(9).toString.split(" ")(1)) ++ sq.slice(10,18))
+        .map(_.mkString(", "))
+        .takeOrdered(5)
+        .reduce(_+"\n"+_)
+    )
   }
 
   val carTableName = getClass.getSimpleName + "_TestCreateTable"
