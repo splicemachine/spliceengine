@@ -12,7 +12,7 @@ import java.util.concurrent.Callable;
         parameterListHeading = "Parameters:%n",
         descriptionHeading = "Description:%n",
         optionListHeading = "Options:%n" )
-public class RowCommand extends ConnectionOptions implements Callable<Integer>
+public class RGetCommand extends ConnectionOptions implements Callable<Integer>
 {
     @CommandLine.Parameters(index = "0", description = "row id") String id;
     @CommandLine.ArgGroup(exclusive = true, multiplicity = "1", heading = "row values parsing options%n")
@@ -22,7 +22,7 @@ public class RowCommand extends ConnectionOptions implements Callable<Integer>
 
     public static class ExclusiveRowParsing {
         @CommandLine.Option(names = "schema", required = true, split =",", description = "user-defined schema, possible values: ${COMPLETION-CANDIDATES}") Utils.SQLType[] schema;
-        @CommandLine.Option(names = "inferred", required = true, description = "infer the schema of row automatically") Boolean inferred;
+        @CommandLine.Option(names = "auto", required = true, description = "retrieve the schema of row automatically") Boolean inferred;
         @CommandLine.Option(names = "none", required = true, description = "print the row in hex") Boolean none;
     }
 
@@ -31,7 +31,7 @@ public class RowCommand extends ConnectionOptions implements Callable<Integer>
         @CommandLine.Option(names = "region", required = true, description = "hbase region name (with of without 'splice:' prefix)") String region;
     }
 
-    public RowCommand() {
+    public RGetCommand() {
     }
 
     @Override

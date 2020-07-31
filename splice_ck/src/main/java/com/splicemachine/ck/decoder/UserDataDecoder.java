@@ -20,5 +20,5 @@ public abstract class UserDataDecoder {
         return er;
     }
 
-    protected abstract Pair<ExecRow, DescriptorSerializer[]> getExecRowAndDescriptors();
+    public abstract Pair<ExecRow, DescriptorSerializer[]> getExecRowAndDescriptors() throws StandardException;
 }
