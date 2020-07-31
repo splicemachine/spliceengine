@@ -84,6 +84,10 @@ public class SessionPropertiesImpl implements SessionProperties {
                 boolean disabled = Boolean.valueOf(valString);
                 properties[DISABLE_TC_PUSHED_DOWN_INTO_VIEWS.getId()] = disabled;
                 break;
+            case TABLELIMITFOREXHAUSTIVESEARCH:
+                int tableLimitForExhaustiveSearch = Integer.parseInt(valString);
+                properties[TABLELIMITFOREXHAUSTIVESEARCH.getId()] = tableLimitForExhaustiveSearch;
+                break;
             default:
                 break;
         }

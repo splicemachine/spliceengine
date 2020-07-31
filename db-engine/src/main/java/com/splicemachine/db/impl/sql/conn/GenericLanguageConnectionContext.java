@@ -272,6 +272,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private int maxStatementLogLen;
     private boolean logQueryPlan;
 
+    // default to 6
+    private int tableLimitForExhaustiveSearch = 6;
+
     // this used to be computed in OptimizerFactoryContextImpl; i.e everytime a
     // connection was made. To keep the semantics same I'm putting it out here
     // instead of in the OptimizerFactory which is only initialized when the
@@ -395,6 +398,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         String logQueryPlanProperty=PropertyUtil.getCachedDatabaseProperty(this,"derby.language.logQueryPlan");
         logQueryPlan=Boolean.valueOf(logQueryPlanProperty);
+
+        try {
+            String valueString = (String) getTransactionCompile().getProperty("derby.language.tableLimitForExhaustiveSearch");
+            int value = Integer.parseInt(valueString);
+            if (value > 0)
+                tableLimitForExhaustiveSearch = value;
+        } catch (Exception e) {
+            // no op, use default value 6
+        }
 
         lockEscalationThreshold=Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;
         stmtValidators=new ArrayList<>();
@@ -596,6 +608,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public boolean getLogQueryPlan(){
         return logQueryPlan;
+    }
+
+    @Override
+    public int getTableLimitForExhaustiveSearch() {
+        Integer tableLimit = (Integer) sessionProperties.getProperty(
+                SessionProperties.PROPERTYNAME.TABLELIMITFOREXHAUSTIVESEARCH);
+        if (tableLimit != null)
+            return tableLimit;
+        return tableLimitForExhaustiveSearch;
     }
 
     @Override
