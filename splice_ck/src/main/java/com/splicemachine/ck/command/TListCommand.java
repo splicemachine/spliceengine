@@ -7,10 +7,8 @@ import picocli.CommandLine;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(name = "tlist", description = "list SpliceMachine tables (similar to systables)" )
-public class TableListCommand extends ConnectionOptions implements Callable<Integer>
+public class TListCommand extends ConnectionOptions implements Callable<Integer>
 {
-    @CommandLine.Option(names = "schema", arity = "0.1", defaultValue = "*") String schema;
-
     @Override
     public Integer call() throws Exception {
         HBaseInspector hbaseInspector = new HBaseInspector(Utils.constructConfig(zkq, port));

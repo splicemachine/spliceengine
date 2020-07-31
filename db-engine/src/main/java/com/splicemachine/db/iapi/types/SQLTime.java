@@ -88,6 +88,10 @@ public final class SQLTime extends DataType
 	private int		encodedTimeFraction; //currently always 0 since we don't
 											 //support time precision
 
+	private static boolean skipDBContext = false;
+
+	public static void setSkipDBContext(boolean value) { skipDBContext = value; }
+
 	/*
 	** DataValueDescriptor interface
 	** (mostly implemented in DataType)
@@ -1085,7 +1089,7 @@ public final class SQLTime extends DataType
 	public void setValue(String theValue,Calendar cal) throws StandardException{
 		restoreToNull();
 		if (theValue != null) {
-			DatabaseContext databaseContext = (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID);
+			DatabaseContext databaseContext = skipDBContext ? null : (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID);
 			parseTime( theValue,
 					false,
 					(databaseContext == null) ? null : databaseContext.getDatabase(),
