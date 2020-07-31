@@ -84,6 +84,23 @@ public class SessionPropertyIT extends SpliceUnitTest {
                         row(10,10,10)))
                 .create();
 
+        // t2: 20 rows
+        new TableCreator(conn)
+                .withCreate("create table t2(a2 int, b2 int, c2 int)")
+                .create();
+
+        for (int i = 0; i < 2; i++) {
+            spliceClassWatcher.executeUpdate("insert into t2 select * from t1");
+        }
+
+        // t3: 10 rows
+        new TableCreator(conn)
+                .withCreate("create table t3(a3 int, b3 int, c3 int)")
+                .create();
+
+        spliceClassWatcher.executeUpdate("insert into t3 select * from t1");
+
+        // t1: 40 rows
         for (int i = 0; i < 2; i++) {
             spliceClassWatcher.executeUpdate("insert into t1 select * from t1");
         }
@@ -207,6 +224,39 @@ public class SessionPropertyIT extends SpliceUnitTest {
 
         conn.close();
 
+    }
+
+    @Test
+    public void TestTableLimitForExhaustiveSearchSessionProperty() throws Exception {
+        TestConnection conn = methodWatcher.createConnection();
+        conn.execute("set session_property tableLimitForExhaustiveSearch=1");
+
+        String sqlText = "values current session_property";
+
+        try (ResultSet rs = conn.query(sqlText)) {
+            String expected = "1                |\n" +
+                    "----------------------------------\n" +
+                    "TABLELIMITFOREXHAUSTIVESEARCH=1; |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        sqlText = "explain select * from t1 inner join t2 on a1=a2 inner join t3 on a2=a3";
+        rowContainsQuery(5, sqlText, "outputRows=80", conn);
+
+        // set property to false
+        conn.execute("set session_property tableLimitForExhaustiveSearch=null");
+        sqlText = "values current session_property";
+        try (ResultSet rs = conn.query(sqlText)) {
+            String expected = "1 |\n" +
+                    "----\n" +
+                    "   |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        sqlText = "explain select * from t1 inner join t2 on a1=a2 inner join t3 on a2=a3";
+        rowContainsQuery(6, sqlText, "outputRows=40", conn);
+
+        conn.close();
     }
 
     @Test
