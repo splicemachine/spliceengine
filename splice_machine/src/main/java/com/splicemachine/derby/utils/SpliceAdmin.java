@@ -2358,7 +2358,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         fkColNames.add("\"" + columnDescriptorMap.get(keyColumns[index]).getColumnName() + "\"");
                         referencedColNames.add("\"" + referencedTableCDM.get(referencedKeyColumns[index]).getColumnName() + "\"");
                     }
-                    fkKeys.append("," + buildForeignKeyConstraint(fkName,refTblName,referencedColNames,fkColNames,updateType,deleteType));
+                    fkKeys.append(", " + buildForeignKeyConstraint(fkName,refTblName,referencedColNames,fkColNames,updateType,deleteType));
                     break;
                 default:
                     break;
