@@ -220,9 +220,11 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     if (!splicemachineContext.tableExists(internalTN))
       execute("create table "+internalTN + this.allTypesCreateStringWithPrimaryKey)
 
-  def dropInternalTable(): Unit =
-    if (splicemachineContext.tableExists(internalTN))
-      execute("drop table "+internalTN )
+  def dropInternalTable(): Unit = dropTable(internalTN)
+
+  def dropTable(table: String): Unit =
+    if (splicemachineContext.tableExists(table))
+      execute("drop table "+table )
 
   def dropSchema(schemaToDrop: String): Unit = execute(s"drop schema $schemaToDrop restrict")
 
