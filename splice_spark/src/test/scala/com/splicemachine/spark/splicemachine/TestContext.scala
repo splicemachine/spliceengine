@@ -43,7 +43,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c1_boolean boolean, " +
     "c2_char char(5), " +
     "c3_date date, " +
-    "c4_decimal numeric(15,2), " +
+    "c4_numeric numeric(15,2), " +
     "c5_double double, " +
     "c6_int int, " +
     "c7_bigint bigint, " +
@@ -53,13 +53,17 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c11_timestamp timestamp, " +
     "c12_varchar varchar(56), " +
     "c13_decimal decimal(4,1), " +
+    "c14_bigint bigint, " +
+    "c15_longvarchar long varchar, " +
+    "c16_real real, " +
+    "c17_int int, " +
     "primary key (c6_int, c7_bigint)" +
      ")"
   val allTypesCreateStringWithoutPrimaryKey = "(" +
     "c1_boolean boolean, " +
     "c2_char char(5), " +
     "c3_date date, " +
-    "c4_decimal numeric(15,2), " +
+    "c4_numeric numeric(15,2), " +
     "c5_double double, " +
     "c6_int int, " +
     "c7_bigint bigint, " +
@@ -68,7 +72,11 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c10_time time, " +
     "c11_timestamp timestamp, " +
     "c12_varchar varchar(56)," +
-    "c13_decimal decimal(4,1) " +
+    "c13_decimal decimal(4,1), " +
+    "c14_bigint bigint, " +
+    "c15_longvarchar long varchar, " +
+    "c16_real real, " +
+    "c17_int int " +
     ")"
 
   def allTypesSchema(withPrimaryKey: Boolean): StructType = {
@@ -79,15 +87,19 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
       StructField("C1_BOOLEAN", BooleanType, true) ::
       StructField("C2_CHAR", StringType, true) ::
       StructField("C3_DATE", DateType, true) ::
-      StructField("C4_DECIMAL", DecimalType(15,2), true) ::
+      StructField("C4_NUMERIC", DecimalType(15,2), true) ::
       StructField("C5_DOUBLE", DoubleType, true) ::
       c6 :: c7 ::
-      StructField("C8_FLOAT", DoubleType, true) ::
+      StructField("C8_FLOAT", FloatType, true) ::
       StructField("C9_SMALLINT", ShortType, true) ::
       StructField("C10_TIME", TimestampType, true) ::
       StructField("C11_TIMESTAMP", TimestampType, true) ::
       StructField("C12_VARCHAR", StringType, true) ::
       StructField("C13_DECIMAL", DecimalType(4,1), true) ::
+      StructField("C14_BIGINT", LongType, true) ::
+      StructField("C15_LONGVARCHAR", StringType, true) ::
+      StructField("C16_REAL", FloatType, true) ::
+      StructField("C17_INT", IntegerType, true) ::
       Nil)
   }
 
@@ -97,7 +109,7 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c1_boolean, " +
     "c2_char, " +
     "c3_date, " +
-    "c4_decimal, " +
+    "c4_numeric, " +
     "c5_double, " +
     "c6_int, " +
     "c7_bigint, " +
@@ -106,9 +118,13 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     "c10_time, " +
     "c11_timestamp, " +
     "c12_varchar, " +
-    "c13_decimal " +
+    "c13_decimal, " +
+    "c14_bigint, " +
+    "c15_longvarchar, " +
+    "c16_real, " +
+    "c17_int " +
     ") "
-  val allTypesInsertStringValues = "values (?,?,?,?,?,?,?,?,?,?,?,?,?)"
+  val allTypesInsertStringValues = "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
   val primaryKeyDelete = "where c6_int = ? and c7_bigint = ?"
 
@@ -143,12 +159,14 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     setAppName("test").
     set("spark.ui.enabled", "false").
     set("spark.app.id", appID)
-  
+
   val testRow = List(false, "abcde", java.sql.Date.valueOf("2014-03-11"),
     new BigDecimal(4.44, new java.math.MathContext(15)).setScale(2),
-    5.5, 0, 0L, 8.8, new java.lang.Short("9"), new java.sql.Timestamp(1000), new java.sql.Timestamp(11),
+    5.5, 0, 0L, 8.8f, new java.lang.Short("9"), new java.sql.Timestamp(1000), new java.sql.Timestamp(11),
     "Varchar C12",
-    new BigDecimal(13.3, new java.math.MathContext(4)).setScale(1) )
+    new BigDecimal(13.3, new java.math.MathContext(4)).setScale(1),
+    14L, "Long Varchar C15", 16.6f, 17
+  )
 
   override def beforeAll() {
     sc = new SparkContext(conf)
@@ -257,6 +275,10 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
           ps.setTimestamp(11, new Timestamp(i-offset))
           ps.setString(12, if (i < 8) "sometestinfo" + i else null)
           ps.setBigDecimal(13, new BigDecimal(i, new java.math.MathContext(4)).setScale(1) )
+          ps.setInt(14, i)
+          ps.setString(15, if (i < 8) "long varchar sometestinfo" + i else null)
+          ps.setFloat(16, i)
+          ps.setInt(17, i)
           ps.execute()
         }
       }finally {

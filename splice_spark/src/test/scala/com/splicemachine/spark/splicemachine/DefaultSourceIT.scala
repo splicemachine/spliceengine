@@ -110,6 +110,10 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
       ps.setTimestamp(11, new Timestamp(11))
       ps.setString(12, "somet\nestinfo" + 11)
       ps.setBigDecimal(13, new BigDecimal(11, new java.math.MathContext(4)).setScale(1) )
+      ps.setInt(14, 11)
+      ps.setString(15, "long varchar somet\nestinfo" + 11)
+      ps.setFloat(16, 11)
+      ps.setInt(17, 11)
       ps.execute()
     }finally {
       conn.close()
@@ -478,7 +482,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
 
   test("table scan with projection and predicate numeric") {
     assertEquals("[[0.00], [1.00], [2.00], [3.00], [4.00]]",
-      sqlContext.sql(s"""SELECT c4_decimal FROM $table where c4_decimal < 5.0000""").collectAsList().toString)
+      sqlContext.sql(s"""SELECT c4_numeric FROM $table where c4_numeric < 5.0000""").collectAsList().toString)
   }
 
   test("table scan with projection and predicate double") {
