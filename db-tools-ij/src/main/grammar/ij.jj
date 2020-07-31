@@ -1146,7 +1146,6 @@ class ij {
         ResultSet rs = null;
         try {
             haveConnection();
-            verifyTableExists(schema,table);
             Statement stmt = theConnection.createStatement();
             rs = stmt.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE(\'" +
                     schema + "\'," + "\'" + table + "\')" );
