@@ -68,6 +68,14 @@ public class SessionPropertiesImpl implements SessionProperties {
                 int recursiveQueryIterationLimit = Integer.parseInt(valString);
                 properties[RECURSIVEQUERYITERATIONLIMIT.getId()] = recursiveQueryIterationLimit;
                 break;
+            case OLAPPARALLELPARTITIONS:
+                int parallelPartitions = Integer.parseInt(valString);
+                properties[OLAPPARALLELPARTITIONS.getId()] = parallelPartitions;
+                break;
+            case OLAPSHUFFLEPARTITIONS:
+                int shufflePartitions = Integer.parseInt(valString);
+                properties[OLAPSHUFFLEPARTITIONS.getId()] = shufflePartitions;
+                break;
             case SNAPSHOT_TIMESTAMP:
                 long timestamp = Long.parseLong(valString);
                 properties[SNAPSHOT_TIMESTAMP.getId()] = timestamp;
@@ -75,6 +83,14 @@ public class SessionPropertiesImpl implements SessionProperties {
             case DISABLE_TC_PUSHED_DOWN_INTO_VIEWS:
                 boolean disabled = Boolean.valueOf(valString);
                 properties[DISABLE_TC_PUSHED_DOWN_INTO_VIEWS.getId()] = disabled;
+                break;
+            case SPARK_RESULT_STREAMING_BATCHES:
+                int sparkResultStreamingBatches = Integer.parseInt(valString);
+                properties[SPARK_RESULT_STREAMING_BATCHES.getId()] = sparkResultStreamingBatches;
+                break;
+            case SPARK_RESULT_STREAMING_BATCH_SIZE:
+                int sparkResultStreamingBatchSize = Integer.parseInt(valString);
+                properties[SPARK_RESULT_STREAMING_BATCH_SIZE.getId()] = sparkResultStreamingBatchSize;
                 break;
             default:
                 break;

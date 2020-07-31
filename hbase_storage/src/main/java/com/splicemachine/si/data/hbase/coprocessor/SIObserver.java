@@ -22,10 +22,12 @@ import java.util.*;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.compactions.SpliceCompactionRequest;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
@@ -40,6 +42,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.server.PurgeConfigBuilder;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
@@ -199,15 +202,18 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
             SConfiguration conf = driver.getConfiguration();
-            PurgeConfig purgeConfig;
+            PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
             if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                purgeConfig = PurgeConfig.purgeDuringFlushConfig();
+                purgeConfig.purgeDeletesDuringFlush();
             } else {
-                purgeConfig = PurgeConfig.noPurgeConfig();
+                purgeConfig.noPurgeDeletes();
             }
+            purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
             // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
             // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
-            SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+            SICompactionScanner siScanner = new SICompactionScanner(
+                    state, scanner, purgeConfig.build(), conf.getFlushResolutionShare(),
+                    conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
         }else {
@@ -217,6 +223,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
     @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner, ScanType scanType, CompactionLifeCycleTracker tracker, CompactionRequest request) throws IOException {
+        assert request instanceof SpliceCompactionRequest;
         try {
             // We can't return null, there's a check in org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost.preCompact
             // return a dummy implementation instead
@@ -229,17 +236,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                         driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
-                PurgeConfig purgeConfig;
-                if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                    if (request.isMajor())
-                        purgeConfig = PurgeConfig.purgeDuringMajorCompactionConfig();
-                    else
-                        purgeConfig = PurgeConfig.purgeDuringMinorCompactionConfig();
-                } else {
-                    purgeConfig = PurgeConfig.noPurgeConfig();
-                }
                 SICompactionScanner siScanner = new SICompactionScanner(
-                        state, scanner, purgeConfig,
+                        state, scanner, ((SpliceCompactionRequest) request).getPurgeConfig(),
                         conf.getOlapCompactionResolutionShare(), conf.getLocalCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
@@ -513,12 +511,9 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
     @Override
     public void preReplayWALs(ObserverContext<? extends RegionCoprocessorEnvironment> ctx, RegionInfo info, Path edits) throws IOException {
-        WAL.Reader reader = null;
         Configuration conf = ctx.getEnvironment().getConfiguration();
         FileSystem fs = FileSystem.get(edits.toUri(), conf);
-        try {
-            reader = WALFactory.createReader(fs, edits, conf);
-
+        try (WAL.Reader reader = WALFactory.createReader(fs, edits, conf)) {
             WAL.Entry entry;
             LOG.info("WAL replay");
             while ((entry = reader.next()) != null) {
@@ -527,8 +522,27 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
                 LOG.info(key + " -> " + val);
             }
-        } finally {
-            reader.close();
+        }
+    }
+
+    @Override
+    public void preWALRestore(ObserverContext<? extends RegionCoprocessorEnvironment> ctx, RegionInfo info, WALKey logKey, WALEdit logEdit) throws IOException {
+        // DB-9895: HBase may replay a WAL edits that has been persisted in HFile. It could happen that a row with
+        // FIRST_WRITE_TOKE has already been persisted in an HFile. If the row is replayed to memstore and deleted,
+        // the row will be purged during flush. However, the row that already persisted in HFile is still visible.
+        // Remove FIRST_WRITE_TOKE during wal replay to prevent this from happening.
+        SConfiguration config = HConfiguration.getConfiguration();
+        String namespace = logKey.getTableName().getNamespaceAsString();
+        if (namespace.equals(config.getNamespace())) {
+            ArrayList<Cell> cells = logEdit.getCells();
+            Iterator<Cell> it = cells.iterator();
+            while (it.hasNext()) {
+                Cell cell = it.next();
+                CellType cellType = CellUtils.getKeyValueType(cell);
+                if (cellType == CellType.FIRST_WRITE_TOKEN) {
+                    it.remove();
+                }
+            }
         }
     }
 }

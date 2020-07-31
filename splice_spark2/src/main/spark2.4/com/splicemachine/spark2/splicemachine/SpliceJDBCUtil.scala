@@ -20,7 +20,7 @@ object SpliceJDBCUtil {
   def listColumns(columns: Array[String]): String = {
     val sb = new StringBuilder()
     columns.foreach(x => sb.append(",").append(x))
-    if (sb.isEmpty) "1" else sb.substring(1)
+    if (sb.isEmpty) "*" else sb.substring(1)
   }
 
   /**
@@ -79,7 +79,20 @@ object SpliceJDBCUtil {
       rs => Seq(
         rs.getString("COLUMN_NAME"),
         rs.getString("TYPE_NAME"),
-        rs.getString("COLUMN_SIZE")
+        rs.getString("COLUMN_SIZE"),
+        rs.getString("DECIMAL_DIGITS")
+      )
+    )
+
+  def retrieveTableInfo(options: JdbcOptionsInWrite): Array[Seq[String]] =
+    retrieveMetaData(
+      options,
+      (conn,schema,tablename) => conn.getMetaData.getTables(null, schema.toUpperCase, tablename.toUpperCase, null),
+      (conn,tablename) => conn.getMetaData.getTables(null, null, tablename.toUpperCase, null),
+      rs => Seq(
+        rs.getString("TABLE_SCHEM"),
+        rs.getString("TABLE_NAME"),
+        rs.getString("TABLE_TYPE")
       )
     )
 

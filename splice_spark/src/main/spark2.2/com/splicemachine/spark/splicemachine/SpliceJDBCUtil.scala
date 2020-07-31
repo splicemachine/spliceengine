@@ -21,7 +21,7 @@ object SpliceJDBCUtil {
   def listColumns(columns: Array[String]): String = {
     val sb = new StringBuilder()
     columns.foreach(x => sb.append(",").append(x))
-    if (sb.isEmpty) "1" else sb.substring(1)
+    if (sb.isEmpty) "*" else sb.substring(1)
   }
 
   /**
@@ -64,33 +64,60 @@ object SpliceJDBCUtil {
     if (sb.length < 2) "" else sb.substring(2)
   }
 
-  /**
-    * Takes a (schema, table) specification and returns the table's Catalyst
-    * schema.
-    *
-    * @param options - JDBC options that contains url, table and other information.
-    * @return A StructType giving the table's Catalyst schema.
-    * @throws SQLException if the table specification is garbage.
-    * @throws SQLException if the table contains an unsupported type.
-    */
+  def retrievePrimaryKeys(options: JDBCOptions): Array[String] =
+    retrieveMetaData(
+      options,
+      (conn,schema,tablename) => conn.getMetaData.getPrimaryKeys(null, schema, tablename),
+      (conn,tablename) => conn.getMetaData.getPrimaryKeys(null, null, tablename),
+      rs => Seq(rs.getString("COLUMN_NAME"))
+    ).map(_(0))
 
-  def retrievePrimaryKeys(options: JDBCOptions): Array[String] = {
-    val url = options.url
+  def retrieveColumnInfo(options: JDBCOptions): Array[Seq[String]] =
+    retrieveMetaData(
+      options,
+      (conn,schema,tablename) => conn.getMetaData.getColumns(null, schema.toUpperCase, tablename.toUpperCase, null),
+      (conn,tablename) => conn.getMetaData.getColumns(null, null, tablename.toUpperCase, null),
+      rs => Seq(
+        rs.getString("COLUMN_NAME"),
+        rs.getString("TYPE_NAME"),
+        rs.getString("COLUMN_SIZE")
+      )
+    )
+
+  def retrieveTableInfo(options: JDBCOptions): Array[Seq[String]] =
+    retrieveMetaData(
+      options,
+      (conn,schema,tablename) => conn.getMetaData.getTables(null, schema.toUpperCase, tablename.toUpperCase, null),
+      (conn,tablename) => conn.getMetaData.getTables(null, null, tablename.toUpperCase, null),
+      rs => Seq(
+        rs.getString("TABLE_SCHEM"),
+        rs.getString("TABLE_NAME"),
+        rs.getString("TABLE_TYPE")
+      )
+    )
+
+  private def retrieveMetaData(
+    options: JDBCOptions,
+    getWithSchemaTablename: (Connection,String,String) => ResultSet,
+    getWithTablename: (Connection,String) => ResultSet,
+    getData: ResultSet => Seq[String]
+  ): Array[Seq[String]] = {
     val table = options.table
-    val dialect = JdbcDialects.get(url)
     val conn: Connection = JdbcUtils.createConnectionFactory(options)()
     try {
-      val meta = table.split("\\.")
       val rs: ResultSet =
-        if (table.contains("."))
-          conn.getMetaData.getPrimaryKeys(null, meta(0), meta(1))
-        else
-          conn.getMetaData.getPrimaryKeys(null, null, table)
-      var keys = ArrayBuffer[String]()
+        if (table.contains(".")) {
+          val meta = table.split("\\.")
+          getWithSchemaTablename(conn, meta(0), meta(1))
+        }
+        else {
+          getWithTablename(conn, table)
+        }
+      val buffer = ArrayBuffer[Seq[String]]()
       while (rs.next()) {
-        keys+=rs.getString(4)
+        buffer += getData(rs)
       }
-      keys.toArray
+      buffer.toArray
     } finally {
       conn.close()
     }

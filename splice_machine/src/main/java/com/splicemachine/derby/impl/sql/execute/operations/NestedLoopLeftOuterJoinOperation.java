@@ -37,24 +37,24 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		}
 
 		public NestedLoopLeftOuterJoinOperation(
-						SpliceOperation leftResultSet,
-						int leftNumCols,
-						SpliceOperation rightResultSet,
-						int rightNumCols,
-						Activation activation,
-						GeneratedMethod restriction,
-						int resultSetNumber,
-						GeneratedMethod emptyRowFun,
-						boolean wasRightOuterJoin,
-						boolean oneRowRightSide,
-						boolean notExistsRightSide,
-						boolean rightFromSSQ,
-						double optimizerEstimatedRowCount,
-						double optimizerEstimatedCost,
-						String userSuppliedOptimizerOverrides,
-						String sparkExpressionTreeAsString) throws StandardException {
+				SpliceOperation leftResultSet,
+				int leftNumCols,
+				SpliceOperation rightResultSet,
+				int rightNumCols,
+				Activation activation,
+				GeneratedMethod restriction,
+				int resultSetNumber,
+				GeneratedMethod emptyRowFun,
+				boolean wasRightOuterJoin,
+				boolean oneRowRightSide,
+				byte semiJoinType,
+				boolean rightFromSSQ,
+				double optimizerEstimatedRowCount,
+				double optimizerEstimatedCost,
+				String userSuppliedOptimizerOverrides,
+				String sparkExpressionTreeAsString) throws StandardException {
 				super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
-					activation, restriction, resultSetNumber,oneRowRightSide, notExistsRightSide, rightFromSSQ,
+					activation, restriction, resultSetNumber,oneRowRightSide, semiJoinType, rightFromSSQ,
 					optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
 					sparkExpressionTreeAsString);
 				SpliceLogUtils.trace(LOG, "instantiate");

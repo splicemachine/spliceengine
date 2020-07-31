@@ -37,6 +37,7 @@ import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.CompactionContext;
 import com.splicemachine.si.impl.server.PurgeConfig;
+import com.splicemachine.si.impl.server.PurgeConfigBuilder;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -94,7 +95,7 @@ import static org.apache.hadoop.hbase.regionserver.ScanType.COMPACT_RETAIN_DELET
  *
  */
 public class SpliceDefaultCompactor extends DefaultCompactor {
-    private static final boolean allowSpark = false;
+    private static final boolean allowSpark = true;
     private static final Logger LOG = Logger.getLogger(SpliceDefaultCompactor.class);
     private long smallestReadPoint;
     private String conglomId;
@@ -128,13 +129,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     @Override
     @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="static attribute hostname is set from here")
     public List<Path> compact(CompactionRequestImpl request, ThroughputController throughputController, User user) throws IOException {
+        assert request instanceof SpliceCompactionRequest;
+        // Used if we cannot compact in Spark
+        ((SpliceCompactionRequest) request).setPurgeConfig(buildPurgeConfig(request));
 
         if(!allowSpark || store.getRegionInfo().getTable().isSystemTable())
-            return super.compact(request, throughputController,user);
+            return super.compact(request, throughputController, user);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
-
-        assert request instanceof SpliceCompactionRequest;
 
         smallestReadPoint = store.getSmallestReadPoint();
         FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
@@ -331,24 +333,15 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
                 if (needsSI(store.getTableName())) {
                     SIDriver driver=SIDriver.driver();
-                    double resolutionShare = HConfiguration.getConfiguration().getOlapCompactionResolutionShare();
-                    int bufferSize = HConfiguration.getConfiguration().getOlapCompactionResolutionBufferSize();
-                    boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
+                    SConfiguration config = HConfiguration.getConfiguration();
+                    double resolutionShare = config.getOlapCompactionResolutionShare();
+                    int bufferSize = config.getOlapCompactionResolutionBufferSize();
+                    boolean blocking = config.getOlapCompactionBlocking();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                             driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
-                    PurgeConfig purgeConfig;
-                    if (SpliceCompactionUtils.shouldPurge(store) && request.isMajor()) {
-                        purgeConfig = PurgeConfig.forcePurgeConfig();
-                    } else if (HConfiguration.getConfiguration().getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                        if (request.isMajor())
-                            purgeConfig = PurgeConfig.purgeDuringMajorCompactionConfig();
-                        else
-                            purgeConfig = PurgeConfig.purgeDuringMinorCompactionConfig();
-                    } else {
-                        purgeConfig = PurgeConfig.noPurgeConfig();
-                    }
 
-                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, resolutionShare, bufferSize, context);
+                    SICompactionScanner siScanner = new SICompactionScanner(
+                            state, scanner, buildPurgeConfig(request), resolutionShare, bufferSize, context);
                     siScanner.start();
                     scanner = siScanner;
                 }
@@ -897,4 +890,19 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             }
         }
     }
+
+    private PurgeConfig buildPurgeConfig(CompactionRequest request) throws IOException {
+        SConfiguration config = HConfiguration.getConfiguration();
+        PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
+        if (SpliceCompactionUtils.forcePurgeDeletes(store) && request.isMajor()) {
+            purgeConfig.forcePurgeDeletes();
+        } else if (config.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
+            purgeConfig.purgeDeletesDuringCompaction(request.isMajor());
+        } else {
+            purgeConfig.noPurgeDeletes();
+        }
+        purgeConfig.purgeUpdates(config.getOlapCompactionAutomaticallyPurgeOldUpdates());
+        return purgeConfig.build();
+    }
+
 }

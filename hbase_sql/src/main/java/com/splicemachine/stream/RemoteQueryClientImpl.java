@@ -22,12 +22,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
-import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLBlob;
-import com.splicemachine.db.iapi.types.SQLClob;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
@@ -76,6 +72,18 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         return server;
     }
 
+    private int getPropertyOrDefault(Activation activation, SessionProperties.PROPERTYNAME valueProperty, int defaultValue) {
+        int value;
+        Integer batchesProperty = (Integer) activation.getLanguageConnectionContext().getSessionProperties()
+                .getProperty(valueProperty);
+        if (batchesProperty != null) {
+            value = batchesProperty.intValue();
+        } else {
+            value = defaultValue;
+        }
+        return value;
+    }
+
     @Override
     public void submit() throws StandardException {
         Activation activation = root.getActivation();
@@ -85,8 +93,10 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             updateLimitOffset();
             SConfiguration config = HConfiguration.getConfiguration();
             boolean hasLOBs = hasLOBs(root);
-            int streamingBatches = hasLOBs ? config.getSparkSlowResultStreamingBatches() : config.getSparkResultStreamingBatches();
-            int streamingBatchSize = hasLOBs ? config.getSparkSlowResultStreamingBatchSize() : config.getSparkResultStreamingBatchSize();
+            int streamingBatches = getPropertyOrDefault(activation, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES,
+                    hasLOBs ? config.getSparkSlowResultStreamingBatches() : config.getSparkResultStreamingBatches());
+            int streamingBatchSize = getPropertyOrDefault(activation, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE,
+                    hasLOBs ? config.getSparkSlowResultStreamingBatchSize() : config.getSparkResultStreamingBatchSize());
             streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize);
             StreamListenerServer server = getServer();
             server.register(streamListener);
@@ -100,11 +110,16 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
             int localPort = config.getNetworkBindPort();
             int sessionId = activation.getLanguageConnectionContext().getInstanceNumber();
+            Integer parallelPartitionsProperty = (Integer) activation.getLanguageConnectionContext().getSessionProperties()
+                    .getProperty(SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
+            int parallelPartitions = parallelPartitionsProperty == null ? StreamableRDD.DEFAULT_PARALLEL_PARTITIONS : parallelPartitionsProperty;
+            Integer shufflePartitionsProperty = (Integer) activation.getLanguageConnectionContext().getSessionProperties()
+                    .getProperty(SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
             String opUuid = root.getUuid() != null ? "," + root.getUuid().toString() : "";
             String session = hostname + ":" + localPort + "," + sessionId + opUuid;
 
             RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
-                    streamingBatches, streamingBatchSize);
+                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty);
 
             String requestedQueue = (String) activation.getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
             List<String> roles = activation.getLanguageConnectionContext().getCurrentRoles(activation);
