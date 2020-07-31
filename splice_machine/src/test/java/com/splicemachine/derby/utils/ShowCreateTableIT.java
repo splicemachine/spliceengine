@@ -195,7 +195,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A3\" INTEGER\n" +
                 ",\"A2\" INTEGER\n" +
                 ",\"B2\" INTEGER\n" +
-                ",CONSTRAINT T3_FK_1 FOREIGN KEY (\"A2\",\"B2\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
+                ", CONSTRAINT T3_FK_1 FOREIGN KEY (\"A2\",\"B2\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
     }
 
     @Test
@@ -209,7 +209,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 ",\"B2\" INTEGER\n" +
                 ",\"A2\" INTEGER\n" +
                 ",\"A1\" INTEGER\n" +
-                ",CONSTRAINT T4_FK_1 FOREIGN KEY (\"A2\",\"B2\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE NO ACTION ON DELETE NO ACTION,CONSTRAINT T4_FK_2 FOREIGN KEY (\"A1\") REFERENCES \"SHOWCREATETABLEIT\".\"T1\"(\"A1\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
+                ", CONSTRAINT T4_FK_1 FOREIGN KEY (\"A2\",\"B2\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE NO ACTION ON DELETE NO ACTION, CONSTRAINT T4_FK_2 FOREIGN KEY (\"A1\") REFERENCES \"SHOWCREATETABLEIT\".\"T1\"(\"A1\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
     }
 
     @Test
@@ -221,7 +221,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A5\" INTEGER\n" +
                 ",\"B5F\" INTEGER\n" +
                 ",\"A5F\" INTEGER\n" +
-                ",CONSTRAINT T5_FK_1 FOREIGN KEY (\"A5F\",\"B5F\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
+                ", CONSTRAINT T5_FK_1 FOREIGN KEY (\"A5F\",\"B5F\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
     }
 
     @Test
@@ -233,7 +233,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A11\" INTEGER\n" +
                 ",\"B2\" INTEGER\n" +
                 ",\"A2\" INTEGER\n" +
-                ",CONSTRAINT T11_FK_1 FOREIGN KEY (\"A2\",\"B2\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE RESTRICT ON DELETE RESTRICT) ;", rs.getString(1));
+                ", CONSTRAINT T11_FK_1 FOREIGN KEY (\"A2\",\"B2\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE RESTRICT ON DELETE RESTRICT) ;", rs.getString(1));
     }
 
     @Test
@@ -245,7 +245,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A12\" INTEGER\n" +
                 ",\"B2\" INTEGER\n" +
                 ",\"A2\" INTEGER\n" +
-                ",CONSTRAINT T12_FK_1 FOREIGN KEY (\"A2\",\"B2\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
+                ", CONSTRAINT T12_FK_1 FOREIGN KEY (\"A2\",\"B2\") REFERENCES \"SHOWCREATETABLEIT\".\"T2\"(\"A2\",\"B2\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
     }
 
     @Test
@@ -533,7 +533,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                     ",\"B14\" INTEGER\n" +
                     ",\"C14\" INTEGER\n" +
                     ",\"D14\" INTEGER\n" +
-                    ",CONSTRAINT T14_FK_1 FOREIGN KEY (\"C14\",\"A14\") REFERENCES \"SHOWCREATETABLEIT\".\"T13\"(\"c13\",\"a13\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", ddl);
+                    ", CONSTRAINT T14_FK_1 FOREIGN KEY (\"C14\",\"A14\") REFERENCES \"SHOWCREATETABLEIT\".\"T13\"(\"c13\",\"a13\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", ddl);
             rs.close();
 
             /*drop a middle column abd add a new column*/
@@ -561,7 +561,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                     ",\"C14\" INTEGER\n" +
                     ",\"D14\" INTEGER\n" +
                     ",\"E14\" INTEGER\n" +
-                    ",CONSTRAINT T14_FK_1 FOREIGN KEY (\"C14\",\"A14\") REFERENCES \"SHOWCREATETABLEIT\".\"T13\"(\"c13\",\"a13\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", ddl);
+                    ", CONSTRAINT T14_FK_1 FOREIGN KEY (\"C14\",\"A14\") REFERENCES \"SHOWCREATETABLEIT\".\"T13\"(\"c13\",\"a13\") ON UPDATE NO ACTION ON DELETE NO ACTION) ;", ddl);
             rs.close();
 
         } finally {
@@ -588,12 +588,12 @@ public class ShowCreateTableIT extends SpliceUnitTest
     }
 
     private static void  checkEqualIgnoreConstraintOrder(String expected, String actual) {
-        // remove the semi column and space at the end
-        expected = expected.substring(0, expected.length()-2);
-        actual = actual.substring(0, actual.length()-2);
-        String result = Stream.of(actual.split("CONSTRAINT ")).map(str -> str.substring(0, str.length() - 1)).sorted().collect(Collectors.joining(", "));
+        // remove the semi column at the end
+        expected = expected.substring(0, expected.length()-1);
+        actual = actual.substring(0, actual.length()-1);
+        String result = Stream.of(actual.split("CONSTRAINT ")).map(str -> str.substring(0, str.length() - 2)).sorted().collect(Collectors.joining(", "));
 
-        String expectedResult = Stream.of(expected.split("CONSTRAINT ")).map(str -> str.substring(0, str.length() - 1)).sorted().collect(Collectors.joining(", "));
+        String expectedResult = Stream.of(expected.split("CONSTRAINT ")).map(str -> str.substring(0, str.length() - 2)).sorted().collect(Collectors.joining(", "));
         Assert.assertEquals(expectedResult, result);
     }
 }
