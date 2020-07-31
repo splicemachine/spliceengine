@@ -1045,8 +1045,19 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 ObjectInputStream ois = new ObjectInputStream(bais);
                                                 // compose the entry for a given column
                                                 ExecRow statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", columnId, (ColumnStatisticsImpl) ois.readObject());
-                                                dataDictionary.addColumnStatistics(statsRow, tc);
-                                                bais.close();
+                                                try {
+                                                    dataDictionary.addColumnStatistics(statsRow, tc);
+                                                } catch (StandardException e) {
+                                                    // DB-9890 Skip a column if its statistics object doesn't fit into HBase cell.
+                                                    if (e.getCause().getMessage().contains("KeyValue size too large")) {
+                                                        SpliceLogUtils.warn(LOG, "Statistics object of [ConglomID=%d, ColumnID=%d] exceeds max KeyValue size. Try increase hbase.client.keyvalue.maxsize.",
+                                                                conglomId, columnId);
+                                                    } else {
+                                                        throw e;
+                                                    }
+                                                } finally {
+                                                    bais.close();
+                                                }
                                             } else {
                                                 // process tablestats row
                                                 conglomId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getLong();
@@ -1119,7 +1130,18 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                     if (!fetched) {
                                         nextRow = input.getNextRowCore();
                                         while (nextRow != null && nextRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
-                                            dataDictionary.addColumnStatistics(nextRow, tc);
+                                            try {
+                                                dataDictionary.addColumnStatistics(nextRow, tc);
+                                            } catch (StandardException e) {
+                                                // DB-9890 Skip a column if its statistics object doesn't fit into HBase cell.
+                                                if (e.getCause().getMessage().contains("KeyValue size too large")) {
+                                                    SpliceLogUtils.warn(LOG, "Statistics object of [ConglomID=%d, ColumnID=%d] exceeds max KeyValue size. Try increase hbase.client.keyvalue.maxsize.",
+                                                            nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getInt(),
+                                                            nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.COLUMNID).getInt());
+                                                } else {
+                                                    throw e;
+                                                }
+                                            }
                                             nextRow = input.getNextRowCore();
                                         }
                                         fetched = true;
