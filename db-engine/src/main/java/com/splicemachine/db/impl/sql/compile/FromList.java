@@ -55,8 +55,8 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     boolean fixedJoinOrder=true;
     // true by default.
     boolean useStatistics=true;
-    // default value is 6
-    int tableLimitForExhaustiveSearch = 6;
+
+    int tableLimitForExhaustiveSearch;
 
     // FromList could have a view in it's list. If the view is defined in SESSION
     // schema, then we do not want to cache the statement's plan. This boolean
@@ -91,6 +91,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     public void init(Object optimizeJoinOrder){
         fixedJoinOrder=!((Boolean)optimizeJoinOrder);
         isTransparent=false;
+        tableLimitForExhaustiveSearch = getLanguageConnectionContext().getTableLimitForExhaustiveSearch();
     }
 
     /**
@@ -792,11 +793,11 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                     break;
                 case "tableLimitForExhaustiveSearch":
                     try {
-                        tableLimitForExhaustiveSearch = Integer.parseUnsignedInt(value);
+                        tableLimitForExhaustiveSearch = Integer.parseInt(value);
                     } catch (NumberFormatException nfe) {
                         throw StandardException.newException(SQLState.LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH, value);
                     }
-                    if (tableLimitForExhaustiveSearch == 0)
+                    if (tableLimitForExhaustiveSearch <= 0)
                         throw StandardException.newException(SQLState.LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH, value);
                     break;
                 default:
