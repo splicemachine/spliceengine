@@ -4,6 +4,8 @@ import com.splicemachine.ck.Utils;
 import com.splicemachine.ck.decoder.UserDataDecoder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.storage.CellType;
 import org.apache.hadoop.hbase.Cell;
 
 import java.util.ArrayList;
@@ -11,13 +13,47 @@ import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-public class CellPrinter extends ICellVisitor {
+class TableCellPrinter {
+
+    public void visit(Cell cell) throws StandardException {
+        preVisit(cell);
+
+        CellType cellType = CellUtils.getKeyValueType(cell);
+        switch (cellType) {
+            case COMMIT_TIMESTAMP:
+                visitCommitTimestamp(cell);
+                break;
+            case TOMBSTONE:
+                visitTombstone();
+                break;
+            case ANTI_TOMBSTONE:
+                visitAntiTombstone();
+                break;
+            case USER_DATA:
+                visitUserData(cell);
+                break;
+            case FIRST_WRITE_TOKEN:
+                visitFirstWrite();
+                break;
+            case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
+                visitDeleteRightAfterFirstWrite();
+                break;
+            case FOREIGN_KEY_COUNTER:
+                visitForeignKeyCounter();
+                break;
+            case OTHER:
+                visitOther();
+                break;
+        }
+
+        postVisit(cell);
+    }
 
     private final UserDataDecoder decoder;
     StringBuilder stringBuilder;
     SortedMap<Long, List<String>> events;
 
-    public CellPrinter(UserDataDecoder decoder) {
+    public TableCellPrinter(UserDataDecoder decoder) {
         this.decoder = decoder;
         this.stringBuilder = new StringBuilder();
         events = new TreeMap<>();
@@ -34,30 +70,25 @@ public class CellPrinter extends ICellVisitor {
         return sb.toString();
     }
 
-    @Override
     protected void preVisit(Cell cell) {
         stringBuilder.setLength(0);
     }
 
-    @Override
     protected void postVisit(Cell cell) {
         Long key = cell.getTimestamp();
         events.computeIfAbsent(key, k -> new ArrayList<>());
         events.get(key).add(stringBuilder.toString());
     }
 
-    @Override
     public void visitCommitTimestamp(Cell cell) {
         stringBuilder.append(Utils.Colored.green("commit timestamp "));
         stringBuilder.append(Utils.Colored.green(Long.toString(com.splicemachine.primitives.Bytes.toLong(cell.getValueArray(),cell.getValueOffset(),cell.getValueLength()))));
     }
 
-    @Override
     public void visitTombstone() {
         stringBuilder.append(Utils.Colored.red("tombstone set"));
     }
 
-    @Override
     public void visitAntiTombstone() {
         stringBuilder.append(Utils.Colored.blue("anti-tombstone set"));
     }
@@ -67,7 +98,6 @@ public class CellPrinter extends ICellVisitor {
         return Utils.toString(er);
     }
 
-    @Override
     public void visitUserData(Cell userData) throws StandardException {
         stringBuilder.append(Utils.Colored.yellow("user data "));
         if(decoder != null ) {
@@ -79,22 +109,18 @@ public class CellPrinter extends ICellVisitor {
         }
     }
 
-    @Override
     public void visitFirstWrite() {
         stringBuilder.append(Utils.Colored.cyan("first write token set"));
     }
 
-    @Override
     public void visitDeleteRightAfterFirstWrite() {
         stringBuilder.append(Utils.Colored.purple("delete right after first right set"));
     }
 
-    @Override
     public void visitForeignKeyCounter() {
         stringBuilder.append("foreign key counter is set");
     }
 
-    @Override
     public void visitOther() {
         stringBuilder.append(Utils.Colored.darkGray("other"));
     }

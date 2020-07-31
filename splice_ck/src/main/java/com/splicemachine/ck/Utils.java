@@ -1,15 +1,26 @@
 package com.splicemachine.ck;
 
+import com.carrotsearch.hppc.LongArrayList;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.utils.marshall.EntryDataHash;
+import com.splicemachine.derby.utils.marshall.dvd.*;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.si.api.txn.TaskId;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableNotFoundException;
 
 import java.io.UncheckedIOException;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import static com.splicemachine.db.iapi.types.TypeId.BOOLEAN_NAME;
 
@@ -26,32 +37,50 @@ public class Utils {
     }
 
     public static class Tabular {
+
+        public static enum SortHint {
+            AsInteger,
+            AsString
+        }
+
         public static class Row implements Comparable<Row> {
             public List<String> cols;
+            public SortHint sortHint;
 
-            public Row(String... cols) {
+            public Row(SortHint sortHint, String... cols) {
                 assert cols.length > 0;
+                this.sortHint = sortHint;
                 this.cols = Arrays.asList(cols);
             }
 
             @Override
             public int compareTo(Row o) {
-                return cols.get(0).compareTo(o.cols.get(0));
+                if(o == null) {
+                    return -1;
+                }
+                if(sortHint == SortHint.AsInteger) {
+                    return Integer.compare(Integer.parseInt(cols.get(0)), Integer.parseInt(o.cols.get(0)));
+                } else {
+                    assert sortHint == SortHint.AsString;
+                    return cols.get(0).compareTo(o.cols.get(0));
+                }
             }
         }
 
         public Set<Row> rows;
         public List<String> headers;
+        SortHint sortHint;
 
-        public Tabular(String... headers) {
+        public Tabular(SortHint sortHint, String... headers) {
             assert headers.length > 0;
+            this.sortHint = sortHint;
             this.headers = Arrays.asList(headers);
             rows = new TreeSet<>();
         }
 
         public void addRow(String... cols) {
             assert cols.length == headers.size();
-            rows.add(new Row(cols));
+            rows.add(new Row(sortHint, cols));
         }
 
         public List<String> getCol(int index) {
@@ -202,5 +231,92 @@ public class Utils {
         } else {
             throw e;
         }
+    }
+
+    public static Pair<ExecRow, DescriptorSerializer[]> constructExecRowDescriptorSerializer(Utils.SQLType[] schema,
+            int version, String[] values) throws StandardException {
+        // map strings to format ids.
+        SQLTimestamp.setSkipDBContext(true);
+        SQLTime.setSkipDBContext(true);
+        SQLDate.setSkipDBContext(true);
+        assert values == null || values.length == schema.length;
+        int[] storedFormatIds = new int[schema.length];
+        DataValueDescriptor[] dataValueDescriptors = new DataValueDescriptor[schema.length];
+        for (int i = 0; i < storedFormatIds.length; ++i) {
+            switch (schema[i]) {
+                case INT:
+                    storedFormatIds[i] = StoredFormatIds.SQL_INTEGER_ID;
+                    dataValueDescriptors[i] = new SQLInteger();
+                    break;
+                case BIGINT:
+                    storedFormatIds[i] = StoredFormatIds.SQL_LONGINT_ID;
+                    dataValueDescriptors[i] = new SQLLongint();
+                    break;
+                case DOUBLE:
+                    storedFormatIds[i] = StoredFormatIds.SQL_DOUBLE_ID;
+                    dataValueDescriptors[i] = new SQLDouble();
+                    break;
+                case CHAR:
+                    storedFormatIds[i] = StoredFormatIds.SQL_CHAR_ID;
+                    dataValueDescriptors[i] = new SQLChar();
+                    break;
+                case VARCHAR:
+                    storedFormatIds[i] = StoredFormatIds.SQL_VARCHAR_ID;
+                    dataValueDescriptors[i] = new SQLVarchar();
+                    break;
+                case TIME:
+                    storedFormatIds[i] = StoredFormatIds.SQL_TIME_ID;
+                    dataValueDescriptors[i] = new SQLTime();
+                    break;
+                case TIMESTAMP:
+                    storedFormatIds[i] = StoredFormatIds.SQL_TIMESTAMP_ID;
+                    dataValueDescriptors[i] = new SQLTimestamp();
+                    break;
+                case DATE:
+                    storedFormatIds[i] = StoredFormatIds.SQL_DATE_ID;
+                    dataValueDescriptors[i] = new SQLDate();
+                    break;
+                case DECIMAL:
+                    storedFormatIds[i] = StoredFormatIds.SQL_DECIMAL_ID;
+                    dataValueDescriptors[i] = new SQLDecimal();
+                    break;
+                default:
+                    throw new RuntimeException("type not supported");
+            }
+            if(values != null) {
+                dataValueDescriptors[i].setValue(values[i]);
+            }
+        }
+        SerializerMap serializerMap = null;
+        if (version == 1) {
+            serializerMap = new V1SerializerMap(false);
+        } else if (version == 2) {
+            serializerMap = new V2SerializerMap(false);
+        } else if (version == 3) {
+            serializerMap = new V3SerializerMap(false);
+        } else {
+            serializerMap = new V4SerializerMap(false);
+        }
+        return new Pair<>(new ValueRow(dataValueDescriptors), serializerMap.getSerializers(storedFormatIds));
+    }
+
+    public static String[] splitUserDataInput(String value, String delimiter, String escape) {
+        assert value != null;
+        assert delimiter != null;
+        assert escape != null;
+        String regex = "(?<!" + Pattern.quote(escape) + ")" + Pattern.quote(delimiter);
+        return value.split(regex);
+    }
+
+    public static byte[] createFakeSIAttribute(long txnId) {
+        MultiFieldEncoder encoder=MultiFieldEncoder.create(9)
+                .encodeNext(txnId)
+                .encodeNext(/*txn.getBeginTimestamp()*/ 4242)
+                .encodeNext(/*txn.isAdditive()*/ false)
+                .encodeNext(/*txn.getIsolationLevel().encode()*/ Txn.IsolationLevel.SNAPSHOT_ISOLATION.encode())
+                .encodeNext(/*txn.allowsWrites()*/ true);
+        encoder.encodeNext(-1).encodeNext(-1).encodeNext(-1);
+        encoder.setRawBytes(Encoding.EMPTY_BYTE_ARRAY);
+        return encoder.build();
     }
 }

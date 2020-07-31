@@ -10,7 +10,7 @@ import com.splicemachine.utils.Pair;
 
 public class SysTableDataDecoder extends UserDataDecoder {
     @Override
-    protected Pair<ExecRow, DescriptorSerializer[]> getExecRowAndDescriptors() {
+    public Pair<ExecRow, DescriptorSerializer[]> getExecRowAndDescriptors() {
         ExecRow er = new ValueRow(SYSTABLESRowFactory.SYSTABLES_COLUMN_COUNT);
         SYSTABLESRowFactory.setRowColumns(er, null, null, null, null,
                 null, null, -1, null, null, null,
