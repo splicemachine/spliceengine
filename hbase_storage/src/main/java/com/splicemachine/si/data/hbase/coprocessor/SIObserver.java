@@ -14,12 +14,6 @@
 
 package com.splicemachine.si.data.hbase.coprocessor;
 
-import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.*;
-
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.compactions.SpliceCompactionRequest;
@@ -44,35 +38,19 @@ import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.PurgeConfigBuilder;
 import com.splicemachine.si.impl.server.SICompactionState;
-import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Append;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Durability;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Increment;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionObserver;
-import org.apache.hadoop.hbase.filter.ByteArrayComparable;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.ipc.RpcServer;
@@ -85,7 +63,6 @@ import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.security.access.Permission;
 import org.apache.hadoop.hbase.security.access.TableAuthManager;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.hadoop.hbase.wal.WALEdit;
 import org.apache.hadoop.hbase.wal.WALFactory;
@@ -95,6 +72,10 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Maps;
+
+import java.io.IOException;
+import java.net.URI;
+import java.util.*;
 
 import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 
@@ -511,16 +492,18 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
     @Override
     public void preReplayWALs(ObserverContext<? extends RegionCoprocessorEnvironment> ctx, RegionInfo info, Path edits) throws IOException {
-        Configuration conf = ctx.getEnvironment().getConfiguration();
-        FileSystem fs = FileSystem.get(edits.toUri(), conf);
-        try (WAL.Reader reader = WALFactory.createReader(fs, edits, conf)) {
-            WAL.Entry entry;
-            LOG.info("WAL replay");
-            while ((entry = reader.next()) != null) {
-                WALKey key = entry.getKey();
-                WALEdit val = entry.getEdit();
+        if (LOG.isDebugEnabled()) {
+            Configuration conf = ctx.getEnvironment().getConfiguration();
+            FileSystem fs = FileSystem.get(edits.toUri(), conf);
+            try (WAL.Reader reader = WALFactory.createReader(fs, edits, conf)) {
+                WAL.Entry entry;
+                LOG.debug("WAL replay");
+                while ((entry = reader.next()) != null) {
+                    WALKey key = entry.getKey();
+                    WALEdit val = entry.getEdit();
 
-                LOG.info(key + " -> " + val);
+                    LOG.debug(key + " -> " + val);
+                }
             }
         }
     }
