@@ -14,6 +14,8 @@
  */
 package com.splicemachine.spark.splicemachine
 
+import java.sql.SQLException
+
 import org.apache.spark.sql._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -30,19 +32,57 @@ class NativeTransformationsIT extends FunSuite with TestContext with BeforeAndAf
     val rowCount = 10
     if (sqlContext == null)
       sqlContext = new SQLContext(sc)
-    if (splicemachineContext.tableExists(internalTN)) {
+    try {
       splicemachineContext.dropTable(internalTN)
     }
-    if (splicemachineContext.tableExists(schema+"."+"T")) {
-      splicemachineContext.dropTable(schema+"."+"T")
+    catch {
+      case e: SQLException =>
     }
-    if (splicemachineContext.tableExists(schema+"."+"T2")) {
-      splicemachineContext.dropTable(schema+"."+"T2")
+    try {
+      splicemachineContext.dropTable(schema + "." + "T")
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(schema + "." + "T2")
+    }
+    catch {
+      case e: SQLException =>
     }
     insertInternalRows(rowCount)
     splicemachineContext.getConnection().commit()
     sqlContext.read.options(internalOptions).splicemachine.createOrReplaceTempView(table)
   }
+
+  after {
+
+    try {
+      splicemachineContext.dropTable(internalTN)
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(externalTN)
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(schema + "." + "T")
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(schema + "." + "T2")
+    }
+    catch {
+      case e: SQLException =>
+    }
+  }
+
 
   test("join over join") {
      val df = splicemachineContext.df(

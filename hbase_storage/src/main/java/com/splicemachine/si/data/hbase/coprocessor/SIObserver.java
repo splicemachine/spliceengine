@@ -92,11 +92,13 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     protected TransactionalRegion region;
     protected TableAuthManager authManager = null;
     protected boolean authTokenEnabled;
+    protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         try {
             SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
+            optionalRegionObserver = Optional.of(this);
             RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment) e;
             TableName tableName = rce.getRegion().getTableDescriptor().getTableName();
             doesTableNeedSI(tableName);
@@ -137,6 +139,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     public void stop(CoprocessorEnvironment e) throws IOException{
         try {
             SpliceLogUtils.trace(LOG,"stopping %s",SIObserver.class);
+            optionalRegionObserver = Optional.empty();
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -337,7 +340,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
     @Override
     public Optional<RegionObserver> getRegionObserver() {
-        return Optional.of(this);
+        return optionalRegionObserver;
     }
 
     protected boolean shouldUseSI(OperationWithAttributes op){
