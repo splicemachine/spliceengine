@@ -16,7 +16,7 @@ package com.splicemachine.spark.splicemachine
 import java.io.File
 import java.math.BigDecimal
 import java.nio.file.{Files, Path}
-import java.sql.{Connection, Time, Timestamp}
+import java.sql.{Connection, SQLException, Time, Timestamp}
 import java.util.Date
 
 import com.splicemachine.test.LongerThanTwoMinutes
@@ -43,14 +43,24 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     val rowCount = 10
     if (sqlContext == null)
       sqlContext = new SQLContext(sc)
-    if (splicemachineContext.tableExists(internalTN)) {
-      splicemachineContext.dropTable(internalTN)
+
+    try {
+        splicemachineContext.dropTable(internalTN)
     }
-    if (splicemachineContext.tableExists(schema+"."+"T")) {
-      splicemachineContext.dropTable(schema+"."+"T")
+    catch {
+      case e: SQLException =>
     }
-    if (splicemachineContext.tableExists(schema+"."+"T2")) {
-      splicemachineContext.dropTable(schema+"."+"T2")
+    try {
+        splicemachineContext.dropTable(schema + "." + "T")
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(schema + "." + "T2")
+    }
+    catch {
+      case e: SQLException =>
     }
     insertInternalRows(rowCount)
     splicemachineContext.getConnection().commit()
@@ -58,17 +68,30 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
   }
   
   after {
-    if (splicemachineContext.tableExists(internalTN)) {
+
+    try {
       splicemachineContext.dropTable(internalTN)
     }
-    if (splicemachineContext.tableExists(externalTN)) {
+    catch {
+      case e: SQLException =>
+    }
+    try {
       splicemachineContext.dropTable(externalTN)
     }
-    if (splicemachineContext.tableExists(schema+"."+"T")) {
-      splicemachineContext.dropTable(schema+"."+"T")
+    catch {
+      case e: SQLException =>
     }
-    if (splicemachineContext.tableExists(schema+"."+"T2")) {
-      splicemachineContext.dropTable(schema+"."+"T2")
+    try {
+      splicemachineContext.dropTable(schema + "." + "T")
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(schema + "." + "T2")
+    }
+    catch {
+      case e: SQLException =>
     }
   }
 
@@ -585,3 +608,5 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
   }
 
 }
+
+object e
