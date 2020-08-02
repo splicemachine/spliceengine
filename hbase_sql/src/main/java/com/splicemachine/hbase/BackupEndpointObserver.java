@@ -69,10 +69,12 @@ public class BackupEndpointObserver extends BackupMessage.BackupCoprocessorServi
     private AtomicBoolean preparing;
     private ThreadLocal<Collection<? extends StoreFile>> storeFiles = new ThreadLocal<Collection<? extends StoreFile>>();
     private ReentrantLock bulkLoadLock = new ReentrantLock();
+    protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         try {
+            optionalRegionObserver = Optional.of(this);
             region = (HRegion) ((RegionCoprocessorEnvironment) e).getRegion();
             String[] name = region.getTableDescriptor().getTableName().getNameAsString().split(":");
             if (name.length == 2) {
@@ -349,6 +351,6 @@ public class BackupEndpointObserver extends BackupMessage.BackupCoprocessorServi
 
     @Override
     public Optional<RegionObserver> getRegionObserver() {
-        return Optional.of(this);
+        return optionalRegionObserver;
     }
 }
