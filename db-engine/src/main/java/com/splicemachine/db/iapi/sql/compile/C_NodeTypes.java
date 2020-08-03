@@ -285,8 +285,11 @@ public interface C_NodeTypes
     int TIME_SPAN_NODE = 275;
     int STATEMENT_LIST_NODE = 276;
 
+    int TO_INSTANT_NODE = 278;
+    int TO_HBASE_ESCAPED_NODE = 279;
+
     // Final value in set, keep up to date!
-    int FINAL_VALUE = STATEMENT_LIST_NODE;
+    int FINAL_VALUE = TO_HBASE_ESCAPED_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

@@ -220,7 +220,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
             //register the engine boot service
             try {
                 MasterLifecycle distributedStartupSequence = new MasterLifecycle();
-                manager.registerEngineService(new EngineLifecycleService(distributedStartupSequence, config, true));
+                manager.registerEngineService(new EngineLifecycleService(distributedStartupSequence, config, true, false));
                 manager.start();
             } catch (Exception e1) {
                 LOG.error("Unexpected exception registering boot service", e1);

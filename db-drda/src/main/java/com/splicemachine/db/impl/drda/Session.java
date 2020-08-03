@@ -71,7 +71,6 @@ class Session
 	protected String traceFileName;		// trace file name for session
 	protected boolean traceOn;			// whether trace is currently on for the session
 	protected int state;				// the current state of the session
-	protected int sessionType;			// type of session - DRDA or NetworkServerControl command
 	protected String drdaID;			// DRDA ID of the session
 	protected UUID uuid;			// UUID of the session, used for RDBINTTKN
 	protected DssTrace dssTrace;		// trace object associated with the session

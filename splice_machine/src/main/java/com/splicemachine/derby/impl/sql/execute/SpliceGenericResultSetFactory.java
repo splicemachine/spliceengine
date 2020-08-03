@@ -308,7 +308,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod emptyRowFun,
             boolean wasRightOuterJoin,
             boolean oneRowRightSide,
-            boolean notExistsRightSide,
+            byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
@@ -325,7 +325,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             emptyRowFun,
             wasRightOuterJoin,
             oneRowRightSide,
-            notExistsRightSide,
+                semiJoinType,
             rightFromSSQ,
             optimizerEstimatedRowCount,
             optimizerEstimatedCost,
@@ -345,7 +345,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod emptyRowFun,
             boolean wasRightOuterJoin,
             boolean oneRowRightSide,
-            boolean notExistsRightSide,
+            byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
@@ -363,7 +363,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     emptyRowFun,
                     wasRightOuterJoin,
                     oneRowRightSide,
-                    notExistsRightSide,
+                    semiJoinType,
                     rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
@@ -432,7 +432,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 String location,
                                                 int partitionByRefItem,
                                                 GeneratedMethod defaultRowFunc,
-                                                int defaultValueMapItem)
+                                                int defaultValueMapItem,
+                                                long pastTx )
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
@@ -475,7 +476,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     location,
                     partitionByRefItem,
                     defaultRowFunc,
-                    defaultValueMapItem);
+                    defaultValueMapItem,
+                    pastTx );
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -496,7 +498,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod emptyRowFun,
             boolean wasRightOuterJoin,
             boolean oneRowRightSide,
-            boolean notExistsRightSide,
+            byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
@@ -871,7 +873,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             String location,
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
-            int defaultValueMapItem)
+            int defaultValueMapItem,
+            long pastTxId )
 
             throws StandardException {
         try{
@@ -918,7 +921,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     location,
                     partitionByRefItem,
                     defaultRowFunc,
-                    defaultValueMapItem
+                    defaultValueMapItem,
+                    pastTxId
                     );
             op.setExplainPlan(explainPlan);
             return op;
@@ -1017,7 +1021,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int leftHashKeyItem, int rightHashKeyItem,
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1028,7 +1032,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              leftHashKeyItem, rightHashKeyItem,
              joinClause, resultSetNumber,
              emptyRowFun, wasRightOuterJoin,
-             oneRowRightSide, notExistsRightSide,
+             oneRowRightSide, semiJoinType,
              rightFromSSQ,
              optimizerEstimatedRowCount,  optimizerEstimatedCost,
              userSuppliedOptimizerOverrides,
@@ -1043,7 +1047,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int leftHashKeyItem, int rightHashKeyItem,
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1060,7 +1064,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     emptyRowFun,
                     wasRightOuterJoin,
                     oneRowRightSide,
-                    notExistsRightSide,
+                    semiJoinType,
                     rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
@@ -1080,7 +1084,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int leftHashKeyItem, int rightHashKeyItem,
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1097,7 +1101,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     emptyRowFun,
                     wasRightOuterJoin,
                     oneRowRightSide,
-                    notExistsRightSide,
+                    semiJoinType,
                     rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
@@ -1119,7 +1123,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int rightHashKeySortOrderItem,
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1133,7 +1137,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              rightHashKeySortOrderItem,
              joinClause,  resultSetNumber,
              emptyRowFun,  wasRightOuterJoin,
-             oneRowRightSide,  notExistsRightSide,
+             oneRowRightSide,  semiJoinType,
              rightFromSSQ,
              optimizerEstimatedRowCount,  optimizerEstimatedCost,
              userSuppliedOptimizerOverrides,
@@ -1150,7 +1154,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int rightHashKeySortOrderItem,
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1169,7 +1173,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     emptyRowFun,
                     wasRightOuterJoin,
                     oneRowRightSide,
-                    notExistsRightSide,
+                    semiJoinType,
                     rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
@@ -1189,7 +1193,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int leftHashKeyItem, int rightHashKeyItem,
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1201,7 +1205,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              leftHashKeyItem,  rightHashKeyItem,
              joinClause,  resultSetNumber,
              emptyRowFun,  wasRightOuterJoin,
-             oneRowRightSide,  notExistsRightSide,
+             oneRowRightSide,  semiJoinType,
              rightFromSSQ,
              optimizerEstimatedRowCount,  optimizerEstimatedCost,
              userSuppliedOptimizerOverrides,
@@ -1216,7 +1220,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int leftHashKeyItem, int rightHashKeyItem,
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1233,7 +1237,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     emptyRowFun,
                     wasRightOuterJoin,
                     oneRowRightSide,
-                    notExistsRightSide,
+                    semiJoinType,
                     rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
@@ -1253,7 +1257,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod leftEmptyRowFun, GeneratedMethod rightEmptyRowFun,
             boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1264,7 +1268,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 leftHashKeyItem, rightHashKeyItem,
                 joinClause, resultSetNumber,
                 leftEmptyRowFun, rightEmptyRowFun, wasRightOuterJoin,
-                oneRowRightSide, notExistsRightSide,
+                oneRowRightSide, semiJoinType,
                 rightFromSSQ,
                 optimizerEstimatedRowCount,  optimizerEstimatedCost,
                 userSuppliedOptimizerOverrides,
@@ -1280,7 +1284,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod leftEmptyRowFun, GeneratedMethod rightEmptyRowFun,
             boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1298,7 +1302,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     rightEmptyRowFun,
                     wasRightOuterJoin,
                     oneRowRightSide,
-                    notExistsRightSide,
+                    semiJoinType,
                     rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
@@ -1319,7 +1323,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod leftEmptyRowFun, GeneratedMethod rightEmptyRowFun,
             boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1332,7 +1336,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 joinClause,  resultSetNumber,
                 leftEmptyRowFun, rightEmptyRowFun,
                 wasRightOuterJoin,
-                oneRowRightSide,  notExistsRightSide,
+                oneRowRightSide,  semiJoinType,
                 rightFromSSQ,
                 optimizerEstimatedRowCount,  optimizerEstimatedCost,
                 userSuppliedOptimizerOverrides,
@@ -1348,7 +1352,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod joinClause, int resultSetNumber,
             GeneratedMethod leftEmptyRowFun, GeneratedMethod rightEmptyRowFun,
             boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1366,7 +1370,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     rightEmptyRowFun,
                     wasRightOuterJoin,
                     oneRowRightSide,
-                    notExistsRightSide,
+                    semiJoinType,
                     rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
@@ -1384,7 +1388,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
             GeneratedMethod joinClause, int resultSetNumber,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1393,7 +1397,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              leftResultSet,  leftNumCols,
              rightResultSet,  rightNumCols,
              joinClause,  resultSetNumber,
-             oneRowRightSide,  notExistsRightSide,
+             oneRowRightSide, semiJoinType,
              rightFromSSQ,
              optimizerEstimatedRowCount,  optimizerEstimatedCost,
              userSuppliedOptimizerOverrides,
@@ -1406,7 +1410,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
             GeneratedMethod joinClause, int resultSetNumber,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1418,7 +1422,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new NestedLoopJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftResultSet.getActivation(), joinClause, resultSetNumber,
-                    oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
+                    oneRowRightSide, semiJoinType, rightFromSSQ, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
             op.setExplainPlan(explainPlan);
             return op;
@@ -1433,7 +1437,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem,
             GeneratedMethod joinClause, int resultSetNumber,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1443,7 +1447,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              rightResultSet,  rightNumCols,
              leftHashKeyItem,  rightHashKeyItem,
              joinClause,  resultSetNumber,
-             oneRowRightSide,  notExistsRightSide,
+             oneRowRightSide, semiJoinType,
              rightFromSSQ,
              optimizerEstimatedRowCount,  optimizerEstimatedCost,
              userSuppliedOptimizerOverrides,
@@ -1457,7 +1461,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem,
             GeneratedMethod joinClause, int resultSetNumber,
-            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean oneRowRightSide, byte semiJoinType,
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
@@ -1471,7 +1475,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem,
                     leftResultSet.getActivation(),
                     joinClause, resultSetNumber,
-                    oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
+                    oneRowRightSide, semiJoinType, rightFromSSQ, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
             op.setExplainPlan(explainPlan);
             return op;
@@ -1486,7 +1490,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
             int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
+            byte semiJoinType, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -1495,7 +1499,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              rightResultSet,  rightNumCols,
              leftHashKeyItem,  rightHashKeyItem,  joinClause,
              resultSetNumber,  oneRowRightSide,
-             notExistsRightSide,  rightFromSSQ,  optimizerEstimatedRowCount,
+                semiJoinType,  rightFromSSQ,  optimizerEstimatedRowCount,
              optimizerEstimatedCost,
              userSuppliedOptimizerOverrides,
              explainPlan,
@@ -1508,7 +1512,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
             int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
+            byte semiJoinType, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan,
@@ -1519,7 +1523,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new MergeSortJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
-                    oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
+                    oneRowRightSide, semiJoinType, rightFromSSQ, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
             op.setExplainPlan(explainPlan);
             return op;
@@ -1534,7 +1538,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
             int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
+            byte semiJoinType, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan,
@@ -1545,7 +1549,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new HalfMergeSortJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
-                    oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
+                    oneRowRightSide, semiJoinType, rightFromSSQ, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
             op.setExplainPlan(explainPlan);
             return op;
@@ -1563,7 +1567,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int rightHashKeySortOrderItem,
             GeneratedMethod joinClause,
             int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
+            byte semiJoinType, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -1575,7 +1579,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              rightHashKeySortOrderItem,
              joinClause,
              resultSetNumber,  oneRowRightSide,
-             notExistsRightSide,  rightFromSSQ,  optimizerEstimatedRowCount,
+                semiJoinType,  rightFromSSQ,  optimizerEstimatedRowCount,
              optimizerEstimatedCost,
              userSuppliedOptimizerOverrides,
              explainPlan,
@@ -1591,7 +1595,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int rightHashKeySortOrderItem,
             GeneratedMethod joinClause,
             int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
+            byte semiJoinType, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan,
@@ -1603,7 +1607,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             JoinOperation op = new MergeJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem,
                     rightHashKeyToBaseTableMapItem, rightHashKeySortOrderItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
-                    oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
+                    oneRowRightSide, semiJoinType, rightFromSSQ, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
             op.setExplainPlan(explainPlan);
             return op;
@@ -1618,7 +1622,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
             int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
+            byte semiJoinType, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -1628,7 +1632,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              rightResultSet,  rightNumCols,
              leftHashKeyItem,  rightHashKeyItem,  joinClause,
              resultSetNumber,  oneRowRightSide,
-             notExistsRightSide,  rightFromSSQ,  optimizerEstimatedRowCount,
+                semiJoinType,  rightFromSSQ,  optimizerEstimatedRowCount,
              optimizerEstimatedCost,
              userSuppliedOptimizerOverrides,
              explainPlan,
@@ -1641,7 +1645,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
             int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
+            byte semiJoinType, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan,
@@ -1652,7 +1656,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             JoinOperation op = new BroadcastJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
-                    oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
+                    oneRowRightSide, semiJoinType, rightFromSSQ, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
             op.setExplainPlan(explainPlan);
             return op;
