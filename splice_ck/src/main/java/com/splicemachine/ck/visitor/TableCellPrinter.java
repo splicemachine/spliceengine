@@ -6,12 +6,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.storage.CellType;
+import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.Cell;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 
 class TableCellPrinter {
 
@@ -94,8 +92,8 @@ class TableCellPrinter {
     }
 
     private String decode(Cell c, UserDataDecoder decoder) throws StandardException {
-        ExecRow er = decoder.decode(c);
-        return Utils.toString(er);
+        Pair<BitSet, ExecRow> pair = decoder.decode(c);
+        return Utils.toString(pair);
     }
 
     public void visitUserData(Cell userData) throws StandardException {
