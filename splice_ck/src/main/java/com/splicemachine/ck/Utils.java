@@ -1,18 +1,15 @@
 package com.splicemachine.ck;
 
-import com.carrotsearch.hppc.LongArrayList;
+import com.splicemachine.ck.command.CommonOptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.dvd.*;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -22,7 +19,7 @@ import java.io.UncheckedIOException;
 import java.util.*;
 import java.util.regex.Pattern;
 
-import static com.splicemachine.db.iapi.types.TypeId.BOOLEAN_NAME;
+import static com.splicemachine.ck.Constants.NULL;
 
 public class Utils {
 
@@ -322,5 +319,20 @@ public class Utils {
         encoder.encodeNext(-1).encodeNext(-1).encodeNext(-1);
         encoder.setRawBytes(Encoding.EMPTY_BYTE_ARRAY);
         return encoder.build();
+    }
+
+    public static void tell(String... what) {
+        if(CommonOptions.verbose) {
+            forceTell(what);
+        }
+    }
+
+    public static void forceTell(String... what) {
+        System.err.println(Colored.yellow(String.join(" ", what)));
+        System.err.flush();
+    }
+
+    public static String CheckNull(final String value) {
+        return value == null ? NULL : value;
     }
 }

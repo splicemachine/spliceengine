@@ -9,9 +9,9 @@ import java.util.concurrent.Callable;
 @CommandLine.Command(name = "tschema", description = "retrieve SpliceMachine table schema",
         parameterListHeading = "Parameters:%n",
         optionListHeading = "Options:%n")
-public class TSchemaCommand extends ConnectionOptions implements Callable<Integer>
+public class TSchemaCommand extends CommonOptions implements Callable<Integer>
 {
-    @CommandLine.Parameters(index = "0", description = "Splice Machine table name") String table;
+    @CommandLine.Parameters(index = "0", description = "SpliceMachine table name") String table;
 
     @Override
     public Integer call() throws Exception {

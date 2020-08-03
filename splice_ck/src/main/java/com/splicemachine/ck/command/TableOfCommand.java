@@ -12,7 +12,7 @@ import java.util.concurrent.Callable;
         description = "retrieve SpliceMachine table of HBase region",
         parameterListHeading = "Parameters:%n",
         optionListHeading = "Options:%n")
-public class TableOfCommand extends ConnectionOptions implements Callable<Integer> {
+public class TableOfCommand extends CommonOptions implements Callable<Integer> {
 
     @CommandLine.Parameters(index = "0", description = "HBase region (with or without 'splice:')")
     String region;
@@ -24,7 +24,7 @@ public class TableOfCommand extends ConnectionOptions implements Callable<Intege
             if(StringUtils.isNumeric(region)) {
                 region = "splice:" + region;
             }
-            System.out.println(hbaseInspector.getSpliceTableNameOf(region));
+            System.out.println(hbaseInspector.tableOf(region));
             return 0;
         } catch (Exception e) {
             System.out.println(Utils.checkException(e, region));

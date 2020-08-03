@@ -116,7 +116,7 @@ class TableCellPrinter {
     }
 
     public void visitForeignKeyCounter() {
-        stringBuilder.append("foreign key counter is set");
+        stringBuilder.append("foreign key counter set");
     }
 
     public void visitOther() {

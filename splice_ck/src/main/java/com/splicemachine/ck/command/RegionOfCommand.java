@@ -11,16 +11,16 @@ import java.util.concurrent.Callable;
         description = "retrieve HBase region of SpliceMachine table",
         parameterListHeading = "Parameters:%n",
         optionListHeading = "Options:%n")
-public class RegionOfCommand extends ConnectionOptions implements Callable<Integer> {
+public class RegionOfCommand extends CommonOptions implements Callable<Integer> {
 
-    @CommandLine.Parameters(index = "0", description = "splice table name")
+    @CommandLine.Parameters(index = "0", description = "SpliceMachine table name")
     String table;
 
     @Override
     public Integer call() throws Exception {
         try {
             HBaseInspector hbaseInspector = new HBaseInspector(Utils.constructConfig(zkq, port));
-            System.out.println(hbaseInspector.getHbaseRegionOf(table));
+            System.out.println(hbaseInspector.regionOf(table));
             return 0;
         } catch (Exception e) {
             System.out.println(Utils.checkException(e, table));
