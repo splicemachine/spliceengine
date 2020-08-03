@@ -381,12 +381,6 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
 		    /* 9th column is AUTOINCREMENTINC (long) */
         autoincInc = row.getColumn(SYSCOLUMNS_AUTOINCREMENTINC).getLong();
 
-        DataValueDescriptor col = row.getColumn(SYSCOLUMNS_AUTOINCREMENTSTART);
-        autoincStart = col.getLong();
-
-        col = row.getColumn(SYSCOLUMNS_AUTOINCREMENTINC);
-        autoincInc = col.getLong();
-
         /* 10th column is COLLECTSTATS */
         /*
          * For backwards compatibility, we know that the COLLECT_STATS column doesn't exist
