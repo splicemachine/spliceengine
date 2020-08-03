@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.iapi.ast.ISpliceVisitor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Default ISpliceVisitor implementation, which provides identity behavior for each of Derby's Visitable nodes.
@@ -47,12 +48,11 @@ import com.splicemachine.db.iapi.ast.ISpliceVisitor;
  */
 public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     String query;
-    CompilationPhase phase;
 
+    @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "query field is used in PlanPrinter subclass")
     @Override
-    public void setContext(String query, CompilationPhase phase) {
+    public void setContext(String query, CompilationPhase ignored) {
         this.query = query;
-        this.phase = phase;
     }
 
     @Override
@@ -918,6 +918,16 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
 
     @Override
     public Visitable visit(StringAggregateNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
+    public Visitable visit(ToInstantOperatorNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
+    public Visitable visit(ToHbaseEscapedOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 }

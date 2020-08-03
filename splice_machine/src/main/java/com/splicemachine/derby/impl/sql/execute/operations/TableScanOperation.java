@@ -16,15 +16,21 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
 import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -56,6 +62,7 @@ public class TableScanOperation extends ScanOperation{
     protected int[] baseColumnMap;
     protected static final String NAME=TableScanOperation.class.getSimpleName().replaceAll("Operation","");
     protected byte[] tableNameBytes;
+    protected long pastTx;
 
     /**
      *
@@ -119,6 +126,7 @@ public class TableScanOperation extends ScanOperation{
      * @param storedAs
      * @param defaultRowFunc
      * @param defaultValueMapItem
+     * @param pastTx the id of a committed transaction for time-travel queries, -1 for not set.
      *
      * @throws StandardException
      */
@@ -159,7 +167,8 @@ public class TableScanOperation extends ScanOperation{
                               String location,
                               int partitionByRefItem,
                               GeneratedMethod defaultRowFunc,
-                              int defaultValueMapItem) throws StandardException{
+                              int defaultValueMapItem,
+                              long pastTx) throws StandardException{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
@@ -174,6 +183,7 @@ public class TableScanOperation extends ScanOperation{
         this.tableNameBytes=Bytes.toBytes(this.tableName);
         this.indexColItem=indexColItem;
         this.indexName=indexName;
+        this.pastTx = pastTx;
         init();
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
@@ -195,6 +205,7 @@ public class TableScanOperation extends ScanOperation{
         tableDisplayName=in.readUTF();
         tableNameBytes=Bytes.toBytes(tableName);
         indexColItem=in.readInt();
+        pastTx=in.readLong();
         if(in.readBoolean())
             indexName=in.readUTF();
     }
@@ -212,6 +223,7 @@ public class TableScanOperation extends ScanOperation{
         out.writeUTF(tableName);
         out.writeUTF(tableDisplayName);
         out.writeInt(indexColItem);
+        out.writeLong(pastTx);
         out.writeBoolean(indexName!=null);
         if(indexName!=null)
             out.writeUTF(indexName);
@@ -337,16 +349,42 @@ public class TableScanOperation extends ScanOperation{
     }
 
     /**
-     *
-     * Retrieve the Table Scan Builder for creating the actual data set from a scan.
-     *
-     * @param dsp
-     * @return
+     * @param pastTx The ID of the past transaction.
+     * @return a view of a past transaction.
+     * @throws StandardException
+     */
+    private TxnView getPastTransaction(long pastTx) throws StandardException {
+        TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
+        ContextManager cm = ContextService.getFactory().newContextManager();
+        TransactionController pastTC = transactionExecute.getAccessManager().getReadOnlyTransaction(cm, pastTx);
+        Transaction rawStoreXact=((TransactionManager)pastTC).getRawStoreXact();
+        return ((BaseSpliceTransaction)rawStoreXact).getActiveStateTxn();
+    }
+
+    /**
+     * @return either current transaction or a committed transaction in the past.
+     * @throws StandardException
+     */
+    protected TxnView getTransaction() throws StandardException {
+        return (pastTx >= 0) ? getPastTransaction(pastTx) : super.getCurrentTransaction();
+    }
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return getTransaction();
+    }
+
+    /**
+     * @return the Table Scan Builder for creating the actual data set from a scan.
      * @throws StandardException
      */
     public DataSet<ExecRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
-        TxnView txn=getCurrentTransaction();
+        TxnView txn = getTransaction();
         operationContext = dsp.createOperationContext(this);
+
+        // we currently don't support external tables in Control, so this shouldn't happen
+        assert storedAs == null || !( dsp.getType() == DataSetProcessor.Type.CONTROL && !storedAs.isEmpty() )
+                : "tried to access external table " + tableDisplayName + ":" + tableName + " over control/OLTP";
         return dsp.<TableScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
                 .activation(activation)
