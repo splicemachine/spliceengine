@@ -6,6 +6,7 @@ import com.splicemachine.ck.decoder.SysTableDataDecoder;
 import com.splicemachine.ck.decoder.UserDataDecoder;
 import com.splicemachine.ck.decoder.UserDefinedDataDecoder;
 import com.splicemachine.ck.encoder.RPutConfig;
+import com.splicemachine.ck.hwrap.ConnectionWrapper;
 import com.splicemachine.ck.visitor.TableRowPrinter;
 import com.splicemachine.ck.visitor.TxnTableRowPrinter;
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
@@ -20,50 +21,46 @@ import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.TableNotFoundException;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.util.BitSet;
 import java.util.List;
-import java.util.regex.Pattern;
+
+import static com.splicemachine.ck.Constants.*;
+import static com.splicemachine.ck.Utils.CheckNull;
 
 public class HBaseInspector {
 
-    private Configuration config;
+    private final Configuration config;
 
-    public HBaseInspector(Configuration config) {
+    public HBaseInspector(final Configuration config) {
         this.config = config;
     }
 
-    public String scanRow(String region, String rowKey, Utils.SQLType[] schema) throws Exception {
+    public String scanRow(final String region, final String rowKey, final Utils.SQLType[] schema) throws Exception {
         StringBuilder result = new StringBuilder();
-        try {
-            try (Connection conn = ConnectionFactory.createConnection(config)) {
-                Table table = conn.getTable(TableName.valueOf(region));
-                Scan scan = new Scan();
-                scan.withStartRow(Bytes.fromHex(rowKey)).setLimit(1).readAllVersions();
-                try (ResultScanner results = table.getScanner(scan)) {
-                    TableRowPrinter rowVisitor = new TableRowPrinter(new UserDefinedDataDecoder(schema, 4));
-                    for(Result row : results) {
-                        for(String s : rowVisitor.ProcessRow(row)) {
-                            result.append(s);
-                        }
-                    }
+        try(final ConnectionWrapper connectionWrapper = new ConnectionWrapper();
+            final ResultScanner rs = connectionWrapper.withConfiguration(config).connect().withRegion(region).scanSingleRowAllVersions(rowKey)) {
+            TableRowPrinter rowVisitor = new TableRowPrinter(schema == null ? null : new UserDefinedDataDecoder(schema, 4));
+            for(Result row : rs) {
+                for(String s : rowVisitor.ProcessRow(row)) {
+                    result.append(s);
                 }
             }
-        } catch (Exception e) {
-            return Utils.checkException(e, region);
         }
         return result.toString();
     }
 
     private Utils.Tabular getListTables() throws Exception {
-        try (Connection conn = ConnectionFactory.createConnection(config)) {
-            List<TableDescriptor> descriptors = conn.getAdmin().listTableDescriptors(Pattern.compile("splice.*"));
-
-            Utils.Tabular tabular = new Utils.Tabular(Utils.Tabular.SortHint.AsString, "hbase name", "schema", "table", "index", "create txn");
+        Utils.Tabular tabular = new Utils.Tabular(Utils.Tabular.SortHint.AsString, TBL_TABLES_COL0, TBL_TABLES_COL1,
+                                                  TBL_TABLES_COL2, TBL_TABLES_COL3, TBL_TABLES_COL4);
+        try(final ConnectionWrapper connectionWrapper = new ConnectionWrapper()) {
+            final List<TableDescriptor> descriptors = connectionWrapper.withConfiguration(config).connect().descriptorsOfPattern(Constants.SPLICE_PATTERN);
             for (TableDescriptor td : descriptors) {
                 tabular.addRow(CheckNull(td.getTableName().toString()),
                         CheckNull(td.getValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR)),
@@ -71,31 +68,24 @@ public class HBaseInspector {
                         CheckNull(td.getValue(SIConstants.INDEX_DISPLAY_NAME_ATTR)),
                         CheckNull(td.getValue(SIConstants.TRANSACTION_ID_ATTR)));
             }
-            return tabular;
-        }
-    }
-
-    private Utils.Tabular getListTransactions() throws Exception {
-        String txnTableId = "splice:" + HBaseConfiguration.TRANSACTION_TABLE;
-        Utils.Tabular tabular = new Utils.Tabular(Utils.Tabular.SortHint.AsInteger,"transaction id", "commit timestamp",
-                "global commit timestamp", "parent transaction id", "state", "isolation level", "is additive", "keep alive time",
-                "rollback sub ids", "target tables");
-        try (Connection conn = ConnectionFactory.createConnection(config)) {
-            Table table = conn.getTable(TableName.valueOf(txnTableId));
-            Scan scan = new Scan();
-            try (ResultScanner results = table.getScanner(scan)) {
-                TxnTableRowPrinter rowVisitor = new TxnTableRowPrinter();
-                for (Result row : results) {
-                    List<String> rowString = rowVisitor.ProcessRow(row);
-                    tabular.addRow(rowString.toArray(new String[0]));
-                }
-            }
         }
         return tabular;
     }
 
-    private String CheckNull(String value) {
-        return value == null ? "NULL" : value;
+    private Utils.Tabular getListTransactions() throws Exception {
+        String region = SPLICE_PREFIX + HBaseConfiguration.TRANSACTION_TABLE;
+        Utils.Tabular tabular = new Utils.Tabular(Utils.Tabular.SortHint.AsInteger,
+                TBL_TXN_COL0, TBL_TXN_COL1, TBL_TXN_COL2, TBL_TXN_COL3, TBL_TXN_COL4,
+                TBL_TXN_COL5, TBL_TXN_COL6, TBL_TXN_COL7, TBL_TXN_COL8, TBL_TXN_COL9);
+        TxnTableRowPrinter rowVisitor = new TxnTableRowPrinter();
+        try(final ConnectionWrapper connectionWrapper = new ConnectionWrapper();
+            final ResultScanner rs = connectionWrapper.withConfiguration(config).connect().withRegion(region).scan()) {
+            for (Result row : rs) {
+                List<String> rowString = rowVisitor.ProcessRow(row);
+                tabular.addRow(rowString.toArray(new String[0]));
+            }
+        }
+        return tabular;
     }
 
     public String listTables() throws Exception {
@@ -103,100 +93,81 @@ public class HBaseInspector {
     }
 
     public String listTransactions() throws Exception {
-        try {
-            return Utils.printTabularResults(getListTransactions());
-        } catch (Exception e) {
-            return Utils.checkException(e, "splice:" + HBaseConfiguration.TRANSACTION_TABLE);
-        }
+        return Utils.printTabularResults(getListTransactions());
     }
 
     private String getTableId(String table) throws Exception {
-        String systableId = getHbaseRegionOf(SYSTABLESRowFactory.TABLENAME_STRING);
-        try (Connection conn = ConnectionFactory.createConnection(config)) {
-            Table hbaseTable = conn.getTable(TableName.valueOf(systableId));
-            Scan scan = new Scan().addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
-            try (ResultScanner results = hbaseTable.getScanner(scan)) {
-                final ValContainer<Pair<Long, String>> tableId = new ValContainer<>(null);
-                for (Result r : results) {
-                    for(Cell userData : r.listCells()) {
-                        UserDataDecoder decoder = new SysTableDataDecoder();
-                        final Pair<BitSet, ExecRow> p = decoder.decode(userData);
-                        final int idx = SYSTABLESRowFactory.SYSTABLES_TABLENAME;
-                        if (table.equals(p.getSecond().getColumn(idx).getString())) {
-                            if (tableId.get() == null || (tableId.get() != null && tableId.get().getFirst() < userData.getTimestamp())) {
-                                tableId.set(new Pair<>(userData.getTimestamp(), p.getSecond().getColumn(SYSTABLESRowFactory.SYSTABLES_TABLEID).getString()));
-                            }
+        final String region = regionOf(SYSTABLESRowFactory.TABLENAME_STRING);
+        final ValContainer<Pair<Long, String>> tableId = new ValContainer<>(null);
+        try(final ConnectionWrapper connectionWrapper = new ConnectionWrapper();
+            final ResultScanner rs = connectionWrapper.withConfiguration(config).connect().withRegion(region).scanColumn(SIConstants.PACKED_COLUMN_BYTES)) {
+            for (final Result r : rs) {
+                for(final Cell userData : r.listCells()) {
+                    UserDataDecoder decoder = new SysTableDataDecoder();
+                    final Pair<BitSet, ExecRow> p = decoder.decode(userData);
+                    final int idx = SYSTABLESRowFactory.SYSTABLES_TABLENAME;
+                    if (table.equals(p.getSecond().getColumn(idx).getString())) {
+                        if (tableId.get() == null || (tableId.get() != null && tableId.get().getFirst() < userData.getTimestamp())) {
+                            tableId.set(new Pair<>(userData.getTimestamp(), p.getSecond().getColumn(SYSTABLESRowFactory.SYSTABLES_TABLEID).getString()));
                         }
                     }
                 }
-                if (tableId.get() == null) {
-                    throw new TableNotFoundException();
-                }
-                return tableId.get().getSecond();
+            }
+            if (tableId.get() == null) {
+                throw new TableNotFoundException();
             }
         }
+        return tableId.get().getSecond();
     }
 
     public Utils.Tabular schemaOf(String table) throws Exception {
         return constructSchemaFromSysColsTable(getTableId(table));
     }
 
-    private Utils.Tabular constructSchemaFromSysColsTable(String tableId) throws Exception {
-        String systableId = getHbaseRegionOf(SYSCOLUMNSRowFactory.TABLENAME_STRING);
-        try (Connection conn = ConnectionFactory.createConnection(config)) {
-            Table table = conn.getTable(TableName.valueOf(systableId));
-            Scan scan = new Scan().addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
-            try (ResultScanner results = table.getScanner(scan)) {
-                final ValContainer<Utils.Tabular> schema = new ValContainer<>(new Utils.Tabular(Utils.Tabular.SortHint.AsString,"column index", "column name", "column type"));
-                for (Result r : results) {
-                    for(Cell c : r.listCells()) {
-                        UserDataDecoder decoder = new SysColsDataDecoder();
-                        Pair<BitSet, ExecRow> p = decoder.decode(c);
-                        int idx = SYSCOLUMNSRowFactory.SYSCOLUMNS_REFERENCEID;
-                        if (p.getSecond().getColumn(idx) != null
-                                && tableId.equals(p.getSecond().getColumn(idx).getString())) {
-                            schema.get().addRow(Integer.toString(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNNUMBER).getInt()),
-                                    CheckNull(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNNAME).toString()),
-                                    CheckNull(((TypeDescriptorImpl)(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNDATATYPE)).getObject()).getTypeName()));
-                        }
+    private Utils.Tabular constructSchemaFromSysColsTable(final String tableId) throws Exception {
+        final String region = regionOf(SYSCOLUMNSRowFactory.TABLENAME_STRING);
+        final ValContainer<Utils.Tabular> schema = new ValContainer<>(new Utils.Tabular(Utils.Tabular.SortHint.AsString,TBL_COLTABLE_COL0,
+                TBL_COLTABLE_COL1, TBL_COLTABLE_COL2));
+        try(final ConnectionWrapper connectionWrapper = new ConnectionWrapper();
+            final ResultScanner rs = connectionWrapper.withConfiguration(config).connect().withRegion(region).scanColumn(SIConstants.PACKED_COLUMN_BYTES)) {
+            for (final Result r : rs) {
+                for(final Cell c : r.listCells()) {
+                    final UserDataDecoder decoder = new SysColsDataDecoder();
+                    final Pair<BitSet, ExecRow> p = decoder.decode(c);
+                    final int idx = SYSCOLUMNSRowFactory.SYSCOLUMNS_REFERENCEID;
+                    if (p.getSecond().getColumn(idx) != null && tableId.equals(p.getSecond().getColumn(idx).getString())) {
+                        schema.get().addRow(Integer.toString(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNNUMBER).getInt()),
+                                CheckNull(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNNAME).toString()),
+                                CheckNull(((TypeDescriptorImpl)(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNDATATYPE)).getObject()).getTypeName()));
                     }
                 }
-                return schema.get();
             }
         }
+        return schema.get();
     }
 
-    public String getHbaseRegionOf(String tableName) throws Exception {
+    public String regionOf(String tableName) throws Exception {
         Utils.Tabular results = getListTables();
-        /*name*/
-        /*index*/
-        Utils.Tabular.Row row = results.rows.stream().filter(result -> result.cols.get(2 /*name*/).equals(tableName)
-                && result.cols.get(3 /*index*/).equals("NULL")).min((l, r) -> Long.compare(Long.parseLong(r.cols.get(4)), Long.parseLong(l.cols.get(4)))).orElse(null);
-        if (row == null) {
-            throw new TableNotFoundException();
-        } else {
-            assert row.cols.size() > 0;
-            return row.cols.get(0);
-        }
+        Utils.Tabular.Row row = results.rows.stream().filter(result -> result.cols.get(TBL_TABLES_NAME_IDX).equals(tableName)
+                && result.cols.get(TBL_TABLES_INDEX_IDX).equals(NULL)).min((l, r) -> Long.compare(Long.parseLong(r.cols.get(TBL_TABLES_CREATE_TXN_IDX)),
+                Long.parseLong(l.cols.get(TBL_TABLES_CREATE_TXN_IDX)))).orElseThrow(TableNotFoundException::new);
+        assert row.cols.size() > 0;
+        return row.cols.get(TBL_TABLES_HBASE_NAME_IDX);
     }
 
-    public String getSpliceTableNameOf(String regionName) throws Exception {
-        Utils.Tabular results = getListTables();
-        Utils.Tabular.Row r = results.rows.stream().filter(result -> result.cols.get(0 /*name*/).equals(regionName)
-                && result.cols.get(3 /*index*/).equals("NULL")).findAny().orElse(null);
-        if (r == null) {
-            throw new TableNotFoundException();
-        } else {
-            return r.cols.get(2);
-        }
+    public String tableOf(String regionName) throws Exception {
+        Utils.Tabular tables = getListTables();
+        Utils.Tabular.Row r = tables.rows.stream().filter(result -> result.cols.get(TBL_TABLES_HBASE_NAME_IDX).equals(regionName)
+                && result.cols.get(TBL_TABLES_INDEX_IDX).equals(NULL)).findAny().orElseThrow(TableNotFoundException::new);
+        return r.cols.get(TBL_TABLES_NAME_IDX);
     }
 
     public byte[] getUserDataPayload(String table, String[] values) throws Exception {
         assert values != null;
-        Utils.SQLType[] sqlTypes = Utils.toSQLTypeArray(schemaOf(table).getCol(2));
-        Pair<ExecRow, DescriptorSerializer[]> execRowPair =  Utils.constructExecRowDescriptorSerializer(sqlTypes, 4, values);
-        EntryDataHash entryDataHash = new EntryDataHash(IntArrays.count(execRowPair.getFirst().nColumns()), null, execRowPair.getSecond());
-        ExecRow execRow = execRowPair.getFirst();
+        final Utils.SQLType[] sqlTypes = Utils.toSQLTypeArray(schemaOf(table).getCol(2));
+        final Pair<ExecRow, DescriptorSerializer[]> execRowPair =  Utils.constructExecRowDescriptorSerializer(sqlTypes, 4, values);
+        final ExecRow execRow = execRowPair.getFirst();
+        final EntryDataHash entryDataHash = new EntryDataHash(IntArrays.count(execRowPair.getFirst().nColumns()), null, execRowPair.getSecond());
         entryDataHash.setRow(execRow);
         return entryDataHash.encode();
     }
@@ -232,10 +203,8 @@ public class HBaseInspector {
 
     public void putRow(String tableName, String region, String rowKey, long txn, RPutConfig putConfig) throws Exception {
         Put put = toPutOp(tableName, putConfig, Bytes.fromHex(rowKey), txn);
-        try (Connection conn = ConnectionFactory.createConnection(config)) {
-            try(Table table = conn.getTable(TableName.valueOf(region))) {
-                table.put(put);
-            }
+        try(final ConnectionWrapper connectionWrapper = new ConnectionWrapper()) {
+            connectionWrapper.withConfiguration(config).connect().withRegion(region).put(put);
         }
     }
 }

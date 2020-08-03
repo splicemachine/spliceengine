@@ -7,7 +7,7 @@ import picocli.CommandLine;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(name = "txlist", description = "list SpliceMachine transactions" )
-public class TxListCommand extends ConnectionOptions implements Callable<Integer>
+public class TxListCommand extends CommonOptions implements Callable<Integer>
 {
     @Override
     public Integer call() throws Exception {
