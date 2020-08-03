@@ -30,7 +30,7 @@ public class TableRowPrinter implements IRowPrinter {
     }
 
     @Override
-    public List<String> ProcessRow(Result row) throws Exception {
+    public List<String> processRow(Result row) throws Exception {
         List<String> result = new ArrayList<>();
         for(Cell cell : row.listCells()) {
             tableCellPrinter.visit(cell);

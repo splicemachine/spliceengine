@@ -19,6 +19,7 @@ import com.splicemachine.ck.decoder.UserDataDecoder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.CellType;
 import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.Cell;
@@ -73,9 +74,9 @@ class TableCellPrinter {
 
     public String getOutput() {
         StringBuilder sb = new StringBuilder();
-        for (long event : events.keySet()) {
-            sb.append(Utils.Colored.boldWhite("at: ")).append(Utils.Colored.boldWhite(Long.toString(event))).append("\n");
-            for(String eventResult : events.get(event)) {
+        for(Map.Entry<Long, List<String>> entry : events.entrySet()) {
+            sb.append(Utils.Colored.boldWhite("at: ")).append(Utils.Colored.boldWhite(Long.toString(entry.getKey()))).append("\n");
+            for(String eventResult : entry.getValue()) {
                 sb.append("\t").append(eventResult).append("\n");
             }
         }
@@ -94,7 +95,8 @@ class TableCellPrinter {
 
     public void visitCommitTimestamp(Cell cell) {
         stringBuilder.append(Utils.Colored.green("commit timestamp "));
-        stringBuilder.append(Utils.Colored.green(Long.toString(com.splicemachine.primitives.Bytes.toLong(cell.getValueArray(),cell.getValueOffset(),cell.getValueLength()))));
+        stringBuilder.append(Utils.Colored.green(Long.toString(Bytes.toLong(cell.getValueArray(),
+                cell.getValueOffset(),cell.getValueLength()))));
     }
 
     public void visitTombstone() {

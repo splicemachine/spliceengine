@@ -62,6 +62,8 @@ public class Utils {
                 this.cols = Arrays.asList(cols);
             }
 
+
+
             @Override
             public int compareTo(Row o) {
                 if(o == null) {
@@ -73,6 +75,19 @@ public class Utils {
                     assert sortHint == SortHint.AsString;
                     return cols.get(0).compareTo(o.cols.get(0));
                 }
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                if(!(obj instanceof Row)) {
+                    return false;
+                }
+                return cols.equals(((Row)obj).cols) && sortHint ==((Row)obj).sortHint;
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(cols, sortHint);
             }
         }
 
@@ -115,9 +130,10 @@ public class Utils {
             }
         }
 
+        final int padding = 5;
         List<String> formats = new ArrayList<>(lengths.size());
         for(Integer length : lengths) {
-            formats.add("%-" + (length + 5) + "s");
+            formats.add("%-" + (length + padding) + "s");
         }
 
         StringBuilder stringBuilder = new StringBuilder();
@@ -126,7 +142,7 @@ public class Utils {
         }
         stringBuilder.append("\n");
         int totalLength = lengths.stream().reduce(0, Integer::sum);
-        totalLength += 5 * lengths.size();
+        totalLength += padding * lengths.size();
         String separate = new String(new char[totalLength]).replace("\0", "=");
         stringBuilder.append(Colored.boldWhite(separate)).append("\n");
         for(Tabular.Row row : tabular.rows) {
@@ -352,7 +368,7 @@ public class Utils {
         System.err.flush();
     }
 
-    public static String CheckNull(final String value) {
+    public static String checkNull(final String value) {
         return value == null ? NULL : value;
     }
 }
