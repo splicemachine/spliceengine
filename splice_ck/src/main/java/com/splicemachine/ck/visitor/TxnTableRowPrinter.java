@@ -28,7 +28,7 @@ import java.util.List;
 public class TxnTableRowPrinter implements IRowPrinter {
 
     @Override
-    public List<String> ProcessRow(Result row) throws Exception {
+    public List<String> processRow(Result row) throws Exception {
         V2TxnDecoder decoder = V2TxnDecoder.INSTANCE;
         TxnMessage.Txn txn = decoder.decode(null, row.listCells());
         List<String> result = new ArrayList<>();

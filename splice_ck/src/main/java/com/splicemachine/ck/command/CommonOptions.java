@@ -14,11 +14,13 @@
 
 package com.splicemachine.ck.command;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import picocli.CommandLine;
 
 /**
  * Common options shared by all commands.
  */
+@SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "intentional, static fields are supposed to be read by other components")
 public class CommonOptions {
     @CommandLine.Option(names = {"-z", "--zookeeper-quorum"}, required = true, defaultValue = "localhost", description = "HBase Zookeeper quorum, default value: ${DEFAULT-VALUE}") String zkq;
     @CommandLine.Option(names = {"-p", "--port"}, required = true, defaultValue = "2181",  description = "HBase port, default value: ${DEFAULT-VALUE}") Integer port;

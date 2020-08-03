@@ -19,5 +19,5 @@ import org.apache.hadoop.hbase.client.Result;
 import java.util.List;
 
 public interface IRowPrinter {
-    List<String> ProcessRow(Result row) throws Exception;
+    List<String> processRow(Result row) throws Exception;
 }
