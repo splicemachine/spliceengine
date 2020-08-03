@@ -1,6 +1,21 @@
+/*
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.splicemachine.ck;
 
 import com.splicemachine.ck.command.CommonOptions;
+import com.splicemachine.ck.encoder.RPutConfig;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -23,13 +38,10 @@ import static com.splicemachine.ck.Constants.NULL;
 
 public class Utils {
 
-    public static final String HBASE_CONFIGURATION_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
-    public static final String HBASE_CONFIGURATION_ZOOKEEPER_CLIENTPORT = "hbase.zookeeper.property.clientPort";
-
     public static Configuration constructConfig(String zkq, int port) {
         Configuration conf = HBaseConfiguration.create();
-        conf.set(HBASE_CONFIGURATION_ZOOKEEPER_QUORUM, zkq);
-        conf.set(HBASE_CONFIGURATION_ZOOKEEPER_CLIENTPORT, Integer.toString(port));
+        conf.set(Constants.HBASE_CONFIGURATION_ZOOKEEPER_QUORUM, zkq);
+        conf.set(Constants.HBASE_CONFIGURATION_ZOOKEEPER_CLIENTPORT, Integer.toString(port));
         return conf;
     }
 
@@ -140,7 +152,7 @@ public class Utils {
 
     public enum SQLType { BOOLEAN, TINYINT, SMALLINT, INT, BIGINT, DOUBLE, REAL, NUMERIC,
         DECIMAL, CHAR, VARCHAR, REF, TIMESTAMP, DATE, TIME, LONG_VARCHAR, BLOB, CLOB, BIT,
-        VARBIT, LONGVARBIT, XML, LIST, UNKNOWN }
+        VARBIT, LONGVARBIT, XML, LIST }
 
     private static Map<String, SQLType> typeMap;
     static {
@@ -181,48 +193,56 @@ public class Utils {
 
     public static class Colored {
 
-        public static final String ANSI_RESET = "\u001B[0m";
-        public static final String ANSI_BLACK = "\u001B[30m";
-        public static final String ANSI_RED = "\u001B[31m";
-        public static final String ANSI_GREEN = "\u001B[32m";
-        public static final String ANSI_YELLOW = "\u001B[33m";
-        public static final String ANSI_BLUE = "\u001B[34m";
-        public static final String ANSI_PURPLE = "\u001B[35m";
-        public static final String ANSI_CYAN = "\u001B[36m";
-        public static final String ANSI_WHITE = "\u001B[37m";
-        public static final String ANSI_DARK_GRAY = "\u001B[30m";
-        public static final String ANSI_WHITE_BOLD = "\033[1;37m";
+        private static final String ANSI_RESET = "\u001B[0m";
+        private static final String ANSI_BLACK = "\u001B[30m";
+        private static final String ANSI_RED = "\u001B[31m";
+        private static final String ANSI_GREEN = "\u001B[32m";
+        private static final String ANSI_YELLOW = "\u001B[33m";
+        private static final String ANSI_BLUE = "\u001B[34m";
+        private static final String ANSI_PURPLE = "\u001B[35m";
+        private static final String ANSI_CYAN = "\u001B[36m";
+        private static final String ANSI_WHITE = "\u001B[37m";
+        private static final String ANSI_DARK_GRAY = "\u001B[30m";
+        private static final String ANSI_WHITE_BOLD = "\033[1;37m";
 
         public static String green(String message) {
-            return ANSI_GREEN + message + ANSI_RESET;
+            return coloredInternal(ANSI_GREEN, message);
         }
 
         public static String red(String message) {
-            return ANSI_RED + message + ANSI_RESET;
+            return coloredInternal(ANSI_RED, message);
         }
 
         public static String blue(String message) {
-            return ANSI_BLUE + message + ANSI_RESET;
+            return coloredInternal(ANSI_BLUE, message);
         }
 
         public static String darkGray(String message) {
-            return ANSI_DARK_GRAY + message + ANSI_RESET;
+            return coloredInternal(ANSI_DARK_GRAY, message);
         }
 
         public static String yellow(String message) {
-            return ANSI_YELLOW  + message + ANSI_RESET;
+            return coloredInternal(ANSI_YELLOW, message);
         }
 
         public static String purple(String message) {
-            return ANSI_PURPLE + message + ANSI_RESET;
+            return coloredInternal(ANSI_PURPLE, message);
         }
 
         public static String cyan(String message) {
-            return ANSI_CYAN + message + ANSI_RESET;
+            return coloredInternal(ANSI_CYAN, message);
         }
 
         public static String boldWhite(String message) {
-            return ANSI_WHITE_BOLD + message + ANSI_RESET;
+            return coloredInternal(ANSI_WHITE_BOLD, message);
+        }
+
+        private static String coloredInternal(String color, String message) {
+            if(CommonOptions.colors) {
+                return color + message + ANSI_RESET;
+            } else {
+                return message;
+            }
         }
     }
 
@@ -312,10 +332,10 @@ public class Utils {
     public static byte[] createFakeSIAttribute(long txnId) {
         MultiFieldEncoder encoder=MultiFieldEncoder.create(9)
                 .encodeNext(txnId)
-                .encodeNext(/*txn.getBeginTimestamp()*/ 4242)
-                .encodeNext(/*txn.isAdditive()*/ false)
-                .encodeNext(/*txn.getIsolationLevel().encode()*/ Txn.IsolationLevel.SNAPSHOT_ISOLATION.encode())
-                .encodeNext(/*txn.allowsWrites()*/ true);
+                .encodeNext(txnId)
+                .encodeNext(false)
+                .encodeNext(Txn.IsolationLevel.SNAPSHOT_ISOLATION.encode())
+                .encodeNext(true);
         encoder.encodeNext(-1).encodeNext(-1).encodeNext(-1);
         encoder.setRawBytes(Encoding.EMPTY_BYTE_ARRAY);
         return encoder.build();
