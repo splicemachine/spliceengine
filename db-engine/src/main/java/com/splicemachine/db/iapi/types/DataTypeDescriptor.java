@@ -811,7 +811,7 @@ public class DataTypeDescriptor implements Formatable{
             scale=higherType.getScale();
         }
 
-        if (higherType != null && higherType.getChildren() == null && lowerType!=null && lowerType.getChildren()!=null) // set children
+        if (higherType.getChildren() == null && lowerType.getChildren()!=null) // set children
             higherType.setChildren(lowerType.getChildren());
 
         higherType=new DataTypeDescriptor(higherType, precision,scale,nullable,maximumWidth);
@@ -1191,6 +1191,11 @@ public class DataTypeDescriptor implements Formatable{
         return DataTypeDescriptor.getRowMultiSet(
                 catalogType.getRowColumnNames(),
                 newTypes);
+    }
+
+    @Override
+    public int hashCode() {
+        return typeDescriptor.getTypeName().hashCode();
     }
 
     /**
