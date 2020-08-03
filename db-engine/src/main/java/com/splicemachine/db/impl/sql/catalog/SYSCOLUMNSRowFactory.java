@@ -214,7 +214,11 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         return row;
     }
 
-    public static void setRowColumns(ExecRow row, String colName, String defaultID, String tabID, Integer colID, Integer storageNumber, TypeDescriptor typeDesc, Object defaultSerializable, long autoincStart, long autoincInc, long autoincValue, int partitionPosition, long autoinc_create_or_modify_Start_Increment, boolean collectStats, byte useExtrapolation) {
+    public static void setRowColumns(ExecRow row, String colName, String defaultID, String tabID, Integer colID,
+                                     Integer storageNumber, TypeDescriptor typeDesc, Object defaultSerializable,
+                                     long autoincStart, long autoincInc, long autoincValue, int partitionPosition,
+                                     long autoinc_create_or_modify_Start_Increment, boolean collectStats,
+                                     byte useExtrapolation) {
         /* 1st column is REFERENCEID (UUID - char(36)) */
         row.setColumn(SYSCOLUMNS_REFERENCEID, new SQLChar(tabID));
 

@@ -46,8 +46,7 @@ import java.util.BitSet;
 import java.util.List;
 
 import static com.splicemachine.ck.Constants.*;
-import static com.splicemachine.ck.Utils.CheckNull;
-import static com.splicemachine.ck.Utils.tell;
+import static com.splicemachine.ck.Utils.checkNull;
 
 public class HBaseInspector {
 
@@ -63,7 +62,7 @@ public class HBaseInspector {
             final ResultScanner rs = connectionWrapper.withConfiguration(config).connect().withRegion(region).scanSingleRowAllVersions(rowKey)) {
             TableRowPrinter rowVisitor = new TableRowPrinter(schema == null ? null : new UserDefinedDataDecoder(schema, 4));
             for(Result row : rs) {
-                for(String s : rowVisitor.ProcessRow(row)) {
+                for(String s : rowVisitor.processRow(row)) {
                     result.append(s);
                 }
             }
@@ -77,11 +76,11 @@ public class HBaseInspector {
         try(final ConnectionWrapper connectionWrapper = new ConnectionWrapper()) {
             final List<TableDescriptor> descriptors = connectionWrapper.withConfiguration(config).connect().descriptorsOfPattern(Constants.SPLICE_PATTERN);
             for (TableDescriptor td : descriptors) {
-                tabular.addRow(CheckNull(td.getTableName().toString()),
-                        CheckNull(td.getValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR)),
-                        CheckNull(td.getValue(SIConstants.TABLE_DISPLAY_NAME_ATTR)),
-                        CheckNull(td.getValue(SIConstants.INDEX_DISPLAY_NAME_ATTR)),
-                        CheckNull(td.getValue(SIConstants.TRANSACTION_ID_ATTR)));
+                tabular.addRow(checkNull(td.getTableName().toString()),
+                        checkNull(td.getValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR)),
+                        checkNull(td.getValue(SIConstants.TABLE_DISPLAY_NAME_ATTR)),
+                        checkNull(td.getValue(SIConstants.INDEX_DISPLAY_NAME_ATTR)),
+                        checkNull(td.getValue(SIConstants.TRANSACTION_ID_ATTR)));
             }
         }
         return tabular;
@@ -96,7 +95,7 @@ public class HBaseInspector {
         try(final ConnectionWrapper connectionWrapper = new ConnectionWrapper();
             final ResultScanner rs = connectionWrapper.withConfiguration(config).connect().withRegion(region).scan()) {
             for (Result row : rs) {
-                List<String> rowString = rowVisitor.ProcessRow(row);
+                List<String> rowString = rowVisitor.processRow(row);
                 tabular.addRow(rowString.toArray(new String[0]));
             }
         }
@@ -152,8 +151,8 @@ public class HBaseInspector {
                     final int idx = SYSCOLUMNSRowFactory.SYSCOLUMNS_REFERENCEID;
                     if (p.getSecond().getColumn(idx) != null && tableId.equals(p.getSecond().getColumn(idx).getString())) {
                         schema.get().addRow(Integer.toString(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNNUMBER).getInt()),
-                                CheckNull(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNNAME).toString()),
-                                CheckNull(((TypeDescriptorImpl)(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNDATATYPE)).getObject()).getTypeName()));
+                                checkNull(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNNAME).toString()),
+                                checkNull(((TypeDescriptorImpl)(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNDATATYPE)).getObject()).getTypeName()));
                     }
                 }
             }
