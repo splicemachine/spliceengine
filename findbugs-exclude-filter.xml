@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2012 - 2020 Splice Machine, Inc.
+  ~
+  ~ This file is part of Splice Machine.
+  ~ Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+  ~ GNU Affero General Public License as published by the Free Software Foundation, either
+  ~ version 3, or (at your option) any later version.
+  ~ Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  ~ without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  ~ See the GNU Affero General Public License for more details.
+  ~ You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+  ~ If not, see <http://www.gnu.org/licenses/>.
+  -->
+<FindBugsFilter>
+
+    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    Splicemachine findbugs exclusion filter file.
+
+    https://spotbugs.readthedocs.io/en/stable/filter.html#source
+
+    Most (all?) attribute values can be a regex: start with "~".  Period must be escaped in regex string.
+
+    Please explain every exclusion with a comment.
+     = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+
+    <!--
+    Exposing internal representation by getting/setting mutable fields.
+    We often intentionally break this rule for performance.
+    !-->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!--
+    generated code
+    !-->
+    <Match>
+        <Class name="~com\.splicemachine\.si\.coprocessor\.TxnMessage.*"/>
+    </Match>
+    <Match>
+        <Class name="~com\.splicemachine\.coprocessor\.SpliceMessage.*"/>
+    </Match>
+    <Match>
+        <Class name="~com\.splicemachine\.db\.impl\.tools\.ij\.ij.*"/>
+    </Match>
+    <Match>
+        <Class name="~com\.splicemachine\.db\.impl\.tools\.ij\.CharStream.*"/>
+    </Match>
+    <Match>
+        <Class name="~com\.splicemachine\.db\.impl\.tools\.ij\.ijConstants.*"/>
+    </Match>
+    <Match>
+        <Class name="~com\.splicemachine\.db\.impl\.tools\.ij\.ijTokenManager.*"/>
+    </Match>
+    <Match>
+        <Class name="~com\.splicemachine\.db\.impl\.tools\.ij\.mtGrammar.*"/>
+    </Match>
+    <Match>
+        <Class name="~com\.splicemachine\.db\.impl\.tools\.ij\.mtGrammarConstants.*"/>
+    </Match>
+    <Match>
+        <Class name="~com\.splicemachine\.db\.impl\.tools\.ij\.mtGrammarTokenManager.*"/>
+    </Match>
+    <Match>
+        <Class name="~com\.splicemachine\.db\.impl\.tools\.ij\.SimpleCharStream.*"/>
+    </Match>
+    <Match>
+        <Class name="~com\.splicemachine\.db\.impl\.tools\.ij\.Token.*"/>
+    </Match>
+    <Match>
+        <Class name="~com\.splicemachine\.db\.impl\.tools\.ij\.TokenMgrError.*"/>
+    </Match>
+
+    <!-- SpliceConstants: our static fields in are intentionally not final -->
+    <Match>
+        <Class name="com.splicemachine.constants.SpliceConstants"/>
+        <Bug pattern="MS_SHOULD_BE_FINAL"/>
+    </Match>
+    <!-- SpliceConstants: our static fields in are intentionally not final -->
+    <Match>
+        <Class name="com.splicemachine.constants.SpliceConstants"/>
+        <Bug pattern="MS_CANNOT_BE_FINAL"/>
+    </Match>
+    <!-- SpliceConstants: is is ok for unused fields to be public for now -->
+    <Match>
+        <Class name="com.splicemachine.constants.SpliceConstants"/>
+        <Bug pattern="MS_PKGPROTECT"/>
+    </Match>
+    <!-- SpliceConstants: all of our table name fields are static but are mutable arrays -->
+    <Match>
+        <Class name="com.splicemachine.constants.SpliceConstants"/>
+        <Bug pattern="MS_MUTABLE_ARRAY"/>
+    </Match>
+
+</FindBugsFilter>

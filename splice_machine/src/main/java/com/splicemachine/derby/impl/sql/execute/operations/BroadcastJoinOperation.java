@@ -130,7 +130,7 @@ public class BroadcastJoinOperation extends JoinOperation{
                                   GeneratedMethod restriction,
                                   int resultSetNumber,
                                   boolean oneRowRightSide,
-                                  boolean notExistsRightSide,
+                                  byte semiJoinType,
                                   boolean rightFromSSQ,
                                   double optimizerEstimatedRowCount,
                                   double optimizerEstimatedCost,
@@ -138,7 +138,7 @@ public class BroadcastJoinOperation extends JoinOperation{
                                   String sparkExpressionTreeAsString) throws
             StandardException{
         super(leftResultSet,leftNumCols,rightResultSet,rightNumCols,
-                activation,restriction,resultSetNumber,oneRowRightSide,notExistsRightSide, rightFromSSQ,
+                activation,restriction,resultSetNumber,oneRowRightSide, semiJoinType, rightFromSSQ,
                 optimizerEstimatedRowCount,optimizerEstimatedCost,userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
         this.leftHashKeyItem=leftHashKeyItem;
         this.rightHashKeyItem=rightHashKeyItem;
@@ -192,24 +192,7 @@ public class BroadcastJoinOperation extends JoinOperation{
 
         OperationContext operationContext = dsp.createOperationContext(this);
 
-        SConfiguration configuration= EngineDriver.driver().getConfiguration();
-
-        boolean useDataset = SpliceClient.isClient() ||
-                rightResultSet.getEstimatedCost() / 1000 > configuration.getBroadcastDatasetCostThreshold() ||
-                        rightResultSet.accessExternalTable();
-        /** For semi-join, it is possible that the right side is a result from complex operations, like a sequence
-         * of joins or some aggregations on top of base table. So heuristically it is better to go through the dataset implementation
-         * if the rightResultSet is not a simple access of the base table
-         */
-        if (!useDataset && isOneRowRightSide()) {
-            SpliceOperation tempOp = rightResultSet;
-            while (tempOp instanceof ProjectRestrictOperation) {
-                tempOp = tempOp.getLeftOperation();
-            }
-            if (!(tempOp instanceof TableScanOperation ||
-                tempOp instanceof MultiProbeTableScanOperation))
-                useDataset = true;
-        }
+        boolean useDataset = true;
 
         /** TODO don't know how to let spark report SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION error,
          * so route to the rdd implementation for now for SSQ.  Also, spark join can't handle a zero length
@@ -221,7 +204,7 @@ public class BroadcastJoinOperation extends JoinOperation{
         DataSet<ExecRow> result;
         boolean usesNativeSparkDataSet =
            (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
-             ((restriction == null || hasSparkJoinPredicate()) || (!isOuterJoin() && !notExistsRightSide && !isOneRowRightSide())) &&
+             ((restriction == null || hasSparkJoinPredicate()) || (!isOuterJoin() && !isAntiJoin() && !isOneRowRightSide())) &&
               !containsUnsafeSQLRealComparison());
 
         dsp.incrementOpDepth();
@@ -233,7 +216,7 @@ public class BroadcastJoinOperation extends JoinOperation{
         leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
-                isOuterJoin() ? "outer" : "inner", notExistsRightSide, restriction != null);
+                isOuterJoin() ? "outer" : "inner", isAntiJoin(), restriction != null);
 
         dsp.finalizeTempOperationStrings();
 
@@ -243,15 +226,14 @@ public class BroadcastJoinOperation extends JoinOperation{
             dsp.decrementOpDepth();
             if (isOuterJoin())
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
-            else if (notExistsRightSide)
+            else if (isAntiJoin())
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTANTI,true);
 
             else { // Inner Join
-                if (isOneRowRightSide()) {
+                if (isInclusionJoin()) {
                     result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTSEMI,true);
                 } else {
                     result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.INNER,true);
-
                 }
                 // Adding a filter in this manner disables native spark execution,
                 // so only do it if required.
@@ -268,9 +250,9 @@ public class BroadcastJoinOperation extends JoinOperation{
                         .flatMap(new LeftOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                         .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
             } else {
-                if (this.leftHashKeys.length != 0 && !this.notExistsRightSide)
+                if (this.leftHashKeys.length != 0 && !isAntiJoin())
                     leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
-                if (this.notExistsRightSide) { // antijoin
+                if (isAntiJoin()) { // antijoin
                     if (restriction != null) { // with restriction
                         result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
                                 .flatMap(new AntiJoinRestrictionFlatMapFunction(operationContext));
@@ -279,7 +261,7 @@ public class BroadcastJoinOperation extends JoinOperation{
                                 .map(new AntiJoinFunction(operationContext));
                     }
                 } else { // Inner Join
-
+                    // if inclusion join or regular inner join with one matching row on right
                     if (isOneRowRightSide()) {
                         result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
                                 .flatMap(new InnerJoinRestrictionFlatMapFunction(operationContext));
