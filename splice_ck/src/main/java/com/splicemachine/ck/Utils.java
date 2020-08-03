@@ -129,10 +129,14 @@ public class Utils {
         return stringBuilder.toString();
     }
 
-    public static String toString(ExecRow er) throws StandardException {
+    public static String toString(Pair<BitSet, ExecRow> p) throws StandardException {
         StringJoiner joiner = new StringJoiner(",");
-        for(int i = 1; i <= er.nColumns(); ++i) {
-            joiner.add(er.getColumn(i).toString());
+        for(int i = 1; i <= p.getSecond().nColumns(); ++i) {
+            if(p.getFirst().get(i - 1)) {
+                joiner.add(p.getSecond().getColumn(i).toString());
+            } else {
+                joiner.add("[]");
+            }
         }
         return joiner.toString();
     }

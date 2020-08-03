@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.TableNotFoundException;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import java.util.BitSet;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -119,10 +120,11 @@ public class HBaseInspector {
                 for (Result r : results) {
                     for(Cell userData : r.listCells()) {
                         UserDataDecoder decoder = new SysTableDataDecoder();
-                        ExecRow er = decoder.decode(userData);
-                        if (table.equals(er.getColumn(SYSTABLESRowFactory.SYSTABLES_TABLENAME).getString())) {
+                        final Pair<BitSet, ExecRow> p = decoder.decode(userData);
+                        final int idx = SYSTABLESRowFactory.SYSTABLES_TABLENAME;
+                        if (table.equals(p.getSecond().getColumn(idx).getString())) {
                             if (tableId.get() == null || (tableId.get() != null && tableId.get().getFirst() < userData.getTimestamp())) {
-                                tableId.set(new Pair<>(userData.getTimestamp(), er.getColumn(SYSTABLESRowFactory.SYSTABLES_TABLEID).getString()));
+                                tableId.set(new Pair<>(userData.getTimestamp(), p.getSecond().getColumn(SYSTABLESRowFactory.SYSTABLES_TABLEID).getString()));
                             }
                         }
                     }
@@ -149,12 +151,13 @@ public class HBaseInspector {
                 for (Result r : results) {
                     for(Cell c : r.listCells()) {
                         UserDataDecoder decoder = new SysColsDataDecoder();
-                        ExecRow er = decoder.decode(c);
-                        if (er.getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_REFERENCEID) != null
-                                && tableId.equals(er.getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_REFERENCEID).getString())) {
-                            schema.get().addRow(Integer.toString(er.getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNNUMBER).getInt()),
-                                    CheckNull(er.getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNNAME).toString()),
-                                    CheckNull(((TypeDescriptorImpl)(er.getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNDATATYPE)).getObject()).getTypeName()));
+                        Pair<BitSet, ExecRow> p = decoder.decode(c);
+                        int idx = SYSCOLUMNSRowFactory.SYSCOLUMNS_REFERENCEID;
+                        if (p.getSecond().getColumn(idx) != null
+                                && tableId.equals(p.getSecond().getColumn(idx).getString())) {
+                            schema.get().addRow(Integer.toString(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNNUMBER).getInt()),
+                                    CheckNull(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNNAME).toString()),
+                                    CheckNull(((TypeDescriptorImpl)(p.getSecond().getColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMNDATATYPE)).getObject()).getTypeName()));
                         }
                     }
                 }
