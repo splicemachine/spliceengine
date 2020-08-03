@@ -25,10 +25,10 @@ import org.apache.kafka.common.serialization.IntegerDeserializer;
 public class KafkaUtils {
     public static long messageCount(String bootstrapServers, String topicName, int partition) {
         Properties props = new Properties();
-        String consumerId = UUID.randomUUID().toString();
+        String group_id = "kafka-util-consumer-dss-ku";
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "spark-consumer-group-"+consumerId);
-        props.put(ConsumerConfig.CLIENT_ID_CONFIG, "spark-consumer-"+consumerId);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, group_id);
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, group_id+"-"+UUID.randomUUID());
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
 

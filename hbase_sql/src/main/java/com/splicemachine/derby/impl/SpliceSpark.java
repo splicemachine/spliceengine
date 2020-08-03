@@ -167,7 +167,7 @@ public class SpliceSpark {
                     @Override public void distributedStart() throws IOException{ }
                     @Override public void markBootFinished() throws IOException{ }
                     @Override public boolean connectAsFirstTime(){ return false; }
-                },config,false).start();
+                },config,false, false).start();
 
                 EngineDriver engineDriver = EngineDriver.driver();
                 assert engineDriver!=null: "Not booted yet!";
@@ -260,7 +260,6 @@ public class SpliceSpark {
                 conf.set("spark.yarn.keytab", HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file"));
             }
         }
-
         // set all spark props that start with "splice.".  overrides are set below.
         for (Object sysPropertyKey : System.getProperties().keySet()) {
             String spsPropertyName = (String) sysPropertyKey;

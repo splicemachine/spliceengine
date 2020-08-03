@@ -59,8 +59,6 @@ import java.io.IOException;
 import java.util.Vector;
 import java.util.Enumeration;
 import java.util.Locale;
-import java.util.List;
-import java.util.ArrayList;
 import javax.transaction.xa.XAResource;
 
 /**
@@ -1148,7 +1146,6 @@ class ij {
         ResultSet rs = null;
         try {
             haveConnection();
-            verifyTableExists(schema,table);
             Statement stmt = theConnection.createStatement();
             rs = stmt.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE(\'" +
                     schema + "\'," + "\'" + table + "\')" );
@@ -1469,6 +1466,11 @@ TOKEN [IGNORE_CASE] :
 |	<CP_DISCONNECT: "CP_disconnect">
 |	<WORK : "work">
 |   <JSON: "JSON">
+|   <PROMPT: "prompt">
+|   <CLOCK: "clock">
+|   <SPOOL: "SPOOL">
+|   <STOP: "STOP">
+|   <CLEAR: "CLEAR">
 }
 
 TOKEN :
@@ -1751,7 +1753,7 @@ TOKEN :
 
 ijResult
 ijStatement() 
-throws SQLException
+throws SQLException, IOException
 :
 {
 	ijResult r = null;
@@ -1815,6 +1817,8 @@ throws SQLException
 |	r=CP_ConnectStatement()
 |	r=CP_GetConnectionStatement()
 |	r=CP_DisconnectStatement()
+|   r=Prompt()
+|   r=Spool()
 )? <EOF>
 	{
 		return r;
@@ -3110,7 +3114,7 @@ throws SQLException
 	Token on=null;
 }
 {
-	<AUTOCOMMIT> 
+	<AUTOCOMMIT>
 	( on=<ON>
 	| <OFF>
 	)
@@ -3367,7 +3371,7 @@ HelpStatement() :
 	{
 		Vector v = new Vector();
 
-                StringTokenizer st = new StringTokenizer(LocalizedResource.getMessage("IJ_HelpText"), "\n");
+        StringTokenizer st = new StringTokenizer(LocalizedResource.getMessage("IJ_HelpText"), "\n");
 		while (st.hasMoreTokens()) {
 		    v.addElement(st.nextToken());
 		}
@@ -3388,6 +3392,19 @@ identifier() :
 		// ij doesn't recognize any use of delimited identifiers in its syntax.
 		return (t.image.toUpperCase(Locale.ENGLISH));
 	}
+}
+
+
+String
+path() :
+{
+    Token t;
+}
+{
+    t=<STRING>
+    {
+        return (stringValue(t.image));
+    }
 }
 
 /**
@@ -4040,7 +4057,53 @@ ijResult CP_DisconnectStatement() throws SQLException
 
 }
 
+ijResult Prompt() throws SQLException
+:
+{
+    Token clockOn=null;
+}
+{
+	<PROMPT> <CLOCK> ( clockOn=<ON> | <OFF> )
+	{
+		utilInstance.setPromptClock((clockOn == null ? false : true));
+		return null;
+	}
+}
 
+ijResult Spool() throws IOException
+:
+{}
+{
+    <SPOOL>
+    {
+        return HandleSpool();
+    }
+}
+
+ijResult HandleSpool() throws IOException
+:
+{
+    String n = null;
+}
+{
+    n=path()
+    {
+        utilInstance.startSpooling(n);
+        return null;
+    }
+|
+    <STOP>
+    {
+        utilInstance.stopSpooling();
+        return null;
+    }
+|
+    <CLEAR>
+    {
+        utilInstance.clearSpooling();
+        return null;
+    }
+}
 
 void attributeList(Properties properties) :
 {
@@ -4222,7 +4285,12 @@ keyword() :
 |	tok = <CP_DISCONNECT>
 |	tok = <WORK>
 |   tok = <JSON>
-	)
+|   tok = <PROMPT>
+|   tok = <CLOCK>
+|   tok = <SPOOL>
+|   tok = <STOP>
+|   tok = <CLEAR>
+)
 	{
 
 		return tok.image;

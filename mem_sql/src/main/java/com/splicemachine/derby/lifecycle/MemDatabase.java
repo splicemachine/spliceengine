@@ -84,11 +84,11 @@ public class MemDatabase{
             public boolean connectAsFirstTime(){
                 return true;
             }
-        },config,false);
+        },config,false, false);
         DatabaseLifecycleManager manager=DatabaseLifecycleManager.manager();
         manager.registerEngineService(els);
         manager.registerNetworkService(new NetworkLifecycleService(config));
-        manager.start();
+        manager.start(null);
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable(){
             @Override
             public void run(){
