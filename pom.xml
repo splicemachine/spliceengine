@@ -852,7 +852,6 @@
                 <module>splice_access_api</module>
                 <module>splice_machine</module>
                 <module>splice_aws</module>
-                <module>splice_ck</module>
             </modules>
         </profile>
         <profile>
@@ -903,6 +902,7 @@
                 <module>standalone</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>splice_spark2</module>
                 <module>scala_util</module>
@@ -940,6 +940,7 @@
                 <module>standalone</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>splice_spark2</module>
                 <module>scala_util</module>
@@ -978,6 +979,7 @@
                 <module>standalone</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>splice_spark2</module>
                 <module>scala_util</module>
