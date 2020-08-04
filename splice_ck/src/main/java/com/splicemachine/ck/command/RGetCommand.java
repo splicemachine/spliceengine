@@ -16,6 +16,9 @@ package com.splicemachine.ck.command;
 
 import com.splicemachine.ck.HBaseInspector;
 import com.splicemachine.ck.Utils;
+import com.splicemachine.ck.command.common.CommonOptions;
+import com.splicemachine.ck.command.common.TableNameGroup;
+import com.splicemachine.derby.utils.EngineUtils;
 import org.apache.commons.lang3.StringUtils;
 import picocli.CommandLine;
 
@@ -32,17 +35,12 @@ public class RGetCommand extends CommonOptions implements Callable<Integer>
     @CommandLine.ArgGroup(exclusive = true, multiplicity = "1", heading = "row values parsing options%n")
     ExclusiveRowParsing rowParsingGroup;
     @CommandLine.ArgGroup(exclusive = true, multiplicity = "1", heading = "table identifier options%n")
-    ExclusiveTableName tableNameGroup;
+    TableNameGroup tableNameGroup;
 
     public static class ExclusiveRowParsing {
-        @CommandLine.Option(names = {"-s", "--schema"}, required = true, split =",", description = "user-defined schema, possible values: ${COMPLETION-CANDIDATES}") Utils.SQLType[] schema;
-        @CommandLine.Option(names = {"-a", "--auto"}, required = true, description = "retrieve the schema of row automatically") Boolean auto;
+        @CommandLine.Option(names = {"-c", "--columns"}, required = true, split =",", description = "user-defined table columns, possible values: ${COMPLETION-CANDIDATES}") Utils.SQLType[] colsSchema;
+        @CommandLine.Option(names = {"-a", "--auto"}, required = true, description = "retrieve table columns automatically") Boolean auto;
         @CommandLine.Option(names = {"-n", "--none"}, required = true, description = "print the row in hex") Boolean none;
-    }
-
-    public static class ExclusiveTableName {
-        @CommandLine.Option(names = {"-t", "--table"}, required = true, description = "SpliceMachine table name") String table;
-        @CommandLine.Option(names = {"-r", "--region"}, required = true, description = "HBase region name (with of without 'splice:' prefix)") String region;
     }
 
     public RGetCommand() {
@@ -52,29 +50,30 @@ public class RGetCommand extends CommonOptions implements Callable<Integer>
     public Integer call() throws Exception {
         HBaseInspector hbaseInspector = new HBaseInspector(Utils.constructConfig(zkq, port));
         try {
-            String table;
             String region;
-            if(tableNameGroup.table != null) {
-                table = tableNameGroup.table;
-                region = hbaseInspector.regionOf(table);
+            if(tableNameGroup.qualifiedTableName != null) {
+                tableNameGroup.qualifiedTableName.table = EngineUtils.validateTable(tableNameGroup.qualifiedTableName.table);
+                tableNameGroup.qualifiedTableName.schema = EngineUtils.validateSchema(tableNameGroup.qualifiedTableName.schema);
+                region = hbaseInspector.regionOf(tableNameGroup.qualifiedTableName.schema, tableNameGroup.qualifiedTableName.table);
             } else {
                 if(StringUtils.isNumeric(tableNameGroup.region)) {
                     region = "splice:" + tableNameGroup.region;
                 } else {
                     region = tableNameGroup.region;
                 }
-                table = hbaseInspector.tableOf(region);
             }
             if(rowParsingGroup.auto != null) {
-                Utils.Tabular schema = hbaseInspector.schemaOf(table);
-                Utils.SQLType[] sqlTypes = Utils.toSQLTypeArray(schema.getCol(2));
+                Utils.Tabular cols = hbaseInspector.columnsOf(region);
+                Utils.SQLType[] sqlTypes = Utils.toSQLTypeArray(cols.getCol(2));
                 System.out.println(hbaseInspector.scanRow(region, id, sqlTypes));
             } else {
-                System.out.println(hbaseInspector.scanRow(region, id, rowParsingGroup.schema /* ok if null */));
+                System.out.println(hbaseInspector.scanRow(region, id, rowParsingGroup.colsSchema /* ok if null */));
             }
             return 0;
         } catch (Exception e) {
-            System.out.println(Utils.checkException(e, tableNameGroup.table != null ? tableNameGroup.table : tableNameGroup.region));
+            System.out.println(Utils.checkException(e, tableNameGroup.qualifiedTableName != null
+                    ? tableNameGroup.qualifiedTableName.table
+                    : tableNameGroup.region));
             return -1;
         }
     }

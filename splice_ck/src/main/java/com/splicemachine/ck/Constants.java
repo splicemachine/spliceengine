@@ -31,6 +31,14 @@ public class Constants {
     public final static int TBL_TABLES_INDEX_IDX = 3;
     public final static int TBL_TABLES_CREATE_TXN_IDX = 4;
 
+    public final static String TBL_SCHEMAS_COL0 = "id";
+    public final static String TBL_SCHEMAS_COL1 = "name";
+    public final static String TBL_SCHEMAS_COL2 = "authorization id";
+
+    public final static int TBL_SCHEMAS_ID_IDX = 0;
+    public final static int TBL_SCHEMAS_NAME_IDX = 1;
+    public final static int TBL_SCHEMAS_AUTH_IDX = 2;
+
     public final static String TBL_TXN_COL0 = "transaction id";
     public final static String TBL_TXN_COL1 = "commit timestamp";
     public final static String TBL_TXN_COL2 = "global commit timestamp";

@@ -14,8 +14,7 @@
 
 package com.splicemachine.ck;
 
-import com.splicemachine.ck.command.CommonOptions;
-import com.splicemachine.ck.encoder.RPutConfig;
+import com.splicemachine.ck.command.common.CommonOptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
