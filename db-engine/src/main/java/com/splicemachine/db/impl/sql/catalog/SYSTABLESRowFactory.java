@@ -171,6 +171,10 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			** We only allocate a new UUID if the descriptor doesn't already have one.
 			** For descriptors replicated from a Source system, we already have an UUID.
 			*/
+			if (!(td instanceof TableDescriptor))
+				throw new RuntimeException("Unexpected TableDescriptor " + td.getClass().getName());
+			if (!(parent instanceof SchemaDescriptor))
+				throw new RuntimeException("Unexpected SchemaDescriptor " + parent.getClass().getName());
 			TableDescriptor descriptor = (TableDescriptor)td;
 			SchemaDescriptor schema = (SchemaDescriptor)parent;
 
@@ -342,6 +346,9 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 				/* 1st column is TABLEID (UUID - char(36)) */
 				row.setColumn(1,new SQLChar());
 				break;
+
+			default:
+				throw new IllegalArgumentException("unexpected indexNumber: " + indexNumber);
 		}	// end switch
 
 		return	row;

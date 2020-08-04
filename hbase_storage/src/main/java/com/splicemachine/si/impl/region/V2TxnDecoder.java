@@ -33,6 +33,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.ByteSlice;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.IteratorChain;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
@@ -44,6 +45,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+@SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "intentional, static fields are read by other components.")
 public class V2TxnDecoder implements TxnDecoder{
     public static final V2TxnDecoder INSTANCE=new V2TxnDecoder();
     public static final byte[] FAMILY=SIConstants.DEFAULT_FAMILY_BYTES;
@@ -106,8 +108,8 @@ public class V2TxnDecoder implements TxnDecoder{
     public TxnMessage.TaskId decodeTaskId(Cell taskKv) {
         if(taskKv==null) return null;
         MultiFieldDecoder decoder=MultiFieldDecoder.wrap(taskKv.getValueArray(),taskKv.getValueOffset(),taskKv.getValueLength());
-        String jtId=decoder.decodeNextString();
-        int jobId=decoder.decodeNextInt();
+        decoder.decodeNextString(); // igored
+        decoder.decodeNextInt(); // ignored
         int stageId=decoder.decodeNextInt();
         int partitionId=decoder.decodeNextInt();
         int attemptNumber=decoder.decodeNextInt();
