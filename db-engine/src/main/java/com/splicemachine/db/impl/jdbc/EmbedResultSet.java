@@ -59,6 +59,7 @@ import java.net.URL;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.UUID;
 
 /* can't import these due to name overlap:
 import java.sql.ResultSet;
@@ -557,13 +558,12 @@ public abstract class EmbedResultSet extends ConnectionChild
 				// just give up and return
 				return;
 			}
-            
-			try	{
-                LanguageConnectionContext lcc =
-                    getEmbedConnection().getLanguageConnection();
 
+			LanguageConnectionContext lcc = getEmbedConnection().getLanguageConnection();
+			UUID uuid = theResults.getUuid();
+			try	{
 				try	{
-					theResults.close(); 
+					theResults.close();
 				    
 				    if (this.singleUseActivation != null)
 				    {
@@ -612,8 +612,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 			// we hang on to theResults and messenger
 			// in case more calls come in on this resultSet
 
-			LanguageConnectionContext lcc = getEmbedConnection().getLanguageConnection();
-			lcc.logEndFetching(getSQLText(), NumberofFetchedRows);
+			lcc.logEndFetching((uuid == null ? "" : uuid.toString()), getSQLText(), NumberofFetchedRows);
 		}
 
 	}
