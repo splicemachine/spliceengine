@@ -406,6 +406,10 @@ public class TableScanOperation extends ScanOperation{
     public DataSet<ExecRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
         TxnView txn = getTransaction();
         operationContext = dsp.createOperationContext(this);
+
+        // we currently don't support external tables in Control, so this shouldn't happen
+        assert storedAs == null || !( dsp.getType() == DataSetProcessor.Type.CONTROL && !storedAs.isEmpty() )
+                : "tried to access external table " + tableDisplayName + ":" + tableName + " over control/OLTP";
         return dsp.<TableScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
                 .activation(activation)

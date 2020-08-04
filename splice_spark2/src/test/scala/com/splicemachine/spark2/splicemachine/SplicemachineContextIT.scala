@@ -17,6 +17,8 @@
 package com.splicemachine.spark2.splicemachine
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, ObjectInputStream, ObjectOutputStream}
+
+import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FunSuite, Matchers}
@@ -54,15 +56,71 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     dropInternalTable
     createInternalTable
     val schema = splicemachineContext.getSchema(internalTN)
-    // SPARK-22002 removed metadata from StructFields in JdbcUtils.getSchema() (since Spark 2.3)
-    org.junit.Assert.assertEquals("Schema Changed!",schema.json,"""{"type":"struct","fields":[{"name":"C1_BOOLEAN","type":"boolean","nullable":true,"metadata":{}},{"name":"C2_CHAR","type":"string","nullable":true,"metadata":{}},{"name":"C3_DATE","type":"date","nullable":true,"metadata":{}},{"name":"C4_DECIMAL","type":"decimal(15,2)","nullable":true,"metadata":{}},{"name":"C5_DOUBLE","type":"double","nullable":true,"metadata":{}},{"name":"C6_INT","type":"integer","nullable":false,"metadata":{}},{"name":"C7_BIGINT","type":"long","nullable":false,"metadata":{}},{"name":"C8_FLOAT","type":"double","nullable":true,"metadata":{}},{"name":"C9_SMALLINT","type":"short","nullable":true,"metadata":{}},{"name":"C10_TIME","type":"timestamp","nullable":true,"metadata":{}},{"name":"C11_TIMESTAMP","type":"timestamp","nullable":true,"metadata":{}},{"name":"C12_VARCHAR","type":"string","nullable":true,"metadata":{}},{"name":"C13_DECIMAL","type":"decimal(4,1)","nullable":true,"metadata":{}}]}""")
+    org.junit.Assert.assertEquals(
+      "Schema Changed!",
+      ThisVersionSpecificItems.schema,
+      schema.json
+    )
   }
+  
+  val rdd2Col = "List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])"
 
   test("Test Get RDD") {
     dropInternalTable
     insertInternalRows(10)
     val rdd = splicemachineContext.rdd(internalTN,Seq("C2_CHAR","C7_BIGINT"))
-    org.junit.Assert.assertEquals("RDD Changed!","List([0    ,0], [1    ,1], [2    ,2], [3    ,3], [4    ,4], [5    ,5], [6    ,6], [7    ,7], [null,8], [null,9])",rdd.collect.toList.map(r => s"[${r(0)},${r(1)}]").toString)
+    org.junit.Assert.assertEquals(
+      "RDD Changed!",
+      rdd2Col,
+      rdd.collect.toList.map(r => s"[${r(0)},${r(1)}]").toString
+    )
+  }
+
+  test("Test Get Internal RDD") {
+    dropInternalTable
+    insertInternalRows(10)
+    val rdd = splicemachineContext.internalRdd(internalTN,Seq("C2_CHAR","C7_BIGINT"))
+    org.junit.Assert.assertEquals(
+      "RDD Changed!",
+      rdd2Col,
+      rdd.collect.toList.map(r => s"[${r(0)},${r(1)}]").toString
+    )
+  }
+
+  val rddAllCol5Row = """false, 1    , 2013-09-05, 1, 1.0, 1, 1, 1.0, 1, 00:00:01.0, 1970-01-01 00:00:00.001, sometestinfo1, 1, 1, long varchar sometestinfo1, 1.0, 1
+                        |false, 3    , 2013-09-05, 3, 3.0, 3, 3, 3.0, 3, 00:00:03.0, 1970-01-01 00:00:00.003, sometestinfo3, 3, 3, long varchar sometestinfo3, 3.0, 3
+                        |false, 5    , 2013-09-05, 5, 5.0, 5, 5, 5.0, 5, 00:00:05.0, 1970-01-01 00:00:00.005, sometestinfo5, 5, 5, long varchar sometestinfo5, 5.0, 5
+                        |false, 7    , 2013-09-05, 7, 7.0, 7, 7, 7.0, 7, 00:00:07.0, 1970-01-01 00:00:00.007, sometestinfo7, 7, 7, long varchar sometestinfo7, 7.0, 7
+                        |false, null, 2013-09-05, 9, 9.0, 9, 9, 9.0, 9, 00:00:09.0, 1970-01-01 00:00:00.009, null, 9, 9, null, 9.0, 9""".stripMargin
+
+  test("Test Get RDD with Default Columns") {
+    dropInternalTable
+    insertInternalRows(10)
+    val rdd = splicemachineContext.rdd(internalTN)
+    org.junit.Assert.assertEquals(
+      "RDD Changed!",
+      rddAllCol5Row,
+      rdd.map(_.toSeq)  // remove current date from field 9 to avoid hard-coding current date in rddAllCol5Row
+        .map(sq => (sq.slice(0,9) :+ sq(9).toString.split(" ")(1)) ++ sq.slice(10,18))
+        .map(_.mkString(", "))
+        .takeOrdered(5)
+        .reduce(_+"\n"+_)
+    )
+  }
+
+  test("Test Get Internal RDD with Default Columns") {
+    dropInternalTable
+    insertInternalRows(10)
+    val rdd = splicemachineContext.internalRdd(internalTN)
+    org.junit.Assert.assertEquals(
+      "RDD Changed!",
+      rddAllCol5Row,
+      rdd.map(_.toSeq)  // remove current date from field 9 to avoid hard-coding current date in rddAllCol5Row
+        .map(sq => (sq.slice(0,9) :+ sq(9).toString.split(" ")(1)) ++ sq.slice(10,18))
+        .map(_.mkString(", "))
+        .takeOrdered(5)
+        .reduce(_+"\n"+_)
+    )
   }
 
   val carTableName = getClass.getSimpleName + "_TestCreateTable"
@@ -139,7 +197,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     createInternalTable
 
     splicemachineContext.insert(internalTNDF, internalTN)
-    
+
     org.junit.Assert.assertEquals("Insert Failed!", 1, rowCount(internalTN))
   }
 
@@ -162,7 +220,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     dropInternalTable
     createInternalTable
 
-    val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+"/splice_spark2-SplicemachineContextIT/bulkImport" )
+    val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+s"/${module}-SplicemachineContextIT/bulkImport" )
     bulkImportDirectory.mkdirs()
 
     splicemachineContext.bulkImportHFile(internalTNDF, internalTN,
@@ -188,7 +246,7 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     splicemachineContext.update(internalTNDF, internalTN)
 
     org.junit.Assert.assertEquals("Update Failed!",
-      (testRow.slice(0,9) ::: new java.sql.Time(1000) :: testRow.slice(10,14)).mkString(", "),
+      (testRow.slice(0,9) ::: new java.sql.Time(1000) :: testRow.slice(10,18)).mkString(", "),
       executeQuery(
         s"select * from $internalTN",
         rs => {
@@ -206,10 +264,67 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
             rs.getTime(10),
             rs.getTimestamp(11),
             rs.getString(12),
-            rs.getBigDecimal(13)
+            rs.getBigDecimal(13),
+            rs.getInt(14),
+            rs.getString(15),
+            rs.getFloat(16),
+            rs.getInt(17)
           ).mkString(", ")
         }
       ).asInstanceOf[String]
+    )
+  }
+
+  test("Test Inserting Null") {
+    dropInternalTable
+    createInternalTable
+
+    val insDf = dataframe(
+      rdd( Seq(
+        Row.fromSeq( Seq(
+          null, null, null, null, null,
+          106, 107L,
+          null, null, null, null, null,
+          null, null, null, null, null
+        ))
+      )),
+      allTypesSchema(true)
+    )
+
+    splicemachineContext.insert(insDf, internalTN)
+
+    val rs = getConnection.createStatement.executeQuery("select * from "+internalTN)
+    rs.next
+
+    val nonNull = collection.mutable.ListBuffer[String]()
+    def check(i: Int, getResult: Int => Any): Unit = {
+      var v = getResult(i)
+      if( ! rs.wasNull ) nonNull += s"C$i == $v"
+    }
+
+    check(1, rs.getBoolean)
+    check(2, rs.getString)
+    check(3, rs.getDate)
+    check(4, rs.getBigDecimal)
+    check(5, rs.getDouble)
+    // primary keys will not be null, skip 6 & 7
+    check(8, rs.getFloat)
+    check(9, rs.getShort)
+    check(10, rs.getTime)
+    check(11, rs.getTimestamp)
+    check(12, rs.getString)
+    check(13, rs.getBigDecimal)
+    check(14, rs.getInt)
+    check(15, rs.getString)
+    check(16, rs.getFloat)
+    check(17, rs.getInt)
+
+    rs.close
+
+    org.junit.Assert.assertEquals(
+      "Not All Null",
+      "\n\n",
+      nonNull.mkString("\n","\n","\n")
     )
   }
 }
