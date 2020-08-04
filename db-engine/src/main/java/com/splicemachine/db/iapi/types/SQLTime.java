@@ -54,6 +54,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -271,6 +272,7 @@ public final class SQLTime extends DataType
 	 *
 	 * @exception StandardException thrown on failure
 	 */
+	@SuppressFBWarnings(value = "RV_NEGATING_RESULT_OF_COMPARETO", justification = "intentional")
 	public int compare(DataValueDescriptor other)
 		throws StandardException
 	{
@@ -425,7 +427,8 @@ public final class SQLTime extends DataType
     private static final String[] AM_PM = {"AM", "PM"};
     private static final char[] END_OF_STRING = {(char) 0};
     
-    private void parseTime( String timeStr, boolean isJdbcEscape, LocaleFinder localeFinder, Calendar cal)
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "intentional, read comment")
+	private void parseTime(String timeStr, boolean isJdbcEscape, LocaleFinder localeFinder, Calendar cal)
         throws StandardException
     {
         boolean validSyntax = true;
