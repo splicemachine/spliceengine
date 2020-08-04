@@ -1763,8 +1763,7 @@ public class DataTypeDescriptor implements Formatable{
         StructField childStructField = null;
         if (typeId.isArray()) {
             // get the child type descriptor & struct field
-            assert typeDescriptor!=null:"Catalog Type";
-            assert typeDescriptor.getChildren() != null:"Catalog Type";
+            assert typeDescriptor.getChildren() != null:"ArrayType should have the child type specified";
             TypeDescriptorImpl childTypeDescriptor = (TypeDescriptorImpl) typeDescriptor.getChildren()[0];
             TypeId childTypeId = TypeId.getBuiltInTypeId(childTypeDescriptor.getTypeId().getJDBCTypeId());
             childStructField = childTypeId.getStructField("co", childTypeDescriptor.getPrecision(), childTypeDescriptor.getScale(), null);
