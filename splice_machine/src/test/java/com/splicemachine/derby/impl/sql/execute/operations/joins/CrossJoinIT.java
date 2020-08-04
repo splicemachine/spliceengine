@@ -721,9 +721,10 @@ public class CrossJoinIT extends SpliceUnitTest {
                 "on ttb.c2 < 5 and tt2.a < 4 order by tt2.a", useSpark, bigTable);
 
         if (useSpark) {
-            ResultSet rs = classWatcher.executeQuery("explain " + sqlText);
-            String matchString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-            assertTrue("Cross join is not selected for OLAP", matchString.contains("CrossJoin"));
+            try (ResultSet rs = classWatcher.executeQuery("explain " + sqlText)) {
+                String matchString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+                assertTrue("Cross join is not selected for OLAP", matchString.contains("CrossJoin"));
+            }
         }
 
         /* DB-9579
@@ -746,9 +747,9 @@ public class CrossJoinIT extends SpliceUnitTest {
                 " 3 |\n" +
                 " 3 |";
 
-        ResultSet rs = classWatcher.executeQuery(sqlText);
-        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
-        rs.close();
+        try (ResultSet rs = classWatcher.executeQuery(sqlText)) {
+            String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        }
     }
 }
