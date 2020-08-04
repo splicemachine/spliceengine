@@ -42,10 +42,8 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
-import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
@@ -998,6 +996,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         return false;
     }
 
+    @Override
     public UUID getUuid() {
         return uuid;
     }
