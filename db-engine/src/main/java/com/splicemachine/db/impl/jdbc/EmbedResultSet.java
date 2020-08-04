@@ -1112,6 +1112,11 @@ public abstract class EmbedResultSet extends ConnectionChild
 		checkIfClosed("getCharacterStream");
 		int lmfs;
 		int colType = getColumnType(columnIndex);
+
+		Object syncLock = getConnectionSynchronization();
+
+		synchronized (syncLock) {
+
 		switch (colType) {
 		case Types.CHAR:
 		case Types.VARCHAR:
@@ -1141,10 +1146,6 @@ public abstract class EmbedResultSet extends ConnectionChild
 		default:
 			throw dataTypeConversion("java.io.Reader", columnIndex);
 		}
-
-		Object syncLock = getConnectionSynchronization();
-
-		synchronized (syncLock) {
 
 		boolean pushStack = false;
 		try {
@@ -3054,7 +3055,6 @@ public abstract class EmbedResultSet extends ConnectionChild
 			try {
 				DataValueDescriptor value = updateRow.getColumn(columnIndex);
 
-				int origvaluelen = value.getLength();
 				((VariableSizeDataValue)
 						value).setWidth(VariableSizeDataValue.IGNORE_PRECISION,
 							scale,
@@ -3683,6 +3683,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 
                 lcc.popStatementContext(statementContext, null);
                 InterruptStatus.restoreIntrFlagIfSeen(lcc);
+                rs.close();
             } catch (Throwable t) {
                 throw closeOnTransactionError(t);
             } finally {
@@ -3783,6 +3784,7 @@ public abstract class EmbedResultSet extends ConnectionChild
             }
             lcc.popStatementContext(statementContext, null);
             InterruptStatus.restoreIntrFlagIfSeen(lcc);
+            rs.close();
         } catch (Throwable t) {
             throw closeOnTransactionError(t);
         } finally {
@@ -3860,6 +3862,7 @@ public abstract class EmbedResultSet extends ConnectionChild
                 currentRow = null;
                 lcc.popStatementContext(statementContext, null);
                 InterruptStatus.restoreIntrFlagIfSeen(lcc);
+                rs.close();
             } catch (Throwable t) {
                     throw closeOnTransactionError(t);
             } finally {
@@ -4100,7 +4103,6 @@ public abstract class EmbedResultSet extends ConnectionChild
 			try {
 
 				StringDataValue dvd = (StringDataValue)getColumn(columnIndex);
-                LanguageConnectionContext lcc = ec.getLanguageConnection();
 
                 if (wasNull = dvd.isNull()) {
                     InterruptStatus.restoreIntrFlagIfSeen();
@@ -4297,6 +4299,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 * the next get*() method call.
 	 */
 	private void closeCurrentStream() {
+		Object syncLock = getConnectionSynchronization();
+		synchronized (syncLock) {
 
 		if (currentStream != null) {
 			try {
@@ -4315,6 +4319,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 			} finally {
 				currentStream = null;
 			}
+		}
+
 		}
 	}
 
