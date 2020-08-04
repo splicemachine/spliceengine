@@ -16,21 +16,32 @@ package com.splicemachine.ck.command;
 
 import com.splicemachine.ck.HBaseInspector;
 import com.splicemachine.ck.Utils;
+import com.splicemachine.ck.command.common.CommonOptions;
+import com.splicemachine.derby.utils.EngineUtils;
 import picocli.CommandLine;
 
 import java.util.concurrent.Callable;
 
-@CommandLine.Command(name = "tschema", description = "retrieve SpliceMachine table schema",
+@CommandLine.Command(name = "tcols", description = "retrieve SpliceMachine table columns",
         parameterListHeading = "Parameters:%n",
         optionListHeading = "Options:%n")
-public class TSchemaCommand extends CommonOptions implements Callable<Integer>
-{
-    @CommandLine.Parameters(index = "0", description = "SpliceMachine table name") String table;
+public class TColsCommand extends CommonOptions implements Callable<Integer> {
+    @CommandLine.Parameters(index = "0", description = "SpliceMachine schema name")
+    String schema;
+    @CommandLine.Parameters(index = "1", description = "SpliceMachine table name")
+    String table;
 
     @Override
     public Integer call() throws Exception {
-        HBaseInspector hbaseInspector = new HBaseInspector(Utils.constructConfig(zkq, port));
-        System.out.println(Utils.printTabularResults(hbaseInspector.schemaOf(table)));
-        return 0;
+        try {
+            HBaseInspector hbaseInspector = new HBaseInspector(Utils.constructConfig(zkq, port));
+            table = EngineUtils.validateTable(table);
+            schema = EngineUtils.validateSchema(schema);
+            System.out.println(Utils.printTabularResults(hbaseInspector.columnsOf(hbaseInspector.regionOf(schema, table))));
+            return 0;
+        } catch (Exception e) {
+            System.out.println(Utils.checkException(e, table));
+            return -1;
+        }
     }
 }

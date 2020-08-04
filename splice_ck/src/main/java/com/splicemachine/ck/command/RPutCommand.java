@@ -16,7 +16,10 @@ package com.splicemachine.ck.command;
 
 import com.splicemachine.ck.HBaseInspector;
 import com.splicemachine.ck.Utils;
+import com.splicemachine.ck.command.common.CommonOptions;
+import com.splicemachine.ck.command.common.TableNameGroup;
 import com.splicemachine.ck.encoder.RPutConfigBuilder;
+import com.splicemachine.derby.utils.EngineUtils;
 import org.apache.commons.lang3.StringUtils;
 import picocli.CommandLine;
 
@@ -24,7 +27,7 @@ import java.util.concurrent.Callable;
 
 
 @CommandLine.Command(name = "rput",
-        description = "modify HBase row",
+        description = "modify HBase row, (warning: this command can potentially break your database in various different ways, use it on your own risk)",
         parameterListHeading = "Parameters:%n",
         descriptionHeading = "Description:%n",
         optionListHeading = "Options:%n",
@@ -35,22 +38,17 @@ public class RPutCommand extends CommonOptions implements Callable<Integer>
     @CommandLine.Parameters(index = "1", description = "id of commit transaction") Long txn;
     @CommandLine.ArgGroup(validate = false, multiplicity = "1", heading = "row input values options:%n")
     RowOptions rowOptions;
-    @CommandLine.ArgGroup(exclusive = true, multiplicity = "1", heading = "table identifier options:%n")
-    ExclusiveTableName tableNameGroup;
+    @CommandLine.ArgGroup(exclusive = true, multiplicity = "1", heading = "table identifier options%n")
+    TableNameGroup tableNameGroup;
 
     public static class RowOptions {
-        @CommandLine.Option(names = {"-s", "--tombstone"}, required = false, description = "set tombstone flag") Boolean tombstone;
+        @CommandLine.Option(names = {"-b", "--tombstone"}, required = false, description = "set tombstone flag") Boolean tombstone;
         @CommandLine.Option(names = {"-i", "--anti-tombstone"}, required = false, description = "set anti-tombstone flag") Boolean antiTombstone;
         @CommandLine.Option(names = {"-f", "--first-write"}, required = false, description = "set first-write flag") Boolean firstWrite;
         @CommandLine.Option(names = {"-d", "--delete-after-first-write"}, required = false, description = "set delete-after-first-write flag") Boolean deleteAfterFirstWrite;
         @CommandLine.Option(names = {"-k", "--fk-counter"}, required = false, description = "set foreign-key counter") Long fKCounter;
         @CommandLine.Option(names = {"-u", "--user-data"}, required = false, description = "set user data, example: ('string', 42, false, '2020-10-10 01:02:03.3333')") String userData;
         @CommandLine.Option(names = {"-c", "--commit-timestamp"}, required = false, description = "commit timestamp of the txn") Long commitTS;
-    }
-
-    public static class ExclusiveTableName {
-        @CommandLine.Option(names = {"-t", "--table"}, required = true, description = "SpliceMachine table name") String table;
-        @CommandLine.Option(names = {"-r", "--region"}, required = true, description = "HBase region name (with of without 'splice:' prefix)") String region;
     }
 
     public RPutCommand() {
@@ -60,18 +58,18 @@ public class RPutCommand extends CommonOptions implements Callable<Integer>
     public Integer call() throws Exception {
         HBaseInspector hbaseInspector = new HBaseInspector(Utils.constructConfig(zkq, port));
         try {
-            String table;
             String region;
-            if(tableNameGroup.table != null) {
-                table = tableNameGroup.table;
-                region = hbaseInspector.regionOf(table);
+            if(tableNameGroup.qualifiedTableName != null) {
+                tableNameGroup.qualifiedTableName.table = EngineUtils.validateTable(tableNameGroup.qualifiedTableName.table);
+                tableNameGroup.qualifiedTableName.schema = EngineUtils.validateSchema(tableNameGroup.qualifiedTableName.schema);
+                String table = tableNameGroup.qualifiedTableName.table;
+                region = hbaseInspector.regionOf(tableNameGroup.qualifiedTableName.schema, table);
             } else {
                 if(StringUtils.isNumeric(tableNameGroup.region)) {
                     region = "splice:" + tableNameGroup.region;
                 } else {
                     region = tableNameGroup.region;
                 }
-                table = hbaseInspector.tableOf(region);
             }
             RPutConfigBuilder configBuilder = new RPutConfigBuilder();
             configBuilder.withCommitTS(txn);
@@ -102,10 +100,10 @@ public class RPutCommand extends CommonOptions implements Callable<Integer>
                 configBuilder.withCommitTS(rowOptions.commitTS);
                 Utils.tell("commit timestamp option is set to: ", rowOptions.commitTS.toString());
             }
-            hbaseInspector.putRow(table, region, id, txn, configBuilder.getConfig());
+            hbaseInspector.putRow(region, id, txn, configBuilder.getConfig());
             return 0;
         } catch (Exception e) {
-            Utils.forceTell(Utils.checkException(e, tableNameGroup.table != null ? tableNameGroup.table : tableNameGroup.region));
+            System.out.println(Utils.checkException(e, tableNameGroup.qualifiedTableName != null ? tableNameGroup.qualifiedTableName.table : tableNameGroup.region));
             return -1;
         }
     }
