@@ -16,6 +16,8 @@ package com.splicemachine.ck.command;
 
 import com.splicemachine.ck.HBaseInspector;
 import com.splicemachine.ck.Utils;
+import com.splicemachine.ck.command.common.CommonOptions;
+import com.splicemachine.utils.Pair;
 import org.apache.commons.lang3.StringUtils;
 import picocli.CommandLine;
 
@@ -38,7 +40,8 @@ public class TableOfCommand extends CommonOptions implements Callable<Integer> {
             if(StringUtils.isNumeric(region)) {
                 region = "splice:" + region;
             }
-            System.out.println(hbaseInspector.tableOf(region));
+            Pair<String, String> result = hbaseInspector.tableOf(region);
+            System.out.println("schema: " + result.getFirst() + ", table: " + result.getSecond());
             return 0;
         } catch (Exception e) {
             System.out.println(Utils.checkException(e, region));

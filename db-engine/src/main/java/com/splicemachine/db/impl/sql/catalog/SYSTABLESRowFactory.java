@@ -64,7 +64,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	public static final int		SYSTABLES_TABLEID = 1;
 	public static final int		SYSTABLES_TABLENAME = 2;
 	protected static final int		SYSTABLES_TABLETYPE = 3;
-	protected static final int		SYSTABLES_SCHEMAID = 4;
+	public static final int		SYSTABLES_SCHEMAID = 4;
 	protected static final int		SYSTABLES_LOCKGRANULARITY = 5;
 	protected static final int		SYSTABLES_VERSION = 6;
     /* Sequence for understanding coding/decoding with altering tables*/

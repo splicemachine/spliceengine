@@ -53,7 +53,7 @@ import java.util.List;
 
 public class SYSSCHEMASRowFactory extends CatalogRowFactory
 {
-	private	static	final	String	TABLENAME_STRING = "SYSSCHEMAS";
+	public static	final	String	TABLENAME_STRING = "SYSSCHEMAS";
 
 	public	static	final	int		SYSSCHEMAS_COLUMN_COUNT = 3;
 	/* Column #s for sysinfo (1 based) */
@@ -121,6 +121,8 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
 		if (td != null)
 		{
+			if (!(td instanceof SchemaDescriptor))
+				throw new RuntimeException("Unexpected SchemaDescriptor " + td.getClass().getName());
 			SchemaDescriptor	schemaDescriptor = (SchemaDescriptor)td;
 
 			name = schemaDescriptor.getSchemaName();
@@ -137,7 +139,12 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
 		/* Build the row to insert */
 		row = getExecutionFactory().getValueRow(SYSSCHEMAS_COLUMN_COUNT);
+		setRowColumns(row, name, uuid, aid);
 
+		return row;
+	}
+
+	public static void setRowColumns(ExecRow row, String name, String uuid, String aid) {
 		/* 1st column is SCHEMAID */
 		row.setColumn(1, new SQLChar(uuid));
 
@@ -146,8 +153,6 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
 		/* 3rd column is SCHEMAAID */
 		row.setColumn(3, new SQLVarchar(aid));
-
-		return row;
 	}
 
 

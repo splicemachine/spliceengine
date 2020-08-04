@@ -21,8 +21,8 @@ import picocli.CommandLine.Command;
 
 @Command(mixinStandardHelpOptions = true, name = "sck", description = "SpliceMachine check command suite", descriptionHeading = "Description:%n",
         optionListHeading = "Options:%n", subcommands = {TListCommand.class,
-        TSchemaCommand.class, RegionOfCommand.class, TableOfCommand.class, RGetCommand.class, RPutCommand.class,
-        TxListCommand.class})
+        TColsCommand.class, RegionOfCommand.class, TableOfCommand.class, RGetCommand.class, RPutCommand.class,
+        TxListCommand.class, SListCommand.class})
 class RootCommand {
     public static void main(String... args) {
         Logger.getRootLogger().setLevel(Level.OFF);
