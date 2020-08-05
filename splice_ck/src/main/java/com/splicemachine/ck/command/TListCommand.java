@@ -16,6 +16,7 @@ package com.splicemachine.ck.command;
 
 import com.splicemachine.ck.HBaseInspector;
 import com.splicemachine.ck.Utils;
+import com.splicemachine.ck.command.common.CommonOptions;
 import picocli.CommandLine;
 
 import java.util.concurrent.Callable;

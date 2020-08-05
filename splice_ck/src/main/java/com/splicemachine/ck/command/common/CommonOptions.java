@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.ck.command;
+package com.splicemachine.ck.command.common;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import picocli.CommandLine;
@@ -22,8 +22,10 @@ import picocli.CommandLine;
  */
 @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "intentional, static fields are supposed to be read by other components")
 public class CommonOptions {
-    @CommandLine.Option(names = {"-z", "--zookeeper-quorum"}, required = true, defaultValue = "localhost", description = "HBase Zookeeper quorum, default value: ${DEFAULT-VALUE}") String zkq;
-    @CommandLine.Option(names = {"-p", "--port"}, required = true, defaultValue = "2181",  description = "HBase port, default value: ${DEFAULT-VALUE}") Integer port;
-    @CommandLine.Option(names = {"-v", "--verbose"}, required = false, defaultValue = "true",  description = "verbose mode, show more information") public static boolean verbose;
-    @CommandLine.Option(names = {"-l", "--colors"}, required = false, defaultValue = "true",  description = "print colored output to terminal") public static boolean colors;
+    @CommandLine.Option(names = {"-z", "--zookeeper-quorum"}, required = true, defaultValue = "localhost", description = "HBase Zookeeper quorum, default value is ${DEFAULT-VALUE}") public String zkq;
+    @CommandLine.Option(names = {"-p", "--port"}, required = true, defaultValue = "2181",  description = "HBase port, default value is ${DEFAULT-VALUE}") public Integer port;
+    @CommandLine.Option(names = {"-v", "--verbose"}, required = false, defaultValue = "false", negatable = true, fallbackValue="true",  description = "verbose mode, show more information, default is ${DEFAULT-VALUE}") public static boolean verbose;
+    @CommandLine.Option(names = {"-l", "--color"}, required = false, defaultValue = "true", negatable = true, fallbackValue="true", description = "print colored output to terminal, default is ${DEFAULT-VALUE}") public static boolean colors;
+    @CommandLine.Option(names = {"-h", "--help"}, usageHelp = true, description = "display this help message") public boolean help;
 }
+
