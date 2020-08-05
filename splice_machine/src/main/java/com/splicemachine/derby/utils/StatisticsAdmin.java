@@ -478,7 +478,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
             statsRow = StatisticsAdmin.generateRowFromStats(conglomerateId, "-All-", rowCount, rowCount*meanRowWidth, meanRowWidth, numPartitions, statsType, 0.0d);
             dd.addTableStatistics(statsRow, tc);
-            ExecRow resultRow = generateOutputRow(schema, table, statsRow, new ArrayList<>());
+            ExecRow resultRow = generateOutputRow(schema, table, statsRow, new HashSet<>());
 
             IteratorNoPutResultSet resultsToWrap = wrapResults(
                     conn,
@@ -965,7 +965,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return row;
     }
 
-    public static ExecRow generateOutputRow(String schemaName, String tableName, ExecRow partitionRow, ArrayList<Integer> skippedColIds) throws StandardException {
+    public static ExecRow generateOutputRow(String schemaName, String tableName, ExecRow partitionRow, HashSet<Integer> skippedColIds) throws StandardException {
         ExecRow row = new ValueRow(9);
         row.setColumn(1,new SQLVarchar(schemaName));
         row.setColumn(2,new SQLVarchar(tableName));
@@ -1038,7 +1038,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                             private long numberOfPartitions = 0;
                             private int statsType = SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS;
                             private double sampleFraction = 0.0d;
-                            private final ArrayList<Integer> skippedColIds = new ArrayList<>();
+                            private final HashSet<Integer> skippedColIds = new HashSet<>();
 
                             @Override
                             @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "SpotBugs is confused, we rethrow the exception")
@@ -1134,7 +1134,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                         final Iterator iterator = new Iterator<ExecRow>() {
                             private ExecRow nextRow;
                             private boolean fetched = false;
-                            private final ArrayList<Integer> skippedColIds = new ArrayList<>();
+                            private final HashSet<Integer> skippedColIds = new HashSet<>();
                             @Override
                             public boolean hasNext() {
                                 try {
