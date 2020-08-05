@@ -1146,7 +1146,6 @@ class ij {
         ResultSet rs = null;
         try {
             haveConnection();
-            verifyTableExists(schema,table);
             Statement stmt = theConnection.createStatement();
             rs = stmt.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE(\'" +
                     schema + "\'," + "\'" + table + "\')" );
@@ -1470,6 +1469,8 @@ TOKEN [IGNORE_CASE] :
 |   <SPOOL: "SPOOL">
 |   <STOP: "STOP">
 |   <CLEAR: "CLEAR">
+|   <PROMPT: "prompt">
+|   <CLOCK: "clock">
 }
 
 TOKEN :
@@ -1817,6 +1818,7 @@ throws SQLException, IOException
 |	r=CP_GetConnectionStatement()
 |	r=CP_DisconnectStatement()
 |   r=Spool()
+|   r=Prompt()
 )? <EOF>
 	{
 		return r;
@@ -3112,7 +3114,7 @@ throws SQLException
 	Token on=null;
 }
 {
-	<AUTOCOMMIT> 
+	<AUTOCOMMIT>
 	( on=<ON>
 	| <OFF>
 	)
@@ -4065,6 +4067,19 @@ ijResult Spool() throws IOException
     }
 }
 
+ijResult Prompt() throws SQLException
+:
+{
+    Token clockOn=null;
+}
+{
+	<PROMPT> <CLOCK> ( clockOn=<ON> | <OFF> )
+	{
+		utilInstance.setPromptClock((clockOn == null ? false : true));
+		return null;
+	}
+}
+
 ijResult HandleSpool() throws IOException
 :
 {
@@ -4273,7 +4288,9 @@ keyword() :
 |   tok = <SPOOL>
 |   tok = <STOP>
 |   tok = <CLEAR>
-	)
+|   tok = <PROMPT>
+|   tok = <CLOCK>
+)
 	{
 
 		return tok.image;
