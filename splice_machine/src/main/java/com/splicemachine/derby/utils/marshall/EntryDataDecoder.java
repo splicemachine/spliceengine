@@ -26,6 +26,7 @@ import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import org.apache.spark.sql.Row;
 
 import java.io.IOException;
 
