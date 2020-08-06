@@ -714,6 +714,8 @@ public class FromBaseTable extends FromTable {
                 }
                 if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
                     throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
+            } else if (key.equals("broadcastCrossRight")) {
+                // no op since parseBoolean never throw
             }else {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
