@@ -1450,4 +1450,7 @@ public interface LanguageConnectionContext extends Context {
 	void setReplicationRole(String role);
 
 	String getReplicationRole();
+
+    boolean isNLJPredicatePushDownDisabled();
+
 }
