@@ -402,6 +402,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                         dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
                     }
                     break;
+                case "broadcastCrossRight": {
+                    // no op since parseBoolean never throw
+                    break;
+                }
                 case "useSpark":
                 case "useOLAP":
                     dataSetProcessorType = dataSetProcessorType.combine(
