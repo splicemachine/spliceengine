@@ -1439,7 +1439,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int leftHashKeyItem, int rightHashKeyItem,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, byte semiJoinType,
-            boolean rightFromSSQ,
+            boolean rightFromSSQ, boolean broadcastRightSide,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -1449,7 +1449,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              leftHashKeyItem,  rightHashKeyItem,
              joinClause,  resultSetNumber,
              oneRowRightSide, semiJoinType,
-             rightFromSSQ,
+             rightFromSSQ, broadcastRightSide,
              optimizerEstimatedRowCount,  optimizerEstimatedCost,
              userSuppliedOptimizerOverrides,
              explainPlan,
@@ -1463,7 +1463,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int leftHashKeyItem, int rightHashKeyItem,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, byte semiJoinType,
-            boolean rightFromSSQ,
+            boolean rightFromSSQ, boolean broadcastRightSide,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan,
@@ -1476,7 +1476,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem,
                     leftResultSet.getActivation(),
                     joinClause, resultSetNumber,
-                    oneRowRightSide, semiJoinType, rightFromSSQ, optimizerEstimatedRowCount,
+                    oneRowRightSide, semiJoinType, rightFromSSQ, broadcastRightSide, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
             op.setExplainPlan(explainPlan);
             return op;

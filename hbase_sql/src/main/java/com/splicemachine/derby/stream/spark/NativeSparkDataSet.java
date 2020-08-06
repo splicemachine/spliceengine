@@ -1033,7 +1033,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                 case LEFT:
                     joinedDF = broadcast(leftDF).crossJoin(rightDF);
                     break;
-                case RIGTH:
+                case RIGHT:
                     joinedDF = leftDF.crossJoin(broadcast(rightDF));
                     break;
                 case NONE:
