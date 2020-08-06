@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -61,7 +62,6 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 
 import java.lang.reflect.Modifier;
-import java.security.acl.Group;
 import java.sql.ResultSetMetaData;
 import java.sql.Types;
 import java.util.*;
@@ -1075,6 +1075,18 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         acb.pushMethodReference(mb, userExprFun);
 
         return isExpressableInSparkSQL;
+    }
+
+    public void generateResultColumnDataType(ExpressionClassBuilder acb, MethodBuilder mb) {
+
+        /* genereate an array of type descriptors for the inlist columns */
+        DataTypeDescriptor[] typeArray = new DataTypeDescriptor[size()];
+        for (int i = 0; i < size(); i++) {
+            typeArray[i] = elementAt(i).getTypeServices();
+        }
+        FormatableArrayHolder typeArrayHolder = new FormatableArrayHolder(typeArray);
+        int typeArrayItem = acb.addItem(typeArrayHolder);
+        mb.push(typeArrayItem);
     }
 
     /**
