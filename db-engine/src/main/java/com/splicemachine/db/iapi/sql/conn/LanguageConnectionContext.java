@@ -1447,4 +1447,6 @@ public interface LanguageConnectionContext extends Context {
 
 	String getUserName();
 
+    boolean isNLJPredicatePushDownDisabled();
+
 }

@@ -100,6 +100,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      */
     private boolean getTableNumberHere;
 
+    private HashMap scopedPredCache;
+    private PredicateList predicatesPushedToDT;
+
     /**
      * Initializer for a ProjectRestrictNode.
      *
@@ -281,6 +284,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 }
             }
 
+            if (childResult instanceof SelectNode) {
+                if (getCurrentAccessPath().getJoinStrategy().allowsJoinPredicatePushdown())
+                    mapJoinPredicatesPushableToDT();
+            }
             // Set outer table rows to be 1, because select node should be evaluated independently with outer table
             childResult=childResult.optimize(optimizer.getDataDictionary(), restrictionList, 1, optimizer.isForSpark());
 
@@ -347,6 +354,100 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         return costEstimate;
     }
 
+    private boolean mapJoinPredicatesPushableToDT() throws StandardException {
+        boolean disablePushDown = getLanguageConnectionContext().isNLJPredicatePushDownDisabled();
+        if (disablePushDown) {
+            return false;
+        }
+
+        // We only handle certain types of predicates here; if the received
+        // predicate doesn't qualify, then don't push it.
+        if (!(childResult instanceof SelectNode))
+            return false;
+
+        if (restrictionList == null)
+            return false;
+
+        PredicateList pushablePredicates = null;
+
+        boolean canPush = false;
+        for(int i=restrictionList.size()-1;i>=0;i--){
+            Predicate pred = (Predicate)restrictionList.getOptPredicate(i);
+
+            if (!pred.pushableToSubqueries())
+                continue;
+
+            JBitSet tableNums = new JBitSet(getReferencedTableMap().size());
+            BaseTableNumbersVisitor btnVis =
+                    new BaseTableNumbersVisitor(tableNums, true);
+
+            childResult.accept(btnVis);
+            if (tableNums.getFirstSetBit() == -1)
+                continue;
+
+            int [] whichRC = { -1 };
+
+            // See if we already have a scoped version of the predicate cached,
+            // and if so just use that.
+            Predicate scopedPred = null;
+            if (scopedPredCache == null)
+                scopedPredCache = new HashMap();
+            else
+                scopedPred = (Predicate)scopedPredCache.get(pred);
+            if (scopedPred == null)
+            {
+                scopedPred = pred.getPredScopedForResultSet(
+                        tableNums, childResult, whichRC);
+                // we are not able to generate a scoped predicate, so continue
+                if (scopedPred == pred)
+                    continue;
+                scopedPredCache.put(pred, scopedPred);
+            }
+            if (pushablePredicates == null) {
+                pushablePredicates = new PredicateList();
+            }
+            pushablePredicates.addOptPredicate(scopedPred);
+            restrictionList.removeOptPredicate(pred);
+            canPush = true;
+
+            if (predicatesPushedToDT == null) {
+                predicatesPushedToDT = new PredicateList();
+            }
+            predicatesPushedToDT.addOptPredicate(pred);
+        }
+
+        // append the scoped predicates at the end
+        if (pushablePredicates != null && !pushablePredicates.isEmpty())
+            restrictionList.destructiveAppend(pushablePredicates);
+
+        return canPush;
+    }
+
+    private void unmapJoinPredicatesPushedToDT() throws StandardException {
+        if (!(childResult instanceof SelectNode))
+            return;
+
+        if (predicatesPushedToDT == null || predicatesPushedToDT.isEmpty())
+            return;
+
+        Predicate pred;
+        for (int i = restrictionList.size()-1; i>=0; i--) {
+            pred = (Predicate) restrictionList.getOptPredicate(i);
+            if (pred.isScopedForPush())
+                restrictionList.removeOptPredicate(pred);
+        }
+
+        RemapCRsVisitor rcrv = new RemapCRsVisitor(false);
+        for (int i = predicatesPushedToDT.size() - 1; i >= 0; i--) {
+            pred = (Predicate) predicatesPushedToDT.getOptPredicate(i);
+            if (pred.isScopedForPush()) {
+                pred.getAndNode().accept(rcrv);
+            }
+            restrictionList.addOptPredicate(pred);
+        }
+        predicatesPushedToDT.removeAllPredicates();
+    }
+
     private void collectBaseTables(ResultSetNode node, List<FromBaseTable> baseTables) {
 
         if (node == null) {
@@ -392,6 +493,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
             return ((Optimizable)childResult).feasibleJoinStrategy(restrictionList,optimizer,outerCost);
         }else{
+            if (childResult instanceof SelectNode)
+                unmapJoinPredicatesPushedToDT();
+
             return super.feasibleJoinStrategy(restrictionList,optimizer,outerCost);
         }
     }
@@ -501,6 +605,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
     @Override
     public void pullOptPredicates(OptimizablePredicateList optimizablePredicates) throws StandardException{
+        if (childResult instanceof SelectNode)
+            unmapJoinPredicatesPushedToDT();
+
         // DERBY-4001: Don't pull predicates if this node is part of a NOT
         // EXISTS join. For example, in the query below, if we allowed the
         // predicate 1<>1 (always false) to be pulled, no rows would be
@@ -605,6 +712,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
              * paths to ensure we generate the same plans the optimizer
              * chose.
              */
+            if (childResult instanceof SelectNode) {
+                if (trulyTheBestAccessPath.getJoinStrategy().allowsJoinPredicatePushdown())
+                    mapJoinPredicatesPushableToDT();
+            }
             childResult=childResult.modifyAccessPaths(restrictionList);
 
             /* Mark this node as having the truly ... for
