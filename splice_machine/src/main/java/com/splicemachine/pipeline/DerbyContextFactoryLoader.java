@@ -14,7 +14,6 @@
 
 package com.splicemachine.pipeline;
 
-import com.splicemachine.pipeline.constraint.NoOpConstraint;
 import org.spark_project.guava.base.Optional;
 import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Multimap;
@@ -258,7 +257,6 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
         boolean isSysConglomerate=td.getSchemaDescriptor().getSchemaName().equals("SYS");
         if(isSysConglomerate){
             SpliceLogUtils.trace(LOG,"Index management for SYS tables disabled, relying on external index management");
-            buildNoOp(osf, pef);
             return false;
         }
 
@@ -394,10 +392,5 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
         String constraintName=cDescriptor.getConstraintName();
         ConstraintContext cc=ConstraintContext.primaryKey(tableName,constraintName);
         return new ConstraintFactory(new PrimaryKeyConstraint(cc,osf),pef);
-    }
-
-    private void buildNoOp(OperationStatusFactory osf,
-                           PipelineExceptionFactory pef){
-        constraintFactories.add(new ConstraintFactory(new NoOpConstraint(osf), pef));
     }
 }
