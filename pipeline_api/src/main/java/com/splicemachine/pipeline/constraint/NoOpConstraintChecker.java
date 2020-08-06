@@ -15,9 +15,7 @@
 package com.splicemachine.pipeline.constraint;
 
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.client.WriteResult;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.MutationStatus;
@@ -25,10 +23,6 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.IOException;
 
-/**
- * @author Scott Fines
- *         Date: 3/14/14
- */
 public class NoOpConstraintChecker implements BatchConstraintChecker {
     private final MutationStatus SUCCESS;
 

@@ -61,14 +61,9 @@ public interface Constraint {
          */
         NOT_NULL,
         /**
-         * No Op Constraint
-         */
-        NO_OP,
-        /**
          * no constraint
          */
         NONE //used for NoConstraint
-        ;
     }
 
     /**
