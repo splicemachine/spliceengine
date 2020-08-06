@@ -1447,7 +1447,7 @@ public class FromBaseTable extends FromTable {
             TypeId typeId = result.getTypeId();
             if(!typeId.isDateTimeTimeStampTypeID() && !typeId.isNumericTypeId())
             {
-                throw StandardException.newException(SQLState.DATA_TYPE_NOT_SUPPORTED);
+                throw StandardException.newException(SQLState.DATA_TYPE_NOT_SUPPORTED, typeId.getSQLTypeName());
             }
         }
     }
