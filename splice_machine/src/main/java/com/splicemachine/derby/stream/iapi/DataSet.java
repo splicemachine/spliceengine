@@ -378,6 +378,6 @@ public interface DataSet<V> extends //Iterable<V>,
     enum Broadcast {
         NONE,
         LEFT,
-        RIGTH
+        RIGHT
     }
 }
