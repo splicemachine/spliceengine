@@ -400,7 +400,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         logQueryPlan=Boolean.valueOf(logQueryPlanProperty);
 
         try {
-            String valueString = (String) getTransactionCompile().getProperty("derby.language.tableLimitForExhaustiveSearch");
+            String valueString = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.tableLimitForExhaustiveSearch");
             int value = Integer.parseInt(valueString);
             if (value > 0)
                 tableLimitForExhaustiveSearch = value;
