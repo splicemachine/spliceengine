@@ -117,12 +117,8 @@ public class CreateTableIT {
         watcher.executeUpdate("create table test_comment_before_create_as_dep_tbl (col int)");
 
         String createStmt = "create table %s as select * from test_comment_before_create_as_dep_tbl";
-        try {
-            watcher.executeUpdate("-- some SQL-style comment here\n" + String.format(createStmt, generateTableName()));
-            watcher.executeUpdate("/* some C-style comment here */\n" + String.format(createStmt, generateTableName()));
-            watcher.executeUpdate("/* some mixed */\n-- comments\n" + String.format(createStmt, generateTableName()));
-        } catch (SQLException e) {
-            Assert.fail("No exception should be thrown");
-        }
+        watcher.executeUpdate("-- some SQL-style comment here\n" + String.format(createStmt, generateTableName()));
+        watcher.executeUpdate("/* some C-style comment here */\n" + String.format(createStmt, generateTableName()));
+        watcher.executeUpdate("/* some mixed */\n-- comments\n" + String.format(createStmt, generateTableName()));
     }
 }
