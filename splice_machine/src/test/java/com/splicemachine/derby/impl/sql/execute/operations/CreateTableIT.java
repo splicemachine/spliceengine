@@ -224,4 +224,14 @@ public class CreateTableIT extends SpliceUnitTest {
     public void testCreateTableIfNotExists_ExternalTable() throws Exception {
         testCreateTableIfNotExists("external");
     }
+
+    @Test
+    public void testCommentBeforeCreateTableAs() throws Exception {
+        methodWatcher.executeUpdate("create table test_comment_before_create_as_dep_tbl (col int)");
+
+        String createStmt = "create table %s as select * from test_comment_before_create_as_dep_tbl";
+        methodWatcher.executeUpdate("-- some SQL-style comment here\n" + String.format(createStmt, generateTableName()));
+        methodWatcher.executeUpdate("/* some C-style comment here */\n" + String.format(createStmt, generateTableName()));
+        methodWatcher.executeUpdate("/* some mixed */\n-- comments\n" + String.format(createStmt, generateTableName()));
+    }
 }
