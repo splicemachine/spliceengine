@@ -294,7 +294,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             response.setTs(result.getSecond());
             done.run(response.build());
         }catch(IOException ioe){
-            setControllerException(controller,ioe);
+            ResponseConverter.setControllerException(controller,ioe);
         }
     }
 }

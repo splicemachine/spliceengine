@@ -94,10 +94,10 @@ public class HBaseTxnFinder implements TxnFinder {
         Scan hbaseScan = new Scan();
         hbaseScan.addColumn(V2TxnDecoder.FAMILY, V2TxnDecoder.STATE_QUALIFIER_BYTES)
                 .setReversed(reverse)
-                .readAllVersions()
+                .setMaxVersions()
                 .setFilter(new PrefixFilter(new byte[]{bucket})); // todo get one row only
         if (begin != null) {
-            hbaseScan.withStartRow(begin);
+            hbaseScan.setStartRow(begin);
         }
         HBaseTxnFinder.ScanTimestampIterator si = new ScanTimestampIterator(region.getScanner(hbaseScan));
         if (si.hasNext()) {
