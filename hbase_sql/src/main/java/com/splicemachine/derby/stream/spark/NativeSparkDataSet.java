@@ -18,12 +18,10 @@ package com.splicemachine.derby.stream.spark;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.db.impl.sql.compile.SparkExpressionNode;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
+import com.splicemachine.db.impl.sql.compile.SparkExpressionNode;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -37,7 +35,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.*;
-import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
 import com.splicemachine.sparksql.ParserUtils;
@@ -60,10 +57,8 @@ import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.*;
-import static org.apache.spark.sql.functions.*;
-
-
-import org.apache.spark.sql.types.*;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
 
 import javax.annotation.Nullable;
@@ -72,6 +67,8 @@ import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
+
+import static org.apache.spark.sql.functions.*;
 
 
 /**
@@ -569,13 +566,12 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             return ((NativeSparkDataSet) dataSet).dataset;
         } else {
             //Convert the right operand to a untyped dataset
+
             return SpliceSpark.getSession()
                     .createDataFrame(
                             ((SparkDataSet)dataSet).rdd
                                     .map(new LocatedRowToRowFunction()),
-                            context.getOperation()
-                                    .getExecRowDefinition()
-                                    .schema());
+                            context.getOperation().schema());
         }
     }
 
@@ -947,7 +943,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             } else {
                 rightDF = SpliceSpark.getSession().createDataFrame(
                         ((SparkDataSet)rightDataSet).rdd.map(new LocatedRowToRowFunction()),
-                        context.getOperation().getRightOperation().getExecRowDefinition().schema());
+                        context.getOperation().getRightOperation().schema());
             }
 
             if (isBroadcast) {
@@ -1006,7 +1002,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             } else {
                 rightDF = SpliceSpark.getSession().createDataFrame(
                         ((SparkDataSet) rightDataSet).rdd.map(new LocatedRowToRowFunction()),
-                        context.getOperation().getRightOperation().getExecRowDefinition().schema());
+                        context.getOperation().getRightOperation().schema());
             }
             Column expr = null;
             int[] rightJoinKeys = ((JoinOperation)context.getOperation()).getRightHashKeys();
@@ -1061,9 +1057,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             return SpliceSpark.getSession()
                     .createDataFrame(
                             rdd.map(new LocatedRowToRowFunction()),
-                            context.getOperation()
-                                    .getExecRowDefinition()
-                                    .schema());
+                            context.getOperation().schema());
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
         }
@@ -1082,9 +1076,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             return SpliceSpark.getSession()
                     .createDataFrame(
                             rdd.map(new LocatedRowToRowFunction()),
-                            context.getOperation().getLeftOperation()
-                                    .getExecRowDefinition()
-                                    .schema());
+                            context.getOperation().getLeftOperation().schema());
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
         }
