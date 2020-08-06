@@ -195,7 +195,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
         throw ex;
     }
 
-    class SpliceRpcControl extends PayloadCarryingRpcController {
+    static class SpliceRpcControl extends PayloadCarryingRpcController {
         // Prevent resetting PRC priority by super class
         public void setPriority(final TableName tn) {
             if (getPriority() == HConstants.NORMAL_QOS) {
