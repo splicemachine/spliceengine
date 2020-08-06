@@ -156,7 +156,6 @@ public abstract class ResultSet implements java.sql.ResultSet,
     public boolean isAfterLast_ = false;
     public boolean isFirst_ = false;
     public boolean isLast_ = false;
-    //public boolean rowsetContainsLastRow_ = false;
     public Sqlca[] rowsetSqlca_;
 
     // Gets its initial value from the statement when the result set is created.
@@ -175,8 +174,6 @@ public abstract class ResultSet implements java.sql.ResultSet,
     protected long firstRowInRowset_ = 0;       // absolute position of the first row in the current rowset
     protected long lastRowInRowset_ = 0;        // absolute position of the last row in the current rowset
     protected long currentRowInRowset_ = -1;     // relative position to the first row in the current rowsetwel
-
-    //protected long absoluteRowNumberForTheIntendedRow_;
 
     private boolean isOnInsertRow_ = false;  // reserved for later
     protected boolean isOnCurrentRow_ = true;
@@ -1304,16 +1301,8 @@ public abstract class ResultSet implements java.sql.ResultSet,
                 agent_.logWriter_.traceEntry(this, "getRef", column);
             }
             checkGetterPreconditions(column, "getRef");
-            //java.sql.Ref result = isNull(column) ? null : cursor_.getRef(column);
-            //if (true) {
-                throw new SqlException(agent_.logWriter_,
-                    new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
-            //}
-            //if (agent_.loggingEnabled()) {
-            //    agent_.logWriter_.traceExit(this, "getRef", result);
-            //}
-            //setWasNull(column);  // Placed close to the return to minimize risk of thread interference
-            //return result;
+            throw new SqlException(agent_.logWriter_,
+                new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
         }
         catch ( SqlException se )
         {
@@ -1331,16 +1320,8 @@ public abstract class ResultSet implements java.sql.ResultSet,
                 agent_.logWriter_.traceEntry(this, "getArray", column);
             }
             checkGetterPreconditions(column, "getArray");
-            //java.sql.Array result = isNull(column) ? null : cursor_.getArray(column);
-            //if (true) {
-                throw new SqlException(agent_.logWriter_,
-                    new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
-            //}
-            //if (agent_.loggingEnabled()) {
-            //    agent_.logWriter_.traceExit(this, "getArray", result);
-            //}
-            //setWasNull(column);  // Placed close to the return to minimize risk of thread interference
-            //return result;
+            throw new SqlException(agent_.logWriter_,
+                new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
         }
         catch ( SqlException se )
         {
