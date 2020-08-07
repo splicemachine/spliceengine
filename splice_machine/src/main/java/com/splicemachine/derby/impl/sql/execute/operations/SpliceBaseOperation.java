@@ -1027,6 +1027,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         return false;
     }
 
+    @Override
     public UUID getUuid() {
         return uuid;
     }
