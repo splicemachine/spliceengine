@@ -224,21 +224,25 @@ public class SessionPropertyIT extends SpliceUnitTest {
     @Test
     public void TestTableLimitForExhaustiveSearchSessionProperty() throws Exception {
         TestConnection conn = methodWatcher.createConnection();
+        String testQuery = "explain select * from %s\n t1 inner join t2 on a1=a2 inner join t3 on a2=a3";
+
         conn.execute("set session_property tableLimitForExhaustiveSearch=1");
-
         String sqlText = "values current session_property";
-
         try (ResultSet rs = conn.query(sqlText)) {
             String expected = "1                |\n" +
                     "----------------------------------\n" +
                     "TABLELIMITFOREXHAUSTIVESEARCH=1; |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
+        // number of tables (3) > tableLimitForExhaustiveSearch (1), use heuristic instead of enumerating,
+        // intermediate result size is less satisfying
+        rowContainsQuery(5, String.format(testQuery, ""), "outputRows=80", conn);
 
-        sqlText = "explain select * from t1 inner join t2 on a1=a2 inner join t3 on a2=a3";
-        rowContainsQuery(5, sqlText, "outputRows=80", conn);
+        // overwrite session property by using a query hint
+        // intermediate result size should be better
+        rowContainsQuery(6, String.format(testQuery, "--SPLICE-PROPERTIES tableLimitForExhaustiveSearch=3"), "outputRows=40", conn);
 
-        // set property to false
+        // set session property to null
         conn.execute("set session_property tableLimitForExhaustiveSearch=null");
         sqlText = "values current session_property";
         try (ResultSet rs = conn.query(sqlText)) {
@@ -248,8 +252,8 @@ public class SessionPropertyIT extends SpliceUnitTest {
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
 
-        sqlText = "explain select * from t1 inner join t2 on a1=a2 inner join t3 on a2=a3";
-        rowContainsQuery(6, sqlText, "outputRows=40", conn);
+        // default value is 6, we should achieve the same good plan without using the hint now
+        rowContainsQuery(6, String.format(testQuery, ""), "outputRows=40", conn);
 
         conn.close();
     }
