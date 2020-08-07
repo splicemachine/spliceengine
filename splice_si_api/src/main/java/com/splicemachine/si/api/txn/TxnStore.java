@@ -17,6 +17,7 @@ package com.splicemachine.si.api.txn;
 import com.carrotsearch.hppc.LongHashSet;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.List;
 
 /**
@@ -70,6 +71,8 @@ public interface TxnStore extends TxnSupplier{
     long[] getActiveTransactionIds(long minTxnId,long maxTxnId,byte[] table) throws IOException;
 
     List<TxnView> getActiveTransactions(long minTxnid,long maxTxnId,byte[] table) throws IOException;
+
+    long getTxnAt(long ts) throws IOException;
 
     /**
      * @return a count of the total number of store lookups made since the server last started

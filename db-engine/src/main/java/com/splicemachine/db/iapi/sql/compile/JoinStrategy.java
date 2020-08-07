@@ -382,4 +382,13 @@ public interface JoinStrategy {
      */
     boolean isMemoryUsageUnderLimit(double totalMemoryConsumed);
 
+
+    /**
+     * Get if the right side should be broadcast in this join.
+     * Currently only used in cross join.
+     *
+     * @return
+     */
+    default boolean getBroadcastRight(CostEstimate rightCost) { return false; };
+
 }
