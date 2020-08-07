@@ -1517,6 +1517,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             mb.pushNull(ClassName.GeneratedMethod);
         }
 
+        resultColumns.generateResultColumnDataType(acb, mb);
+
         mb.push(resultSetNumber);
 
         // if there is no constant restriction, we just want to pass null.
@@ -1568,7 +1570,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         ProjectRestrictNode.generateExpressionsArrayOnStack(acb, mb, canUseSparkSQLExpressions ? resultColumns : null);
         mb.push(hasGroupingFunction);
         mb.push(subqueryText);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,16);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,17);
     }
 
     /**

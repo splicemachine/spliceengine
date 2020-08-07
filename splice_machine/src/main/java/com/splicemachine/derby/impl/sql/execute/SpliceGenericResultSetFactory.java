@@ -168,6 +168,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
                                                       GeneratedMethod restriction,
                                                       GeneratedMethod projection,
+                                                      int resultColumnTypeArrayItem,
                                                       int resultSetNumber,
                                                       GeneratedMethod constantRestriction,
                                                       int mapRefItem,
@@ -180,6 +181,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         return getProjectRestrictResultSet(source,
                                            restriction,
                                            projection,
+                                           resultColumnTypeArrayItem,
                                            resultSetNumber,
                                            constantRestriction,
                                            mapRefItem,
@@ -197,6 +199,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
                                                       GeneratedMethod restriction,
                                                       GeneratedMethod projection,
+                                                      int resultColumnTypeArrayItem,
                                                       int resultSetNumber,
                                                       GeneratedMethod constantRestriction,
                                                       int mapRefItem,
@@ -211,6 +214,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         return getProjectRestrictResultSet(source,
                                            restriction,
                                            projection,
+                                           resultColumnTypeArrayItem,
                                            resultSetNumber,
                                            constantRestriction,
                                            mapRefItem,
@@ -229,6 +233,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
                                                       GeneratedMethod restriction,
                                                       GeneratedMethod projection,
+                                                      int resultColumnTypeArrayItem,
                                                       int resultSetNumber,
                                                       GeneratedMethod constantRestriction,
                                                       int mapRefItem,
@@ -244,6 +249,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         return getProjectRestrictResultSet(source,
                                            restriction,
                                            projection,
+                                           resultColumnTypeArrayItem,
                                            resultSetNumber,
                                            constantRestriction,
                                            mapRefItem,
@@ -262,6 +268,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
                                                       GeneratedMethod restriction,
                                                       GeneratedMethod projection,
+                                                      int resultColumnTypeArrayItem,
                                                       int resultSetNumber,
                                                       GeneratedMethod constantRestriction,
                                                       int mapRefItem,
@@ -281,7 +288,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             ConvertedResultSet opSet = (ConvertedResultSet)source;
             ProjectRestrictOperation op = new ProjectRestrictOperation(opSet.getOperation(),
                     source.getActivation(),
-                    restriction, projection, resultSetNumber,
+                    restriction, projection, resultColumnTypeArrayItem,
+                    resultSetNumber,
                     constantRestriction, mapRefItem, cloneMapItem,
                     reuseResult,
                     doesProjection,
@@ -434,7 +442,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 int partitionByRefItem,
                                                 GeneratedMethod defaultRowFunc,
                                                 int defaultValueMapItem,
-                                                long pastTx )
+                                                GeneratedMethod pastTxFunctor )
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
@@ -478,7 +486,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTx );
+                    pastTxFunctor );
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -875,7 +883,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            long pastTxId )
+            GeneratedMethod pastTxFunctor )
 
             throws StandardException {
         try{
@@ -923,7 +931,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxId
+                    pastTxFunctor
                     );
             op.setExplainPlan(explainPlan);
             return op;
@@ -1440,7 +1448,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int leftHashKeyItem, int rightHashKeyItem,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, byte semiJoinType,
-            boolean rightFromSSQ,
+            boolean rightFromSSQ, boolean broadcastRightSide,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
@@ -1450,7 +1458,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              leftHashKeyItem,  rightHashKeyItem,
              joinClause,  resultSetNumber,
              oneRowRightSide, semiJoinType,
-             rightFromSSQ,
+             rightFromSSQ, broadcastRightSide,
              optimizerEstimatedRowCount,  optimizerEstimatedCost,
              userSuppliedOptimizerOverrides,
              explainPlan,
@@ -1464,7 +1472,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int leftHashKeyItem, int rightHashKeyItem,
             GeneratedMethod joinClause, int resultSetNumber,
             boolean oneRowRightSide, byte semiJoinType,
-            boolean rightFromSSQ,
+            boolean rightFromSSQ, boolean broadcastRightSide,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan,
@@ -1477,7 +1485,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem,
                     leftResultSet.getActivation(),
                     joinClause, resultSetNumber,
-                    oneRowRightSide, semiJoinType, rightFromSSQ, optimizerEstimatedRowCount,
+                    oneRowRightSide, semiJoinType, rightFromSSQ, broadcastRightSide, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
             op.setExplainPlan(explainPlan);
             return op;
