@@ -58,6 +58,7 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
 
     @Override
     public Iterator<ExecRow> call(Integer partition) throws Exception {
+        //log("KRF.call p"+partition );
         Properties props = new Properties();
 
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -69,6 +70,11 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        
+        // MAX_POLL_RECORDS_CONFIG helped performance in standalone with lower values (default == 500).
+        //  With high values, it spent too much time retrieving records from Kafka.
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "100");
+//        props.put(ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG, "10485760"); // 10% of max == 5242880, default == 1048576
 
         KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
         consumer.assign(Arrays.asList(new TopicPartition(topicName, partition)));
@@ -83,12 +89,14 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
                 int attempt = 1;
                 ConsumerRecords<Integer, Externalizable> records = null;
                 do {
-                    records = consumer.poll(java.time.Duration.ofMillis(1000));
+                    records = consumer.poll(java.time.Duration.ofMillis(500));
                     if (TaskContext.get().isInterrupted()) {
                         consumer.close();
                         throw new TaskKilledException();
                     }
                 } while( noRecords.test(records) && attempt++ < maxAttempts );
+
+                //log("KRF.call p"+partition+" records "+records.count() );
                 
                 return records;
             }
@@ -107,7 +115,7 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
             @Override
             public boolean hasNext() {
                 if (it == null) {
-                    return hasMoreRecords(60);
+                    return hasMoreRecords(2);
                 }
                 if (it.hasNext()) {
                     return true;
