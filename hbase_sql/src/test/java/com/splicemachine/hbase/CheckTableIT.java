@@ -333,7 +333,7 @@ public class CheckTableIT extends SpliceUnitTest {
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
         rs.next();
         s = rs.getString(1);
-        assertEquals(s, s, "No inconsistencies were found.");
+        assertEquals(s, "No inconsistencies were found.", s);
     }
 
     @Test
