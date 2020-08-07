@@ -17,28 +17,35 @@ package com.splicemachine.nsds.kafka
 
 import java.util.Properties
 import java.util.concurrent.TimeUnit
-import org.apache.kafka.clients.admin.AdminClient
-import org.apache.kafka.clients.admin.AdminClientConfig
+
+import org.apache.kafka.clients.admin.{AdminClient, AdminClientConfig, NewTopic}
 import org.apache.kafka.common.KafkaFuture
+
 import scala.collection.JavaConverters._
 
-class KafkaAdmin(kafkaServers: String) {
+@SerialVersionUID(20200722241L)
+class KafkaAdmin(kafkaServers: String) extends Serializable {
   val props = new Properties()
   props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServers)
   val admin = AdminClient.create( props )
   
+  def createTopics(topicNames: collection.mutable.Set[String], numParitions: Int, repFactor: Short): Unit =
+    admin.createTopics(
+      topicNames.map(new NewTopic(_,numParitions,repFactor)).asJava
+    ).all.get
+
   def listTopics(): collection.mutable.Set[String] = admin.listTopics.names.get.asScala
 
   /**
    * Deletes topics from Kafka.
-   * 
+   *
    * @param topicNames Set of names of topics to be deleted. A name is removed from the Set after its topic has been 
    *                   deleted, so the names of any topics that didn't get deleted will remain when the function is done.
    * @param timeoutMs Number of milliseconds in which the function must complete.
    */
   def deleteTopics(topicNames: collection.mutable.Set[String], timeoutMs: Long = 0): Unit = {
     val futures = admin.deleteTopics( topicNames.asJava )
-    
+
     if( timeoutMs < 1 ) {
       try {
         futures.all.get
