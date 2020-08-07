@@ -428,7 +428,7 @@ public interface ResultSetFactory {
 			filtered by this operation.
 		@param singleTableRestriction restriction, if any, applied to
 			input of hash table.
-		@param equijoinQualifiers Qualifier[] for look up into hash table
+		@param equijoinQualifiersField Qualifier[] for look up into hash table
 		@param projection a reference to a method in the activation
 			that is applied to the activation's "current row" field
 			to project out the expected result row.
@@ -959,7 +959,7 @@ public interface ResultSetFactory {
 			the scan
 		@param sameStartStopPosition	Re-use the startKeyGetter for the stopKeyGetter
 										(Exact match search.)
-		@param qualifiers the array of Qualifiers for the scan.
+		@param qualifiersField the array of Qualifiers for the scan.
 			Null or an array length of zero means there are no qualifiers.
 		@param tableName		The full name of the table
 		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
@@ -978,7 +978,7 @@ public interface ResultSetFactory {
 		@param optimizerEstimatedRowCount	Estimated total # of rows by
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
-		@param pastTxId                     The ID of a past transaction for time-travel queries
+	    @param pastTxFunctor                a functor that returns the id of a committed transaction for time-travel queries
 
 		@return the table scan operation as a result set.
 		@exception StandardException thrown when unable to create the
@@ -1022,7 +1022,7 @@ public interface ResultSetFactory {
 								int partitionByRefItem,
 								GeneratedMethod defaultRowFunc,
 								int defaultValueMapItem,
-								long pastTxId
+								GeneratedMethod pastTxFunctor
 								)
 			throws StandardException;
 
@@ -1083,7 +1083,7 @@ public interface ResultSetFactory {
 								int partitionByRefItem,
 								GeneratedMethod defaultRowFunc,
 								int defaultValueMapItem,
-								long pastTxId
+								GeneratedMethod pastTxFunctor
 								)
 			throws StandardException;
     /**
@@ -1190,29 +1190,29 @@ public interface ResultSetFactory {
 		to be used when there are no join predicates to be passed down
 		to the join to limit its scope on the right ResultSet.
 
-	 @return the nested loop join operation as a result set.
+		@param leftResultSet	Outer ResultSet for join.
+		@param leftNumCols		Number of columns in the leftResultSet
+		@param rightResultSet	Inner ResultSet for join.
+		@param rightNumCols		Number of columns in the rightResultSet
+		@param joinClause a reference to a method in the activation
+			that is applied to the activation's "current row" field
+			to determine whether the joinClause is satisfied or not.
+			The signature of this method is
+			<verbatim>
+				Boolean joinClause() throws StandardException;
+			</verbatim>
+		@param resultSetNumber	The resultSetNumber for the ResultSet
+		@param oneRowRightSide	boolean, whether or not the right side returns
+								a single row.  (No need to do 2nd next() if it does.)
+		@param notExistsRightSide	boolean, whether or not the right side resides a
+									NOT EXISTS base table
+		@param optimizerEstimatedRowCount	Estimated total # of rows by
+											optimizer
+		@param optimizerEstimatedCost		Estimated total cost by optimizer
+		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
+		@return the nested loop join operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
-		 * @param leftResultSet    Outer ResultSet for join.
-	 * @param leftNumCols        Number of columns in the leftResultSet
-	 * @param rightResultSet    Inner ResultSet for join.
-	 * @param rightNumCols        Number of columns in the rightResultSet
-	 * @param joinClause a reference to a method in the activation
-    that is applied to the activation's "current row" field
-    to determine whether the joinClause is satisfied or not.
-    The signature of this method is
-    <verbatim>
-        Boolean joinClause() throws StandardException;
-    </verbatim>
-	 * @param resultSetNumber    The resultSetNumber for the ResultSet
-	 * @param oneRowRightSide    boolean, whether or not the right side returns
-                        a single row.  (No need to do 2nd next() if it does.)
-	 * @param semiJoinType    boolean, whether or not the right side resides a
-                            NOT EXISTS base table
-	 * @param optimizerEstimatedRowCount    Estimated total # of rows by
-                                    optimizer
-	 * @param optimizerEstimatedCost        Estimated total cost by optimizer
-	 * @param userSuppliedOptimizerOverrides        Overrides specified by the user on the sql
 	 */
 	NoPutResultSet getNestedLoopJoinResultSet(NoPutResultSet leftResultSet,
 											  int leftNumCols,
@@ -1333,32 +1333,32 @@ public interface ResultSetFactory {
 		to be used when there are no join predicates to be passed down
 		to the join to limit its scope on the right ResultSet.
 
-	 @return the nested loop join operation as a result set.
+		@param leftResultSet	Outer ResultSet for join.
+		@param leftNumCols		Number of columns in the leftResultSet
+		@param rightResultSet	Inner ResultSet for join.
+		@param rightNumCols		Number of columns in the rightResultSet
+		@param joinClause a reference to a method in the activation
+			that is applied to the activation's "current row" field
+			to determine whether the joinClause is satisfied or not.
+			The signature of this method is
+			<verbatim>
+				Boolean joinClause() throws StandardException;
+			</verbatim>
+		@param resultSetNumber	The resultSetNumber for the ResultSet
+		@param emptyRowFun a reference to a method in the activation
+							that is called if the right child returns no rows
+		@param wasRightOuterJoin	Whether or not this was originally a right outer join
+		@param oneRowRightSide	boolean, whether or not the right side returns
+								a single row.  (No need to do 2nd next() if it does.)
+		@param notExistsRightSide	boolean, whether or not the right side resides a
+									NOT EXISTS base table
+		@param optimizerEstimatedRowCount	Estimated total # of rows by
+											optimizer
+		@param optimizerEstimatedCost		Estimated total cost by optimizer
+		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
+		@return the nested loop join operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
-		 * @param leftResultSet    Outer ResultSet for join.
-	 * @param leftNumCols        Number of columns in the leftResultSet
-	 * @param rightResultSet    Inner ResultSet for join.
-	 * @param rightNumCols        Number of columns in the rightResultSet
-	 * @param joinClause a reference to a method in the activation
-    that is applied to the activation's "current row" field
-    to determine whether the joinClause is satisfied or not.
-    The signature of this method is
-    <verbatim>
-        Boolean joinClause() throws StandardException;
-    </verbatim>
-	 * @param resultSetNumber    The resultSetNumber for the ResultSet
-	 * @param emptyRowFun a reference to a method in the activation
-                    that is called if the right child returns no rows
-	 * @param wasRightOuterJoin    Whether or not this was originally a right outer join
-	 * @param oneRowRightSide    boolean, whether or not the right side returns
-                        a single row.  (No need to do 2nd next() if it does.)
-	 * @param semiJoinType    boolean, whether or not the right side resides a
-                            NOT EXISTS base table
-	 * @param optimizerEstimatedRowCount    Estimated total # of rows by
-                                    optimizer
-	 * @param optimizerEstimatedCost        Estimated total cost by optimizer
-	 * @param userSuppliedOptimizerOverrides        Overrides specified by the user on the sql
 	 */
 	NoPutResultSet getNestedLoopLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
 													   int leftNumCols,
@@ -1381,32 +1381,32 @@ public interface ResultSetFactory {
 	/**
 		A left outer join using a hash join.
 
-	 @return the hash join operation as a result set.
+		@param leftResultSet	Outer ResultSet for join.
+		@param leftNumCols		Number of columns in the leftResultSet
+		@param rightResultSet	Inner ResultSet for join.
+		@param rightNumCols		Number of columns in the rightResultSet
+		@param joinClause a reference to a method in the activation
+			that is applied to the activation's "current row" field
+			to determine whether the joinClause is satisfied or not.
+			The signature of this method is
+			<verbatim>
+				Boolean joinClause() throws StandardException;
+			</verbatim>
+		@param resultSetNumber	The resultSetNumber for the ResultSet
+		@param emptyRowFun a reference to a method in the activation
+							that is called if the right child returns no rows
+		@param wasRightOuterJoin	Whether or not this was originally a right outer join
+		@param oneRowRightSide	boolean, whether or not the right side returns
+								a single row.  (No need to do 2nd next() if it does.)
+		@param notExistsRightSide	boolean, whether or not the right side resides a
+									NOT EXISTS base table
+		@param optimizerEstimatedRowCount	Estimated total # of rows by
+											optimizer
+		@param optimizerEstimatedCost		Estimated total cost by optimizer
+		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
+		@return the nested loop join operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
-		 * @param leftResultSet    Outer ResultSet for join.
-	 * @param leftNumCols        Number of columns in the leftResultSet
-	 * @param rightResultSet    Inner ResultSet for join.
-	 * @param rightNumCols        Number of columns in the rightResultSet
-	 * @param joinClause a reference to a method in the activation
-    that is applied to the activation's "current row" field
-    to determine whether the joinClause is satisfied or not.
-    The signature of this method is
-    <verbatim>
-        Boolean joinClause() throws StandardException;
-    </verbatim>
-	 * @param resultSetNumber    The resultSetNumber for the ResultSet
-	 * @param emptyRowFun a reference to a method in the activation
-                    that is called if the right child returns no rows
-	 * @param wasRightOuterJoin    Whether or not this was originally a right outer join
-	 * @param oneRowRightSide    boolean, whether or not the right side returns
-                        a single row.  (No need to do 2nd next() if it does.)
-	 * @param semiJoinType    boolean, whether or not the right side resides a
-                            NOT EXISTS base table
-	 * @param optimizerEstimatedRowCount    Estimated total # of rows by
-                                    optimizer
-	 * @param optimizerEstimatedCost        Estimated total cost by optimizer
-	 * @param userSuppliedOptimizerOverrides        Overrides specified by the user on the sql
 	 */
 	NoPutResultSet getHashLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
 												 int leftNumCols,
@@ -1478,7 +1478,7 @@ public interface ResultSetFactory {
 	 A left outer join using a sort merge join.
 
 	 @return the sortmerge join operation as a result set.
-	@exception StandardException thrown when unable to create the 
+	@exception StandardException thrown when unable to create the
 		result set
 	 * @param resultSetNumber	The resultSetNumber for the ResultSet
 	 * @param leftResultSet    Outer ResultSet for join.
@@ -1510,7 +1510,7 @@ public interface ResultSetFactory {
 													  int leftHashKeyItem,
 													  int rightHashKeyItem,
 													  GeneratedMethod joinClause,
-													  int resultSetNUmber,
+													  int resultSetNumber,
 													  GeneratedMethod emptyRowFun,
 													  boolean wasRightOuterJoin,
 													  boolean oneRowRightSide,
@@ -2133,12 +2133,12 @@ public interface ResultSetFactory {
 	 * Binary Export
 	 */
 	NoPutResultSet getBinaryExportResultSet(NoPutResultSet source,
-									  Activation activation,
-									  int resultSetNumber,
-									  String exportPath,
-									  String compression,
-									  String format,
-									  int srcResultDescriptionSavedObjectNum) throws StandardException;
+											Activation activation,
+											int resultSetNumber,
+											String exportPath,
+											String compression,
+											String format,
+											int srcResultDescriptionSavedObjectNum) throws StandardException;
 	/**
 	 * Kafka Export
 	 */

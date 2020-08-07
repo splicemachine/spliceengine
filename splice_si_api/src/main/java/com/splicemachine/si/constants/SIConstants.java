@@ -49,6 +49,7 @@ public class SIConstants {
     public static final long TRASANCTION_INCREMENT = 0x100l;
     public static final long SUBTRANSANCTION_ID_MASK = 0xFFl;
     public static final long TRANSANCTION_ID_MASK= 0xFFFFFFFFFFFFFF00l;
+    public static final long OLDEST_TIME_TRAVEL_TX = TRASANCTION_INCREMENT;
 
     public static final String REPLICATION_ROLE_REPLICA = "REPLICA";
     public static final String REPLICATION_ROLE_PRIMARY = "PRIMARY";

@@ -75,6 +75,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,0,0, 1959), new UpgradeScriptForTriggerMultipleStatements(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,0,0, 1962), new UpgradeScriptForAddDefaultToColumnViewInSYSVW(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,0,0, 1964), new UpgradeScriptForAliasToTableView(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,0,0, 1969), new UpgradeScriptToInvalidateStoredStatement(sdd,tc));
     }
 
     public void run() throws StandardException{
