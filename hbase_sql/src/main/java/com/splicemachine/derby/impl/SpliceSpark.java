@@ -23,6 +23,7 @@ import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.hbase.AdapterPipelineEnvironment;
+import com.splicemachine.hbase.TransactionsWatcher;
 import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.si.data.hbase.ZkUpgrade;
 import com.splicemachine.si.data.hbase.coprocessor.AdapterSIEnvironment;
@@ -154,7 +155,7 @@ public class SpliceSpark {
                 SConfiguration config=driver.getConfiguration();
 
                 LOG.info("Splice Client in SpliceSpark "+SpliceClient.isClient());
-                
+
                 //boot derby components
                 new EngineLifecycleService(new DistributedDerbyStartup(){
                     @Override public void distributedStart() throws IOException{ }
@@ -182,7 +183,7 @@ public class SpliceSpark {
                         HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);
                 HBaseRegionLoads.INSTANCE.startWatching();
-
+                TransactionsWatcher.INSTANCE.startWatching();
                 spliceStaticComponentsSetup = true;
             }
         } catch (RuntimeException e) {

@@ -2401,6 +2401,10 @@ public class SQLParser
         src = src.replaceAll("(--)(?i)(?=splice-properties)(.*?)(\\n|\\r|\\r\\n)",
                                "$1$2$3"+Character.toString(endOfHintMarker));
 
+        // If there is a comment before the statement, replacement ops above produce spaces before the
+        // CREATE token. The first string after split below would be empty, causing charAt(0) to fail.
+        src = src.trim();
+
         for (String part : src.split("\\s+")) {
             if (part.charAt(0) == endOfHintMarker)
                 part = "\n" + part.substring(1);

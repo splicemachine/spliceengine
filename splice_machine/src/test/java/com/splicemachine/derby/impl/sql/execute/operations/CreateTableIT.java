@@ -111,4 +111,14 @@ public class CreateTableIT {
         }
         fail("Expected: ERROR 42Z93: Constraints 'CCC1' and 'CCC' have the same set of columns, which is not allowed");
     }
+
+    @Test
+    public void testCommentBeforeCreateTableAs() throws Exception {
+        watcher.executeUpdate("create table test_comment_before_create_as_dep_tbl (col int)");
+
+        String createStmt = "create table %s as select * from test_comment_before_create_as_dep_tbl";
+        watcher.executeUpdate("-- some SQL-style comment here\n" + String.format(createStmt, generateTableName()));
+        watcher.executeUpdate("/* some C-style comment here */\n" + String.format(createStmt, generateTableName()));
+        watcher.executeUpdate("/* some mixed */\n-- comments\n" + String.format(createStmt, generateTableName()));
+    }
 }
