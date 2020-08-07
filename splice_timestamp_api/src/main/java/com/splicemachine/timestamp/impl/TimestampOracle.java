@@ -91,11 +91,25 @@ public class TimestampOracle implements TimestampOracleStatistics{
         return _timestampCounter.get();
     }
 
+    private static long roundUp(long timestamp) {
+        assert timestamp >= 0;
+        long remainder = timestamp % TIMESTAMP_INCREMENT;
+        if (remainder == 0) {
+            return timestamp;
+        }
+        return timestamp - remainder + TIMESTAMP_INCREMENT;
+    }
+
     public synchronized void bumpTimestamp(long newTimestamp) throws TimestampIOException {
+        newTimestamp = roundUp(newTimestamp);
         if (newTimestamp > _timestampCounter.get()) {
-            timestampBlockManager.reserveNextBlock(newTimestamp);
-            _maxReservedTimestamp = newTimestamp;
-            _timestampCounter.updateAndGet(oldTS -> Math.max(oldTS, newTimestamp));
+            if (newTimestamp> _maxReservedTimestamp) {
+                reserveNextBlock(newTimestamp);
+            }
+            long currentTimestampCounter;
+            while ((currentTimestampCounter = _timestampCounter.get()) < newTimestamp) {
+                _timestampCounter.compareAndSet(currentTimestampCounter, newTimestamp);
+            }
         }
     }
 
@@ -110,12 +124,11 @@ public class TimestampOracle implements TimestampOracleStatistics{
 
     private synchronized void reserveNextBlock(long nextTS) throws TimestampIOException {
         while (nextTS > _maxReservedTimestamp) {
-            long blockCount = (_maxReservedTimestamp - nextTS) / blockSize + 1;
+            long blockCount = (nextTS - _maxReservedTimestamp) / blockSize + 1;
             long nextMax = _maxReservedTimestamp + blockSize * blockCount;
-            timestampBlockManager.reserveNextBlock(nextMax);
+            timestampBlockManager.persistMaxTimestamp(nextMax);
             _maxReservedTimestamp = nextMax;
-            for (int i = 0; i < blockCount; ++i)
-                _numBlocksReserved.incrementAndGet(); // JMX metric
+            _numBlocksReserved.addAndGet(blockCount); // JMX metric
             SpliceLogUtils.debug(LOG, "Next timestamp block reserved with max = %s", _maxReservedTimestamp);
         }
     }
