@@ -296,5 +296,13 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
     protected boolean validForOutermostTable() {
         return true;
     }
+
+    @Override
+    public boolean getBroadcastRight(CostEstimate rightCost) {
+        double estimatedRowCount = rightCost.getEstimatedRowCount();
+        SConfiguration configuration=EngineDriver.driver().getConfiguration();
+        long rowCountThreshold = configuration.getBroadcastRegionRowThreshold();
+        return estimatedRowCount < rowCountThreshold;
+    }
 }
 
