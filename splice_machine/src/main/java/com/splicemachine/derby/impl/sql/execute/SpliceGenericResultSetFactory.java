@@ -442,7 +442,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 int partitionByRefItem,
                                                 GeneratedMethod defaultRowFunc,
                                                 int defaultValueMapItem,
-                                                long pastTx )
+                                                GeneratedMethod pastTxFunctor )
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
@@ -486,7 +486,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTx );
+                    pastTxFunctor );
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -883,7 +883,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            long pastTxId )
+            GeneratedMethod pastTxFunctor )
 
             throws StandardException {
         try{
@@ -931,7 +931,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxId
+                    pastTxFunctor
                     );
             op.setExplainPlan(explainPlan);
             return op;
