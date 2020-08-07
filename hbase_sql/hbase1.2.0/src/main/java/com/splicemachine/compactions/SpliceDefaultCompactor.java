@@ -103,7 +103,11 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                 hostName,
                 config.getOlapCompactionMaximumWait());
         CompactionResult result = null;
-        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest, getCompactionQueue());
+        EngineDriver driver = EngineDriver.driver();
+        if (driver == null) {
+            throw new IOException("EngineDriver not available, compaction aborted");
+        }
+        Future<CompactionResult> futureResult = driver.getOlapClient().submit(jobRequest, getCompactionQueue());
         while(result == null) {
             try {
                 result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
