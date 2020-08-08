@@ -164,16 +164,20 @@ class SICompactionStateMutate {
                 // Assertions are only thrown in standalone builds.
                 // Avoid the purge instead of using an assertion to prevent corruption.
                 if (firstWriteToken) {
-                    bypassPurge = true;
+
+                    // bypassPurge = true;  msirek-temp
                     LOG.warn("Skipping tombstone purge.  Duplicate FIRST_WRITE_TOKEN.  commitTimestamp = " + commitTimestamp + ", beginTimestamp = " + beginTimestamp);
+                    throw new IOException();
                 }
                 firstWriteToken = true;
                 break;
             case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
                 if (deleteRightAfterFirstWriteTimestamp != 0)
                 {
-                    bypassPurge = true;
+
+                    // bypassPurge = true;  msirek-temp
                     LOG.warn("Skipping tombstone purge.  More that one DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN.  commitTimestamp = " + commitTimestamp + ", beginTimestamp = " + beginTimestamp);
+                    throw new IOException();
                 }
                 deleteRightAfterFirstWriteTimestamp = beginTimestamp;
                 break;
