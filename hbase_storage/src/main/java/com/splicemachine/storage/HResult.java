@@ -150,4 +150,9 @@ public class HResult implements DataResult{
     public DataResult getClone(){
         return new HResult(Result.create(result.rawCells(),result.getExists(),result.isStale()));
     }
+
+    @Override
+    public boolean isEmpty() {
+        return result == null || result.isEmpty();
+    }
 }
