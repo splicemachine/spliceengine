@@ -324,7 +324,7 @@ public class SITransactor implements Transactor{
 
             conflictingChildren[i] = conflictResults.getChildConflicts();
             boolean addFirstOccurrenceToken = false;
-            if (possibleConflicts == null) {
+            if (possibleConflicts == null || possibleConflicts.isEmpty()) {
                 // First write
                 addFirstOccurrenceToken = true;
             } else if (KVPair.Type.DELETE.equals(writeType) && possibleConflicts.firstWriteToken() != null) {

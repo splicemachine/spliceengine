@@ -125,13 +125,13 @@ public class MResult implements DataResult{
 
     @Override
     public byte[] key(){
-        if(dataCells==null||dataCells.size()<=0) return null;
+        if(isEmpty()) return null;
         return dataCells.get(0).key();
     }
 
     @Override
     public Map<byte[], byte[]> familyCellMap(byte[] userColumnFamily){
-        if(dataCells==null||dataCells.size()<=0) return Collections.emptyMap();
+        if(isEmpty()) return Collections.emptyMap();
         Map<byte[],byte[]> familyCellMap = new TreeMap<>(ByteComparisons.comparator());
         for(DataCell dc:dataCells){
             familyCellMap.put(dc.family(),dc.qualifier());
@@ -142,5 +142,10 @@ public class MResult implements DataResult{
     @Override
     public DataResult getClone(){
         return new MResult(new ArrayList<>(dataCells));
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return (dataCells==null||dataCells.size()<=0);
     }
 }
