@@ -124,7 +124,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         CompactionRequestImpl compactionRequest = new CompactionRequestImpl(readersToClose);
         compactionRequest.setIsMajor(isMajor, isMajor);
         List<Path> paths = sdc.sparkCompact(compactionRequest, context, favoredNodes);
-        region.close();
+        // region.close();  msirek-temp
         
         if (LOG.isTraceEnabled()) {
             StringBuilder sb = new StringBuilder(100);
