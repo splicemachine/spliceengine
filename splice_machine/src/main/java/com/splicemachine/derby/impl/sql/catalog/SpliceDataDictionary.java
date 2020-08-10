@@ -81,6 +81,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl snapshotTable = null;
     private volatile TabInfoImpl tokenTable = null;
     private volatile TabInfoImpl replicationTable = null;
+    private volatile TabInfoImpl ibmConnectionTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
     protected boolean metadataAccessRestrictionEnabled;
 
@@ -340,6 +341,19 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "The view syscolumns and systables in SYSIBM are created!");
     }
 
+    private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
+        if(ibmConnectionTable==null){
+            ibmConnectionTable=new TabInfoImpl(new MONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(ibmConnectionTable);
+        return ibmConnectionTable;
+    }
+
+    public void createTablesAndViewsInSysIBMADM(TransactionController tc) throws StandardException {
+        TabInfoImpl connectionTableInfo=getIBMADMConnectionTable();
+        addTableIfAbsent(tc,sysIBMADMSchemaDesc,connectionTableInfo,null);
+    }
+
     private void updateColumnViewInSys(TransactionController tc, String tableName, int viewIndex, SchemaDescriptor schemaDescriptor, String viewDef) throws StandardException {
         tc.elevate("dictionary");
 
@@ -514,6 +528,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createReplicationTables(tc);
 
         createTableColumnViewInSysIBM(tc);
+
+        createTablesAndViewsInSysIBMADM(tc);
         
         createAliasToTableSystemView(tc);
     }
