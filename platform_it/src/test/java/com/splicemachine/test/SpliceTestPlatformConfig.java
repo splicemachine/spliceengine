@@ -263,6 +263,8 @@ class SpliceTestPlatformConfig {
         config.setLong("hbase.master.lease.thread.wakefrequency", SECONDS.toMillis(3));
 //        config.setBoolean("hbase.master.loadbalance.bytable",true);
         config.setInt("hbase.hfile.compaction.discharger.interval", 20*1000);
+        // The hbase balancer uses a lot of memory and network resources.
+        // Effectively disable this on standalone to avoid OOM and network hiccups.
         config.setInt("hbase.balancer.period",300000000); // 5000 minutes
         config.setInt("hbase.balancer.statusPeriod",300000000); // 5000 minutes
 
@@ -281,7 +283,6 @@ class SpliceTestPlatformConfig {
         //
         // Memstore, store files, splits
         //
-        config.setBoolean("hbase.table.sanity.checks", false);
         config.setLong(HConstants.HREGION_MAX_FILESIZE, 32 * MiB); // hbase.hregion.max.filesize
         config.setLong("hbase.hregion.memstore.flush.size", 128 * MiB); // was 512 MiB
         config.setLong("hbase.hregion.memstore.block.multiplier", 4);
