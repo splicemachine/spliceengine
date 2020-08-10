@@ -49,6 +49,10 @@ public class SpliceCsvReader implements Iterator<List<String>> {
 		this.tokenizer = new QuoteTrackingTokenizer(reader,preferences);
 	}
 
+	public SpliceCsvReader(Reader reader, CsvPreference preferences, List<Integer> valueSizesHint) {
+		this.tokenizer = new QuoteTrackingTokenizer(reader,preferences,valueSizesHint);
+	}
+
     @Override
     public boolean hasNext() {
         try {

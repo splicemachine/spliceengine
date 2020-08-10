@@ -22,6 +22,9 @@ import org.supercsv.prefs.CsvPreference;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -34,14 +37,65 @@ import java.util.List;
  */
 public class QuoteTrackingTokenizer extends AbstractTokenizer{
 
+    private final List<Integer> valueSizeHints;
+
+    private static class LazyStringBuilder {
+
+        final List<String> bufferList;
+        int size = 0;
+        boolean sizeCached = false;
+
+        public LazyStringBuilder() {
+            this.bufferList = new ArrayList<String>(1000);
+        }
+
+        public int length() {
+            if(sizeCached) {
+                return size;
+            }
+            size = 0;
+            for(String s: bufferList) {
+                size += s.length();
+            }
+            return size;
+        }
+
+        public void clear() {
+            bufferList.clear();
+        }
+
+        public LazyStringBuilder append(String str) {
+            sizeCached = false;
+            bufferList.add(str);
+            return this;
+        }
+
+        public String toString() {
+            String result = new String(new char[length()]);
+            try {
+                Field valueField = String.class.getDeclaredField("value");
+                valueField.setAccessible(true);
+                char[] value = (char[])valueField.get(result);
+                int needle = 0;
+                for(String cb  : bufferList) {
+                    System.arraycopy(cb.toCharArray(), 0, value, needle, cb.length());
+                    needle += cb.length();
+                }
+            } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+                e.printStackTrace(); // improve on this.
+            }
+            return result;
+        }
+    }
+
     private static final char NEWLINE='\n';
 
     private static final char SPACE=' ';
 
-    private final StringBuilder currentColumn=new StringBuilder();
+    private StringBuilder currentColumn=new StringBuilder();
 
     /* the raw, untokenized CSV row (may span multiple lines) */
-    private final StringBuilder currentRow=new StringBuilder();
+    private final LazyStringBuilder currentRow=new LazyStringBuilder();
 
     private final int quoteChar;
 
@@ -77,6 +131,22 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
         this.ignoreEmptyLines=preferences.isIgnoreEmptyLines();
         this.commentMatcher=preferences.getCommentMatcher();
         this.maxLinesPerRow=preferences.getMaxLinesPerRow();
+        valueSizeHints = null;
+    }
+
+    public QuoteTrackingTokenizer(final Reader reader, final CsvPreference preferences, final List<Integer> valueSizeHints){
+        super(reader,preferences);
+        this.quoteChar=preferences.getQuoteChar();
+        this.delimeterChar=preferences.getDelimiterChar();
+        this.surroundingSpacesNeedQuotes=preferences.isSurroundingSpacesNeedQuotes();
+        this.ignoreEmptyLines=preferences.isIgnoreEmptyLines();
+        this.commentMatcher=preferences.getCommentMatcher();
+        this.maxLinesPerRow=preferences.getMaxLinesPerRow();
+        this.valueSizeHints = valueSizeHints;
+    }
+
+    private void init() {
+
     }
 
     @Override
@@ -92,9 +162,10 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
 
         // clear the reusable List and StringBuilders
         columns.clear();
+        int colIdx = 0;
         if(recordQuotes) quotedColumns.clear();
         currentColumn.setLength(0);
-        currentRow.setLength(0);
+        currentRow.clear();
 
         // read a line (ignoring empty lines/comments if necessary)
         String line;
@@ -128,6 +199,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
                         appendSpaces(currentColumn,potentialSpaces);
                     }
                     columns.add(currentColumn.length()>0?currentColumn.toString():null); // "" -> null
+                    colIdx++;
                     if(recordQuotes) quotedColumns.add(wasQuoted);
                     wasQuoted = false;
                     return true;
@@ -137,8 +209,8 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
 					 * (will update to 0 for next iteration), read in the next line, then then continue to next
 					 * character.
 					 */
-                    currentColumn.append(NEWLINE);
-                    currentRow.append(NEWLINE); // specific line terminator lost, \n will have to suffice
+                    currentColumn.append(String.valueOf(NEWLINE));
+                    currentRow.append(String.valueOf(NEWLINE)); // specific line terminator lost, \n will have to suffice
 
                     charIndex=0;
 
@@ -183,8 +255,14 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
                         appendSpaces(currentColumn,potentialSpaces);
                     }
                     columns.add(currentColumn.length()>0?currentColumn.toString():null); // "" -> null
+                    colIdx++;
                     potentialSpaces=0;
-                    currentColumn.setLength(0);
+
+                    if(valueSizeHints != null) {
+                        currentColumn = new StringBuilder(valueSizeHints.get(colIdx) + 100 /* quotes and what not*/);
+                    } else {
+                        currentColumn.setLength(0);
+                    }
                     if(recordQuotes){
                         quotedColumns.append(wasQuoted);
                     }
@@ -219,7 +297,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
                     }
 
                     potentialSpaces=0;
-                    currentColumn.append(c);
+                    currentColumn.append(String.valueOf(c));
                 }
 
             }else{
@@ -235,7 +313,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
 						 * An escaped quote (""). Add a single quote, then move the cursor so the next iteration of the
 						 * loop will read the character following the escaped quote.
 						 */
-                        currentColumn.append(c);
+                        currentColumn.append(String.valueOf(c));
                         charIndex++;
 
                     }else{
@@ -250,7 +328,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
 					 * Just a normal character, delimiter (they don't count in QUOTESCOPE) or space. Add the character,
 					 * then continue to next character.
 					 */
-                    currentColumn.append(c);
+                    currentColumn.append(String.valueOf(c));
                 }
             }
 
@@ -262,10 +340,15 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer{
      * Appends the required number of spaces to the StringBuilder.
      *
      * @param sb     the StringBuilder
-     * @param spaces the required number of spaces to append
+     * @param count the required number of spaces to append
      */
-    private static void appendSpaces(final StringBuilder sb,final int spaces){
-        for(int i=0;i<spaces;i++){
+    private static void appendSpaces(final LazyStringBuilder sb,final int count){
+        String spaces = String.join("", Collections.nCopies(count, " "));
+        sb.append(spaces);
+    }
+
+    private static void appendSpaces(final StringBuilder sb,final int spaces) {
+        for (int i = 0; i < spaces; i++) {
             sb.append(SPACE);
         }
     }

@@ -16,15 +16,13 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.load.SpliceCsvReader;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.BooleanList;
 
 import java.io.*;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 /**
  *
@@ -76,7 +74,11 @@ import java.util.NoSuchElementException;
                             try {
                                 if (!initialized) {
                                     reader = new BufferedReader(new InputStreamReader(s,charset));
-                                    spliceCsvReader = new SpliceCsvReader(reader, preference);
+                                    List<Integer> valueSizeHints = new ArrayList<>(execRow.nColumns());
+                                    for(DataValueDescriptor dvd : execRow.getRowArray()) {
+                                        valueSizeHints.add(dvd.estimateMemoryUsage());
+                                    }
+                                    spliceCsvReader = new SpliceCsvReader(reader, preference, valueSizeHints);
                                     initialized = true;
                                 }
                                 while (true) {
