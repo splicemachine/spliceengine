@@ -58,6 +58,15 @@ public class QuoteTrackingTokenizerTest{
         checkResults(column,correctCols,correctQuotes,4);
     }
 
+    @Test
+    public void recordsQuotesAcrossLineManyBreaks() throws Exception{
+        String column = "\"hello\",goodbye,parseThis!,\"boots\nma\n\n\ngoo\"";
+        List<String> correctCols = Arrays.asList("hello","goodbye","parseThis!","boots\nma\n\n\ngoo");
+        BooleanList correctQuotes = BooleanList.wrap(true,false,false,true);
+
+        checkResults(column,correctCols,correctQuotes,3);
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private void checkResults(String column,List<String> correctCols,BooleanList correctQuotes,int size) throws IOException{
