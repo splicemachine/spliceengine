@@ -326,9 +326,12 @@ public class SITransactor implements Transactor{
             boolean addFirstOccurrenceToken = false;
 
             if (!skipConflictDetection) {
-                if (possibleConflicts == null || possibleConflicts.isEmpty()) {
+                if (possibleConflicts == null || possibleConflicts.isEmpty())
+                {
                     // First write
-                    addFirstOccurrenceToken = true;
+                    if (KVPair.Type.INSERT.equals(writeType) ||
+                        KVPair.Type.UPSERT.equals(writeType))
+                        addFirstOccurrenceToken = true;
                 } else if (KVPair.Type.DELETE.equals(writeType) && possibleConflicts.firstWriteToken() != null) {
                     // Delete following first write
                     assert possibleConflicts.userData() != null;
