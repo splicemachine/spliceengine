@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -43,6 +44,11 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
     private int quoteScopeStartingLine;
     private TokenizerState state;
     private int colIdx;
+    private boolean firstRun;
+    private boolean checkExactSizeFirst = false;
+    private int rowIdx = 0;
+    private List<Integer> exactColumnSizes = null;
+    final static int SCAN_THRESHOLD = 100000;
 
     private static class LazyStringBuilder {
 
@@ -80,21 +86,17 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
             return this;
         }
 
+        public String at(int index) {
+            assert index >=0 && index < bufferList.size();
+            return bufferList.get(index);
+        }
+
         public String toString() {
-            String result = new String(new char[length()]);
-            try {
-                Field valueField = String.class.getDeclaredField("value");
-                valueField.setAccessible(true);
-                char[] value = (char[]) valueField.get(result);
-                int needle = 0;
-                for (String cb : bufferList) {
-                    System.arraycopy(cb.toCharArray(), 0, value, needle, cb.length());
-                    needle += cb.length();
-                }
-            } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-                e.printStackTrace(); // improve on this.
+            StringBuilder sb = new StringBuilder(length());
+            for(String cb : bufferList) {
+                sb.append(cb);
             }
-            return result;
+            return sb.toString();
         }
     }
 
@@ -181,16 +183,41 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         wasQuoted = false;
 
         // read a line (ignoring empty lines/comments if necessary)
-        String line;
-        do {
-            line = readLine();
-            if (line == null) {
-                return false; // EOF
+        if (!readFirstLine()) return false; // EOF
+
+        // now, if some column value is larger than 10000K we perform the dry run to avoid extra allocation of StringBuilder.
+        checkExactSizeFirst = false;
+        if(valueSizeHints != null) {
+            if(valueSizeHints.stream().max(Integer::compare).get() > SCAN_THRESHOLD) {
+                checkExactSizeFirst = true;
+                exactColumnSizes = new ArrayList<>(Collections.nCopies(valueSizeHints.size(), 0));
             }
         }
-        while (ignoreEmptyLines && line.isEmpty() || (commentMatcher != null && commentMatcher.isComment(line)));
-        currentRow.append(line);
 
+        if(checkExactSizeFirst) {
+            runStateMachine(new ArrayList<>(), null); // will only calculate exact size of each column
+            checkExactSizeFirst = false;
+
+            // clear the reusable List and StringBuilders
+            colIdx = 0;
+            currentColumn.setLength(0);
+            // process each character in the line, catering for surrounding quotes (QUOTE_MODE)
+            state = TokenizerState.NORMAL;
+            // the line number where a potential multi-line cell starts
+            quoteScopeStartingLine = -1;
+            // keep track of spaces (so leading/trailing space can be removed if required)
+            potentialSpaces = 0;
+            charIndex = 0;
+            rowIdx = 0;
+            wasQuoted = false;
+            resetColumn();
+        }
+
+        runStateMachine(columns, quotedColumns);
+        return true;
+    }
+
+    private void runStateMachine(final List<String> columns, final BooleanList quotedColumns) throws IOException {
         while (true) {
             switch (state) {
                 case NORMAL:
@@ -200,21 +227,83 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
                     handleQuoteState();
                     break;
                 case FINISHED:
-                    return true;
+                    return;
             }
         }
     }
 
-    private void handleNormalState(List<String> columns, BooleanList quotedColumns) {
-        if (charIndex == currentRow.last().length()) { // Newline. Add any required spaces (if surrounding spaces don't need quotes) and return (we've read
+    private void appendToRowNewLine() {
+        if(checkExactSizeFirst) {
+            currentRow.append(String.valueOf(NEWLINE));
+        } else if (exactColumnSizes != null) {
+            rowIdx++; // simulate adding a newline by moving a sequence by one
+        } else {
+            currentRow.append(String.valueOf(NEWLINE));
+        }
+    }
+
+    private void appendToRowFromFile() throws IOException {
+        if(checkExactSizeFirst) {
+            currentRow.append(String.valueOf(readLine()));
+        } else if (exactColumnSizes != null) {
+            rowIdx++; // simulate adding a newline by moving a sequence by one
+        } else {
+            currentRow.append(String.valueOf(readLine()));
+        }
+    }
+
+    private void addToColumn(char c) {
+        if(checkExactSizeFirst) {
+            exactColumnSizes.set(colIdx, exactColumnSizes.get(colIdx) + 1);
+        } else {
+            currentColumn.append(c);
+        }
+    }
+
+    private void resetColumn() {
+        if(!checkExactSizeFirst) {
+            if(exactColumnSizes != null) { // we set the column sizes before, use it to set the SB size correctly
+                System.out.println("reinit the StringBuilder with exact size: " + exactColumnSizes.get(colIdx) + " for column index " + colIdx);
+                currentColumn = new StringBuilder(exactColumnSizes.get(colIdx));
+            } else { // we didn't because the column size is too small. Just reset the size and let SB grow exponentially.
+                currentColumn.setLength(0);
+            }
+        }  // else is a no-op, we don't care at this moment about the columns
+    }
+
+    private String getCurrentLine() {
+        if(checkExactSizeFirst) {
+            return currentRow.last();
+        } else if (exactColumnSizes != null) {
+            return currentRow.at(rowIdx);
+        } else {
+            return currentRow.last();
+        }
+    }
+
+    private boolean readFirstLine() throws IOException {
+        String line;
+        do {
+            line = readLine();
+            if (line == null) {
+                return false;
+            }
+        }
+        while (ignoreEmptyLines && line.isEmpty() || (commentMatcher != null && commentMatcher.isComment(line)));
+        currentRow.append(line);
+        return true;
+    }
+
+    private void handleNormalState(final List<String> columns, final BooleanList quotedColumns) {
+        if (charIndex == getCurrentLine().length()) { // Newline. Add any required spaces (if surrounding spaces don't need quotes) and return (we've read
             finishCol(columns, quotedColumns);
             state = TokenizerState.FINISHED;
         } else {
-            final char c = currentRow.last().charAt(charIndex);
+            final char c = getCurrentLine().charAt(charIndex);
             if (c == delimeterChar) { // Delimiter. Save the column (trim trailing space if required) then continue to next character.
                 finishCol(columns, quotedColumns);
                 potentialSpaces = 0;
-                currentColumn.setLength(0);
+                resetColumn();
             } else if (c == SPACE) { // Space. Remember it, then continue to next character.
                 potentialSpaces++;
             } else if (c == quoteChar) { // A single quote ("). Update to QUOTESCOPE (but don't save quote), then continue to next character.
@@ -226,45 +315,43 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
             } else { // Just a normal character. Add any required spaces (but trim any leading spaces if surrounding
                 // spaces need quotes), add the character, then continue to next character.
                 fillSpaces();
-                currentColumn.append(c);
+                addToColumn(c);
             }
         }
         charIndex++; // read next char of the line
     }
 
-
     private void handleQuoteState() throws IOException {
-        if (charIndex == currentRow.last().length()) { // Newline. Doesn't count as newline while in QUOTESCOPE. Add the newline char, reset the charIndex
-                                          // (will update to 0 for next iteration), read in the next line, then then continue to next character)
-            currentColumn.append(NEWLINE);
-            currentRow.append(String.valueOf(NEWLINE)); // specific line terminator lost, \n will have to suffice
+        if (charIndex == getCurrentLine().length()) { // Newline. Doesn't count as newline while in QUOTESCOPE. Add the newline char, reset the charIndex
+                                                       // (will update to 0 for next iteration), read in the next line, then continue to next character)
+            addToColumn(NEWLINE);
+            appendToRowNewLine(); // specific line terminator lost, \n will have to suffice
             charIndex = 0;
             checkLineErrors(quoteScopeStartingLine);
-            currentRow.append(readLine());
-            if (currentRow.last() == null) {
+            appendToRowFromFile();
+            if (getCurrentLine() == null) {
                 throw new SuperCsvException(
                         String.format(
                                 "partial record found [%s] while reading quoted column beginning on line %d and ending on line %d",
                                 this.currentColumn, quoteScopeStartingLine, getLineNumber()));
             }
         } else { // QUOTE_MODE (within quotes).
-            final char c = currentRow.last().charAt(charIndex);
+            final char c = getCurrentLine().charAt(charIndex);
             if (c == quoteChar) {
                 int nextCharIndex = charIndex + 1;
-                boolean availableCharacters = nextCharIndex < currentRow.last().length();
-                boolean nextCharIsQuote = availableCharacters && currentRow.last().charAt(nextCharIndex) == quoteChar;
+                boolean availableCharacters = nextCharIndex < getCurrentLine().length();
+                boolean nextCharIsQuote = availableCharacters && getCurrentLine().charAt(nextCharIndex) == quoteChar;
                 if (nextCharIsQuote) { // An escaped quote (""). Add a single quote, then move the cursor so the next iteration of the
                                        // loop will read the character following the escaped quote.
-                    currentColumn.append(c);
+                    addToColumn(c);
                     charIndex++;
-
                 } else { // A single quote ("). Update to NORMAL (but don't save quote), then continue to next character.
                     state = TokenizerState.NORMAL;
                     quoteScopeStartingLine = -1; // reset ready for next multi-line cell
                 }
             } else { // Just a normal character, delimiter (they don't count in QUOTESCOPE) or space. Add the character,
                      // then continue to next character.
-                currentColumn.append(c);
+                addToColumn(c);
             }
             charIndex++; // read next char of the line
         }
@@ -272,14 +359,18 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
 
     private void fillSpaces() {
         if (!surroundingSpacesNeedQuotes || currentColumn.length() > 0) {
-            appendSpaces(currentColumn, potentialSpaces);
+            for (int i = 0; i < potentialSpaces; i++) {
+                currentColumn.append(SPACE);
+            }
         }
         potentialSpaces = 0;
     }
 
     private void finishCol(List<String> columns, BooleanList quotedColumns) {
         if (!surroundingSpacesNeedQuotes) {
-            appendSpaces(currentColumn, potentialSpaces);
+            for (int i = 0; i < potentialSpaces; i++) {
+                currentColumn.append(SPACE);
+            }
         }
         assert columns != null;
         columns.add(currentColumn.length() > 0 ? currentColumn.toString() : null); // "" -> null
@@ -295,28 +386,14 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
             /*
              * The quoted section that is being parsed spans too many lines, so to avoid excessive memory
              * usage parsing something that is probably human error anyways, throw an exception. If each
-             * row is suppose to be a single line and this has been exceeded, throw a more descriptive
-             * exception
+             * row is supposed to be a single line and this has been exceeded, throw a more descriptive
+             * exception.
              */
             String msg = maxLinesPerRow == 1 ?
-                    String.format("unexpected end of line while reading quoted column on line %d",
-                            getLineNumber()) :
+                    String.format("unexpected end of line while reading quoted column on line %d", getLineNumber()) :
                     String.format("max number of lines to read exceeded while reading quoted column" +
-                                    " beginning on line %d and ending on line %d",
-                            quoteScopeStartingLine, getLineNumber());
+                                  " beginning on line %d and ending on line %d", quoteScopeStartingLine, getLineNumber());
             throw new SuperCsvException(msg);
-        }
-    }
-
-    /**
-     * Appends the required number of spaces to the StringBuilder.
-     *
-     * @param sb    the StringBuilder
-     * @param count the required number of spaces to append
-     */
-    private static void appendSpaces(final StringBuilder sb, final int spaces) {
-        for (int i = 0; i < spaces; i++) {
-            sb.append(SPACE);
         }
     }
 
