@@ -39,6 +39,10 @@ public class MutableCSVTokenizer extends QuoteTrackingTokenizer {
         super(reader, preferences);
     }
 
+    public MutableCSVTokenizer(Reader reader, CsvPreference preferences, List<Integer> valueSizeHint) {
+        super(reader, preferences, valueSizeHint);
+    }
+
     /**
      *
      * Reads the line that is set and then sets it to null

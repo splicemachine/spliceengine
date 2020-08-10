@@ -16,12 +16,16 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import org.apache.commons.collections.iterators.SingletonIterator;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -65,7 +69,12 @@ public class FileFunction extends AbstractFileFunction<String> {
         if (!initialized) {
             Reader reader = new StringReader(s);
             checkPreference();
-            tokenizer= new MutableCSVTokenizer(reader,preference);
+            VTIOperation op = (VTIOperation) operationContext.getOperation();
+            List<Integer> valueSizeHints = new ArrayList<>(execRow.nColumns());
+            for(DataTypeDescriptor dtd : op.getResultColumnTypes()) {
+                valueSizeHints.add(dtd.getMaximumWidth());
+            }
+            tokenizer= new MutableCSVTokenizer(reader,preference,valueSizeHints);
             initialized = true;
         }
         try {
