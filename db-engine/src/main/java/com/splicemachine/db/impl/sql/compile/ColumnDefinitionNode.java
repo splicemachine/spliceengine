@@ -71,11 +71,11 @@ public class ColumnDefinitionNode extends TableElementNode
      */
     DataTypeDescriptor type;
 
-    DataValueDescriptor            defaultValue;
-    DefaultInfoImpl                defaultInfo;
-    DefaultNode                    defaultNode;
-    boolean                        keepCurrentDefault;
-    GenerationClauseNode   generationClauseNode;
+    DataValueDescriptor         defaultValue;
+    DefaultInfoImpl             defaultInfo;
+    DefaultNode                 defaultNode;
+    boolean                     keepCurrentDefault;
+    GenerationClauseNode        generationClauseNode;
     long                        autoincrementIncrement;
     long                        autoincrementStart;
     //This variable tells if the autoincrement column is participating
@@ -119,28 +119,26 @@ public class ColumnDefinitionNode extends TableElementNode
     {
         super.init(name);
         this.type = (DataTypeDescriptor) dataTypeServices;
-        if (defaultNode instanceof UntypedNullConstantNode)
-        {
+        if (defaultNode instanceof UntypedNullConstantNode) {
             /* No DTS yet for MODIFY DEFAULT */
-            if (dataTypeServices != null)
-            {
+            if (dataTypeServices != null) {
                 defaultValue = ((UntypedNullConstantNode) defaultNode).convertDefaultNode(this.type);
             }
-        }
-        else if (defaultNode instanceof EmptyDefaultConstantNode)
-        {
+        } else if (defaultNode instanceof EmptyDefaultConstantNode && type.getTypeId().isDateTimeTimeStampTypeId()) {
+            if (dataTypeServices != null) {
+                ValueNode currentDateTimeNode = new CurrentDatetimeOperatorNode(getContextManager());
+                currentDateTimeNode.init(type.getTypeId());
+                generationClauseNode = new GenerationClauseNode();
+                generationClauseNode.init(currentDateTimeNode, currentDateTimeNode.toString());
+            }
+        } else if (defaultNode instanceof EmptyDefaultConstantNode) {
             /* No DTS yet for MODIFY DEFAULT */
-            if (dataTypeServices != null)
-            {
+            if (dataTypeServices != null) {
                 defaultValue = ((EmptyDefaultConstantNode) defaultNode).convertDefaultNode(this.type);
             }
-        }
-        else if (defaultNode instanceof GenerationClauseNode)
-        {
+        } else if (defaultNode instanceof GenerationClauseNode) {
             generationClauseNode = (GenerationClauseNode) defaultNode;
-        }
-        else
-        {
+        } else {
             if (SanityManager.DEBUG)
             {
                 if (defaultNode != null &&
