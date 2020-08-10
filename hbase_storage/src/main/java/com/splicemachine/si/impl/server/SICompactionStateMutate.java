@@ -41,16 +41,14 @@ class SICompactionStateMutate {
     private final PurgeConfig purgeConfig;
     private Cell maxTombstone = null;
     private Cell lastSeenAntiTombstone = null;
-    private long lowWatermarkTransaction;
     private boolean firstWriteToken = false;
     private long deleteRightAfterFirstWriteTimestamp = 0;
     private Map<Integer, Long> columnUpdateLatestTimestamp = new HashMap<>();
     private Set<Long> updatesToPurgeTimestamps = new HashSet<>();
     private boolean firstUpdateCell = true;
 
-    SICompactionStateMutate(PurgeConfig purgeConfig, long lowWatermarkTransaction) {
+    SICompactionStateMutate(PurgeConfig purgeConfig) {
         this.purgeConfig = purgeConfig;
-        this.lowWatermarkTransaction = lowWatermarkTransaction;
     }
 
     private boolean isSorted(List<Cell> list) {
@@ -144,7 +142,7 @@ class SICompactionStateMutate {
             case TOMBSTONE:
                 assert maxTombstone == null || maxTombstone.getTimestamp() >= beginTimestamp;
                 if (maxTombstone == null &&
-                        (!purgeConfig.shouldRespectActiveTransactions() || commitTimestamp < lowWatermarkTransaction)) {
+                        (!purgeConfig.shouldRespectActiveTransactions() || commitTimestamp < purgeConfig.getTransactionLowWatermark())) {
                     if (lastSeenAntiTombstone != null && lastSeenAntiTombstone.getTimestamp() == beginTimestamp) {
                         maxTombstone = lastSeenAntiTombstone;
                     } else {
@@ -170,7 +168,7 @@ class SICompactionStateMutate {
                 deleteRightAfterFirstWriteTimestamp = beginTimestamp;
                 break;
             case USER_DATA: {
-                if (purgeConfig.shouldPurgeUpdates() && commitTimestamp < lowWatermarkTransaction) {
+                if (purgeConfig.shouldPurgeUpdates() && commitTimestamp < purgeConfig.getTransactionLowWatermark()) {
                     EntryDecoder decoder = new EntryDecoder(element.getValueArray(), element.getValueOffset(), element.getValueLength());
                     BitIndex index = decoder.getCurrentIndex();
                     LOG.trace("BitIndex: " + index + " , length=" + index.length());
