@@ -67,10 +67,27 @@ public class QuoteTrackingTokenizerTest{
         checkResults(column,correctCols,correctQuotes,3);
     }
 
+    @Test
+    public void countsAreCorrect() throws Exception{
+        String column = "\"1234567890123456789012345\",goodbye,parseThis!,\"boots\nma\n\n\ngoo\"";
+        List<String> correctCols = Arrays.asList("1234567890123456789012345","goodbye","parseThis!","boots\nma\n\n\ngoo");
+        BooleanList correctQuotes = BooleanList.wrap(true,false,false,true);
+        checkResults(column,correctCols,correctQuotes,4, Arrays.asList(5,4,3,4));
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private void checkResults(String column,List<String> correctCols,BooleanList correctQuotes,int size) throws IOException{
         QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(column),CsvPreference.STANDARD_PREFERENCE);
+        List<String> cols = new ArrayList<>(size);
+        BooleanList quoteCols = new BooleanList(size);
+        Assert.assertTrue("Did not properly read the columns!",qtt.readColumns(cols,quoteCols));
+        Assert.assertEquals("Did not return correct column information",correctCols, cols);
+        Assert.assertEquals("Did not return correct quoted column information",correctQuotes,quoteCols);
+    }
+
+    private void checkResults(String column,List<String> correctCols,BooleanList correctQuotes,int size, List<Integer> valueSizes) throws IOException{
+        QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(column),CsvPreference.STANDARD_PREFERENCE, valueSizes);
         List<String> cols = new ArrayList<>(size);
         BooleanList quoteCols = new BooleanList(size);
         Assert.assertTrue("Did not properly read the columns!",qtt.readColumns(cols,quoteCols));
