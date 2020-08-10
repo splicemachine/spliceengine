@@ -783,7 +783,11 @@ public class SpliceRegionAdmin {
         // set up csv reader
         CsvPreference preference = createCsvPreference(columnDelimiter, characterDelimiter);
         Reader reader = new StringReader(splitKey);
-        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference);
+        List<Integer> valueSizeHints = new ArrayList<>(execRow.nColumns());
+        for(DataValueDescriptor dvd : execRow.getRowArray()) {
+            valueSizeHints.add(dvd.estimateMemoryUsage());
+        }
+        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference, valueSizeHints);
         tokenizer.setLine(splitKey);
         List<String> read=tokenizer.read();
         BooleanList quotedColumns=tokenizer.getQuotedColumns();
