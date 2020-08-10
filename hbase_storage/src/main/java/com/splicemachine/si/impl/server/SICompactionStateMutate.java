@@ -45,7 +45,6 @@ class SICompactionStateMutate {
     private long lowWatermarkTransaction;
     private boolean firstWriteToken = false;
     private long deleteRightAfterFirstWriteTimestamp = 0;
-    private boolean bypassPurge = false;
     private Map<Integer, Long> columnUpdateLatestTimestamp = new HashMap<>();
     private Set<Long> updatesToPurgeTimestamps = new HashSet<>();
     private boolean firstUpdateCell = true;
@@ -165,22 +164,16 @@ class SICompactionStateMutate {
                 break;
             case FIRST_WRITE_TOKEN:
                 // Assertions are only thrown in standalone builds.
-                // Avoid the purge instead of using an assertion to prevent corruption.
+                // Use an exception instead.
                 if (firstWriteToken) {
-
-                    // bypassPurge = true;  msirek-temp
-                    LOG.warn("Skipping tombstone purge.  Duplicate FIRST_WRITE_TOKEN.  commitTimestamp = " + commitTimestamp + ", beginTimestamp = " + beginTimestamp);
-                    throw new IOException();
+                    throw new IOException("Internal error during tombstone purge operation.  More than one FIRST_WRITE_TOKEN.  commitTimestamp = " + commitTimestamp + ", beginTimestamp = " + beginTimestamp);
                 }
                 firstWriteToken = true;
                 break;
             case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
                 if (deleteRightAfterFirstWriteTimestamp != 0)
                 {
-
-                    // bypassPurge = true;  msirek-temp
-                    LOG.warn("Skipping tombstone purge.  More that one DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN.  commitTimestamp = " + commitTimestamp + ", beginTimestamp = " + beginTimestamp);
-                    throw new IOException();
+                    throw new IOException("Internal error during tombstone purge operation.  More than one DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN.  commitTimestamp = " + commitTimestamp + ", beginTimestamp = " + beginTimestamp);
                 }
                 deleteRightAfterFirstWriteTimestamp = beginTimestamp;
                 break;
@@ -229,9 +222,9 @@ class SICompactionStateMutate {
             case ALWAYS:
                 return true;
             case IF_DELETE_FOLLOWS_FIRST_WRITE:
-                return firstWriteToken && !bypassPurge && deleteRightAfterFirstWriteTimestamp == maxTombstone.getTimestamp();
+                return firstWriteToken && deleteRightAfterFirstWriteTimestamp == maxTombstone.getTimestamp();
             case IF_FIRST_WRITE_PRESENT:
-                return firstWriteToken && !bypassPurge;
+                return firstWriteToken;
         }
         assert false;
         return false;
