@@ -65,7 +65,7 @@ public class SICompactionState {
      * @param results - the output key values
      */
     public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, PurgeConfig purgeConfig) throws IOException {
-        SICompactionStateMutate impl = new SICompactionStateMutate(purgeConfig, TransactionsWatcher.getLowWatermarkTransaction());
+        SICompactionStateMutate impl = new SICompactionStateMutate(purgeConfig);
         impl.mutate(rawList, txns, results);
     }
 
