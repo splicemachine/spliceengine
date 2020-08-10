@@ -154,7 +154,7 @@ public class CrossJoinOperation extends JoinOperation{
             }
             if (this.leftHashKeys.length != 0)
                 leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
-            result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext))
+            result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext, false))
                     .map(new InnerJoinFunction<SpliceOperation>(operationContext));
             if (restriction != null) { // with restriction
                 result = result.filter(new JoinRestrictionPredicateFunction(operationContext));

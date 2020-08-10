@@ -21,8 +21,8 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.LongerThanFiveMinutes;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
@@ -32,19 +32,14 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Arrays;
+import java.sql.*;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * Created by jyuan on 2/15/18.
@@ -285,6 +280,7 @@ public class CheckTableIT extends SpliceUnitTest {
         rs.next();
         rowid = rs.getString(1);
 
+        // depending on the rowid, the order of the strings below could be different, so need a sort
         String expected = String.format("message                                    |\n" +
                 "--------------------------------------------------------------------------------\n" +
                 "                               %s                                |\n" +
@@ -294,7 +290,12 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                           SYSCONGLOMERATES_INDEX1:                            |\n" +
                 "                           SYSCONGLOMERATES_INDEX2:                            |", rowid, rowid);
 
-        assertEquals(s, expected, s);
+
+        String sortedExpected = Stream.of(expected.split("\n")).sorted().collect(Collectors.joining("\n"));
+        String sortedS = Stream.of(s.split("\n")).sorted().collect(Collectors.joining("\n"));
+
+        assertEquals(sortedS, sortedExpected, sortedS);
+
         // Check the table again
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('SYS', 'SYSCONGLOMERATES', null, 2, '%s/fix-conglomerates.out')", getResourceDirectory()));
         rs.next();

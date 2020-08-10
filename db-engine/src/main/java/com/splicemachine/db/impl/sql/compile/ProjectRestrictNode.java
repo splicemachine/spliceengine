@@ -694,7 +694,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         */
         if(origChildOptimizable){
             processRowIdReferenceInFromBaseTableChild();
-            childResult=childResult.changeAccessPath();
+            childResult=childResult.changeAccessPath(outerTables);
         }
         accessPathModified=true;
 
@@ -705,7 +705,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         */
         if(trulyTheBestAccessPath.getJoinStrategy()!=null &&
                 trulyTheBestAccessPath.getJoinStrategy().isHashJoin()){
-            return replaceWithHashTableNode();
+            return replaceWithHashTableNode(outerTables);
         }
 
         /* We consider materialization into a temp table as a last step.
@@ -726,7 +726,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      * @return The new (same) top of our result set tree.
      * @throws StandardException Thrown on error
      */
-    private Optimizable replaceWithHashTableNode() throws StandardException{
+    private Optimizable replaceWithHashTableNode(JBitSet joinedTableSet) throws StandardException{
         // If this PRN has TTB access path for its child, store that access
         // path in the child here, so that we can find it later when it
         // comes time to generate qualifiers for the hash predicates (we
@@ -780,6 +780,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         PredicateList joinQualifierList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         PredicateList requalificationRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         trulyTheBestAccessPath.getJoinStrategy().divideUpPredicateLists(this,
+                joinedTableSet,
                 restrictionList,
                 searchRestrictionList,
                 joinQualifierList,
@@ -1940,4 +1941,11 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         return childResult.isOneRowResultSet();
     }
 
+    @Override
+    public boolean hasJoinPredicatePushedDownFromOuter() {
+        if (!hasTrulyTheBestAccessPath)
+            return ((FromTable)childResult).hasJoinPredicatePushedDownFromOuter();
+
+        return hasJoinPredicatePushedDownFromOuter;
+    }
 }
