@@ -59,6 +59,7 @@ import java.net.URL;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.UUID;
 
 /* can't import these due to name overlap:
 import java.sql.ResultSet;
@@ -557,13 +558,12 @@ public abstract class EmbedResultSet extends ConnectionChild
 				// just give up and return
 				return;
 			}
-            
-			try	{
-                LanguageConnectionContext lcc =
-                    getEmbedConnection().getLanguageConnection();
 
+			LanguageConnectionContext lcc = getEmbedConnection().getLanguageConnection();
+			UUID uuid = theResults.getUuid();
+			try	{
 				try	{
-					theResults.close(); 
+					theResults.close();
 				    
 				    if (this.singleUseActivation != null)
 				    {
@@ -612,8 +612,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 			// we hang on to theResults and messenger
 			// in case more calls come in on this resultSet
 
-			LanguageConnectionContext lcc = getEmbedConnection().getLanguageConnection();
-			lcc.logEndFetching(getSQLText(), NumberofFetchedRows);
+			lcc.logEndFetching((uuid == null ? "" : uuid.toString()), getSQLText(), NumberofFetchedRows);
 		}
 
 	}
@@ -1113,6 +1112,11 @@ public abstract class EmbedResultSet extends ConnectionChild
 		checkIfClosed("getCharacterStream");
 		int lmfs;
 		int colType = getColumnType(columnIndex);
+
+		Object syncLock = getConnectionSynchronization();
+
+		synchronized (syncLock) {
+
 		switch (colType) {
 		case Types.CHAR:
 		case Types.VARCHAR:
@@ -1142,10 +1146,6 @@ public abstract class EmbedResultSet extends ConnectionChild
 		default:
 			throw dataTypeConversion("java.io.Reader", columnIndex);
 		}
-
-		Object syncLock = getConnectionSynchronization();
-
-		synchronized (syncLock) {
 
 		boolean pushStack = false;
 		try {
@@ -3055,7 +3055,6 @@ public abstract class EmbedResultSet extends ConnectionChild
 			try {
 				DataValueDescriptor value = updateRow.getColumn(columnIndex);
 
-				int origvaluelen = value.getLength();
 				((VariableSizeDataValue)
 						value).setWidth(VariableSizeDataValue.IGNORE_PRECISION,
 							scale,
@@ -3684,6 +3683,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 
                 lcc.popStatementContext(statementContext, null);
                 InterruptStatus.restoreIntrFlagIfSeen(lcc);
+                rs.close();
             } catch (Throwable t) {
                 throw closeOnTransactionError(t);
             } finally {
@@ -3784,6 +3784,7 @@ public abstract class EmbedResultSet extends ConnectionChild
             }
             lcc.popStatementContext(statementContext, null);
             InterruptStatus.restoreIntrFlagIfSeen(lcc);
+            rs.close();
         } catch (Throwable t) {
             throw closeOnTransactionError(t);
         } finally {
@@ -3861,6 +3862,7 @@ public abstract class EmbedResultSet extends ConnectionChild
                 currentRow = null;
                 lcc.popStatementContext(statementContext, null);
                 InterruptStatus.restoreIntrFlagIfSeen(lcc);
+                rs.close();
             } catch (Throwable t) {
                     throw closeOnTransactionError(t);
             } finally {
@@ -4101,7 +4103,6 @@ public abstract class EmbedResultSet extends ConnectionChild
 			try {
 
 				StringDataValue dvd = (StringDataValue)getColumn(columnIndex);
-                LanguageConnectionContext lcc = ec.getLanguageConnection();
 
                 if (wasNull = dvd.isNull()) {
                     InterruptStatus.restoreIntrFlagIfSeen();
@@ -4298,6 +4299,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 * the next get*() method call.
 	 */
 	private void closeCurrentStream() {
+		Object syncLock = getConnectionSynchronization();
+		synchronized (syncLock) {
 
 		if (currentStream != null) {
 			try {
@@ -4316,6 +4319,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 			} finally {
 				currentStream = null;
 			}
+		}
+
 		}
 	}
 

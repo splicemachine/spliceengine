@@ -32,12 +32,13 @@ public class CogroupBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFu
     public CogroupBroadcastJoinFunction() {
     }
 
-    public CogroupBroadcastJoinFunction(OperationContext operationContext) {
-        super(operationContext);
+    public CogroupBroadcastJoinFunction(OperationContext operationContext,
+                                        boolean noCacheBroadcastJoinRight) {
+        super(operationContext, noCacheBroadcastJoinRight);
     }
 
-    public CogroupBroadcastJoinFunction(OperationContext operationContext, boolean rightAsLeft) {
-        super(operationContext, rightAsLeft);
+    public CogroupBroadcastJoinFunction(OperationContext operationContext, boolean rightAsLeft, boolean noCacheBroadcastJoinRight) {
+        super(operationContext, rightAsLeft, noCacheBroadcastJoinRight);
     }
 
     @Override
