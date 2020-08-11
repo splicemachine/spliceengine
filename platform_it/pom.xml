@@ -1509,7 +1509,8 @@
                                 <argument>-Dsplice.spark.kryoserializer.buffer=4m</argument>
                                 <argument>-Dsplice.spark.locality.wait=60s</argument>
                                 <argument>-Dsplice.spark.logConf=true</argument>
-                                <argument>-Dsplice.spark.master=${splice.spark.master}</argument>
+                                <argument>-Dsplice.spark.master=yarn</argument>
+                                <argument>-Dsplice.spark.submit.deployMode=client</argument>
                                 <argument>
                                     -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
                                 </argument>
