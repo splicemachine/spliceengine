@@ -44,6 +44,7 @@ class SICompactionStateMutate {
     private long lowWatermarkTransaction;
     private boolean firstWriteToken = false;
     private long deleteRightAfterFirstWriteTimestamp = 0;
+    private boolean bypassPurge = false;
     private Map<Integer, Long> columnUpdateLatestTimestamp = new HashMap<>();
     private Set<Long> updatesToPurgeTimestamps = new HashSet<>();
     private boolean firstUpdateCell = true;
@@ -70,11 +71,38 @@ class SICompactionStateMutate {
     }
 
     public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results) throws IOException {
-        assert dataToReturn.isEmpty();
-        assert results.isEmpty();
-        assert maxTombstone == null;
-        assert !LOG.isDebugEnabled() || isSorted(rawList) : "CompactionStateMutate: rawList not sorted";
-        assert rawList.size() == txns.size();
+        final boolean dataToReturnIsEmpty = dataToReturn.isEmpty();
+        final boolean resultsIsEmpty = results.isEmpty();
+        final boolean maxTombstoneIsNull = maxTombstone == null;
+        final boolean rawListAndTxnListSameSize = rawList.size() == txns.size();
+        final boolean debugSortCheck = !LOG.isDebugEnabled() || isSorted(rawList);
+        assert dataToReturnIsEmpty;
+        assert resultsIsEmpty;
+        assert maxTombstoneIsNull;
+        assert debugSortCheck : "CompactionStateMutate: rawList not sorted";
+        assert rawListAndTxnListSameSize;
+
+        if (!debugSortCheck) {
+            bypassPurge = true;
+            LOG.warn("Skipping tombstone purge.  rawList is not sorted.");
+        }
+
+        if (!dataToReturnIsEmpty) {
+            bypassPurge = true;
+            LOG.warn("Skipping tombstone purge.  dataToReturn is not properly initialized.");
+        }
+        if (!resultsIsEmpty) {
+            bypassPurge = true;
+            LOG.warn("Skipping tombstone purge.  results list not properly initialized.");
+        }
+        if (!maxTombstoneIsNull) {
+            bypassPurge = true;
+            LOG.warn("Skipping tombstone purge.  maxTombstone not properly initialized to null.");
+        }
+        if (!rawListAndTxnListSameSize) {
+            bypassPurge = true;
+            LOG.warn("Skipping tombstone purge.  rawList and txn list not the same length.");
+        }
 
         try {
             Iterator<TxnView> it = txns.iterator();
@@ -107,8 +135,18 @@ class SICompactionStateMutate {
             return;
         }
         if (cellType == CellType.COMMIT_TIMESTAMP) {
-            assert txn == null;
-            assert element.getValueLength() == 8: "Element does not contain a timestamp: " + element;
+            final boolean txnIsNull = txn == null;
+            final boolean timeStampInElement = element.getValueLength() == 8;
+            assert txnIsNull;
+            assert timeStampInElement: "Element does not contain a timestamp: " + element;
+            if (!txnIsNull) {
+                bypassPurge = true;
+                LOG.warn("Skipping tombstone purge.  txn is not null, txn = " + txn.toString());
+            }
+            if (!timeStampInElement) {
+                bypassPurge = true;
+                LOG.warn("Skipping tombstone purge.  Element does not contain a timestamp: " + element);
+            }
             dataToReturn.add(element);
             return;
         }
@@ -130,6 +168,10 @@ class SICompactionStateMutate {
         }
 
         assert txnState == Txn.State.COMMITTED;
+        if (txnState != Txn.State.COMMITTED) {
+            bypassPurge = true;
+            LOG.warn("Skipping tombstone purge.  Attempting to purge an uncommitted transaction, txn = " + txn.toString());
+        }
 
         /*
          * This element has been committed all the way to the user level, so a
@@ -140,13 +182,23 @@ class SICompactionStateMutate {
         dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(commitTimestamp)));
         switch (cellType) {
             case TOMBSTONE:
-                assert maxTombstone == null || maxTombstone.getTimestamp() >= beginTimestamp;
+                boolean maxTombstoneIsNullOrValid = maxTombstone == null || maxTombstone.getTimestamp() >= beginTimestamp;
+                assert maxTombstoneIsNullOrValid;
+                if (!maxTombstoneIsNullOrValid) {
+                    bypassPurge = true;
+                    LOG.warn("Skipping tombstone purge.  maxTombstone is less than beginTimestamp.  maxTombstone = " + maxTombstone + ", beginTimestamp = " + beginTimestamp);
+                }
                 if (maxTombstone == null &&
                         (!purgeConfig.shouldRespectActiveTransactions() || commitTimestamp < lowWatermarkTransaction)) {
                     if (lastSeenAntiTombstone != null && lastSeenAntiTombstone.getTimestamp() == beginTimestamp) {
                         maxTombstone = lastSeenAntiTombstone;
                     } else {
                         maxTombstone = element;
+                    }
+                    maxTombstoneIsNullOrValid = maxTombstone == null || maxTombstone.getTimestamp() >= beginTimestamp;
+                    if (!maxTombstoneIsNullOrValid) {
+                        bypassPurge = true;
+                        LOG.warn("Skipping tombstone purge.  maxTombstone is less than beginTimestamp.  maxTombstone = " + maxTombstone + ", beginTimestamp = " + beginTimestamp);
                     }
                 }
                 break;
@@ -160,17 +212,29 @@ class SICompactionStateMutate {
                 lastSeenAntiTombstone = element;
                 break;
             case FIRST_WRITE_TOKEN:
-                // Assertions are only thrown in standalone builds.
-                // Use an exception instead.
+                assert !firstWriteToken;
+                // Assertions are only thrown on standalone.
+                // On clusters, we want to bypass the purge to avoid
+                // possible corruption, but also not error out, to
+                // prevent region server crash on every compaction
+                // of this region.
                 if (firstWriteToken) {
-                    throw new IOException("Internal error during tombstone purge operation.  More than one FIRST_WRITE_TOKEN.  commitTimestamp = " + commitTimestamp + ", beginTimestamp = " + beginTimestamp);
+                    bypassPurge = true;
+                    LOG.warn("Skipping tombstone purge.  More than one FIRST_WRITE_TOKEN.  commitTimestamp = " + commitTimestamp + ", beginTimestamp = " + beginTimestamp);
                 }
                 firstWriteToken = true;
                 break;
             case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
+                assert deleteRightAfterFirstWriteTimestamp == 0;
+                // Assertions are only thrown on standalone.
+                // On clusters, we want to bypass the purge to avoid
+                // possible corruption, but also not error out, to
+                // prevent region server crash on every compaction
+                // of this region.
                 if (deleteRightAfterFirstWriteTimestamp != 0)
                 {
-                    throw new IOException("Internal error during tombstone purge operation.  More than one DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN.  commitTimestamp = " + commitTimestamp + ", beginTimestamp = " + beginTimestamp);
+                    bypassPurge = true;
+                    LOG.warn("Skipping tombstone purge.  More that one DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN.  commitTimestamp = " + commitTimestamp + ", beginTimestamp = " + beginTimestamp);
                 }
                 deleteRightAfterFirstWriteTimestamp = beginTimestamp;
                 break;
@@ -189,12 +253,25 @@ class SICompactionStateMutate {
                             if (LOG.isTraceEnabled())
                                 SpliceLogUtils.trace(LOG, "Update cannot be purged: %s", element);
                         } else {
-                            assert beginTimestamp < columnUpdateLatestTimestamp.get(col);
+                            Long latestTimestamp = columnUpdateLatestTimestamp.get(col);
+                            boolean beginTimestampIsLessThanLatestTimestamp =
+                                    beginTimestamp < latestTimestamp;
+                            assert beginTimestampIsLessThanLatestTimestamp;
+                            if (!beginTimestampIsLessThanLatestTimestamp)
+                            {
+                                bypassPurge = true;
+                                LOG.warn("Skipping tombstone purge.  beginTimestamp not less than latestTimestamp.  beginTimestamp = " + beginTimestamp + ", latestTimestamp = " + latestTimestamp);
+                            }
                         }
                     }
                     if (purge) {
                         boolean ret = updatesToPurgeTimestamps.add(beginTimestamp);
                         assert ret;
+                        if (!ret)
+                        {
+                            bypassPurge = true;
+                            LOG.warn("Skipping tombstone purge.  Unable to add beginTimestamp to the updatesToPurgeTimestamps set.  beginTimestamp = " + beginTimestamp + ", updatesToPurgeTimestamps = " + updatesToPurgeTimestamps.toString());
+                        }
                     }
                 }
                 break;
@@ -215,13 +292,18 @@ class SICompactionStateMutate {
 
     private boolean shouldRemoveMostRecentTombstone() {
         assert maxTombstone != null;
+        if (maxTombstone == null)
+        {
+            bypassPurge = true;
+            LOG.warn("Skipping tombstone purge.  maxTombstone is not set.");
+        }
         switch (purgeConfig.getPurgeLatestTombstone()) {
             case ALWAYS:
                 return true;
             case IF_DELETE_FOLLOWS_FIRST_WRITE:
-                return firstWriteToken && deleteRightAfterFirstWriteTimestamp == maxTombstone.getTimestamp();
+                return firstWriteToken && !bypassPurge && deleteRightAfterFirstWriteTimestamp == maxTombstone.getTimestamp();
             case IF_FIRST_WRITE_PRESENT:
-                return firstWriteToken;
+                return firstWriteToken && !bypassPurge;
         }
         assert false;
         return false;
