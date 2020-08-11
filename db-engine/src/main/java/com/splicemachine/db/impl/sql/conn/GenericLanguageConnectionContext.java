@@ -3792,18 +3792,18 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void logStartFetching(String statement) {
+    public void logStartFetching(String uuid, String statement) {
         if (stmtLogger.isInfoEnabled()) {
-            stmtLogger.info(String.format("Start fetching from the result set. %s, %s",
-                    getLogHeader(), formatLogStmt(statement)));
+            stmtLogger.info(String.format("Start fetching from the result set. %s, uuid=%s, %s",
+                    getLogHeader(), uuid, formatLogStmt(statement)));
         }
     }
 
     @Override
-    public void logEndFetching(String statement, long fetchedRows) {
+    public void logEndFetching(String uuid, String statement, long fetchedRows) {
         if (stmtLogger.isInfoEnabled()) {
-            stmtLogger.info(String.format("End fetching from the result set. %s, fetchedRows=%d, %s",
-                    getLogHeader(), fetchedRows, formatLogStmt(statement)));
+            stmtLogger.info(String.format("End fetching from the result set. %s, uuid=%s, fetchedRows=%d, %s",
+                    getLogHeader(), uuid, fetchedRows, formatLogStmt(statement)));
         }
     }
 
