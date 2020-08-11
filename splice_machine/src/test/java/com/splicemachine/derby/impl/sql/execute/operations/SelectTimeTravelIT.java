@@ -21,7 +21,7 @@ public class SelectTimeTravelIT {
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
-    private long GetTxId() throws SQLException {
+    private long getTxId() throws SQLException {
         long result = -1;
         ResultSet rs =  watcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
         Assert.assertTrue(rs.next());
@@ -31,18 +31,18 @@ public class SelectTimeTravelIT {
     }
 
     static int counter = 0;
-    private static String GenerateTableName() {
+    private static String generateTableName() {
         return "T" + counter++;
     }
 
     @Test
     public void testTimeTravelWorks() throws Exception {
-        String tbl = GenerateTableName();
+        String tbl = generateTableName();
         watcher.executeUpdate("CREATE TABLE " + tbl + "(a INT)");
 
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 1");
 
-        long txId = GetTxId();
+        long txId = getTxId();
 
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 2");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 3");
@@ -62,15 +62,15 @@ public class SelectTimeTravelIT {
 
     @Test
     public void testTimeTravelMultipleTablesWorks() throws Exception {
-        String tbl = GenerateTableName();
+        String tbl = generateTableName();
 
         watcher.executeUpdate("CREATE TABLE " + tbl + "(a INT)");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 1");
-        long txId1 = GetTxId();
+        long txId1 = getTxId();
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 2");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 3");
         // check which transaction we are at the moment after adding both numbers
-        long txId2 = GetTxId();
+        long txId2 = getTxId();
 
         // add noise
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 200");
@@ -96,15 +96,15 @@ public class SelectTimeTravelIT {
 
     @Test
     public void testCreateTableFromTimeTravelSelectWorks() throws Exception {
-        String tbl = GenerateTableName();
+        String tbl = generateTableName();
 
         watcher.executeUpdate("CREATE TABLE " + tbl + "(a INT)");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 1");
-        long txId = GetTxId();
+        long txId = getTxId();
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 2");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 3");
 
-        String newTbl = GenerateTableName();
+        String newTbl = generateTableName();
         watcher.executeUpdate("CREATE TABLE " + newTbl + " AS SELECT * FROM " + tbl + " AS OF " + txId);
 
         ResultSet rs = watcher.executeQuery("SELECT * FROM " + newTbl);
@@ -114,11 +114,11 @@ public class SelectTimeTravelIT {
 
     @Test
     public void testInsertIntoFromTimeTravelSelectWorks() throws Exception {
-        String tbl = GenerateTableName();
+        String tbl = generateTableName();
 
         watcher.executeUpdate("CREATE TABLE " + tbl + "(a INT)");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 1");
-        long txId = GetTxId();
+        long txId = getTxId();
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 2");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 3");
 
@@ -135,11 +135,11 @@ public class SelectTimeTravelIT {
     // this test should sync up with documentation
     @Test
     public void testTimeTravelAfterTruncateDoesNotWork() throws Exception {
-        String tbl = GenerateTableName();
+        String tbl = generateTableName();
 
         watcher.executeUpdate("CREATE TABLE " + tbl + "(a INT)");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 1");
-        long txId = GetTxId();
+        long txId = getTxId();
         watcher.executeUpdate("TRUNCATE TABLE " + tbl);
 
         ResultSet rs = watcher.executeQuery("SELECT * FROM " + tbl + " AS OF " + txId);
@@ -148,19 +148,19 @@ public class SelectTimeTravelIT {
 
     @Test
     public void testTimeTravelWithJoinsWorks() throws  Exception {
-        String tblA = GenerateTableName();
-        String tblB = GenerateTableName();
+        String tblA = generateTableName();
+        String tblB = generateTableName();
 
         watcher.executeUpdate("CREATE TABLE " + tblA + "(id INT, i INT)");
         watcher.executeUpdate("CREATE TABLE " + tblB + "(id INT, c CHAR(1))");
 
         watcher.executeUpdate("INSERT INTO " + tblA + " VALUES (0, 0)");
         watcher.executeUpdate("INSERT INTO " + tblA + " VALUES (2, 2)");
-        long txIdA = GetTxId();
+        long txIdA = getTxId();
 
         watcher.executeUpdate("INSERT INTO " + tblB + " VALUES (0, 'a')");
         watcher.executeUpdate("INSERT INTO " + tblB + " VALUES (1, 'b')");
-        long txIdB = GetTxId();
+        long txIdB = getTxId();
 
         // add noise
         watcher.executeUpdate("INSERT INTO " + tblA + " VALUES (0, 42)");
@@ -210,11 +210,11 @@ public class SelectTimeTravelIT {
 
     @Test
     public void testTimeTravelWithUpdatedWorks() throws Exception {
-        String tbl = GenerateTableName();
+        String tbl = generateTableName();
 
         watcher.executeUpdate("CREATE TABLE " + tbl + "(a INT)");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 1");
-        long txId = GetTxId();
+        long txId = getTxId();
         watcher.executeUpdate("UPDATE " + tbl + " SET a=42");
 
         ResultSet rs = watcher.executeQuery("SELECT * FROM " + tbl + " AS OF " + txId);
@@ -224,11 +224,11 @@ public class SelectTimeTravelIT {
 
     @Test
     public void testTimeTravelWithDeleteWorks() throws Exception {
-        String tbl = GenerateTableName();
+        String tbl = generateTableName();
 
         watcher.executeUpdate("CREATE TABLE " + tbl + "(a INT)");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 1");
-        long txId = GetTxId();
+        long txId = getTxId();
         watcher.executeUpdate("DELETE FROM " + tbl);
 
         ResultSet rs = watcher.executeQuery("SELECT * FROM " + tbl + " AS OF " + txId);
@@ -238,11 +238,11 @@ public class SelectTimeTravelIT {
 
     @Test
     public void testTimeTravelWithSparkOptionWorks() throws Exception {
-        String tbl = GenerateTableName();
+        String tbl = generateTableName();
         watcher.executeUpdate("CREATE TABLE " + tbl + "(a INT)");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 1");
 
-        long txId = GetTxId();
+        long txId = getTxId();
 
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 2");
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 3");
@@ -256,8 +256,8 @@ public class SelectTimeTravelIT {
 
     @Test
     public void testTimeTravelWithViewIsNotAllowed() throws Exception {
-        String tbl = GenerateTableName();
-        String view = GenerateTableName();
+        String tbl = generateTableName();
+        String view = generateTableName();
         watcher.executeUpdate("CREATE TABLE " + tbl + "(a INT)");
         watcher.executeUpdate("CREATE VIEW " + view + " AS SELECT * FROM " + tbl);
 
@@ -273,7 +273,7 @@ public class SelectTimeTravelIT {
 
     @Test
     public void testTimeTravelWithExternalTablesIsNotAllowed() throws Exception {
-        String externalTable = GenerateTableName();
+        String externalTable = generateTableName();
         watcher.executeUpdate("CREATE EXTERNAL TABLE " + externalTable + "(a INT, b INT) PARTITIONED BY (a) " +
                 "STORED AS PARQUET LOCATION '/tmp/bla'");
 
@@ -289,7 +289,7 @@ public class SelectTimeTravelIT {
 
     @Test
     public void testTimeTravelWithCommonTableExpressionIsNotAllowed() throws Exception {
-        String someTable = GenerateTableName();
+        String someTable = generateTableName();
         watcher.executeUpdate("CREATE TABLE " + someTable + "(a INT)");
 
         try {

@@ -199,6 +199,9 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
                     InternalScan iscan = new InternalScan(scan);
                     iscan.checkOnlyMemStore();
                     HRegion region = (HRegion) c.getEnvironment().getRegion();
+                    // We substitute the pre-created scanner, must close it to avoid a memory leak
+                    if (s != null)
+                        s.close();
                     return new MemStoreFlushAwareScanner(region, store, ((HStore)store).getScanInfo(), iscan, targetCols, getReadpoint(region), memstoreAware, memstoreAware.get());
                 } else { // Partition Miss
                     while (true) {

@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.util.JBitSet;
 
 /**
  * A JoinStrategy represents a strategy like nested loop, hash join,
@@ -312,6 +313,7 @@ public interface JoinStrategy {
      * baseTableRestrictionList.
      *
      * @param innerTable    The inner table of the join
+     * @param joinedTableSet   The bitset of tables joined so far (including inner table)
      * @param originalRestrictionList    Initially contains all predicates.
      *                                    This method removes predicates from
      *                                    this list and moves them to other
@@ -328,6 +330,7 @@ public interface JoinStrategy {
      * @exception StandardException        Thrown on error
      */
     void divideUpPredicateLists(Optimizable innerTable,
+                                JBitSet joinedTableSet,
                                 OptimizablePredicateList originalRestrictionList,
                                 OptimizablePredicateList storeRestrictionList,
                                 OptimizablePredicateList nonStoreRestrictionList,
@@ -378,5 +381,14 @@ public interface JoinStrategy {
      * @param totalMemoryConsumed the memory consumed by consecutive joins in bytes
      */
     boolean isMemoryUsageUnderLimit(double totalMemoryConsumed);
+
+
+    /**
+     * Get if the right side should be broadcast in this join.
+     * Currently only used in cross join.
+     *
+     * @return
+     */
+    default boolean getBroadcastRight(CostEstimate rightCost) { return false; };
 
 }
