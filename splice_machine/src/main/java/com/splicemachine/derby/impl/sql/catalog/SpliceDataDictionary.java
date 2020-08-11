@@ -350,19 +350,20 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     public void createTablesAndViewsInSysIBMADM(TransactionController tc) throws StandardException {
+        tc.elevate("dictionary");
+        //Add the SYSIBMADM schema if it does not exists
+        if (getSchemaDescriptor(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, tc, false) == null) {
+            sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, SchemaDescriptor.SYSIBMADM_SCHEMA_UUID, tc);
+        }
+
         TabInfoImpl connectionTableInfo=getIBMADMConnectionTable();
         addTableIfAbsent(tc,sysIBMADMSchemaDesc,connectionTableInfo,null);
 
-        SpliceLogUtils.info(LOG, "MON_GET_CONNECTIONS in SYSIBMADM are created!");
-
         createOneSystemView(tc, SNAPAPPL_CATALOG_NUM, "SNAPAPPL", 0, sysIBMADMSchemaDesc, MONGETCONNECTIONRowFactory.SNAPAPPL_VIEW_SQL);
-        SpliceLogUtils.info(LOG, "SNAPAPPL in SYSIBMADM are created!");
 
         createOneSystemView(tc, SNAPAPPL_INFO_CATALOG_NUM, "SNAPAPPL_INFO", 1, sysIBMADMSchemaDesc, MONGETCONNECTIONRowFactory.SNAPAPPL_INFO_VIEW_SQL);
-        SpliceLogUtils.info(LOG, "SNAPAPPL_INFO in SYSIBMADM are created!");
 
         createOneSystemView(tc, APPLICATIONS_CATALOG_NUM, "APPLICATIONS", 2, sysIBMADMSchemaDesc, MONGETCONNECTIONRowFactory.APPLICATIONS_VIEW_SQL);
-        SpliceLogUtils.info(LOG, "APPLICATIONS in SYSIBMADM are created!");
 
         SpliceLogUtils.info(LOG, "Tables and views in SYSIBMADM are created!");
     }
