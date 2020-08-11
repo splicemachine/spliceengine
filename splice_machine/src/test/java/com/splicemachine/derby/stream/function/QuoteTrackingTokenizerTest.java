@@ -83,7 +83,7 @@ public class QuoteTrackingTokenizerTest {
             Assert.fail("expected exception to be thrown, but no exception was thrown");
         } catch(Exception e) {
             Assert.assertTrue(e instanceof SuperCsvException);
-            Assert.assertEquals("unexpected extra column on line 1, amount of expected columns (4) is less than actual columns", e.getMessage());
+            Assert.assertEquals("unexpected extra column on line 1, number of expected columns (4) is less than actual columns", e.getMessage());
             return;
         }
         Assert.fail("expected exception to be thrown, but no exception was thrown");
