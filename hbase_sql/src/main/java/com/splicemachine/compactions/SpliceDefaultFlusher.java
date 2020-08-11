@@ -14,12 +14,7 @@
 
 package com.splicemachine.compactions;
 
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.hbase.SpliceCompactionUtils;
-import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.FlushLifeCycleTrackerWithConfig;
-import com.splicemachine.si.impl.server.PurgeConfigBuilder;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.monitoring.MonitoredTask;
@@ -35,7 +30,9 @@ import java.util.List;
 
 /**
  * We use this class to pass the PurgeConfig down the stack to flush logic in SIObserver.
+ * TODO(arnaud) remove this class entirely. DB-9876 made it obsolete
  */
+@Deprecated
 public class SpliceDefaultFlusher extends DefaultStoreFlusher {
     private static final Logger LOG = Logger.getLogger(SpliceDefaultFlusher.class);
 
@@ -47,30 +44,7 @@ public class SpliceDefaultFlusher extends DefaultStoreFlusher {
     public List<Path> flushSnapshot(MemStoreSnapshot snapshot, long cacheFlushId,
                                     MonitoredTask status, ThroughputController throughputController,
                                     FlushLifeCycleTracker tracker) throws IOException {
-        SIDriver driver=SIDriver.driver();
-        PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
-        SConfiguration conf = driver.getConfiguration();
-        if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-            purgeConfig.purgeDeletesDuringFlush();
-        } else {
-            purgeConfig.noPurgeDeletes();
-        }
-        long txnLowWatermark = SIConstants.OLDEST_TIME_TRAVEL_TX;
-        if(SIDriver.driver().isEngineStarted() &&
-                SpliceCompactionUtils.needsSI(store.getTableName()) &&
-                !SIDriver.driver().lifecycleManager().isRestoreMode() &&
-                !store.getHRegion().isClosing()) {
-            try {
-                txnLowWatermark = SpliceCompactionUtils.getTxnLowWatermark(store);
-            } catch (Exception e) {
-                LOG.warn("Could not extract compaction information, we will not purge during flush." +
-                        " Exception: ", e);
-                assert false;
-            }
-        }
-        purgeConfig.transactionLowWatermark(txnLowWatermark);
-        purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
         return super.flushSnapshot(snapshot, cacheFlushId, status, throughputController,
-                new FlushLifeCycleTrackerWithConfig(tracker, purgeConfig.build()));
+                new FlushLifeCycleTrackerWithConfig(tracker, null));
     }
 }

@@ -40,7 +40,7 @@ public class SpliceCompactionUtils {
         T getDefaultValue();
     }
 
-    private static <T> T extract(Store store, TableDescriptorExtractor<T> t) throws IOException {
+    private static <T> T extract(String tableName, TableDescriptorExtractor<T> t) throws IOException {
         Txn txn = null;
         try {
             txn = SIDriver.driver().lifecycleManager()
@@ -49,8 +49,7 @@ public class SpliceCompactionUtils {
                 transactionResource.marshallTransaction(txn);
                 LanguageConnectionContext lcc = transactionResource.getLcc();
                 DataDictionary dd = lcc.getDataDictionary();
-                String fullTableName = store.getTableName().getNameAsString();
-                String[] tableNames = fullTableName.split(":");
+                String[] tableNames = tableName.split(":");
                 if (tableNames.length == 2 && tableNames[0].compareTo("splice") == 0) {
                     long conglomerateId = Long.parseLong(tableNames[1]);
                     ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateId);
@@ -77,8 +76,8 @@ public class SpliceCompactionUtils {
         return t.getDefaultValue();
     }
 
-    public static boolean forcePurgeDeletes(Store store) throws IOException {
-        return extract(store, new TableDescriptorExtractor<Boolean>() {
+    public static boolean forcePurgeDeletes(String tableName) throws IOException {
+        return extract(tableName, new TableDescriptorExtractor<Boolean>() {
             @Override
             public Boolean get(TableDescriptor td) {
                 return td.purgeDeletedRows();
@@ -92,8 +91,8 @@ public class SpliceCompactionUtils {
 
     private static long RETAIN_FOREVER = -1;
 
-    private static Long minRetentionPeriod(Store store) throws IOException { ;
-        return extract(store, new TableDescriptorExtractor<Long>() {
+    private static Long minRetentionPeriod(String tableName) throws IOException {
+        return extract(tableName, new TableDescriptorExtractor<Long>() {
             @Override
             public Long get(TableDescriptor td) {
                 return td.getMinRetentionPeriod();
@@ -105,12 +104,12 @@ public class SpliceCompactionUtils {
         });
     }
 
-    public static long getTxnLowWatermark(Store store) throws IOException {
+    public static long getTxnLowWatermark(String tableName) throws IOException {
         if(SIDriver.driver() == null || !SIDriver.driver().isEngineStarted()) {
             return SIConstants.OLDEST_TIME_TRAVEL_TX;
         }
         long lowTxnWatermark = TransactionsWatcher.getLowWatermarkTransaction();
-        Long minRetentionPeriod = SpliceCompactionUtils.minRetentionPeriod(store);
+        Long minRetentionPeriod = SpliceCompactionUtils.minRetentionPeriod(tableName);
         if (minRetentionPeriod == null || minRetentionPeriod == 0L) {
             return lowTxnWatermark;
         }
@@ -124,21 +123,4 @@ public class SpliceCompactionUtils {
         }
         return Math.min(lowTxnWatermark, minRetentionTxnId);
     }
-
-    public static boolean needsSI(TableName tableName) {
-        TableType type = EnvUtils.getTableType(HConfiguration.getConfiguration(), tableName);
-        switch (type) {
-            case TRANSACTION_TABLE:
-            case ROOT_TABLE:
-            case META_TABLE:
-            case HBASE_TABLE:
-                return false;
-            case DERBY_SYS_TABLE:
-            case USER_TABLE:
-                return true;
-            default:
-                throw new RuntimeException("Unknow table type " + type);
-        }
-    }
-
 }

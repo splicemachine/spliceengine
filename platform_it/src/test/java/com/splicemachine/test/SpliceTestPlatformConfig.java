@@ -154,6 +154,8 @@ class SpliceTestPlatformConfig {
         config.set("hbase.coprocessor.region.classes", getRegionCoprocessorsAsString(secure));
         config.set("hbase.coprocessor.master.classes", getMasterCoprocessorsAsString(secure));
 
+        config.set("hbase.hregion.compacting.memstore.type", "EAGER");
+
         // Security
 
         if (secure) {

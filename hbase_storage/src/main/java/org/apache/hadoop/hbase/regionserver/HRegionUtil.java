@@ -278,11 +278,11 @@ public class HRegionUtil {
     }
 
     public static Segment getKvset(HStore store) {
-        return ((DefaultMemStore) store.memstore).active;
+        return ((AbstractMemStore) store.memstore).active;
     }
 
     public static Segment getSnapshot(HStore store) {
-        return ((DefaultMemStore) store.memstore).snapshot;
+        return ((AbstractMemStore) store.memstore).snapshot;
     }
 
     public static RegionScanner getScanner(HRegion region, Scan scan, List<KeyValueScanner> keyValueScanners) throws IOException {

@@ -18,20 +18,17 @@ import com.clearspring.analytics.util.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
 import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.hbase.SpliceCompactionUtils;
-import com.splicemachine.hbase.TransactionsWatcher;
+import com.splicemachine.hbase.SpliceSIUtils;
 import com.splicemachine.olap.DistributedCompaction;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.data.hbase.coprocessor.TableType;
-import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.server.*;
 import com.splicemachine.si.impl.server.CompactionContext;
+import com.splicemachine.si.impl.server.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.FileUtils;
@@ -39,7 +36,10 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.fs.HFileSystem;
 import org.apache.hadoop.hbase.io.compress.Compression;
@@ -131,8 +131,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     public List<Path> compact(CompactionRequestImpl request, ThroughputController throughputController, User user) throws IOException {
         assert request instanceof SpliceCompactionRequest;
         SpliceCompactionRequest spliceRequest = (SpliceCompactionRequest)request;
-        // Used if we cannot compact in Spark
-        spliceRequest.setPurgeConfig(buildPurgeConfig(request, SpliceCompactionUtils.getTxnLowWatermark(store)));
 
         if(!allowSpark || store.getRegionInfo().getTable().isSystemTable()) {
             isSpark = false;
@@ -221,7 +219,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 store.getRegionInfo(),
                 store.getColumnFamilyDescriptor().getName(),
                 isMajor,
-                SpliceCompactionUtils.getTxnLowWatermark(store),
+                SpliceCompactionUtils.getTxnLowWatermark(store.getTableName().getNameAsString()),
                 favoredNodes,
                 SpliceCompaction.storeFilesToNames(store.getCompactedFiles()));
     }
@@ -337,7 +335,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 ScanType scanType = request.isAllFiles() ? COMPACT_DROP_DELETES : COMPACT_RETAIN_DELETES;
                 ScanInfo scanInfo = preCreateCoprocScanner(request, scanType, fd.earliestPutTs, scanners, null);
                 scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
-                if (SpliceCompactionUtils.needsSI(store.getTableName())) {
+                if (SpliceSIUtils.needsSI(store.getTableName())) {
                     SIDriver driver=SIDriver.driver();
                     SConfiguration config = HConfiguration.getConfiguration();
                     double resolutionShare = config.getOlapCompactionResolutionShare();
@@ -348,8 +346,9 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                             blocking ? driver.getExecutorService() : driver.getRejectingExecutorService(),
                             driver.getIgnoreTxnSupplier());
 
+                    PurgeConfig purgeConfig = HPurgeConfigFactory.compactionConfigHelper(request.isMajor(), transactionLowWatermark, store.getTableName().getNameAsString());
                     SICompactionScanner siScanner = new SICompactionScanner(
-                            state, scanner, buildPurgeConfig(request, transactionLowWatermark), resolutionShare, bufferSize, context);
+                            state, scanner, purgeConfig, resolutionShare, bufferSize, context);
                     siScanner.start();
                     scanner = siScanner;
                 }
@@ -850,21 +849,4 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             }
         }
     }
-
-    private PurgeConfig buildPurgeConfig(CompactionRequest request, long transactionLowWatermark) throws IOException {
-        SConfiguration config = HConfiguration.getConfiguration();
-        PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
-        boolean engineStarted = SIDriver.driver() != null && SIDriver.driver().isEngineStarted();
-        if (engineStarted && SpliceCompactionUtils.forcePurgeDeletes(store) && request.isMajor()) {
-            purgeConfig.forcePurgeDeletes();
-        } else if (config.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-            purgeConfig.purgeDeletesDuringCompaction(request.isMajor());
-        } else {
-            purgeConfig.noPurgeDeletes();
-        }
-        purgeConfig.purgeUpdates(config.getOlapCompactionAutomaticallyPurgeOldUpdates());
-        purgeConfig.transactionLowWatermark(transactionLowWatermark);
-        return purgeConfig.build();
-    }
-
 }

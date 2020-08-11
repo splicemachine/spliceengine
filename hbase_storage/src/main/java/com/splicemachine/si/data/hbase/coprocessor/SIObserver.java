@@ -17,6 +17,7 @@ package com.splicemachine.si.data.hbase.coprocessor;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.compactions.PurgeConfigFactoryService;
 import com.splicemachine.compactions.SpliceCompaction;
 import com.splicemachine.compactions.SpliceCompactionRequest;
 import com.splicemachine.concurrent.SystemClock;
@@ -26,6 +27,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.SICompactionScanner;
+import com.splicemachine.hbase.SpliceSIUtils;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.AclCheckerService;
@@ -52,8 +54,6 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionObserver;
-import org.apache.hadoop.hbase.coprocessor.WALCoprocessorEnvironment;
-import org.apache.hadoop.hbase.coprocessor.WALObserver;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.ipc.RpcServer;
@@ -219,32 +219,49 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
         }
     }
 
-    private static boolean defaultFlusherIsSetProperly(FlushLifeCycleTracker tracker, Store store) {
-        boolean result = tracker instanceof FlushLifeCycleTrackerWithConfig;
-        if(!result) {
-            SpliceLogUtils.warn(LOG, "Splice store flusher is not set, as a result, flush will not " +
-                    "purge. To set Splice flusher review documentation and revise HBase configuration: " +
-                    DefaultStoreEngine.DEFAULT_STORE_FLUSHER_CLASS_KEY);
-        }
-        return result;
-    }
-
     @Override
     public InternalScanner preFlush(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner,
                                     FlushLifeCycleTracker tracker) throws IOException {
         SIDriver driver=SIDriver.driver();
         // We must make sure the engine is started, otherwise we might try to resolve transactions against SPLICE_TXN which
         // hasn't been loaded yet, causing a deadlock
-        if(tableEnvMatch && scanner != null && driver != null && driver.isEngineStarted() && driver.getConfiguration().getResolutionOnFlushes()
-                && defaultFlusherIsSetProperly(tracker, store)) {
+        if(tableEnvMatch && scanner != null && driver != null && driver.isEngineStarted() && driver.getConfiguration().getResolutionOnFlushes()) {
             SimpleCompactionContext context = new SimpleCompactionContext();
-            SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                    driver.getConfiguration().getActiveTransactionMaxCacheSize(), context,
-                    driver.getRejectingExecutorService(), driver.getIgnoreTxnSupplier());
+            SICompactionState state = newCompactionState(driver, context);
             SConfiguration conf = driver.getConfiguration();
+            PurgeConfig purgeConfig = driver.getPurgeConfigFactory().flushConfig(
+                    store.getTableName().getNameAsString(),
+                    SpliceSIUtils.needsSI(store.getTableName()),
+                    ((HStore)store).getHRegion().isClosing());
             // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
             // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
-            SICompactionScanner siScanner = new SICompactionScanner( state, scanner, ((FlushLifeCycleTrackerWithConfig) tracker).getConfig(),
+            SICompactionScanner siScanner = new SICompactionScanner( state, scanner, purgeConfig,
+                    conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+            siScanner.start();
+            return siScanner;
+        } else {
+            return scanner;
+        }
+    }
+
+    @Override
+    public InternalScanner preMemStoreCompactionCompact(
+            ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner)
+            throws IOException {
+        SIDriver driver=SIDriver.driver();
+        // We must make sure the engine is started, otherwise we might try to resolve transactions against SPLICE_TXN which
+        // hasn't been loaded yet, causing a deadlock
+        if(tableEnvMatch && scanner != null && driver != null && driver.isEngineStarted()) {
+            SimpleCompactionContext context = new SimpleCompactionContext();
+            SICompactionState state = newCompactionState(driver, context);
+            SConfiguration conf = driver.getConfiguration();
+            PurgeConfig purgeConfig = driver.getPurgeConfigFactory().memStoreCompactionConfig(
+                    store.getTableName().getNameAsString(),
+                    SpliceSIUtils.needsSI(store.getTableName()),
+                    ((HStore)store).getHRegion().isClosing());
+            // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
+            // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
+            SICompactionScanner siScanner = new SICompactionScanner( state, scanner, purgeConfig,
                     conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
@@ -265,12 +282,11 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             if(tableEnvMatch){
                 SIDriver driver=SIDriver.driver();
                 SimpleCompactionContext context = new SimpleCompactionContext();
-                SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context,
-                        driver.getRejectingExecutorService(), driver.getIgnoreTxnSupplier());
+                SICompactionState state = newCompactionState(driver, context);
                 SConfiguration conf = driver.getConfiguration();
+                PurgeConfig purgeConfig = driver.getPurgeConfigFactory().compactionConfig(store.getTableName().getNameAsString(), request.isMajor());
                 SICompactionScanner siScanner = new SICompactionScanner(
-                        state, scanner, ((SpliceCompactionRequest) request).getPurgeConfig(),
+                        state, scanner, purgeConfig,
                         conf.getOlapCompactionResolutionShare(), conf.getLocalCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
@@ -288,8 +304,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
         try {
         /*
-		 * This is relatively expensive--it's better to use the write pipeline when you need to load a lot of rows.
-		 */
+         * This is relatively expensive--it's better to use the write pipeline when you need to load a lot of rows.
+         */
             if (!tableEnvMatch || put.getAttribute(SIConstants.SI_NEEDED) == null) {
                 return;
             }
@@ -594,5 +610,11 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 }
             }
         }
+    }
+
+    private static SICompactionState newCompactionState(SIDriver driver, SimpleCompactionContext context) {
+        return new SICompactionState(driver.getTxnSupplier(),
+                driver.getConfiguration().getActiveTransactionMaxCacheSize(), context,
+                driver.getRejectingExecutorService(), driver.getIgnoreTxnSupplier());
     }
 }

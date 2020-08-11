@@ -14,6 +14,9 @@
 
 package com.splicemachine.si.impl.driver;
 
+import com.splicemachine.compactions.PurgeConfigFactory;
+import com.splicemachine.compactions.PurgeConfigFactoryService;
+import com.splicemachine.si.api.data.*;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FilesystemAdmin;
@@ -22,10 +25,6 @@ import com.splicemachine.access.api.OldestActiveTransactionTaskFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.data.OperationFactory;
-import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.readresolve.AsyncReadResolver;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
@@ -86,6 +85,7 @@ public class SIDriver {
     private final SITransactionReadController readController;
     private final PartitionFactory tableFactory;
     private final ExceptionFactory exceptionFactory;
+    private final PurgeConfigFactory purgeConfigFactory;
     private final OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
     private final SConfiguration config;
     private final TxnStore txnStore;
@@ -113,6 +113,7 @@ public class SIDriver {
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
         this.exceptionFactory = env.exceptionFactory();
+        this.purgeConfigFactory = PurgeConfigFactoryService.loadPurgeConfigFactory();
         this.oldestActiveTransactionTaskFactory = env.oldestActiveTransactionTaskFactory();
         this.config = env.configuration();
         this.txnStore = env.txnStore();
@@ -166,6 +167,10 @@ public class SIDriver {
 
     public ExceptionFactory getExceptionFactory(){
         return exceptionFactory;
+    }
+
+    public PurgeConfigFactory getPurgeConfigFactory() {
+        return purgeConfigFactory;
     }
 
     public OldestActiveTransactionTaskFactory getOldestActiveTransactionTaskFactory() {

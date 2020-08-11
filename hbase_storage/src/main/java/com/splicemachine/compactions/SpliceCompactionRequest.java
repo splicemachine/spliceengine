@@ -37,8 +37,6 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
     private HRegion region;
     private boolean compactionCountIncremented = false;
 
-    private PurgeConfig purgeConfig = null;
-
     private Set<String> compactedFiles;
 
     public SpliceCompactionRequest(Collection<HStoreFile> files) {
@@ -125,15 +123,6 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
     @Override
     public int hashCode() {
         return super.hashCode();
-    }
-
-    public PurgeConfig getPurgeConfig() {
-        assert purgeConfig != null;
-        return purgeConfig;
-    }
-
-    public void setPurgeConfig(PurgeConfig purgeConfig) {
-        this.purgeConfig = purgeConfig;
     }
 
     public void setCompactedFiles(Set<String> compactedFiles) {
