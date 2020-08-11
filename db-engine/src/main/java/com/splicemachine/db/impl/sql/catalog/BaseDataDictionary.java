@@ -163,7 +163,10 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 									"SYSSNAPSHOTS",
 									"SYSTOKENS",
                                     "SYSDUMMY1",
-									"SYSREPLICATION"
+									"SYSREPLICATION",
+			                        "SNAPAPPL",
+			                        "SNAPAPPL_INFO",
+			                        "APPLICATIONS"
     };
 
 	protected	static final int		NUM_NONCORE = nonCoreNames.length;
@@ -186,7 +189,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
         SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME,
         SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,
         SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,
-		SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,
+        SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,
         SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,
         SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,
         SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME

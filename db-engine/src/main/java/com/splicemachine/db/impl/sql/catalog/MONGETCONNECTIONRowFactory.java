@@ -15,6 +15,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
@@ -22,8 +23,12 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
+import org.spark_project.guava.collect.Lists;
 
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Created by zli on 8/10/20.
@@ -415,9 +420,9 @@ public class MONGETCONNECTIONRowFactory extends CatalogRowFactory
     protected static final int      ADM_BYPASS_ACT_TOTAL = 378;
 
     private	static	final	String[]	uuids = {
-            MONGETCONNECTION_UUID,                  // catalog UUID
-            "64241859-c802-4abb-8ce5-7926d7ac663a", // heap UUID
-            "3b6c9d6f-5af1-44b3-bb6f-44dfd1ffdacf"	// MONGETCONNECTION_INDEX1_ID
+            MONGETCONNECTION_UUID,                    // catalog UUID
+            "64241859-c802-4abb-8ce5-7926d7ac663a",   // heap UUID
+            "3b6c9d6f-5af1-44b3-bb6f-44dfd1ffdacf"    // MONGETCONNECTION_INDEX1_ID
     };
 
     protected static final int MONGETCONNECTION_INDEX1_ID = 0;
@@ -2008,4 +2013,417 @@ public class MONGETCONNECTIONRowFactory extends CatalogRowFactory
                 SystemColumnImpl.getColumn("ADM_BYPASS_ACT_TOTAL", Types.BIGINT, false)
         };
     }
+
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+
+        // SNAPAPPL
+        Collection<Object[]> colList = Lists.newArrayListWithCapacity(128);
+        colList.add(new Object[]{"SNAPSHOT_TIMESTAMP", Types.TIMESTAMP, false, null});
+        colList.add(new Object[]{"DB_NAME", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"AGENT_ID", Types.BIGINT, false, null});
+        colList.add(new Object[]{"UOW_LOG_SPACE_USED", Types.BIGINT, false, null});
+        colList.add(new Object[]{"ROWS_READ", Types.BIGINT, false, null});
+        colList.add(new Object[]{"ROWS_WRITTEN", Types.BIGINT, false, null});
+        colList.add(new Object[]{"INACT_STMTHIST_SZ", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_DATA_L_READS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_DATA_P_READS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_DATA_WRITES", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_INDEX_L_READS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_INDEX_P_READS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_INDEX_WRITES", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_TEMP_DATA_L_READS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_TEMP_DATA_P_READS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_TEMP_INDEX_L_READS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_TEMP_INDEX_P_READS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_TEMP_XDA_L_READS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_TEMP_XDA_P_READS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_XDA_L_READS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_XDA_P_READS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_XDA_WRITES", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_READ_TIME", Types.BIGINT, false, null});
+        colList.add(new Object[]{"POOL_WRITE_TIME", Types.BIGINT, false, null});
+        colList.add(new Object[]{"DIRECT_READS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"DIRECT_WRITES", Types.BIGINT, false, null});
+        colList.add(new Object[]{"DIRECT_READ_REQS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"DIRECT_WRITE_REQS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"DIRECT_READ_TIME", Types.BIGINT, false, null});
+        colList.add(new Object[]{"DIRECT_WRITE_TIME", Types.BIGINT, false, null});
+        colList.add(new Object[]{"UNREAD_PREFETCH_PAGES", Types.BIGINT, false, null});
+        colList.add(new Object[]{"LOCKS_HELD", Types.BIGINT, false, null});
+        colList.add(new Object[]{"LOCK_WAITS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"LOCK_WAIT_TIME", Types.BIGINT, false, null});
+        colList.add(new Object[]{"LOCK_ESCALS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"X_LOCK_ESCALS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"DEADLOCKS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"TOTAL_SORTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"TOTAL_SORT_TIME", Types.BIGINT, false, null});
+        colList.add(new Object[]{"SORT_OVERFLOWS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"COMMIT_SQL_STMTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"ROLLBACK_SQL_STMTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"DYNAMIC_SQL_STMTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"STATIC_SQL_STMTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"FAILED_SQL_STMTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"SELECT_SQL_STMTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"DDL_SQL_STMTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"UID_SQL_STMTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"INT_AUTO_REBINDS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"INT_ROWS_DELETED", Types.BIGINT, false, null});
+        colList.add(new Object[]{"INT_ROWS_UPDATED", Types.BIGINT, false, null});
+        colList.add(new Object[]{"INT_COMMITS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"INT_ROLLBACKS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"INT_DEADLOCK_ROLLBACKS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"ROWS_DELETED", Types.BIGINT, false, null});
+        colList.add(new Object[]{"ROWS_INSERTED", Types.BIGINT, false, null});
+        colList.add(new Object[]{"ROWS_UPDATED", Types.BIGINT, false, null});
+        colList.add(new Object[]{"ROWS_SELECTED", Types.BIGINT, false, null});
+        colList.add(new Object[]{"BINDS_PRECOMPILES", Types.BIGINT, false, null});
+        colList.add(new Object[]{"OPEN_REM_CURS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"OPEN_REM_CURS_BLK", Types.BIGINT, false, null});
+        colList.add(new Object[]{"REJ_CURS_BLK", Types.BIGINT, false, null});
+        colList.add(new Object[]{"ACC_CURS_BLK", Types.BIGINT, false, null});
+        colList.add(new Object[]{"SQL_REQS_SINCE_COMMIT", Types.BIGINT, false, null});
+        colList.add(new Object[]{"LOCK_TIMEOUTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"INT_ROWS_INSERTED", Types.BIGINT, false, null});
+        colList.add(new Object[]{"OPEN_LOC_CURS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"OPEN_LOC_CURS_BLK", Types.BIGINT, false, null});
+        colList.add(new Object[]{"PKG_CACHE_LOOKUPS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"PKG_CACHE_INSERTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"CAT_CACHE_LOOKUPS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"CAT_CACHE_INSERTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"CAT_CACHE_OVERFLOWS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"NUM_AGENTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"AGENTS_STOLEN", Types.BIGINT, false, null});
+        colList.add(new Object[]{"ASSOCIATED_AGENTS_TOP", Types.BIGINT, false, null});
+        colList.add(new Object[]{"APPL_PRIORITY", Types.BIGINT, false, null});
+        colList.add(new Object[]{"APPL_PRIORITY_TYPE", Types.VARCHAR, false, 16});
+        colList.add(new Object[]{"PREFETCH_WAIT_TIME", Types.BIGINT, false, null});
+        colList.add(new Object[]{"APPL_SECTION_LOOKUPS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"APPL_SECTION_INSERTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"LOCKS_WAITING", Types.BIGINT, false, null});
+        colList.add(new Object[]{"TOTAL_HASH_JOINS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"TOTAL_HASH_LOOPS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"HASH_JOIN_OVERFLOWS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"HASH_JOIN_SMALL_OVERFLOWS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"APPL_IDLE_TIME", Types.BIGINT, false, null});
+        colList.add(new Object[]{"UOW_LOCK_WAIT_TIME", Types.BIGINT, false, null});
+        colList.add(new Object[]{"UOW_COMP_STATUS", Types.VARCHAR, false, 14});
+        colList.add(new Object[]{"AGENT_USR_CPU_TIME_S", Types.BIGINT, false, null});
+        colList.add(new Object[]{"AGENT_USR_CPU_TIME_MS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"AGENT_SYS_CPU_TIME_S", Types.BIGINT, false, null});
+        colList.add(new Object[]{"AGENT_SYS_CPU_TIME_MS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"APPL_CON_TIME", Types.TIMESTAMP, false, null});
+        colList.add(new Object[]{"CONN_COMPLETE_TIME", Types.TIMESTAMP, false, null});
+        colList.add(new Object[]{"LAST_RESET", Types.TIMESTAMP, false, null});
+        colList.add(new Object[]{"UOW_START_TIME", Types.TIMESTAMP, false, null});
+        colList.add(new Object[]{"UOW_STOP_TIME", Types.TIMESTAMP, false, null});
+        colList.add(new Object[]{"PREV_UOW_STOP_TIME", Types.TIMESTAMP, false, null});
+        colList.add(new Object[]{"UOW_ELAPSED_TIME_S", Types.BIGINT, false, null});
+        colList.add(new Object[]{"UOW_ELAPSED_TIME_MS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"ELAPSED_EXEC_TIME_S", Types.BIGINT, false, null});
+        colList.add(new Object[]{"ELAPSED_EXEC_TIME_MS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"INBOUND_COMM_ADDRESS", Types.VARCHAR, false, 128}); // lifted from 32
+        colList.add(new Object[]{"LOCK_TIMEOUT_VAL", Types.BIGINT, false, null});
+        colList.add(new Object[]{"PRIV_WORKSPACE_NUM_OVERFLOWS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"PRIV_WORKSPACE_SECTION_INSERTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"PRIV_WORKSPACE_SECTION_LOOKUPS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"PRIV_WORKSPACE_SIZE_TOP", Types.BIGINT, false, null});
+        colList.add(new Object[]{"SHR_WORKSPACE_NUM_OVERFLOWS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"SHR_WORKSPACE_SECTION_INSERTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"SHR_WORKSPACE_SECTION_LOOKUPS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"SHR_WORKSPACE_SIZE_TOP", Types.BIGINT, false, null});
+        colList.add(new Object[]{"DBPARTITIONNUM", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"CAT_CACHE_SIZE_TOP", Types.BIGINT, false, null});
+        colList.add(new Object[]{"TOTAL_OLAP_FUNCS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"OLAP_FUNC_OVERFLOWS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"MEMBER", Types.SMALLINT, false, null});
+
+        cdsl.add(buildViewColumns(colList, view, viewId));
+        colList.clear();
+
+        // SNAPAPPL_INFO
+        colList.add(new Object[]{"SNAPSHOT_TIMESTAMP", Types.TIMESTAMP, false, null});
+        colList.add(new Object[]{"AGENT_ID", Types.BIGINT, false, null});
+        colList.add(new Object[]{"APPL_STATUS", Types.VARCHAR, false, 32});  // lifted from 22
+        colList.add(new Object[]{"CODEPAGE_ID", Types.BIGINT, false, null});
+        colList.add(new Object[]{"NUM_ASSOC_AGENTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"COORD_NODE_NUM", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"AUTHORITY_LVL", Types.VARCHAR, false, 512});
+        colList.add(new Object[]{"CLIENT_PID", Types.BIGINT, false, null});
+        colList.add(new Object[]{"COORD_AGENT_PID", Types.BIGINT, false, null});
+        colList.add(new Object[]{"STATUS_CHANGE_TIME", Types.TIMESTAMP, false, null});
+        colList.add(new Object[]{"CLIENT_PLATFORM", Types.VARCHAR, false, 12});
+        colList.add(new Object[]{"CLIENT_PROTOCOL", Types.VARCHAR, false, 10});
+        colList.add(new Object[]{"TERRITORY_CODE", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"APPL_NAME", Types.VARCHAR, false, 256});
+        colList.add(new Object[]{"APPL_ID", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"SEQUENCE_NO", Types.VARCHAR, false, 4});
+        colList.add(new Object[]{"PRIMARY_AUTH_ID", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"SESSION_AUTH_ID", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"CLIENT_NNAME", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"CLIENT_PRDID", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"INPUT_DB_ALIAS", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"CLIENT_DB_ALIAS", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"DB_NAME", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"DB_PATH", Types.VARCHAR, false, 1024});
+        colList.add(new Object[]{"EXECUTION_ID", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"CORR_TOKEN", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"TPMON_CLIENT_USERID", Types.VARCHAR, false, 256});
+        colList.add(new Object[]{"TPMON_CLIENT_WKSTN", Types.VARCHAR, false, 256});
+        colList.add(new Object[]{"TPMON_CLIENT_APP", Types.VARCHAR, false, 256});
+        colList.add(new Object[]{"TPMON_ACC_STR", Types.VARCHAR, false, 255});
+        colList.add(new Object[]{"DBPARTITIONNUM", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"WORKLOAD_ID", Types.INTEGER, false, null});
+        colList.add(new Object[]{"IS_SYSTEM_APPL", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"MEMBER", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"COORD_MEMBER", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"COORD_DBPARTITIONNUM", Types.SMALLINT, false, null});
+
+        cdsl.add(buildViewColumns(colList, view, viewId));
+        colList.clear();
+
+        // APPLICATIONS
+        colList.add(new Object[]{"SNAPSHOT_TIMESTAMP", Types.TIMESTAMP, false, null});
+        colList.add(new Object[]{"CLIENT_DB_ALIAS", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"DB_NAME", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"AGENT_ID", Types.BIGINT, false, null});
+        colList.add(new Object[]{"APPL_NAME", Types.VARCHAR, false, 256});
+        colList.add(new Object[]{"AUTHID", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"APPL_ID", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"APPL_STATUS", Types.VARCHAR, false, 32});  // lifted from 22
+        colList.add(new Object[]{"STATUS_CHANGE_TIME", Types.TIMESTAMP, false, null});
+        colList.add(new Object[]{"SEQUENCE_NO", Types.VARCHAR, false, 4});
+        colList.add(new Object[]{"CLIENT_PRDID", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"CLIENT_PID", Types.BIGINT, false, null});
+        colList.add(new Object[]{"CLIENT_PLATFORM", Types.VARCHAR, false, 12});
+        colList.add(new Object[]{"CLIENT_PROTOCOL", Types.VARCHAR, false, 10});
+        colList.add(new Object[]{"CLIENT_NNAME", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"COORD_NODE_NUM", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"COORD_AGENT_PID", Types.BIGINT, false, null});
+        colList.add(new Object[]{"NUM_ASSOC_AGENTS", Types.BIGINT, false, null});
+        colList.add(new Object[]{"TPMON_CLIENT_USERID", Types.VARCHAR, false, 256});
+        colList.add(new Object[]{"TPMON_CLIENT_WKSTN", Types.VARCHAR, false, 256});
+        colList.add(new Object[]{"TPMON_CLIENT_APP", Types.VARCHAR, false, 256});
+        colList.add(new Object[]{"TPMON_ACC_STR", Types.VARCHAR, false, 255});
+        colList.add(new Object[]{"DBPARTITIONNUM", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"MEMBER", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"COORD_MEMBER", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"COORD_DBPARTITIONNUM", Types.SMALLINT, false, null});
+
+        cdsl.add(buildViewColumns(colList, view, viewId));
+        colList.clear();
+
+        return cdsl;
+    }
+
+    private ColumnDescriptor[] buildViewColumns(Collection<Object[]> colList, TableDescriptor view, UUID viewId) {
+        Collection<ColumnDescriptor> columnDescriptors = Lists.newArrayListWithCapacity(50);
+        int colPos = 0;
+        for (Object[] entry: colList) {
+            colPos ++;
+            if (entry[3] != null) {
+                columnDescriptors.add(new ColumnDescriptor((String) entry[0], colPos, colPos, DataTypeDescriptor.getBuiltInDataTypeDescriptor((int) entry[1], (boolean) entry[2], (int) entry[3]),
+                        null, null, view, viewId, 0, 0, 0));
+            } else {
+                columnDescriptors.add(new ColumnDescriptor((String) entry[0], colPos, colPos, DataTypeDescriptor.getBuiltInDataTypeDescriptor((int) entry[1], (boolean) entry[2]),
+                        null, null, view, viewId, 0, 0, 0));
+            }
+        }
+
+        ColumnDescriptor[] arr = new ColumnDescriptor[columnDescriptors.size()];
+        arr = columnDescriptors.toArray(arr);
+        return arr;
+    }
+
+    public static String SNAPAPPL_VIEW_SQL = "create view SNAPAPPL as \n" +
+            "SELECT" +
+            "  TIMESTAMP('1970-01-01 00:00:00') AS SNAPSHOT_TIMESTAMP," +
+            "  'SPLICE' AS DB_NAME,             -- MON_GET_MEMORY_POOL\n" +
+            "  APPLICATION_HANDLE AS AGENT_ID," +
+            "  0 AS UOW_LOG_SPACE_USED,         -- MON_GET_UNIT_OF_WORK\n" +
+            "  ROWS_READ," +
+            "  ROWS_MODIFIED AS ROWS_WRITTEN," +
+            "  0 AS INACT_STMTHIST_SZ,          -- MON_HEAP_SZ\n" +
+            "  POOL_DATA_L_READS," +
+            "  POOL_DATA_P_READS," +
+            "  POOL_DATA_WRITES," +
+            "  POOL_INDEX_L_READS," +
+            "  POOL_INDEX_P_READS," +
+            "  POOL_INDEX_WRITES," +
+            "  POOL_TEMP_DATA_L_READS," +
+            "  POOL_TEMP_DATA_P_READS," +
+            "  POOL_TEMP_INDEX_L_READS," +
+            "  POOL_TEMP_INDEX_P_READS," +
+            "  POOL_TEMP_XDA_L_READS," +
+            "  POOL_TEMP_XDA_P_READS," +
+            "  POOL_XDA_L_READS," +
+            "  POOL_XDA_P_READS," +
+            "  POOL_XDA_WRITES," +
+            "  POOL_READ_TIME," +
+            "  POOL_WRITE_TIME," +
+            "  DIRECT_READS," +
+            "  DIRECT_WRITES," +
+            "  DIRECT_READ_REQS," +
+            "  DIRECT_WRITE_REQS," +
+            "  DIRECT_READ_TIME," +
+            "  DIRECT_WRITE_TIME," +
+            "  0 AS UNREAD_PREFETCH_PAGES,       -- MON_GET_DATABASE\n" +
+            "  NUM_LOCKS_HELD AS LOCKS_HELD," +
+            "  LOCK_WAITS," +
+            "  LOCK_WAIT_TIME," +
+            "  LOCK_ESCALS," +
+            "  0 AS X_LOCK_ESCALS,               -- source not clear\n" +
+            "  DEADLOCKS," +
+            "  TOTAL_SORTS," +
+            "  TOTAL_SECTION_SORT_TIME + TOTAL_SECTION_SORT_PROC_TIME AS TOTAL_SORT_TIME,  -- may not be correct\n" +
+            "  SORT_OVERFLOWS," +
+            "  TOTAL_APP_COMMITS AS COMMIT_SQL_STMTS,        -- may not be correct\n" +
+            "  TOTAL_APP_ROLLBACKS AS ROLLBACK_SQL_STMTS,    -- may not be correct\n" +
+            "  DYNAMIC_SQL_STMTS," +
+            "  STATIC_SQL_STMTS," +
+            "  FAILED_SQL_STMTS," +
+            "  SELECT_SQL_STMTS," +
+            "  DDL_SQL_STMTS," +
+            "  UID_SQL_STMTS," +
+            "  IMPLICIT_REBINDS AS INT_AUTO_REBINDS," +
+            "  INT_ROWS_DELETED," +
+            "  INT_ROWS_UPDATED," +
+            "  INT_COMMITS," +
+            "  INT_ROLLBACKS," +
+            "  0 AS INT_DEADLOCK_ROLLBACKS,      -- source not clear\n" +
+            "  ROWS_DELETED," +
+            "  ROWS_INSERTED," +
+            "  ROWS_UPDATED," +
+            "  ROWS_RETURNED AS ROWS_SELECTED," +
+            "  BINDS_PRECOMPILES," +
+            "  0 AS OPEN_REM_CURS,               -- source not clear\n" +
+            "  0 AS OPEN_REM_CURS_BLK,           -- source not clear\n" +
+            "  0 AS REJ_CURS_BLK,                -- source not clear\n" +
+            "  0 AS ACC_CURS_BLK,                -- source not clear\n" +
+            "  SQL_REQS_SINCE_COMMIT," +
+            "  LOCK_TIMEOUTS," +
+            "  INT_ROWS_INSERTED," +
+            "  0 AS OPEN_LOC_CURS,               -- source not clear\n" +
+            "  0 AS OPEN_LOC_CURS_BLK,           -- source not clear\n" +
+            "  PKG_CACHE_LOOKUPS," +
+            "  PKG_CACHE_INSERTS," +
+            "  CAT_CACHE_LOOKUPS," +
+            "  CAT_CACHE_INSERTS," +
+            "  0 AS CAT_CACHE_OVERFLOWS,         -- MON_GET_DATABASE\n" +
+            "  1 AS NUM_AGENTS,                  -- MON_GET_ACTIVITY\n" +
+            "  0 AS AGENTS_STOLEN,               -- MON_GET_INSTANCE\n" +
+            "  ASSOCIATED_AGENTS_TOP," +
+            "  0 AS APPL_PRIORITY,               -- source not clear\n" +
+            "  'FIXED_PRIORITY' AS APPL_PRIORITY_TYPE,  -- source not clear ('FIXED_PRIORITY' or 'DYNAMIC_PRIORITY')\n" +
+            "  PREFETCH_WAIT_TIME," +
+            "  APPL_SECTION_LOOKUPS," +
+            "  APPL_SECTION_INSERTS," +
+            "  NUM_LOCKS_WAITING AS LOCKS_WAITING," +
+            "  TOTAL_HASH_JOINS," +
+            "  TOTAL_HASH_LOOPS," +
+            "  HASH_JOIN_OVERFLOWS," +
+            "  HASH_JOIN_SMALL_OVERFLOWS," +
+            "  0 AS APPL_IDLE_TIME,              -- source not clear\n" +
+            "  0 ASUOW_LOCK_WAIT_TIME,           -- MON_GET_UNIT_OF_WORK.LOCK_WAIT_TIME\n" +
+            "  UOW_COMP_STATUS," +
+            "  0 AS AGENT_USR_CPU_TIME_S,        -- 0 if not available from OS\n" +
+            "  0 AS AGENT_USR_CPU_TIME_MS,       -- 0 if not available from OS\n" +
+            "  0 AS AGENT_SYS_CPU_TIME_S,        -- 0 if not available from OS\n" +
+            "  0 AS AGENT_SYS_CPU_TIME_MS,       -- 0 if not available from OS\n" +
+            "  CONNECTION_START_TIME AS APPL_CON_TIME," +
+            "  TIMESTAMP('2200-01-01 00:00:00') AS CONN_COMPLETE_TIME,  -- source not clear\n" +
+            "  TIMESTAMP('1970-01-01 00:00:00') AS LAST_RESET,  -- MON_GET_WORKLOAD_STATS\n" +
+            "  UOW_START_TIME," +
+            "  UOW_STOP_TIME," +
+            "  PREV_UOW_STOP_TIME," +
+            "  0 AS UOW_ELAPSED_TIME_S,          -- FLOOR(UOW_STOP_TIME - UOW_START_TIME) in seconds\n" +
+            "  0 AS UOW_ELAPSED_TIME_MS,         -- (UOW_STOP_TIME - UOW_START_TIME), only milliseconds part\n" +
+            "  0 AS ELAPSED_EXEC_TIME_S,         -- only available on z/OS, 0 for all other OSs\n" +
+            "  0 AS ELAPSED_EXEC_TIME_MS,        -- only available on z/OS, 0 for all other OSs\n" +
+            "  CLIENT_IPADDR AS INBOUND_COMM_ADDRESS,  -- should have CLIENT_PORT_NUMBER as well, but derby allows only integer to char with padding\n" +
+            "  LOCK_TIMEOUT_VAL," +
+            "  -1 AS PRIV_WORKSPACE_NUM_OVERFLOWS,   -- deprecated, DB2 returns invalid value\n" +
+            "  -1 AS PRIV_WORKSPACE_SECTION_INSERTS, -- deprecated, DB2 returns invalid value\n" +
+            "  -1 AS PRIV_WORKSPACE_SECTION_LOOKUPS, -- deprecated, DB2 returns invalid value\n" +
+            "  -1 AS PRIV_WORKSPACE_SIZE_TOP,        -- deprecated, DB2 returns invalid value\n" +
+            "  -1 AS SHR_WORKSPACE_NUM_OVERFLOWS,    -- deprecated, DB2 returns invalid value\n" +
+            "  -1 AS SHR_WORKSPACE_SECTION_INSERTS,  -- deprecated, DB2 returns invalid value\n" +
+            "  -1 AS SHR_WORKSPACE_SECTION_LOOKUPS,  -- deprecated, DB2 returns invalid value\n" +
+            "  -1 AS SHR_WORKSPACE_SIZE_TOP,         -- deprecated, DB2 returns invalid value\n" +
+            "  0 AS DBPARTITIONNUM,              -- 0 for Enterprise Server edition, #partitions otherwise\n" +
+            "  0 AS CAT_CACHE_SIZE_TOP,          -- related to MON_GET_MEMORY_POOL.MEMORY_POOL_USED_HWM, not sure what's the equation\n" +
+            "  TOTAL_OLAP_FUNCS," +
+            "  OLAP_FUNC_OVERFLOWS," +
+            "  MEMBER" +
+            " FROM SYSIBMADM.MON_GET_CONNECTION";
+
+    public static String SNAPAPPL_INFO_VIEW_SQL = "create view SNAPAPPL_INFO as \n" +
+            "SELECT" +
+            "  TIMESTAMP('1970-01-01 00:00:00') AS SNAPSHOT_TIMESTAMP," +
+            "  APPLICATION_HANDLE AS AGENT_ID," +
+            "  WORKLOAD_OCCURRENCE_STATE AS APPL_STATUS,  -- partial result, need also MON_GET_AGENT.EVENT_STATE and .EVENT_TYPE\n" +
+            "  -1 AS CODEPAGE_ID,         -- source not clear\n" +
+            "  NUM_ASSOC_AGENTS," +
+            "  MEMBER AS COORD_NODE_NUM,  -- deprecated\n" +
+            "  '' AS AUTHORITY_LVL,       -- a bit map of authority (user, group, role, ...)\n" +
+            "  CLIENT_PID," +
+            "  -1 AS COORD_AGENT_PID,     -- an unique identifier generated by DB2 on Linux, or thread ID on other OSs\n" +
+            "  TIMESTAMP('1970-01-01 00:00:00') AS STATUS_CHANGE_TIME,  -- source not clear\n" +
+            "  CLIENT_PLATFORM," +
+            "  CLIENT_PROTOCOL," +
+            "  0 AS TERRITORY_CODE,       -- country code, 0 for DRDA AS connections\n" +
+            "  APPLICATION_NAME AS APPL_NAME," +
+            "  APPLICATION_ID AS APPL_ID," +
+            "  '' AS SEQUENCE_NO,         -- increases when a unit of work completes, transaction ID = (APPL_ID, SEQUENCE_NO)\n" +
+            "  '' AS PRIMARY_AUTH_ID,     -- PD_GET_DIAG_HIST\n" +
+            "  SESSION_AUTH_ID," +
+            "  'deprecated' AS CLIENT_NNAME,  -- deprecated\n" +
+            "  CLIENT_PRDID," +
+            "  '' INPUT_DB_ALIAS," +
+            "  '' CLIENT_DB_ALIAS," +
+            "  'SPLICE' AS DB_NAME," +
+            "  '' AS DB_PATH,             -- MON_GET_DATABASE\n" +
+            "  EXECUTION_ID," +
+            "  '' AS CORR_TOKEN,          -- DRDA token, or APPLICATION_ID if not a DRDA connection\n" +
+            "  CLIENT_USERID AS TPMON_CLIENT_USERID," +
+            "  CLIENT_WRKSTNNAME AS TPMON_CLIENT_WKSTN," +
+            "  CLIENT_APPLNAME AS TPMON_CLIENT_APP," +
+            "  CLIENT_ACCTNG AS TPMON_ACC_STR," +
+            "  0 AS DBPARTITIONNUM," +
+            "  -1 AS WORKLOAD_ID,         -- MON_GET_WORKLOAD, MON_GET_ACTIVITY\n" +
+            "  IS_SYSTEM_APPL," +
+            "  MEMBER," +
+            "  COORD_MEMBER," +
+            "  0 AS COORD_DBPARTITIONNUM" +
+            " FROM SYSIBMADM.MON_GET_CONNECTION";
+
+    public static String APPLICATIONS_VIEW_SQL = "create view APPLICATIONS as \n" +
+            "SELECT" +
+            "  SNAPSHOT_TIMESTAMP," +
+            "  CLIENT_DB_ALIAS," +
+            "  DB_NAME," +
+            "  AGENT_ID," +
+            "  APPL_NAME," +
+            "  PRIMARY_AUTH_ID AS AUTHID," +
+            "  APPL_ID," +
+            "  APPL_STATUS," +
+            "  STATUS_CHANGE_TIME," +
+            "  SEQUENCE_NO," +
+            "  CLIENT_PRDID," +
+            "  CLIENT_PID," +
+            "  CLIENT_PLATFORM," +
+            "  CLIENT_PROTOCOL," +
+            "  CLIENT_NNAME," +
+            "  COORD_NODE_NUM," +
+            "  COORD_AGENT_PID," +
+            "  NUM_ASSOC_AGENTS," +
+            "  TPMON_CLIENT_USERID," +
+            "  TPMON_CLIENT_WKSTN," +
+            "  TPMON_CLIENT_APP," +
+            "  TPMON_ACC_STR," +
+            "  DBPARTITIONNUM," +
+            "  MEMBER," +
+            "  COORD_MEMBER," +
+            "  COORD_DBPARTITIONNUM" +
+            " FROM SYSIBMADM.SNAPAPPL_INFO";
 }

@@ -6389,9 +6389,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ContextService.getFactory().setCurrentContextManager(cm);
                 int catalogNumber=noncoreCtr+NUM_CORE;
                 boolean isDummy=(catalogNumber==SYSDUMMY1_CATALOG_NUM);
+                SchemaDescriptor sd = systemSchemaDesc;
+                if (catalogNumber > 34 && catalogNumber < 38)
+                    sd = sysIBMADMSchemaDesc;
+                else if (isDummy)
+                    sd = sysIBMSchemaDesc;
                 TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
                 if (ti != null) {
-                    makeCatalog(ti, isDummy ? sysIBMSchemaDesc : systemSchemaDesc, tc);
+                    makeCatalog(ti, sd, tc);
                 }
                 if(isDummy)
                     populateSYSDUMMY1(tc);
@@ -7774,6 +7779,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     break;
                 case SYSREPLICATION_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSREPLICATIONRowFactory(luuidFactory,exFactory,dvf));
+                    break;
+                case SNAPAPPL_CATALOG_NUM:
+                case SNAPAPPL_INFO_CATALOG_NUM:
+                case APPLICATIONS_CATALOG_NUM:
+                    retval=new TabInfoImpl(new MONGETCONNECTIONRowFactory(luuidFactory,exFactory,dvf));
                     break;
                 case SYSBACKUPFILESET_CATALOG_NUM:
                 case SYSBACKUPJOBS_CATALOG_NUM:
