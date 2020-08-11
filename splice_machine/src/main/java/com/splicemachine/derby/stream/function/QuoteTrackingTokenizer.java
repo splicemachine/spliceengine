@@ -48,7 +48,8 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
     private boolean checkExactSizeFirst = false;
     private int rowIdx = 0;
     private List<Integer> exactColumnSizes = null;
-    final static int SCAN_THRESHOLD = 100000;
+    final static int SCAN_THRESHOLD = 2;
+    int scanThresold = SCAN_THRESHOLD;
 
     private static class LazyStringBuilder {
 
@@ -146,6 +147,14 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         valueSizeHints = null;
     }
 
+    /**
+     * Constructs a new <tt>Tokenizer</tt>, which reads the CSV file, line by line.
+     *
+     * @param reader      the reader
+     * @param preferences the CSV preferences
+     * @param valueSizeHints the maximum size of each column. this is used to optimize memory footprint of the reader.
+     * @throws NullPointerException if reader or preferences is null
+     */
     public QuoteTrackingTokenizer(final Reader reader, final CsvPreference preferences, final List<Integer> valueSizeHints) {
         super(reader, preferences);
         this.quoteChar = preferences.getQuoteChar();
@@ -162,6 +171,12 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         return readColumns(columns, null);
     }
 
+    /**
+     * Parses the columns from current CSV row.
+     * @param columns output parameter, the resulting set of parsed columns
+     * @param quotedColumns output parameter, for each one of the resulting columns: true if the column was quoted, otherwise, false
+     * @return true if more rows exists, otherwise false.
+     */
     public boolean readColumns(final List<String> columns, final BooleanList quotedColumns) throws IOException {
         if (columns == null) {
             throw new NullPointerException("columns should not be null");
@@ -185,10 +200,10 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         // read a line (ignoring empty lines/comments if necessary)
         if (!readFirstLine()) return false; // EOF
 
-        // now, if some column value is larger than 10000K we perform the dry run to avoid extra allocation of StringBuilder.
+        // now, if some column value is larger than scanThreshold we perform the dry run to avoid extra allocation of StringBuilder.
         checkExactSizeFirst = false;
         if(valueSizeHints != null) {
-            if(valueSizeHints.stream().max(Integer::compare).get() > SCAN_THRESHOLD) {
+            if(valueSizeHints.stream().max(Integer::compare).get() > scanThresold) {
                 checkExactSizeFirst = true;
                 exactColumnSizes = new ArrayList<>(Collections.nCopies(valueSizeHints.size(), 0));
             }
@@ -215,6 +230,10 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
 
         runStateMachine(columns, quotedColumns);
         return true;
+    }
+
+    List<Integer> getExactColumnSizes() {
+        return exactColumnSizes;
     }
 
     private void runStateMachine(final List<String> columns, final BooleanList quotedColumns) throws IOException {
@@ -254,6 +273,10 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
 
     private void addToColumn(char c) {
         if(checkExactSizeFirst) {
+            if(colIdx >= exactColumnSizes.size()) {
+                throw new SuperCsvException(String.format("unexpected extra column on line %d, number of expected columns " +
+                        "(%d) is less than actual columns", getLineNumber(), exactColumnSizes.size()));
+            }
             exactColumnSizes.set(colIdx, exactColumnSizes.get(colIdx) + 1);
         } else {
             currentColumn.append(c);
@@ -395,6 +418,10 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
                                   " beginning on line %d and ending on line %d", quoteScopeStartingLine, getLineNumber());
             throw new SuperCsvException(msg);
         }
+    }
+
+    void setScanThreshold(int scanThreshold) {
+        this.scanThresold = scanThreshold;
     }
 
     /**
