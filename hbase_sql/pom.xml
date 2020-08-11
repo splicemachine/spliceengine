@@ -90,7 +90,7 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-remote_${scala.binary.version}</artifactId>
-            <version>${akka.version}</version>
+            <version>2.4.12</version>
         </dependency>
         <dependency>
             <groupId>io.airlift</groupId>
