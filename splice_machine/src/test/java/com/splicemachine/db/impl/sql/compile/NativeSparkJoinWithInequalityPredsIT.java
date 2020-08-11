@@ -19,7 +19,10 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.*;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -27,11 +30,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 
-import java.math.BigDecimal;
-import java.sql.*;
-import java.util.Arrays;
+import java.sql.Connection;
 import java.util.Collection;
-import java.util.List;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -471,13 +471,15 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
         "%s tab1.j = tab2.j and ((tab1.t = tab2.t or tab1.t is null) and tab1.t > TO_TIME('11:44', 'HH:mm')) ",
         };
 
+        /* for the scenario i=3, j=6, the not exists subquery is not flattened, so sortmerge join is not applicable,
+        use nestedloop join instead which is the only applicable join strategy */
         for (int i = 0; i < joins.length; i++)
             for (int j = 0; j < joinConditions3.length; j++) {
                 sqlText = format("/* i=%d, j=%d */ select count(*) from ts_datetime tab1 %s ts_datetime tab2 " +
                 "--splice-properties useSpark=%s, joinStrategy=%s\n" +
                 "%s " +
                 "%s"
-                , i, j, joins[i], useSpark, joinStrategy, joinConditions3[j], closingParenthesis[i]);
+                , i, j, joins[i], useSpark, (j==6?"nestedloop" : joinStrategy), joinConditions3[j], closingParenthesis[i]);
                 sqlText = format(sqlText, whereOrOnClause[i]);
                 expected = format(expectedTemplate, expectedCounts3[i][j]);
                 testQueryUnsorted(sqlText, expected, methodWatcher);
