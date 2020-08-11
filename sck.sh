@@ -1,10 +1,10 @@
 #!/bin/bash
 
-platform=cdh6.3.0
+platform=cdh5.14.0
 
 function help() {
   echo "sck.sh [--platform <platform>] command"
-  echo "<platform> The cluster platform, default is cdh6.3.0"
+  echo "<platform> The cluster platform, default is cdh5.14.0"
 }
 
 if [ $# -eq 0 ]
