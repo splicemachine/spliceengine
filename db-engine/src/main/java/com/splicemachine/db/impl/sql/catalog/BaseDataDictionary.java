@@ -37,7 +37,9 @@ import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(value="MS_PKGPROTECT")
 public abstract class BaseDataDictionary implements DataDictionary, ModuleControl, ModuleSupportable,java.security.PrivilegedAction {
 	protected static final String		CFG_SYSTABLES_ID = "SystablesIdentifier";
 	protected static final String		CFG_SYSTABLES_INDEX1_ID = "SystablesIndex1Identifier";
