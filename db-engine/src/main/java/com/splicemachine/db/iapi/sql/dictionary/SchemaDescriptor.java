@@ -151,7 +151,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 	public static final	String SYSIBM_SCHEMA_UUID =  
         "c013800d-00f8-5b53-28a9-00000019ed88";
 	public static final	String SYSIBMADM_SCHEMA_UUID =
-		"62bfdcdb-ea53-4339-bd1b-018e411b8852";
+        "62bfdcdb-ea53-4339-bd1b-018e411b8852";
 	public static final	String DEFAULT_SCHEMA_UUID = 
         "80000000-00d2-b38f-4cda-000a0a412c00";
 	public static final	String SYSVW_SCHEMA_UUID =
