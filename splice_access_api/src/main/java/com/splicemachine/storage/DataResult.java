@@ -47,6 +47,4 @@ public interface DataResult extends Iterable<DataCell>{
     Map<byte[],byte[]> familyCellMap(byte[] userColumnFamily);
 
     DataResult getClone();
-
-    boolean isEmpty();
 }

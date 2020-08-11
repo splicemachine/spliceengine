@@ -148,9 +148,4 @@ public class MResult implements DataResult{
     public DataResult getClone(){
         return new MResult(new ArrayList<>(dataCells));
     }
-
-    @Override
-    public boolean isEmpty() {
-        return (dataCells==null||dataCells.size()<=0);
-    }
 }
