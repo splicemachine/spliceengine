@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -229,6 +230,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     @Override
     public void divideUpPredicateLists(
             Optimizable innerTable,
+            JBitSet joinedTableSet,
             OptimizablePredicateList originalRestrictionList,
             OptimizablePredicateList storeRestrictionList,
             OptimizablePredicateList nonStoreRestrictionList,
