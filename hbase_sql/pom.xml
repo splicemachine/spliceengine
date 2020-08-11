@@ -148,12 +148,6 @@
             <artifactId>guava</artifactId>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.iq80.snappy</groupId>
-            <artifactId>snappy</artifactId>
-            <version>0.4</version>
-            <scope>provided</scope>
-        </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
