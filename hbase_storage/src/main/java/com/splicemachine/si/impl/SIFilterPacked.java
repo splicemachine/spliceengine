@@ -28,8 +28,6 @@ import java.util.List;
 public class SIFilterPacked extends FilterBase implements HasPredicateFilter{
     public TxnFilter filterState=null;
 
-    private transient HCell wrapper = new HCell();
-
     public SIFilterPacked(){ }
 
     public SIFilterPacked(TxnFilter filterState){
@@ -45,8 +43,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter{
     public Filter.ReturnCode filterKeyValue(Cell keyValue){
         try{
             initFilterStateIfNeeded();
-            wrapper.set(keyValue);
-            DataFilter.ReturnCode code=filterState.filterCell(wrapper);
+            DataFilter.ReturnCode code=filterState.filterCell(new HCell(keyValue));
             switch(code){
                 case NEXT_ROW:
                     return Filter.ReturnCode.NEXT_ROW;

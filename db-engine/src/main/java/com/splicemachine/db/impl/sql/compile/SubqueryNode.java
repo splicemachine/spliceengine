@@ -636,7 +636,7 @@ public class SubqueryNode extends ValueNode{
             if (!(resultSet instanceof RowResultSetNode)) {
                 this.fetchFirst = (ValueNode) getNodeFactory().getNode(
                         C_NodeTypes.INT_CONSTANT_NODE,
-                        1,
+                        Integer.valueOf(1),
                         getContextManager());
             }
 
@@ -1100,7 +1100,10 @@ public class SubqueryNode extends ValueNode{
          */
 
         /* Optimize the underlying result set */
-        resultSet=resultSet.optimize(dataDictionary, null, outerRows, forSpark);
+        resultSet=resultSet.optimize(dataDictionary, null, 0, forSpark);
+        if (subqueryType != EXPRESSION_SUBQUERY || hasCorrelatedCRs()) {
+            resultSet.getCostEstimate().multiply(outerRows, resultSet.getCostEstimate());
+        }
     }
 
     /**

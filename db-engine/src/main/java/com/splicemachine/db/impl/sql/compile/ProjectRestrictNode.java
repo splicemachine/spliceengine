@@ -53,6 +53,7 @@ import org.spark_project.guava.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
@@ -535,6 +536,45 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             }
         }
     }
+
+    private void processRowIdReferenceInFromBaseTableChild() throws StandardException {
+        if (childResult instanceof FromBaseTable && ((FromBaseTable) childResult).getRowIdColumn() != null && restrictionList != null) {
+            // check if the restriction list contains any rowid reference, then add another level of PR and unmap it
+            CollectNodesVisitor nodesVisitor = new CollectNodesVisitor(ColumnReference.class, null);
+            restrictionList.accept(nodesVisitor);
+            List<ColumnReference> list = Collections.list(nodesVisitor.getList().elements());
+            List<ColumnReference> rowIdReferenceList = list
+                    .stream()
+                    .filter(node -> node.isSourceRowIdColumn())
+                    .collect(Collectors.toList());
+
+            if (rowIdReferenceList.size() > 0) {
+                // add another level of PR in-between to project/hold the rowid field
+                ResultColumnList newPrRCList = resultColumns.copyListAndObjects();
+
+                ResultSetNode newPRNode = (ResultSetNode) getNodeFactory().getNode(
+                        C_NodeTypes.PROJECT_RESTRICT_NODE,
+                        childResult,
+                        newPrRCList,
+                        null,    /* Restriction */
+                        null,   /* Restriction as PredicateList */
+                        null,    /* Project subquery list */
+                        null,    /* Restrict subquery list */
+                        null,
+                        getContextManager());
+
+                resultColumns.genVirtualColumnNodes(newPRNode, newPrRCList, false);
+
+                for (ColumnReference cr: rowIdReferenceList) {
+                    VirtualColumnNode virtualColumNode = (VirtualColumnNode)cr.getSource().getExpression();
+                    cr.setSource(virtualColumNode.getSourceResultColumn() );
+                }
+
+                childResult = newPRNode;
+            }
+        }
+    }
+
     @Override
     public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException{
         boolean origChildOptimizable=true;
@@ -653,7 +693,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         ** its column list to match that of the index.
         */
         if(origChildOptimizable){
-            childResult=childResult.changeAccessPath();
+            processRowIdReferenceInFromBaseTableChild();
+            childResult=childResult.changeAccessPath(outerTables);
         }
         accessPathModified=true;
 
@@ -664,7 +705,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         */
         if(trulyTheBestAccessPath.getJoinStrategy()!=null &&
                 trulyTheBestAccessPath.getJoinStrategy().isHashJoin()){
-            return replaceWithHashTableNode();
+            return replaceWithHashTableNode(outerTables);
         }
 
         /* We consider materialization into a temp table as a last step.
@@ -685,7 +726,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      * @return The new (same) top of our result set tree.
      * @throws StandardException Thrown on error
      */
-    private Optimizable replaceWithHashTableNode() throws StandardException{
+    private Optimizable replaceWithHashTableNode(JBitSet joinedTableSet) throws StandardException{
         // If this PRN has TTB access path for its child, store that access
         // path in the child here, so that we can find it later when it
         // comes time to generate qualifiers for the hash predicates (we
@@ -739,6 +780,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         PredicateList joinQualifierList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         PredicateList requalificationRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         trulyTheBestAccessPath.getJoinStrategy().divideUpPredicateLists(this,
+                joinedTableSet,
                 restrictionList,
                 searchRestrictionList,
                 joinQualifierList,
@@ -1475,6 +1517,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             mb.pushNull(ClassName.GeneratedMethod);
         }
 
+        resultColumns.generateResultColumnDataType(acb, mb);
+
         mb.push(resultSetNumber);
 
         // if there is no constant restriction, we just want to pass null.
@@ -1526,7 +1570,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         ProjectRestrictNode.generateExpressionsArrayOnStack(acb, mb, canUseSparkSQLExpressions ? resultColumns : null);
         mb.push(hasGroupingFunction);
         mb.push(subqueryText);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,16);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,17);
     }
 
     /**
@@ -1897,4 +1941,11 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         return childResult.isOneRowResultSet();
     }
 
+    @Override
+    public boolean hasJoinPredicatePushedDownFromOuter() {
+        if (!hasTrulyTheBestAccessPath)
+            return ((FromTable)childResult).hasJoinPredicatePushedDownFromOuter();
+
+        return hasJoinPredicatePushedDownFromOuter;
+    }
 }
