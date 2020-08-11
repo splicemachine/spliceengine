@@ -16,12 +16,13 @@ package com.splicemachine.ck.hwrap;
 
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
+import scala.Array;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.regex.Pattern;
 
 import static com.splicemachine.ck.Utils.tell;
@@ -54,7 +55,11 @@ public class ConnectionWrapper implements AutoCloseable {
         assert table != null;
         Scan scan = new Scan();
         tell("hbase scan table", table.getName().toString(), "with all versions");
-        scan.withStartRow(Bytes.fromHex(key)).setLimit(1).readAllVersions();
+        byte[] startRow = Bytes.fromHex(key);
+        byte[] stopRow = new byte[startRow.length + 1];
+        Array.copy(startRow, 0, stopRow, 0, startRow.length);
+        stopRow[stopRow.length - 1] = 0; // inclusive
+        scan.setStartRow(startRow).setStopRow(stopRow).setMaxVersions();
         return table.getScanner(scan);
     }
 
@@ -78,9 +83,9 @@ public class ConnectionWrapper implements AutoCloseable {
         table.put(put);
     }
 
-    public List<TableDescriptor> descriptorsOfPattern(final String pattern) throws IOException {
+    public HTableDescriptor[] descriptorsOfPattern(final String pattern) throws IOException {
         tell("hbase list table descriptors with pattern", pattern);
-        return connection.getAdmin().listTableDescriptors(Pattern.compile(pattern));
+        return connection.getAdmin().listTables(Pattern.compile(pattern));
     }
 
     @Override

@@ -35,11 +35,11 @@ import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableNotFoundException;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.util.BitSet;
@@ -74,8 +74,8 @@ public class HBaseInspector {
         Utils.Tabular tabular = new Utils.Tabular(Utils.Tabular.SortHint.AsString, TBL_TABLES_COL0, TBL_TABLES_COL1,
                                                   TBL_TABLES_COL2, TBL_TABLES_COL3, TBL_TABLES_COL4);
         try(final ConnectionWrapper connectionWrapper = new ConnectionWrapper()) {
-            final List<TableDescriptor> descriptors = connectionWrapper.withConfiguration(config).connect().descriptorsOfPattern(Constants.SPLICE_PATTERN);
-            for (TableDescriptor td : descriptors) {
+            final HTableDescriptor[] descriptors = connectionWrapper.withConfiguration(config).connect().descriptorsOfPattern(Constants.SPLICE_PATTERN);
+            for (HTableDescriptor td : descriptors) {
                 tabular.addRow(checkNull(td.getTableName().toString()),
                         checkNull(td.getValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR)),
                         checkNull(td.getValue(SIConstants.TABLE_DISPLAY_NAME_ATTR)),
