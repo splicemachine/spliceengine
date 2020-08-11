@@ -83,7 +83,40 @@ public class QuoteTrackingTokenizerTest {
             Assert.fail("expected exception to be thrown, but no exception was thrown");
         } catch(Exception e) {
             Assert.assertTrue(e instanceof SuperCsvException);
-            Assert.assertEquals("unexpected extra column on line 1, amount of expected columns (4) is less than actual columns", ((SuperCsvException)e).getMessage());
+            Assert.assertEquals("unexpected extra column on line 1, amount of expected columns (4) is less than actual columns", e.getMessage());
+            return;
+        }
+        Assert.fail("expected exception to be thrown, but no exception was thrown");
+    }
+
+    @Test
+    public void boundaryMissingQuoteErrorDuringScanIsReportedCorrectly() throws Exception {
+        String invalidRow = "\"hello,goodbye,parseThis!,boots\n";
+        List<String> correctCols = Arrays.asList("hello", "goodbye", "parseThis!", "boots");
+        BooleanList correctQuotes = BooleanList.wrap(true, false, false, false);
+        try {
+            checkResults(invalidRow, correctCols, correctQuotes, 4, true);
+            Assert.fail("expected exception to be thrown, but no exception was thrown");
+        } catch(Exception e) {
+            Assert.assertTrue(e instanceof SuperCsvException);
+            Assert.assertEquals("partial record found while scanning row at line 1 and ending on line 1", e.getMessage());
+            return;
+        }
+        Assert.fail("expected exception to be thrown, but no exception was thrown");
+    }
+
+    @Test
+    public void boundaryMissingQuoteErrorDuringReadIsReportedCorrectly() throws Exception {
+        String invalidRow = "\"hello,goodbye,parseThis!,boots\n";
+        List<String> correctCols = Arrays.asList("hello", "goodbye", "parseThis!", "boots");
+        BooleanList correctQuotes = BooleanList.wrap(true, false, false, false);
+        try {
+            checkResults(invalidRow, correctCols, correctQuotes, 4);
+            Assert.fail("expected exception to be thrown, but no exception was thrown");
+        } catch(Exception e) {
+            Assert.assertTrue(e instanceof SuperCsvException);
+            Assert.assertEquals("partial record found [hello,goodbye,parseThis!,boots\n" +
+                    "] while reading quoted column beginning on line 1 and ending on line 1", e.getMessage());
             return;
         }
         Assert.fail("expected exception to be thrown, but no exception was thrown");
