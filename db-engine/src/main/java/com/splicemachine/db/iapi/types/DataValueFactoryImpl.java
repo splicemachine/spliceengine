@@ -79,9 +79,6 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
 
             RegisteredFormatIds.TwoByte[StoredFormatIds.SQL_DECIMAL_ID] = SQLDecimal.class.getName();
 
-            // Generate a DECIMAL value represetentation of 0
-            NumberDataType.ZERO_DECIMAL = new SQLDecimal("0");
-
             ModuleFactory monitor = Monitor.getMonitor();
             //The Locale on monitor has already been set by the boot code in
             //BasicDatabase so we can simply do a get here.
