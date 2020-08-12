@@ -27,9 +27,7 @@ import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.JoinTable;
-import com.splicemachine.derby.impl.sql.execute.operations.BroadcastJoinCache;
-import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.stream.function.InnerJoinNullFilterFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -63,18 +61,24 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
     protected boolean rightAsLeft;
     protected ContextManager cm;
     protected boolean newContextManager, lccPushed;
+    private boolean noCacheBroadcastJoinRight;
 
     public AbstractBroadcastJoinFlatMapFunction() {
     }
 
-    public AbstractBroadcastJoinFlatMapFunction(OperationContext operationContext) {
+    public AbstractBroadcastJoinFlatMapFunction(OperationContext operationContext,
+                                                boolean noCacheBroadcastJoinRight) {
         super(operationContext);
         this.rightAsLeft = false;
+        this.noCacheBroadcastJoinRight = noCacheBroadcastJoinRight;
     }
 
-    public AbstractBroadcastJoinFlatMapFunction(OperationContext operationContext, boolean rightAsLeft) {
+    public AbstractBroadcastJoinFlatMapFunction(OperationContext operationContext,
+                                                boolean rightAsLeft,
+                                                boolean noCacheBroadcastJoinRight) {
         super(operationContext);
         this.rightAsLeft = rightAsLeft;
+        this.noCacheBroadcastJoinRight = noCacheBroadcastJoinRight;
     }
     @Override
     public final Iterator<Out> call(Iterator<In> locatedRows) throws Exception {
@@ -215,6 +219,12 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
                 }));
             };
             ExecRow leftTemplate = leftOperation.getExecRowDefinition();
+
+            if (noCacheBroadcastJoinRight) {
+                BroadcastJoinNoCacheLoader loader = new BroadcastJoinNoCacheLoader(sequenceId, rightHashKeys, leftHashKeys, leftTemplate, rhsLoader);
+                return loader.call().newTable();
+            }
+
             return broadcastJoinCache.get(sequenceId, rhsLoader, rightHashKeys, leftHashKeys, leftTemplate).newTable();
         });
     }

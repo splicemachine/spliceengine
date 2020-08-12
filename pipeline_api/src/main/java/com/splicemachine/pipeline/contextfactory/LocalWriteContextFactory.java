@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.base.Function;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
 import com.google.common.collect.Lists;
 
@@ -113,7 +114,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,pf, txn, null, rce, false, false, false, false, env,pipelineExceptionFactory);
-        BatchConstraintChecker checker = buildConstraintChecker(txn);
+        BatchConstraintChecker checker = buildConstraintChecker(txn, rce);
         context.addLast(new PartitionWriteHandler(rce, tableWriteLatch, checker));
         addWriteHandlerFactories(1000, context);
         return context;
@@ -129,24 +130,29 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         };
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,
                 pf,txn, token, region, skipIndexWrites,skipConflictDetection, skipWAL, rollforward, env,pipelineExceptionFactory);
-        BatchConstraintChecker checker = buildConstraintChecker(txn);
+        BatchConstraintChecker checker = buildConstraintChecker(txn, region);
         context.addLast(new PartitionWriteHandler(region, tableWriteLatch, checker));
         addWriteHandlerFactories(expectedWrites, context);
         return context;
     }
 
-    private BatchConstraintChecker buildConstraintChecker(TxnView txn) throws IOException, InterruptedException{
+    private BatchConstraintChecker buildConstraintChecker(TxnView txn, TransactionalRegion region) throws IOException, InterruptedException{
         isInitialized(txn);
-        if(state.get()==State.RUNNING){
-            if(constraintFactories.isEmpty()){
-                return null;
-            }
-            List<BatchConstraintChecker> checkers= Lists.newArrayListWithCapacity(constraintFactories.size());
-            for(ConstraintFactory factory : constraintFactories){
-                checkers.add(factory.getConstraintChecker());
-            }
-            return new ChainConstraintChecker(checkers);
-        }return null;
+        switch (state.get()) {
+            case NOT_MANAGED:
+                assert region.getTableName().matches("[0-9]+");
+                return new NoOpConstraintChecker(SIDriver.driver().getOperationStatusLib());
+            case RUNNING:
+                if(constraintFactories.isEmpty()){
+                    return null;
+                }
+                List<BatchConstraintChecker> checkers= Lists.newArrayListWithCapacity(constraintFactories.size());
+                for(ConstraintFactory factory : constraintFactories){
+                    checkers.add(factory.getConstraintChecker());
+                }
+                return new ChainConstraintChecker(checkers);
+        }
+        return null;
     }
 
 

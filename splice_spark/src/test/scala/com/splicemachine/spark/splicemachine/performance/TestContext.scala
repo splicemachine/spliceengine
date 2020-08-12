@@ -78,10 +78,10 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
     SpliceSpark.setContext(sc)
     spark = SparkSession.builder.config(conf).getOrCreate
     splicemachineContext = new SplicemachineContext(defaultJDBCURL)
-    val r = new java.util.Random()
+    var n = 0
     internalTNDF = dataframe(
       rdd(Seq.fill(recordCount)(
-        Row.fromSeq( Seq(r.nextInt, java.util.UUID.randomUUID.toString, java.util.UUID.randomUUID.toString) )
+        Row.fromSeq( {n+=1; Seq(n, java.util.UUID.randomUUID.toString, java.util.UUID.randomUUID.toString)} )
       )),
       dfSchema()
     )

@@ -57,12 +57,11 @@ public class RSUtils {
     // functions
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     public static final Function<ResultSetNode, Integer> rsNum = new Function<ResultSetNode, Integer>() {
         @Override
         @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
         public Integer apply(ResultSetNode rsn) {
-            return rsn.getResultSetNumber();
+            return rsn == null? -1 : rsn.getResultSetNumber();
         }
     };
 
@@ -104,7 +103,7 @@ public class RSUtils {
         @Override
         @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
         public boolean apply(ResultSetNode rsn) {
-            return sinkers.contains(rsn.getClass()) &&
+            return rsn != null && sinkers.contains(rsn.getClass()) &&
                     (!(rsn instanceof JoinNode) || RSUtils.isSinkingJoin(RSUtils.ap((JoinNode) rsn)) ||
                             RSUtils.leftHasIndexLookup(rsn));
         }
@@ -135,6 +134,9 @@ public class RSUtils {
 
     public static final com.google.common.base.Predicate<Object> isBinaryRSNExcludeUnion =
             Predicates.compose(Predicates.in(binaryRSNsExcludeUnion), classOf);
+
+    public static final org.spark_project.guava.base.Predicate<Object> isIntersectOrExcept =
+            Predicates.compose(Predicates.in(ImmutableSet.of(IntersectOrExceptNode.class)), classOf);
 
     // leafRSNs might need VTI eventually
     public static final Set<?> leafRSNs = ImmutableSet.of(
@@ -219,6 +221,13 @@ public class RSUtils {
         return CollectingVisitorBuilder.forClass(ResultSetNode.class)
                 .onAxis(isRSN)
                 .until(isBinaryRSNExcludeUnion)
+                .collect(rsn);
+    }
+
+    public static List<ResultSetNode> nodesUntilIntersectOrExcept(ResultSetNode rsn) throws StandardException {
+        return CollectingVisitorBuilder.forClass(ResultSetNode.class)
+                .onAxis(isRSN)
+                .until(isIntersectOrExcept)
                 .collect(rsn);
     }
 

@@ -18,9 +18,11 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.LongerThanTwoMinutes;
-import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.*;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -29,7 +31,7 @@ import org.junit.runners.Parameterized;
 import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
-import java.sql.*;
+import java.sql.Connection;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -896,10 +898,13 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
 
         sqlText = format("select a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a/3 from ts_decimal --splice-properties useSpark=%s", useSpark);
 
-        // For now, this query is expected to overflow.
-        List<String> expectedErrors =
-          Arrays.asList("The resulting value is outside the range for the data type DECIMAL/NUMERIC(38,28).");
-          testFail(sqlText, expectedErrors, methodWatcher);
+        expected = "1       |\n" +
+                "----------------\n" +
+                "153333333328.7 |\n" +
+                "153333333331.8 |\n" +
+                "153333333331.8 |";
+
+        testQuery(sqlText, expected, methodWatcher);
 
         sqlText = format("select f1+f1+f1+f1+f1+f1+f1+f1+f1+f1+f1 from ts_float --splice-properties useSpark=%s", useSpark);
 

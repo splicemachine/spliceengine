@@ -45,6 +45,7 @@ import java.util.concurrent.locks.ReadWriteLock;
  * @author Scott Fines
  *         Date: 6/23/14
  */
+@SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification = "DB-9968")
 public class MemTxnStore implements TxnStore{
     private LongStripedSynchronizer<ReadWriteLock> lockStriper;
     private final ConcurrentMap<Long, TxnHolder> txnMap;
@@ -396,6 +397,11 @@ public class MemTxnStore implements TxnStore{
             }
         });
         return txns;
+    }
+
+    @Override
+    public long getTxnAt(long ts) throws IOException {
+        return 0;
     }
 
     @Override
