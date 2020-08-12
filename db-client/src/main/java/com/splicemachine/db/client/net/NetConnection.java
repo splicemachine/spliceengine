@@ -24,28 +24,17 @@
  */
 package com.splicemachine.db.client.net;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.sql.*;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.Executor;
-
-import com.splicemachine.db.client.am.*;
+import com.splicemachine.db.client.ClientPooledConnection;
 import com.splicemachine.db.client.am.CallableStatement;
 import com.splicemachine.db.client.am.DatabaseMetaData;
 import com.splicemachine.db.client.am.PreparedStatement;
 import com.splicemachine.db.client.am.Statement;
-import com.splicemachine.db.shared.common.reference.MessageId;
-import com.splicemachine.db.shared.common.i18n.MessageUtil;
+import com.splicemachine.db.client.am.*;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.jdbc.ClientBaseDataSource;
 import com.splicemachine.db.jdbc.ClientDriver;
-import com.splicemachine.db.client.ClientPooledConnection;
-
+import com.splicemachine.db.shared.common.i18n.MessageUtil;
+import com.splicemachine.db.shared.common.reference.MessageId;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import org.ietf.jgss.GSSContext;
@@ -56,7 +45,16 @@ import org.ietf.jgss.Oid;
 import javax.security.auth.Subject;
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.login.Configuration;
-import javax.security.auth.login.*;
+import javax.security.auth.login.LoginContext;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.sql.*;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.Executor;
 
 public class NetConnection extends com.splicemachine.db.client.am.Connection {
     
