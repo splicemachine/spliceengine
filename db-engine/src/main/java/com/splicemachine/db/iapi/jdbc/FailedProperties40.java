@@ -61,7 +61,8 @@ public class FailedProperties40 {
      */
     public static Properties makeProperties(String name, String value) {
 	Properties p = new Properties();
-	if (name != null || value != null)
+	// Properties is derived from HashTable, in which both key and value cannot be null
+	if (name != null && value != null)
 	    p.setProperty(name, value);
 	return p;
     }
