@@ -14,20 +14,22 @@
  */
 package com.splicemachine.spark2.splicemachine
 
+import java.sql.SQLIntegrityConstraintViolationException
+
+import scala.collection.immutable.IndexedSeq
+import org.apache.spark.sql._
+import org.junit.runner.RunWith
+import org.junit.Assert._
+import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
+import org.scalatest.junit.JUnitRunner
+import org.apache.spark.sql.functions._
 import java.util.concurrent.{CountDownLatch, TimeUnit, TimeoutException}
 
 import com.splicemachine.derby.impl.SpliceSpark
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql._
 import org.apache.spark.sql.execution.datasources.jdbc.JdbcUtils
-import org.apache.spark.sql.functions._
 import org.apache.spark.streaming.{Milliseconds, StreamingContext}
-import org.junit.Assert._
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 
-import scala.collection.immutable.IndexedSeq
 import scala.collection.mutable.Queue
 
 @RunWith(classOf[JUnitRunner])
